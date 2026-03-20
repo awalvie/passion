@@ -1,0 +1,5 @@
+name: "Synovial & Fascia Warm-Up"
+color: "#06b6d4"
+activities:
+  - ref: "Synovial Fluid Warm-Up"
+  - ref: "Fascia Warm-Up"

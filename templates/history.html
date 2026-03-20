@@ -1,0 +1,364 @@
+{{ define "content" }}
+<div class="space-y-5">
+
+  {{/* ── Hero stats ── */}}
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div class="card card-pad flex items-center gap-4">
+      <div class="flex items-center justify-center rounded-lg p-2.5" style="background:var(--accent-bg)">
+        <i data-lucide="flame" style="width:1.25rem;height:1.25rem;color:var(--accent)" aria-hidden="true"></i>
+      </div>
+      <div>
+        <div class="text-2xl font-bold leading-none">{{ .HistoryStats.CurrentStreak }}<span class="text-sm font-normal muted ml-0.5">day{{ if ne .HistoryStats.CurrentStreak 1 }}s{{ end }}</span></div>
+        <div class="mt-0.5 text-xs muted">
+          Current streak{{ if gt .HistoryStats.LongestStreak 0 }} · Best: {{ .HistoryStats.LongestStreak }}d{{ end }}
+        </div>
+      </div>
+    </div>
+    <div class="card card-pad flex items-center gap-4">
+      <div class="flex items-center justify-center rounded-lg p-2.5" style="background:var(--accent-bg)">
+        <i data-lucide="calendar" style="width:1.25rem;height:1.25rem;color:var(--accent)" aria-hidden="true"></i>
+      </div>
+      <div>
+        <div class="text-2xl font-bold leading-none">{{ .HistoryStats.ThisMonthCount }}</div>
+        <div class="mt-0.5 text-xs muted">This month{{ if gt .HistoryStats.ThisWeekCount 0 }} · {{ .HistoryStats.ThisWeekCount }} this week{{ end }}</div>
+      </div>
+    </div>
+    <div class="card card-pad flex items-center gap-4">
+      <div class="flex items-center justify-center rounded-lg p-2.5" style="background:var(--accent-bg)">
+        <i data-lucide="check-circle" style="width:1.25rem;height:1.25rem;color:var(--accent)" aria-hidden="true"></i>
+      </div>
+      <div>
+        <div class="text-2xl font-bold leading-none">{{ .HistoryStats.TotalRuns }}</div>
+        <div class="mt-0.5 text-xs muted">All time · {{ .HistoryStats.TotalTimeLabel }}</div>
+      </div>
+    </div>
+  </div>
+
+  {{/* ── Activity heatmap ── */}}
+  <section class="card card-pad">
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <h2 class="text-sm font-semibold">Activity</h2>
+        <p class="mt-0.5 text-xs muted">Last 12 months</p>
+      </div>
+      <div class="flex items-center gap-1.5 text-[10px] muted">
+        <span>Less</span>
+        <span class="inline-block h-2.5 w-2.5 rounded-sm" style="background:var(--border)"></span>
+        <span class="inline-block h-2.5 w-2.5 rounded-sm" style="background:rgba(79,70,229,0.3)"></span>
+        <span class="inline-block h-2.5 w-2.5 rounded-sm" style="background:rgba(79,70,229,0.55)"></span>
+        <span class="inline-block h-2.5 w-2.5 rounded-sm" style="background:rgba(79,70,229,0.85)"></span>
+        <span>More</span>
+      </div>
+    </div>
+    <div class="mt-3 overflow-x-auto">
+      <div style="display:flex;gap:2px">
+        <div id="heatmap-day-labels" style="display:grid;grid-template-rows:repeat(7,12px);gap:2px;padding-right:4px;margin-top:22px" class="text-[9px] muted shrink-0"></div>
+        <div style="flex:1;min-width:0;position:relative">
+          <div id="heatmap-month-labels" style="display:flex;margin-bottom:6px;height:14px" class="text-[9px] muted"></div>
+          <div id="heatmap-container" style="display:grid;grid-template-rows:repeat(7,12px);grid-auto-flow:column;grid-auto-columns:minmax(12px,1fr);gap:2px;width:100%"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {{/* ── Weekly trend + Template breakdown ── */}}
+  <div class="grid gap-4 md:grid-cols-3">
+    <section class="card card-pad md:col-span-2">
+      <h2 class="text-sm font-semibold">Weekly trend</h2>
+      <p class="mt-0.5 text-xs muted">Last 12 weeks</p>
+      <div class="mt-4" id="weekly-trend-wrap">
+        <div class="flex items-end gap-1" style="height:100px">
+          {{ range $i, $w := .WeeklyTrend }}
+          <div
+            class="weekly-bar flex-1 rounded-t-sm overflow-hidden flex flex-col-reverse cursor-default"
+            style="height:calc({{ $w.HeightPct }} * 1px);min-height:{{ if gt $w.Count 0 }}3px{{ else }}0{{ end }};background:var(--border)"
+            data-label="{{ $w.Label }}"
+            data-count="{{ $w.Count }}"
+          >
+            {{ if $w.Segments }}
+              {{ range $w.Segments }}
+              <div style="height:{{ .HeightPct }}%;background:color-mix(in srgb,{{ .Color }} 55%,var(--panel))"></div>
+              {{ end }}
+            {{ end }}
+          </div>
+          {{ end }}
+        </div>
+        <div class="flex gap-1 mt-1">
+          {{ range $i, $w := .WeeklyTrend }}
+          <div class="flex-1 text-[9px] muted text-center truncate">
+            {{ if or (eq $i 0) (eq $i 5) (eq $i 11) }}{{ $w.Label }}{{ else }}&nbsp;{{ end }}
+          </div>
+          {{ end }}
+        </div>
+      </div>
+    </section>
+
+    <section class="card card-pad">
+      <h2 class="text-sm font-semibold">By template</h2>
+      {{ if .HistoryStats.TemplateBreakdown }}
+        <div class="mt-3 space-y-2.5">
+          {{ range .HistoryStats.TemplateBreakdown }}
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <div class="flex items-center gap-2 min-w-0">
+                  {{ if .Color }}
+                    <span class="inline-block h-2 w-2 shrink-0 rounded-full" style="background-color: {{ .Color }}"></span>
+                  {{ end }}
+                  <span class="text-xs truncate">{{ .TemplateName }}</span>
+                </div>
+                <span class="shrink-0 text-xs font-semibold">{{ .Count }}</span>
+              </div>
+              <div class="h-1.5 w-full rounded-full" style="background:var(--border)">
+                <div class="h-1.5 rounded-full" style="width:{{ .Pct }}%;background:{{ if .Color }}{{ .Color }}{{ else }}var(--accent){{ end }}"></div>
+              </div>
+            </div>
+          {{ end }}
+        </div>
+      {{ else }}
+        <div class="mt-3 text-sm muted">No data yet.</div>
+      {{ end }}
+    </section>
+  </div>
+
+  {{/* ── Workout feed ── */}}
+  <section>
+    <div class="flex items-center justify-between gap-3">
+      <h2 class="text-sm font-semibold">Workouts</h2>
+      <div class="flex items-center gap-0.5 rounded-lg border p-0.5 text-xs" style="border-color: var(--border)">
+        <a href="/history?range=30d" class="rounded-md px-2 py-0.5 transition-colors {{ if eq .HistoryRange "30d" }}font-semibold{{ else }}muted{{ end }}" {{ if eq .HistoryRange "30d" }}style="background:var(--accent-bg)"{{ end }}>30d</a>
+        <a href="/history?range=3mo" class="rounded-md px-2 py-0.5 transition-colors {{ if eq .HistoryRange "3mo" }}font-semibold{{ else }}muted{{ end }}" {{ if eq .HistoryRange "3mo" }}style="background:var(--accent-bg)"{{ end }}>3mo</a>
+        <a href="/history?range=6mo" class="rounded-md px-2 py-0.5 transition-colors {{ if eq .HistoryRange "6mo" }}font-semibold{{ else }}muted{{ end }}" {{ if eq .HistoryRange "6mo" }}style="background:var(--accent-bg)"{{ end }}>6mo</a>
+        <a href="/history?range=1y" class="rounded-md px-2 py-0.5 transition-colors {{ if eq .HistoryRange "1y" }}font-semibold{{ else }}muted{{ end }}" {{ if eq .HistoryRange "1y" }}style="background:var(--accent-bg)"{{ end }}>1y</a>
+        <a href="/history?range=all" class="rounded-md px-2 py-0.5 transition-colors {{ if eq .HistoryRange "all" }}font-semibold{{ else }}muted{{ end }}" {{ if eq .HistoryRange "all" }}style="background:var(--accent-bg)"{{ end }}>All</a>
+      </div>
+    </div>
+
+    {{ if .HistoryRuns }}
+      <div class="mt-3 space-y-1">
+        {{ $lastGroup := "" }}
+        {{ range .HistoryRuns }}
+          {{ if ne .MonthGroup $lastGroup }}
+            {{ $lastGroup = .MonthGroup }}
+            <div class="pt-3 pb-1 first:pt-0">
+              <div class="text-[11px] font-bold muted uppercase tracking-widest">{{ .MonthGroup }}</div>
+            </div>
+          {{ end }}
+          <div
+            class="group flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors"
+            style="border-color: var(--border){{ if .Color }}; border-left: 3px solid {{ .Color }}; background: color-mix(in srgb, {{ .Color }} 4%, var(--panel)){{ else }}; background: var(--panel){{ end }}"
+          >
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-semibold truncate">{{ .TemplateName }}</span>
+                {{ if eq .Status "completed" }}
+                  {{ if and (gt .TotalCount 0) (eq .CompletedCount .TotalCount) }}
+                    <i data-lucide="check-circle" style="width:0.75rem;height:0.75rem;color:#22c55e" aria-hidden="true"></i>
+                  {{ end }}
+                {{ else }}
+                  <span class="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium" style="border-color:#eab308;color:#eab308">Active</span>
+                {{ end }}
+              </div>
+              <div class="mt-0.5 flex items-center gap-2 text-xs muted">
+                <span>{{ .RelativeDate }}</span>
+                <span class="opacity-40">·</span>
+                <span>{{ .DurationLabel }}</span>
+                {{ if gt .TotalCount 0 }}
+                  <span class="opacity-40">·</span>
+                  <span>{{ .CompletedCount }}/{{ .TotalCount }} exercises</span>
+                {{ end }}
+              </div>
+            </div>
+            <div class="shrink-0 flex items-center gap-2">
+              {{ if eq .Status "running" }}
+                <a href="/runs/{{ .RunID }}" class="rounded-md btn-primary px-3 py-1 text-xs font-medium">Resume</a>
+              {{ else }}
+                <form
+                  hx-post="/runs/{{ .ID }}/delete"
+                  hx-swap="none"
+                  hx-confirm="Delete this workout? This cannot be undone."
+                  method="post"
+                >
+                  <button type="submit" class="rounded p-1 opacity-0 transition-opacity group-hover:opacity-100" style="color:var(--muted)" title="Delete">
+                    <i data-lucide="trash-2" style="width:0.8rem;height:0.8rem" aria-hidden="true"></i>
+                  </button>
+                </form>
+              {{ end }}
+            </div>
+          </div>
+        {{ end }}
+      </div>
+    {{ else }}
+      <div class="mt-3 card-muted rounded-md p-4 text-center text-sm muted">
+        <p>No workouts yet.</p>
+        <a href="/dashboard" class="mt-1 inline-block text-sm font-medium" style="color:var(--accent)">Start a session →</a>
+      </div>
+    {{ end }}
+  </section>
+</div>
+
+<div id="passion-tooltip" style="display:none;position:absolute;z-index:9999;pointer-events:none;padding:8px 12px;border-radius:8px;font-size:12px;background:var(--panel);color:var(--text);border:1px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.12);min-width:120px;max-width:240px;white-space:normal;line-height:1.45;"></div>
+
+<script>
+(function() {
+  // ── Data ──
+  var heatmapRaw = {{ .HistoryStats.HeatmapJSON }};
+  var weeklyTrendRaw = {{ .HistoryStats.WeeklyTrendJSON }};
+  var data;
+  try { data = typeof heatmapRaw === 'string' ? JSON.parse(heatmapRaw) : heatmapRaw; } catch(e) { data = []; }
+  var weeklyTrendData;
+  try { weeklyTrendData = typeof weeklyTrendRaw === 'string' ? JSON.parse(weeklyTrendRaw) : weeklyTrendRaw; } catch(e) { weeklyTrendData = []; }
+
+  // Build date->sessions lookup for heatmap tooltips
+  var sessionsByDate = {};
+  data.forEach(function(d) {
+    if (d.sessions && d.sessions.length > 0) sessionsByDate[d.date] = d.sessions;
+  });
+
+  var container = document.getElementById('heatmap-container');
+  var monthBar = document.getElementById('heatmap-month-labels');
+  var dayLabels = document.getElementById('heatmap-day-labels');
+  if (!container || !data.length) return;
+
+  var isDark = document.documentElement.dataset.theme === 'dark' ||
+    (!document.documentElement.dataset.theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  var empty = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  var tiers = isDark
+    ? ['rgba(129,140,248,0.15)', 'rgba(129,140,248,0.4)', 'rgba(129,140,248,0.65)', 'rgba(129,140,248,0.9)']
+    : ['rgba(79,70,229,0.08)', 'rgba(79,70,229,0.3)', 'rgba(79,70,229,0.55)', 'rgba(79,70,229,0.85)'];
+
+  function tier(count) {
+    if (count === 0) return empty;
+    if (count === 1) return tiers[1];
+    if (count === 2) return tiers[2];
+    return tiers[3];
+  }
+
+  // Day-of-week labels (rows: Mon=0 .. Sun=6 in grid)
+  var dayNames = ['M', '', 'W', '', 'F', '', ''];
+  if (dayLabels) {
+    dayNames.forEach(function(n) {
+      var d = document.createElement('div');
+      d.textContent = n;
+      d.style.lineHeight = '12px';
+      d.style.display = 'flex';
+      d.style.alignItems = 'center';
+      dayLabels.appendChild(d);
+    });
+  }
+
+  // Month labels — track which month each column starts
+  var colMonths = {};
+  var totalCols = Math.ceil(data.length / 7);
+  for (var i = 0; i < data.length; i++) {
+    var col = Math.floor(i / 7);
+    var row = i % 7;
+    if (row === 0) {
+      var parts = data[i].date.split('-');
+      var mon = parseInt(parts[1], 10);
+      if (!colMonths[col]) colMonths[col] = mon;
+    }
+  }
+
+  if (monthBar) {
+    var monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var lastMon = -1;
+    for (var c = 0; c < totalCols; c++) {
+      var span = document.createElement('div');
+      span.style.flex = '1';
+      span.style.minWidth = '0';
+      span.style.overflow = 'hidden';
+      var mon = colMonths[c] || 0;
+      if (mon !== lastMon && mon > 0) {
+        span.textContent = monthNames[mon];
+        lastMon = mon;
+      }
+      monthBar.appendChild(span);
+    }
+  }
+
+  // Render cells
+  for (var i = 0; i < data.length; i++) {
+    (function(d) {
+      var cell = document.createElement('div');
+      cell.style.borderRadius = '2px';
+      cell.style.backgroundColor = tier(d.count);
+      cell.style.cursor = 'default';
+      cell.dataset.date = d.date;
+      cell.dataset.count = d.count;
+      cell.classList.add('heatmap-cell');
+      container.appendChild(cell);
+    })(data[i]);
+  }
+
+  // ── Shared tooltip ──
+  var tip = document.getElementById('passion-tooltip');
+  function showTipHTML(el, html) {
+    tip.innerHTML = html;
+    tip.style.display = 'block';
+    moveTip(el);
+  }
+  function moveTip(el) {
+    var r = el.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    var tx = r.left + r.width / 2 - tw / 2;
+    var ty = r.top - tip.offsetHeight - 8 + window.scrollY;
+    if (tx + tw > window.innerWidth - 8) tx = window.innerWidth - tw - 8;
+    tip.style.left = Math.max(4, tx) + 'px';
+    tip.style.top = Math.max(4, ty) + 'px';
+  }
+  function hideTip() { tip.style.display = 'none'; }
+
+  function colorDot(color) {
+    return '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + color + ';opacity:0.85;margin-right:5px;vertical-align:middle;flex-shrink:0"></span>';
+  }
+  function formatDate(dateStr) {
+    var d = new Date(dateStr + 'T00:00:00');
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    return days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate();
+  }
+
+  // Heatmap cell hover
+  container.addEventListener('mouseover', function(e) {
+    var cell = e.target.closest('.heatmap-cell');
+    if (!cell) return;
+    var dateStr = cell.dataset.date;
+    var sessions = sessionsByDate[dateStr];
+    var html = '<div style="font-weight:600;margin-bottom:3px">' + formatDate(dateStr) + '</div>';
+    if (sessions && sessions.length > 0) {
+      sessions.forEach(function(s) {
+        html += '<div style="display:flex;align-items:center;gap:0;margin-top:2px">' + colorDot(s.color) + '<span style="font-size:11px">' + s.name + '</span></div>';
+      });
+    } else {
+      html += '<div style="font-size:11px;color:var(--muted)">Rest day</div>';
+    }
+    showTipHTML(cell, html);
+  });
+  container.addEventListener('mousemove', function(e) {
+    var cell = e.target.closest('.heatmap-cell');
+    if (cell) moveTip(cell);
+  });
+  container.addEventListener('mouseleave', hideTip);
+
+  // Weekly bar hover
+  var bars = document.querySelectorAll('.weekly-bar');
+  bars.forEach(function(bar, idx) {
+    bar.addEventListener('mouseenter', function() {
+      var wt = weeklyTrendData[idx];
+      if (!wt) return;
+      var html = '<div style="font-weight:600;margin-bottom:3px">' + wt.label + '</div>';
+      html += '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">' + wt.count + ' workout' + (wt.count !== 1 ? 's' : '') + '</div>';
+      if (wt.segments && wt.segments.length > 0) {
+        wt.segments.forEach(function(seg) {
+          html += '<div style="display:flex;align-items:center;gap:0;margin-top:2px">' + colorDot(seg.color) + '<span style="font-size:11px">' + seg.name + ' (' + seg.count + ')</span></div>';
+        });
+      }
+      showTipHTML(bar, html);
+    });
+    bar.addEventListener('mousemove', function() { moveTip(bar); });
+    bar.addEventListener('mouseleave', hideTip);
+  });
+})();
+</script>
+{{ end }}

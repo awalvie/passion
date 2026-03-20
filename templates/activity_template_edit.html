@@ -1,0 +1,87 @@
+{{ define "content" }}
+<div class="space-y-4">
+  <div class="card card-pad">
+    <form
+      class="mb-4 space-y-3 border-b pb-4"
+      style="border-color: var(--border)"
+      hx-post="/activity-templates/{{ .Template.ID }}/update"
+      hx-swap="none"
+      method="post"
+    >
+      <div class="flex items-center gap-2">
+        <div class="text-lg font-semibold" id="at-title-display-{{ .Template.ID }}">{{ .Template.Name }}</div>
+        <button
+          type="button"
+          class="rounded btn-ghost px-1.5 py-1 text-xs muted"
+          title="Edit template settings"
+          data-settings-toggle="at-settings-{{ .Template.ID }}"
+        >✎</button>
+      </div>
+      <div id="at-settings-{{ .Template.ID }}" class="hidden space-y-3 border-t pt-3 mt-1" style="border-color:var(--border)">
+        <div>
+          <label class="text-xs font-medium" for="at-name-{{ .Template.ID }}">Name</label>
+          <input
+            id="at-name-{{ .Template.ID }}"
+            name="name"
+            required
+            class="mt-1 w-full input text-sm"
+            value="{{ .Template.Name }}"
+          />
+        </div>
+        <button type="submit" class="rounded-md btn-primary px-3 py-2 text-sm font-medium">
+          Save settings
+        </button>
+      </div>
+    </form>
+
+    <div class="flex justify-end">
+      <div class="flex items-center gap-2">
+        <form
+          hx-post="/activity-templates/{{ .Template.ID }}/delete"
+          hx-swap="none"
+          method="post"
+          onsubmit="return confirm('Delete this activity template and all its exercises?');"
+          class="inline"
+        >
+          <button
+            type="submit"
+            class="self-start rounded-md btn-ghost px-3 py-2 text-sm"
+            style="color:var(--text-muted)"
+          >Delete</button>
+        </form>
+        <a class="self-start rounded-md btn-ghost px-3 py-2 text-sm" href="/activity-templates">
+          Back to activity templates
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {{ template "fragments/activity_template_exercises_container" . }}
+</div>
+
+<script>
+  (function () {
+    const root = document;
+
+    root.querySelectorAll('[data-settings-toggle]').forEach(function (btn) {
+      const panelID = btn.getAttribute('data-settings-toggle');
+      const panel = root.getElementById(panelID);
+      if (!panel) return;
+      btn.addEventListener('click', function () {
+        const hidden = panel.classList.toggle('hidden');
+        btn.title = hidden ? 'Edit template settings' : 'Close settings';
+      });
+    });
+
+    root.querySelectorAll('form[hx-post]').forEach(function (form) {
+      form.addEventListener('htmx:afterRequest', function () {
+        const nameInput = form.querySelector('input[name="name"]');
+        const titleEl = root.getElementById('at-title-display-{{ .Template.ID }}');
+        if (nameInput && titleEl && nameInput.value.trim()) {
+          titleEl.textContent = nameInput.value.trim();
+        }
+      });
+    });
+  })();
+</script>
+{{ end }}

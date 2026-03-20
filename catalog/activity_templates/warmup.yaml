@@ -1,0 +1,6 @@
+name: "Warm Up"
+exercises:
+  - ref: "Finger Base Warm-Up"
+  - ref: "Dynamic Stretching"
+  - ref: "Muscular Activation"
+  - ref: "Hang Warm-Up"

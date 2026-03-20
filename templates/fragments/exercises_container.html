@@ -1,0 +1,1338 @@
+{{ define "fragments/exercises_container" }}
+<div id="exercises-{{ .Activity.ID }}" class="mt-4 space-y-3">
+  <div class="space-y-2">
+    {{ if .Activity.Exercises }}
+      {{ range .Activity.Exercises }}
+        {{ if not .ParentExerciseID }}
+        <details
+          class="card-muted overflow-hidden group passion-disclosure dnd-item"
+          data-exercise-card="1"
+          data-exercise-id="{{ .ID }}"
+        >
+          <summary
+            class="cursor-pointer list-none flex items-center justify-between gap-3 px-3 py-2.5"
+            title="Expand or collapse this exercise"
+          >
+            <div class="min-w-0">
+              <div class="text-sm font-medium truncate" title="{{ .Name }}">{{ .Name }}</div>
+              {{ if eq .Kind "exercise_catalog" }}<span class="text-[10px] font-medium muted ml-1">Exercise catalog</span>{{ end }}
+            </div>
+
+            <div
+              class="dnd-handle shrink-0 text-[12px] muted leading-none opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity"
+              aria-label="Drag to reorder"
+              draggable="true"
+              data-exercise-drag-handle="1"
+              title="Drag to reorder"
+            >
+              ≡
+            </div>
+          </summary>
+
+          <div class="px-3 pb-3 mt-0 space-y-3">
+            <form
+              class="space-y-2"
+              hx-post="/exercises/{{ .ID }}/update"
+              hx-target="#exercises-{{ $.Activity.ID }}"
+              hx-swap="outerHTML"
+              method="post"
+            >
+              <div>
+                <label class="text-xs font-medium" for="ex-name-{{ .ID }}-edit">Exercise name</label>
+                <input
+                  id="ex-name-{{ .ID }}-edit"
+                  name="name"
+                  required
+                  class="mt-1 w-full input text-xs"
+                  value="{{ .Name }}"
+                />
+              </div>
+
+              <div data-exercise-media-fields="1" {{ if eq .Kind "exercise_catalog" }}hidden{{ end }}>
+                <label class="text-xs font-medium">Media</label>
+                <div data-media-list class="space-y-1 mt-1">
+                  {{ if .Media }}
+                  {{ range .Media }}
+                  <div data-media-row class="grid grid-cols-2 gap-2">
+                    <div>
+                      <input name="media_thumbnail_url" class="w-full input text-xs" placeholder="Thumbnail URL" value="{{ .ThumbnailURL }}" />
+                    </div>
+                    <div class="flex gap-1">
+                      <input name="media_video_url" class="w-full input text-xs" placeholder="Video URL" value="{{ .VideoURL }}" />
+                      <button type="button" data-media-remove class="btn-ghost px-1 text-xs rounded-md" title="Remove">&times;</button>
+                    </div>
+                  </div>
+                  {{ end }}
+                  {{ else }}
+                  <div data-media-row class="grid grid-cols-2 gap-2">
+                    <div>
+                      <input name="media_thumbnail_url" class="w-full input text-xs" placeholder="Thumbnail URL" />
+                    </div>
+                    <div class="flex gap-1">
+                      <input name="media_video_url" class="w-full input text-xs" placeholder="Video URL" />
+                      <button type="button" data-media-remove class="btn-ghost px-1 text-xs rounded-md" title="Remove">&times;</button>
+                    </div>
+                  </div>
+                  {{ end }}
+                </div>
+                <button type="button" data-media-add class="mt-1 text-[10px] btn-ghost px-2 py-0.5 rounded-md">+ Add media</button>
+              </div>
+
+              <div>
+                <label class="text-xs font-medium" for="ex-kind-{{ .ID }}-edit">Type</label>
+                <select
+                  id="ex-kind-{{ .ID }}-edit"
+                  name="kind"
+                  class="mt-1 w-full input text-xs"
+                  onchange="window.__passionSyncExerciseKindGroups(this)"
+                >
+                  <option value="reps_and_sets" {{ if and (ne .Kind "session") (ne .Kind "exercise_catalog") }}selected{{ end }}>Reps and sets</option>
+                  <option value="session" {{ if eq .Kind "session" }}selected{{ end }}>Session</option>
+                  <option value="exercise_catalog" {{ if eq .Kind "exercise_catalog" }}selected{{ end }}>Exercise catalog</option>
+                </select>
+              </div>
+
+              <div data-notes-editor>
+                <label class="text-xs font-medium" for="ex-notes-{{ .ID }}-edit">{{ if eq .Kind "exercise_catalog" }}Instructions{{ else }}Notes{{ end }}</label>
+                <p class="text-[10px] muted mt-0.5 mb-1">Markdown supported.</p>
+                <div class="flex gap-1 border-b mb-1" style="border-color: var(--border)">
+                  <button type="button" class="notes-tab notes-tab-active" data-notes-tab="write">Write</button>
+                  <button type="button" class="notes-tab" data-notes-tab="preview">Preview</button>
+                </div>
+                <textarea
+                  id="ex-notes-{{ .ID }}-edit"
+                  name="notes"
+                  rows="4"
+                  class="mt-1 w-full input text-xs"
+                >{{ .Notes }}</textarea>
+                <div data-notes-preview class="notes-preview-panel hidden mt-1" aria-live="polite"></div>
+              </div>
+
+              {{ $hms := durationHMS .SessionDurationSeconds }}
+              <div data-exercise-session-fields="1" {{ if or (ne .Kind "session") (eq .Kind "exercise_catalog") }}hidden{{ end }}>
+                <div class="grid grid-cols-3 gap-2">
+                  <div>
+                    <label class="text-xs font-medium" for="ex-sess-h-{{ .ID }}-edit">Hours</label>
+                    <input
+                      id="ex-sess-h-{{ .ID }}-edit"
+                      name="session_duration_hours"
+                      type="number"
+                      min="0"
+                      class="mt-1 w-full input text-xs"
+                      value="{{ index $hms "h" }}"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="ex-sess-m-{{ .ID }}-edit">Minutes</label>
+                    <input
+                      id="ex-sess-m-{{ .ID }}-edit"
+                      name="session_duration_minutes"
+                      type="number"
+                      min="0"
+                      class="mt-1 w-full input text-xs"
+                      value="{{ index $hms "m" }}"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="ex-sess-s-{{ .ID }}-edit">Seconds</label>
+                    <input
+                      id="ex-sess-s-{{ .ID }}-edit"
+                      name="session_duration_seconds"
+                      type="number"
+                      min="0"
+                      class="mt-1 w-full input text-xs"
+                      value="{{ index $hms "s" }}"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div data-exercise-reps-fields="1" {{ if or (eq .Kind "session") (eq .Kind "exercise_catalog") }}hidden{{ end }}>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="text-xs font-medium" for="ex-sets-{{ .ID }}-edit">Sets</label>
+                    <input
+                      id="ex-sets-{{ .ID }}-edit"
+                      name="sets"
+                      type="number"
+                      min="0"
+                      class="mt-1 w-full input text-xs"
+                      value="{{ .Sets }}"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="ex-reps-{{ .ID }}-edit">Reps</label>
+                    <input
+                      id="ex-reps-{{ .ID }}-edit"
+                      name="reps"
+                      type="number"
+                      min="0"
+                      class="mt-1 w-full input text-xs"
+                      value="{{ .Reps }}"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="ex-weight-{{ .ID }}-edit">Weight (kg)</label>
+                    <input
+                      id="ex-weight-{{ .ID }}-edit"
+                      name="weight_kg"
+                      type="number"
+                      step="0.5"
+                      class="mt-1 w-full input text-xs"
+                      value="{{ .WeightKg }}"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="ex-rep-seconds-{{ .ID }}-edit">Rep time (sec)</label>
+                    <input
+                      id="ex-rep-seconds-{{ .ID }}-edit"
+                      name="rep_seconds"
+                      type="number"
+                      min="0"
+                      class="mt-1 w-full input text-xs"
+                      value="{{ .RepSeconds }}"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="ex-rep-rest-seconds-{{ .ID }}-edit">Rep rest (sec)</label>
+                    <input
+                      id="ex-rep-rest-seconds-{{ .ID }}-edit"
+                      name="rep_rest_seconds"
+                      type="number"
+                      min="0"
+                      class="mt-1 w-full input text-xs"
+                      value="{{ .RepRestSeconds }}"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="ex-set-rest-seconds-{{ .ID }}-edit">Set rest (sec)</label>
+                    <input
+                      id="ex-set-rest-seconds-{{ .ID }}-edit"
+                      name="set_rest_seconds"
+                      type="number"
+                      min="0"
+                      class="mt-1 w-full input text-xs"
+                      value="{{ .SetRestSeconds }}"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <button type="submit" class="w-full rounded-md btn-primary px-3 py-2 text-sm font-medium">
+                  Save
+                </button>
+                <button
+                  type="button"
+                  class="w-full rounded-md btn-ghost px-3 py-2 text-sm font-medium"
+                  hx-post="/exercises/{{ .ID }}/delete"
+                  hx-target="#exercises-{{ $.Activity.ID }}"
+                  hx-swap="outerHTML"
+                  hx-confirm="Delete this exercise?"
+                >
+                  Delete
+                </button>
+              </div>
+            </form>
+            {{ if eq .Kind "exercise_catalog" }}
+            <div class="mt-4 pt-3 border-t space-y-2" style="border-color: var(--border)">
+              <div class="text-xs font-semibold">Options</div>
+              {{ range exerciseChildren $.Activity.Exercises .ID }}
+              <details class="card-muted rounded-md overflow-hidden border" style="border-color: var(--border)">
+                <summary class="cursor-pointer list-none px-3 py-2 text-sm font-medium">
+                  {{ .Name }}
+                </summary>
+                <div class="px-3 pb-3 space-y-2">
+                  <form
+                    class="space-y-2"
+                    hx-post="/exercises/{{ .ID }}/update"
+                    hx-target="#exercises-{{ $.Activity.ID }}"
+                    hx-swap="outerHTML"
+                    method="post"
+                  >
+                    <div>
+                      <label class="text-xs font-medium" for="ex-name-{{ .ID }}-edit">Name</label>
+                      <input id="ex-name-{{ .ID }}-edit" name="name" required class="mt-1 w-full input text-xs" value="{{ .Name }}" />
+                    </div>
+                    <div>
+                      <label class="text-xs font-medium">Media</label>
+                      <div data-media-list class="space-y-1 mt-1">
+                        {{ if .Media }}
+                        {{ range .Media }}
+                        <div data-media-row class="grid grid-cols-2 gap-2">
+                          <div>
+                            <input name="media_thumbnail_url" class="w-full input text-xs" placeholder="Thumbnail URL" value="{{ .ThumbnailURL }}" />
+                          </div>
+                          <div class="flex gap-1">
+                            <input name="media_video_url" class="w-full input text-xs" placeholder="Video URL" value="{{ .VideoURL }}" />
+                            <button type="button" data-media-remove class="btn-ghost px-1 text-xs rounded-md" title="Remove">&times;</button>
+                          </div>
+                        </div>
+                        {{ end }}
+                        {{ else }}
+                        <div data-media-row class="grid grid-cols-2 gap-2">
+                          <div>
+                            <input name="media_thumbnail_url" class="w-full input text-xs" placeholder="Thumbnail URL" />
+                          </div>
+                          <div class="flex gap-1">
+                            <input name="media_video_url" class="w-full input text-xs" placeholder="Video URL" />
+                            <button type="button" data-media-remove class="btn-ghost px-1 text-xs rounded-md" title="Remove">&times;</button>
+                          </div>
+                        </div>
+                        {{ end }}
+                      </div>
+                      <button type="button" data-media-add class="mt-1 text-[10px] btn-ghost px-2 py-0.5 rounded-md">+ Add media</button>
+                    </div>
+                    <div>
+                      <label class="text-xs font-medium" for="ex-kind-{{ .ID }}-edit">Type</label>
+                      <select id="ex-kind-{{ .ID }}-edit" name="kind" class="mt-1 w-full input text-xs" onchange="window.__passionSyncExerciseKindGroups(this)">
+                        <option value="reps_and_sets" {{ if ne .Kind "session" }}selected{{ end }}>Reps and sets</option>
+                        <option value="session" {{ if eq .Kind "session" }}selected{{ end }}>Session</option>
+                      </select>
+                    </div>
+                    <div data-notes-editor>
+                      <label class="text-xs font-medium" for="ex-notes-{{ .ID }}-edit">Detail notes</label>
+                      <p class="text-[10px] muted mt-0.5 mb-1">Markdown (shown in run menu).</p>
+                      <div class="flex gap-1 border-b mb-1" style="border-color: var(--border)">
+                        <button type="button" class="notes-tab notes-tab-active" data-notes-tab="write">Write</button>
+                        <button type="button" class="notes-tab" data-notes-tab="preview">Preview</button>
+                      </div>
+                      <textarea id="ex-notes-{{ .ID }}-edit" name="notes" rows="4" class="mt-1 w-full input text-xs">{{ .Notes }}</textarea>
+                      <div data-notes-preview class="notes-preview-panel hidden mt-1" aria-live="polite"></div>
+                    </div>
+                    {{ $chms := durationHMS .SessionDurationSeconds }}
+                    <div data-exercise-session-fields="1" {{ if ne .Kind "session" }}hidden{{ end }}>
+                      <div class="grid grid-cols-3 gap-2">
+                        <div>
+                          <label class="text-xs font-medium" for="ex-sess-h-{{ .ID }}-edit">Hours</label>
+                          <input id="ex-sess-h-{{ .ID }}-edit" name="session_duration_hours" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ index $chms "h" }}" />
+                        </div>
+                        <div>
+                          <label class="text-xs font-medium" for="ex-sess-m-{{ .ID }}-edit">Minutes</label>
+                          <input id="ex-sess-m-{{ .ID }}-edit" name="session_duration_minutes" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ index $chms "m" }}" />
+                        </div>
+                        <div>
+                          <label class="text-xs font-medium" for="ex-sess-s-{{ .ID }}-edit">Seconds</label>
+                          <input id="ex-sess-s-{{ .ID }}-edit" name="session_duration_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ index $chms "s" }}" />
+                        </div>
+                      </div>
+                    </div>
+                    <div data-exercise-reps-fields="1" {{ if eq .Kind "session" }}hidden{{ end }}>
+                      <div class="grid grid-cols-2 gap-2">
+                        <div>
+                          <label class="text-xs font-medium" for="ex-sets-{{ .ID }}-edit">Sets</label>
+                          <input id="ex-sets-{{ .ID }}-edit" name="sets" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Sets }}" />
+                        </div>
+                        <div>
+                          <label class="text-xs font-medium" for="ex-reps-{{ .ID }}-edit">Reps</label>
+                          <input id="ex-reps-{{ .ID }}-edit" name="reps" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Reps }}" />
+                        </div>
+                        <div>
+                          <label class="text-xs font-medium" for="ex-weight-{{ .ID }}-edit">Weight (kg)</label>
+                          <input id="ex-weight-{{ .ID }}-edit" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input text-xs" value="{{ .WeightKg }}" />
+                        </div>
+                        <div>
+                          <label class="text-xs font-medium" for="ex-rep-seconds-{{ .ID }}-edit">Rep time (sec)</label>
+                          <input id="ex-rep-seconds-{{ .ID }}-edit" name="rep_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .RepSeconds }}" />
+                        </div>
+                        <div>
+                          <label class="text-xs font-medium" for="ex-rep-rest-seconds-{{ .ID }}-edit">Rep rest (sec)</label>
+                          <input id="ex-rep-rest-seconds-{{ .ID }}-edit" name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .RepRestSeconds }}" />
+                        </div>
+                        <div>
+                          <label class="text-xs font-medium" for="ex-set-rest-seconds-{{ .ID }}-edit">Set rest (sec)</label>
+                          <input id="ex-set-rest-seconds-{{ .ID }}-edit" name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .SetRestSeconds }}" />
+                        </div>
+                      </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <button type="submit" class="w-full rounded-md btn-primary px-3 py-2 text-sm font-medium">Save</button>
+                      <button
+                        type="button"
+                        class="w-full rounded-md btn-ghost px-3 py-2 text-sm font-medium"
+                        hx-post="/exercises/{{ .ID }}/delete"
+                        hx-target="#exercises-{{ $.Activity.ID }}"
+                        hx-swap="outerHTML"
+                        hx-confirm="Delete this option?"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </details>
+              {{ end }}
+              <div class="pt-1">
+                <button
+                  type="button"
+                  class="w-full rounded-md btn-ghost px-3 py-2 text-sm font-medium"
+                  data-add-option-open="1"
+                  data-parent-exercise-id="{{ .ID }}"
+                  data-parent-name="{{ .Name }}"
+                >
+                  Add option
+                </button>
+              </div>
+            </div>
+            {{ end }}
+          </div>
+        </details>
+        {{ end }}
+      {{ end }}
+    {{ else }}
+      <div class="card-muted p-3 text-sm muted">
+        No exercises yet. Add one below.
+      </div>
+    {{ end }}
+  </div>
+
+  <div class="mt-4">
+    <div class="flex flex-wrap gap-2">
+      <button
+        type="button"
+        class="rounded-md btn-accent px-3 py-1.5 text-sm font-medium inline-flex items-center gap-1"
+        data-add-exercise-toggle="1"
+        aria-expanded="false"
+        aria-controls="add-exercise-panel-{{ .Activity.ID }}"
+        title="Show the new exercise form"
+      ><i data-lucide="plus" style="width:14px;height:14px"></i> Add Exercise</button>
+    </div>
+    <div id="save-to-library-panel-{{ .Activity.ID }}" class="hidden mt-3 card-muted rounded-lg overflow-hidden" data-save-to-library-panel="{{ .Activity.ID }}">
+      <div class="flex items-center justify-between px-4 py-3 border-b text-sm font-semibold" style="border-color:var(--border)">Save to library
+        <button type="button" class="rounded btn-ghost p-1 inline-flex" data-save-to-library-close="{{ .Activity.ID }}"><i data-lucide="x" style="width:14px;height:14px"></i></button>
+      </div>
+      <form
+        class="px-4 py-4 grid gap-3 sm:grid-cols-2"
+        hx-post="/activities/{{ .Activity.ID }}/exercises/add-to-library"
+        hx-target="#exercises-{{ .Activity.ID }}"
+        hx-swap="outerHTML"
+        method="post"
+      >
+        <div class="sm:col-span-2">
+          <label class="text-xs font-medium" for="stl-name-{{ .Activity.ID }}">Name</label>
+          <input
+            id="stl-name-{{ .Activity.ID }}"
+            name="name"
+            required
+            class="mt-1 w-full input"
+            placeholder="e.g., Weighted Pull-ups"
+            autocomplete="off"
+          />
+        </div>
+        <div class="sm:col-span-2">
+          <label class="text-xs font-medium" for="stl-kind-{{ .Activity.ID }}">Type</label>
+          <select id="stl-kind-{{ .Activity.ID }}" name="kind" class="mt-1 w-full input">
+            <option value="reps_and_sets">Reps and sets</option>
+            <option value="session">Session</option>
+          </select>
+        </div>
+        <div class="sm:col-span-2">
+          <button type="submit" class="w-full rounded-md btn-primary px-3 py-2 text-sm font-medium">Save to library</button>
+        </div>
+      </form>
+    </div>
+    <div id="add-exercise-panel-{{ .Activity.ID }}" class="hidden" data-add-exercise-panel="1">
+    <div class="mt-3 card-muted rounded-lg overflow-hidden">
+
+      {{/* Panel header */}}
+      <div class="px-4 py-3 border-b" style="border-color:var(--border)">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm font-semibold" data-add-panel-heading>Add exercise</span>
+          <button
+            type="button"
+            class="rounded btn-ghost p-1 inline-flex items-center justify-center shrink-0"
+            data-add-exercise-close="1"
+            aria-label="Close add exercise panel"
+            title="Close"
+          ><i data-lucide="x" style="width:14px;height:14px"></i></button>
+        </div>
+        <p class="text-xs muted mt-1 mb-0 hidden" data-add-panel-context></p>
+      </div>
+
+      {{/* From library */}}
+      {{ if .LibraryExercises }}
+      <div class="px-4 py-4">
+        <div class="text-[11px] font-semibold muted uppercase tracking-widest mb-3">From library</div>
+        <form
+          class="flex flex-col gap-2 sm:flex-row sm:items-end"
+          hx-post="/activities/{{ .Activity.ID }}/exercises/from-library"
+          hx-target="#exercises-{{ .Activity.ID }}"
+          hx-swap="outerHTML"
+          method="post"
+        >
+          <input type="hidden" name="parent_exercise_id" value="" data-add-panel-parent-id />
+          <div class="flex-1 min-w-0 relative" data-lib-combo="{{ .Activity.ID }}">
+            <input
+              id="lib-ex-search-{{ .Activity.ID }}"
+              type="text"
+              class="w-full input text-sm"
+              placeholder="Choose a saved exercise…"
+              autocomplete="off"
+              role="combobox"
+              aria-expanded="false"
+              aria-autocomplete="list"
+              aria-controls="lib-ex-list-{{ .Activity.ID }}"
+              data-lib-search="{{ .Activity.ID }}"
+            />
+            <!-- hidden select carries the value for form submission -->
+            <select
+              id="lib-ex-{{ .Activity.ID }}"
+              name="library_exercise_id"
+              required
+              class="sr-only"
+              tabindex="-1"
+              aria-hidden="true"
+              data-lib-select="{{ .Activity.ID }}"
+            >
+              <option value=""></option>
+              {{ range .LibraryExercises }}
+                <option value="{{ .ID }}">{{ .Name }}</option>
+              {{ end }}
+            </select>
+            <!-- dropdown list, hidden until typing -->
+            <ul
+              id="lib-ex-list-{{ .Activity.ID }}"
+              role="listbox"
+              class="hidden absolute z-50 left-0 right-0 mt-1 rounded-md border overflow-y-auto text-sm"
+              style="background:var(--panel);border-color:var(--border);max-height:180px"
+              data-lib-list="{{ .Activity.ID }}"
+            >
+              {{ range .LibraryExercises }}
+                <li
+                  role="option"
+                  aria-selected="false"
+                  data-value="{{ .ID }}"
+                  data-label="{{ .Name }}"
+                  class="px-3 py-2 cursor-pointer select-none"
+                  style="transition:background .1s"
+                  onmouseover="this.style.background='var(--hover)'"
+                  onmouseout="this.style.background=''"
+                >{{ .Name }}</li>
+              {{ end }}
+            </ul>
+          </div>
+          <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium shrink-0 self-end">
+            Add
+          </button>
+        </form>
+        <div class="mt-3">
+          <a
+            href="/exercise-library"
+            class="rounded btn-ghost px-2 py-1 text-xs font-medium inline-flex items-center gap-1"
+          ><i data-lucide="library" style="width:12px;height:12px"></i> Manage library</a>
+        </div>
+      </div>
+      {{ else }}
+      <div class="px-4 py-4">
+        <div class="text-[11px] font-semibold muted uppercase tracking-widest mb-2">From library</div>
+        <p class="text-xs muted">
+          <a href="/exercise-library/new" class="link font-medium">Save exercises to your library</a> to reuse them here.
+        </p>
+      </div>
+      {{ end }}
+
+      {{/* Divider + New exercise section */}}
+      <div class="border-t" style="border-color:var(--border)"></div>
+      <div class="px-4 py-4">
+        <div class="text-[11px] font-semibold muted uppercase tracking-widest mb-3">New exercise</div>
+        <form
+          class="grid gap-3 sm:grid-cols-2"
+          hx-post="/activities/{{ .Activity.ID }}/exercises"
+          hx-target="#exercises-{{ .Activity.ID }}"
+          hx-swap="outerHTML"
+          method="post"
+        >
+          <input type="hidden" name="parent_exercise_id" value="" data-add-panel-parent-id />
+          <div class="sm:col-span-2">
+            <label class="text-xs font-medium" for="ex-name-{{ .Activity.ID }}">Name</label>
+            <input
+              id="ex-name-{{ .Activity.ID }}"
+              name="name"
+              required
+              class="mt-1 w-full input"
+              placeholder="e.g., Bench Press"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="text-xs font-medium" for="ex-kind-{{ .Activity.ID }}">Type</label>
+            <select
+              id="ex-kind-{{ .Activity.ID }}"
+              name="kind"
+              class="mt-1 w-full input"
+              onchange="window.__passionSyncExerciseKindGroups(this)"
+            >
+              <option value="reps_and_sets" selected>Reps and sets</option>
+              <option value="session">Session</option>
+              <option value="exercise_catalog">Exercise catalog</option>
+            </select>
+          </div>
+
+          <p class="text-xs muted sm:col-span-2 m-0" data-catalog-add-hint hidden>
+            Menus don’t use thumbnail/video here. Name each choice below — they’re created when you click <strong class="font-medium" style="color: var(--text)">Add exercise</strong>.
+          </p>
+
+          <div class="sm:col-span-2 space-y-2" data-catalog-options-panel hidden>
+            <label class="text-xs font-medium">Options</label>
+            <p class="text-[11px] muted m-0">Type a name per row, add from your library, or mix both (you can edit details after saving).</p>
+            {{ if .LibraryExercises }}
+            <div class="rounded-md border p-3 space-y-2" style="border-color: var(--border)">
+              <div class="text-xs font-medium">From library</div>
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
+                <div class="flex-1 min-w-0 relative" data-catalog-lib-combo="{{ .Activity.ID }}">
+                  <input
+                    id="po-lib-search-{{ .Activity.ID }}"
+                    type="text"
+                    class="w-full input text-sm"
+                    placeholder="Choose a saved exercise…"
+                    autocomplete="off"
+                    role="combobox"
+                    aria-expanded="false"
+                    aria-autocomplete="list"
+                    aria-controls="po-lib-list-{{ .Activity.ID }}"
+                    data-catalog-lib-search="{{ .Activity.ID }}"
+                    disabled
+                  />
+                  <select
+                    id="po-lib-ex-{{ .Activity.ID }}"
+                    class="sr-only"
+                    tabindex="-1"
+                    aria-hidden="true"
+                    data-catalog-lib-select="{{ .Activity.ID }}"
+                    disabled
+                  >
+                    <option value=""></option>
+                    {{ range .LibraryExercises }}
+                      <option value="{{ .ID }}">{{ .Name }}</option>
+                    {{ end }}
+                  </select>
+                  <ul
+                    id="po-lib-list-{{ .Activity.ID }}"
+                    role="listbox"
+                    class="hidden absolute z-50 left-0 right-0 mt-1 rounded-md border overflow-y-auto text-sm"
+                    style="background:var(--panel);border-color:var(--border);max-height:180px"
+                    data-catalog-lib-list="{{ .Activity.ID }}"
+                  >
+                    {{ range .LibraryExercises }}
+                      <li
+                        role="option"
+                        aria-selected="false"
+                        data-value="{{ .ID }}"
+                        data-label="{{ .Name }}"
+                        class="px-3 py-2 cursor-pointer select-none"
+                        style="transition:background .1s"
+                        onmouseover="this.style.background='var(--hover)'"
+                        onmouseout="this.style.background=''"
+                      >{{ .Name }}</li>
+                    {{ end }}
+                  </ul>
+                </div>
+                <button
+                  type="button"
+                  class="rounded-md btn-primary px-4 py-2 text-sm font-medium shrink-0 self-end"
+                  data-catalog-add-from-library="{{ .Activity.ID }}"
+                  disabled
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+            {{ end }}
+            <div class="space-y-2" data-catalog-option-rows="{{ .Activity.ID }}">
+              <div class="flex gap-2 items-center" data-catalog-option-row>
+                <input type="hidden" name="option_library_id" value="" />
+                <input type="text" name="option_name" class="flex-1 input text-sm" placeholder="e.g., Twisting + opening the hips" autocomplete="off" disabled />
+                <button type="button" class="shrink-0 rounded btn-ghost px-2 py-1 text-xs leading-none" data-remove-option-row hidden aria-label="Remove row">×</button>
+              </div>
+              <div class="flex gap-2 items-center" data-catalog-option-row>
+                <input type="hidden" name="option_library_id" value="" />
+                <input type="text" name="option_name" class="flex-1 input text-sm" placeholder="e.g., Toe placements" autocomplete="off" disabled />
+                <button type="button" class="shrink-0 rounded btn-ghost px-2 py-1 text-xs leading-none" data-remove-option-row hidden aria-label="Remove row">×</button>
+              </div>
+            </div>
+            <button type="button" class="text-xs font-medium link" data-add-catalog-option-row="{{ .Activity.ID }}" disabled>Add another option</button>
+          </div>
+
+          <div class="sm:col-span-2" data-notes-editor>
+            <label class="text-xs font-medium" for="ex-notes-{{ .Activity.ID }}">Notes <span class="font-normal muted">(optional)</span></label>
+            <div class="flex gap-1 border-b mt-1 mb-1" style="border-color: var(--border)">
+              <button type="button" class="notes-tab notes-tab-active" data-notes-tab="write">Write</button>
+              <button type="button" class="notes-tab" data-notes-tab="preview">Preview</button>
+            </div>
+            <textarea
+              id="ex-notes-{{ .Activity.ID }}"
+              name="notes"
+              rows="4"
+              class="w-full input text-sm"
+              placeholder="Cues, variations, RPE… (markdown supported). For a exercise catalog, use this as the instructions block."
+            ></textarea>
+            <div data-notes-preview class="notes-preview-panel hidden mt-1" aria-live="polite"></div>
+          </div>
+
+          <div data-exercise-media-fields="1" class="sm:col-span-2">
+            <label class="text-xs font-medium">Media</label>
+            <div data-media-list class="space-y-1 mt-1">
+              <div data-media-row class="grid grid-cols-2 gap-2">
+                <div>
+                  <input name="media_thumbnail_url" class="w-full input" placeholder="Thumbnail URL (https://…)" />
+                </div>
+                <div class="flex gap-1">
+                  <input name="media_video_url" class="w-full input" placeholder="Video URL" />
+                  <button type="button" data-media-remove class="btn-ghost px-2 text-xs rounded-md" title="Remove">&times;</button>
+                </div>
+              </div>
+            </div>
+            <button type="button" data-media-add class="mt-1 text-[10px] btn-ghost px-2 py-0.5 rounded-md">+ Add media</button>
+          </div>
+
+          <div data-exercise-session-fields="1" class="sm:col-span-2" hidden>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="text-xs font-medium" for="ex-sess-h-{{ .Activity.ID }}">Hours</label>
+                <input id="ex-sess-h-{{ .Activity.ID }}" name="session_duration_hours" type="number" min="0" class="mt-1 w-full input" disabled />
+              </div>
+              <div>
+                <label class="text-xs font-medium" for="ex-sess-m-{{ .Activity.ID }}">Minutes</label>
+                <input id="ex-sess-m-{{ .Activity.ID }}" name="session_duration_minutes" type="number" min="0" class="mt-1 w-full input" disabled />
+              </div>
+              <div>
+                <label class="text-xs font-medium" for="ex-sess-s-{{ .Activity.ID }}">Seconds</label>
+                <input id="ex-sess-s-{{ .Activity.ID }}" name="session_duration_seconds" type="number" min="0" class="mt-1 w-full input" disabled />
+              </div>
+            </div>
+          </div>
+
+          <div data-exercise-reps-fields="1" class="sm:col-span-2">
+            <div class="grid gap-2 sm:grid-cols-2">
+              <div>
+                <label class="text-xs font-medium" for="ex-sets-{{ .Activity.ID }}">Sets</label>
+                <input id="ex-sets-{{ .Activity.ID }}" name="sets" type="number" min="0" class="mt-1 w-full input" />
+              </div>
+              <div>
+                <label class="text-xs font-medium" for="ex-reps-{{ .Activity.ID }}">Reps</label>
+                <input id="ex-reps-{{ .Activity.ID }}" name="reps" type="number" min="0" class="mt-1 w-full input" />
+              </div>
+              <div>
+                <label class="text-xs font-medium" for="ex-weight-{{ .Activity.ID }}">Weight (kg)</label>
+                <input id="ex-weight-{{ .Activity.ID }}" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input" />
+              </div>
+              <div>
+                <label class="text-xs font-medium" for="ex-rep-seconds-{{ .Activity.ID }}">Rep time (sec)</label>
+                <input id="ex-rep-seconds-{{ .Activity.ID }}" name="rep_seconds" type="number" min="0" class="mt-1 w-full input" />
+              </div>
+              <div>
+                <label class="text-xs font-medium" for="ex-rep-rest-seconds-{{ .Activity.ID }}">Rep rest (sec)</label>
+                <input id="ex-rep-rest-seconds-{{ .Activity.ID }}" name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input" />
+              </div>
+              <div>
+                <label class="text-xs font-medium" for="ex-set-rest-seconds-{{ .Activity.ID }}">Set rest (sec)</label>
+                <input id="ex-set-rest-seconds-{{ .Activity.ID }}" name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input" />
+              </div>
+            </div>
+          </div>
+
+          <div class="sm:col-span-2 grid grid-cols-2 gap-2">
+            <button type="submit" class="w-full rounded-md btn-primary px-3 py-2 text-sm font-medium">
+              Add exercise
+            </button>
+            <button
+              type="button"
+              class="w-full rounded-md btn-ghost px-3 py-2 text-sm font-medium inline-flex items-center justify-center gap-1.5"
+              data-save-to-library-toggle="{{ .Activity.ID }}"
+              title="Save a new exercise to your library"
+            ><i data-lucide="bookmark-plus" style="width:14px;height:14px"></i> Save to library</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+    </div>
+
+  <script>
+    (function () {
+      window.__passionSyncExerciseKindGroups = function (kindSelect) {
+        if (!kindSelect || !kindSelect.form) return;
+        const form = kindSelect.form;
+        const session = kindSelect.value === "session";
+        const isCatalog = kindSelect.value === "exercise_catalog";
+        const reps = form.querySelector("[data-exercise-reps-fields]");
+        const sess = form.querySelector("[data-exercise-session-fields]");
+        const media = form.querySelector("[data-exercise-media-fields]");
+        if (reps) {
+          reps.hidden = session || isCatalog;
+          reps.querySelectorAll("input, textarea, select").forEach(function (el) {
+            if (el === kindSelect) return;
+            el.disabled = session || isCatalog;
+          });
+        }
+        if (sess) {
+          sess.hidden = !session || isCatalog;
+          sess.querySelectorAll("input, textarea, select").forEach(function (el) {
+            el.disabled = !session || isCatalog;
+          });
+        }
+        if (media) {
+          media.hidden = isCatalog;
+          media.querySelectorAll("input, textarea, select").forEach(function (el) {
+            el.disabled = isCatalog;
+          });
+        }
+        var addHint = form.querySelector("[data-catalog-add-hint]");
+        if (addHint) {
+          addHint.hidden = !isCatalog;
+        }
+        var libHint = form.querySelector("[data-catalog-library-hint]");
+        if (libHint) {
+          libHint.hidden = !isCatalog;
+        }
+        var optPanel = form.querySelector("[data-catalog-options-panel]");
+        if (optPanel) {
+          optPanel.hidden = !isCatalog;
+          optPanel.querySelectorAll('input[name="option_name"]').forEach(function (el) {
+            el.disabled = !isCatalog;
+          });
+          optPanel.querySelectorAll("[data-add-catalog-option-row]").forEach(function (el) {
+            el.disabled = !isCatalog;
+          });
+          optPanel.querySelectorAll("[data-remove-option-row]").forEach(function (el) {
+            el.disabled = !isCatalog;
+          });
+          optPanel.querySelectorAll("[data-catalog-lib-search], [data-catalog-lib-select], [data-catalog-add-from-library]").forEach(function (el) {
+            el.disabled = !isCatalog;
+          });
+        }
+        if (typeof window.__passionRenderIcons === "function") {
+          window.__passionRenderIcons();
+        }
+      };
+
+      const activityID = {{ .Activity.ID }};
+      const exercisesRootID = "exercises-{{ .Activity.ID }}";
+      let container = document.getElementById(exercisesRootID);
+      if (!container) return;
+
+      function updateCatalogRemoveButtons(rowsRoot) {
+        if (!rowsRoot) return;
+        const rows = rowsRoot.querySelectorAll("[data-catalog-option-row]");
+        rows.forEach(function (row) {
+          const btn = row.querySelector("[data-remove-option-row]");
+          if (btn) btn.hidden = rows.length <= 1;
+        });
+      }
+
+      container.querySelectorAll("[data-catalog-option-rows]").forEach(function (rowsRoot) {
+        updateCatalogRemoveButtons(rowsRoot);
+      });
+
+      container.addEventListener("click", function (e) {
+        const addFromLib = e.target.closest("[data-catalog-add-from-library]");
+        if (addFromLib && !addFromLib.disabled) {
+          const actId = addFromLib.getAttribute("data-catalog-add-from-library");
+          const rowsRoot = container.querySelector('[data-catalog-option-rows="' + actId + '"]');
+          const libSelect = container.querySelector('[data-catalog-lib-select="' + actId + '"]');
+          if (!rowsRoot || !libSelect || !libSelect.value) {
+            e.preventDefault();
+            return;
+          }
+          const first = rowsRoot.querySelector("[data-catalog-option-row]");
+          if (!first) return;
+          const form = addFromLib.closest("form");
+          const kindSel = form ? form.querySelector('select[name="kind"]') : null;
+          const catalogActive = kindSel && kindSel.value === "exercise_catalog";
+          const row = first.cloneNode(true);
+          const hid = row.querySelector('input[name="option_library_id"]');
+          const inp = row.querySelector('input[name="option_name"]');
+          if (hid) hid.value = libSelect.value;
+          if (inp) {
+            const opt = libSelect.options[libSelect.selectedIndex];
+            inp.value = opt ? opt.text : "";
+            inp.disabled = !catalogActive;
+            inp.placeholder = "Option name";
+          }
+          rowsRoot.appendChild(row);
+          updateCatalogRemoveButtons(rowsRoot);
+          libSelect.value = "";
+          const libSearch = container.querySelector('[data-catalog-lib-search="' + actId + '"]');
+          if (libSearch) libSearch.value = "";
+          const libList = container.querySelector('[data-catalog-lib-list="' + actId + '"]');
+          if (libList) {
+            libList.querySelectorAll('li[role="option"]').forEach(function (li) {
+              li.setAttribute("aria-selected", "false");
+            });
+          }
+          e.preventDefault();
+          return;
+        }
+        const addBtn = e.target.closest("[data-add-catalog-option-row]");
+        if (addBtn && !addBtn.disabled) {
+          const actId = addBtn.getAttribute("data-add-catalog-option-row");
+          const rowsRoot = container.querySelector('[data-catalog-option-rows="' + actId + '"]');
+          if (!rowsRoot) return;
+          const first = rowsRoot.querySelector("[data-catalog-option-row]");
+          if (!first) return;
+          const form = addBtn.closest("form");
+          const kindSel = form ? form.querySelector('select[name="kind"]') : null;
+          const catalogActive = kindSel && kindSel.value === "exercise_catalog";
+          const row = first.cloneNode(true);
+          const hid = row.querySelector('input[name="option_library_id"]');
+          if (hid) hid.value = "";
+          const inp = row.querySelector('input[name="option_name"]');
+          if (inp) {
+            inp.value = "";
+            inp.disabled = !catalogActive;
+            inp.placeholder = "Option name";
+          }
+          rowsRoot.appendChild(row);
+          updateCatalogRemoveButtons(rowsRoot);
+          e.preventDefault();
+          return;
+        }
+        const remBtn = e.target.closest("[data-remove-option-row]");
+        if (remBtn && !remBtn.disabled && !remBtn.hidden) {
+          const row = remBtn.closest("[data-catalog-option-row]");
+          const rowsRoot = row && row.parentElement;
+          if (row && rowsRoot && rowsRoot.hasAttribute("data-catalog-option-rows")) {
+            if (rowsRoot.querySelectorAll("[data-catalog-option-row]").length > 1) {
+              row.remove();
+              updateCatalogRemoveButtons(rowsRoot);
+            }
+          }
+          e.preventDefault();
+        }
+      });
+
+      // Library combobox
+      const libSearch = container.querySelector('[data-lib-search="{{ .Activity.ID }}"]');
+      const libSelect = container.querySelector('[data-lib-select="{{ .Activity.ID }}"]');
+      const libList   = container.querySelector('[data-lib-list="{{ .Activity.ID }}"]');
+      if (libSearch && libSelect && libList) {
+        const allItems = () => Array.from(libList.querySelectorAll('li[role="option"]'));
+
+        const openList = () => {
+          libList.classList.remove('hidden');
+          libSearch.setAttribute('aria-expanded', 'true');
+        };
+        const closeList = () => {
+          libList.classList.add('hidden');
+          libSearch.setAttribute('aria-expanded', 'false');
+        };
+        const selectItem = (li) => {
+          libSelect.value = li.dataset.value;
+          libSearch.value = li.dataset.label;
+          allItems().forEach(i => i.setAttribute('aria-selected', 'false'));
+          li.setAttribute('aria-selected', 'true');
+          closeList();
+        };
+
+        libSearch.addEventListener('input', function () {
+          const q = this.value.trim().toLowerCase();
+          let hasVisible = false;
+          allItems().forEach(function (li) {
+            const match = !q || li.dataset.label.toLowerCase().includes(q);
+            li.hidden = !match;
+            if (match) hasVisible = true;
+          });
+          // Clear selection if text no longer matches what was chosen
+          const chosen = allItems().find(li => li.getAttribute('aria-selected') === 'true');
+          if (chosen && chosen.hidden) {
+            libSelect.value = '';
+            chosen.setAttribute('aria-selected', 'false');
+          }
+          if (q && hasVisible) openList();
+          else if (!q) { allItems().forEach(li => { li.hidden = false; }); openList(); }
+          else closeList();
+        });
+
+        libSearch.addEventListener('focus', function () {
+          allItems().forEach(li => { li.hidden = false; });
+          openList();
+        });
+
+        libSearch.addEventListener('keydown', function (e) {
+          const visible = allItems().filter(li => !li.hidden);
+          const active = libList.querySelector('[aria-selected="true"]:not([hidden])');
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const next = active ? (visible[visible.indexOf(active) + 1] || visible[0]) : visible[0];
+            if (next) { allItems().forEach(i => i.setAttribute('aria-selected','false')); next.setAttribute('aria-selected','true'); next.scrollIntoView({block:'nearest'}); libSelect.value = next.dataset.value; }
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const prev = active ? (visible[visible.indexOf(active) - 1] || visible[visible.length-1]) : visible[visible.length-1];
+            if (prev) { allItems().forEach(i => i.setAttribute('aria-selected','false')); prev.setAttribute('aria-selected','true'); prev.scrollIntoView({block:'nearest'}); libSelect.value = prev.dataset.value; }
+          } else if (e.key === 'Enter') {
+            const sel = libList.querySelector('[aria-selected="true"]:not([hidden])');
+            if (sel && !libList.classList.contains('hidden')) { e.preventDefault(); selectItem(sel); }
+          } else if (e.key === 'Escape') {
+            closeList();
+          }
+        });
+
+        libList.addEventListener('mousedown', function (e) {
+          const li = e.target.closest('li[role="option"]');
+          if (li) { e.preventDefault(); selectItem(li); }
+        });
+
+        document.addEventListener('click', function (e) {
+          if (!libSearch.contains(e.target) && !libList.contains(e.target)) closeList();
+        }, true);
+      }
+
+      const poLibSearch = container.querySelector('[data-catalog-lib-search="{{ .Activity.ID }}"]');
+      const poLibSelect = container.querySelector('[data-catalog-lib-select="{{ .Activity.ID }}"]');
+      const poLibList = container.querySelector('[data-catalog-lib-list="{{ .Activity.ID }}"]');
+      if (poLibSearch && poLibSelect && poLibList) {
+        const poAllItems = () => Array.from(poLibList.querySelectorAll('li[role="option"]'));
+        const poOpenList = () => {
+          poLibList.classList.remove('hidden');
+          poLibSearch.setAttribute('aria-expanded', 'true');
+        };
+        const poCloseList = () => {
+          poLibList.classList.add('hidden');
+          poLibSearch.setAttribute('aria-expanded', 'false');
+        };
+        const poSelectItem = (li) => {
+          poLibSelect.value = li.dataset.value;
+          poLibSearch.value = li.dataset.label;
+          poAllItems().forEach(function (i) { i.setAttribute('aria-selected', 'false'); });
+          li.setAttribute('aria-selected', 'true');
+          poCloseList();
+        };
+        poLibSearch.addEventListener('input', function () {
+          const q = this.value.trim().toLowerCase();
+          let hasVisible = false;
+          poAllItems().forEach(function (li) {
+            const match = !q || li.dataset.label.toLowerCase().includes(q);
+            li.hidden = !match;
+            if (match) hasVisible = true;
+          });
+          const chosen = poAllItems().find(function (li) { return li.getAttribute('aria-selected') === 'true'; });
+          if (chosen && chosen.hidden) {
+            poLibSelect.value = '';
+            chosen.setAttribute('aria-selected', 'false');
+          }
+          if (q && hasVisible) poOpenList();
+          else if (!q) { poAllItems().forEach(function (li) { li.hidden = false; }); poOpenList(); }
+          else poCloseList();
+        });
+        poLibSearch.addEventListener('focus', function () {
+          poAllItems().forEach(function (li) { li.hidden = false; });
+          poOpenList();
+        });
+        poLibSearch.addEventListener('keydown', function (e) {
+          const visible = poAllItems().filter(function (li) { return !li.hidden; });
+          const active = poLibList.querySelector('[aria-selected="true"]:not([hidden])');
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const next = active ? (visible[visible.indexOf(active) + 1] || visible[0]) : visible[0];
+            if (next) {
+              poAllItems().forEach(function (i) { i.setAttribute('aria-selected', 'false'); });
+              next.setAttribute('aria-selected', 'true');
+              next.scrollIntoView({ block: 'nearest' });
+              poLibSelect.value = next.dataset.value;
+            }
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const prev = active ? (visible[visible.indexOf(active) - 1] || visible[visible.length - 1]) : visible[visible.length - 1];
+            if (prev) {
+              poAllItems().forEach(function (i) { i.setAttribute('aria-selected', 'false'); });
+              prev.setAttribute('aria-selected', 'true');
+              prev.scrollIntoView({ block: 'nearest' });
+              poLibSelect.value = prev.dataset.value;
+            }
+          } else if (e.key === 'Enter') {
+            const sel = poLibList.querySelector('[aria-selected="true"]:not([hidden])');
+            if (sel && !poLibList.classList.contains('hidden')) { e.preventDefault(); poSelectItem(sel); }
+          } else if (e.key === 'Escape') {
+            poCloseList();
+          }
+        });
+        poLibList.addEventListener('mousedown', function (e) {
+          const li = e.target.closest('li[role="option"]');
+          if (li) { e.preventDefault(); poSelectItem(li); }
+        });
+        document.addEventListener('click', function (e) {
+          if (!poLibSearch.contains(e.target) && !poLibList.contains(e.target)) poCloseList();
+        }, true);
+      }
+
+      const addExerciseToggle = container.querySelector('[data-add-exercise-toggle="1"]');
+      const addExercisePanel = container.querySelector('[data-add-exercise-panel="1"]');
+      const addExerciseClose = container.querySelector('[data-add-exercise-close="1"]');
+
+      function getAddPanelParentInputs() {
+        return addExercisePanel
+          ? Array.from(addExercisePanel.querySelectorAll('[data-add-panel-parent-id]'))
+          : [];
+      }
+      function getAddPanelHeadingEl() {
+        return addExercisePanel ? addExercisePanel.querySelector("[data-add-panel-heading]") : null;
+      }
+      function getAddPanelContextEl() {
+        return addExercisePanel ? addExercisePanel.querySelector("[data-add-panel-context]") : null;
+      }
+      function getNewExerciseKindSelect() {
+        return addExercisePanel ? addExercisePanel.querySelector('form[hx-post*="/exercises"]:not([hx-post*="from-library"]) select[name="kind"]') : null;
+      }
+      function syncCatalogOptionVisibility() {
+        const sel = getNewExerciseKindSelect();
+        if (!sel) return;
+        const opt = sel.querySelector('option[value="exercise_catalog"]');
+        if (!opt) return;
+        const hasParent = getAddPanelParentInputs().some(function (inp) {
+          return inp.value && String(inp.value).trim() !== "";
+        });
+        opt.hidden = hasParent;
+      }
+      function clearAddPanelParentContext() {
+        getAddPanelParentInputs().forEach(function (inp) {
+          inp.value = "";
+        });
+        const ctx = getAddPanelContextEl();
+        if (ctx) {
+          ctx.textContent = "";
+          ctx.classList.add("hidden");
+        }
+        const h = getAddPanelHeadingEl();
+        if (h) h.textContent = "Add exercise";
+        syncCatalogOptionVisibility();
+      }
+      function setAddPanelParentContext(parentId, parentName) {
+        getAddPanelParentInputs().forEach(function (inp) {
+          inp.value = parentId || "";
+        });
+        const ctx = getAddPanelContextEl();
+        if (ctx) {
+          const label = parentName ? String(parentName).trim() : "";
+          ctx.textContent = label
+            ? 'Adding option to “' + label + '”.'
+            : "Adding option to this menu.";
+          ctx.classList.remove("hidden");
+        }
+        const kindSel = getNewExerciseKindSelect();
+        if (kindSel && kindSel.value === "exercise_catalog") {
+          kindSel.value = "reps_and_sets";
+          if (typeof window.__passionSyncExerciseKindGroups === "function") {
+            window.__passionSyncExerciseKindGroups(kindSel);
+          }
+        }
+        syncCatalogOptionVisibility();
+      }
+
+      // Save-to-library panel toggle
+      const stlToggle = container.querySelector('[data-save-to-library-toggle="{{ .Activity.ID }}"]');
+      const stlPanel  = container.querySelector('#save-to-library-panel-{{ .Activity.ID }}');
+      const stlClose  = container.querySelector('[data-save-to-library-close="{{ .Activity.ID }}"]');
+      if (stlToggle && stlPanel) {
+        stlToggle.addEventListener('click', () => {
+          const opening = stlPanel.classList.contains('hidden');
+          stlPanel.classList.toggle('hidden');
+          if (opening) {
+            // close add-exercise panel if it's open
+            if (addExercisePanel && !addExercisePanel.classList.contains('hidden')) {
+              closeAddExercisePanel();
+            }
+            const inp = stlPanel.querySelector('input[name="name"]');
+            if (inp) inp.focus();
+          }
+        });
+      }
+      if (stlClose && stlPanel) {
+        stlClose.addEventListener('click', () => stlPanel.classList.add('hidden'));
+      }
+
+      const openAddExercisePanel = () => {
+        if (!addExerciseToggle || !addExercisePanel) return;
+        // close save-to-library if open
+        if (stlPanel && !stlPanel.classList.contains('hidden')) stlPanel.classList.add('hidden');
+        addExercisePanel.classList.remove("hidden");
+        addExerciseToggle.classList.add("hidden");
+        addExerciseToggle.setAttribute("aria-expanded", "true");
+        try {
+          addExercisePanel.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        } catch (e) {
+          /* ignore */
+        }
+      };
+
+      const closeAddExercisePanel = () => {
+        if (!addExerciseToggle || !addExercisePanel) return;
+        clearAddPanelParentContext();
+        addExercisePanel.classList.add("hidden");
+        addExerciseToggle.classList.remove("hidden");
+        addExerciseToggle.setAttribute("aria-expanded", "false");
+      };
+
+      if (addExerciseToggle && addExercisePanel) {
+        addExerciseToggle.addEventListener("click", () => {
+          clearAddPanelParentContext();
+          openAddExercisePanel();
+        });
+      }
+
+      if (addExerciseClose) {
+        addExerciseClose.addEventListener("click", () => {
+          closeAddExercisePanel();
+        });
+      }
+
+      container.addEventListener("click", function (e) {
+        const optBtn = e.target.closest("[data-add-option-open]");
+        if (!optBtn) return;
+        const parentId = optBtn.getAttribute("data-parent-exercise-id");
+        const parentName = optBtn.getAttribute("data-parent-name") || "";
+        setAddPanelParentContext(parentId, parentName);
+        openAddExercisePanel();
+        e.preventDefault();
+      });
+
+      container.querySelectorAll('select[name="kind"]').forEach(function (sel) {
+        window.__passionSyncExerciseKindGroups(sel);
+      });
+
+      const bindReorder = (root) => {
+        if (!root) return;
+        if (root.dataset.reorderBound === "1") return;
+        root.dataset.reorderBound = "1";
+
+        let draggedId = null;
+
+        const clearExerciseDropStates = () => {
+          root.querySelectorAll(".dnd-drop-target, .dnd-drop-before, .dnd-drop-after, .exercise-drop-active").forEach((el) => {
+            el.classList.remove("dnd-drop-target", "dnd-drop-before", "dnd-drop-after", "exercise-drop-active");
+          });
+          root.querySelectorAll(".dnd-item-dragging, .exercise-card-dragging").forEach((el) => {
+            el.classList.remove("dnd-item-dragging", "exercise-card-dragging");
+          });
+        };
+
+        const getCardIdsInOrder = () =>
+          Array.from(root.querySelectorAll('[data-exercise-card="1"]')).map(
+            (el) => el.dataset.exerciseId
+          );
+
+        const handleEls = Array.from(
+          root.querySelectorAll('[data-exercise-drag-handle="1"]')
+        );
+        handleEls.forEach((handle) => {
+          handle.addEventListener("click", (e) => {
+            // Prevent toggling details when clicking the drag handle.
+            e.preventDefault();
+            e.stopPropagation();
+          });
+          handle.addEventListener("dragstart", (e) => {
+            const card = handle.closest('[data-exercise-card="1"]');
+            if (!card) return;
+            draggedId = card.dataset.exerciseId;
+            card.classList.add("dnd-item-dragging");
+            card.classList.add("exercise-card-dragging");
+            e.dataTransfer.setData("text/plain", draggedId);
+            e.dataTransfer.effectAllowed = "move";
+          });
+          handle.addEventListener("dragend", () => {
+            draggedId = null;
+            clearExerciseDropStates();
+          });
+        });
+
+        const cardEls = Array.from(
+          root.querySelectorAll('[data-exercise-card="1"]')
+        );
+        cardEls.forEach((cardEl) => {
+          cardEl.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            const targetId = cardEl.dataset.exerciseId;
+            if (!draggedId || !targetId || draggedId === targetId) return;
+            const rect = cardEl.getBoundingClientRect();
+            const y = e.clientY - rect.top;
+            const nextPlacement = y < rect.height / 2 ? "before" : "after";
+            const currentPlacement = cardEl.dataset.dropPlacement || "before";
+            if (currentPlacement === nextPlacement && cardEl.classList.contains("dnd-drop-target")) {
+              return;
+            }
+            cardEl.dataset.dropPlacement = nextPlacement;
+            clearExerciseDropStates();
+            cardEl.classList.add("dnd-drop-target", "exercise-drop-active");
+            cardEl.classList.add(nextPlacement === "before" ? "dnd-drop-before" : "dnd-drop-after");
+          });
+
+          cardEl.addEventListener("dragenter", (e) => {
+            e.preventDefault();
+            const targetId = cardEl.dataset.exerciseId;
+            if (!draggedId || !targetId || draggedId === targetId) return;
+            const rect = cardEl.getBoundingClientRect();
+            const y = e.clientY - rect.top;
+            const nextPlacement = y < rect.height / 2 ? "before" : "after";
+            cardEl.dataset.dropPlacement = nextPlacement;
+            clearExerciseDropStates();
+            cardEl.classList.add("dnd-drop-target", "exercise-drop-active");
+            cardEl.classList.add(nextPlacement === "before" ? "dnd-drop-before" : "dnd-drop-after");
+          });
+
+          cardEl.addEventListener("dragleave", () => {
+            cardEl.classList.remove("exercise-drop-active");
+          });
+
+          cardEl.addEventListener("drop", (e) => {
+            e.preventDefault();
+            const targetId = cardEl.dataset.exerciseId;
+            const targetPlacement = cardEl.dataset.dropPlacement || "before";
+            cardEl.classList.remove("exercise-drop-active");
+            if (!draggedId || !targetId || draggedId === targetId) return;
+
+            const ids = getCardIdsInOrder();
+            const fromIndex = ids.indexOf(draggedId);
+            const toIndex = ids.indexOf(targetId);
+            if (fromIndex < 0 || toIndex < 0) return;
+
+            const remaining = ids.filter((id) => id !== draggedId);
+            const targetIndex = remaining.indexOf(targetId);
+            if (targetIndex < 0) return;
+            let insertAt = targetIndex + (targetPlacement === "after" ? 1 : 0);
+            if (insertAt < 0) insertAt = 0;
+            if (insertAt > remaining.length) insertAt = remaining.length;
+            remaining.splice(insertAt, 0, draggedId);
+
+            const body =
+              "ordered_ids=" + encodeURIComponent(remaining.join(","));
+
+            fetch("/activities/" + activityID + "/exercises/reorder", {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: body,
+            })
+              .then((r) => r.text())
+              .then((html) => {
+                const parserWrap = document.createElement("div");
+                parserWrap.innerHTML = html;
+
+                const nextExercises = parserWrap.querySelector("#" + exercisesRootID);
+                if (nextExercises) {
+                  root.outerHTML = nextExercises.outerHTML;
+                }
+
+                const nextPreview = parserWrap.querySelector("#preview-panel");
+                const livePreview = document.getElementById("preview-panel");
+                if (nextPreview && livePreview) {
+                  livePreview.outerHTML = nextPreview.outerHTML;
+                }
+
+                // Re-bind handlers (inline script in returned fragment won't auto-execute).
+                container = document.getElementById(exercisesRootID);
+                bindReorder(container);
+                if (container) {
+                  container.querySelectorAll('select[name="kind"]').forEach(function (sel) {
+                    window.__passionSyncExerciseKindGroups(sel);
+                  });
+                }
+              });
+          });
+        });
+      };
+
+      bindReorder(container);
+    })();
+  </script>
+</div>
+{{ end }}
+

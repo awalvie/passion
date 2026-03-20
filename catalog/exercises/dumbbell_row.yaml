@@ -1,0 +1,9 @@
+name: "Dumbbell Row"
+kind: "reps_and_sets"
+sets: 3
+reps: 10
+set_rest_seconds: 300
+media:
+  - video_url: "https://www.youtube.com/watch?v=51R8SFuDuTI"
+    thumbnail_url: "https://i.ytimg.com/vi/51R8SFuDuTI/maxresdefault.jpg"
+notes: "Load: 75% of 1RM."

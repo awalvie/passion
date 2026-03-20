@@ -1,0 +1,209 @@
+{{ define "fragments/activities_container" }}
+<div id="activities" class="space-y-3">
+  {{ if .Template.Activities }}
+    {{ range $i, $act := .Template.Activities }}
+      <details
+        class="card overflow-hidden passion-disclosure activity-card dnd-item group"
+        data-activity-card="1"
+        data-activity-id="{{ $act.ID }}"
+        {{ if eq $i 0 }}open{{ end }}
+      >
+        <summary
+          class="cursor-pointer list-none flex items-center justify-between gap-3 px-5 py-3"
+          title="Expand or collapse this activity"
+        >
+          <div class="min-w-0 flex items-center gap-2">
+            <div
+              class="activity-drag-handle dnd-handle shrink-0 text-[12px] muted leading-none opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+              aria-label="Drag to reorder activity"
+              draggable="true"
+              data-activity-drag-handle="1"
+              title="Drag to reorder activity"
+            >
+              ≡
+            </div>
+            <div class="text-sm font-semibold truncate">{{ if $act.Name }}{{ $act.Name }}{{ else }}{{ $act.Type }}{{ end }}</div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <div class="text-xs muted">
+              {{ len $act.Exercises }} exercise(s) • Activity #{{ $act.OrderIndex }}
+            </div>
+            <button
+              type="button"
+              class="rounded-md btn-ghost px-2 py-1 text-xs"
+              hx-post="/activities/{{ $act.ID }}/delete"
+              hx-target="#activities"
+              hx-swap="outerHTML"
+              hx-confirm="Delete this activity and all its exercises?"
+              onclick="event.preventDefault(); event.stopPropagation();"
+            >
+              Delete
+            </button>
+          </div>
+        </summary>
+
+        <div class="px-5 pb-5">
+          {{ template "fragments/exercises_container" (exercisesFragment $act $.LibraryExercises) }}
+        </div>
+      </details>
+    {{ end }}
+  {{ else }}
+    <div class="card-muted p-4 text-sm muted">
+      No activities yet. Add one below.
+    </div>
+  {{ end }}
+</div>
+
+<script>
+  (function () {
+    let activitiesRoot = document.getElementById("activities");
+    if (!activitiesRoot) return;
+
+    const templateID = {{ .Template.ID }};
+    let draggedID = null;
+
+    const getOrderedIDs = () =>
+      Array.from(activitiesRoot.querySelectorAll('[data-activity-card="1"]')).map(
+        (el) => el.dataset.activityId
+      );
+
+    const clearDropStates = () => {
+      activitiesRoot.querySelectorAll(".dnd-drop-target, .dnd-drop-before, .dnd-drop-after, .activity-drop-active").forEach((el) => {
+        el.classList.remove("dnd-drop-target", "dnd-drop-before", "dnd-drop-after", "activity-drop-active");
+      });
+      activitiesRoot.querySelectorAll(".dnd-item-dragging, .activity-card-dragging").forEach((el) => {
+        el.classList.remove("dnd-item-dragging", "activity-card-dragging");
+      });
+    };
+
+    let justDragged = false;
+
+    const bindActivitiesReorder = (root) => {
+      if (!root) return;
+      if (root.dataset.reorderBound === "1") return;
+      root.dataset.reorderBound = "1";
+
+      // Swallow the post-drag synthetic click that would toggle the <details>.
+      root.querySelectorAll('[data-activity-card="1"] > summary').forEach((summary) => {
+        summary.addEventListener("click", (e) => {
+          if (justDragged) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            justDragged = false;
+          }
+        }, true);
+      });
+
+      root.querySelectorAll('[data-activity-drag-handle="1"]').forEach((handle) => {
+        handle.addEventListener("click", (e) => {
+          // Keep drag-handle click from toggling the enclosing <details>.
+          e.preventDefault();
+          e.stopPropagation();
+        });
+        handle.addEventListener("dragstart", (e) => {
+          const card = handle.closest('[data-activity-card="1"]');
+          if (!card) return;
+          draggedID = card.dataset.activityId;
+          card.classList.add("dnd-item-dragging");
+          card.classList.add("activity-card-dragging");
+          e.dataTransfer.setData("text/plain", draggedID);
+          e.dataTransfer.effectAllowed = "move";
+          // Prevent descendant <details> from toggling when pointer-up lands inside.
+          root.querySelectorAll('[data-activity-card="1"] details summary').forEach((s) => {
+            s.style.pointerEvents = "none";
+          });
+        });
+        handle.addEventListener("dragend", () => {
+          justDragged = true;
+          draggedID = null;
+          clearDropStates();
+          root.querySelectorAll('[data-activity-card="1"] details summary').forEach((s) => {
+            s.style.pointerEvents = "";
+          });
+        });
+      });
+
+      root.querySelectorAll('[data-activity-card="1"]').forEach((card) => {
+        card.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          if (!draggedID || draggedID === card.dataset.activityId) return;
+          const rect = card.getBoundingClientRect();
+          const y = e.clientY - rect.top;
+          const nextPlacement = y < rect.height / 2 ? "before" : "after";
+          const currentPlacement = card.dataset.dropPlacement || "before";
+          if (currentPlacement === nextPlacement && card.classList.contains("dnd-drop-target")) {
+            return;
+          }
+          card.dataset.dropPlacement = nextPlacement;
+          clearDropStates();
+          card.classList.add("dnd-drop-target", "activity-drop-active");
+          card.classList.add(nextPlacement === "before" ? "dnd-drop-before" : "dnd-drop-after");
+        });
+        card.addEventListener("dragenter", (e) => {
+          e.preventDefault();
+          if (!draggedID || draggedID === card.dataset.activityId) return;
+          const rect = card.getBoundingClientRect();
+          const y = e.clientY - rect.top;
+          const nextPlacement = y < rect.height / 2 ? "before" : "after";
+          card.dataset.dropPlacement = nextPlacement;
+          clearDropStates();
+          card.classList.add("dnd-drop-target", "activity-drop-active");
+          card.classList.add(nextPlacement === "before" ? "dnd-drop-before" : "dnd-drop-after");
+        });
+        card.addEventListener("dragleave", () => {
+          card.classList.remove("activity-drop-active");
+        });
+        card.addEventListener("drop", (e) => {
+          e.preventDefault();
+          const targetID = card.dataset.activityId;
+          const targetPlacement = card.dataset.dropPlacement || "before";
+          card.classList.remove("activity-drop-active");
+          if (!draggedID || !targetID || draggedID === targetID) return;
+
+          const ids = getOrderedIDs();
+          const fromIndex = ids.indexOf(draggedID);
+          const toIndex = ids.indexOf(targetID);
+          if (fromIndex < 0 || toIndex < 0) return;
+
+          const remaining = ids.filter((id) => id !== draggedID);
+          const targetIndex = remaining.indexOf(targetID);
+          if (targetIndex < 0) return;
+          let insertAt = targetIndex + (targetPlacement === "after" ? 1 : 0);
+          if (insertAt < 0) insertAt = 0;
+          if (insertAt > remaining.length) insertAt = remaining.length;
+          remaining.splice(insertAt, 0, draggedID);
+
+          const body = "ordered_ids=" + encodeURIComponent(remaining.join(","));
+          fetch("/templates/" + templateID + "/activities/reorder", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: body,
+          })
+            .then((r) => r.text())
+            .then((html) => {
+              const parserWrap = document.createElement("div");
+              parserWrap.innerHTML = html;
+
+              const nextActivities = parserWrap.querySelector("#activities");
+              if (nextActivities) {
+                activitiesRoot.outerHTML = nextActivities.outerHTML;
+              }
+
+              const nextPreview = parserWrap.querySelector("#preview-panel");
+              const livePreview = document.getElementById("preview-panel");
+              if (nextPreview && livePreview) {
+                livePreview.outerHTML = nextPreview.outerHTML;
+              }
+
+              activitiesRoot = document.getElementById("activities");
+              bindActivitiesReorder(activitiesRoot);
+            });
+        });
+      });
+    };
+
+    bindActivitiesReorder(activitiesRoot);
+  })();
+</script>
+{{ end }}
+

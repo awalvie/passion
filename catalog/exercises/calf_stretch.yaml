@@ -1,0 +1,11 @@
+name: "Calf Stretch"
+kind: "reps_and_sets"
+sets: 2
+reps: 1
+rep_seconds: 30
+set_rest_seconds: 65
+media:
+  - video_url: "https://www.youtube.com/watch?v=f1HzSAuB-Vw"
+    thumbnail_url: "https://i.ytimg.com/vi/f1HzSAuB-Vw/maxresdefault.jpg"
+notes: |
+  Hold for 30 seconds. The stretch should be mild. Feel free to do this morning and night or twice daily where you can fit it.

@@ -1,0 +1,96 @@
+name: "Synovial Fluid Warm-Up"
+exercises:
+  - name: "Thumbs Up / Down"
+    kind: "reps_and_sets"
+    sets: 1
+    reps: 5
+    rep_seconds: 4
+    notes: |
+      Arms at sides, thumbs leading upward as high as possible.
+      On the way down, reach backwards to stretch the shoulders.
+      Repeat with pinkies leading (pinky up / pinky down).
+      Focus on maximum range of motion at a controlled, flowing pace.
+  - name: "Single Arm Circles (Palm Focus)"
+    kind: "reps_and_sets"
+    sets: 2
+    reps: 5
+    rep_seconds: 4
+    notes: |
+      Right arm: lift with palm facing upward, rotate at the top, bring down with palm facing downward.
+      Repeat in the other direction (upper palm facing upward, rotate, upper palm facing downward).
+      Keep torso straight — avoid rotating the body. Repeat on left arm (1 set per arm).
+  - name: "Single Arm Sideways Circles"
+    kind: "reps_and_sets"
+    sets: 2
+    reps: 5
+    rep_seconds: 4
+    notes: |
+      Same as arm circles but in the lateral axis (arm moves sideways).
+      Palm up on the way up, rotate, palm down on the way down.
+      Repeat other direction, then switch arms.
+      Keep shoulders wide and square.
+  - name: "90° Arm Rotations (Thumbs & Pinkies)"
+    kind: "reps_and_sets"
+    sets: 2
+    reps: 5
+    rep_seconds: 3
+    notes: |
+      Arms at 90° in front, thumbs touching, elbows touching. Shoulders pressed down.
+      Rotate thumbs apart, then bring thumbs and elbows back together.
+      Second set: pinkies touching — rotate pinkies apart and back.
+  - name: "Wrist Fist Rolls"
+    kind: "reps_and_sets"
+    sets: 1
+    reps: 5
+    rep_seconds: 6
+    notes: |
+      Arms extended forward, fingers fully extended.
+      Tuck thumb into palm, crimp fingers over thumb tightly.
+      Flex wrist down (max range), bring fists close to body.
+      Flip fists upward (feel the stretch), extend arms out again.
+      Maintain finger squeeze throughout — don't let fingers release when flipping.
+  - name: "Ankle U-Shape (Heel Down)"
+    kind: "reps_and_sets"
+    sets: 2
+    reps: 5
+    rep_seconds: 3
+    notes: |
+      Stand on one foot, other foot's heel stays on the ground.
+      Draw a U-shape with the foot: big toe side to pinky side.
+      Keep the knee completely stable — only the ankle moves. One set per foot.
+  - name: "Ankle O-Shape (Toes Down)"
+    kind: "reps_and_sets"
+    sets: 2
+    reps: 5
+    rep_seconds: 3
+    notes: |
+      Stand on one foot, other foot's toes on the ground, heel in the air.
+      Draw an O-shape with the heel — as wide and big as possible.
+      Keep knee stable. One set per foot.
+  - name: "Leg Swings (Front / Back)"
+    kind: "reps_and_sets"
+    sets: 2
+    reps: 5
+    rep_seconds: 4
+    notes: |
+      Stand on one leg, swing the other leg forward and backward.
+      Keep toes pointing upward throughout. Controlled movement, not overly dynamic.
+      Feel the calf stretch forward, thigh stretch backward. One set per leg.
+  - name: "Hip Circles (90° Leg)"
+    kind: "reps_and_sets"
+    sets: 2
+    reps: 5
+    rep_seconds: 4
+    notes: |
+      Stand on one leg, lift other leg to 90° hip and 90° knee.
+      Move the leg sideways, then push further in that direction.
+      Focus on hip mobility — keep standing knee stable. One set per leg.
+  - name: "Figure-8s (Hip)"
+    kind: "reps_and_sets"
+    sets: 2
+    reps: 5
+    rep_seconds: 5
+    notes: |
+      Same starting position as hip circles.
+      Paint a figure-8 in the air with the knee.
+      Hardest exercise for balance — hold something if needed. One set per leg.

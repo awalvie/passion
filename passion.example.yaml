@@ -1,0 +1,31 @@
+# Passion server configuration (optional).
+# Copy to passion.yaml or pass -config /path/to/passion.yaml
+#
+# Environment variables override these values:
+#   PASSION_ADDR                          listen address (default :3000)
+#   PASSION_DB_PATH                       SQLite file path (default passion.db)
+#   PASSION_SEED                          1/true/yes to seed dev data when DB is empty
+#   PASSION_JWT_SECRET                    JWT signing secret (required for auth security)
+#   PASSION_JWT_TTL_HOURS                 JWT lifetime in hours (default 168)
+#   PASSION_DEV_AUTH_BYPASS               1/true/yes to skip login in dev and auto-auth as demo user
+#   PASSION_YAML_IMPORT_ENABLED           1/true/yes to import YAML seed data at startup
+#   PASSION_YAML_EXERCISES_DIR            directory with exercise YAML files
+#   PASSION_YAML_SESSION_TEMPLATES_DIR    directory with session-template YAML files
+#   PASSION_YAML_IMPORT_OWNER_ID          owner id receiving imported records
+
+Server:
+  Addr: ":3000"
+  DBPath: "passion.db"
+  Seed: false
+
+Auth:
+  JWTSecret: "change-me-in-production"
+  JWTTTLHours: 168
+  DevAuthBypass: true
+
+# Startup YAML import (idempotent upsert by name)
+YAMLImport:
+  Enabled: false
+  ExercisesDir: "catalog/exercises"
+  SessionTemplatesDir: "catalog/session_templates"
+  OwnerID: 1

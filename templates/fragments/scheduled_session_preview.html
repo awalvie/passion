@@ -1,0 +1,56 @@
+{{ define "fragments/scheduled_session_preview" }}
+<div class="catalog-dialog-body">
+  <div class="flex items-start justify-between gap-3">
+    <div class="min-w-0">
+      <h3 class="m-0 text-base font-semibold truncate">
+        {{ if .Template }}{{ .Template.Name }}{{ end }}
+      </h3>
+      <p class="mt-1 text-xs muted">Workout preview</p>
+    </div>
+    <form method="dialog">
+      <button type="submit" class="rounded-md btn-ghost px-3 py-1 text-sm font-medium">Close</button>
+    </form>
+  </div>
+
+  <div class="mt-4 preview-flow">
+    {{ if and .Template .Template.Activities }}
+      {{ range $i, $act := .Template.Activities }}
+        <div class="preview-flow-item">
+          <div class="preview-flow-marker" aria-hidden="true"></div>
+          <div class="preview-flow-content">
+            <div class="preview-flow-activity-title">
+              <div class="text-sm font-semibold truncate" title="{{ if $act.Name }}{{ $act.Name }}{{ else }}{{ $act.Type }}{{ end }}">{{ if $act.Name }}{{ $act.Name }}{{ else }}{{ $act.Type }}{{ end }}</div>
+              <div class="text-xs muted">{{ countRootExercises $act.Exercises }} exercise(s)</div>
+            </div>
+
+            <div class="preview-flow-exercises">
+              {{ if $act.Exercises }}
+                {{ range $j, $ex := $act.Exercises }}
+                  {{ if not $ex.ParentExerciseID }}
+                  <div class="preview-flow-exercise">
+                    <div class="preview-flow-exercise-name truncate" title="{{ $ex.Name }}">{{ $ex.Name }}</div>
+                    <div class="preview-flow-exercise-meta text-xs muted">
+                      {{ if eq $ex.Kind "exercise_catalog" }}
+                        Exercise catalog · {{ len (exerciseChildren $act.Exercises $ex.ID) }} option(s)
+                      {{ else if eq $ex.Kind "session" }}
+                        Session · {{ if eq $ex.SessionDurationSeconds 0 }}Open-ended{{ else }}{{ formatSessionDuration $ex.SessionDurationSeconds }}{{ end }}
+                      {{ else }}
+                        {{ $ex.Sets }}×{{ $ex.Reps }}{{ if gt $ex.RepSeconds 0 }} · {{ $ex.RepSeconds }}s rep{{ end }}{{ if gt $ex.WeightKg 0.0 }} · {{ printf "%.1f" $ex.WeightKg }}kg{{ end }}
+                      {{ end }}
+                    </div>
+                  </div>
+                  {{ end }}
+                {{ end }}
+              {{ else }}
+                <div class="text-xs muted">No exercises</div>
+              {{ end }}
+            </div>
+          </div>
+        </div>
+      {{ end }}
+    {{ else }}
+      <div class="text-sm muted">No activities yet.</div>
+    {{ end }}
+  </div>
+</div>
+{{ end }}

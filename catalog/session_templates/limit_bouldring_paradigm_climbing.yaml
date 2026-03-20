@@ -1,0 +1,14 @@
+name: "Limit Bouldering | Paradigm Climbing"
+color: "#84cc16"
+activities:
+  - ref: "Warm Up"
+  - ref: "Drills"
+  - type: "activity"
+    name: "Workout"
+    exercises:
+      - ref: "Honest Project"
+      - ref: "Ideal Circuit (boulders)"
+      - ref: "1-arm lock-off 90 degrees"
+      - ref: "1-arm lock-off 120 degrees"
+      - ref: "Wide-Grip Pull-Ups"
+      - ref: "Dumbbell Row"

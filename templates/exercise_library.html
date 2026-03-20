@@ -1,0 +1,223 @@
+{{ define "content" }}
+<div class="card card-pad">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <h2 class="text-sm font-semibold">Exercise library</h2>
+      <p class="mt-1 text-sm muted">Saved exercises you can add into any activity while editing a session template.</p>
+    </div>
+    <a class="inline-flex items-center justify-center rounded-md btn-primary px-4 py-2 text-sm font-medium" href="/exercise-library/new">
+      New saved exercise
+    </a>
+  </div>
+
+  <!-- Search, filter, sort controls -->
+  <form method="get" action="/exercise-library" id="library-filter-form" class="mt-4 flex flex-wrap items-end gap-2">
+    <div class="flex-1" style="min-width:10rem">
+      <input
+        type="text"
+        name="q"
+        value="{{ .LibrarySearch }}"
+        placeholder="Search exercises..."
+        class="input"
+        autocomplete="off"
+      />
+    </div>
+    <select name="kind" class="input" style="width:auto;min-width:8rem">
+      <option value=""{{ if eq .LibraryKind "" }} selected{{ end }}>All types</option>
+      <option value="reps_and_sets"{{ if eq .LibraryKind "reps_and_sets" }} selected{{ end }}>Reps &amp; sets</option>
+      <option value="session"{{ if eq .LibraryKind "session" }} selected{{ end }}>Session</option>
+      <option value="exercise_catalog"{{ if eq .LibraryKind "exercise_catalog" }} selected{{ end }}>Catalog</option>
+    </select>
+    <select name="sort" class="input" style="width:auto;min-width:8rem">
+      <option value="name"{{ if eq .LibrarySort "name" }} selected{{ end }}>Name A-Z</option>
+      <option value="name_desc"{{ if eq .LibrarySort "name_desc" }} selected{{ end }}>Name Z-A</option>
+      <option value="newest"{{ if eq .LibrarySort "newest" }} selected{{ end }}>Newest first</option>
+      <option value="oldest"{{ if eq .LibrarySort "oldest" }} selected{{ end }}>Oldest first</option>
+    </select>
+    <noscript><button type="submit" class="rounded-md btn-ghost px-3 py-2 text-sm font-medium">Apply</button></noscript>
+    {{ if or .LibrarySearch (ne .LibraryKind "") (ne .LibrarySort "name") }}
+      <a href="/exercise-library" class="rounded-md px-3 py-2 text-xs muted hover:underline">Clear</a>
+    {{ end }}
+  </form>
+
+  <form id="library-bulk-form" action="/exercise-library/export" method="post">
+  <div class="mt-3 overflow-auto">
+    <table class="min-w-full text-sm" style="border-collapse:collapse">
+      <thead>
+        <tr class="text-left text-xs font-medium muted" style="border-bottom:1px solid var(--border)">
+          <th class="px-3 py-2 w-8">
+            <input type="checkbox" id="select-all-exercises" class="rounded" style="border-color:var(--border)" title="Select all" />
+          </th>
+          <th class="px-3 py-2">Name</th>
+          <th class="px-3 py-2">Type</th>
+          <th class="px-3 py-2">Config</th>
+          <th class="px-3 py-2 w-24">
+            <button
+              type="submit"
+              id="export-selected-btn"
+              class="rounded-md btn-ghost px-2 py-1 text-xs font-medium opacity-40 pointer-events-none whitespace-nowrap"
+              disabled
+            >
+              Export
+            </button>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {{ if .LibraryExercises }}
+          {{ range .LibraryExercises }}
+            <tr class="group/row transition-colors" style="border-bottom:1px solid var(--border)">
+              <td class="px-3 py-2.5">
+                <input
+                  type="checkbox"
+                  name="ids[]"
+                  value="{{ .ID }}"
+                  class="exercise-row-check rounded"
+                  style="border-color:var(--border)"
+                />
+              </td>
+              <td class="px-3 py-2.5">
+                <a class="text-sm font-medium link hover:underline" href="/exercise-library/{{ .ID }}/edit">{{ .Name }}</a>
+              </td>
+              <td class="px-3 py-2.5">
+                {{ if eq .Kind "session" }}
+                  <span class="inline-block rounded border px-1.5 py-0.5 text-xs" style="border-color:var(--border);background:var(--card-muted)">Session</span>
+                {{ else if eq .Kind "exercise_catalog" }}
+                  <span class="inline-block rounded border px-1.5 py-0.5 text-xs" style="border-color:var(--border);background:var(--card-muted)">Catalog</span>
+                {{ else }}
+                  <span class="inline-block rounded border px-1.5 py-0.5 text-xs" style="border-color:var(--border);background:var(--card-muted)">Reps &amp; sets</span>
+                {{ end }}
+              </td>
+              <td class="px-3 py-2.5 text-xs muted whitespace-nowrap">
+                {{ if eq .Kind "session" }}
+                  {{ if gt .SessionDurationSeconds 0 }}{{ formatSessionDuration .SessionDurationSeconds }}{{ else }}&mdash;{{ end }}
+                {{ else if eq .Kind "exercise_catalog" }}
+                  &mdash;
+                {{ else }}
+                  <span class="inline-flex items-center gap-2">
+                    {{ if gt .Sets 0 }}<span>{{ .Sets }} sets</span>{{ end }}
+                    {{ if gt .Reps 0 }}<span>{{ .Reps }} reps</span>{{ end }}
+                    {{ if gt .WeightKg 0.0 }}<span>{{ .WeightKg }}kg</span>{{ end }}
+                    {{ if and (eq .Sets 0) (eq .Reps 0) }}&mdash;{{ end }}
+                  </span>
+                {{ end }}
+              </td>
+              <td class="px-3 py-2.5">
+                <div class="flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 focus-within:opacity-100 transition-opacity">
+                  <a
+                    href="/exercise-library/{{ .ID }}/edit"
+                    class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
+                    title="Edit"
+                    aria-label="Edit {{ .Name }}"
+                  ><i data-lucide="pencil" style="width:14px;height:14px"></i></a>
+                  <a
+                    href="/exercise-library/{{ .ID }}/export"
+                    class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
+                    title="Download YAML"
+                    aria-label="Download YAML for {{ .Name }}"
+                  ><i data-lucide="download" style="width:14px;height:14px"></i></a>
+                  <form
+                    hx-post="/exercise-library/{{ .ID }}/delete"
+                    hx-swap="none"
+                    method="post"
+                    onsubmit="return confirm('Remove this saved exercise from the library?');"
+                    class="inline"
+                  >
+                    <button
+                      type="submit"
+                      class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
+                      title="Delete"
+                      aria-label="Delete {{ .Name }}"
+                      style="color:var(--text-muted)"
+                    ><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {{ end }}
+        {{ else }}
+          <tr>
+            <td class="px-3 py-3 muted" colspan="5">No saved exercises yet.</td>
+          </tr>
+        {{ end }}
+      </tbody>
+    </table>
+  </div>
+  </form>
+
+  {{ if .Pagination }}
+    <div class="mt-4 flex items-center justify-between border-t pt-4" style="border-color: var(--border)">
+      <div class="text-xs muted">
+        Page {{ .Pagination.Page }} of {{ .Pagination.TotalPages }}
+      </div>
+      <div class="flex items-center gap-2">
+        {{ if .Pagination.HasPrev }}
+          <a href="{{ .Pagination.PrevURL }}" class="rounded-md btn-ghost px-3 py-1.5 text-sm font-medium">&larr; Previous</a>
+        {{ else }}
+          <span class="rounded-md px-3 py-1.5 text-sm font-medium muted opacity-40">&larr; Previous</span>
+        {{ end }}
+        {{ if .Pagination.HasNext }}
+          <a href="{{ .Pagination.NextURL }}" class="rounded-md btn-ghost px-3 py-1.5 text-sm font-medium">Next &rarr;</a>
+        {{ else }}
+          <span class="rounded-md px-3 py-1.5 text-sm font-medium muted opacity-40">Next &rarr;</span>
+        {{ end }}
+      </div>
+    </div>
+  {{ end }}
+</div>
+<script>
+  (function () {
+    const form      = document.getElementById("library-bulk-form");
+    const selectAll = document.getElementById("select-all-exercises");
+    const exportBtn = document.getElementById("export-selected-btn");
+    const checks    = () => Array.from(form.querySelectorAll(".exercise-row-check"));
+
+    const syncBtn = () => {
+      const any = checks().some((c) => c.checked);
+      exportBtn.disabled = !any;
+      exportBtn.classList.toggle("opacity-40", !any);
+      exportBtn.classList.toggle("pointer-events-none", !any);
+    };
+
+    selectAll.addEventListener("change", () => {
+      checks().forEach((c) => { c.checked = selectAll.checked; });
+      syncBtn();
+    });
+
+    form.addEventListener("change", (e) => {
+      if (e.target.classList.contains("exercise-row-check")) {
+        selectAll.checked = checks().every((c) => c.checked);
+        syncBtn();
+      }
+    });
+  })();
+</script>
+<script>
+  (function () {
+    var filterForm = document.getElementById("library-filter-form");
+    if (!filterForm) return;
+    var searchInput = filterForm.querySelector('input[name="q"]');
+    var selects = filterForm.querySelectorAll("select");
+    var debounceTimer;
+
+    // Dropdowns submit immediately
+    selects.forEach(function (sel) {
+      sel.addEventListener("change", function () { filterForm.submit(); });
+    });
+
+    // Search input filters table rows client-side (no page refresh)
+    if (searchInput) {
+      searchInput.addEventListener("input", function () {
+        var query = searchInput.value.toLowerCase().trim();
+        var rows = document.querySelectorAll("#library-bulk-form tbody tr");
+        rows.forEach(function (row) {
+          var nameCell = row.querySelector("td:nth-child(2)");
+          if (!nameCell) return;
+          var name = nameCell.textContent.toLowerCase();
+          row.style.display = name.includes(query) ? "" : "none";
+        });
+      });
+    }
+  })();
+</script>
+{{ end }}

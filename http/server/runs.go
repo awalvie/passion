@@ -1,0 +1,639 @@
+package web
+
+import (
+	"errors"
+	"net/http"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+
+	"passion/db"
+	"passion/pages"
+)
+
+// RunStep, RunStepOption, and RunActivityGroup are defined in passion/pages.
+
+func (s *Server) handleRunsByID(w http.ResponseWriter, r *http.Request) {
+	ownerID, ok := s.currentUserID(r)
+	if !ok {
+		s.unauthorizedRedirect(w, r)
+		return
+	}
+	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid run id", http.StatusBadRequest)
+		return
+	}
+
+	exerciseParam := chi.URLParam(r, "exerciseID")
+	// GET /runs/{runID}
+	if exerciseParam == "" {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		s.renderRun(w, r, uint(runID), ownerID)
+		return
+	}
+
+	// POST /runs/{runID}/exercises/{exerciseID}/complete|skip
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	exerciseID, err := strconv.ParseUint(exerciseParam, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid exercise id", http.StatusBadRequest)
+		return
+	}
+	action := "complete"
+	if strings.HasSuffix(r.URL.Path, "/skip") {
+		action = "skip"
+	}
+	if err := s.completeRunExercise(w, r, uint(runID), uint(exerciseID), action, ownerID); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	return
+}
+
+func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, ownerID uint) {
+	var run db.SessionRun
+	if err := s.store.DB.
+		Where("owner_id = ? AND id = ?", ownerID, runID).
+		First(&run).Error; err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	ss, err := db.GetScheduledSessionWithTemplate(s.store.DB, ownerID, run.ScheduledSessionID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	steps := s.buildRunSteps(ss, runID, ownerID)
+
+	var completions []db.RunExerciseCompletion
+	if err := s.store.DB.
+		Where("owner_id = ? AND run_id = ?", ownerID, runID).
+		Find(&completions).Error; err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	statusByID := map[uint]string{}
+	for _, c := range completions {
+		statusByID[c.ExerciseID] = c.Status
+	}
+	for i := range steps {
+		st := &steps[i]
+		status := statusByID[st.ExerciseID]
+		if status == "" {
+			st.Status = "pending"
+		} else {
+			st.Status = status
+		}
+	}
+
+	nextIdx := -1
+	for i, st := range steps {
+		if st.Status == "pending" {
+			nextIdx = i
+			break
+		}
+	}
+
+	// Allow jumping to a specific pending exercise via ?exercise=ID.
+	if jumpParam := r.URL.Query().Get("exercise"); jumpParam != "" {
+		if jumpID, err := strconv.ParseUint(jumpParam, 10, 64); err == nil {
+			for i, st := range steps {
+				if st.ExerciseID == uint(jumpID) && st.Status == "pending" {
+					nextIdx = i
+					break
+				}
+			}
+		}
+	}
+
+	runCompleted := nextIdx == -1
+	currentStepNum := 0
+	var currentStep pages.RunStep
+	if !runCompleted {
+		currentStepNum = nextIdx + 1 // 1-indexed
+		currentStep = steps[nextIdx]
+	}
+
+	// Build activity groups for sidebar display.
+	activityGroups := buildActivityGroups(steps, currentStep.ExerciseID)
+
+	s.pages.Run(w, pages.RunParams{
+		Base:              pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
+		RunID:             runID,
+		RunTemplateName:   ss.SessionTemplate.Name,
+		RunTotalSteps:     len(steps),
+		RunCompleted:      runCompleted,
+		RunCurrentStepNum: currentStepNum,
+		RunSessionSeconds: sumElapsedSeconds(completions),
+		RunIsTrial:        run.IsTrial,
+		RunTemplateID:     ss.SessionTemplate.ID,
+		CurrentStep:       currentStep,
+		RunSteps:          steps,
+		RunActivityGroups: activityGroups,
+	})
+}
+
+func (s *Server) completeRunExercise(w http.ResponseWriter, r *http.Request, runID uint, exerciseID uint, action string, ownerID uint) error {
+	// Load run and ensure ownership.
+	var run db.SessionRun
+	if err := s.store.DB.
+		Where("owner_id = ? AND id = ?", ownerID, runID).
+		First(&run).Error; err != nil {
+		return err
+	}
+
+	// Determine the next expected exercise.
+	ss, err := db.GetScheduledSessionWithTemplate(s.store.DB, ownerID, run.ScheduledSessionID)
+	if err != nil {
+		return err
+	}
+
+	steps := s.buildRunSteps(ss, runID, ownerID)
+
+	var completions []db.RunExerciseCompletion
+	if err := s.store.DB.
+		Where("owner_id = ? AND run_id = ?", ownerID, runID).
+		Find(&completions).Error; err != nil {
+		return err
+	}
+
+	completedByID := map[uint]bool{}
+	for _, c := range completions {
+		completedByID[c.ExerciseID] = true
+	}
+
+	// Allow completing/skipping any pending exercise, not just the strict next one.
+	if completedByID[exerciseID] {
+		return errors.New("exercise already completed")
+	}
+	validExercise := false
+	for _, st := range steps {
+		if st.ExerciseID == exerciseID {
+			validExercise = true
+			break
+		}
+	}
+	if !validExercise {
+		return errors.New("exercise not found in this run")
+	}
+
+	if err := r.ParseForm(); err != nil {
+		return err
+	}
+
+	runNotes := strings.TrimSpace(r.FormValue("run_notes"))
+	elapsedSecondsStr := strings.TrimSpace(r.FormValue("elapsed_seconds"))
+	elapsedSeconds, _ := strconv.Atoi(elapsedSecondsStr)
+	if elapsedSeconds < 0 {
+		elapsedSeconds = 0
+	}
+
+	status := "completed"
+	if action == "skip" {
+		status = "skipped"
+	}
+	comp := &db.RunExerciseCompletion{
+		OwnerID:        ownerID,
+		RunID:          runID,
+		ExerciseID:     exerciseID,
+		Status:         status,
+		CompletedAt:    time.Now(),
+		ElapsedSeconds: elapsedSeconds,
+		RunNotes:       runNotes,
+	}
+	if err := s.store.DB.Create(comp).Error; err != nil {
+		return err
+	}
+
+	// If there are no more incomplete steps, mark the run as completed.
+	// We keep it simple: re-check after inserting.
+	var after []db.RunExerciseCompletion
+	if err := s.store.DB.
+		Where("owner_id = ? AND run_id = ?", ownerID, runID).
+		Find(&after).Error; err != nil {
+		return err
+	}
+	done := map[uint]bool{}
+	for _, c := range after {
+		done[c.ExerciseID] = true
+	}
+	anyIncomplete := false
+	for _, st := range steps {
+		if !done[st.ExerciseID] {
+			anyIncomplete = true
+			break
+		}
+	}
+	if !anyIncomplete {
+		now := time.Now()
+		run.Status = "completed"
+		run.CompletedAt = &now
+		if err := s.store.DB.Save(&run).Error; err != nil {
+			return err
+		}
+	}
+
+	w.Header().Set("HX-Redirect", "/runs/"+strconv.FormatUint(uint64(runID), 10)+"#run-current-step")
+	w.WriteHeader(http.StatusOK)
+	return nil
+}
+
+func (s *Server) handleRunExerciseChoose(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	ownerID, ok := s.currentUserID(r)
+	if !ok {
+		s.unauthorizedRedirect(w, r)
+		return
+	}
+	runID64, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid run id", http.StatusBadRequest)
+		return
+	}
+	parentID64, err := strconv.ParseUint(chi.URLParam(r, "exerciseID"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid exercise id", http.StatusBadRequest)
+		return
+	}
+	runID := uint(runID64)
+	parentID := uint(parentID64)
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	// Accept multiple child IDs (child_exercise_ids[]) or a single legacy field.
+	rawIDs := r.Form["child_exercise_ids[]"]
+	if len(rawIDs) == 0 {
+		// Fallback: single value for backward compat.
+		single := strings.TrimSpace(r.FormValue("child_exercise_id"))
+		if single != "" {
+			rawIDs = []string{single}
+		}
+	}
+	if len(rawIDs) == 0 {
+		http.Error(w, "no exercises selected", http.StatusBadRequest)
+		return
+	}
+	childIDs := make([]uint, 0, len(rawIDs))
+	for _, raw := range rawIDs {
+		v, err := strconv.ParseUint(strings.TrimSpace(raw), 10, 64)
+		if err != nil || v == 0 {
+			http.Error(w, "invalid child_exercise_id", http.StatusBadRequest)
+			return
+		}
+		childIDs = append(childIDs, uint(v))
+	}
+
+	var run db.SessionRun
+	if err := s.store.DB.
+		Where("owner_id = ? AND id = ?", ownerID, runID).
+		First(&run).Error; err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	ss, err := db.GetScheduledSessionWithTemplate(s.store.DB, ownerID, run.ScheduledSessionID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Build an index of all exercises for fast lookup.
+	exerciseByID := map[uint]*db.Exercise{}
+	for i := range ss.SessionTemplate.Activities {
+		act := &ss.SessionTemplate.Activities[i]
+		for j := range act.Exercises {
+			ex := &act.Exercises[j]
+			exerciseByID[ex.ID] = ex
+		}
+	}
+	parent := exerciseByID[parentID]
+	if parent == nil || strings.TrimSpace(parent.Kind) != "exercise_catalog" {
+		http.Error(w, "invalid exercise catalog parent", http.StatusBadRequest)
+		return
+	}
+	// Validate every selected child belongs to this parent.
+	for _, cid := range childIDs {
+		child := exerciseByID[cid]
+		if child == nil || child.ParentExerciseID == nil || *child.ParentExerciseID != parentID {
+			http.Error(w, "invalid child option", http.StatusBadRequest)
+			return
+		}
+	}
+
+	steps := s.buildRunSteps(ss, runID, ownerID)
+	var completions []db.RunExerciseCompletion
+	if err := s.store.DB.
+		Where("owner_id = ? AND run_id = ?", ownerID, runID).
+		Find(&completions).Error; err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	completedByID := map[uint]bool{}
+	for _, c := range completions {
+		completedByID[c.ExerciseID] = true
+	}
+	// Allow choosing for any pending catalog exercise, not just the strict next one.
+	foundCatalog := false
+	for _, st := range steps {
+		if st.ExerciseID == parentID && st.Kind == "exercise_catalog" && !completedByID[st.ExerciseID] {
+			foundCatalog = true
+			break
+		}
+	}
+	if !foundCatalog {
+		http.Error(w, "exercise is not a pending catalog step", http.StatusBadRequest)
+		return
+	}
+
+	// Clear previous selections and insert new ones.
+	if err := s.store.DB.
+		Where("owner_id = ? AND run_id = ? AND parent_exercise_id = ?", ownerID, runID, parentID).
+		Delete(&db.RunExerciseChoice{}).Error; err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	for _, cid := range childIDs {
+		row := &db.RunExerciseChoice{
+			OwnerID:          ownerID,
+			RunID:            runID,
+			ParentExerciseID: parentID,
+			ChosenExerciseID: cid,
+		}
+		if err := s.store.DB.Create(row).Error; err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.Header().Set("HX-Redirect", "/runs/"+strconv.FormatUint(uint64(runID), 10)+"#run-current-step")
+	w.WriteHeader(http.StatusOK)
+}
+
+func exerciseToRunStep(ex db.Exercise) pages.RunStep {
+	kind := ex.Kind
+	if kind == "" {
+		kind = "reps_and_sets"
+	}
+	return pages.RunStep{
+		ExerciseID:             ex.ID,
+		Name:                   ex.Name,
+		Media:                  ex.Media,
+		Kind:                   kind,
+		SessionDurationSeconds: ex.SessionDurationSeconds,
+		Sets:                   ex.Sets,
+		Reps:                   ex.Reps,
+		RepSeconds:             ex.RepSeconds,
+		RepRestSeconds:         ex.RepRestSeconds,
+		SetRestSeconds:         ex.SetRestSeconds,
+		TemplateNotes:          ex.Notes,
+		Status:                 "pending",
+	}
+}
+
+func catalogChildren(all []db.Exercise, parentID uint) []db.Exercise {
+	var out []db.Exercise
+	for i := range all {
+		ex := all[i]
+		if ex.ParentExerciseID != nil && *ex.ParentExerciseID == parentID {
+			out = append(out, ex)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].OrderIndex < out[j].OrderIndex
+	})
+	return out
+}
+
+func catalogMenuRunStep(parent db.Exercise, children []db.Exercise) pages.RunStep {
+	st := exerciseToRunStep(parent)
+	st.Kind = "exercise_catalog"
+	st.CatalogOptions = make([]pages.RunStepOption, 0, len(children))
+	for _, c := range children {
+		k := c.Kind
+		if k == "" {
+			k = "reps_and_sets"
+		}
+		st.CatalogOptions = append(st.CatalogOptions, pages.RunStepOption{
+			ExerciseID:             c.ID,
+			Name:                   c.Name,
+			Media:                  c.Media,
+			Kind:                   k,
+			SessionDurationSeconds: c.SessionDurationSeconds,
+			Sets:                   c.Sets,
+			Reps:                   c.Reps,
+			Notes:                  c.Notes,
+		})
+	}
+	return st
+}
+
+func (s *Server) buildRunSteps(ss db.ScheduledSession, runID uint, ownerID uint) []pages.RunStep {
+	var choices []db.RunExerciseChoice
+	if err := s.store.DB.
+		Where("owner_id = ? AND run_id = ?", ownerID, runID).
+		Find(&choices).Error; err != nil {
+		s.logger.Error("failed to load run exercise choices", "run_id", runID, "error", err)
+	}
+	// Map parent → list of chosen child IDs (preserving insertion order).
+	choicesByParent := map[uint][]uint{}
+	for _, c := range choices {
+		choicesByParent[c.ParentExerciseID] = append(choicesByParent[c.ParentExerciseID], c.ChosenExerciseID)
+	}
+
+	var completions []db.RunExerciseCompletion
+	if err := s.store.DB.
+		Where("owner_id = ? AND run_id = ?", ownerID, runID).
+		Find(&completions).Error; err != nil {
+		s.logger.Error("failed to load run exercise completions", "run_id", runID, "error", err)
+	}
+	completionByID := map[uint]string{}
+	for _, c := range completions {
+		completionByID[c.ExerciseID] = c.Status
+	}
+
+	steps := make([]pages.RunStep, 0)
+	for _, act := range ss.SessionTemplate.Activities {
+		actName := act.Name
+		if actName == "" {
+			if act.Type != "" {
+				actName = strings.ToUpper(act.Type[:1]) + act.Type[1:]
+			} else {
+				actName = "Activity"
+			}
+		}
+		for _, ex := range act.Exercises {
+			if ex.ParentExerciseID != nil && *ex.ParentExerciseID != 0 {
+				continue
+			}
+			kind := ex.Kind
+			if kind == "" {
+				kind = "reps_and_sets"
+			}
+			if kind == "exercise_catalog" {
+				children := catalogChildren(act.Exercises, ex.ID)
+				if childIDs, ok := choicesByParent[ex.ID]; ok && len(childIDs) > 0 {
+					// Expand chosen children into individual steps.
+					for _, childID := range childIDs {
+						var chosen *db.Exercise
+						for i := range act.Exercises {
+							if act.Exercises[i].ID == childID &&
+								act.Exercises[i].ParentExerciseID != nil &&
+								*act.Exercises[i].ParentExerciseID == ex.ID {
+								chosen = &act.Exercises[i]
+								break
+							}
+						}
+						if chosen != nil {
+							st := exerciseToRunStep(*chosen)
+							st.ActivityID = act.ID
+							st.ActivityName = actName
+							steps = append(steps, st)
+						}
+					}
+					continue
+				}
+				if st := completionByID[ex.ID]; st == "skipped" || st == "completed" {
+					continue
+				}
+				catStep := catalogMenuRunStep(ex, children)
+				catStep.ActivityID = act.ID
+				catStep.ActivityName = actName
+				steps = append(steps, catStep)
+				continue
+			}
+			st := exerciseToRunStep(ex)
+			st.ActivityID = act.ID
+			st.ActivityName = actName
+			steps = append(steps, st)
+		}
+	}
+	return steps
+}
+
+// buildActivityGroups groups steps by ActivityID for sidebar display.
+// The group containing currentExerciseID is marked IsCurrent.
+func buildActivityGroups(steps []pages.RunStep, currentExerciseID uint) []pages.RunActivityGroup {
+	var groups []pages.RunActivityGroup
+	for _, st := range steps {
+		// Append to current group if same activity, otherwise start a new one.
+		if len(groups) == 0 || groups[len(groups)-1].ActivityID != st.ActivityID {
+			groups = append(groups, pages.RunActivityGroup{
+				ActivityID: st.ActivityID,
+				Name:       st.ActivityName,
+			})
+		}
+		groups[len(groups)-1].Steps = append(groups[len(groups)-1].Steps, st)
+	}
+	for i := range groups {
+		for _, st := range groups[i].Steps {
+			if st.ExerciseID == currentExerciseID {
+				groups[i].IsCurrent = true
+				break
+			}
+		}
+	}
+	return groups
+}
+
+func sumElapsedSeconds(completions []db.RunExerciseCompletion) int {
+	total := 0
+	for _, c := range completions {
+		if c.ElapsedSeconds > 0 {
+			total += c.ElapsedSeconds
+		}
+	}
+	return total
+}
+
+
+func (s *Server) handleRunStop(w http.ResponseWriter, r *http.Request) {
+	ownerID, ok := s.currentUserID(r)
+	if !ok {
+		s.unauthorizedRedirect(w, r)
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid run id", http.StatusBadRequest)
+		return
+	}
+
+	var run db.SessionRun
+	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, runID).First(&run).Error; err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	if run.Status != "running" {
+		http.Error(w, "run is not in progress", http.StatusBadRequest)
+		return
+	}
+
+	now := time.Now()
+	run.Status = "completed"
+	run.CompletedAt = &now
+	if err := s.store.DB.Save(&run).Error; err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("HX-Redirect", "/dashboard")
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) handleRunDelete(w http.ResponseWriter, r *http.Request) {
+	ownerID, ok := s.currentUserID(r)
+	if !ok {
+		s.unauthorizedRedirect(w, r)
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid run id", http.StatusBadRequest)
+		return
+	}
+
+	var run db.SessionRun
+	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, runID).First(&run).Error; err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	// Cascade delete related data
+	s.store.DB.Where("owner_id = ? AND run_id = ?", ownerID, run.ID).Delete(&db.RunExerciseChoice{})
+	s.store.DB.Where("owner_id = ? AND run_id = ?", ownerID, run.ID).Delete(&db.RunExerciseCompletion{})
+	s.store.DB.Delete(&run)
+
+	// If trial run, also delete the associated scheduled session
+	if run.IsTrial {
+		s.store.DB.Where("owner_id = ? AND id = ? AND is_trial = ?", ownerID, run.ScheduledSessionID, true).Delete(&db.ScheduledSession{})
+	}
+
+	w.Header().Set("HX-Redirect", "/history")
+	w.WriteHeader(http.StatusOK)
+}

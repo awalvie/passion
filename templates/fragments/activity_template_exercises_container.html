@@ -1,0 +1,445 @@
+{{ define "fragments/activity_template_exercises_container" }}
+<div id="at-exercises-{{ .Template.ID }}" class="mt-4 space-y-3">
+  <div class="space-y-2">
+    {{ if .Template.Exercises }}
+      {{ range .Template.Exercises }}
+        {{ if not .ParentExerciseID }}
+        <details
+          class="card-muted overflow-hidden group passion-disclosure dnd-item"
+          data-exercise-card="1"
+          data-exercise-id="{{ .ID }}"
+        >
+          <summary
+            class="cursor-pointer list-none flex items-center justify-between gap-3 px-3 py-2.5"
+            title="Expand or collapse this exercise"
+          >
+            <div class="min-w-0">
+              <div class="text-sm font-medium truncate" title="{{ .Name }}">{{ .Name }}</div>
+              {{ if eq .Kind "exercise_catalog" }}<span class="text-[10px] font-medium muted ml-1">Exercise catalog</span>{{ end }}
+            </div>
+            <div
+              class="dnd-handle shrink-0 text-[12px] muted leading-none opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity"
+              aria-label="Drag to reorder"
+              draggable="true"
+              data-exercise-drag-handle="1"
+              title="Drag to reorder"
+            >≡</div>
+          </summary>
+
+          <div class="px-3 pb-3 mt-0 space-y-3">
+            <form
+              class="space-y-2"
+              hx-post="/exercises/{{ .ID }}/update"
+              hx-target="#at-exercises-{{ $.Template.ID }}"
+              hx-swap="outerHTML"
+              method="post"
+            >
+              <div>
+                <label class="text-xs font-medium" for="at-ex-name-{{ .ID }}-edit">Exercise name</label>
+                <input id="at-ex-name-{{ .ID }}-edit" name="name" required class="mt-1 w-full input text-xs" value="{{ .Name }}" />
+              </div>
+
+              <div>
+                <label class="text-xs font-medium" for="at-ex-kind-{{ .ID }}-edit">Type</label>
+                <select
+                  id="at-ex-kind-{{ .ID }}-edit"
+                  name="kind"
+                  class="mt-1 w-full input text-xs"
+                  onchange="window.__passionSyncExerciseKindGroups(this)"
+                >
+                  <option value="reps_and_sets" {{ if and (ne .Kind "session") (ne .Kind "exercise_catalog") }}selected{{ end }}>Reps and sets</option>
+                  <option value="session" {{ if eq .Kind "session" }}selected{{ end }}>Session</option>
+                  <option value="exercise_catalog" {{ if eq .Kind "exercise_catalog" }}selected{{ end }}>Exercise catalog</option>
+                </select>
+              </div>
+
+              <div data-notes-editor>
+                <label class="text-xs font-medium" for="at-ex-notes-{{ .ID }}-edit">{{ if eq .Kind "exercise_catalog" }}Instructions{{ else }}Notes{{ end }}</label>
+                <p class="text-[10px] muted mt-0.5 mb-1">Markdown supported.</p>
+                <div class="flex gap-1 border-b mb-1" style="border-color: var(--border)">
+                  <button type="button" class="notes-tab notes-tab-active" data-notes-tab="write">Write</button>
+                  <button type="button" class="notes-tab" data-notes-tab="preview">Preview</button>
+                </div>
+                <textarea id="at-ex-notes-{{ .ID }}-edit" name="notes" rows="4" class="mt-1 w-full input text-xs">{{ .Notes }}</textarea>
+                <div data-notes-preview class="notes-preview-panel hidden mt-1" aria-live="polite"></div>
+              </div>
+
+              {{ $hms := durationHMS .SessionDurationSeconds }}
+              <div data-exercise-session-fields="1" {{ if or (ne .Kind "session") (eq .Kind "exercise_catalog") }}hidden{{ end }}>
+                <div class="grid grid-cols-3 gap-2">
+                  <div>
+                    <label class="text-xs font-medium" for="at-ex-sess-h-{{ .ID }}-edit">Hours</label>
+                    <input id="at-ex-sess-h-{{ .ID }}-edit" name="session_duration_hours" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ index $hms "h" }}" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="at-ex-sess-m-{{ .ID }}-edit">Minutes</label>
+                    <input id="at-ex-sess-m-{{ .ID }}-edit" name="session_duration_minutes" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ index $hms "m" }}" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="at-ex-sess-s-{{ .ID }}-edit">Seconds</label>
+                    <input id="at-ex-sess-s-{{ .ID }}-edit" name="session_duration_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ index $hms "s" }}" />
+                  </div>
+                </div>
+              </div>
+
+              <div data-exercise-reps-fields="1" {{ if or (eq .Kind "session") (eq .Kind "exercise_catalog") }}hidden{{ end }}>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="text-xs font-medium" for="at-ex-sets-{{ .ID }}-edit">Sets</label>
+                    <input id="at-ex-sets-{{ .ID }}-edit" name="sets" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Sets }}" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="at-ex-reps-{{ .ID }}-edit">Reps</label>
+                    <input id="at-ex-reps-{{ .ID }}-edit" name="reps" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Reps }}" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="at-ex-weight-{{ .ID }}-edit">Weight (kg)</label>
+                    <input id="at-ex-weight-{{ .ID }}-edit" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input text-xs" value="{{ .WeightKg }}" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="at-ex-rep-seconds-{{ .ID }}-edit">Rep time (sec)</label>
+                    <input id="at-ex-rep-seconds-{{ .ID }}-edit" name="rep_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .RepSeconds }}" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="at-ex-rep-rest-{{ .ID }}-edit">Rep rest (sec)</label>
+                    <input id="at-ex-rep-rest-{{ .ID }}-edit" name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .RepRestSeconds }}" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="at-ex-set-rest-{{ .ID }}-edit">Set rest (sec)</label>
+                    <input id="at-ex-set-rest-{{ .ID }}-edit" name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .SetRestSeconds }}" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <button type="submit" class="w-full rounded-md btn-primary px-3 py-2 text-sm font-medium">Save</button>
+                <button
+                  type="button"
+                  class="w-full rounded-md btn-ghost px-3 py-2 text-sm font-medium"
+                  hx-post="/exercises/{{ .ID }}/delete"
+                  hx-target="#at-exercises-{{ $.Template.ID }}"
+                  hx-swap="outerHTML"
+                  hx-confirm="Delete this exercise?"
+                >Delete</button>
+              </div>
+            </form>
+
+            {{ if eq .Kind "exercise_catalog" }}
+            <div class="mt-4 pt-3 border-t space-y-2" style="border-color: var(--border)">
+              <div class="text-xs font-semibold">Options</div>
+              {{ range exerciseChildren $.Template.Exercises .ID }}
+              <details class="card-muted rounded-md overflow-hidden border" style="border-color: var(--border)">
+                <summary class="cursor-pointer list-none px-3 py-2 text-sm font-medium">{{ .Name }}</summary>
+                <div class="px-3 pb-3 space-y-2">
+                  <form
+                    class="space-y-2"
+                    hx-post="/exercises/{{ .ID }}/update"
+                    hx-target="#at-exercises-{{ $.Template.ID }}"
+                    hx-swap="outerHTML"
+                    method="post"
+                  >
+                    <div>
+                      <label class="text-xs font-medium" for="at-ex-name-{{ .ID }}-edit">Name</label>
+                      <input id="at-ex-name-{{ .ID }}-edit" name="name" required class="mt-1 w-full input text-xs" value="{{ .Name }}" />
+                    </div>
+                    <div>
+                      <label class="text-xs font-medium" for="at-ex-kind-{{ .ID }}-edit">Type</label>
+                      <select id="at-ex-kind-{{ .ID }}-edit" name="kind" class="mt-1 w-full input text-xs" onchange="window.__passionSyncExerciseKindGroups(this)">
+                        <option value="reps_and_sets" {{ if ne .Kind "session" }}selected{{ end }}>Reps and sets</option>
+                        <option value="session" {{ if eq .Kind "session" }}selected{{ end }}>Session</option>
+                      </select>
+                    </div>
+                    <div data-notes-editor>
+                      <label class="text-xs font-medium" for="at-ex-notes-{{ .ID }}-edit">Notes</label>
+                      <div class="flex gap-1 border-b mb-1" style="border-color: var(--border)">
+                        <button type="button" class="notes-tab notes-tab-active" data-notes-tab="write">Write</button>
+                        <button type="button" class="notes-tab" data-notes-tab="preview">Preview</button>
+                      </div>
+                      <textarea id="at-ex-notes-{{ .ID }}-edit" name="notes" rows="3" class="mt-1 w-full input text-xs">{{ .Notes }}</textarea>
+                      <div data-notes-preview class="notes-preview-panel hidden mt-1" aria-live="polite"></div>
+                    </div>
+                    {{ $chms := durationHMS .SessionDurationSeconds }}
+                    <div data-exercise-session-fields="1" {{ if ne .Kind "session" }}hidden{{ end }}>
+                      <div class="grid grid-cols-3 gap-2">
+                        <div><label class="text-xs font-medium">Hours</label><input name="session_duration_hours" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ index $chms "h" }}" /></div>
+                        <div><label class="text-xs font-medium">Minutes</label><input name="session_duration_minutes" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ index $chms "m" }}" /></div>
+                        <div><label class="text-xs font-medium">Seconds</label><input name="session_duration_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ index $chms "s" }}" /></div>
+                      </div>
+                    </div>
+                    <div data-exercise-reps-fields="1" {{ if eq .Kind "session" }}hidden{{ end }}>
+                      <div class="grid grid-cols-2 gap-2">
+                        <div><label class="text-xs font-medium">Sets</label><input name="sets" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Sets }}" /></div>
+                        <div><label class="text-xs font-medium">Reps</label><input name="reps" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Reps }}" /></div>
+                        <div><label class="text-xs font-medium">Weight (kg)</label><input name="weight_kg" type="number" step="0.5" class="mt-1 w-full input text-xs" value="{{ .WeightKg }}" /></div>
+                        <div><label class="text-xs font-medium">Rep time (sec)</label><input name="rep_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .RepSeconds }}" /></div>
+                        <div><label class="text-xs font-medium">Rep rest (sec)</label><input name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .RepRestSeconds }}" /></div>
+                        <div><label class="text-xs font-medium">Set rest (sec)</label><input name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .SetRestSeconds }}" /></div>
+                      </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <button type="submit" class="w-full rounded-md btn-primary px-3 py-2 text-sm font-medium">Save</button>
+                      <button
+                        type="button"
+                        class="w-full rounded-md btn-ghost px-3 py-2 text-sm font-medium"
+                        hx-post="/exercises/{{ .ID }}/delete"
+                        hx-target="#at-exercises-{{ $.Template.ID }}"
+                        hx-swap="outerHTML"
+                        hx-confirm="Delete this option?"
+                      >Delete</button>
+                    </div>
+                  </form>
+                </div>
+              </details>
+              {{ end }}
+            </div>
+            {{ end }}
+          </div>
+        </details>
+        {{ end }}
+      {{ end }}
+    {{ else }}
+      <div class="card-muted p-3 text-sm muted">No exercises yet. Add one below.</div>
+    {{ end }}
+  </div>
+
+  <div class="mt-4">
+    <div class="flex flex-wrap gap-2">
+      <button
+        type="button"
+        class="rounded-md btn-accent px-3 py-1.5 text-sm font-medium inline-flex items-center gap-1"
+        data-add-at-exercise-toggle="1"
+        aria-expanded="false"
+      ><i data-lucide="plus" style="width:14px;height:14px"></i> Add Exercise</button>
+    </div>
+
+    <div id="add-at-exercise-panel-{{ .Template.ID }}" class="hidden mt-3 card-muted rounded-lg overflow-hidden" data-add-at-exercise-panel="1">
+      <div class="px-4 py-3 border-b flex items-center justify-between" style="border-color:var(--border)">
+        <span class="text-sm font-semibold">Add exercise</span>
+        <button type="button" class="rounded btn-ghost p-1 inline-flex" data-add-at-exercise-close="1"><i data-lucide="x" style="width:14px;height:14px"></i></button>
+      </div>
+
+      {{ if .LibraryExercises }}
+      <div class="px-4 py-4">
+        <div class="text-[11px] font-semibold muted uppercase tracking-widest mb-3">From library</div>
+        <form
+          class="flex flex-col gap-2 sm:flex-row sm:items-end"
+          hx-post="/activity-templates/{{ .Template.ID }}/exercises/from-library"
+          hx-target="#at-exercises-{{ .Template.ID }}"
+          hx-swap="outerHTML"
+          method="post"
+        >
+          <div class="flex-1 min-w-0 relative" data-lib-combo="at-{{ .Template.ID }}">
+            <input
+              id="at-lib-ex-search-{{ .Template.ID }}"
+              type="text"
+              class="w-full input text-sm"
+              placeholder="Choose a saved exercise…"
+              autocomplete="off"
+              role="combobox"
+              aria-expanded="false"
+              aria-autocomplete="list"
+              aria-controls="at-lib-ex-list-{{ .Template.ID }}"
+              data-lib-search="at-{{ .Template.ID }}"
+            />
+            <select
+              id="at-lib-ex-{{ .Template.ID }}"
+              name="library_exercise_id"
+              required
+              class="sr-only"
+              tabindex="-1"
+              aria-hidden="true"
+              data-lib-select="at-{{ .Template.ID }}"
+            >
+              <option value=""></option>
+              {{ range .LibraryExercises }}
+                <option value="{{ .ID }}">{{ .Name }}</option>
+              {{ end }}
+            </select>
+            <ul
+              id="at-lib-ex-list-{{ .Template.ID }}"
+              role="listbox"
+              class="hidden absolute z-50 left-0 right-0 mt-1 rounded-md border overflow-y-auto text-sm"
+              style="background:var(--panel);border-color:var(--border);max-height:180px"
+              data-lib-list="at-{{ .Template.ID }}"
+            >
+              {{ range .LibraryExercises }}
+                <li role="option" aria-selected="false" data-value="{{ .ID }}" data-label="{{ .Name }}"
+                  class="px-3 py-2 cursor-pointer select-none"
+                  onmouseover="this.style.background='var(--hover)'"
+                  onmouseout="this.style.background=''"
+                >{{ .Name }}</li>
+              {{ end }}
+            </ul>
+          </div>
+          <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium shrink-0">Add</button>
+        </form>
+      </div>
+      {{ else }}
+      <div class="px-4 py-4">
+        <div class="text-[11px] font-semibold muted uppercase tracking-widest mb-2">From library</div>
+        <p class="text-xs muted"><a href="/exercise-library/new" class="link font-medium">Save exercises to your library</a> to reuse them here.</p>
+      </div>
+      {{ end }}
+
+      <div class="border-t" style="border-color:var(--border)"></div>
+      <div class="px-4 py-4">
+        <div class="text-[11px] font-semibold muted uppercase tracking-widest mb-3">New exercise</div>
+        <form
+          class="grid gap-3 sm:grid-cols-2"
+          hx-post="/activity-templates/{{ .Template.ID }}/exercises"
+          hx-target="#at-exercises-{{ .Template.ID }}"
+          hx-swap="outerHTML"
+          method="post"
+        >
+          <div class="sm:col-span-2">
+            <label class="text-xs font-medium" for="at-ex-name-{{ .Template.ID }}">Name</label>
+            <input id="at-ex-name-{{ .Template.ID }}" name="name" required class="mt-1 w-full input" placeholder="e.g., Hip Circles" autocomplete="off" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="text-xs font-medium" for="at-ex-kind-{{ .Template.ID }}">Type</label>
+            <select id="at-ex-kind-{{ .Template.ID }}" name="kind" class="mt-1 w-full input" onchange="window.__passionSyncExerciseKindGroups(this)">
+              <option value="reps_and_sets" selected>Reps and sets</option>
+              <option value="session">Session</option>
+            </select>
+          </div>
+          <div class="sm:col-span-2" data-notes-editor>
+            <label class="text-xs font-medium" for="at-ex-notes-{{ .Template.ID }}">Notes <span class="font-normal muted">(optional)</span></label>
+            <div class="flex gap-1 border-b mt-1 mb-1" style="border-color: var(--border)">
+              <button type="button" class="notes-tab notes-tab-active" data-notes-tab="write">Write</button>
+              <button type="button" class="notes-tab" data-notes-tab="preview">Preview</button>
+            </div>
+            <textarea id="at-ex-notes-{{ .Template.ID }}" name="notes" rows="3" class="w-full input text-sm" placeholder="Cues, notes… (markdown supported)"></textarea>
+            <div data-notes-preview class="notes-preview-panel hidden mt-1" aria-live="polite"></div>
+          </div>
+          <div data-exercise-session-fields="1" class="sm:col-span-2" hidden>
+            <div class="grid grid-cols-3 gap-2">
+              <div><label class="text-xs font-medium">Hours</label><input name="session_duration_hours" type="number" min="0" class="mt-1 w-full input" disabled /></div>
+              <div><label class="text-xs font-medium">Minutes</label><input name="session_duration_minutes" type="number" min="0" class="mt-1 w-full input" disabled /></div>
+              <div><label class="text-xs font-medium">Seconds</label><input name="session_duration_seconds" type="number" min="0" class="mt-1 w-full input" disabled /></div>
+            </div>
+          </div>
+          <div data-exercise-reps-fields="1" class="sm:col-span-2">
+            <div class="grid gap-2 sm:grid-cols-2">
+              <div><label class="text-xs font-medium">Sets</label><input name="sets" type="number" min="0" class="mt-1 w-full input" /></div>
+              <div><label class="text-xs font-medium">Reps</label><input name="reps" type="number" min="0" class="mt-1 w-full input" /></div>
+              <div><label class="text-xs font-medium">Weight (kg)</label><input name="weight_kg" type="number" step="0.5" class="mt-1 w-full input" /></div>
+              <div><label class="text-xs font-medium">Rep time (sec)</label><input name="rep_seconds" type="number" min="0" class="mt-1 w-full input" /></div>
+              <div><label class="text-xs font-medium">Rep rest (sec)</label><input name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input" /></div>
+              <div><label class="text-xs font-medium">Set rest (sec)</label><input name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input" /></div>
+            </div>
+          </div>
+          <div class="sm:col-span-2">
+            <button type="submit" class="w-full rounded-md btn-primary px-3 py-2 text-sm font-medium">Add exercise</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const atID = {{ .Template.ID }};
+      const rootID = "at-exercises-{{ .Template.ID }}";
+      let container = document.getElementById(rootID);
+      if (!container) return;
+
+      const toggleBtn = container.querySelector('[data-add-at-exercise-toggle="1"]');
+      const panel     = container.querySelector('[data-add-at-exercise-panel="1"]');
+      const closeBtn  = container.querySelector('[data-add-at-exercise-close="1"]');
+      if (toggleBtn && panel) {
+        toggleBtn.addEventListener('click', function () {
+          panel.classList.remove('hidden');
+          toggleBtn.classList.add('hidden');
+        });
+      }
+      if (closeBtn && panel) {
+        closeBtn.addEventListener('click', function () {
+          panel.classList.add('hidden');
+          if (toggleBtn) toggleBtn.classList.remove('hidden');
+        });
+      }
+
+      container.querySelectorAll('select[name="kind"]').forEach(function (sel) {
+        if (typeof window.__passionSyncExerciseKindGroups === 'function') {
+          window.__passionSyncExerciseKindGroups(sel);
+        }
+      });
+
+      // Library combobox
+      const libSearch = container.querySelector('[data-lib-search="at-{{ .Template.ID }}"]');
+      const libSelect = container.querySelector('[data-lib-select="at-{{ .Template.ID }}"]');
+      const libList   = container.querySelector('[data-lib-list="at-{{ .Template.ID }}"]');
+      if (libSearch && libSelect && libList) {
+        const allItems = () => Array.from(libList.querySelectorAll('li[role="option"]'));
+        const openList  = () => { libList.classList.remove('hidden'); libSearch.setAttribute('aria-expanded','true'); };
+        const closeList = () => { libList.classList.add('hidden'); libSearch.setAttribute('aria-expanded','false'); };
+        const selectItem = (li) => { libSelect.value = li.dataset.value; libSearch.value = li.dataset.label; allItems().forEach(i => i.setAttribute('aria-selected','false')); li.setAttribute('aria-selected','true'); closeList(); };
+
+        libSearch.addEventListener('input', function () {
+          const q = this.value.trim().toLowerCase();
+          let hasVisible = false;
+          allItems().forEach(function (li) { const m = !q || li.dataset.label.toLowerCase().includes(q); li.hidden = !m; if (m) hasVisible = true; });
+          const chosen = allItems().find(li => li.getAttribute('aria-selected') === 'true');
+          if (chosen && chosen.hidden) { libSelect.value = ''; chosen.setAttribute('aria-selected','false'); }
+          if (q && hasVisible) openList(); else if (!q) { allItems().forEach(li => { li.hidden = false; }); openList(); } else closeList();
+        });
+        libSearch.addEventListener('focus', function () { allItems().forEach(li => { li.hidden = false; }); openList(); });
+        libSearch.addEventListener('keydown', function (e) {
+          const visible = allItems().filter(li => !li.hidden);
+          const active = libList.querySelector('[aria-selected="true"]:not([hidden])');
+          if (e.key === 'ArrowDown') { e.preventDefault(); const next = active ? (visible[visible.indexOf(active)+1]||visible[0]) : visible[0]; if (next) { allItems().forEach(i => i.setAttribute('aria-selected','false')); next.setAttribute('aria-selected','true'); next.scrollIntoView({block:'nearest'}); libSelect.value = next.dataset.value; } }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); const prev = active ? (visible[visible.indexOf(active)-1]||visible[visible.length-1]) : visible[visible.length-1]; if (prev) { allItems().forEach(i => i.setAttribute('aria-selected','false')); prev.setAttribute('aria-selected','true'); prev.scrollIntoView({block:'nearest'}); libSelect.value = prev.dataset.value; } }
+          else if (e.key === 'Enter') { const sel = libList.querySelector('[aria-selected="true"]:not([hidden])'); if (sel && !libList.classList.contains('hidden')) { e.preventDefault(); selectItem(sel); } }
+          else if (e.key === 'Escape') { closeList(); }
+        });
+        libList.addEventListener('mousedown', function (e) { const li = e.target.closest('li[role="option"]'); if (li) { e.preventDefault(); selectItem(li); } });
+        document.addEventListener('click', function (e) { if (!libSearch.contains(e.target) && !libList.contains(e.target)) closeList(); }, true);
+      }
+
+      // Drag-to-reorder exercises
+      const bindReorder = (root) => {
+        if (!root || root.dataset.reorderBound === '1') return;
+        root.dataset.reorderBound = '1';
+        let draggedId = null;
+        const clear = () => root.querySelectorAll('.dnd-drop-target,.dnd-drop-before,.dnd-drop-after,.dnd-item-dragging').forEach(el => el.classList.remove('dnd-drop-target','dnd-drop-before','dnd-drop-after','dnd-item-dragging'));
+        const getIds = () => Array.from(root.querySelectorAll('[data-exercise-card="1"]')).map(el => el.dataset.exerciseId);
+        root.querySelectorAll('[data-exercise-drag-handle="1"]').forEach(function (handle) {
+          handle.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
+          handle.addEventListener('dragstart', e => { const card = handle.closest('[data-exercise-card="1"]'); if (!card) return; draggedId = card.dataset.exerciseId; card.classList.add('dnd-item-dragging'); e.dataTransfer.setData('text/plain', draggedId); e.dataTransfer.effectAllowed = 'move'; });
+          handle.addEventListener('dragend', () => { draggedId = null; clear(); });
+        });
+        root.querySelectorAll('[data-exercise-card="1"]').forEach(function (card) {
+          card.addEventListener('dragover', e => { e.preventDefault(); if (!draggedId || draggedId === card.dataset.exerciseId) return; const p = e.clientY - card.getBoundingClientRect().top < card.getBoundingClientRect().height/2 ? 'before' : 'after'; clear(); card.classList.add('dnd-drop-target', p === 'before' ? 'dnd-drop-before' : 'dnd-drop-after'); card.dataset.dropPlacement = p; });
+          card.addEventListener('dragleave', () => card.classList.remove('dnd-drop-target','dnd-drop-before','dnd-drop-after'));
+          card.addEventListener('drop', e => {
+            e.preventDefault();
+            const targetId = card.dataset.exerciseId;
+            const placement = card.dataset.dropPlacement || 'before';
+            clear();
+            if (!draggedId || draggedId === targetId) return;
+            const ids = getIds();
+            const remaining = ids.filter(id => id !== draggedId);
+            const ti = remaining.indexOf(targetId);
+            if (ti < 0) return;
+            let ins = ti + (placement === 'after' ? 1 : 0);
+            remaining.splice(ins, 0, draggedId);
+            fetch('/activity-templates/' + atID + '/exercises/reorder', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: 'ordered_ids=' + encodeURIComponent(remaining.join(','))
+            }).then(r => r.text()).then(html => {
+              const wrap = document.createElement('div');
+              wrap.innerHTML = html;
+              const next = wrap.querySelector('#' + rootID);
+              if (next) root.outerHTML = next.outerHTML;
+              container = document.getElementById(rootID);
+              bindReorder(container);
+            });
+          });
+        });
+      };
+      bindReorder(container);
+    })();
+  </script>
+</div>
+{{ end }}

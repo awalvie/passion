@@ -1,0 +1,38 @@
+{{ define "content" }}
+<div class="max-w-xl">
+  <div class="card card-pad">
+    <h2 class="text-sm font-semibold">New activity template</h2>
+    <p class="mt-1 text-sm muted">A reusable set of exercises you can import into session templates.</p>
+
+    <form class="mt-6 space-y-3" hx-post="/activity-templates/new" hx-swap="none" method="post">
+      <div>
+        <label class="text-sm font-medium" for="at-name">Name</label>
+        <input
+          id="at-name"
+          name="name"
+          required
+          class="mt-1 w-full input"
+          placeholder="e.g., Synovial Fascia Warmup"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="flex items-center gap-2 pt-2">
+        <button class="rounded-md btn-primary px-4 py-2 text-sm font-medium" type="submit">Create</button>
+        <a class="rounded-md btn-ghost px-4 py-2 text-sm" href="/activity-templates">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  (function () {
+    document.querySelector('form').addEventListener('htmx:afterRequest', function (e) {
+      const redirect = e.detail.xhr.getResponseHeader('HX-Redirect');
+      if (e.detail.xhr.status === 200 && redirect) {
+        window.location.href = redirect;
+      }
+    });
+  })();
+</script>
+{{ end }}

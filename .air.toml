@@ -1,0 +1,19 @@
+[build]
+  # Build the server binary and restart it on changes.
+  cmd = "go test ./... && go build -o ./tmp/passion ./cmd/passion"
+  bin = "./tmp/passion"
+
+[tmp]
+  dir = "tmp"
+
+[watch]
+  # Watch Go code and templates.
+  include = ["cmd", "config", "http", "db", "appview", "static"]
+  exclude = [".git", "tmp"]
+
+[run]
+  # Pass through the current environment from `make watch`.
+  # air will inherit PASS... vars from the make invocation.
+  # (No extra env needed in this MVP.)
+  args = []
+

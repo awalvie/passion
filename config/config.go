@@ -1,0 +1,150 @@
+// Package config loads server settings from an optional YAML file and environment variables.
+// Env vars override file values (12-factor friendly).
+package config
+
+import (
+	"fmt"
+	"os"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+)
+
+// ServerConfig holds HTTP server and database settings.
+type ServerConfig struct {
+	// Addr is the listen address, e.g. ":3000", "127.0.0.1:3000", "0.0.0.0:8080".
+	Addr string `yaml:"Addr"`
+	// DBPath is the SQLite database file path.
+	DBPath string `yaml:"DBPath"`
+	// Seed, when true, runs dev seed data if the database has no templates (see db.SeedDevIfEmpty).
+	Seed bool `yaml:"Seed"`
+	// DemoOwnerID is the user ID used for demo seeding.
+	DemoOwnerID uint `yaml:"DemoOwnerID"`
+}
+
+// AuthConfig holds JWT authentication settings.
+type AuthConfig struct {
+	// JWTSecret signs authentication tokens.
+	JWTSecret string `yaml:"JWTSecret"`
+	// JWTTTLHours controls token validity window in hours.
+	JWTTTLHours int `yaml:"JWTTTLHours"`
+	// DevAuthBypass auto-authenticates as demo user in development.
+	DevAuthBypass bool `yaml:"DevAuthBypass"`
+}
+
+// YAMLImportConfig holds startup YAML import settings.
+type YAMLImportConfig struct {
+	// Enabled loads exercise/template YAML content on startup.
+	Enabled bool `yaml:"Enabled"`
+	// ExercisesDir contains YAML files for library exercises.
+	ExercisesDir string `yaml:"ExercisesDir"`
+	// SessionTemplatesDir contains YAML files for session templates.
+	SessionTemplatesDir string `yaml:"SessionTemplatesDir"`
+	// ActivityTemplatesDir contains YAML files for activity templates.
+	// Optional — if empty, activity template import is skipped.
+	ActivityTemplatesDir string `yaml:"ActivityTemplatesDir"`
+	// OwnerID is the owner receiving imported records.
+	OwnerID uint `yaml:"OwnerID"`
+}
+
+// Config holds Passion process settings.
+type Config struct {
+	Server     ServerConfig     `yaml:"Server"`
+	Auth       AuthConfig       `yaml:"Auth"`
+	YAMLImport YAMLImportConfig `yaml:"YAMLImport"`
+}
+
+// defaultConfig returns built-in defaults when no file is loaded.
+func defaultConfig() *Config {
+	return &Config{
+		Server: ServerConfig{
+			Addr:        ":3000",
+			DBPath:      "passion.db",
+			Seed:        false,
+			DemoOwnerID: 1,
+		},
+		Auth: AuthConfig{
+			JWTSecret:     "change-me-in-production",
+			JWTTTLHours:   24 * 7,
+			DevAuthBypass: false,
+		},
+		YAMLImport: YAMLImportConfig{
+			Enabled:              false,
+			ExercisesDir:         "catalog/exercises",
+			SessionTemplatesDir:  "catalog/session_templates",
+			ActivityTemplatesDir: "catalog/activity_templates",
+			OwnerID:              1,
+		},
+	}
+}
+
+// Load reads an optional YAML file, then applies environment overrides.
+// If path is empty, only defaults + env are used.
+func Load(path string) (*Config, error) {
+	c := defaultConfig()
+	if path != "" {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("read config file %q: %w", path, err)
+		}
+		if err := yaml.Unmarshal(data, c); err != nil {
+			return nil, fmt.Errorf("parse config YAML: %w", err)
+		}
+	}
+	applyEnv(c)
+	return c, nil
+}
+
+func applyEnv(c *Config) {
+	if v := strings.TrimSpace(os.Getenv("PASSION_ADDR")); v != "" {
+		c.Server.Addr = v
+	}
+	if v := strings.TrimSpace(os.Getenv("PASSION_DB_PATH")); v != "" {
+		c.Server.DBPath = v
+	}
+	if _, ok := os.LookupEnv("PASSION_SEED"); ok {
+		c.Server.Seed = parseTruthy(os.Getenv("PASSION_SEED"))
+	}
+	if v := strings.TrimSpace(os.Getenv("PASSION_JWT_SECRET")); v != "" {
+		c.Auth.JWTSecret = v
+	}
+	if v := strings.TrimSpace(os.Getenv("PASSION_JWT_TTL_HOURS")); v != "" {
+		if n, err := parsePositiveInt(v); err == nil {
+			c.Auth.JWTTTLHours = n
+		}
+	}
+	if _, ok := os.LookupEnv("PASSION_DEV_AUTH_BYPASS"); ok {
+		c.Auth.DevAuthBypass = parseTruthy(os.Getenv("PASSION_DEV_AUTH_BYPASS"))
+	}
+	if _, ok := os.LookupEnv("PASSION_YAML_IMPORT_ENABLED"); ok {
+		c.YAMLImport.Enabled = parseTruthy(os.Getenv("PASSION_YAML_IMPORT_ENABLED"))
+	}
+	if v := strings.TrimSpace(os.Getenv("PASSION_YAML_EXERCISES_DIR")); v != "" {
+		c.YAMLImport.ExercisesDir = v
+	}
+	if v := strings.TrimSpace(os.Getenv("PASSION_YAML_SESSION_TEMPLATES_DIR")); v != "" {
+		c.YAMLImport.SessionTemplatesDir = v
+	}
+	if v := strings.TrimSpace(os.Getenv("PASSION_YAML_ACTIVITY_TEMPLATES_DIR")); v != "" {
+		c.YAMLImport.ActivityTemplatesDir = v
+	}
+	if v := strings.TrimSpace(os.Getenv("PASSION_YAML_IMPORT_OWNER_ID")); v != "" {
+		if n, err := parsePositiveInt(v); err == nil {
+			c.YAMLImport.OwnerID = uint(n)
+		}
+	}
+}
+
+func parseTruthy(s string) bool {
+	s = strings.TrimSpace(strings.ToLower(s))
+	return s == "1" || s == "true" || s == "yes" || s == "on"
+}
+
+func parsePositiveInt(s string) (int, error) {
+	var n int
+	_, err := fmt.Sscanf(strings.TrimSpace(s), "%d", &n)
+	if err != nil || n <= 0 {
+		return 0, fmt.Errorf("invalid positive int")
+	}
+	return n, nil
+}
