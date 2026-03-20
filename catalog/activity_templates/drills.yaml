@@ -1,0 +1,29 @@
+name: "Drills"
+exercises:
+  - name: "Drills"
+    kind: "exercise_catalog"
+    notes: |
+      Alternate between a different Warm-Up Drill every Session; ONLY DOING **ONE** DRILL PER SESSION.
+
+      A "Boulder Ladder" is when you warm-up by climbing different boulders, progressing in difficulty. You should aim to do 1-2 of each grade, V0, V1, V2, V3, etc. before moving onto your next drill. Take longer rests between boulders as the grades become harder.
+
+      FAQ: ***What should I do for the warm-up technical focus points? I am having trouble making these and it takes a long time. I am stressing out about them.***
+
+      Answer:
+      No need to stress! The technical focus points are there so that you add the focus onto one foundational pillar of technique in your climbing to each of your warm-up boulder ladders that otherwise would have been on its standard auto-pilot. Simply take 1-3 extra minutes (AT MOST) to read your boulders/routes and choose the climbs that would best lend themselves to the natural movement that you are trying to achieve today.
+
+      Feel free to use ANY holds for hands/feet when you're adding these drills to your warmups. For example, when doing that green V3 for your drop-knee focus, maybe that red foot from the neighboring V5 will be a much better high-step option than the foot offered on the green route! If adding other holds is too much for you today, don't stress too much; even just doing a handful of the movements you wish to achieve today is better than none!
+
+      Additionally, even on the days when you get frustrated and can't find many climbs that work perfectly, you still developed your route-reading mind and practiced visualization; so you made improvements without even knowing it! The more you push up against this discomfort and give a bit more time and energy towards creating moves and analyzing why they worked or didn't, the easier it will become from session to session!
+
+      The harder the climbs become, the harder it will be to find perfect examples of the technical focus. So, when this happens, instead just be mindful to truly read and rehearse the opportunities on the climbs when you naturally encounter them! I guarantee that practicing the skill on the easier climbs will heighten your awareness and prime your skillful execution for when you encounter it on the later boulders in the ladder.
+    children:
+      - ref: "Twisting + Opening the Hips"
+      - ref: "Toe Placements"
+      - ref: "Deadpoint Focused"
+      - ref: "Flagging Perfection"
+      - ref: "Directional Holds and Body Positioning"
+      - ref: "Drop-Knees and Perching"
+      - ref: "High-Step + Through-Step"
+      - ref: "Foot Switching"
+      - ref: "Heel Hooks and Toe Grabbing"

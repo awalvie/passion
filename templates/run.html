@@ -1,0 +1,1181 @@
+{{ define "content" }}
+<div class="max-w-6xl w-full run-shell">
+  {{ if .RunCompleted }}
+    <div class="card card-pad run-complete">
+      <div class="text-base font-semibold">Workout complete</div>
+      <p class="mt-2 text-sm muted">Nice work. All exercises in this run are completed or skipped.</p>
+      <div class="mt-4">
+        <a class="rounded-md btn-primary px-4 py-2 text-sm font-medium inline-flex" href="/dashboard">Return to dashboard</a>
+      </div>
+    </div>
+  {{ else }}
+    {{ $isCatalog := eq .CurrentStep.Kind "exercise_catalog" }}
+    {{ $isSession := eq .CurrentStep.Kind "session" }}
+    {{ if $isCatalog }}
+    <div class="run-layout">
+      <button type="button" id="run-playlist-toggle" class="run-playlist-toggle rounded-md btn-ghost px-3 py-2 text-sm">Show session steps</button>
+      <div class="run-sidebar">
+        <div class="card card-pad run-session-timer-box">
+          <span class="run-session-timer-label">Session Time</span>
+          <span class="run-session-timer" id="session-timer-display">00:00</span>
+        </div>
+        <aside id="run-playlist-panel" class="card card-pad run-playlist-panel">
+          <div class="run-playlist-head">
+            <div class="run-playlist-head-title">
+              <span class="text-sm font-semibold">Session steps</span>
+              <span class="text-xs muted" id="run-playlist-summary">(0/0 done)</span>
+            </div>
+            <button type="button" id="run-playlist-close" class="run-playlist-close rounded-md btn-ghost px-2 py-1 text-xs">Close</button>
+          </div>
+        <div class="mt-3 space-y-1">
+          {{ range .RunActivityGroups }}
+          <div class="run-playlist-group{{ if not .IsCurrent }} run-playlist-group--collapsed{{ end }}" data-activity-id="{{ .ActivityID }}">
+            <button type="button" class="run-playlist-group-header">
+              <span class="run-playlist-group-chevron" aria-hidden="true"></span>
+              <span class="text-xs font-semibold uppercase tracking-wide">{{ .Name }}</span>
+            </button>
+            <div class="run-playlist-group-body">
+              {{ range .Steps }}
+              <div class="run-playlist-row run-playlist-row-{{ .Status }} {{ if and (eq .Status "pending") (eq .ExerciseID $.CurrentStep.ExerciseID) }}run-playlist-row-current{{ end }}" data-status="{{ .Status }}" data-exercise-id="{{ .ExerciseID }}" tabindex="0" role="button">
+                <span class="run-playlist-marker" aria-hidden="true"></span>
+                <div class="run-playlist-body">
+                  <div class="text-sm truncate">{{ .Name }}</div>
+                  <div class="text-xs muted">
+                    {{ if eq .Kind "exercise_catalog" }}
+                      Exercise catalog
+                    {{ else if eq .Kind "session" }}
+                      {{ if gt .SessionDurationSeconds 0 }}{{ formatSessionDuration .SessionDurationSeconds }}{{ else }}Open-ended{{ end }}
+                    {{ else }}
+                      {{ if gt .Sets 0 }}{{ .Sets }} set{{ if ne .Sets 1 }}s{{ end }}{{ else }}1 set{{ end }}
+                      ·
+                      {{ if gt .Reps 0 }}{{ .Reps }} rep{{ if ne .Reps 1 }}s{{ end }}{{ else }}1 rep{{ end }}
+                    {{ end }}
+                  </div>
+                </div>
+                <span class="run-step-status run-step-status-{{ .Status }}">{{ .Status }}</span>
+              </div>
+              {{ end }}
+            </div>
+          </div>
+          {{ end }}
+        </div>
+        </aside>
+      </div>
+
+      <div id="run-current-step" class="card card-pad run-player run-player--catalog">
+        <div class="run-progress"><div class="run-progress-fill" id="run-progress-fill"></div></div>
+        <div class="flex items-start justify-between gap-2 mb-4">
+          <h1 class="text-lg font-semibold m-0">{{ .CurrentStep.Name }}</h1>
+          <div class="flex items-center gap-2 shrink-0">
+            {{ if .RunIsTrial }}
+            <a class="text-xs link" href="/templates/{{ .RunTemplateID }}/edit">Edit template</a>
+            {{ end }}
+            <div class="run-overflow" id="run-overflow-catalog">
+              <button type="button" class="run-overflow-trigger" id="run-overflow-trigger-catalog" aria-label="Session options"><i data-lucide="more-vertical" class="run-icon"></i></button>
+              <div class="run-overflow-menu" role="menu">
+                <form hx-post="/runs/{{ .RunID }}/stop" hx-swap="none" hx-confirm="End this session? Progress will be saved." method="post">
+                  <button type="submit" class="run-overflow-item" role="menuitem"><i data-lucide="square" class="run-icon"></i> End session</button>
+                </form>
+                <div class="run-overflow-sep"></div>
+                <form hx-post="/runs/{{ .RunID }}/delete" hx-swap="none" hx-confirm="Discard this session? This cannot be undone." method="post">
+                  <button type="submit" class="run-overflow-item run-overflow-item--destructive" role="menuitem"><i data-lucide="trash-2" class="run-icon"></i> Discard session</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <section class="catalog-instructions">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <h2 class="text-sm font-semibold m-0">Instructions</h2>
+          </div>
+          {{ if .CurrentStep.TemplateNotes }}
+          <div class="markdown-body text-sm catalog-instructions-body">{{ markdownHTML .CurrentStep.TemplateNotes }}</div>
+          {{ else }}
+          <p class="text-sm muted m-0">Choose exercises for this session.</p>
+          {{ end }}
+        </section>
+
+        <section class="mt-6">
+          <h2 class="text-sm font-semibold m-0 mb-3">Exercises</h2>
+          <form id="catalog-choose-form" hx-post="/runs/{{ $.RunID }}/exercises/{{ $.CurrentStep.ExerciseID }}/choose" hx-swap="none" method="post">
+          <div class="catalog-card-list space-y-2">
+            {{ range .CurrentStep.CatalogOptions }}
+            <label class="catalog-card catalog-card--selectable w-full text-left" data-catalog-card="{{ .ExerciseID }}">
+              <input type="checkbox" name="child_exercise_ids[]" value="{{ .ExerciseID }}" class="catalog-card-checkbox" />
+              <div class="catalog-card-thumb">
+                {{ if .ThumbnailURL }}
+                <img src="{{ .ThumbnailURL }}" alt="" />
+                {{ else }}
+                <div class="catalog-card-thumb-fallback" style="--thumb-accent: {{ runHeroAccent .ExerciseID }}"></div>
+                {{ end }}
+              </div>
+              <div class="catalog-card-body">
+                <div class="catalog-card-title">{{ .Name }}</div>
+                <span class="catalog-dur-badge">
+                  {{ if eq .Kind "session" }}
+                    {{ if gt .SessionDurationSeconds 0 }}{{ formatSessionDuration .SessionDurationSeconds }}{{ else }}Session{{ end }}
+                  {{ else }}
+                    {{ if gt .Sets 0 }}{{ .Sets }}×{{ if gt .Reps 0 }}{{ .Reps }}{{ else }}1{{ end }}{{ else }}Reps{{ end }}
+                  {{ end }}
+                </span>
+              </div>
+              <button
+                type="button"
+                class="catalog-card-info-btn shrink-0"
+                data-catalog-open="{{ .ExerciseID }}"
+                aria-label="View details"
+                onclick="event.preventDefault(); event.stopPropagation();"
+              ><i data-lucide="info" class="run-icon"></i></button>
+            </label>
+            {{ end }}
+          </div>
+
+          <div class="mt-4">
+            <button type="submit" id="catalog-start-btn" class="w-full rounded-md btn-primary px-4 py-2 text-sm font-medium" disabled>
+              Start selected (0)
+            </button>
+          </div>
+          </form>
+
+          {{ range .CurrentStep.CatalogOptions }}
+          <dialog id="catalog-dialog-{{ .ExerciseID }}" class="catalog-dialog">
+            <div class="catalog-dialog-panel">
+              <div class="catalog-dialog-hero">
+                {{ if .VideoURL }}
+                  {{ $yt := youtubeEmbedURL .VideoURL }}
+                  {{ if $yt }}
+                  <iframe class="catalog-dialog-media" src="{{ $yt }}" title="Exercise video" allowfullscreen></iframe>
+                  {{ else }}
+                  <video class="catalog-dialog-media" src="{{ .VideoURL }}" poster="{{ .ThumbnailURL }}" controls playsinline></video>
+                  {{ end }}
+                {{ else if .ThumbnailURL }}
+                  <img class="catalog-dialog-media" src="{{ .ThumbnailURL }}" alt="" />
+                {{ else }}
+                  <div class="catalog-dialog-media catalog-dialog-media--accent" style="--hero-accent: {{ runHeroAccent .ExerciseID }}"></div>
+                {{ end }}
+                <button type="button" class="catalog-dialog-back" data-catalog-close="{{ .ExerciseID }}" aria-label="Close"><i data-lucide="arrow-left" class="run-icon"></i></button>
+              </div>
+              <div class="catalog-dialog-body">
+                <h3 class="text-base font-semibold m-0">{{ .Name }}</h3>
+                <span class="catalog-dur-badge mt-2 inline-block">{{ if eq .Kind "session" }}{{ if gt .SessionDurationSeconds 0 }}{{ formatSessionDuration .SessionDurationSeconds }}{{ else }}Session{{ end }}{{ else }}{{ if gt .Sets 0 }}{{ .Sets }}×{{ if gt .Reps 0 }}{{ .Reps }}{{ else }}1{{ end }}{{ else }}Reps{{ end }}{{ end }}</span>
+                {{ if .Notes }}
+                <div class="markdown-body text-sm mt-3">{{ markdownHTML .Notes }}</div>
+                {{ end }}
+                <div class="catalog-dialog-actions mt-4 flex flex-col gap-2">
+                  <form method="dialog">
+                    <button type="submit" class="w-full rounded-md btn-ghost px-4 py-2 text-sm font-medium inline-flex items-center justify-center gap-2">
+                      <i data-lucide="arrow-left" class="run-icon"></i> Back
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </dialog>
+          {{ end }}
+        </section>
+
+        <form
+          hx-post="/runs/{{ .RunID }}/exercises/{{ .CurrentStep.ExerciseID }}/skip"
+          hx-swap="none"
+          method="post"
+          id="skip-form-catalog"
+          class="mt-6"
+        >
+          <input type="hidden" name="elapsed_seconds" value="0" />
+          <input type="hidden" name="run_notes" value="" />
+          <button type="submit" class="run-skip-link">Skip this block</button>
+        </form>
+      </div>
+    </div>
+    <script>
+      (function () {
+        // Progress bar
+        var progressFill = document.getElementById("run-progress-fill");
+        var pPanel = document.getElementById("run-playlist-panel");
+        if (progressFill && pPanel) {
+          var rows = Array.from(pPanel.querySelectorAll(".run-playlist-row"));
+          var done = rows.filter(function (r) { var s = r.dataset.status || ""; return s === "completed" || s === "skipped"; }).length;
+          var pct = rows.length > 0 ? Math.max(0, Math.min(100, (done / rows.length) * 100)) : 0;
+          progressFill.style.width = pct.toFixed(2) + "%";
+        }
+        // Playlist summary
+        var playlistSummary = document.getElementById("run-playlist-summary");
+        if (playlistSummary && pPanel) {
+          var allRows = Array.from(pPanel.querySelectorAll(".run-playlist-row"));
+          var doneCount = allRows.filter(function (r) { var s = r.dataset.status || ""; return s === "completed" || s === "skipped"; }).length;
+          playlistSummary.textContent = "(" + doneCount + "/" + allRows.length + " done)";
+        }
+
+        // Detail dialogs
+        document.querySelectorAll("[data-catalog-open]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            const id = btn.getAttribute("data-catalog-open");
+            const dlg = document.getElementById("catalog-dialog-" + id);
+            if (dlg && dlg.showModal) dlg.showModal();
+          });
+        });
+        document.querySelectorAll("[data-catalog-close]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            const id = btn.getAttribute("data-catalog-close");
+            const dlg = document.getElementById("catalog-dialog-" + id);
+            if (dlg && dlg.close) dlg.close();
+          });
+        });
+
+        // Multi-select: update button count
+        var startBtn = document.getElementById("catalog-start-btn");
+        var form = document.getElementById("catalog-choose-form");
+        function updateStartBtn() {
+          if (!startBtn || !form) return;
+          var count = form.querySelectorAll('input[name="child_exercise_ids[]"]:checked').length;
+          startBtn.disabled = count === 0;
+          startBtn.textContent = "Start selected (" + count + ")";
+        }
+        if (form) {
+          form.addEventListener("change", updateStartBtn);
+          updateStartBtn();
+        }
+
+        // Toggle selected visual state on card labels
+        document.querySelectorAll(".catalog-card--selectable").forEach(function (label) {
+          var cb = label.querySelector(".catalog-card-checkbox");
+          if (cb) {
+            cb.addEventListener("change", function () {
+              label.classList.toggle("catalog-card--selected", cb.checked);
+            });
+          }
+        });
+
+        // Playlist row click — navigate to that exercise
+        var runID = {{ .RunID }};
+        document.querySelectorAll(".run-playlist-row[data-exercise-id]").forEach(function (row) {
+          row.style.cursor = row.dataset.status === "pending" ? "pointer" : "default";
+          row.addEventListener("click", function () {
+            if (row.dataset.status !== "pending") return;
+            var eid = row.dataset.exerciseId;
+            if (!eid) return;
+            window.location.href = "/runs/" + runID + "?exercise=" + eid;
+          });
+        });
+
+        // Playlist toggle
+        var playlistPanel = document.getElementById("run-playlist-panel");
+        var playlistToggle = document.getElementById("run-playlist-toggle");
+        var playlistClose = document.getElementById("run-playlist-close");
+        if (playlistToggle && playlistPanel) {
+          playlistToggle.addEventListener("click", function () {
+            playlistPanel.classList.toggle("run-playlist-open");
+          });
+        }
+        if (playlistClose && playlistPanel) {
+          playlistClose.addEventListener("click", function () {
+            playlistPanel.classList.remove("run-playlist-open");
+          });
+        }
+
+        // Activity group expand/collapse
+        document.querySelectorAll(".run-playlist-group-header").forEach(function (hdr) {
+          hdr.addEventListener("click", function () {
+            var group = hdr.closest(".run-playlist-group");
+            if (group) group.classList.toggle("run-playlist-group--collapsed");
+          });
+        });
+
+        // Overflow (kebab) menu toggle
+        document.querySelectorAll(".run-overflow").forEach(function (container) {
+          var trigger = container.querySelector(".run-overflow-trigger");
+          if (!trigger) return;
+          trigger.addEventListener("click", function (e) {
+            e.stopPropagation();
+            var isOpen = container.hasAttribute("data-open");
+            // Close all others first
+            document.querySelectorAll(".run-overflow[data-open]").forEach(function (el) {
+              el.removeAttribute("data-open");
+            });
+            if (!isOpen) container.setAttribute("data-open", "");
+          });
+        });
+        document.addEventListener("click", function () {
+          document.querySelectorAll(".run-overflow[data-open]").forEach(function (el) {
+            el.removeAttribute("data-open");
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape") {
+            document.querySelectorAll(".run-overflow[data-open]").forEach(function (el) {
+              el.removeAttribute("data-open");
+            });
+          }
+        });
+
+        if (window.__passionRenderIcons) window.__passionRenderIcons();
+      })();
+    </script>
+    {{ else }}
+    <div class="run-layout">
+      <button type="button" id="run-playlist-toggle" class="run-playlist-toggle rounded-md btn-ghost px-3 py-2 text-sm">Show session steps</button>
+      <div class="run-sidebar">
+        <div class="card card-pad run-session-timer-box">
+          <span class="run-session-timer-label">Session Time</span>
+          <span class="run-session-timer" id="session-timer-display">00:00</span>
+        </div>
+        <aside id="run-playlist-panel" class="card card-pad run-playlist-panel">
+          <div class="run-playlist-head">
+            <div class="run-playlist-head-title">
+              <span class="text-sm font-semibold">Session steps</span>
+              <span class="text-xs muted" id="run-playlist-summary">(0/0 done)</span>
+            </div>
+            <button type="button" id="run-playlist-close" class="run-playlist-close rounded-md btn-ghost px-2 py-1 text-xs">Close</button>
+          </div>
+        <div class="mt-3 space-y-1">
+          {{ range .RunActivityGroups }}
+          <div class="run-playlist-group{{ if not .IsCurrent }} run-playlist-group--collapsed{{ end }}" data-activity-id="{{ .ActivityID }}">
+            <button type="button" class="run-playlist-group-header">
+              <span class="run-playlist-group-chevron" aria-hidden="true"></span>
+              <span class="text-xs font-semibold uppercase tracking-wide">{{ .Name }}</span>
+            </button>
+            <div class="run-playlist-group-body">
+              {{ range .Steps }}
+              <div class="run-playlist-row run-playlist-row-{{ .Status }} {{ if and (eq .Status "pending") (eq .ExerciseID $.CurrentStep.ExerciseID) }}run-playlist-row-current{{ end }}" data-status="{{ .Status }}" data-exercise-id="{{ .ExerciseID }}" tabindex="0" role="button">
+                <span class="run-playlist-marker" aria-hidden="true"></span>
+                <div class="run-playlist-body">
+                  <div class="text-sm truncate">{{ .Name }}</div>
+                  <div class="text-xs muted">
+                    {{ if eq .Kind "session" }}
+                      {{ if gt .SessionDurationSeconds 0 }}{{ formatSessionDuration .SessionDurationSeconds }}{{ else }}Open-ended{{ end }}
+                    {{ else if eq .Kind "exercise_catalog" }}
+                      Exercise catalog
+                    {{ else }}
+                      {{ if gt .Sets 0 }}{{ .Sets }} set{{ if ne .Sets 1 }}s{{ end }}{{ else }}1 set{{ end }}
+                      ·
+                      {{ if gt .Reps 0 }}{{ .Reps }} rep{{ if ne .Reps 1 }}s{{ end }}{{ else }}1 rep{{ end }}
+                    {{ end }}
+                  </div>
+                </div>
+                <span class="run-step-status run-step-status-{{ .Status }}">{{ .Status }}</span>
+              </div>
+              {{ end }}
+            </div>
+          </div>
+          {{ end }}
+        </div>
+        </aside>
+      </div>
+
+      <div id="run-current-step" class="card card-pad run-player">
+        <div class="run-progress"><div class="run-progress-fill" id="run-progress-fill"></div></div>
+        <div class="run-hero" id="run-hero">
+          {{ if gt (len .CurrentStep.Media) 1 }}
+          <div class="run-hero-carousel" id="run-hero-carousel">
+            {{ range $i, $m := .CurrentStep.Media }}
+            <div class="run-hero-slide" data-slide="{{ $i }}">
+              {{ if $m.VideoURL }}
+                {{ $yt := youtubeEmbedURL $m.VideoURL }}
+                {{ if $yt }}
+                  <iframe class="run-hero-media run-hero-youtube" src="{{ $yt }}" title="Exercise video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                {{ else }}
+                  <video class="run-hero-media" src="{{ $m.VideoURL }}" poster="{{ $m.ThumbnailURL }}" preload="metadata" controls playsinline></video>
+                {{ end }}
+              {{ else if $m.ThumbnailURL }}
+                <img class="run-hero-media" src="{{ $m.ThumbnailURL }}" alt="" />
+              {{ end }}
+            </div>
+            {{ end }}
+          </div>
+          <button type="button" class="run-hero-nav run-hero-nav--prev" id="hero-prev" aria-label="Previous media"><i data-lucide="chevron-left" class="run-icon"></i></button>
+          <button type="button" class="run-hero-nav run-hero-nav--next" id="hero-next" aria-label="Next media"><i data-lucide="chevron-right" class="run-icon"></i></button>
+          <div class="run-hero-dots" id="hero-dots">
+            {{ range $i, $m := .CurrentStep.Media }}
+            <span class="run-hero-dot{{ if eq $i 0 }} run-hero-dot--active{{ end }}" data-dot="{{ $i }}"></span>
+            {{ end }}
+          </div>
+          {{ else if .CurrentStep.VideoURL }}
+            {{ $yt := youtubeEmbedURL .CurrentStep.VideoURL }}
+            {{ if $yt }}
+              <iframe
+                class="run-hero-media run-hero-youtube"
+                id="run-hero-video"
+                src="{{ $yt }}"
+                title="Exercise video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+                referrerpolicy="strict-origin-when-cross-origin"
+              ></iframe>
+            {{ else }}
+              <video class="run-hero-media" id="run-hero-video" src="{{ .CurrentStep.VideoURL }}" poster="{{ .CurrentStep.ThumbnailURL }}" preload="metadata" controls playsinline></video>
+            {{ end }}
+          {{ else if .CurrentStep.ThumbnailURL }}
+            <img class="run-hero-media" id="run-hero-image" src="{{ .CurrentStep.ThumbnailURL }}" alt="" />
+          {{ else }}
+            <div
+              class="run-hero-media run-hero-accent"
+              style="--hero-accent: {{ runHeroAccent .CurrentStep.ExerciseID }}"
+            >
+              <div class="run-hero-accent-content">
+                <div class="run-hero-accent-name">{{ .CurrentStep.Name }}</div>
+                {{ if eq .CurrentStep.Kind "session" }}
+                  {{ if gt .CurrentStep.SessionDurationSeconds 0 }}
+                    <div class="run-hero-accent-meta">{{ formatSessionDuration .CurrentStep.SessionDurationSeconds }}</div>
+                  {{ end }}
+                {{ else }}
+                  {{ if or (gt .CurrentStep.Sets 0) (gt .CurrentStep.Reps 0) }}
+                    <div class="run-hero-accent-meta">
+                      {{ if gt .CurrentStep.Sets 0 }}{{ .CurrentStep.Sets }} sets{{ end }}{{ if and (gt .CurrentStep.Sets 0) (gt .CurrentStep.Reps 0) }} &middot; {{ end }}{{ if gt .CurrentStep.Reps 0 }}{{ .CurrentStep.Reps }} reps{{ end }}
+                    </div>
+                  {{ end }}
+                {{ end }}
+                {{ if .CurrentStep.ActivityName }}
+                  <div class="run-hero-accent-activity">{{ .CurrentStep.ActivityName }}</div>
+                {{ end }}
+              </div>
+            </div>
+          {{ end }}
+          <div class="run-hero-top">
+            {{ if .RunIsTrial }}
+            <a class="run-hero-icon" href="/templates/{{ .RunTemplateID }}/edit" aria-label="Back to template"><i data-lucide="arrow-left" class="run-icon"></i></a>
+            {{ else }}
+            <a class="run-hero-icon" href="/dashboard" aria-label="Back to dashboard"><i data-lucide="arrow-left" class="run-icon"></i></a>
+            {{ end }}
+            <button type="button" class="run-hero-icon" id="hero-complete-btn" aria-label="Complete exercise"><i data-lucide="check" class="run-icon"></i></button>
+          </div>
+          {{ if .CurrentStep.HasMedia }}
+          <div class="run-hero-bottom">
+            <div class="run-hero-title">{{ .CurrentStep.Name }}</div>
+          </div>
+          {{ end }}
+        </div>
+        <div class="run-session-strip">
+          <span class="text-xs muted">{{ .RunTemplateName }}</span>
+          <div class="run-session-strip-right">
+            <button type="button" class="run-mute-btn" id="btn-mute" aria-label="Toggle sound"><i data-lucide="volume-2" class="run-icon"></i></button>
+            <div class="run-overflow" id="run-overflow">
+              <button type="button" class="run-overflow-trigger" id="run-overflow-trigger" aria-label="Session options"><i data-lucide="more-vertical" class="run-icon"></i></button>
+              <div class="run-overflow-menu" role="menu">
+                <form hx-post="/runs/{{ .RunID }}/stop" hx-swap="none" hx-confirm="End this session? Progress will be saved." method="post">
+                  <button type="submit" class="run-overflow-item" role="menuitem"><i data-lucide="square" class="run-icon"></i> End session</button>
+                </form>
+                <div class="run-overflow-sep"></div>
+                <form hx-post="/runs/{{ .RunID }}/delete" hx-swap="none" hx-confirm="Discard this session? This cannot be undone." method="post">
+                  <button type="submit" class="run-overflow-item run-overflow-item--destructive" role="menuitem"><i data-lucide="trash-2" class="run-icon"></i> Discard session</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="run-main-timer" id="exercise-timer-display">
+          <span id="exercise-timer-main">00:00</span><span id="exercise-timer-fraction" class="run-timer-frac">.00</span>
+        </div>
+        <div class="run-phase-text muted" id="exercise-timer-state">Waiting to start</div>
+        {{ if .CurrentStep.TemplateNotes }}
+        <details class="run-notes-card">
+          <summary class="run-collapse-toggle"><i data-lucide="book-open" class="run-collapse-icon"></i><i data-lucide="chevron-right" class="run-collapse-chevron"></i> Exercise notes</summary>
+          <div class="markdown-body text-sm mt-2">{{ markdownHTML .CurrentStep.TemplateNotes }}</div>
+        </details>
+        {{ end }}
+        {{ if not $isSession }}
+        <div class="run-up-next-row">
+          <button type="button" class="run-up-next-arrow" id="btn-up-prev" aria-label="Previous rep"><i data-lucide="chevron-left" class="run-icon"></i></button>
+          <div class="run-up-next" id="run-up-next">UP NEXT</div>
+          <button type="button" class="run-up-next-arrow" id="btn-up-next" aria-label="Next rep"><i data-lucide="chevron-right" class="run-icon"></i></button>
+        </div>
+        <div class="run-counter-grid">
+          <div class="run-counter-box">
+            <div class="run-counter-label">REP</div>
+            <div class="run-counter-value"><span id="run-rep-now">1</span> / <span id="run-rep-max">{{ if gt .CurrentStep.Reps 0 }}{{ .CurrentStep.Reps }}{{ else }}1{{ end }}</span></div>
+          </div>
+          <div class="run-counter-box">
+            <div class="run-counter-label">SET</div>
+            <div class="run-counter-value"><span id="run-set-now">1</span> / <span id="run-set-max">{{ if gt .CurrentStep.Sets 0 }}{{ .CurrentStep.Sets }}{{ else }}1{{ end }}</span></div>
+          </div>
+        </div>
+        {{ else }}{{ end }}
+
+        <form hx-post="/runs/{{ .RunID }}/exercises/{{ .CurrentStep.ExerciseID }}/complete" hx-swap="none" method="post" id="complete-form">
+          <input type="hidden" name="elapsed_seconds" id="elapsed-seconds" value="0"/>
+          <div class="run-sticky-controls">
+            <div class="run-transport{{ if $isSession }} run-transport--session{{ end }}">
+              {{ if not $isSession }}
+              <button type="button" class="run-transport-btn" id="btn-skip-back" aria-label="Skip back"><i data-lucide="chevron-left" class="run-icon"></i></button>
+              {{ end }}
+              <button type="button" class="run-transport-play" id="btn-play-pause" aria-label="Play/Pause"><i data-lucide="play" class="run-icon"></i></button>
+              {{ if not $isSession }}
+              <button type="button" class="run-transport-btn" id="btn-skip-fwd" aria-label="Skip forward"><i data-lucide="chevron-right" class="run-icon"></i></button>
+              {{ end }}
+            </div>
+            <div id="run-auto-advance" class="run-auto-advance" hidden>
+              <span id="run-auto-advance-text">Completing in 2s...</span>
+              <button type="button" id="btn-cancel-auto" class="run-auto-advance-cancel">Cancel</button>
+            </div>
+            <div class="run-submit-row">
+              <div class="run-submit-buttons">
+                <button
+                  type="button"
+                  id="btn-complete-step"
+                  class="run-complete-btn"
+                  onclick="(function(){ if (!window.__passion_startSubmit || window.__passion_startSubmit()) { document.getElementById('complete-form').requestSubmit(); }})();"
+                >
+                  <i data-lucide="check" class="run-icon"></i> Complete
+                </button>
+                <button
+                  type="button"
+                  id="btn-skip-step"
+                  class="run-skip-btn"
+                  onclick="(function(){window.__passion_skipSubmit && window.__passion_skipSubmit();})();"
+                >
+                  Skip
+                </button>
+              </div>
+            </div>
+          </div>
+          <details class="run-notes-collapse">
+            <summary class="run-collapse-toggle"><i data-lucide="pencil" class="run-collapse-icon"></i><i data-lucide="chevron-right" class="run-collapse-chevron"></i> Add notes</summary>
+            <textarea id="run-notes" name="run_notes" rows="2" class="w-full input text-sm mt-1" placeholder="e.g., felt heavy, changed grip, RPE..."></textarea>
+          </details>
+        </form>
+
+        <form
+          hx-post="/runs/{{ .RunID }}/exercises/{{ .CurrentStep.ExerciseID }}/skip"
+          hx-swap="none"
+          method="post"
+          id="skip-form"
+        >
+          <input type="hidden" name="elapsed_seconds" id="skip-elapsed-seconds" value="0" />
+          <input type="hidden" name="run_notes" id="skip-run-notes" value="" />
+        </form>
+        <div id="run-feedback" class="run-feedback" hidden>
+          <span id="run-feedback-text">Saving...</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const runID = {{ .RunID }};
+
+        // --- State ---
+        const initialSessionOffsetMs = {{ .RunSessionSeconds }} * 1000;
+        let sessionStartMs = Date.now() - initialSessionOffsetMs;
+        let phaseStartMs = Date.now();
+        let sessionRunning = false;
+        let exerciseRunning = false;
+        let rafHandle = null;
+        let lastSessionTickMs = 0;
+        let pausedSessionOffsetMs = initialSessionOffsetMs;
+        let pausedPhaseOffsetMs = 0;
+        let hasStartedPlayback = false;
+        let repNow = 1;
+        let setNow = 1;
+        const isSessionExercise = {{ if $isSession }}true{{ else }}false{{ end }};
+        const sessionDurationSeconds = Math.max(0, {{ .CurrentStep.SessionDurationSeconds }});
+        const repMax = Math.max(1, {{ .CurrentStep.Reps }});
+        const setMax = Math.max(1, {{ .CurrentStep.Sets }});
+        const repSeconds = Math.max(0, {{ .CurrentStep.RepSeconds }});
+        const repRestSeconds = Math.max(0, {{ .CurrentStep.RepRestSeconds }});
+        const setRestSeconds = Math.max(0, {{ .CurrentStep.SetRestSeconds }});
+        let phase = "work";
+        let phaseDuration = 0;
+        let phaseCompleted = false;
+        const initialWorkSeconds = isSessionExercise
+          ? Math.max(0, sessionDurationSeconds)
+          : Math.max(0, repSeconds);
+        let autoAdvanceTimer = null;
+        let lastBeepSecond = -1;
+
+        // --- DOM refs ---
+        const sessionTimerDisplay = document.getElementById("session-timer-display");
+        const progressFill = document.getElementById("run-progress-fill");
+        const exerciseTimerDisplay = document.getElementById("exercise-timer-display");
+        const exerciseTimerMain = document.getElementById("exercise-timer-main");
+        const exerciseTimerFraction = document.getElementById("exercise-timer-fraction");
+        const upNextLabel = document.getElementById("run-up-next");
+        const repNowEl = document.getElementById("run-rep-now");
+        const setNowEl = document.getElementById("run-set-now");
+        const elapsedInput = document.getElementById("elapsed-seconds");
+        const skipElapsedInput = document.getElementById("skip-elapsed-seconds");
+        const notesInput = document.getElementById("run-notes");
+        const skipNotesInput = document.getElementById("skip-run-notes");
+        const playPause = document.getElementById("btn-play-pause");
+        const timerPanel = exerciseTimerDisplay;
+        const timerState = document.getElementById("exercise-timer-state");
+        const feedback = document.getElementById("run-feedback");
+        const feedbackText = document.getElementById("run-feedback-text");
+        const completeBtn = document.getElementById("btn-complete-step");
+        const playlistPanel = document.getElementById("run-playlist-panel");
+        const playlistToggle = document.getElementById("run-playlist-toggle");
+        const playlistClose = document.getElementById("run-playlist-close");
+        const playlistSummary = document.getElementById("run-playlist-summary");
+        const currentPlaylistRow = document.querySelector(".run-playlist-row-current");
+        const autoAdvanceEl = document.getElementById("run-auto-advance");
+        const autoAdvanceText = document.getElementById("run-auto-advance-text");
+        const cancelAutoBtn = document.getElementById("btn-cancel-auto");
+        const muteBtn = document.getElementById("btn-mute");
+        const transportButtons = isSessionExercise
+          ? [playPause]
+          : [
+              document.getElementById("btn-skip-back"),
+              document.getElementById("btn-skip-fwd"),
+              playPause
+            ];
+
+        // --- Icons ---
+        function refreshIcons() {
+          if (typeof window.__passionRenderIcons === "function") {
+            window.__passionRenderIcons();
+          }
+        }
+        function setPlayIcon(isPlaying) {
+          playPause.innerHTML = isPlaying
+            ? '<i data-lucide="pause" class="run-icon"></i>'
+            : '<i data-lucide="play" class="run-icon"></i>';
+          refreshIcons();
+        }
+
+        // --- Audio (Web Audio API) ---
+        var audioCtx = null;
+        var audioMuted = localStorage.getItem("passion-mute") === "1";
+
+        function getAudioCtx() {
+          if (!audioCtx) {
+            try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { /* unsupported */ }
+          }
+          return audioCtx;
+        }
+        function playTone(freq, duration, vol) {
+          if (audioMuted) return;
+          var ctx = getAudioCtx();
+          if (!ctx) return;
+          var osc = ctx.createOscillator();
+          var gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.value = freq;
+          gain.gain.value = vol || 0.3;
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+          osc.stop(ctx.currentTime + duration);
+        }
+        function playCountdownBeep() { playTone(440, 0.1, 0.25); }
+        function playPhaseEndTone() { playTone(880, 0.3, 0.35); }
+        function playCompleteTone() {
+          playTone(660, 0.15, 0.3);
+          setTimeout(function () { playTone(880, 0.25, 0.3); }, 180);
+        }
+        function updateMuteIcon() {
+          if (!muteBtn) return;
+          muteBtn.innerHTML = audioMuted
+            ? '<i data-lucide="volume-x" class="run-icon"></i>'
+            : '<i data-lucide="volume-2" class="run-icon"></i>';
+          refreshIcons();
+        }
+        if (muteBtn) {
+          muteBtn.addEventListener("click", function () {
+            audioMuted = !audioMuted;
+            localStorage.setItem("passion-mute", audioMuted ? "1" : "0");
+            updateMuteIcon();
+          });
+          updateMuteIcon();
+        }
+
+        // --- Progress bar ---
+        function updateProgressBar() {
+          if (!progressFill || !playlistPanel) return;
+          var rows = Array.from(playlistPanel.querySelectorAll(".run-playlist-row"));
+          var done = rows.filter(function (r) {
+            var s = r.dataset.status || "";
+            return s === "completed" || s === "skipped";
+          }).length;
+          var total = rows.length;
+          var pct = total > 0 ? Math.max(0, Math.min(100, (done / total) * 100)) : 0;
+          progressFill.style.width = pct.toFixed(2) + "%";
+        }
+        updateProgressBar();
+
+        if (playlistSummary && playlistPanel) {
+          var rows = Array.from(playlistPanel.querySelectorAll(".run-playlist-row"));
+          var done = rows.filter(function (row) {
+            var s = row.dataset.status || "";
+            return s === "completed" || s === "skipped";
+          }).length;
+          playlistSummary.textContent = "(" + done + "/" + rows.length + " done)";
+        }
+
+        // --- Timer helpers ---
+        function pad(n) { return String(n).padStart(2, "0"); }
+        function formatSeconds(total) {
+          const s = Math.max(0, Math.floor(total));
+          const m = Math.floor(s / 60);
+          return pad(m) + ":" + pad(s % 60);
+        }
+        function renderExerciseTimer(secondsValue) {
+          const safe = Math.max(0, secondsValue);
+          const main = formatSeconds(safe);
+          const centis = String(Math.floor((safe % 1) * 10));
+          if (exerciseTimerMain) {
+            exerciseTimerMain.textContent = main;
+          } else {
+            exerciseTimerDisplay.textContent = main;
+          }
+          if (exerciseTimerFraction) {
+            exerciseTimerFraction.textContent = "." + centis;
+          }
+        }
+
+        function getSessionSeconds() {
+          if (sessionRunning) return (Date.now() - sessionStartMs) / 1000;
+          return pausedSessionOffsetMs / 1000;
+        }
+        function phaseLabel() {
+          if (!hasStartedPlayback) return "Waiting to start";
+          if (isSessionExercise) return "Session";
+          if (phase === "rep_rest") return "Rest (between reps)";
+          if (phase === "set_rest") return "Rest (between sets)";
+          return "Work";
+        }
+
+        function phaseDurationFor(kind) {
+          if (isSessionExercise) {
+            return sessionDurationSeconds > 0 ? sessionDurationSeconds : 0;
+          }
+          if (kind === "work") return repSeconds > 0 ? repSeconds : 0;
+          if (kind === "rep_rest") return repRestSeconds;
+          if (kind === "set_rest") return setRestSeconds;
+          return 0;
+        }
+
+        function setPlaylistRestClass(resting) {
+          if (!currentPlaylistRow || isSessionExercise) return;
+          currentPlaylistRow.classList.toggle("run-playlist-row-resting", resting);
+        }
+
+        // --- Phase color feedback ---
+        function updateTimerPhaseClass() {
+          if (!timerPanel) return;
+          timerPanel.classList.toggle("run-timer-panel-rest",
+            !isSessionExercise && (phase === "rep_rest" || phase === "set_rest") && hasStartedPlayback);
+        }
+
+        function setPhase(nextPhase) {
+          phase = nextPhase;
+          phaseStartMs = Date.now();
+          phaseDuration = phaseDurationFor(nextPhase);
+          pausedPhaseOffsetMs = 0;
+          phaseCompleted = false;
+          timerState.textContent = phaseLabel();
+          setPlaylistRestClass(!isSessionExercise && nextPhase !== "work");
+          updateTimerPhaseClass();
+        }
+
+        function currentPhaseElapsed() {
+          if (exerciseRunning) return (Date.now() - phaseStartMs) / 1000;
+          return pausedPhaseOffsetMs / 1000;
+        }
+
+        function updateUpNextAndButtons() {
+          if (isSessionExercise) return;
+          const skipBack = document.getElementById("btn-skip-back");
+          const skipFwd = document.getElementById("btn-skip-fwd");
+          const upPrev = document.getElementById("btn-up-prev");
+          const upNextBtn = document.getElementById("btn-up-next");
+
+          const canSkipBack = setNow > 1 || repNow > 1;
+          const canSkipFwd = repNow < repMax || (repNow === repMax && setNow < setMax);
+
+          if (skipBack) skipBack.disabled = !canSkipBack;
+          if (skipFwd) skipFwd.disabled = !canSkipFwd;
+          if (upPrev) upPrev.disabled = !canSkipBack;
+          if (upNextBtn) upNextBtn.disabled = !canSkipFwd;
+
+          if (!upNextLabel) return;
+          if (phase === "rep_rest") {
+            upNextLabel.textContent = "UP NEXT: REP " + Math.min(repNow + 1, repMax) + " / " + repMax;
+            return;
+          }
+          if (phase === "set_rest") {
+            upNextLabel.textContent = "UP NEXT: SET " + Math.min(setNow + 1, setMax) + " / " + setMax;
+            return;
+          }
+          if (repNow < repMax) {
+            upNextLabel.textContent = "UP NEXT: REP " + (repNow + 1) + " / " + repMax;
+            return;
+          }
+          if (setNow < setMax) {
+            upNextLabel.textContent = "UP NEXT: SET " + (setNow + 1) + " / " + setMax;
+            return;
+          }
+          upNextLabel.textContent = "UP NEXT: NEXT EXERCISE";
+        }
+
+        function renderCounters() {
+          if (!isSessionExercise) {
+            if (repNowEl) repNowEl.textContent = String(repNow);
+            if (setNowEl) setNowEl.textContent = String(setNow);
+          }
+          updateUpNextAndButtons();
+        }
+
+        // --- Auto-advance ---
+        function cancelAutoAdvance() {
+          if (autoAdvanceTimer) {
+            clearTimeout(autoAdvanceTimer);
+            autoAdvanceTimer = null;
+          }
+          if (autoAdvanceEl) autoAdvanceEl.hidden = true;
+        }
+        function startAutoAdvance() {
+          cancelAutoAdvance();
+          if (autoAdvanceEl && autoAdvanceText) {
+            autoAdvanceEl.hidden = false;
+            autoAdvanceText.textContent = "Completing in 2s\u2026";
+          }
+          playCompleteTone();
+          autoAdvanceTimer = setTimeout(function () {
+            autoAdvanceTimer = null;
+            if (autoAdvanceEl) autoAdvanceEl.hidden = true;
+            if (window.__passion_startSubmit && window.__passion_startSubmit()) {
+              document.getElementById("complete-form").requestSubmit();
+            }
+          }, 2000);
+        }
+        if (cancelAutoBtn) {
+          cancelAutoBtn.addEventListener("click", function () {
+            cancelAutoAdvance();
+            if (sessionRunning) playPause.click();
+          });
+        }
+
+        // --- Tick ---
+        function tickSession() {
+          sessionTimerDisplay.textContent = formatSeconds(getSessionSeconds());
+        }
+        function tickExercise() {
+          if (!hasStartedPlayback) {
+            renderExerciseTimer(initialWorkSeconds);
+            timerState.textContent = phaseLabel();
+            timerPanel.classList.remove("run-timer-panel-overtime", "run-timer-panel-rest");
+            return;
+          }
+
+          const elapsed = currentPhaseElapsed();
+          if (phaseDuration > 0) {
+            const remaining = Math.max(0, phaseDuration - elapsed);
+            renderExerciseTimer(remaining);
+            timerPanel.classList.toggle("run-timer-panel-overtime", remaining <= 0 && exerciseRunning);
+            updateTimerPhaseClass();
+
+            // Countdown beeps at 3, 2, 1
+            if (exerciseRunning && remaining > 0 && remaining <= 3.5) {
+              var sec = Math.ceil(remaining);
+              if (sec <= 3 && sec !== lastBeepSecond) {
+                lastBeepSecond = sec;
+                playCountdownBeep();
+              }
+            }
+            if (remaining > 3.5) lastBeepSecond = -1;
+
+            if (exerciseRunning && remaining <= 0 && !phaseCompleted) {
+              phaseCompleted = true;
+              lastBeepSecond = -1;
+
+              if (isSessionExercise) {
+                startAutoAdvance();
+              } else if (phase === "work") {
+                if (repNow < repMax) {
+                  playPhaseEndTone();
+                  if (repRestSeconds > 0) {
+                    setPhase("rep_rest");
+                  } else {
+                    repNow += 1;
+                    setPhase("work");
+                  }
+                } else if (setNow < setMax) {
+                  playPhaseEndTone();
+                  if (setRestSeconds > 0) {
+                    setPhase("set_rest");
+                  } else {
+                    setNow += 1;
+                    repNow = 1;
+                    setPhase("work");
+                  }
+                } else {
+                  startAutoAdvance();
+                }
+              } else if (phase === "rep_rest") {
+                playPhaseEndTone();
+                repNow = Math.min(repMax, repNow + 1);
+                setPhase("work");
+              } else if (phase === "set_rest") {
+                playPhaseEndTone();
+                setNow = Math.min(setMax, setNow + 1);
+                repNow = 1;
+                setPhase("work");
+              }
+              renderCounters();
+            }
+          } else {
+            renderExerciseTimer(currentPhaseElapsed());
+            timerPanel.classList.remove("run-timer-panel-overtime");
+            updateTimerPhaseClass();
+          }
+          timerState.textContent = phaseLabel();
+        }
+
+        function rafLoop() {
+          const now = Date.now();
+          if (now - lastSessionTickMs >= 250) {
+            tickSession();
+            lastSessionTickMs = now;
+          }
+          tickExercise();
+          rafHandle = requestAnimationFrame(rafLoop);
+        }
+        function startSessionInterval() {
+          if (rafHandle) return;
+          lastSessionTickMs = 0;
+          rafHandle = requestAnimationFrame(rafLoop);
+        }
+        function stopSessionInterval() {
+          if (rafHandle) cancelAnimationFrame(rafHandle);
+          rafHandle = null;
+        }
+
+        // --- Skip back / forward ---
+        function doSkipBack() {
+          cancelAutoAdvance();
+          if (repNow > 1) {
+            repNow -= 1;
+          } else if (setNow > 1) {
+            setNow -= 1;
+            repNow = repMax;
+          }
+          setPhase("work");
+          renderCounters();
+        }
+        function doSkipForward() {
+          cancelAutoAdvance();
+          if (repNow < repMax) {
+            repNow += 1;
+          } else if (setNow < setMax) {
+            setNow += 1;
+            repNow = 1;
+          }
+          setPhase("work");
+          renderCounters();
+        }
+
+        if (!isSessionExercise) {
+          document.getElementById("btn-skip-back").addEventListener("click", doSkipBack);
+          document.getElementById("btn-skip-fwd").addEventListener("click", doSkipForward);
+
+          var btnUpPrev = document.getElementById("btn-up-prev");
+          if (btnUpPrev) {
+            btnUpPrev.addEventListener("click", function () {
+              var btn = document.getElementById("btn-skip-back");
+              if (btn && !btn.disabled) btn.click();
+            });
+          }
+          var btnUpNext = document.getElementById("btn-up-next");
+          if (btnUpNext) {
+            btnUpNext.addEventListener("click", function () {
+              var btn = document.getElementById("btn-skip-fwd");
+              if (btn && !btn.disabled) btn.click();
+            });
+          }
+        }
+
+        var heroCompleteBtn = document.getElementById("hero-complete-btn");
+        if (heroCompleteBtn) {
+          heroCompleteBtn.addEventListener("click", function () {
+            cancelAutoAdvance();
+            if (window.__passion_startSubmit && !window.__passion_startSubmit()) return;
+            document.getElementById("complete-form").requestSubmit();
+          });
+        }
+
+        // --- Play / Pause ---
+        playPause.addEventListener("click", function () {
+          cancelAutoAdvance();
+          if (sessionRunning) {
+            sessionRunning = false;
+            exerciseRunning = false;
+            pausedSessionOffsetMs = Date.now() - sessionStartMs;
+            pausedPhaseOffsetMs = Date.now() - phaseStartMs;
+            stopSessionInterval();
+            setPlayIcon(false);
+            timerState.textContent = "Paused";
+          } else {
+            if (!hasStartedPlayback) {
+              hasStartedPlayback = true;
+              setPhase("work");
+            }
+            sessionRunning = true;
+            exerciseRunning = true;
+            sessionStartMs = Date.now() - pausedSessionOffsetMs;
+            phaseStartMs = Date.now() - pausedPhaseOffsetMs;
+            startSessionInterval();
+            setPlayIcon(true);
+          }
+          tickSession();
+          tickExercise();
+        });
+
+        // --- Init ---
+        tickSession();
+        tickExercise();
+        renderCounters();
+        startSessionInterval();
+        setPlayIcon(false);
+        updateUpNextAndButtons();
+        refreshIcons();
+
+        // --- Submit handlers ---
+        window.__passion_startSubmit = function () {
+          cancelAutoAdvance();
+          if (feedback) {
+            feedback.hidden = false;
+            feedbackText.textContent = "Completing step...";
+          }
+          elapsedInput.value = String(Math.floor(currentPhaseElapsed()));
+          stopSessionInterval();
+          completeBtn.disabled = true;
+          return true;
+        };
+        window.__passion_skipSubmit = function () {
+          cancelAutoAdvance();
+          skipElapsedInput.value = String(Math.floor(currentPhaseElapsed()));
+          skipNotesInput.value = (notesInput && notesInput.value) ? notesInput.value : "";
+          if (feedback) {
+            feedback.hidden = false;
+            feedbackText.textContent = "Skipping...";
+          }
+          stopSessionInterval();
+          document.getElementById("skip-form").requestSubmit();
+        };
+
+        // --- Playlist toggle ---
+        if (playlistToggle && playlistPanel) {
+          playlistToggle.addEventListener("click", function () {
+            playlistPanel.classList.toggle("run-playlist-open");
+          });
+        }
+        if (playlistClose && playlistPanel) {
+          playlistClose.addEventListener("click", function () {
+            playlistPanel.classList.remove("run-playlist-open");
+          });
+        }
+
+        // --- Activity group expand/collapse ---
+        document.querySelectorAll(".run-playlist-group-header").forEach(function (hdr) {
+          hdr.addEventListener("click", function () {
+            var group = hdr.closest(".run-playlist-group");
+            if (group) group.classList.toggle("run-playlist-group--collapsed");
+          });
+        });
+
+        // --- Playlist row click ---
+        document.querySelectorAll(".run-playlist-row[data-exercise-id]").forEach(function (row) {
+          row.style.cursor = row.dataset.status === "pending" ? "pointer" : "default";
+          row.addEventListener("click", function () {
+            if (row.dataset.status !== "pending") return;
+            var eid = row.dataset.exerciseId;
+            if (!eid) return;
+            window.location.href = "/runs/" + runID + "?exercise=" + eid;
+          });
+        });
+
+        // --- Keyboard shortcuts ---
+        document.addEventListener("keydown", function (event) {
+          const active = document.activeElement;
+          if (active && (active.tagName === "TEXTAREA" || active.tagName === "INPUT")) return;
+          if (event.code === "Space") {
+            event.preventDefault();
+            playPause.click();
+            return;
+          }
+          if (!isSessionExercise && event.key === "ArrowLeft") {
+            event.preventDefault();
+            doSkipBack();
+            return;
+          }
+          if (!isSessionExercise && event.key === "ArrowRight") {
+            event.preventDefault();
+            doSkipForward();
+            return;
+          }
+          if (!isSessionExercise && event.key === "ArrowUp") {
+            event.preventDefault();
+            cancelAutoAdvance();
+            if (setNow < setMax) { setNow += 1; repNow = 1; setPhase("work"); }
+            renderCounters();
+            return;
+          }
+          if (!isSessionExercise && event.key === "ArrowDown") {
+            event.preventDefault();
+            cancelAutoAdvance();
+            if (setNow > 1) { setNow -= 1; repNow = 1; setPhase("work"); }
+            renderCounters();
+            return;
+          }
+          if (event.key === "Enter") {
+            event.preventDefault();
+            cancelAutoAdvance();
+            if (window.__passion_startSubmit()) {
+              document.getElementById("complete-form").requestSubmit();
+            }
+          }
+        });
+
+        // Overflow (kebab) menu toggle
+        document.querySelectorAll(".run-overflow").forEach(function (container) {
+          var trigger = container.querySelector(".run-overflow-trigger");
+          if (!trigger) return;
+          trigger.addEventListener("click", function (e) {
+            e.stopPropagation();
+            var isOpen = container.hasAttribute("data-open");
+            document.querySelectorAll(".run-overflow[data-open]").forEach(function (el) {
+              el.removeAttribute("data-open");
+            });
+            if (!isOpen) container.setAttribute("data-open", "");
+          });
+        });
+        document.addEventListener("click", function () {
+          document.querySelectorAll(".run-overflow[data-open]").forEach(function (el) {
+            el.removeAttribute("data-open");
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape") {
+            document.querySelectorAll(".run-overflow[data-open]").forEach(function (el) {
+              el.removeAttribute("data-open");
+            });
+          }
+        });
+      })();
+    </script>
+    {{ end }}
+  {{ end }}
+</div>
+<script>
+(function() {
+  var carousel = document.getElementById("run-hero-carousel");
+  if (!carousel) return;
+  var slides = carousel.querySelectorAll(".run-hero-slide");
+  var dots = document.querySelectorAll("#hero-dots .run-hero-dot");
+  var prev = document.getElementById("hero-prev");
+  var next = document.getElementById("hero-next");
+  var idx = 0;
+  function show(i) {
+    if (i < 0) i = slides.length - 1;
+    if (i >= slides.length) i = 0;
+    idx = i;
+    slides.forEach(function(s, j) { s.style.display = j === idx ? "" : "none"; });
+    dots.forEach(function(d, j) { d.classList.toggle("run-hero-dot--active", j === idx); });
+  }
+  show(0);
+  if (prev) prev.addEventListener("click", function() { show(idx - 1); });
+  if (next) next.addEventListener("click", function() { show(idx + 1); });
+})();
+</script>
+{{ end }}
+

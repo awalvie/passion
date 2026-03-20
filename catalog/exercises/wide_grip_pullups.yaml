@@ -1,0 +1,12 @@
+name: "Wide-Grip Pull-Ups"
+kind: "reps_and_sets"
+sets: 3
+reps: 10
+set_rest_seconds: 300
+media:
+  - video_url: "https://www.youtube.com/watch?v=4vm2Wl-CWnE"
+    thumbnail_url: "https://i.ytimg.com/vi/4vm2Wl-CWnE/maxresdefault.jpg"
+notes: |
+  Grip Width: Arms should be at a 120-degree angle on both sides.
+
+  Load: 75% of 1RM.

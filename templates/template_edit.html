@@ -1,0 +1,271 @@
+{{ define "content" }}
+<div class="space-y-4">
+  <div class="card card-pad">
+    <form
+      class="mb-4 space-y-3 border-b pb-4"
+      style="border-color: var(--border)"
+      hx-post="/templates/{{ .Template.ID }}/update"
+      hx-swap="none"
+      method="post"
+    >
+      <div class="flex items-center gap-2">
+        {{ if .Template.Color }}
+        <span class="inline-block w-3 h-3 rounded-full shrink-0" style="background:{{ .Template.Color }}"></span>
+        {{ end }}
+        <div class="text-lg font-semibold" id="tpl-title-display-{{ .Template.ID }}">{{ .Template.Name }}</div>
+        <button
+          type="button"
+          class="rounded btn-ghost px-1.5 py-1 text-xs muted"
+          title="Edit template settings"
+          data-settings-toggle="tpl-settings-{{ .Template.ID }}"
+        >✎</button>
+      </div>
+      <div id="tpl-settings-{{ .Template.ID }}" class="hidden space-y-3 border-t pt-3 mt-1" style="border-color:var(--border)">
+      <div>
+        <label class="text-xs font-medium" for="tpl-name-{{ .Template.ID }}">Name</label>
+        <input
+          id="tpl-name-{{ .Template.ID }}"
+          name="name"
+          required
+          class="mt-1 w-full input text-sm"
+          value="{{ .Template.Name }}"
+        />
+      </div>
+      <div>
+        <label class="text-xs font-medium">Dashboard color</label>
+        <input
+          type="color"
+          id="tpl-color-{{ .Template.ID }}"
+          name="color"
+          class="template-color-input sr-only"
+          value="{{ if .Template.Color }}{{ .Template.Color }}{{ else }}#6366f1{{ end }}"
+        />
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+          <div class="template-color-row" data-color-row="#tpl-color-{{ .Template.ID }}">
+            <button type="button" class="template-color-choice" data-color-preset="#6366f1" data-color-target="#tpl-color-{{ .Template.ID }}" title="Indigo"></button>
+            <button type="button" class="template-color-choice" data-color-preset="#2563eb" data-color-target="#tpl-color-{{ .Template.ID }}" title="Blue"></button>
+            <button type="button" class="template-color-choice" data-color-preset="#059669" data-color-target="#tpl-color-{{ .Template.ID }}" title="Green"></button>
+            <button type="button" class="template-color-choice" data-color-preset="#d97706" data-color-target="#tpl-color-{{ .Template.ID }}" title="Amber"></button>
+            <button type="button" class="template-color-choice" data-color-preset="#ef4444" data-color-target="#tpl-color-{{ .Template.ID }}" title="Red"></button>
+            <button type="button" class="template-color-choice" data-color-preset="#db2777" data-color-target="#tpl-color-{{ .Template.ID }}" title="Pink"></button>
+            <button type="button" class="template-color-choice" data-color-preset="#7c3aed" data-color-target="#tpl-color-{{ .Template.ID }}" title="Violet"></button>
+            <button type="button" class="template-color-choice template-color-choice-custom" data-color-custom-target="#tpl-color-{{ .Template.ID }}" title="Custom color…"></button>
+          </div>
+          <button
+            type="button"
+            class="template-color-none-btn rounded px-2 py-0.5 text-xs border"
+            style="border-color: var(--border)"
+            data-color-none-target="#tpl-color-{{ .Template.ID }}"
+            title="Remove accent color"
+          >No color</button>
+        </div>
+        <input type="hidden" name="clear_color" id="tpl-clear-{{ .Template.ID }}" value="" />
+        <div class="mt-1.5 flex items-center gap-1.5">
+          <span
+            id="tpl-color-swatch-{{ .Template.ID }}"
+            class="inline-block w-3 h-3 rounded-sm border"
+            style="border-color: var(--border); {{ if .Template.Color }}background:{{ .Template.Color }}{{ else }}background:transparent{{ end }}"
+          ></span>
+          <span id="tpl-color-label-{{ .Template.ID }}" class="text-[11px] muted">
+            {{ if .Template.Color }}{{ .Template.Color }}{{ else }}None{{ end }}
+          </span>
+        </div>
+      </div>
+      <button type="submit" class="rounded-md btn-primary px-3 py-2 text-sm font-medium">
+        Save settings
+      </button>
+      </div><!-- /tpl-settings -->
+    </form>
+
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div class="text-sm muted">Add activities and exercises.</div>
+      <div class="flex items-center gap-2">
+        <form hx-post="/templates/{{ .Template.ID }}/trial" method="post">
+          <button type="submit" class="self-start rounded-md btn-primary px-3 py-2 text-sm">
+            Trial Run
+          </button>
+        </form>
+        <a class="self-start rounded-md btn-ghost px-3 py-2 text-sm" href="/templates/{{ .Template.ID }}/export">
+          Download YAML
+        </a>
+        <a class="self-start rounded-md btn-ghost px-3 py-2 text-sm" href="/templates">
+          Back to templates
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="md:grid md:grid-cols-2 md:gap-4">
+    <div class="space-y-4">
+      {{ template "fragments/activities_container" . }}
+
+      <section class="card card-pad">
+        <h3 class="text-sm font-semibold">Add activity</h3>
+
+        {{ if .ActivityTemplates }}
+        <div class="mt-3 border-b pb-3 mb-3" style="border-color:var(--border)">
+          <div class="text-[11px] font-semibold muted uppercase tracking-widest mb-2">From activity template</div>
+          <form
+            class="flex flex-col gap-2 sm:flex-row sm:items-end"
+            hx-post="/templates/{{ .Template.ID }}/activities/from-activity-template"
+            hx-target="#activities"
+            hx-swap="outerHTML"
+            method="post"
+          >
+            <div class="flex-1 min-w-0">
+              <select name="activity_template_id" required class="w-full input text-sm">
+                <option value="">Choose a template…</option>
+                {{ range .ActivityTemplates }}
+                  <option value="{{ .ID }}">{{ .Name }}</option>
+                {{ end }}
+              </select>
+            </div>
+            <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium shrink-0">
+              Import
+            </button>
+          </form>
+        </div>
+        {{ end }}
+
+        <div class="text-[11px] font-semibold muted uppercase tracking-widest mb-2">Blank activity</div>
+        <form
+          class="grid gap-2 sm:grid-cols-2 sm:items-end"
+          hx-post="/templates/{{ .Template.ID }}/activities"
+          hx-target="#activities"
+          hx-swap="outerHTML"
+          method="post"
+        >
+          <div class="sm:col-span-1">
+            <label class="text-xs font-medium" for="activity-type-{{ .Template.ID }}">Type</label>
+            <input
+              id="activity-type-{{ .Template.ID }}"
+              name="type"
+              required
+              class="mt-1 w-full input"
+              placeholder="e.g., Warmup, Strength, Cooldown"
+            />
+          </div>
+
+          <div class="sm:col-span-1">
+            <button type="submit" class="mt-1 w-full rounded-md btn-primary px-3 py-2 text-sm font-medium">
+              + Add Activity
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <aside class="mt-4 md:mt-0">
+      {{ template "fragments/preview_container" . }}
+    </aside>
+  </div>
+</div>
+<script>
+  (function () {
+    const root = document;
+
+    const syncColorUI = (target) => {
+      if (!target) return;
+      const id = target.id;
+      // swatch and label
+      const swatch = root.getElementById(id.replace("tpl-color-", "tpl-color-swatch-"));
+      const label  = root.getElementById(id.replace("tpl-color-", "tpl-color-label-"));
+      const val    = (target.value || "").toLowerCase();
+      if (swatch) swatch.style.background = val || "transparent";
+      if (label)  label.textContent = val || "None";
+      // title dot
+      const titleRow = root.getElementById(id.replace("tpl-color-", "tpl-title-display-"));
+      if (titleRow) {
+        const dot = titleRow.previousElementSibling;
+        if (dot && dot.tagName === "SPAN" && dot.style.background !== undefined) {
+          dot.style.background = val || "transparent";
+          dot.style.display = val ? "" : "none";
+        }
+      }
+      // preset ring
+      const row = root.querySelector('[data-color-row="#' + id + '"]');
+      if (!row) return;
+      row.querySelectorAll("[data-color-preset]").forEach((btn) => {
+        const preset = (btn.getAttribute("data-color-preset") || "").toLowerCase();
+        btn.classList.toggle("is-selected", preset !== "" && preset === val);
+      });
+      const custom = row.querySelector("[data-color-custom-target]");
+      if (custom) {
+        const hasPreset = !!row.querySelector("[data-color-preset].is-selected");
+        custom.classList.toggle("is-selected", !hasPreset && val !== "");
+      }
+      // none-btn active state
+      const noneBtn = root.querySelector('[data-color-none-target="#' + id + '"]');
+      if (noneBtn) noneBtn.classList.toggle("is-selected", val === "");
+    };
+
+    const setClearHidden = (input, clear) => {
+      const hidden = root.getElementById(input.id.replace("tpl-color-", "tpl-clear-"));
+      if (hidden) hidden.value = clear ? "1" : "";
+    };
+
+    root.querySelectorAll("[data-color-preset]").forEach((btn) => {
+      const targetSel = btn.getAttribute("data-color-target");
+      const color = btn.getAttribute("data-color-preset");
+      const target = targetSel ? root.querySelector(targetSel) : null;
+      if (!target || !color) return;
+      btn.style.setProperty("--choice-color", color);
+      btn.addEventListener("click", () => {
+        target.value = color;
+        setClearHidden(target, false);
+        syncColorUI(target);
+      });
+    });
+
+    root.querySelectorAll("[data-color-custom-target]").forEach((btn) => {
+      const targetSel = btn.getAttribute("data-color-custom-target");
+      const target = targetSel ? root.querySelector(targetSel) : null;
+      if (!target) return;
+      btn.addEventListener("click", () => target.click());
+    });
+
+    root.querySelectorAll("[data-color-none-target]").forEach((btn) => {
+      const targetSel = btn.getAttribute("data-color-none-target");
+      const target = targetSel ? root.querySelector(targetSel) : null;
+      if (!target) return;
+      btn.addEventListener("click", () => {
+        target.value = "";
+        setClearHidden(target, true);
+        syncColorUI(target);
+      });
+    });
+
+    root.querySelectorAll(".template-color-input").forEach((input) => {
+      input.addEventListener("input", () => {
+        setClearHidden(input, false);
+        syncColorUI(input);
+      });
+      syncColorUI(input);
+    });
+
+    // Pencil toggle: show/hide settings panel
+    root.querySelectorAll("[data-settings-toggle]").forEach((btn) => {
+      const panelID = btn.getAttribute("data-settings-toggle");
+      const panel = root.getElementById(panelID);
+      if (!panel) return;
+      btn.addEventListener("click", () => {
+        const hidden = panel.classList.toggle("hidden");
+        btn.title = hidden ? "Edit template settings" : "Close settings";
+      });
+    });
+
+    // After settings form saves (HTMX), update the inline title display
+    root.querySelectorAll("form[hx-post]").forEach((form) => {
+      form.addEventListener("htmx:afterRequest", () => {
+        const nameInput = form.querySelector('input[name="name"]');
+        const titleID = "tpl-title-display-{{ .Template.ID }}";
+        const titleEl = root.getElementById(titleID);
+        if (nameInput && titleEl && nameInput.value.trim()) {
+          titleEl.textContent = nameInput.value.trim();
+        }
+      });
+    });
+  })();
+</script>
+{{ end }}
+

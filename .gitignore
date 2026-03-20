@@ -1,0 +1,22 @@
+# Local dev artifacts
+tmp/
+*.db
+*.sqlite
+*.sqlite3
+passion.db
+
+# Environment files
+.env
+.env.*
+
+# Local YAML config (optional; passion.example.yaml is tracked)
+passion.yaml
+
+# Editor/IDE
+.vscode/
+.idea/
+
+# Go build outputs
+*.exe
+*.out
+

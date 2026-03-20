@@ -1,0 +1,81 @@
+{{ define "layouts/fragments/topbar" }}
+<header class="site-header">
+  <div class="site-header-top">
+    <div class="site-header-brand min-w-0 flex-1">
+      <a href="/dashboard" class="site-header-logo">Passion</a>
+      <div class="site-header-title muted truncate" title="{{ .Title }}">{{ .Title }}</div>
+    </div>
+
+    <div class="site-header-actions flex shrink-0 items-center gap-2">
+      <label
+        for="site-nav-toggle"
+        class="site-header-menu-btn md:hidden"
+        title="Menu"
+      >
+        <span class="sr-only">Menu</span>
+        <i data-lucide="menu" class="site-header-menu-icon" aria-hidden="true"></i>
+      </label>
+
+      <div class="theme-toggle">
+        <span class="theme-toggle-label muted hidden sm:inline">Light</span>
+        <label class="theme-switch" title="Toggle light/dark theme">
+          <input id="theme-toggle" type="checkbox" />
+          <span class="theme-slider"></span>
+        </label>
+        <span class="theme-toggle-label muted hidden sm:inline">Dark</span>
+      </div>
+    </div>
+  </div>
+
+  {{ if not .IsAuthPage }}
+    <input type="checkbox" id="site-nav-toggle" class="site-nav-toggle peer sr-only" />
+
+    <nav
+      class="site-header-nav mt-2 hidden flex-col gap-0.5 border-t pt-3 peer-checked:flex md:mt-0 md:flex md:flex-row md:items-center md:justify-end md:gap-1 md:border-t-0 md:pt-2 md:peer-checked:flex"
+      style="border-color: var(--border)"
+      aria-label="Main navigation"
+    >
+      {{ if .Authenticated }}
+        <div class="site-nav-dropdown">
+          <button class="site-header-link site-nav-dropdown-toggle site-nav-dropdown-toggle-no-icon" aria-expanded="false" aria-haspopup="true">
+            Library
+          </button>
+          <div class="site-nav-dropdown-menu site-nav-dropdown-menu-left">
+            <a class="site-nav-dropdown-item" href="/templates">Sessions</a>
+            <a class="site-nav-dropdown-item" href="/activity-templates">Activities</a>
+            <a class="site-nav-dropdown-item" href="/exercise-library">Exercises</a>
+          </div>
+        </div>
+        <a class="site-header-link" href="/training-cycles">Cycles</a>
+        <a class="site-header-link" href="/history">History</a>
+        <span class="site-nav-separator hidden md:block" aria-hidden="true"></span>
+        <button
+          class="site-header-link site-header-link-primary"
+          hx-get="/fragments/start-session-picker"
+          hx-target="#start-session-modal-host"
+          hx-swap="innerHTML"
+          hx-on::after-request="document.querySelector('#start-session-modal-host dialog')?.showModal()"
+        >
+          Start Session
+        </button>
+        <div class="site-nav-dropdown">
+          <button class="site-header-link site-nav-dropdown-toggle" aria-expanded="false" aria-haspopup="true">
+            <i data-lucide="user" style="width:1rem;height:1rem" aria-hidden="true"></i>
+            <span class="md:hidden">Account</span>
+          </button>
+          <div class="site-nav-dropdown-menu">
+            <a class="site-nav-dropdown-item" href="/dashboard">Dashboard</a>
+            <a class="site-nav-dropdown-item" href="/profile">Profile</a>
+            <form method="post" action="/logout" class="site-nav-dropdown-item-form">
+              <button type="submit" class="site-nav-dropdown-item">Log out</button>
+            </form>
+          </div>
+        </div>
+      {{ else }}
+        <a class="site-header-link" href="/login">Log in</a>
+        <a class="site-header-link site-header-link-primary" href="/signup">Sign up</a>
+      {{ end }}
+    </nav>
+  {{ end }}
+</header>
+{{ end }}

@@ -1,0 +1,318 @@
+package web
+
+import (
+	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+
+	"gorm.io/gorm"
+
+	"passion/db"
+	"passion/pages"
+)
+
+func (s *Server) handleDashboardStartFromTemplate(w http.ResponseWriter, r *http.Request) {
+	ownerID, ok := s.currentUserID(r)
+	if !ok {
+		s.unauthorizedRedirect(w, r)
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	templateID, err := strconv.ParseUint(r.FormValue("template_id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid template_id", http.StatusBadRequest)
+		return
+	}
+
+	runID, err := s.startTrialRun(uint(templateID), ownerID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("HX-Redirect", "/runs/"+strconv.FormatUint(uint64(runID), 10))
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) handleStartSessionPicker(w http.ResponseWriter, r *http.Request) {
+	ownerID, ok := s.currentUserID(r)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	var templates []db.SessionTemplate
+	if err := s.store.DB.Where("owner_id = ?", ownerID).Order("name asc").Find(&templates).Error; err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	s.pages.StartSessionPicker(w, pages.StartSessionPickerParams{Templates: templates})
+}
+
+func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
+	ownerID, ok := s.currentUserID(r)
+	if !ok {
+		s.unauthorizedRedirect(w, r)
+		return
+	}
+	now := time.Now()
+
+	var templates []db.SessionTemplate
+	err := s.store.DB.
+		Where("owner_id = ?", ownerID).
+		Order("name asc").
+		Find(&templates).Error
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// --- Active (in-progress) runs ---
+	var activeRuns []db.SessionRun
+	err = s.store.DB.
+		Where("owner_id = ? AND status = ?", ownerID, "running").
+		Order("started_at desc").
+		Find(&activeRuns).Error
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	activeRunViews := make([]pages.ActiveRunView, 0, len(activeRuns))
+	if len(activeRuns) > 0 {
+		arSSIDs := make([]uint, 0, len(activeRuns))
+		for _, ar := range activeRuns {
+			arSSIDs = append(arSSIDs, ar.ScheduledSessionID)
+		}
+		var arSessions []db.ScheduledSession
+		err = s.store.DB.
+			Preload("SessionTemplate").
+			Where("id IN ?", arSSIDs).
+			Find(&arSessions).Error
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		arSSMap := map[uint]db.ScheduledSession{}
+		for _, ss := range arSessions {
+			arSSMap[ss.ID] = ss
+		}
+		for _, ar := range activeRuns {
+			ss := arSSMap[ar.ScheduledSessionID]
+			activeRunViews = append(activeRunViews, pages.ActiveRunView{
+				RunID:        ar.ID,
+				TemplateName: ss.SessionTemplate.Name,
+				Color:        normalizeTemplateColor(ss.SessionTemplate.Color),
+				StartedLabel: ar.StartedAt.Format("Mon 3:04 PM"),
+			})
+		}
+	}
+
+	// --- Week navigation ---
+	weekStart := mondayOfLocalDate(now)
+	if wq := r.URL.Query().Get("week"); wq != "" {
+		if parsed, perr := time.ParseInLocation("2006-01-02", wq, now.Location()); perr == nil {
+			weekStart = mondayOfLocalDate(parsed)
+		}
+	}
+	weekEnd := weekStart.AddDate(0, 0, 6)
+	var weekLabel string
+	switch {
+	case weekStart.Month() != weekEnd.Month():
+		weekLabel = dayWithSuffix(weekStart) + " – " + dayWithSuffix(weekEnd)
+	default:
+		sd, ed := weekStart.Day(), weekEnd.Day()
+		weekLabel = weekStart.Format("Jan") + " " + fmt.Sprintf("%d%s", sd, daySuffix(sd)) + "–" + fmt.Sprintf("%d%s", ed, daySuffix(ed))
+	}
+
+	// --- Month navigation ---
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	if mq := r.URL.Query().Get("month"); mq != "" {
+		if parsed, perr := time.ParseInLocation("2006-01", mq, now.Location()); perr == nil {
+			monthStart = time.Date(parsed.Year(), parsed.Month(), 1, 0, 0, 0, 0, now.Location())
+		}
+	}
+	monthCalendarStart := mondayOfLocalDate(monthStart)
+	monthCalendarEnd := monthCalendarStart.AddDate(0, 0, 41) // 6-week grid
+
+	// Build navigation URLs preserving the other parameter
+	weekPrev := weekStart.AddDate(0, 0, -7)
+	weekNext := weekStart.AddDate(0, 0, 7)
+	monthPrev := monthStart.AddDate(0, -1, 0)
+	monthNext := monthStart.AddDate(0, 1, 0)
+
+	monthParam := monthStart.Format("2006-01")
+	weekParam := weekStart.Format("2006-01-02")
+	weekPrevURL := "/dashboard?week=" + weekPrev.Format("2006-01-02") + "&month=" + monthParam
+	weekNextURL := "/dashboard?week=" + weekNext.Format("2006-01-02") + "&month=" + monthParam
+	monthPrevURL := "/dashboard?month=" + monthPrev.Format("2006-01") + "&week=" + weekParam
+	monthNextURL := "/dashboard?month=" + monthNext.Format("2006-01") + "&week=" + weekParam
+
+	weekSessions, err := db.ListScheduledSessionsInRange(s.store.DB, ownerID, weekStart, weekEnd)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	monthSessions, err := db.ListScheduledSessionsInRange(s.store.DB, ownerID, monthCalendarStart, monthCalendarEnd)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Count exercises per template for week sessions
+	exerciseCountByTemplate := map[uint]int{}
+	if len(weekSessions) > 0 {
+		tplIDs := map[uint]bool{}
+		for _, ss := range weekSessions {
+			tplIDs[ss.SessionTemplateID] = true
+		}
+		uniqueTplIDs := make([]uint, 0, len(tplIDs))
+		for id := range tplIDs {
+			uniqueTplIDs = append(uniqueTplIDs, id)
+		}
+		var tplsWithExercises []db.SessionTemplate
+		err = s.store.DB.
+			Preload("Activities", func(tx *gorm.DB) *gorm.DB {
+				return tx.Where("owner_id = ?", ownerID)
+			}).
+			Preload("Activities.Exercises", func(tx *gorm.DB) *gorm.DB {
+				return tx.Where("owner_id = ? AND parent_exercise_id IS NULL", ownerID)
+			}).
+			Where("id IN ? AND owner_id = ?", uniqueTplIDs, ownerID).
+			Find(&tplsWithExercises).Error
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		for _, tpl := range tplsWithExercises {
+			count := 0
+			for _, act := range tpl.Activities {
+				count += len(act.Exercises)
+			}
+			exerciseCountByTemplate[tpl.ID] = count
+		}
+	}
+
+	// Load cycle names for sessions that belong to a training cycle
+	cycleNameMap := map[uint]string{}
+	allSessions := append(weekSessions, monthSessions...)
+	{
+		cycleIDs := map[uint]bool{}
+		for _, ss := range allSessions {
+			if ss.TrainingCycleID != nil {
+				cycleIDs[*ss.TrainingCycleID] = true
+			}
+		}
+		if len(cycleIDs) > 0 {
+			uniqueCycleIDs := make([]uint, 0, len(cycleIDs))
+			for id := range cycleIDs {
+				uniqueCycleIDs = append(uniqueCycleIDs, id)
+			}
+			var cycles []db.TrainingCycle
+			err = s.store.DB.Where("id IN ?", uniqueCycleIDs).Find(&cycles).Error
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			for _, c := range cycles {
+				cycleNameMap[c.ID] = c.Name
+			}
+		}
+	}
+
+	weekSessionViews := make([]pages.DashboardSession, 0, len(weekSessions))
+	dayGroupMap := map[string]*pages.DashboardDayGroup{}
+	var dayGroupOrder []string
+	for _, ss := range weekSessions {
+		d := ss.ScheduledDate.Day()
+		dayLabel := ss.ScheduledDate.Format("Mon") + " " + fmt.Sprintf("%d%s", d, daySuffix(d))
+		dayKey := localDateKey(ss.ScheduledDate)
+
+		cycleName := ""
+		if ss.TrainingCycleID != nil {
+			cycleName = cycleNameMap[*ss.TrainingCycleID]
+		}
+
+		view := pages.DashboardSession{
+			ID:            ss.ID,
+			DateLabel:     dayLabel,
+			TemplateName:  ss.SessionTemplate.Name,
+			ExerciseCount: exerciseCountByTemplate[ss.SessionTemplateID],
+			CycleName:     cycleName,
+			Color:         normalizeTemplateColor(ss.SessionTemplate.Color),
+		}
+		weekSessionViews = append(weekSessionViews, view)
+
+		if _, ok := dayGroupMap[dayKey]; !ok {
+			dayGroupMap[dayKey] = &pages.DashboardDayGroup{DayLabel: dayLabel}
+			dayGroupOrder = append(dayGroupOrder, dayKey)
+		}
+		dayGroupMap[dayKey].Sessions = append(dayGroupMap[dayKey].Sessions, view)
+	}
+	weekDayGroups := make([]pages.DashboardDayGroup, 0, len(dayGroupOrder))
+	for _, key := range dayGroupOrder {
+		weekDayGroups = append(weekDayGroups, *dayGroupMap[key])
+	}
+
+	byDate := map[string][]db.ScheduledSession{}
+	for _, ss := range monthSessions {
+		key := localDateKey(ss.ScheduledDate)
+		byDate[key] = append(byDate[key], ss)
+	}
+
+	cells := make([]pages.CalendarCell, 0, 42)
+	for dayIdx := 0; dayIdx < 42; dayIdx++ {
+		d := monthCalendarStart.AddDate(0, 0, dayIdx)
+		key := localDateKey(d)
+		sessions := byDate[key]
+		cell := pages.CalendarCell{
+			Day:               d.Day(),
+			InMonth:           d.Month() == monthStart.Month(),
+			DateKey:           key,
+			FirstSessionColor: "",
+		}
+		if len(sessions) > 0 {
+			cell.FirstSessionColor = normalizeTemplateColor(sessions[0].SessionTemplate.Color)
+		}
+		for _, ss := range sessions {
+			cn := ""
+			if ss.TrainingCycleID != nil {
+				cn = cycleNameMap[*ss.TrainingCycleID]
+			}
+			cell.Sessions = append(cell.Sessions, pages.CalendarCellSession{
+				Name:      ss.SessionTemplate.Name,
+				Color:     normalizeTemplateColor(ss.SessionTemplate.Color),
+				CycleName: cn,
+			})
+		}
+		cells = append(cells, cell)
+	}
+
+	weekdayLabels := []string{"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}
+
+	s.pages.Dashboard(w, pages.DashboardParams{
+		Base:             pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
+		Templates:        templates,
+		ActiveRuns:       activeRunViews,
+		WeekSessions:     weekSessionViews,
+		WeekDayGroups:    weekDayGroups,
+		WeekLabel:        weekLabel,
+		WeekPrevURL:      weekPrevURL,
+		WeekNextURL:      weekNextURL,
+		CalendarCells:    cells,
+		CalendarMonth:    monthStart.Format("January"),
+		CalendarYear:     monthStart.Format("2006"),
+		CalendarWeekday:  weekdayLabels,
+		MonthPrevURL:     monthPrevURL,
+		MonthNextURL:     monthNextURL,
+	})
+}

@@ -1,0 +1,10 @@
+name: "External Rotations"
+kind: "reps_and_sets"
+sets: 5
+reps: 6
+set_rest_seconds: 300
+media:
+  - video_url: "https://www.youtube.com/watch?v=Ck5vdTf0W30"
+    thumbnail_url: "https://i.ytimg.com/vi/Ck5vdTf0W30/maxresdefault.jpg"
+notes: |
+  Use 80% of 1RM.

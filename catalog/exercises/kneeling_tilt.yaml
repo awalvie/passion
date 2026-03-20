@@ -1,0 +1,11 @@
+name: "Kneeling Tilt"
+kind: "reps_and_sets"
+sets: 2
+reps: 6
+rep_seconds: 6
+set_rest_seconds: 300
+media:
+  - video_url: "https://www.youtube.com/watch?v=OCtAKGrnQE0"
+    thumbnail_url: "https://i.ytimg.com/vi/OCtAKGrnQE0/maxresdefault.jpg"
+notes: |
+  2, 3, 1 Pacing. Raise your leg over the course of 2 seconds. Hold at the highest position for 3 seconds, actively trying to pull your leg higher. Then, lower your leg over the course of 1 second. Repeat this for the prescribed amount of repetitions.

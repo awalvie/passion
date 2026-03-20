@@ -1,0 +1,213 @@
+{{ define "layouts/base" }}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ .Title }}</title>
+
+    <script src="/static/htmx.min.js"></script>
+    <script src="/static/tailwind.min.js"></script>
+    <script src="/static/lucide.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/static/passion.css">
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        window.__passionRenderIcons = () => {
+          if (window.lucide && typeof window.lucide.createIcons === "function") {
+            window.lucide.createIcons();
+          }
+        };
+        window.__passionSyncExerciseKindGroups = function (kindSelect) {
+          if (!kindSelect || !kindSelect.form) return;
+          const form = kindSelect.form;
+          const session = kindSelect.value === "session";
+          const isCatalog = kindSelect.value === "exercise_catalog";
+          const reps = form.querySelector("[data-exercise-reps-fields]");
+          const sess = form.querySelector("[data-exercise-session-fields]");
+          const media = form.querySelector("[data-exercise-media-fields]");
+          if (reps) {
+            reps.hidden = session || isCatalog;
+            reps.querySelectorAll("input, textarea, select").forEach(function (el) {
+              if (el === kindSelect) return;
+              el.disabled = session || isCatalog;
+            });
+          }
+          if (sess) {
+            sess.hidden = !session || isCatalog;
+            sess.querySelectorAll("input, textarea, select").forEach(function (el) {
+              el.disabled = !session || isCatalog;
+            });
+          }
+          if (media) {
+            media.hidden = isCatalog;
+            media.querySelectorAll("input, textarea, select").forEach(function (el) {
+              el.disabled = isCatalog;
+            });
+          }
+          var addHint = form.querySelector("[data-catalog-add-hint]");
+          if (addHint) {
+            addHint.hidden = !isCatalog;
+          }
+          var libHint = form.querySelector("[data-catalog-library-hint]");
+          if (libHint) {
+            libHint.hidden = !isCatalog;
+          }
+          var optPanel = form.querySelector("[data-catalog-options-panel]");
+          if (optPanel) {
+            optPanel.hidden = !isCatalog;
+            optPanel.querySelectorAll('input[name="option_name"]').forEach(function (el) {
+              el.disabled = !isCatalog;
+            });
+            optPanel.querySelectorAll("[data-add-catalog-option-row], [data-remove-option-row]").forEach(function (el) {
+              el.disabled = !isCatalog;
+            });
+            optPanel.querySelectorAll("[data-catalog-lib-search], [data-catalog-lib-select], [data-catalog-add-from-library]").forEach(function (el) {
+              el.disabled = !isCatalog;
+            });
+          }
+          window.__passionRenderIcons();
+        };
+        window.__passionRenderIcons();
+
+        // Media row add/remove for repeatable media inputs
+        window.__passionBindMediaRows = function (root) {
+          var scope = root || document;
+          scope.querySelectorAll("[data-media-add]").forEach(function (btn) {
+            if (btn.dataset.mediaBound === "1") return;
+            btn.dataset.mediaBound = "1";
+            btn.addEventListener("click", function () {
+              var list = btn.parentElement.querySelector("[data-media-list]");
+              if (!list) return;
+              var row = list.querySelector("[data-media-row]");
+              if (!row) return;
+              var clone = row.cloneNode(true);
+              clone.querySelectorAll("input").forEach(function (inp) { inp.value = ""; });
+              list.appendChild(clone);
+              window.__passionBindMediaRows(clone);
+            });
+          });
+          scope.querySelectorAll("[data-media-remove]").forEach(function (btn) {
+            if (btn.dataset.mediaBound === "1") return;
+            btn.dataset.mediaBound = "1";
+            btn.addEventListener("click", function () {
+              var row = btn.closest("[data-media-row]");
+              if (!row) return;
+              var list = row.parentElement;
+              if (list && list.querySelectorAll("[data-media-row]").length > 1) {
+                row.remove();
+              } else {
+                row.querySelectorAll("input").forEach(function (inp) { inp.value = ""; });
+              }
+            });
+          });
+        };
+        window.__passionBindMediaRows();
+
+        window.__passionBindNotesEditors = function (root) {
+          const scope = root || document;
+          scope.querySelectorAll("[data-notes-editor]").forEach(function (wrap) {
+            if (wrap.dataset.notesBound === "1") return;
+            wrap.dataset.notesBound = "1";
+            const ta = wrap.querySelector('textarea[name="notes"]');
+            const preview = wrap.querySelector("[data-notes-preview]");
+            const btnWrite = wrap.querySelector('[data-notes-tab="write"]');
+            const btnPreview = wrap.querySelector('[data-notes-tab="preview"]');
+            if (!ta || !preview || !btnWrite || !btnPreview) return;
+
+            function showWrite() {
+              ta.classList.remove("hidden");
+              preview.classList.add("hidden");
+              btnWrite.classList.add("notes-tab-active");
+              btnPreview.classList.remove("notes-tab-active");
+            }
+
+            function showPreview() {
+              ta.classList.add("hidden");
+              preview.classList.remove("hidden");
+              btnWrite.classList.remove("notes-tab-active");
+              btnPreview.classList.add("notes-tab-active");
+              preview.innerHTML = '<p class="text-xs muted m-0">Loading…</p>';
+              const body = new URLSearchParams();
+              body.set("content", ta.value);
+              fetch("/preview/markdown", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: body.toString(),
+              })
+                .then(function (r) {
+                  return r.text();
+                })
+                .then(function (html) {
+                  preview.innerHTML = html;
+                })
+                .catch(function () {
+                  preview.innerHTML = '<p class="text-xs muted m-0">Preview failed.</p>';
+                });
+            }
+
+            btnWrite.addEventListener("click", showWrite);
+            btnPreview.addEventListener("click", showPreview);
+          });
+        };
+
+        document.body.addEventListener("htmx:afterSwap", () => {
+          window.__passionRenderIcons();
+          if (typeof window.__passionSyncExerciseKindGroups === "function") {
+            document.querySelectorAll('select[name="kind"]').forEach(function (sel) {
+              window.__passionSyncExerciseKindGroups(sel);
+            });
+          }
+          if (typeof window.__passionBindNotesEditors === "function") {
+            window.__passionBindNotesEditors(document);
+          }
+          if (typeof window.__passionBindMediaRows === "function") {
+            window.__passionBindMediaRows(document);
+          }
+        });
+
+        const saved = localStorage.getItem("passion-theme");
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = saved || (prefersDark ? "dark" : "light");
+
+        document.documentElement.setAttribute("data-theme", theme);
+
+        const toggle = document.getElementById("theme-toggle");
+        if (toggle) {
+          toggle.checked = theme === "dark";
+          toggle.addEventListener("change", () => {
+            const nextTheme = toggle.checked ? "dark" : "light";
+            document.documentElement.setAttribute("data-theme", nextTheme);
+            localStorage.setItem("passion-theme", nextTheme);
+          });
+        }
+
+        if (typeof window.__passionBindNotesEditors === "function") {
+          window.__passionBindNotesEditors(document);
+        }
+        if (typeof window.__passionBindMediaRows === "function") {
+          window.__passionBindMediaRows(document);
+        }
+      });
+    </script>
+  </head>
+
+  <body class="min-h-screen">
+    <div class="{{ if .WideLayout }}passion-container passion-container-wide{{ else }}passion-container{{ end }}">
+      {{ template "layouts/fragments/topbar" . }}
+
+      <main class="mt-4 md:mt-6">
+        {{ template "content" . }}
+      </main>
+
+      {{ template "layouts/fragments/footer" . }}
+    </div>
+    <div id="start-session-modal-host"></div>
+  </body>
+</html>
+{{ end }}
+

@@ -1,0 +1,77 @@
+{{ define "content" }}
+<div class="card card-pad">
+  <h2 class="text-sm font-semibold">Your session templates</h2>
+  <p class="mt-1 text-sm muted">Create an activity plan (warmup, exercises, cooldown) and reuse it for schedules.</p>
+
+  <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="text-sm muted">
+      {{ if .Templates }}{{ len .Templates }} template(s){{ else }}No templates yet.{{ end }}
+    </div>
+    <a class="inline-flex items-center justify-center rounded-md btn-primary px-4 py-2 text-sm font-medium" href="/templates/new">
+      New Session Template
+    </a>
+  </div>
+
+  <div class="mt-6 overflow-auto">
+    <table class="min-w-full text-sm">
+      <thead>
+        <tr class="text-left text-xs font-semibold muted">
+          <th class="px-3 py-2">Name</th>
+          <th class="px-3 py-2">Activities</th>
+          <th class="px-3 py-2 w-24"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{ if .Templates }}
+          {{ range .Templates }}
+            <tr class="divider group/row">
+              <td class="px-3 py-3">
+                <a class="text-sm font-medium link hover:underline" href="/templates/{{.ID}}/edit">{{ .Name }}</a>
+              </td>
+              <td class="px-3 py-3 text-xs muted">
+                {{ len .Activities }}
+              </td>
+              <td class="px-3 py-2">
+                <div class="flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 focus-within:opacity-100 transition-opacity">
+                  <a
+                    href="/templates/{{.ID}}/edit"
+                    class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
+                    title="Edit"
+                    aria-label="Edit {{ .Name }}"
+                  ><i data-lucide="pencil" style="width:14px;height:14px"></i></a>
+                  <a
+                    href="/templates/{{.ID}}/export"
+                    class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
+                    title="Download YAML"
+                    aria-label="Download YAML for {{ .Name }}"
+                  ><i data-lucide="download" style="width:14px;height:14px"></i></a>
+                  <form
+                    hx-post="/templates/{{.ID}}/delete"
+                    hx-swap="none"
+                    method="post"
+                    onsubmit="return confirm('Delete this template?');"
+                    class="inline"
+                  >
+                    <button
+                      type="submit"
+                      class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
+                      title="Delete"
+                      aria-label="Delete {{ .Name }}"
+                      style="color:var(--text-muted)"
+                    ><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {{ end }}
+        {{ else }}
+          <tr class="divider">
+            <td class="px-3 py-3 muted" colspan="3">Templates will show up here.</td>
+          </tr>
+        {{ end }}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{ end }}
+

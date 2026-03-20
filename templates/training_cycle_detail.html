@@ -1,0 +1,242 @@
+{{ define "content" }}
+<div class="space-y-4">
+  {{/* ── Header ── */}}
+  <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <div class="flex items-center gap-2">
+        <a href="/training-cycles" class="rounded-md btn-ghost p-1.5" title="Back to cycles">
+          <i data-lucide="arrow-left" style="width:1rem;height:1rem" aria-hidden="true"></i>
+        </a>
+        <h1 class="m-0 text-sm font-semibold">{{ .CycleName }}</h1>
+      </div>
+      <div class="mt-1 flex items-center gap-3 text-xs muted">
+        <span>{{ .CycleWeeks }} week{{ if ne .CycleWeeks 1 }}s{{ end }}</span>
+        <span class="inline-flex items-center gap-1 rounded border px-1.5 py-0.5" style="border-color:var(--border);background:var(--card-muted)">
+          <i data-lucide="calendar-days" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+          {{ .TotalScheduled }} session{{ if ne .TotalScheduled 1 }}s{{ end }} scheduled
+        </span>
+      </div>
+    </div>
+  </div>
+
+  {{/* ── Desktop: calendar grid ── */}}
+  <div class="card card-pad overflow-auto hidden md:block">
+    <div
+      class="grid"
+      style="grid-template-columns: 40px repeat(7, minmax(100px, 1fr)); gap: 4px;"
+    >
+      {{/* Corner spacer */}}
+      <div></div>
+      {{/* Weekday header row */}}
+      {{ range .CycleWeekdayLabels }}
+        <div class="text-center text-[11px] font-semibold muted uppercase tracking-widest pb-1.5" style="border-bottom: 1px solid var(--border)">{{ . }}</div>
+      {{ end }}
+
+      {{ range .CycleRows }}
+        {{/* Week number badge */}}
+        <div class="flex items-start justify-center pt-2">
+          <span class="rounded text-[10px] font-bold leading-none px-1.5 py-1" style="background:var(--card-muted);color:var(--muted)">{{ .WeekNumber }}</span>
+        </div>
+        {{ range .Cells }}
+          <div
+            class="cell-base p-1.5 min-h-[68px] group flex flex-col transition-colors"
+            data-date-key="{{ .DateKey }}"
+            data-day-number="{{ .DayNumber }}"
+            {{ if .HasSession }}style="background: var(--accent-bg)"{{ else if .IsWeekend }}style="opacity: 0.5"{{ end }}
+          >
+            <div class="text-xs font-semibold leading-tight">{{ .DayNum }}</div>
+            {{ if .HasSession }}
+              <div
+                class="session-card dnd-item mt-1 rounded-md px-1.5 py-1 text-xs relative"
+                draggable="true"
+                data-session-id="{{ .SessionID }}"
+                style="border-color: var(--accent-border); box-shadow: none{{ if .SessionTemplateColor }}; border-left: 3px solid {{ .SessionTemplateColor }}; background: color-mix(in srgb, {{ .SessionTemplateColor }} 8%, var(--panel)){{ else }}; background: var(--accent-bg){{ end }}"
+                ondragstart="event.dataTransfer.setData('text/plain', this.dataset.sessionId); this.classList.add('session-dragging','dnd-item-dragging');"
+                ondragend="this.classList.remove('session-dragging','dnd-item-dragging');"
+                title="Drag to move · {{ .SessionTemplateName }}"
+              >
+                <div class="font-semibold truncate leading-snug" title="{{ .SessionTemplateName }}">{{ .SessionTemplateName }}</div>
+                <div class="hidden group-hover:flex absolute -top-1 -right-1 z-10">
+                  <form hx-post="/training-cycles/{{ $.CycleID }}/remove" hx-swap="none" method="post">
+                    <input type="hidden" name="scheduled_session_id" value="{{ .SessionID }}" />
+                    <button type="submit" class="rounded-full p-0.5" style="background:var(--panel);border:1px solid var(--border)" title="Remove">
+                      <i data-lucide="x" style="width:0.625rem;height:0.625rem" aria-hidden="true"></i>
+                    </button>
+                  </form>
+                </div>
+              </div>
+            {{ else }}
+              <button
+                type="button"
+                class="mt-auto self-center cursor-pointer text-xs muted opacity-0 group-hover:opacity-100 transition-opacity"
+                data-add-date="{{ .DateKey }}"
+                title="Schedule a session"
+              >
+                <i data-lucide="plus" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+              </button>
+            {{ end }}
+          </div>
+        {{ end }}
+      {{ end }}
+    </div>
+  </div>
+
+  {{/* ── Mobile: week-by-week list ── */}}
+  <div class="md:hidden space-y-4">
+    {{ range .CycleRows }}
+      <section class="card card-pad">
+        <h2 class="m-0 mb-2 text-[11px] font-bold muted uppercase tracking-widest">Week {{ .WeekNumber }}</h2>
+        <div class="space-y-1">
+          {{ range .Cells }}
+            <div
+              class="flex items-center gap-3 rounded-md px-2 py-1 group"
+              data-date-key="{{ .DateKey }}"
+              data-day-number="{{ .DayNumber }}"
+            >
+              <div class="w-14 shrink-0 text-xs {{ if .IsWeekend }}muted{{ else }}font-medium{{ end }}">{{ .DateLabel }}</div>
+              {{ if .HasSession }}
+                <div
+                  class="flex flex-1 items-center justify-between gap-2 rounded-md border px-2.5 py-1.5 min-w-0"
+                  style="border-color: var(--border){{ if .SessionTemplateColor }}; border-left: 3px solid {{ .SessionTemplateColor }}; background: color-mix(in srgb, {{ .SessionTemplateColor }} 6%, var(--panel)){{ else }}; background: var(--accent-bg){{ end }}"
+                  data-session-id="{{ .SessionID }}"
+                >
+                  <div class="flex items-center gap-2 min-w-0">
+                    {{ if .SessionTemplateColor }}
+                      <span class="shrink-0 rounded-full" style="width:8px;height:8px;background:{{ .SessionTemplateColor }}"></span>
+                    {{ end }}
+                    <div class="text-sm font-semibold truncate">{{ .SessionTemplateName }}</div>
+                  </div>
+                  <form hx-post="/training-cycles/{{ $.CycleID }}/remove" hx-swap="none" method="post" class="shrink-0">
+                    <input type="hidden" name="scheduled_session_id" value="{{ .SessionID }}" />
+                    <button type="submit" class="rounded-md btn-ghost p-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity" title="Remove">
+                      <i data-lucide="trash-2" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+                    </button>
+                  </form>
+                </div>
+              {{ else }}
+                <button
+                  type="button"
+                  class="flex-1 text-left text-xs italic muted cursor-pointer rounded-md px-2.5 py-1.5 transition-colors hover:bg-[var(--card-muted)] {{ if .IsWeekend }}opacity-50{{ end }}"
+                  style="border: 1px dashed var(--border)"
+                  data-add-date="{{ .DateKey }}"
+                >+ Add session</button>
+              {{ end }}
+            </div>
+          {{ end }}
+        </div>
+      </section>
+    {{ end }}
+  </div>
+
+  {{ if eq .TotalScheduled 0 }}
+    <div class="card-muted rounded-md p-3 text-center text-sm muted">
+      No sessions scheduled yet. Click <strong>+ Add</strong> on any day to get started.
+    </div>
+  {{ end }}
+
+  {{/* ── Add-session dialog ── */}}
+  {{ if .CycleTemplates }}
+    <dialog id="add-session-dialog" class="catalog-dialog">
+      <div class="catalog-dialog-panel">
+        <div class="catalog-dialog-body">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h3 class="m-0 text-base font-semibold">Schedule session</h3>
+              <p class="mt-1 text-sm muted">Choose a template to add to this day.</p>
+            </div>
+            <form method="dialog">
+              <button type="submit" class="rounded-md btn-ghost px-3 py-1 text-sm font-medium">Close</button>
+            </form>
+          </div>
+          <form
+            id="add-session-form"
+            hx-post="/training-cycles/{{ .CycleID }}/add"
+            hx-swap="none"
+            method="post"
+            class="mt-4 flex flex-col gap-3"
+          >
+            <input type="hidden" id="add-session-date" name="scheduled_date" value="" />
+            <div>
+              <label for="add-session-template" class="mb-1 block text-xs font-medium muted">Template</label>
+              <select
+                id="add-session-template"
+                name="session_template_id"
+                class="w-full rounded-md border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                aria-label="Choose template"
+                required
+              >
+                <option value="" disabled selected>Choose a template…</option>
+                {{ range .CycleTemplates }}
+                  <option value="{{ .ID }}">{{ .Name }}</option>
+                {{ end }}
+              </select>
+            </div>
+            <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium">
+              Schedule
+            </button>
+          </form>
+        </div>
+      </div>
+    </dialog>
+  {{ end }}
+</div>
+
+<script>
+  (function () {
+    const cycleID = {{ .CycleID }};
+    const cells = document.querySelectorAll('[data-date-key]');
+    const dialog = document.getElementById('add-session-dialog');
+    const dateInput = document.getElementById('add-session-date');
+
+    // ── Add-session dialog ──
+    document.querySelectorAll('[data-add-date]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (!dialog || !dateInput) return;
+        dateInput.value = btn.dataset.addDate;
+        dialog.showModal();
+      });
+    });
+    if (dialog) {
+      dialog.addEventListener('click', (e) => {
+        if (e.target === dialog) dialog.close();
+      });
+    }
+
+    // ── Drag and drop (desktop grid only) ──
+    const clearDropPreview = () => {
+      document.querySelectorAll('.dnd-drop-target, .dnd-drop-before, .dnd-drop-after, .cell-drop-active').forEach((el) => {
+        el.classList.remove('dnd-drop-target', 'dnd-drop-before', 'dnd-drop-after', 'cell-drop-active');
+      });
+    };
+    const applyDropPreview = (cell, event) => {
+      clearDropPreview();
+      const inner = cell.querySelector('.session-card, .dnd-item');
+      if (inner) {
+        const rect = inner.getBoundingClientRect();
+        const placement = (event.clientY - rect.top) < rect.height / 2 ? 'dnd-drop-before' : 'dnd-drop-after';
+        inner.classList.add('dnd-drop-target', placement);
+      } else {
+        cell.classList.add('dnd-drop-target', 'cell-drop-active');
+      }
+    };
+    cells.forEach((cell) => {
+      cell.addEventListener('dragover', (e) => { e.preventDefault(); applyDropPreview(cell, e); });
+      cell.addEventListener('dragenter', (e) => { e.preventDefault(); applyDropPreview(cell, e); });
+      cell.addEventListener('dragleave', () => clearDropPreview());
+      cell.addEventListener('drop', (e) => {
+        e.preventDefault();
+        clearDropPreview();
+        const sid = e.dataTransfer.getData('text/plain');
+        const dateKey = cell.dataset.dateKey;
+        if (!sid || !dateKey) return;
+        fetch('/training-cycles/' + cycleID + '/move', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'scheduled_session_id=' + encodeURIComponent(sid) + '&scheduled_date=' + encodeURIComponent(dateKey)
+        }).then(() => { window.location.href = '/training-cycles/' + cycleID; });
+      });
+    });
+  })();
+</script>
+{{ end }}
+

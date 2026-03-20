@@ -1,0 +1,60 @@
+{{ define "content" }}
+<div class="max-w-2xl">
+  <div class="card card-pad">
+    <h2 class="text-sm font-semibold">Your statistics</h2>
+    <p class="mt-1 text-sm muted">Store a few personal metrics you may want to track alongside your training.</p>
+
+    {{ if .ProfileFormError }}
+      <div class="mt-4 card-muted p-3 text-sm" style="border-left: 3px solid #dc2626;">
+        {{ .ProfileFormError }}
+      </div>
+    {{ end }}
+
+    <form class="mt-6 grid gap-4 md:grid-cols-2" action="/profile" method="post">
+      <div>
+        <label class="text-sm font-medium" for="height_cm">Height (cm)</label>
+        <input id="height_cm" name="height_cm" class="mt-1 w-full input" inputmode="numeric" value="{{ if gt .UserProfile.HeightCm 0 }}{{ .UserProfile.HeightCm }}{{ end }}" />
+      </div>
+
+      <div>
+        <label class="text-sm font-medium" for="weight_kg">Weight (kg)</label>
+        <input id="weight_kg" name="weight_kg" class="mt-1 w-full input" inputmode="decimal" value="{{ if gt .UserProfile.WeightKg 0.0 }}{{ printf "%.1f" .UserProfile.WeightKg }}{{ end }}" />
+      </div>
+
+      <div>
+        <label class="text-sm font-medium" for="ape_index_cm">Ape Index (cm)</label>
+        <input id="ape_index_cm" name="ape_index_cm" class="mt-1 w-full input" inputmode="numeric" value="{{ if ne .UserProfile.ApeIndexCm 0 }}{{ .UserProfile.ApeIndexCm }}{{ end }}" />
+      </div>
+
+      <div>
+        <label class="text-sm font-medium" for="max_pull_ups">Max Pull-ups</label>
+        <input id="max_pull_ups" name="max_pull_ups" class="mt-1 w-full input" inputmode="numeric" value="{{ if gt .UserProfile.MaxPullUps 0 }}{{ .UserProfile.MaxPullUps }}{{ end }}" />
+      </div>
+
+      <div>
+        <label class="text-sm font-medium" for="max_hang_kg">Max Hang Added Weight (kg)</label>
+        <input id="max_hang_kg" name="max_hang_kg" class="mt-1 w-full input" inputmode="decimal" value="{{ if gt .UserProfile.MaxHangKg 0.0 }}{{ printf "%.1f" .UserProfile.MaxHangKg }}{{ end }}" />
+      </div>
+
+      <div>
+        <label class="text-sm font-medium" for="boulder_grade">Boulder Grade</label>
+        <input id="boulder_grade" name="boulder_grade" class="mt-1 w-full input" placeholder="e.g. V6 / 7A" value="{{ .UserProfile.BoulderGrade }}" />
+      </div>
+
+      <div class="md:col-span-2">
+        <label class="text-sm font-medium" for="route_grade">Route Grade</label>
+        <input id="route_grade" name="route_grade" class="mt-1 w-full input" placeholder="e.g. 7b / 5.12b" value="{{ .UserProfile.RouteGrade }}" />
+      </div>
+
+      <div class="md:col-span-2 flex items-center gap-2">
+        <button class="rounded-md btn-primary px-4 py-2 text-sm font-medium" type="submit">
+          Save statistics
+        </button>
+        <a class="rounded-md btn-ghost px-4 py-2 text-sm" href="/dashboard">
+          Back
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{{ end }}
