@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ── Config — edit these before running ────────────────────────────────────────
-DOMAIN="passion.yourdomain.com"
+DOMAIN="passion.awalvie.me"
 JWT_SECRET="$(openssl rand -hex 32)"
 DEPLOY_USER="${SUDO_USER:-$(whoami)}"
 # ──────────────────────────────────────────────────────────────────────────────

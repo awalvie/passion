@@ -9,37 +9,35 @@
         {{ if eq $i 0 }}open{{ end }}
       >
         <summary
-          class="cursor-pointer list-none flex items-center justify-between gap-3 px-5 py-3"
+          class="cursor-pointer list-none flex items-center gap-2 px-3 py-3 sm:px-4"
           title="Expand or collapse this activity"
         >
-          <div class="min-w-0 flex items-center gap-2">
-            <div
-              class="activity-drag-handle dnd-handle shrink-0 text-[12px] muted leading-none opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-              aria-label="Drag to reorder activity"
-              draggable="true"
-              data-activity-drag-handle="1"
-              title="Drag to reorder activity"
-            >
-              ≡
-            </div>
+          <div
+            class="activity-drag-handle dnd-handle shrink-0 muted opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+            aria-label="Drag to reorder activity"
+            draggable="true"
+            data-activity-drag-handle="1"
+            title="Drag to reorder activity"
+          >
+            <i data-lucide="grip-vertical" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+          </div>
+          <i data-lucide="chevron-right" style="width:0.875rem;height:0.875rem;transition:transform 150ms ease" class="shrink-0 muted disclosure-chevron" aria-hidden="true"></i>
+          <div class="flex-1 min-w-0">
             <div class="text-sm font-semibold truncate">{{ if $act.Name }}{{ $act.Name }}{{ else }}{{ $act.Type }}{{ end }}</div>
+            <div class="text-xs muted mt-0.5">{{ len $act.Exercises }} exercise(s) · #{{ $act.OrderIndex }}</div>
           </div>
-          <div class="flex items-center gap-2 shrink-0">
-            <div class="text-xs muted">
-              {{ len $act.Exercises }} exercise(s) • Activity #{{ $act.OrderIndex }}
-            </div>
-            <button
-              type="button"
-              class="rounded-md btn-ghost px-2 py-1 text-xs"
-              hx-post="/activities/{{ $act.ID }}/delete"
-              hx-target="#activities"
-              hx-swap="outerHTML"
-              hx-confirm="Delete this activity and all its exercises?"
-              onclick="event.preventDefault(); event.stopPropagation();"
-            >
-              Delete
-            </button>
-          </div>
+          <button
+            type="button"
+            class="shrink-0 rounded-md btn-ghost p-1.5 inline-flex items-center justify-center"
+            hx-post="/activities/{{ $act.ID }}/delete"
+            hx-target="#activities"
+            hx-swap="outerHTML"
+            hx-confirm="Delete this activity and all its exercises?"
+            onclick="event.preventDefault(); event.stopPropagation();"
+            title="Delete activity"
+          >
+            <i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+          </button>
         </summary>
 
         <div class="px-5 pb-5">
