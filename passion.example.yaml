@@ -11,6 +11,7 @@
 #   PASSION_YAML_IMPORT_ENABLED           1/true/yes to import YAML seed data at startup
 #   PASSION_YAML_EXERCISES_DIR            directory with exercise YAML files
 #   PASSION_YAML_SESSION_TEMPLATES_DIR    directory with session-template YAML files
+#   PASSION_YAML_ACTIVITY_TEMPLATES_DIR   directory with activity-template YAML files
 #   PASSION_YAML_IMPORT_OWNER_ID          owner id receiving imported records
 
 Server:
@@ -28,4 +29,5 @@ YAMLImport:
   Enabled: false
   ExercisesDir: "catalog/exercises"
   SessionTemplatesDir: "catalog/session_templates"
+  ActivityTemplatesDir: "catalog/activity_templates"
   OwnerID: 1
