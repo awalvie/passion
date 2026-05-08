@@ -30,6 +30,7 @@ type DashboardSession struct {
 	CycleName     string
 	// Color is validated hex (#rrggbb) or empty.
 	Color string
+	Done  bool
 }
 
 type ActiveRunView struct {
@@ -48,6 +49,7 @@ type CalendarCellSession struct {
 	Name      string
 	Color     string
 	CycleName string
+	Done      bool
 }
 
 type CalendarCell struct {
@@ -56,6 +58,8 @@ type CalendarCell struct {
 	FirstSessionColor string
 	DateKey           string
 	Sessions          []CalendarCellSession
+	CompletedCount    int
+	UnscheduledCount  int
 }
 
 type WeekColumn struct {
@@ -263,6 +267,9 @@ type RunParams struct {
 	RunSessionSeconds int
 	RunIsTrial        bool
 	RunTemplateID     uint
+	RunIsOpen         bool
+	RunCustomName     string
+	RunLibraryExercises []db.LibraryExercise
 	CurrentStep       RunStep
 	RunSteps          []RunStep
 	RunActivityGroups []RunActivityGroup

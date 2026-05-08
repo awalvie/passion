@@ -148,6 +148,9 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 	for _, run := range runs {
 		ss := ssMap[run.ScheduledSessionID]
 		tplName := ss.SessionTemplate.Name
+		if run.CustomName != "" {
+			tplName = run.CustomName
+		}
 		color := normalizeTemplateColor(ss.SessionTemplate.Color)
 		totalExercises := exerciseCountByTemplate[ss.SessionTemplateID]
 

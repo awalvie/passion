@@ -29,6 +29,8 @@ type SessionTemplate struct {
 	Name    string `gorm:"not null"`
 	// Color is an optional hex accent (#rrggbb) for dashboard cards; empty = no accent.
 	Color string `gorm:"size:16;not null;default:''"`
+	// IsSystem marks the hidden per-user anchor template used for open sessions.
+	IsSystem bool `gorm:"not null;default:false"`
 
 	Activities []Activity `gorm:"constraint:OnDelete:CASCADE;"`
 }
@@ -75,14 +77,16 @@ func PrimaryMedia(media []ExerciseMedia) *ExerciseMedia {
 	return best
 }
 
-// Exercise belongs to exactly one of Activity (via ActivityID) or ActivityTemplate
-// (via ActivityTemplateID) — the same polymorphic-owner pattern as ExerciseMedia.
+// Exercise belongs to exactly one of Activity (via ActivityID), ActivityTemplate
+// (via ActivityTemplateID), or SessionRun (via SessionRunID) for open sessions.
 type Exercise struct {
 	gorm.Model
 
 	OwnerID            uint  `gorm:"index;not null"`
 	ActivityID         *uint `gorm:"index"`
 	ActivityTemplateID *uint `gorm:"index"`
+	// SessionRunID is set only for exercises added on-the-fly during an open session.
+	SessionRunID *uint `gorm:"index"`
 
 	Name string `gorm:"not null"`
 
@@ -198,6 +202,10 @@ type SessionRun struct {
 	OwnerID            uint `gorm:"index;not null"`
 	ScheduledSessionID uint `gorm:"index;not null"`
 	IsTrial            bool `gorm:"index;not null;default:false"`
+	// IsOpen marks a freeform "open session" where exercises are added on-the-fly.
+	IsOpen bool `gorm:"index;not null;default:false"`
+	// CustomName is an optional user-set display name that overrides the template name.
+	CustomName string `gorm:"type:text"`
 
 	Status string `gorm:"not null;default:running"` // running/completed
 

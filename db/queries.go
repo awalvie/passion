@@ -47,11 +47,11 @@ func GetTemplateWithGraph(gdb *gorm.DB, ownerID, templateID uint) (*SessionTempl
 	return &tpl, nil
 }
 
-// ListTemplates returns all session templates for a user, ordered by id descending.
+// ListTemplates returns all non-system session templates for a user, ordered by id descending.
 func ListTemplates(gdb *gorm.DB, ownerID uint) ([]SessionTemplate, error) {
 	var templates []SessionTemplate
 	err := gdb.
-		Where("owner_id = ?", ownerID).
+		Where("owner_id = ? AND is_system = ?", ownerID, false).
 		Order("id desc").
 		Find(&templates).Error
 	return templates, err
@@ -105,5 +105,26 @@ func ListScheduledSessionsInRange(gdb *gorm.DB, ownerID uint, start, end time.Ti
 			ownerID, false, start, end).
 		Order("scheduled_date asc").
 		Find(&rows).Error
+	return rows, err
+}
+
+// CompletedRunDate groups completed-run counts by date and trial status.
+type CompletedRunDate struct {
+	ScheduledDate      time.Time
+	IsTrial            bool
+	ScheduledSessionID uint
+}
+
+// ListCompletedRunDatesInRange returns one row per completed SessionRun whose
+// associated ScheduledSession.ScheduledDate falls within [start, end].
+func ListCompletedRunDatesInRange(gdb *gorm.DB, ownerID uint, start, end time.Time) ([]CompletedRunDate, error) {
+	var rows []CompletedRunDate
+	err := gdb.
+		Table("session_runs").
+		Select("scheduled_sessions.scheduled_date, session_runs.is_trial, session_runs.scheduled_session_id").
+		Joins("JOIN scheduled_sessions ON scheduled_sessions.id = session_runs.scheduled_session_id").
+		Where("session_runs.owner_id = ? AND session_runs.status = ? AND session_runs.deleted_at IS NULL AND scheduled_sessions.scheduled_date >= ? AND scheduled_sessions.scheduled_date <= ?",
+			ownerID, "completed", start, end).
+		Scan(&rows).Error
 	return rows, err
 }
