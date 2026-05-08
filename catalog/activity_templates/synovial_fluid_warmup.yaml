@@ -4,7 +4,6 @@ exercises:
     kind: "reps_and_sets"
     sets: 1
     reps: 5
-    rep_seconds: 4
     notes: |
       Arms at sides, thumbs leading upward as high as possible.
       On the way down, reach backwards to stretch the shoulders.
@@ -14,7 +13,6 @@ exercises:
     kind: "reps_and_sets"
     sets: 2
     reps: 5
-    rep_seconds: 4
     notes: |
       Right arm: lift with palm facing upward, rotate at the top, bring down with palm facing downward.
       Repeat in the other direction (upper palm facing upward, rotate, upper palm facing downward).
@@ -23,7 +21,6 @@ exercises:
     kind: "reps_and_sets"
     sets: 2
     reps: 5
-    rep_seconds: 4
     notes: |
       Same as arm circles but in the lateral axis (arm moves sideways).
       Palm up on the way up, rotate, palm down on the way down.
@@ -33,7 +30,6 @@ exercises:
     kind: "reps_and_sets"
     sets: 2
     reps: 5
-    rep_seconds: 3
     notes: |
       Arms at 90° in front, thumbs touching, elbows touching. Shoulders pressed down.
       Rotate thumbs apart, then bring thumbs and elbows back together.
@@ -42,7 +38,6 @@ exercises:
     kind: "reps_and_sets"
     sets: 1
     reps: 5
-    rep_seconds: 6
     notes: |
       Arms extended forward, fingers fully extended.
       Tuck thumb into palm, crimp fingers over thumb tightly.
@@ -53,7 +48,6 @@ exercises:
     kind: "reps_and_sets"
     sets: 2
     reps: 5
-    rep_seconds: 3
     notes: |
       Stand on one foot, other foot's heel stays on the ground.
       Draw a U-shape with the foot: big toe side to pinky side.
@@ -62,7 +56,6 @@ exercises:
     kind: "reps_and_sets"
     sets: 2
     reps: 5
-    rep_seconds: 3
     notes: |
       Stand on one foot, other foot's toes on the ground, heel in the air.
       Draw an O-shape with the heel — as wide and big as possible.
@@ -71,7 +64,6 @@ exercises:
     kind: "reps_and_sets"
     sets: 2
     reps: 5
-    rep_seconds: 4
     notes: |
       Stand on one leg, swing the other leg forward and backward.
       Keep toes pointing upward throughout. Controlled movement, not overly dynamic.
@@ -80,7 +72,6 @@ exercises:
     kind: "reps_and_sets"
     sets: 2
     reps: 5
-    rep_seconds: 4
     notes: |
       Stand on one leg, lift other leg to 90° hip and 90° knee.
       Move the leg sideways, then push further in that direction.
@@ -89,7 +80,6 @@ exercises:
     kind: "reps_and_sets"
     sets: 2
     reps: 5
-    rep_seconds: 5
     notes: |
       Same starting position as hip circles.
       Paint a figure-8 in the air with the knee.

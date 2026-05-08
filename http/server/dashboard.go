@@ -67,7 +67,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 
 	var templates []db.SessionTemplate
 	err := s.store.DB.
-		Where("owner_id = ?", ownerID).
+		Where("owner_id = ? AND is_system = ?", ownerID, false).
 		Order("name asc").
 		Find(&templates).Error
 	if err != nil {
@@ -229,6 +229,44 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// --- Completed runs for the week (to mark Done on session cards) ---
+	completedWeekSSIDs := map[uint]bool{}
+	if len(weekSessions) > 0 {
+		ssIDs := make([]uint, 0, len(weekSessions))
+		for _, ss := range weekSessions {
+			ssIDs = append(ssIDs, ss.ID)
+		}
+		var completedWeekRuns []db.SessionRun
+		if err = s.store.DB.
+			Where("owner_id = ? AND status = ? AND scheduled_session_id IN ?", ownerID, "completed", ssIDs).
+			Find(&completedWeekRuns).Error; err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		for _, r := range completedWeekRuns {
+			completedWeekSSIDs[r.ScheduledSessionID] = true
+		}
+	}
+
+	// --- Completed runs for the month calendar ---
+	completedByDate := map[string]int{}   // dateKey -> completed scheduled count
+	unscheduledByDate := map[string]int{} // dateKey -> trial run count
+	completedSSIDSet := map[uint]bool{}   // scheduled_session_id -> completed
+	completedMonthRuns, err := db.ListCompletedRunDatesInRange(s.store.DB, ownerID, monthCalendarStart, monthCalendarEnd)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	for _, r := range completedMonthRuns {
+		key := localDateKey(r.ScheduledDate)
+		if r.IsTrial {
+			unscheduledByDate[key]++
+		} else {
+			completedByDate[key]++
+			completedSSIDSet[r.ScheduledSessionID] = true
+		}
+	}
+
 	weekSessionViews := make([]pages.DashboardSession, 0, len(weekSessions))
 	dayGroupMap := map[string]*pages.DashboardDayGroup{}
 	var dayGroupOrder []string
@@ -249,6 +287,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 			ExerciseCount: exerciseCountByTemplate[ss.SessionTemplateID],
 			CycleName:     cycleName,
 			Color:         normalizeTemplateColor(ss.SessionTemplate.Color),
+			Done:          completedWeekSSIDs[ss.ID],
 		}
 		weekSessionViews = append(weekSessionViews, view)
 
@@ -275,10 +314,11 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		key := localDateKey(d)
 		sessions := byDate[key]
 		cell := pages.CalendarCell{
-			Day:               d.Day(),
-			InMonth:           d.Month() == monthStart.Month(),
-			DateKey:           key,
-			FirstSessionColor: "",
+			Day:              d.Day(),
+			InMonth:          d.Month() == monthStart.Month(),
+			DateKey:          key,
+			CompletedCount:   completedByDate[key],
+			UnscheduledCount: unscheduledByDate[key],
 		}
 		if len(sessions) > 0 {
 			cell.FirstSessionColor = normalizeTemplateColor(sessions[0].SessionTemplate.Color)
@@ -292,6 +332,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 				Name:      ss.SessionTemplate.Name,
 				Color:     normalizeTemplateColor(ss.SessionTemplate.Color),
 				CycleName: cn,
+				Done:      completedSSIDSet[ss.ID],
 			})
 		}
 		cells = append(cells, cell)

@@ -76,6 +76,9 @@ func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, o
 	}
 
 	steps := s.buildRunSteps(ss, runID, ownerID)
+	if run.IsOpen {
+		steps = append(steps, s.loadOpenSteps(runID)...)
+	}
 
 	var completions []db.RunExerciseCompletion
 	if err := s.store.DB.
@@ -130,19 +133,32 @@ func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, o
 	// Build activity groups for sidebar display.
 	activityGroups := buildActivityGroups(steps, currentStep.ExerciseID)
 
+	displayName := ss.SessionTemplate.Name
+	if run.CustomName != "" {
+		displayName = run.CustomName
+	}
+
+	var libExercises []db.LibraryExercise
+	if run.IsOpen {
+		libExercises, _ = db.ListLibraryExercises(s.store.DB, ownerID)
+	}
+
 	s.pages.Run(w, pages.RunParams{
-		Base:              pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
-		RunID:             runID,
-		RunTemplateName:   ss.SessionTemplate.Name,
-		RunTotalSteps:     len(steps),
-		RunCompleted:      runCompleted,
-		RunCurrentStepNum: currentStepNum,
-		RunSessionSeconds: sumElapsedSeconds(completions),
-		RunIsTrial:        run.IsTrial,
-		RunTemplateID:     ss.SessionTemplate.ID,
-		CurrentStep:       currentStep,
-		RunSteps:          steps,
-		RunActivityGroups: activityGroups,
+		Base:                pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
+		RunID:               runID,
+		RunTemplateName:     displayName,
+		RunTotalSteps:       len(steps),
+		RunCompleted:        runCompleted,
+		RunCurrentStepNum:   currentStepNum,
+		RunSessionSeconds:   sumElapsedSeconds(completions),
+		RunIsTrial:          run.IsTrial,
+		RunTemplateID:       ss.SessionTemplate.ID,
+		RunIsOpen:           run.IsOpen,
+		RunCustomName:       run.CustomName,
+		RunLibraryExercises: libExercises,
+		CurrentStep:         currentStep,
+		RunSteps:            steps,
+		RunActivityGroups:   activityGroups,
 	})
 }
 
@@ -162,6 +178,9 @@ func (s *Server) completeRunExercise(w http.ResponseWriter, r *http.Request, run
 	}
 
 	steps := s.buildRunSteps(ss, runID, ownerID)
+	if run.IsOpen {
+		steps = append(steps, s.loadOpenSteps(runID)...)
+	}
 
 	var completions []db.RunExerciseCompletion
 	if err := s.store.DB.
@@ -385,6 +404,22 @@ func (s *Server) handleRunExerciseChoose(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("HX-Redirect", "/runs/"+strconv.FormatUint(uint64(runID), 10)+"#run-current-step")
 	w.WriteHeader(http.StatusOK)
+}
+
+// loadOpenSteps returns run-scoped exercises for an open session, ordered by order_index.
+func (s *Server) loadOpenSteps(runID uint) []pages.RunStep {
+	var exercises []db.Exercise
+	s.store.DB.
+		Where("session_run_id = ? AND parent_exercise_id IS NULL", runID).
+		Order("order_index asc").
+		Find(&exercises)
+	steps := make([]pages.RunStep, 0, len(exercises))
+	for _, ex := range exercises {
+		st := exerciseToRunStep(ex)
+		st.ActivityName = "Exercises"
+		steps = append(steps, st)
+	}
+	return steps
 }
 
 func exerciseToRunStep(ex db.Exercise) pages.RunStep {
@@ -612,6 +647,10 @@ func (s *Server) handleRunDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)
@@ -634,6 +673,10 @@ func (s *Server) handleRunDelete(w http.ResponseWriter, r *http.Request) {
 		s.store.DB.Where("owner_id = ? AND id = ? AND is_trial = ?", ownerID, run.ScheduledSessionID, true).Delete(&db.ScheduledSession{})
 	}
 
-	w.Header().Set("HX-Redirect", "/history")
+	returnTo := strings.TrimSpace(r.FormValue("return_to"))
+	if returnTo == "" || !strings.HasPrefix(returnTo, "/") {
+		returnTo = "/history"
+	}
+	w.Header().Set("HX-Redirect", returnTo)
 	w.WriteHeader(http.StatusOK)
 }
