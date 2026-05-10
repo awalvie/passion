@@ -154,10 +154,14 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
-		userID, userEmail, err := s.userFromRequest(r)
+		userID, userEmail, claims, err := s.userFromRequest(r)
 		if err != nil {
 			s.unauthorizedRedirect(w, r)
 			return
+		}
+		// Sliding window: refresh cookie when less than half the TTL remains.
+		if claims.ExpiresAt != nil && time.Until(claims.ExpiresAt.Time) < s.jwtTTL/2 {
+			_ = s.setAuthCookie(w, userID)
 		}
 		ctx := context.WithValue(r.Context(), authUserIDKey, userID)
 		ctx = context.WithValue(ctx, authUserEmailKey, userEmail)
@@ -165,10 +169,10 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (s *Server) userFromRequest(r *http.Request) (uint, string, error) {
+func (s *Server) userFromRequest(r *http.Request) (uint, string, *authClaims, error) {
 	cookie, err := r.Cookie(authCookieName)
 	if err != nil {
-		return 0, "", err
+		return 0, "", nil, err
 	}
 	token, err := jwt.ParseWithClaims(cookie.Value, &authClaims{}, func(token *jwt.Token) (any, error) {
 		if token.Method.Alg() != jwt.SigningMethodHS256.Alg() {
@@ -177,18 +181,18 @@ func (s *Server) userFromRequest(r *http.Request) (uint, string, error) {
 		return []byte(s.jwtSecret), nil
 	})
 	if err != nil || !token.Valid {
-		return 0, "", errors.New("invalid token")
+		return 0, "", nil, errors.New("invalid token")
 	}
 	claims, ok := token.Claims.(*authClaims)
 	if !ok || claims.UserID == 0 {
-		return 0, "", errors.New("invalid claims")
+		return 0, "", nil, errors.New("invalid claims")
 	}
 
 	var user db.User
 	if err := s.store.DB.Where("id = ?", claims.UserID).First(&user).Error; err != nil {
-		return 0, "", err
+		return 0, "", nil, err
 	}
-	return user.ID, user.Email, nil
+	return user.ID, user.Email, claims, nil
 }
 
 func (s *Server) setAuthCookie(w http.ResponseWriter, userID uint) error {
