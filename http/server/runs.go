@@ -265,7 +265,7 @@ func (s *Server) completeRunExercise(w http.ResponseWriter, r *http.Request, run
 		}
 	}
 
-	w.Header().Set("HX-Redirect", "/runs/"+strconv.FormatUint(uint64(runID), 10)+"#run-current-step")
+	w.Header().Set("HX-Redirect", "/runs/"+strconv.FormatUint(uint64(runID), 10)+"?t="+strconv.FormatInt(time.Now().UnixNano(), 10)+"#run-current-step")
 	w.WriteHeader(http.StatusOK)
 	return nil
 }
@@ -402,7 +402,7 @@ func (s *Server) handleRunExerciseChoose(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	w.Header().Set("HX-Redirect", "/runs/"+strconv.FormatUint(uint64(runID), 10)+"#run-current-step")
+	w.Header().Set("HX-Redirect", "/runs/"+strconv.FormatUint(uint64(runID), 10)+"?t="+strconv.FormatInt(time.Now().UnixNano(), 10)+"#run-current-step")
 	w.WriteHeader(http.StatusOK)
 }
 

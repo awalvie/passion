@@ -655,8 +655,101 @@ details > summary::-webkit-details-marker {
   display: contents;
 }
 
+/* History/Cycles pill row — transparent to desktop flex, pill row on mobile */
+.site-nav-pill-row {
+  display: contents;
+}
+
+@media (max-width: 767px) {
+  .site-nav-pill-row {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .site-nav-pill-row .site-header-link {
+    flex: 1;
+    min-height: 2rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--card-muted);
+    border-radius: 9999px;
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+/* Start session button in header (mobile only) */
+.site-header-start-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--btn-primary);
+  color: var(--btn-fg);
+  border: none;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.site-header-start-btn:hover {
+  background: var(--btn-primary-hover);
+}
+
+/* Divider between nav sections (mobile only) */
+.site-nav-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0.35rem 0.75rem;
+}
+
+/* Nav group label (visible only on mobile, replaces the dropdown toggle) */
+.site-nav-group-label {
+  display: none;
+  margin: 0.5rem 0 0.15rem;
+  padding: 0 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 /* On mobile, show dropdown items inline (no floating menu) */
 @media (max-width: 767px) {
+  .site-nav-group-label {
+    display: block;
+  }
+
+  .site-nav-dropdown-toggle {
+    display: none;
+  }
+
+  /* Library pills row */
+  .site-nav-dropdown-menu-pills {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.1rem 0;
+  }
+
+  .site-nav-dropdown-menu-pills .site-nav-group-label {
+    width: 100%;
+    margin-bottom: 0;
+  }
+
+  .site-nav-dropdown-menu-pills .site-nav-dropdown-item {
+    flex: 1;
+    min-height: 2rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--card-muted);
+    border-radius: 9999px;
+    padding: 0.25rem 0.5rem;
+  }
+
   .site-nav-dropdown-menu {
     display: flex;
     position: static;
@@ -814,7 +907,22 @@ details > summary::-webkit-details-marker {
 }
 
 .run-playlist-toggle {
-  justify-self: start;
+  justify-self: stretch;
+  justify-content: center;
+  width: 100%;
+  min-height: 2.75rem;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.run-playlist-toggle:hover {
+  background: color-mix(in srgb, var(--accent-bg) 180%, transparent);
+  border-color: var(--accent);
 }
 
 .run-playlist-panel {
@@ -825,7 +933,7 @@ details > summary::-webkit-details-marker {
   display: block;
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: 55; /* above site-header (z-index: 50) */
   background: var(--bg);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -853,7 +961,7 @@ details > summary::-webkit-details-marker {
 
 .run-playlist-head-title {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.4rem;
 }
 

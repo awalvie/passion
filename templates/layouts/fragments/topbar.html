@@ -3,12 +3,26 @@
   <div class="site-header-top">
     <div class="site-header-brand min-w-0 flex-1">
       <a href="/dashboard" class="site-header-logo">
-        <img src="/static/logo.svg" alt="Passion" class="h-16 w-16" style="filter: var(--logo-filter);" />
+        <img src="/static/logo.svg" alt="Passion" class="h-9 w-9 md:h-14 md:w-14" style="filter: var(--logo-filter);" />
         Passion
       </a>
     </div>
 
     <div class="site-header-actions flex shrink-0 items-center gap-2">
+      {{ if .Authenticated }}
+      <button
+        class="site-header-start-btn md:hidden"
+        hx-get="/fragments/start-session-picker"
+        hx-target="#start-session-modal-host"
+        hx-swap="innerHTML"
+        hx-on::after-request="document.querySelector('#start-session-modal-host dialog')?.showModal()"
+        aria-label="Start session"
+      >
+        <i data-lucide="play" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+        Start
+      </button>
+      {{ end }}
+
       <label
         for="site-nav-toggle"
         class="site-header-menu-btn md:hidden"
@@ -38,21 +52,38 @@
       aria-label="Main navigation"
     >
       {{ if .Authenticated }}
+        <div class="site-nav-pill-row">
+          <a class="site-header-link" href="/history">History</a>
+          <a class="site-header-link" href="/training-cycles">Cycles</a>
+        </div>
         <div class="site-nav-dropdown">
           <button class="site-header-link site-nav-dropdown-toggle site-nav-dropdown-toggle-no-icon" aria-expanded="false" aria-haspopup="true">
             Library
           </button>
-          <div class="site-nav-dropdown-menu site-nav-dropdown-menu-left">
+          <div class="site-nav-dropdown-menu site-nav-dropdown-menu-left site-nav-dropdown-menu-pills">
+            <p class="site-nav-group-label">Library</p>
             <a class="site-nav-dropdown-item" href="/templates">Sessions</a>
             <a class="site-nav-dropdown-item" href="/activity-templates">Activities</a>
             <a class="site-nav-dropdown-item" href="/exercise-library">Exercises</a>
           </div>
         </div>
-        <a class="site-header-link" href="/training-cycles">Cycles</a>
-        <a class="site-header-link" href="/history">History</a>
+        <hr class="site-nav-divider md:hidden" />
+        <div class="site-nav-dropdown">
+          <button class="site-header-link site-nav-dropdown-toggle" aria-expanded="false" aria-haspopup="true">
+            <i data-lucide="user" style="width:1rem;height:1rem" aria-hidden="true"></i>
+            <span class="md:hidden">Account</span>
+          </button>
+          <div class="site-nav-dropdown-menu site-nav-dropdown-menu-pills">
+            <p class="site-nav-group-label">Account</p>
+            <a class="site-nav-dropdown-item" href="/profile">Profile</a>
+            <form method="post" action="/logout" class="site-nav-dropdown-item-form">
+              <button type="submit" class="site-nav-dropdown-item">Log out</button>
+            </form>
+          </div>
+        </div>
         <span class="site-nav-separator hidden md:block" aria-hidden="true"></span>
         <button
-          class="site-header-link site-header-link-primary"
+          class="site-header-link site-header-link-primary hidden md:flex"
           hx-get="/fragments/start-session-picker"
           hx-target="#start-session-modal-host"
           hx-swap="innerHTML"
@@ -60,19 +91,6 @@
         >
           Start Session
         </button>
-        <div class="site-nav-dropdown">
-          <button class="site-header-link site-nav-dropdown-toggle" aria-expanded="false" aria-haspopup="true">
-            <i data-lucide="user" style="width:1rem;height:1rem" aria-hidden="true"></i>
-            <span class="md:hidden">Account</span>
-          </button>
-          <div class="site-nav-dropdown-menu">
-            <a class="site-nav-dropdown-item" href="/dashboard">Dashboard</a>
-            <a class="site-nav-dropdown-item" href="/profile">Profile</a>
-            <form method="post" action="/logout" class="site-nav-dropdown-item-form">
-              <button type="submit" class="site-nav-dropdown-item">Log out</button>
-            </form>
-          </div>
-        </div>
       {{ else }}
         <a class="site-header-link" href="/login">Log in</a>
         <a class="site-header-link site-header-link-primary" href="/signup">Sign up</a>

@@ -33,7 +33,6 @@
     {{ $isSession := eq .CurrentStep.Kind "session" }}
     {{ if $isCatalog }}
     <div class="run-layout">
-      <button type="button" id="run-playlist-toggle" class="run-playlist-toggle rounded-md btn-ghost px-3 py-2 text-sm">Show session steps</button>
       <div class="run-sidebar">
         <div class="card card-pad run-session-timer-box">
           <span class="run-session-timer-label">Session Time</span>
@@ -42,10 +41,14 @@
         <aside id="run-playlist-panel" class="card card-pad run-playlist-panel">
           <div class="run-playlist-head">
             <div class="run-playlist-head-title">
-              <span class="text-sm font-semibold">Session steps</span>
+              <button type="button" class="run-playlist-close md:hidden inline-flex items-center gap-1.5 text-sm font-medium min-h-[2.75rem]">
+                <i data-lucide="arrow-left" style="width:1rem;height:1rem" aria-hidden="true"></i>
+                Back
+              </button>
+              <span class="text-sm font-semibold hidden md:inline">Session steps</span>
               <span class="text-xs muted" id="run-playlist-summary">(0/0 done)</span>
             </div>
-            <button type="button" id="run-playlist-close" class="run-playlist-close rounded-md btn-ghost px-2 py-1 text-xs">Close</button>
+            <button type="button" class="run-playlist-close hidden md:inline-flex rounded-md btn-ghost px-2 py-1 text-xs">Close</button>
           </div>
         <div class="mt-3 space-y-1">
           {{ range .RunActivityGroups }}
@@ -207,6 +210,10 @@
           <button type="submit" class="run-skip-link">Skip this block</button>
         </form>
       </div>
+      <button type="button" id="run-playlist-toggle" class="run-playlist-toggle rounded-md px-3 py-2 text-sm inline-flex items-center gap-2">
+        <i data-lucide="list" style="width:1rem;height:1rem;flex-shrink:0" aria-hidden="true"></i>
+        Session steps
+      </button>
     </div>
     <script>
       (function () {
@@ -282,17 +289,16 @@
         // Playlist toggle
         var playlistPanel = document.getElementById("run-playlist-panel");
         var playlistToggle = document.getElementById("run-playlist-toggle");
-        var playlistClose = document.getElementById("run-playlist-close");
         if (playlistToggle && playlistPanel) {
           playlistToggle.addEventListener("click", function () {
             playlistPanel.classList.toggle("run-playlist-open");
           });
         }
-        if (playlistClose && playlistPanel) {
-          playlistClose.addEventListener("click", function () {
-            playlistPanel.classList.remove("run-playlist-open");
+        document.querySelectorAll(".run-playlist-close").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            if (playlistPanel) playlistPanel.classList.remove("run-playlist-open");
           });
-        }
+        });
 
         // Activity group expand/collapse
         document.querySelectorAll(".run-playlist-group-header").forEach(function (hdr) {
@@ -334,7 +340,6 @@
     </script>
     {{ else }}
     <div class="run-layout">
-      <button type="button" id="run-playlist-toggle" class="run-playlist-toggle rounded-md btn-ghost px-3 py-2 text-sm">Show session steps</button>
       <div class="run-sidebar">
         <div class="card card-pad run-session-timer-box">
           <span class="run-session-timer-label">Session Time</span>
@@ -343,10 +348,14 @@
         <aside id="run-playlist-panel" class="card card-pad run-playlist-panel">
           <div class="run-playlist-head">
             <div class="run-playlist-head-title">
-              <span class="text-sm font-semibold">Session steps</span>
+              <button type="button" class="run-playlist-close md:hidden inline-flex items-center gap-1.5 text-sm font-medium min-h-[2.75rem]">
+                <i data-lucide="arrow-left" style="width:1rem;height:1rem" aria-hidden="true"></i>
+                Back
+              </button>
+              <span class="text-sm font-semibold hidden md:inline">Session steps</span>
               <span class="text-xs muted" id="run-playlist-summary">(0/0 done)</span>
             </div>
-            <button type="button" id="run-playlist-close" class="run-playlist-close rounded-md btn-ghost px-2 py-1 text-xs">Close</button>
+            <button type="button" class="run-playlist-close hidden md:inline-flex rounded-md btn-ghost px-2 py-1 text-xs">Close</button>
           </div>
         <div class="mt-3 space-y-1">
           {{ range .RunActivityGroups }}
@@ -573,6 +582,10 @@
           <span id="run-feedback-text">Saving...</span>
         </div>
       </div>
+      <button type="button" id="run-playlist-toggle" class="run-playlist-toggle rounded-md px-3 py-2 text-sm inline-flex items-center gap-2">
+        <i data-lucide="list" style="width:1rem;height:1rem;flex-shrink:0" aria-hidden="true"></i>
+        Session steps
+      </button>
     </div>
 
     {{ if .RunIsOpen }}{{ template "open-add-panel" . }}{{ end }}
@@ -631,7 +644,6 @@
         const completeBtn = document.getElementById("btn-complete-step");
         const playlistPanel = document.getElementById("run-playlist-panel");
         const playlistToggle = document.getElementById("run-playlist-toggle");
-        const playlistClose = document.getElementById("run-playlist-close");
         const playlistSummary = document.getElementById("run-playlist-summary");
         const currentPlaylistRow = document.querySelector(".run-playlist-row-current");
         const autoAdvanceEl = document.getElementById("run-auto-advance");
@@ -1098,11 +1110,11 @@
             playlistPanel.classList.toggle("run-playlist-open");
           });
         }
-        if (playlistClose && playlistPanel) {
-          playlistClose.addEventListener("click", function () {
-            playlistPanel.classList.remove("run-playlist-open");
+        document.querySelectorAll(".run-playlist-close").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            if (playlistPanel) playlistPanel.classList.remove("run-playlist-open");
           });
-        }
+        });
 
         // --- Activity group expand/collapse ---
         document.querySelectorAll(".run-playlist-group-header").forEach(function (hdr) {
