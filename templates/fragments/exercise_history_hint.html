@@ -1,0 +1,33 @@
+{{ define "fragments/exercise_history_hint" }}
+{{ if .Items }}
+<div class="run-history-hint">
+  <button
+    type="button"
+    class="run-history-hint-btn"
+    hx-get="/exercises/{{ .ExerciseID }}/history-popup"
+    hx-target="#exercise-history-body"
+    hx-swap="innerHTML"
+    hx-on::after-request="document.getElementById('exercise-history-dialog').showModal()"
+    aria-label="View exercise history"
+  >
+    <i data-lucide="history" style="width:0.75rem;height:0.75rem;flex-shrink:0" aria-hidden="true"></i>
+    {{ with index .Items 0 }}
+      {{ if .HasActuals }}
+        {{ if gt .ActualSets 0 }}{{ .ActualSets }}×{{ .ActualReps }}{{ end -}}
+        {{ if gt .ActualWeightKg 0.0 }} · {{ printf "%.1f" .ActualWeightKg }}kg{{ end }}
+      {{ else }}
+        {{ .Status }}
+      {{ end }}
+      · {{ .Date }}
+    {{ end }}
+    <i data-lucide="chevron-right" style="width:0.7rem;height:0.7rem;opacity:0.5" aria-hidden="true"></i>
+  </button>
+</div>
+{{ else }}
+<div class="run-history-hint run-history-hint--empty">
+  <i data-lucide="history" style="width:0.75rem;height:0.75rem;opacity:0.4" aria-hidden="true"></i>
+  No history yet
+</div>
+{{ end }}
+<script>if(window.__passionRenderIcons)window.__passionRenderIcons();</script>
+{{ end }}

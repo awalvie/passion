@@ -232,6 +232,9 @@ func (s *Server) completeRunExercise(w http.ResponseWriter, r *http.Request, run
 		CompletedAt:    time.Now(),
 		ElapsedSeconds: elapsedSeconds,
 		RunNotes:       runNotes,
+		ActualSets:     formInt(r, "actual_sets"),
+		ActualReps:     formInt(r, "actual_reps"),
+		ActualWeightKg: formFloat(r, "actual_weight_kg"),
 	}
 	if err := s.store.DB.Create(comp).Error; err != nil {
 		return err
@@ -435,6 +438,7 @@ func exerciseToRunStep(ex db.Exercise) pages.RunStep {
 		SessionDurationSeconds: ex.SessionDurationSeconds,
 		Sets:                   ex.Sets,
 		Reps:                   ex.Reps,
+		WeightKg:               ex.WeightKg,
 		RepSeconds:             ex.RepSeconds,
 		RepRestSeconds:         ex.RepRestSeconds,
 		SetRestSeconds:         ex.SetRestSeconds,
@@ -493,6 +497,50 @@ func (s *Server) buildRunSteps(ss db.ScheduledSession, runID uint, ownerID uint)
 		choicesByParent[c.ParentExerciseID] = append(choicesByParent[c.ParentExerciseID], c.ChosenExerciseID)
 	}
 
+	// Load cycle overrides when this run belongs to a cycle.
+	type overrideKey struct {
+		libID uint
+		name  string
+	}
+	overrideMap := map[overrideKey]*db.CycleExerciseOverride{}
+	if ss.TrainingCycleID != nil && *ss.TrainingCycleID != 0 {
+		var overrides []db.CycleExerciseOverride
+		s.store.DB.Where("training_cycle_id = ? AND owner_id = ?", *ss.TrainingCycleID, ownerID).Find(&overrides)
+		for i := range overrides {
+			ov := &overrides[i]
+			if ov.LibraryExerciseID != nil && *ov.LibraryExerciseID != 0 {
+				overrideMap[overrideKey{libID: *ov.LibraryExerciseID}] = ov
+			} else {
+				overrideMap[overrideKey{name: ov.ExerciseName}] = ov
+			}
+		}
+	}
+	applyOverride := func(st pages.RunStep, ex db.Exercise) pages.RunStep {
+		var ov *db.CycleExerciseOverride
+		if ex.LibraryExerciseID != nil && *ex.LibraryExerciseID != 0 {
+			ov = overrideMap[overrideKey{libID: *ex.LibraryExerciseID}]
+		}
+		if ov == nil {
+			ov = overrideMap[overrideKey{name: ex.Name}]
+		}
+		if ov == nil {
+			return st
+		}
+		if ov.Sets > 0 {
+			st.Sets = ov.Sets
+		}
+		if ov.Reps > 0 {
+			st.Reps = ov.Reps
+		}
+		if ov.WeightKg > 0 {
+			st.WeightKg = ov.WeightKg
+		}
+		if ov.RepSeconds > 0 {
+			st.RepSeconds = ov.RepSeconds
+		}
+		return st
+	}
+
 	var completions []db.RunExerciseCompletion
 	if err := s.store.DB.
 		Where("owner_id = ? AND run_id = ?", ownerID, runID).
@@ -537,7 +585,7 @@ func (s *Server) buildRunSteps(ss db.ScheduledSession, runID uint, ownerID uint)
 							}
 						}
 						if chosen != nil {
-							st := exerciseToRunStep(*chosen)
+							st := applyOverride(exerciseToRunStep(*chosen), *chosen)
 							st.ActivityID = act.ID
 							st.ActivityName = actName
 							steps = append(steps, st)
@@ -554,7 +602,7 @@ func (s *Server) buildRunSteps(ss db.ScheduledSession, runID uint, ownerID uint)
 				steps = append(steps, catStep)
 				continue
 			}
-			st := exerciseToRunStep(ex)
+			st := applyOverride(exerciseToRunStep(ex), ex)
 			st.ActivityID = act.ID
 			st.ActivityName = actName
 			steps = append(steps, st)

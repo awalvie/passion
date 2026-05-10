@@ -503,6 +503,19 @@
         </details>
         {{ end }}
         {{ if not $isSession }}
+        <div
+          hx-get="/exercises/{{ .CurrentStep.ExerciseID }}/history-hint"
+          hx-trigger="load"
+          hx-swap="outerHTML"
+          class="run-history-hint-placeholder">
+        </div>
+        <dialog id="exercise-history-dialog" class="run-summary-dialog">
+          <div id="exercise-history-body" class="run-summary-dialog-inner">
+            <p class="text-sm muted p-4">Loading…</p>
+          </div>
+        </dialog>
+        {{ end }}
+        {{ if not $isSession }}
         <div class="run-up-next-row">
           <button type="button" class="run-up-next-arrow" id="btn-up-prev" aria-label="Previous rep"><i data-lucide="chevron-left" class="run-icon"></i></button>
           <div class="run-up-next" id="run-up-next">UP NEXT</div>
@@ -557,6 +570,32 @@
               </div>
             </div>
           </div>
+          {{ if not $isSession }}
+          <details class="run-notes-collapse" id="actual-values-detail">
+            <summary class="run-collapse-toggle"><i data-lucide="sliders-horizontal" class="run-collapse-icon"></i><i data-lucide="chevron-right" class="run-collapse-chevron"></i>
+              Logged as:
+              <span id="actual-summary-label">{{ if gt .CurrentStep.Sets 0 }}{{ .CurrentStep.Sets }}×{{ .CurrentStep.Reps }}{{ if gt .CurrentStep.WeightKg 0.0 }} · {{ printf "%.1f" .CurrentStep.WeightKg }}kg{{ end }}{{ else }}tap to log{{ end }}</span>
+            </summary>
+            <div class="run-actual-grid">
+              <div>
+                <label class="run-actual-label" for="actual-sets-input">Sets</label>
+                <input id="actual-sets-input" type="number" name="actual_sets" min="0" class="input run-actual-input" value="{{ .CurrentStep.Sets }}" oninput="updateActualLabel()" />
+              </div>
+              <div>
+                <label class="run-actual-label" for="actual-reps-input">Reps</label>
+                <input id="actual-reps-input" type="number" name="actual_reps" min="0" class="input run-actual-input" value="{{ .CurrentStep.Reps }}" oninput="updateActualLabel()" />
+              </div>
+              <div>
+                <label class="run-actual-label" for="actual-weight-input">Weight (kg)</label>
+                <input id="actual-weight-input" type="number" name="actual_weight_kg" min="0" step="0.5" class="input run-actual-input" value="{{ .CurrentStep.WeightKg }}" oninput="updateActualLabel()" />
+              </div>
+            </div>
+          </details>
+          {{ else }}
+          <input type="hidden" name="actual_sets" value="0" />
+          <input type="hidden" name="actual_reps" value="0" />
+          <input type="hidden" name="actual_weight_kg" value="0" />
+          {{ end }}
           <details class="run-notes-collapse">
             <summary class="run-collapse-toggle"><i data-lucide="pencil" class="run-collapse-icon"></i><i data-lucide="chevron-right" class="run-collapse-chevron"></i> Add notes</summary>
             <textarea id="run-notes" name="run_notes" rows="2" class="w-full input text-sm mt-1" placeholder="e.g., felt heavy, changed grip, RPE..."></textarea>
@@ -590,6 +629,19 @@
 
     {{ if .RunIsOpen }}{{ template "open-add-panel" . }}{{ end }}
 
+    <script>
+      function updateActualLabel() {
+        var s = parseInt(document.getElementById('actual-sets-input')?.value || 0);
+        var r = parseInt(document.getElementById('actual-reps-input')?.value || 0);
+        var w = parseFloat(document.getElementById('actual-weight-input')?.value || 0);
+        var lbl = document.getElementById('actual-summary-label');
+        if (!lbl) return;
+        var parts = [];
+        if (s > 0 || r > 0) parts.push(s + '×' + r);
+        if (w > 0) parts.push(w.toFixed(1) + 'kg');
+        lbl.textContent = parts.length ? parts.join(' · ') : 'tap to log';
+      }
+    </script>
     <script>
       (function () {
         const runID = {{ .RunID }};

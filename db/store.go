@@ -37,6 +37,7 @@ func (s *Store) AutoMigrate() error {
 		&SessionRun{},
 		&RunExerciseCompletion{},
 		&RunExerciseChoice{},
+		&CycleExerciseOverride{},
 	); err != nil {
 		return err
 	}

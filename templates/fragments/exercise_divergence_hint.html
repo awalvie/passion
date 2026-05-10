@@ -1,0 +1,9 @@
+{{ define "fragments/exercise_divergence_hint" }}
+{{ if .Show }}
+<div class="exdiv-hint">
+  <i data-lucide="trending-up" style="width:0.75rem;height:0.75rem;flex-shrink:0" aria-hidden="true"></i>
+  <span>{{ .Message }}</span>
+</div>
+<script>if(window.__passionRenderIcons)window.__passionRenderIcons();</script>
+{{ end }}
+{{ end }}

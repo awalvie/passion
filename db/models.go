@@ -87,6 +87,8 @@ type Exercise struct {
 	ActivityTemplateID *uint `gorm:"index"`
 	// SessionRunID is set only for exercises added on-the-fly during an open session.
 	SessionRunID *uint `gorm:"index"`
+	// LibraryExerciseID links back to the source LibraryExercise when the exercise was added from the library.
+	LibraryExerciseID *uint `gorm:"index"`
 
 	Name string `gorm:"not null"`
 
@@ -180,6 +182,23 @@ type TrainingCycleWeekdayMapping struct {
 	SessionTemplateID uint `gorm:"index;not null"`
 }
 
+// CycleExerciseOverride stores per-cycle target values for a movement.
+// The override applies to every exercise in the cycle that matches by LibraryExerciseID
+// (when set) or by ExerciseName as fallback — across all templates in the cycle.
+type CycleExerciseOverride struct {
+	gorm.Model
+
+	OwnerID         uint  `gorm:"index;not null"`
+	TrainingCycleID uint  `gorm:"index;not null"`
+	LibraryExerciseID *uint `gorm:"index"` // preferred match key
+	ExerciseName    string `gorm:"not null"` // display + fallback match key
+
+	Sets       int
+	Reps       int
+	WeightKg   float64
+	RepSeconds int
+}
+
 // ScheduledSession is the materialized instance for a given date in a training cycle.
 type ScheduledSession struct {
 	gorm.Model
@@ -228,6 +247,11 @@ type RunExerciseCompletion struct {
 
 	// RunNotes are freeform notes/observations entered during the run.
 	RunNotes string `gorm:"type:text"`
+
+	// Actual values recorded at completion time (pre-filled from template, editable by user).
+	ActualSets     int
+	ActualReps     int
+	ActualWeightKg float64
 }
 
 // RunExerciseChoice records which child option was selected for an exercise_catalog parent during a run.

@@ -67,6 +67,7 @@ func (s *Server) Routes() http.Handler {
 		pr.HandleFunc("/exercise-library", s.handleExerciseLibraryIndex)
 		pr.HandleFunc("/exercise-library/new", s.handleExerciseLibraryNew)
 		pr.HandleFunc("/exercise-library/export", s.handleExportLibraryExercisesBulk)
+		pr.HandleFunc("/exercise-library/{libraryExerciseID}/history", s.handleExerciseLibraryHistory)
 		pr.HandleFunc("/exercise-library/{libraryExerciseID}/{action}", s.handleExerciseLibraryByID)
 
 		pr.HandleFunc("/activities/{activityID}/{action}", s.handleActivitiesByID)
@@ -77,6 +78,9 @@ func (s *Server) Routes() http.Handler {
 		pr.HandleFunc("/training-cycles/{cycleID}", s.handleTrainingCyclesByID)
 		pr.HandleFunc("/training-cycles/{cycleID}/{action}", s.handleTrainingCyclesByID)
 
+		pr.HandleFunc("/exercises/{exerciseID}/history-hint", s.handleExerciseHistoryHint)
+		pr.HandleFunc("/exercises/{exerciseID}/history-popup", s.handleExerciseHistoryPopup)
+		pr.HandleFunc("/exercises/{exerciseID}/divergence-hint", s.handleExerciseDivergenceHint)
 		pr.HandleFunc("/exercises/{exerciseID}/{action}", s.handleExercisesByID)
 
 		pr.HandleFunc("/scheduled-sessions/add", s.handleAddScheduledSession)

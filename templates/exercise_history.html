@@ -1,0 +1,44 @@
+{{ define "content" }}
+<div class="run-summary-page">
+  <a href="/exercise-library" class="run-summary-page-back">
+    <i data-lucide="arrow-left" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+    Exercise Library
+  </a>
+
+  <div class="run-summary-page-card">
+    <div class="run-summary-header">
+      <div class="min-w-0 flex-1">
+        <h1 class="run-summary-title">{{ .ExerciseName }}</h1>
+        <p class="run-summary-meta">{{ len .Items }} session{{ if ne (len .Items) 1 }}s{{ end }} recorded</p>
+      </div>
+    </div>
+
+    {{ if .Items }}
+    <p class="run-summary-page-section-heading">All sessions</p>
+    {{ range .Items }}
+    <div class="exhist-page-row exhist-page-row--{{ .Status }}">
+      <div class="exhist-page-left">
+        <span class="exhist-page-date">{{ .Date }}</span>
+        <span class="exhist-page-template muted">{{ .TemplateName }}</span>
+      </div>
+      <div class="exhist-page-right">
+        {{ if .HasActuals }}
+          {{ if or (gt .ActualSets 0) (gt .ActualReps 0) }}<span class="exhist-page-val">{{ .ActualSets }}×{{ .ActualReps }}</span>{{ end }}
+          {{ if gt .ActualWeightKg 0.0 }}<span class="exhist-page-val exhist-page-val--weight">{{ printf "%.1f" .ActualWeightKg }}kg</span>{{ end }}
+          {{ if gt .ElapsedSeconds 0 }}<span class="exhist-page-val muted">{{ formatElapsed .ElapsedSeconds }}</span>{{ end }}
+        {{ else if eq .Status "skipped" }}
+          <span class="exhist-page-val muted">skipped</span>
+        {{ else }}
+          <span class="exhist-page-val muted">—</span>
+        {{ end }}
+      </div>
+      {{ if .Notes }}<p class="exhist-page-notes">{{ .Notes }}</p>{{ end }}
+    </div>
+    {{ end }}
+    {{ else }}
+    <p class="text-sm muted p-4">No sessions recorded yet.</p>
+    {{ end }}
+  </div>
+</div>
+<script>if(window.__passionRenderIcons)window.__passionRenderIcons();</script>
+{{ end }}

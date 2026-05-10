@@ -21,9 +21,11 @@ func newExerciseFromLibraryExercise(lib db.LibraryExercise, ownerID, activityID 
 		kind = "reps_and_sets"
 	}
 	aid := activityID
+	libID := lib.ID
 	return &db.Exercise{
 		OwnerID:                ownerID,
 		ActivityID:             &aid,
+		LibraryExerciseID:      &libID,
 		Name:                   lib.Name,
 		Notes:                  lib.Notes,
 		Kind:                   kind,

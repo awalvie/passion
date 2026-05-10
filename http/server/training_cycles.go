@@ -173,7 +173,7 @@ func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request)
 			}
 		}
 
-		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		http.Redirect(w, r, "/training-cycles/"+strconv.FormatUint(uint64(cycle.ID), 10), http.StatusSeeOther)
 		return
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -217,6 +217,12 @@ func (s *Server) handleTrainingCyclesByID(w http.ResponseWriter, r *http.Request
 			return
 		case "remove":
 			s.handleTrainingCycleRemove(w, r, uint(cycleID), ownerID)
+			return
+		case "override-save":
+			s.handleCycleOverrideSave(w, r, uint(cycleID), ownerID)
+			return
+		case "override-clear":
+			s.handleCycleOverrideClear(w, r, uint(cycleID), ownerID)
 			return
 		}
 	}
@@ -294,6 +300,9 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 		})
 	}
 
+	// Load exercise targets for this cycle.
+	exerciseOverrides := s.buildCycleExerciseOverrides(cycleID, ownerID)
+
 	s.pages.TrainingCycleDetail(w, pages.TrainingCycleDetailParams{
 		Base:               pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
 		CycleID:            cycleID,
@@ -303,6 +312,7 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 		CycleTemplates:     templates,
 		CycleRows:          rows,
 		TotalScheduled:     len(scheduled),
+		ExerciseOverrides:  exerciseOverrides,
 	})
 }
 
@@ -442,6 +452,186 @@ func (s *Server) handleTrainingCycleRemove(w http.ResponseWriter, r *http.Reques
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.Header().Set("HX-Redirect", "/training-cycles/"+strconv.FormatUint(uint64(cycleID), 10))
+	w.WriteHeader(http.StatusOK)
+}
+
+// buildCycleExerciseOverrides collects all unique reps_and_sets exercises across
+// all templates scheduled in the cycle, then merges in any stored overrides.
+func (s *Server) buildCycleExerciseOverrides(cycleID uint, ownerID uint) []pages.CycleExerciseOverrideView {
+	// Collect distinct template IDs from weekday mappings.
+	var mappings []db.TrainingCycleWeekdayMapping
+	s.store.DB.Where("training_cycle_id = ? AND owner_id = ?", cycleID, ownerID).Find(&mappings)
+	templateIDs := map[uint]bool{}
+	for _, m := range mappings {
+		templateIDs[m.SessionTemplateID] = true
+	}
+	if len(templateIDs) == 0 {
+		return nil
+	}
+
+	ids := make([]uint, 0, len(templateIDs))
+	for id := range templateIDs {
+		ids = append(ids, id)
+	}
+
+	// Load all exercises from those templates (via activities).
+	var exercises []db.Exercise
+	s.store.DB.
+		Joins("JOIN activities ON activities.id = exercises.activity_id").
+		Where("activities.session_template_id IN ? AND exercises.owner_id = ? "+
+			"AND exercises.kind = 'reps_and_sets' AND exercises.parent_exercise_id IS NULL "+
+			"AND exercises.deleted_at IS NULL AND activities.deleted_at IS NULL",
+			ids, ownerID).
+		Order("exercises.name asc").
+		Find(&exercises)
+
+	// Deduplicate: key = LibraryExerciseID if set, else Name.
+	type exKey struct {
+		libID uint
+		name  string
+	}
+	seen := map[exKey]bool{}
+	var unique []db.Exercise
+	for _, ex := range exercises {
+		var k exKey
+		if ex.LibraryExerciseID != nil && *ex.LibraryExerciseID != 0 {
+			k = exKey{libID: *ex.LibraryExerciseID}
+		} else {
+			k = exKey{name: ex.Name}
+		}
+		if !seen[k] {
+			seen[k] = true
+			unique = append(unique, ex)
+		}
+	}
+
+	// Load existing overrides for this cycle.
+	var overrides []db.CycleExerciseOverride
+	s.store.DB.Where("training_cycle_id = ? AND owner_id = ?", cycleID, ownerID).Find(&overrides)
+	overrideByLibID := map[uint]*db.CycleExerciseOverride{}
+	overrideByName := map[string]*db.CycleExerciseOverride{}
+	for i := range overrides {
+		ov := &overrides[i]
+		if ov.LibraryExerciseID != nil && *ov.LibraryExerciseID != 0 {
+			overrideByLibID[*ov.LibraryExerciseID] = ov
+		} else {
+			overrideByName[ov.ExerciseName] = ov
+		}
+	}
+
+	result := make([]pages.CycleExerciseOverrideView, 0, len(unique))
+	for _, ex := range unique {
+		v := pages.CycleExerciseOverrideView{
+			ExerciseName:    ex.Name,
+			PlannedSets:     ex.Sets,
+			PlannedReps:     ex.Reps,
+			PlannedWeightKg: ex.WeightKg,
+			PlannedRepSecs:  ex.RepSeconds,
+		}
+		if ex.LibraryExerciseID != nil && *ex.LibraryExerciseID != 0 {
+			v.LibraryExerciseID = *ex.LibraryExerciseID
+		}
+
+		var ov *db.CycleExerciseOverride
+		if v.LibraryExerciseID != 0 {
+			ov = overrideByLibID[v.LibraryExerciseID]
+		} else {
+			ov = overrideByName[ex.Name]
+		}
+		if ov != nil {
+			v.HasOverride = true
+			v.OverrideSets = ov.Sets
+			v.OverrideReps = ov.Reps
+			v.OverrideWeightKg = ov.WeightKg
+			v.OverrideRepSecs = ov.RepSeconds
+		}
+		result = append(result, v)
+	}
+	return result
+}
+
+// handleCycleOverrideSave upserts a CycleExerciseOverride for one exercise.
+// POST /training-cycles/{cycleID}/override-save
+// Form fields: exercise_name, library_exercise_id (optional), sets, reps, weight_kg, rep_seconds
+func (s *Server) handleCycleOverrideSave(w http.ResponseWriter, r *http.Request, cycleID uint, ownerID uint) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	exName := strings.TrimSpace(r.FormValue("exercise_name"))
+	if exName == "" {
+		http.Error(w, "exercise_name required", http.StatusBadRequest)
+		return
+	}
+	libIDRaw, _ := strconv.ParseUint(strings.TrimSpace(r.FormValue("library_exercise_id")), 10, 64)
+
+	sets, _ := strconv.Atoi(strings.TrimSpace(r.FormValue("sets")))
+	reps, _ := strconv.Atoi(strings.TrimSpace(r.FormValue("reps")))
+	weightKg, _ := strconv.ParseFloat(strings.TrimSpace(r.FormValue("weight_kg")), 64)
+	repSecs, _ := strconv.Atoi(strings.TrimSpace(r.FormValue("rep_seconds")))
+
+	// Find existing override.
+	var existing db.CycleExerciseOverride
+	q := s.store.DB.Where("training_cycle_id = ? AND owner_id = ?", cycleID, ownerID)
+	if libIDRaw != 0 {
+		q = q.Where("library_exercise_id = ?", libIDRaw)
+	} else {
+		q = q.Where("library_exercise_id IS NULL AND exercise_name = ?", exName)
+	}
+	err := q.First(&existing).Error
+
+	var libIDPtr *uint
+	if libIDRaw != 0 {
+		v := uint(libIDRaw)
+		libIDPtr = &v
+	}
+
+	if err != nil {
+		// Create new.
+		ov := db.CycleExerciseOverride{
+			OwnerID:           ownerID,
+			TrainingCycleID:   cycleID,
+			LibraryExerciseID: libIDPtr,
+			ExerciseName:      exName,
+			Sets:              sets,
+			Reps:              reps,
+			WeightKg:          weightKg,
+			RepSeconds:        repSecs,
+		}
+		s.store.DB.Create(&ov)
+	} else {
+		existing.Sets = sets
+		existing.Reps = reps
+		existing.WeightKg = weightKg
+		existing.RepSeconds = repSecs
+		s.store.DB.Save(&existing)
+	}
+
+	w.Header().Set("HX-Redirect", "/training-cycles/"+strconv.FormatUint(uint64(cycleID), 10))
+	w.WriteHeader(http.StatusOK)
+}
+
+// handleCycleOverrideClear deletes the CycleExerciseOverride for one exercise.
+// POST /training-cycles/{cycleID}/override-clear
+func (s *Server) handleCycleOverrideClear(w http.ResponseWriter, r *http.Request, cycleID uint, ownerID uint) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	exName := strings.TrimSpace(r.FormValue("exercise_name"))
+	libIDRaw, _ := strconv.ParseUint(strings.TrimSpace(r.FormValue("library_exercise_id")), 10, 64)
+
+	q := s.store.DB.Where("training_cycle_id = ? AND owner_id = ?", cycleID, ownerID)
+	if libIDRaw != 0 {
+		q = q.Where("library_exercise_id = ?", libIDRaw)
+	} else {
+		q = q.Where("library_exercise_id IS NULL AND exercise_name = ?", exName)
+	}
+	q.Delete(&db.CycleExerciseOverride{})
 
 	w.Header().Set("HX-Redirect", "/training-cycles/"+strconv.FormatUint(uint64(cycleID), 10))
 	w.WriteHeader(http.StatusOK)
