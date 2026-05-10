@@ -26,12 +26,19 @@ jobs:
           chmod 600 /tmp/deploy_key
 
       - name: Copy binary and assets
+        env:
+          JWT_SECRET: ${{ secrets.DEPLOY_JWT_SECRET }}
         run: |
+          if [ -z "${JWT_SECRET}" ]; then
+            echo "::error::DEPLOY_JWT_SECRET is not set. Add it to repository secrets."
+            exit 1
+          fi
+
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
           SCP="scp -i /tmp/deploy_key -o StrictHostKeyChecking=no"
 
           # Inject the JWT secret into the config template.
-          sed "s/__JWT_SECRET__/${{ secrets.DEPLOY_JWT_SECRET }}/" passion.prod.yaml > passion.rendered.yaml
+          sed "s|__JWT_SECRET__|${JWT_SECRET}|" passion.prod.yaml > passion.rendered.yaml
 
           $SSH "mkdir -p /opt/passion/catalog /opt/passion/templates /opt/passion/static"
           $SCP passion                                ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/passion/passion.new
