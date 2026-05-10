@@ -218,6 +218,13 @@
                 </div>
               </div>
 
+              {{ if not (or (eq .Kind "session") (eq .Kind "exercise_catalog")) }}
+              <div
+                hx-get="/exercises/{{ .ID }}/divergence-hint"
+                hx-trigger="load"
+                hx-swap="outerHTML">
+              </div>
+              {{ end }}
               <div class="grid grid-cols-2 gap-2">
                 <button type="submit" class="w-full rounded-md btn-primary px-3 py-2 text-sm font-medium">
                   Save

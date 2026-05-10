@@ -105,6 +105,12 @@
               <td class="px-3 py-2.5">
                 <div class="flex items-center gap-0.5 md:opacity-0 md:group-hover/row:opacity-100 focus-within:opacity-100 transition-opacity">
                   <a
+                    href="/exercise-library/{{ .ID }}/history"
+                    class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
+                    title="History"
+                    aria-label="View history for {{ .Name }}"
+                  ><i data-lucide="history" style="width:14px;height:14px"></i></a>
+                  <a
                     href="/exercise-library/{{ .ID }}/edit"
                     class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
                     title="Edit"

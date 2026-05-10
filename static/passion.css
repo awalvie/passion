@@ -2805,3 +2805,288 @@ html[data-theme="dark"] .run-summary-chip--done {
   font-size: 0.72rem;
 }
 
+/* ─── Run page: actual values section ─── */
+.run-actual-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.run-actual-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: 0.2rem;
+}
+
+.run-actual-input {
+  width: 100%;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* ─── Run page: history hint ─── */
+.run-history-hint {
+  display: flex;
+  justify-content: center;
+  padding: 0 0 0.5rem;
+}
+
+.run-history-hint-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+  background: var(--card-muted);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.run-history-hint-btn:hover {
+  background: var(--panel);
+  color: var(--text);
+}
+
+.run-history-hint--empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+/* ─── Exercise history popup (inside run-summary-dialog) ─── */
+.exhist-popup-list {
+  padding: 0.25rem 0;
+}
+
+.exhist-popup-row {
+  padding: 0.55rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.exhist-popup-row + .exhist-popup-row {
+  border-top: 1px solid var(--border);
+}
+
+.exhist-popup-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.exhist-popup-date {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.exhist-popup-template {
+  font-size: 0.72rem;
+}
+
+.exhist-popup-values {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.exhist-popup-val {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.exhist-popup-notes {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ─── Exercise history full page ─── */
+.exhist-page-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.55rem 1rem;
+}
+
+.exhist-page-row + .exhist-page-row {
+  border-top: 1px solid var(--border);
+}
+
+.exhist-page-left {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.exhist-page-date {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.exhist-page-template {
+  font-size: 0.72rem;
+}
+
+.exhist-page-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.exhist-page-val {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.exhist-page-val--weight {
+  color: var(--accent);
+}
+
+.exhist-page-notes {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ─── Divergence hint on template edit ─── */
+.exdiv-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+
+/* ─── Cycle exercise targets ─── */
+.cycle-targets-details {
+  padding: 0.85rem 1rem;
+}
+.cycle-targets-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  user-select: none;
+}
+.cycle-targets-summary::-webkit-details-marker { display: none; }
+details[open] .cycle-targets-chevron { transform: rotate(180deg); }
+.cycle-targets-chevron { transition: transform 0.15s; }
+
+.cycle-targets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.cycle-target-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.cycle-target-row:last-child { border-bottom: none; }
+
+.cycle-target-name {
+  min-width: 9rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1 1 9rem;
+}
+.cycle-target-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 9999px;
+  padding: 0.1rem 0.45rem;
+}
+.cycle-target-form {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+.cycle-target-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+.cycle-target-field-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.cycle-target-input {
+  width: 3.8rem;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.78rem;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+}
+.cycle-target-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.cycle-target-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.35rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  align-self: flex-end;
+  margin-bottom: 1px;
+}
+.cycle-target-save-btn:hover { opacity: 0.85; }
+.cycle-target-clear-form { display: flex; align-self: flex-end; margin-bottom: 1px; }
+.cycle-target-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem 0.45rem;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.cycle-target-clear-btn:hover { color: var(--text); border-color: var(--text); }

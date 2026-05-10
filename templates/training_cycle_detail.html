@@ -134,6 +134,86 @@
     </div>
   {{ end }}
 
+  {{/* ── Exercise targets for this cycle ── */}}
+  {{ if .ExerciseOverrides }}
+  <details class="card card-pad cycle-targets-details" open>
+    <summary class="cycle-targets-summary">
+      <span class="flex items-center gap-2">
+        <i data-lucide="target" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+        Exercise targets
+      </span>
+      <i data-lucide="chevron-down" class="cycle-targets-chevron" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+    </summary>
+    <p class="text-xs muted mt-2 mb-3">
+      Override exercise variables for this cycle only. Leave a field at 0 to keep the template default.
+    </p>
+    <div class="cycle-targets-list">
+      {{ range .ExerciseOverrides }}
+      <div class="cycle-target-row">
+        <div class="cycle-target-name">
+          {{ .ExerciseName }}
+          {{ if .HasOverride }}<span class="cycle-target-badge">overridden</span>{{ end }}
+        </div>
+        <form
+          hx-post="/training-cycles/{{ $.CycleID }}/override-save"
+          hx-swap="none"
+          method="post"
+          class="cycle-target-form"
+        >
+          <input type="hidden" name="exercise_name" value="{{ .ExerciseName }}" />
+          {{ if .LibraryExerciseID }}<input type="hidden" name="library_exercise_id" value="{{ .LibraryExerciseID }}" />{{ end }}
+          <label class="cycle-target-field">
+            <span class="cycle-target-field-label">Sets</span>
+            <input type="number" name="sets" min="0" step="1"
+              value="{{ if .HasOverride }}{{ .OverrideSets }}{{ else }}{{ .PlannedSets }}{{ end }}"
+              placeholder="{{ .PlannedSets }}"
+              class="cycle-target-input" />
+          </label>
+          <label class="cycle-target-field">
+            <span class="cycle-target-field-label">Reps</span>
+            <input type="number" name="reps" min="0" step="1"
+              value="{{ if .HasOverride }}{{ .OverrideReps }}{{ else }}{{ .PlannedReps }}{{ end }}"
+              placeholder="{{ .PlannedReps }}"
+              class="cycle-target-input" />
+          </label>
+          <label class="cycle-target-field">
+            <span class="cycle-target-field-label">kg</span>
+            <input type="number" name="weight_kg" min="0" step="0.5"
+              value="{{ if .HasOverride }}{{ printf "%.1f" .OverrideWeightKg }}{{ else }}{{ printf "%.1f" .PlannedWeightKg }}{{ end }}"
+              placeholder="{{ printf "%.1f" .PlannedWeightKg }}"
+              class="cycle-target-input" />
+          </label>
+          <label class="cycle-target-field">
+            <span class="cycle-target-field-label">s/rep</span>
+            <input type="number" name="rep_seconds" min="0" step="1"
+              value="{{ if .HasOverride }}{{ .OverrideRepSecs }}{{ else }}{{ .PlannedRepSecs }}{{ end }}"
+              placeholder="{{ .PlannedRepSecs }}"
+              class="cycle-target-input" />
+          </label>
+          <button type="submit" class="cycle-target-save-btn" title="Save override">
+            <i data-lucide="check" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+          </button>
+        </form>
+        {{ if .HasOverride }}
+        <form
+          hx-post="/training-cycles/{{ $.CycleID }}/override-clear"
+          hx-swap="none"
+          method="post"
+          class="cycle-target-clear-form"
+        >
+          <input type="hidden" name="exercise_name" value="{{ .ExerciseName }}" />
+          {{ if .LibraryExerciseID }}<input type="hidden" name="library_exercise_id" value="{{ .LibraryExerciseID }}" />{{ end }}
+          <button type="submit" class="cycle-target-clear-btn" title="Reset to template default">
+            <i data-lucide="rotate-ccw" style="width:0.7rem;height:0.7rem" aria-hidden="true"></i>
+          </button>
+        </form>
+        {{ end }}
+      </div>
+      {{ end }}
+    </div>
+  </details>
+  {{ end }}
+
   {{/* ── Add-session dialog ── */}}
   {{ if .CycleTemplates }}
     <dialog id="add-session-dialog" class="catalog-dialog">

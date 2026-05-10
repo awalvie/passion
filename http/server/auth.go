@@ -151,8 +151,8 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 				demo.ID = 1
 				if err := s.store.DB.Create(&demo).Error; err != nil {
 					http.Error(w, "dev auth bypass: failed to create demo user", http.StatusInternalServerError)
-				return
-			}
+					return
+				}
 			}
 			ctx := context.WithValue(r.Context(), authUserIDKey, demo.ID)
 			ctx = context.WithValue(ctx, authUserEmailKey, demo.Email)

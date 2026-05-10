@@ -1,0 +1,51 @@
+{{ define "fragments/exercise_history_popup" }}
+<div class="run-summary">
+  <div class="run-summary-header">
+    <div class="min-w-0 flex-1">
+      <h3 class="run-summary-title">{{ .ExerciseName }}</h3>
+      <p class="run-summary-meta">Recent history</p>
+    </div>
+    <form method="dialog">
+      <button class="run-summary-close" aria-label="Close">
+        <i data-lucide="x" style="width:1rem;height:1rem" aria-hidden="true"></i>
+      </button>
+    </form>
+  </div>
+
+  {{ if .Items }}
+  <div class="exhist-popup-list">
+    {{ range .Items }}
+    <div class="exhist-popup-row exhist-popup-row--{{ .Status }}">
+      <div class="exhist-popup-meta">
+        <span class="exhist-popup-date">{{ .Date }}</span>
+        <span class="exhist-popup-template muted">{{ .TemplateName }}</span>
+      </div>
+      <div class="exhist-popup-values">
+        {{ if .HasActuals }}
+          {{ if or (gt .ActualSets 0) (gt .ActualReps 0) }}<span class="exhist-popup-val">{{ .ActualSets }}×{{ .ActualReps }}</span>{{ end }}
+          {{ if gt .ActualWeightKg 0.0 }}<span class="exhist-popup-val">{{ printf "%.1f" .ActualWeightKg }}kg</span>{{ end }}
+          {{ if gt .ElapsedSeconds 0 }}<span class="exhist-popup-val muted">{{ formatElapsed .ElapsedSeconds }}</span>{{ end }}
+        {{ else if eq .Status "skipped" }}
+          <span class="exhist-popup-val muted">skipped</span>
+        {{ else }}
+          <span class="exhist-popup-val muted">no data recorded</span>
+        {{ end }}
+      </div>
+      {{ if .Notes }}<p class="exhist-popup-notes">{{ .Notes }}</p>{{ end }}
+    </div>
+    {{ end }}
+  </div>
+  {{ if gt .LibraryExerciseID 0 }}
+  <div class="run-summary-footer">
+    <a href="/exercise-library/{{ .LibraryExerciseID }}/history" class="run-summary-full-link">
+      Full history
+      <i data-lucide="arrow-right" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+    </a>
+  </div>
+  {{ end }}
+  {{ else }}
+  <p class="text-sm muted p-4">No history yet — complete this exercise to start tracking.</p>
+  {{ end }}
+</div>
+<script>if(window.__passionRenderIcons)window.__passionRenderIcons();</script>
+{{ end }}

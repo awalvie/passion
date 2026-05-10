@@ -130,6 +130,7 @@ type RunStep struct {
 	SessionDurationSeconds int
 	Sets                   int
 	Reps                   int
+	WeightKg               float64
 
 	RepSeconds     int
 	RepRestSeconds int
@@ -221,6 +222,42 @@ type RunSummaryView struct {
 	SkippedCount   int
 	TotalCount     int
 	Activities     []RunSummaryActivity
+}
+
+// ExerciseHistoryItem is one past completion of an exercise, used in hints, popups, and history pages.
+type ExerciseHistoryItem struct {
+	Date           string
+	TemplateName   string
+	ActualSets     int
+	ActualReps     int
+	ActualWeightKg float64
+	ElapsedSeconds int
+	Notes          string
+	Status         string // completed | skipped
+}
+
+func (e ExerciseHistoryItem) HasActuals() bool {
+	return e.ActualSets > 0 || e.ActualReps > 0 || e.ActualWeightKg > 0
+}
+
+type ExerciseHistoryHintView struct {
+	ExerciseID uint
+	ExerciseName string
+	Items      []ExerciseHistoryItem // last 3
+}
+
+type ExerciseHistoryPopupView struct {
+	ExerciseID       uint
+	ExerciseName     string
+	LibraryExerciseID uint // 0 if not linked
+	Items            []ExerciseHistoryItem // last 10
+}
+
+type ExerciseHistoryPageParams struct {
+	Base
+	ExerciseName string
+	LibraryID    uint
+	Items        []ExerciseHistoryItem
 }
 
 type PrevRunRow struct {
@@ -375,6 +412,24 @@ type NewTrainingCycleParams struct {
 	Templates []db.SessionTemplate
 }
 
+// CycleExerciseOverrideView represents one exercise row in the cycle targets panel.
+type CycleExerciseOverrideView struct {
+	// identity
+	LibraryExerciseID uint
+	ExerciseName      string
+	// planned defaults (from template)
+	PlannedSets     int
+	PlannedReps     int
+	PlannedWeightKg float64
+	PlannedRepSecs  int
+	// current override values (0 = not overridden)
+	OverrideSets     int
+	OverrideReps     int
+	OverrideWeightKg float64
+	OverrideRepSecs  int
+	HasOverride      bool
+}
+
 type TrainingCycleDetailParams struct {
 	Base
 	CycleID            uint
@@ -384,6 +439,7 @@ type TrainingCycleDetailParams struct {
 	CycleTemplates     []db.SessionTemplate
 	CycleRows          []CycleWeekRowView
 	TotalScheduled     int
+	ExerciseOverrides  []CycleExerciseOverrideView
 }
 
 type ActivityTemplateListParams struct {
@@ -456,6 +512,9 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		filepath.Join("templates", "fragments", "activity_template_exercises_container.html"),
 		filepath.Join("templates", "fragments", "start_session_picker.html"),
 		filepath.Join("templates", "fragments", "run_summary.html"),
+		filepath.Join("templates", "fragments", "exercise_history_hint.html"),
+		filepath.Join("templates", "fragments", "exercise_history_popup.html"),
+		filepath.Join("templates", "fragments", "exercise_divergence_hint.html"),
 	}
 
 	fragmentTpl := template.New("fragments").Funcs(funcMap)
@@ -496,6 +555,7 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		{"pages/profile_content", "profile.html"},
 		{"pages/history_content", "history.html"},
 		{"pages/run_summary_content", "run_summary.html"},
+		{"pages/exercise_history_content", "exercise_history.html"},
 	}
 	for _, p := range pages {
 		pageTemplates[p.key], err = parsePage(filepath.Join("templates", p.file))
@@ -598,6 +658,11 @@ func (p *Pages) History(w http.ResponseWriter, params HistoryParams) {
 func (p *Pages) RunSummaryPage(w http.ResponseWriter, params RunSummaryPageParams) {
 	params.Authenticated = true
 	p.renderPage(w, "pages/run_summary_content", params)
+}
+
+func (p *Pages) ExerciseHistoryPage(w http.ResponseWriter, params ExerciseHistoryPageParams) {
+	params.Authenticated = true
+	p.renderPage(w, "pages/exercise_history_content", params)
 }
 
 func (p *Pages) Profile(w http.ResponseWriter, params ProfileParams) {
