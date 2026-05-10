@@ -144,8 +144,14 @@
             </div>
           {{ end }}
           <div
-            class="group flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors"
+            class="group flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors{{ if eq .Status "completed" }} cursor-pointer hover:shadow-sm{{ end }}"
             style="border-color: var(--border){{ if .Color }}; border-left: 3px solid {{ .Color }}; background: color-mix(in srgb, {{ .Color }} 4%, var(--panel)){{ else }}; background: var(--panel){{ end }}"
+            {{ if eq .Status "completed" }}
+              hx-get="/runs/{{ .RunID }}/summary"
+              hx-target="#run-summary-body"
+              hx-swap="innerHTML"
+              hx-on::after-request="document.getElementById('run-summary-dialog').showModal()"
+            {{ end }}
           >
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
@@ -195,6 +201,12 @@
     {{ end }}
   </section>
 </div>
+
+<dialog id="run-summary-dialog" class="run-summary-dialog">
+  <div id="run-summary-body" class="run-summary-dialog-inner">
+    <p class="text-sm muted p-4">Loading…</p>
+  </div>
+</dialog>
 
 <div id="passion-tooltip" style="display:none;position:absolute;z-index:9999;pointer-events:none;padding:8px 12px;border-radius:8px;font-size:12px;background:var(--panel);color:var(--text);border:1px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.12);min-width:120px;max-width:240px;white-space:normal;line-height:1.45;"></div>
 

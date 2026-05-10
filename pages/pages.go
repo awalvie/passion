@@ -192,6 +192,51 @@ type HistoryRunView struct {
 	TotalCount     int
 }
 
+type RunSummaryExercise struct {
+	Name            string
+	Kind            string
+	Sets            int
+	Reps            int
+	WeightKg        float64
+	RepSeconds      int
+	SessionDuration int
+	Status          string // "completed" | "skipped" | "pending"
+	ElapsedSeconds  int
+	Notes           string
+}
+
+type RunSummaryActivity struct {
+	Name      string
+	Exercises []RunSummaryExercise
+}
+
+type RunSummaryView struct {
+	RunID          uint
+	TemplateName   string
+	Color          string
+	DateLabel      string
+	DurationLabel  string
+	IsOpen         bool
+	CompletedCount int
+	SkippedCount   int
+	TotalCount     int
+	Activities     []RunSummaryActivity
+}
+
+type PrevRunRow struct {
+	DateLabel     string
+	DurationLabel string
+	DoneCount     int
+	TotalCount    int
+	Pct           int // 0–100 for CSS bar width
+}
+
+type RunSummaryPageParams struct {
+	Base
+	Summary  RunSummaryView
+	PrevRuns []PrevRunRow
+}
+
 type HistoryStatsView struct {
 	TotalRuns         int
 	TotalTimeLabel    string
@@ -410,6 +455,7 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		filepath.Join("templates", "fragments", "scheduled_session_preview.html"),
 		filepath.Join("templates", "fragments", "activity_template_exercises_container.html"),
 		filepath.Join("templates", "fragments", "start_session_picker.html"),
+		filepath.Join("templates", "fragments", "run_summary.html"),
 	}
 
 	fragmentTpl := template.New("fragments").Funcs(funcMap)
@@ -449,6 +495,7 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		{"pages/signup_content", "signup.html"},
 		{"pages/profile_content", "profile.html"},
 		{"pages/history_content", "history.html"},
+		{"pages/run_summary_content", "run_summary.html"},
 	}
 	for _, p := range pages {
 		pageTemplates[p.key], err = parsePage(filepath.Join("templates", p.file))
@@ -546,6 +593,11 @@ func (p *Pages) History(w http.ResponseWriter, params HistoryParams) {
 	params.Title = "History"
 	params.Authenticated = true
 	p.renderPage(w, "pages/history_content", params)
+}
+
+func (p *Pages) RunSummaryPage(w http.ResponseWriter, params RunSummaryPageParams) {
+	params.Authenticated = true
+	p.renderPage(w, "pages/run_summary_content", params)
 }
 
 func (p *Pages) Profile(w http.ResponseWriter, params ProfileParams) {
@@ -716,6 +768,20 @@ func buildFuncMap() template.FuncMap {
 				"m": (sec % 3600) / 60,
 				"s": sec % 60,
 			}
+		},
+		"formatElapsed": func(sec int) string {
+			if sec <= 0 {
+				return ""
+			}
+			m := sec / 60
+			s := sec % 60
+			if m == 0 {
+				return fmt.Sprintf("%ds", s)
+			}
+			if s == 0 {
+				return fmt.Sprintf("%dm", m)
+			}
+			return fmt.Sprintf("%dm %ds", m, s)
 		},
 		"formatSessionDuration": func(sec int) string {
 			if sec < 0 {

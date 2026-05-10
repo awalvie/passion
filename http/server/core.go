@@ -86,6 +86,7 @@ func (s *Server) Routes() http.Handler {
 		pr.HandleFunc("/runs/{runID}/open/add", s.handleOpenAddExercise)
 		pr.HandleFunc("/runs/{runID}/stop", s.handleRunStop)
 		pr.HandleFunc("/runs/{runID}/delete", s.handleRunDelete)
+		pr.HandleFunc("/runs/{runID}/summary", s.handleRunSummary)
 		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/choose", s.handleRunExerciseChoose)
 		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/complete", s.handleRunsByID)
 		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/skip", s.handleRunsByID)

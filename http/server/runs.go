@@ -680,3 +680,150 @@ func (s *Server) handleRunDelete(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("HX-Redirect", returnTo)
 	w.WriteHeader(http.StatusOK)
 }
+
+func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
+	ownerID, ok := s.currentUserID(r)
+	if !ok {
+		s.unauthorizedRedirect(w, r)
+		return
+	}
+	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid run id", http.StatusBadRequest)
+		return
+	}
+
+	var run db.SessionRun
+	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, runID).First(&run).Error; err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	ss, err := db.GetScheduledSessionWithTemplate(s.store.DB, ownerID, run.ScheduledSessionID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var completions []db.RunExerciseCompletion
+	s.store.DB.Where("run_id = ? AND owner_id = ?", runID, ownerID).Find(&completions)
+	compByID := make(map[uint]db.RunExerciseCompletion, len(completions))
+	for _, c := range completions {
+		compByID[c.ExerciseID] = c
+	}
+
+	name := ss.SessionTemplate.Name
+	if run.CustomName != "" {
+		name = run.CustomName
+	}
+
+	durationLabel := ""
+	if run.CompletedAt != nil {
+		durationLabel = formatDuration(run.CompletedAt.Sub(run.StartedAt))
+	}
+
+	view := pages.RunSummaryView{
+		RunID:         uint(runID),
+		TemplateName:  name,
+		Color:         normalizeTemplateColor(ss.SessionTemplate.Color),
+		DateLabel:     run.StartedAt.Format("Mon, Jan 2, 2006"),
+		DurationLabel: durationLabel,
+		IsOpen:        run.IsOpen,
+	}
+
+	for _, act := range ss.SessionTemplate.Activities {
+		sa := pages.RunSummaryActivity{Name: act.Name}
+		for _, ex := range act.Exercises {
+			if ex.ParentExerciseID != nil && *ex.ParentExerciseID != 0 {
+				continue
+			}
+			se := pages.RunSummaryExercise{
+				Name:            ex.Name,
+				Kind:            ex.Kind,
+				Sets:            ex.Sets,
+				Reps:            ex.Reps,
+				WeightKg:        ex.WeightKg,
+				RepSeconds:      ex.RepSeconds,
+				SessionDuration: ex.SessionDurationSeconds,
+				Status:          "pending",
+			}
+			if c, ok := compByID[ex.ID]; ok {
+				se.Status = c.Status
+				se.ElapsedSeconds = c.ElapsedSeconds
+				se.Notes = c.RunNotes
+			}
+			switch se.Status {
+			case "completed":
+				view.CompletedCount++
+			case "skipped":
+				view.SkippedCount++
+			}
+			view.TotalCount++
+			sa.Exercises = append(sa.Exercises, se)
+		}
+		if len(sa.Exercises) > 0 {
+			view.Activities = append(view.Activities, sa)
+		}
+	}
+
+	// Fragment path (HTMX dialog).
+	if r.Header.Get("HX-Request") != "" {
+		s.pages.RenderFragment(w, "fragments/run_summary", view)
+		return
+	}
+
+	// Full page — redirect in-progress runs to the run page.
+	if run.Status != "completed" {
+		http.Redirect(w, r, "/runs/"+chi.URLParam(r, "runID"), http.StatusSeeOther)
+		return
+	}
+
+	// Load previous runs of the same template via ScheduledSession.SessionTemplateID.
+	var scheduledSess db.ScheduledSession
+	s.store.DB.Select("session_template_id").Where("id = ?", run.ScheduledSessionID).First(&scheduledSess)
+
+	var prevRuns []db.SessionRun
+	if scheduledSess.SessionTemplateID != 0 {
+		s.store.DB.
+			Joins("JOIN scheduled_sessions ON scheduled_sessions.id = session_runs.scheduled_session_id").
+			Where("session_runs.owner_id = ? AND scheduled_sessions.session_template_id = ? "+
+				"AND session_runs.status = 'completed' AND session_runs.id != ?",
+				ownerID, scheduledSess.SessionTemplateID, run.ID).
+			Order("session_runs.started_at DESC").
+			Limit(8).
+			Find(&prevRuns)
+	}
+
+	var prevRunRows []pages.PrevRunRow
+	for _, pr := range prevRuns {
+		var comps []db.RunExerciseCompletion
+		s.store.DB.Where("run_id = ? AND owner_id = ?", pr.ID, ownerID).Find(&comps)
+		done := 0
+		for _, c := range comps {
+			if c.Status == "completed" {
+				done++
+			}
+		}
+		pct := 0
+		if view.TotalCount > 0 {
+			pct = done * 100 / view.TotalCount
+		}
+		dur := ""
+		if pr.CompletedAt != nil {
+			dur = formatDuration(pr.CompletedAt.Sub(pr.StartedAt))
+		}
+		prevRunRows = append(prevRunRows, pages.PrevRunRow{
+			DateLabel:     pr.StartedAt.Format("Jan 2"),
+			DoneCount:     done,
+			TotalCount:    view.TotalCount,
+			DurationLabel: dur,
+			Pct:           pct,
+		})
+	}
+
+	s.pages.RunSummaryPage(w, pages.RunSummaryPageParams{
+		Base:     pages.Base{CurrentUserEmail: s.currentUserEmail(r), Title: view.TemplateName + " · Summary"},
+		Summary:  view,
+		PrevRuns: prevRunRows,
+	})
+}

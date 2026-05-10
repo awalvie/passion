@@ -1,0 +1,80 @@
+{{ define "content" }}
+<div class="run-summary-page">
+  <a href="/history" class="run-summary-page-back">
+    <i data-lucide="arrow-left" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+    History
+  </a>
+
+  <div class="run-summary-page-card">
+    <div class="run-summary-header"{{ if .Summary.Color }} style="border-left: 4px solid {{ .Summary.Color }}"{{ end }}>
+      <div class="min-w-0 flex-1">
+        <h1 class="run-summary-title">{{ .Summary.TemplateName }}</h1>
+        <p class="run-summary-meta">{{ .Summary.DateLabel }}{{ if .Summary.DurationLabel }} · {{ .Summary.DurationLabel }}{{ end }}</p>
+      </div>
+    </div>
+    <div class="run-summary-chips">
+      {{ if gt .Summary.CompletedCount 0 }}
+      <span class="run-summary-chip run-summary-chip--done">
+        <i data-lucide="check" style="width:0.7rem;height:0.7rem" aria-hidden="true"></i>
+        {{ .Summary.CompletedCount }} done
+      </span>
+      {{ end }}
+      {{ if gt .Summary.SkippedCount 0 }}
+      <span class="run-summary-chip run-summary-chip--skipped">
+        <i data-lucide="minus" style="width:0.7rem;height:0.7rem" aria-hidden="true"></i>
+        {{ .Summary.SkippedCount }} skipped
+      </span>
+      {{ end }}
+      {{ if eq .Summary.TotalCount 0 }}
+      <span class="text-xs muted">No exercises recorded.</span>
+      {{ end }}
+    </div>
+
+    <p class="run-summary-page-section-heading">Exercises</p>
+    {{ range .Summary.Activities }}
+    <div class="run-summary-group">
+      {{ if .Name }}<p class="run-summary-group-label">{{ .Name }}</p>{{ end }}
+      {{ range .Exercises }}
+      <div class="run-summary-row run-summary-row--{{ .Status }}">
+        <span class="run-summary-status-icon" aria-hidden="true">
+          {{ if eq .Status "completed" }}<i data-lucide="check" style="width:0.75rem;height:0.75rem"></i>
+          {{ else if eq .Status "skipped" }}<i data-lucide="minus" style="width:0.75rem;height:0.75rem"></i>
+          {{ else }}<i data-lucide="circle" style="width:0.75rem;height:0.75rem"></i>{{ end }}
+        </span>
+        <div class="run-summary-row-body">
+          <span class="run-summary-row-name{{ if eq .Status "skipped" }} run-summary-row-name--skipped{{ end }}">{{ .Name }}</span>
+          <span class="run-summary-row-detail">
+            {{ if eq .Kind "session" -}}
+              {{ if gt .SessionDuration 0 }}{{ formatSessionDuration .SessionDuration }}{{ else }}Open-ended{{ end }}
+            {{- else -}}
+              {{ if gt .Sets 0 }}{{ .Sets }}×{{ .Reps }}{{ end -}}
+              {{ if gt .WeightKg 0.0 }} · {{ printf "%.1f" .WeightKg }}kg{{ end -}}
+              {{ if gt .RepSeconds 0 }} · {{ .RepSeconds }}s/rep{{ end -}}
+            {{ end -}}
+            {{ if gt .ElapsedSeconds 0 }} · {{ formatElapsed .ElapsedSeconds }}{{ end }}
+          </span>
+          {{ if .Notes }}<p class="run-summary-row-notes">{{ .Notes }}</p>{{ end }}
+        </div>
+      </div>
+      {{ end }}
+    </div>
+    {{ end }}
+  </div>
+
+  {{ if .PrevRuns }}
+  <div class="run-summary-page-card">
+    <p class="run-summary-page-section-heading">Previous runs</p>
+    {{ range .PrevRuns }}
+    <div class="prev-run-row">
+      <span class="muted">{{ .DateLabel }}</span>
+      <div class="prev-run-bar-track">
+        <div class="prev-run-bar-fill" style="width:{{ .Pct }}%"></div>
+      </div>
+      <span class="prev-run-meta">{{ .DoneCount }}/{{ .TotalCount }}{{ if .DurationLabel }} · {{ .DurationLabel }}{{ end }}</span>
+    </div>
+    {{ end }}
+  </div>
+  {{ end }}
+</div>
+<script>if(window.__passionRenderIcons)window.__passionRenderIcons();</script>
+{{ end }}

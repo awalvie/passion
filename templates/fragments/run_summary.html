@@ -1,0 +1,69 @@
+{{ define "fragments/run_summary" }}
+<div class="run-summary">
+  <div class="run-summary-header"{{ if .Color }} style="border-left: 4px solid {{ .Color }}"{{ end }}>
+    <div class="min-w-0 flex-1">
+      <h3 class="run-summary-title">{{ .TemplateName }}</h3>
+      <p class="run-summary-meta">{{ .DateLabel }}{{ if .DurationLabel }} · {{ .DurationLabel }}{{ end }}</p>
+    </div>
+    <form method="dialog">
+      <button class="run-summary-close" aria-label="Close">
+        <i data-lucide="x" style="width:1rem;height:1rem" aria-hidden="true"></i>
+      </button>
+    </form>
+  </div>
+
+  <div class="run-summary-chips">
+    {{ if gt .CompletedCount 0 }}
+    <span class="run-summary-chip run-summary-chip--done">
+      <i data-lucide="check" style="width:0.7rem;height:0.7rem" aria-hidden="true"></i>
+      {{ .CompletedCount }} done
+    </span>
+    {{ end }}
+    {{ if gt .SkippedCount 0 }}
+    <span class="run-summary-chip run-summary-chip--skipped">
+      <i data-lucide="minus" style="width:0.7rem;height:0.7rem" aria-hidden="true"></i>
+      {{ .SkippedCount }} skipped
+    </span>
+    {{ end }}
+    {{ if eq .TotalCount 0 }}
+    <span class="text-xs muted">No exercises recorded.</span>
+    {{ end }}
+  </div>
+
+  {{ range .Activities }}
+  <div class="run-summary-group">
+    {{ if .Name }}<p class="run-summary-group-label">{{ .Name }}</p>{{ end }}
+    {{ range .Exercises }}
+    <div class="run-summary-row run-summary-row--{{ .Status }}">
+      <span class="run-summary-status-icon" aria-hidden="true">
+        {{ if eq .Status "completed" }}<i data-lucide="check" style="width:0.75rem;height:0.75rem"></i>
+        {{ else if eq .Status "skipped" }}<i data-lucide="minus" style="width:0.75rem;height:0.75rem"></i>
+        {{ else }}<i data-lucide="circle" style="width:0.75rem;height:0.75rem"></i>{{ end }}
+      </span>
+      <div class="run-summary-row-body">
+        <span class="run-summary-row-name{{ if eq .Status "skipped" }} run-summary-row-name--skipped{{ end }}">{{ .Name }}</span>
+        <span class="run-summary-row-detail">
+          {{ if eq .Kind "session" -}}
+            {{ if gt .SessionDuration 0 }}{{ formatSessionDuration .SessionDuration }}{{ else }}Open-ended{{ end }}
+          {{- else -}}
+            {{ if gt .Sets 0 }}{{ .Sets }}×{{ .Reps }}{{ end -}}
+            {{ if gt .WeightKg 0.0 }} · {{ printf "%.1f" .WeightKg }}kg{{ end -}}
+            {{ if gt .RepSeconds 0 }} · {{ .RepSeconds }}s/rep{{ end -}}
+          {{ end -}}
+          {{ if gt .ElapsedSeconds 0 }} · {{ formatElapsed .ElapsedSeconds }}{{ end }}
+        </span>
+        {{ if .Notes }}<p class="run-summary-row-notes">{{ .Notes }}</p>{{ end }}
+      </div>
+    </div>
+    {{ end }}
+  </div>
+  {{ end }}
+  <div class="run-summary-footer">
+    <a href="/runs/{{ .RunID }}/summary" class="run-summary-full-link">
+      View full summary
+      <i data-lucide="arrow-right" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+    </a>
+  </div>
+</div>
+<script>if(window.__passionRenderIcons)window.__passionRenderIcons();</script>
+{{ end }}
