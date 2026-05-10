@@ -171,6 +171,87 @@ func (s *Server) handleExportLibraryExercisesBulk(w http.ResponseWriter, r *http
 	fmt.Fprint(w, buf.String())
 }
 
+// ── Activity template export ─────────────────────────────────────────────────
+
+type exportActivityTemplate struct {
+	Name      string                   `yaml:"name"`
+	Exercises []exportTemplateExercise `yaml:"exercises"`
+}
+
+func (s *Server) handleExportActivityTemplate(w http.ResponseWriter, r *http.Request, ownerID uint, templateID uint) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var at db.ActivityTemplate
+	if err := s.store.DB.
+		Where("owner_id = ? AND id = ?", ownerID, templateID).
+		Preload("Exercises", func(tx *gorm.DB) *gorm.DB {
+			return tx.Where("owner_id = ?", ownerID).Order("order_index asc")
+		}).
+		Preload("Exercises.Media").
+		First(&at).Error; err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	childrenByParent := map[uint][]db.Exercise{}
+	for _, ex := range at.Exercises {
+		if ex.ParentExerciseID != nil && *ex.ParentExerciseID != 0 {
+			childrenByParent[*ex.ParentExerciseID] = append(childrenByParent[*ex.ParentExerciseID], ex)
+		}
+	}
+
+	out := exportActivityTemplate{Name: at.Name}
+	for _, ex := range at.Exercises {
+		if ex.ParentExerciseID != nil && *ex.ParentExerciseID != 0 {
+			continue
+		}
+		ete := exportTemplateExercise{
+			Name:                   ex.Name,
+			Kind:                   ex.Kind,
+			SessionDurationSeconds: ex.SessionDurationSeconds,
+			Media:                  exportMedia(ex.Media),
+			Notes:                  ex.Notes,
+			Sets:                   ex.Sets,
+			Reps:                   ex.Reps,
+			RepSeconds:             ex.RepSeconds,
+			RepRestSeconds:         ex.RepRestSeconds,
+			SetRestSeconds:         ex.SetRestSeconds,
+			WeightKg:               ex.WeightKg,
+		}
+		if children, ok := childrenByParent[ex.ID]; ok {
+			for _, ch := range children {
+				ete.Children = append(ete.Children, exportTemplateExercise{
+					Name:                   ch.Name,
+					Kind:                   ch.Kind,
+					SessionDurationSeconds: ch.SessionDurationSeconds,
+					Media:                  exportMedia(ch.Media),
+					Notes:                  ch.Notes,
+					Sets:                   ch.Sets,
+					Reps:                   ch.Reps,
+					RepSeconds:             ch.RepSeconds,
+					RepRestSeconds:         ch.RepRestSeconds,
+					SetRestSeconds:         ch.SetRestSeconds,
+					WeightKg:               ch.WeightKg,
+				})
+			}
+		}
+		out.Exercises = append(out.Exercises, ete)
+	}
+
+	data, err := yaml.Marshal(out)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	filename := slugifyName(at.Name) + ".yaml"
+	w.Header().Set("Content-Type", "application/x-yaml")
+	w.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
 // ── Session template export ──────────────────────────────────────────────────
 
 type exportTemplateExercise struct {

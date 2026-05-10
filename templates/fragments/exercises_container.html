@@ -15,7 +15,8 @@
           >
             <div class="min-w-0">
               <div class="text-sm font-medium truncate" title="{{ .Name }}">{{ .Name }}</div>
-              {{ if eq .Kind "exercise_catalog" }}<span class="text-[10px] font-medium muted ml-1">Exercise catalog</span>{{ end }}
+              {{ $summary := exerciseSummary . }}
+              {{ if $summary }}<div class="ex-card-summary">{{ $summary }}</div>{{ end }}
             </div>
 
             <div

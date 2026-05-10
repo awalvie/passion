@@ -906,6 +906,55 @@ func buildFuncMap() template.FuncMap {
 			}
 			return n
 		},
+		"exerciseSummary": func(ex db.Exercise) string {
+			switch ex.Kind {
+			case "session":
+				if ex.SessionDurationSeconds > 0 {
+					h := ex.SessionDurationSeconds / 3600
+					m := (ex.SessionDurationSeconds % 3600) / 60
+					s := ex.SessionDurationSeconds % 60
+					if h > 0 && m == 0 && s == 0 {
+						return fmt.Sprintf("%dh session", h)
+					}
+					if h > 0 {
+						return fmt.Sprintf("%dh %dm session", h, m)
+					}
+					if m > 0 && s == 0 {
+						return fmt.Sprintf("%dm session", m)
+					}
+					if m > 0 {
+						return fmt.Sprintf("%dm %ds session", m, s)
+					}
+					return fmt.Sprintf("%ds session", s)
+				}
+				return "Session"
+			case "exercise_catalog":
+				return "Exercise catalog"
+			default:
+				parts := []string{}
+				if ex.Sets > 0 && ex.Reps > 0 {
+					parts = append(parts, fmt.Sprintf("%d×%d", ex.Sets, ex.Reps))
+				} else if ex.Sets > 0 {
+					parts = append(parts, fmt.Sprintf("%d sets", ex.Sets))
+				} else if ex.Reps > 0 {
+					parts = append(parts, fmt.Sprintf("%d reps", ex.Reps))
+				}
+				if ex.WeightKg > 0 {
+					if ex.WeightKg == float64(int(ex.WeightKg)) {
+						parts = append(parts, fmt.Sprintf("%.0fkg", ex.WeightKg))
+					} else {
+						parts = append(parts, fmt.Sprintf("%.1fkg", ex.WeightKg))
+					}
+				}
+				if ex.RepSeconds > 0 {
+					parts = append(parts, fmt.Sprintf("%ds/rep", ex.RepSeconds))
+				}
+				if len(parts) == 0 {
+					return ""
+				}
+				return strings.Join(parts, " · ")
+			}
+		},
 		"markdownHTML": func(s string) template.HTML {
 			return markdownToHTML(s)
 		},

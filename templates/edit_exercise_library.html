@@ -1,50 +1,50 @@
 {{ define "content" }}
-<div class="max-w-xl">
+{{ with .LibraryExercise }}
+{{ $hms := durationHMS .SessionDurationSeconds }}
+<div class="lib-edit-grid">
+  <!-- Left column: form fields -->
   <div class="card card-pad">
-    <h2 class="text-sm font-semibold">Edit saved exercise</h2>
-    <p class="mt-1 text-sm muted">Changes here do not affect exercises already placed in templates.</p>
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <h2 class="text-sm font-semibold">Edit saved exercise</h2>
+        <p class="mt-1 text-xs muted">Changes here do not affect exercises already placed in templates.</p>
+      </div>
+      <a class="rounded-md btn-ghost px-3 py-2 text-sm shrink-0" href="/exercise-library">
+        <i data-lucide="arrow-left" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+      </a>
+    </div>
 
-    {{ if .LibraryExerciseFormErr }}
-      <div class="mt-4 rounded-md card-muted p-3 text-sm text-red-600 dark:text-red-400">{{ .LibraryExerciseFormErr }}</div>
+    {{ if $.LibraryExerciseFormErr }}
+      <div class="mt-4 rounded-md card-muted p-3 text-sm text-red-600 dark:text-red-400">{{ $.LibraryExerciseFormErr }}</div>
     {{ end }}
 
-    {{ with .LibraryExercise }}
-    {{ $hms := durationHMS .SessionDurationSeconds }}
-    <form class="mt-6" hx-post="/exercise-library/{{ .ID }}/update" hx-swap="none" method="post">
+    <form class="mt-5" hx-post="/exercise-library/{{ .ID }}/update" hx-swap="none" method="post">
 
-      <!-- Section: Identity -->
-      <div>
-        <label class="text-sm font-medium" for="lib-name">Name</label>
-        <input id="lib-name" name="name" required class="mt-1 w-full input" value="{{ .Name }}" />
-      </div>
-
-      <!-- Section: Notes -->
-      <div class="mt-5 pt-5 border-t" style="border-color: var(--border)" data-notes-editor>
-        <label class="text-sm font-medium" for="lib-notes">Notes</label>
-        <p class="text-[10px] muted mt-0.5 mb-1">Markdown supported.</p>
-        <div class="flex gap-1 border-b mb-1" style="border-color: var(--border)">
-          <button type="button" class="notes-tab notes-tab-active" data-notes-tab="write">Write</button>
-          <button type="button" class="notes-tab" data-notes-tab="preview">Preview</button>
+      <!-- Section: Details -->
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label class="text-sm font-medium" for="lib-name">Name</label>
+          <input id="lib-name" name="name" required class="mt-1 w-full input" value="{{ .Name }}" />
         </div>
-        <textarea id="lib-notes" name="notes" rows="4" class="mt-1 w-full input">{{ .Notes }}</textarea>
-        <div data-notes-preview class="notes-preview-panel hidden mt-1" aria-live="polite"></div>
+        <div>
+          <label class="text-sm font-medium" for="lib-kind">Type</label>
+          <select
+            id="lib-kind"
+            name="kind"
+            class="mt-1 w-full input"
+            onchange="window.__passionSyncExerciseKindGroups(this)"
+          >
+            <option value="reps_and_sets" {{ if and (ne .Kind "session") (ne .Kind "exercise_catalog") }}selected{{ end }}>Reps and sets</option>
+            <option value="session" {{ if eq .Kind "session" }}selected{{ end }}>Session</option>
+            <option value="exercise_catalog" {{ if eq .Kind "exercise_catalog" }}selected{{ end }}>Exercise catalog</option>
+          </select>
+        </div>
       </div>
 
-      <!-- Section: Type & Configuration -->
-      <div class="mt-5 pt-5 border-t" style="border-color: var(--border)">
-        <label class="text-sm font-medium" for="lib-kind">Type</label>
-        <select
-          id="lib-kind"
-          name="kind"
-          class="mt-1 w-full input"
-          onchange="window.__passionSyncExerciseKindGroups(this)"
-        >
-          <option value="reps_and_sets" {{ if and (ne .Kind "session") (ne .Kind "exercise_catalog") }}selected{{ end }}>Reps and sets</option>
-          <option value="session" {{ if eq .Kind "session" }}selected{{ end }}>Session</option>
-          <option value="exercise_catalog" {{ if eq .Kind "exercise_catalog" }}selected{{ end }}>Exercise catalog</option>
-        </select>
-
-        <div data-exercise-reps-fields="1" class="mt-4 grid gap-2 grid-cols-3" {{ if or (eq .Kind "session") (eq .Kind "exercise_catalog") }}hidden{{ end }}>
+      <!-- Section: Configuration -->
+      <div data-exercise-reps-fields="1" class="mt-5 pt-5 border-t" style="border-color: var(--border)" {{ if or (eq .Kind "session") (eq .Kind "exercise_catalog") }}hidden{{ end }}>
+        <div class="text-xs font-semibold muted uppercase tracking-widest mb-3">Configuration</div>
+        <div class="grid gap-2 grid-cols-3">
           <div>
             <label class="text-xs font-medium" for="lib-sets">Sets</label>
             <input id="lib-sets" name="sets" type="number" min="0" class="mt-1 w-full input" value="{{ .Sets }}" {{ if eq .Kind "session" }}disabled{{ end }} />
@@ -70,8 +70,11 @@
             <input id="lib-set-rest" name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input" value="{{ .SetRestSeconds }}" {{ if eq .Kind "session" }}disabled{{ end }} />
           </div>
         </div>
+      </div>
 
-        <div data-exercise-session-fields="1" class="mt-4 grid grid-cols-3 gap-2" {{ if ne .Kind "session" }}hidden{{ end }}>
+      <div data-exercise-session-fields="1" class="mt-5 pt-5 border-t" style="border-color: var(--border)" {{ if ne .Kind "session" }}hidden{{ end }}>
+        <div class="text-xs font-semibold muted uppercase tracking-widest mb-3">Duration</div>
+        <div class="grid grid-cols-3 gap-2">
           <div>
             <label class="text-xs font-medium" for="lib-sess-h">Hours</label>
             <input id="lib-sess-h" name="session_duration_hours" type="number" min="0" class="mt-1 w-full input" value="{{ index $hms "h" }}" {{ if ne .Kind "session" }}disabled{{ end }} />
@@ -85,8 +88,23 @@
             <input id="lib-sess-s" name="session_duration_seconds" type="number" min="0" class="mt-1 w-full input" value="{{ index $hms "s" }}" {{ if ne .Kind "session" }}disabled{{ end }} />
           </div>
         </div>
+      </div>
 
-        <div data-catalog-options-panel {{ if ne .Kind "exercise_catalog" }}hidden{{ end }} class="mt-4 space-y-2 rounded-md p-3" style="background: var(--card-muted)">
+      <!-- Section: Notes -->
+      <div class="mt-5 pt-5 border-t" style="border-color: var(--border)" data-notes-editor>
+        <label class="text-sm font-medium" for="lib-notes">Notes</label>
+        <p class="text-[10px] muted mt-0.5 mb-1">Markdown supported.</p>
+        <div class="flex gap-1 border-b mb-1" style="border-color: var(--border)">
+          <button type="button" class="notes-tab notes-tab-active" data-notes-tab="write">Write</button>
+          <button type="button" class="notes-tab" data-notes-tab="preview">Preview</button>
+        </div>
+        <textarea id="lib-notes" name="notes" rows="4" class="mt-1 w-full input">{{ .Notes }}</textarea>
+        <div data-notes-preview class="notes-preview-panel hidden mt-1" aria-live="polite"></div>
+      </div>
+
+      <!-- Section: Catalog Options -->
+      <div data-catalog-options-panel {{ if ne .Kind "exercise_catalog" }}hidden{{ end }} class="mt-5 pt-5 border-t space-y-2" style="border-color: var(--border)">
+        <div class="rounded-md p-3 space-y-2" style="background: var(--card-muted)">
           <label class="text-xs font-medium">Catalog options</label>
           <p class="text-[11px] muted m-0">Type a name per row, add from your library, or mix both.</p>
           {{ if $.LibraryExercises }}
@@ -173,8 +191,8 @@
         </div>
       </div>
 
-      <!-- Section: Media -->
-      <div class="mt-5 pt-5 border-t" style="border-color: var(--border)" data-exercise-media-fields="1">
+      <!-- Section: Media (inline, below form on mobile; handled by right column on desktop via hidden duplicate) -->
+      <div class="mt-5 pt-5 border-t md:hidden" style="border-color: var(--border)" data-exercise-media-fields="1">
         <label class="text-sm font-medium">Media</label>
         <div data-media-list class="space-y-2 mt-2 {{ if not .Media }}hidden{{ end }}">
           {{ if .Media }}
@@ -204,16 +222,92 @@
         <button type="button" data-media-add class="mt-2 text-xs btn-ghost px-2 py-1 rounded-md">+ Add media</button>
       </div>
 
-      <!-- Section: Actions -->
-      <div class="mt-5 pt-5 border-t flex items-center gap-3" style="border-color: var(--border)">
+      <!-- Sticky action bar -->
+      <div class="lib-edit-sticky-bar">
         <button class="rounded-md btn-primary px-4 py-2 text-sm font-medium" type="submit">Save</button>
-        <a class="rounded-md btn-ghost px-4 py-2 text-sm" href="/exercise-library/{{ .ID }}/export">Download YAML</a>
-        <a class="text-sm muted hover:underline ml-auto" href="/exercise-library">Back</a>
+        <a class="rounded-md btn-ghost px-4 py-2 text-sm inline-flex items-center" href="/exercise-library/{{ .ID }}/export">
+          <i data-lucide="download" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+          <span class="ml-1.5 hidden sm:inline">YAML</span>
+        </a>
+        <span class="flex-1"></span>
+        <a class="text-sm muted hover:underline" href="/exercise-library">Back</a>
       </div>
     </form>
-    {{ end }}
+  </div>
+
+  <!-- Right column: media preview + summary -->
+  <div class="hidden md:block space-y-4">
+    <div class="card card-pad">
+      <div class="text-xs font-semibold muted uppercase tracking-widest mb-3">Preview</div>
+      {{ if .Media }}
+        {{ with index .Media 0 }}
+        <div class="lib-edit-media-preview">
+          {{ if .ThumbnailURL }}
+          <img src="{{ .ThumbnailURL }}" alt="Exercise thumbnail" />
+          {{ else }}
+          <div class="lib-edit-media-placeholder">
+            <i data-lucide="image" style="width:2rem;height:2rem"></i>
+            <span>No thumbnail</span>
+          </div>
+          {{ end }}
+        </div>
+        {{ end }}
+      {{ else }}
+      <div class="lib-edit-media-preview">
+        <div class="lib-edit-media-placeholder">
+          <i data-lucide="image" style="width:2rem;height:2rem"></i>
+          <span>No media added</span>
+        </div>
+      </div>
+      {{ end }}
+
+      <div class="mt-3 space-y-2">
+        <div class="text-sm font-semibold">{{ .Name }}</div>
+        {{ if and (ne .Kind "session") (ne .Kind "exercise_catalog") }}
+          {{ if or (gt .Sets 0) (gt .Reps 0) }}
+          <div class="text-xs muted">
+            {{ if and (gt .Sets 0) (gt .Reps 0) }}{{ .Sets }}×{{ .Reps }}{{ else if gt .Sets 0 }}{{ .Sets }} sets{{ else }}{{ .Reps }} reps{{ end }}{{ if gt .WeightKg 0 }} · {{ .WeightKg }}kg{{ end }}
+          </div>
+          {{ end }}
+        {{ end }}
+        {{ if eq .Kind "session" }}
+          <div class="text-xs muted">{{ formatSessionDuration .SessionDurationSeconds }}</div>
+        {{ end }}
+        {{ if eq .Kind "exercise_catalog" }}
+          <div class="text-xs muted">Exercise catalog</div>
+        {{ end }}
+      </div>
+    </div>
+
+    <!-- Media editing in right column on desktop -->
+    <div class="card card-pad" data-exercise-media-fields="1">
+      <div class="text-xs font-semibold muted uppercase tracking-widest mb-3">Media</div>
+      <div data-media-list class="space-y-2 {{ if not .Media }}hidden{{ end }}">
+        {{ if .Media }}
+        {{ range .Media }}
+        <div data-media-row class="space-y-1">
+          <input name="media_thumbnail_url" form="lib-edit-form-right" class="w-full input text-sm" placeholder="Thumbnail URL (https://…)" value="{{ .ThumbnailURL }}" />
+          <div class="flex gap-1">
+            <input name="media_video_url" form="lib-edit-form-right" class="w-full input text-sm" placeholder="Video URL" value="{{ .VideoURL }}" />
+            <button type="button" data-media-remove class="btn-ghost px-2 text-xs rounded-md" title="Remove" aria-label="Remove media row">&times;</button>
+          </div>
+        </div>
+        {{ end }}
+        {{ else }}
+        <div data-media-row class="space-y-1">
+          <input name="media_thumbnail_url" class="w-full input text-sm" placeholder="Thumbnail URL (https://…)" />
+          <div class="flex gap-1">
+            <input name="media_video_url" class="w-full input text-sm" placeholder="Video URL" />
+            <button type="button" data-media-remove class="btn-ghost px-2 text-xs rounded-md" title="Remove" aria-label="Remove media row">&times;</button>
+          </div>
+        </div>
+        {{ end }}
+      </div>
+      <button type="button" data-media-add class="mt-2 text-xs btn-ghost px-2 py-1 rounded-md">+ Add media</button>
+    </div>
   </div>
 </div>
+{{ end }}
 
 <script>
   (function () {

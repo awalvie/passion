@@ -646,7 +646,6 @@ func sumElapsedSeconds(completions []db.RunExerciseCompletion) int {
 	return total
 }
 
-
 func (s *Server) handleRunStop(w http.ResponseWriter, r *http.Request) {
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
