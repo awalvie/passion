@@ -41,7 +41,7 @@ func TestHandleProfileGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false)
+	srv, err := NewServer(store, "secret", 24, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestHandleProfilePostUpdatesStats(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false)
+	srv, err := NewServer(store, "secret", 24, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +117,7 @@ func TestHandleProfilePostBadNumberShowsError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false)
+	srv, err := NewServer(store, "secret", 24, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

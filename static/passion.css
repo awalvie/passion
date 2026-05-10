@@ -3090,3 +3090,104 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
   cursor: pointer;
 }
 .cycle-target-clear-btn:hover { color: var(--text); border-color: var(--text); }
+
+/* ── Exercise Library Edit: two-column layout ── */
+.lib-edit-grid {
+  display: grid;
+  gap: 1.5rem;
+  max-width: 64rem;
+  margin: 0 auto;
+}
+@media (min-width: 768px) {
+  .lib-edit-grid {
+    grid-template-columns: 1fr 20rem;
+  }
+}
+
+.lib-edit-media-preview {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  background: var(--card-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lib-edit-media-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.lib-edit-media-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.lib-edit-sticky-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem -1rem -1rem;
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+/* ── Activity Template Edit: constrained layout ── */
+.at-edit-container {
+  max-width: 52rem;
+  margin: 0 auto;
+}
+.at-edit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.at-edit-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  min-width: 0;
+}
+.at-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Exercise card summary line */
+.ex-card-summary {
+  font-size: 0.6875rem;
+  color: var(--muted);
+  margin-top: 0.125rem;
+}
+
+/* Drag handle dots */
+.dnd-handle-dots {
+  display: inline-grid;
+  grid-template-columns: repeat(2, 4px);
+  gap: 3px;
+  cursor: grab;
+  padding: 4px;
+}
+.dnd-handle-dots::before,
+.dnd-handle-dots::after,
+.dnd-handle-dots span,
+.dnd-handle-dots i {
+  display: block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+/* We use 6 dots via pseudo-elements + child elements */

@@ -108,6 +108,8 @@ func (s *Server) handleActivityTemplatesByID(w http.ResponseWriter, r *http.Requ
 		}
 		w.Header().Set("HX-Redirect", "/activity-templates")
 		w.WriteHeader(http.StatusOK)
+	case "export":
+		s.handleExportActivityTemplate(w, r, ownerID, uint(tplID))
 	case "exercises":
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)

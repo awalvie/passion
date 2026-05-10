@@ -1,21 +1,43 @@
 {{ define "content" }}
-<div class="space-y-4">
+<div class="at-edit-container space-y-4">
   <div class="card card-pad">
     <form
-      class="mb-4 space-y-3 border-b pb-4"
-      style="border-color: var(--border)"
+      class="space-y-3"
       hx-post="/activity-templates/{{ .Template.ID }}/update"
       hx-swap="none"
       method="post"
     >
-      <div class="flex items-center gap-2">
-        <div class="text-lg font-semibold" id="at-title-display-{{ .Template.ID }}">{{ .Template.Name }}</div>
-        <button
-          type="button"
-          class="rounded btn-ghost px-1.5 py-1 text-xs muted"
-          title="Edit template settings"
-          data-settings-toggle="at-settings-{{ .Template.ID }}"
-        >✎</button>
+      <div class="at-edit-header">
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="at-edit-title" id="at-title-display-{{ .Template.ID }}">{{ .Template.Name }}</div>
+          <button
+            type="button"
+            class="rounded btn-ghost px-1.5 py-1 text-xs muted shrink-0"
+            title="Edit template settings"
+            data-settings-toggle="at-settings-{{ .Template.ID }}"
+          >✎</button>
+        </div>
+        <div class="at-edit-actions">
+          <a class="rounded-md btn-ghost p-2 inline-flex items-center justify-center" href="/activity-templates/{{ .Template.ID }}/export" title="Download YAML">
+            <i data-lucide="download" style="width:1rem;height:1rem" aria-hidden="true"></i>
+          </a>
+          <form
+            hx-post="/activity-templates/{{ .Template.ID }}/delete"
+            hx-swap="none"
+            method="post"
+            onsubmit="return confirm('Delete this activity template and all its exercises?');"
+            class="inline"
+          >
+            <button
+              type="submit"
+              class="rounded-md btn-ghost p-2 inline-flex items-center justify-center"
+              title="Delete template"
+            ><i data-lucide="trash-2" style="width:1rem;height:1rem;color:var(--muted)" aria-hidden="true"></i></button>
+          </form>
+          <a class="rounded-md btn-ghost p-2 inline-flex items-center justify-center" href="/activity-templates" title="Back to activity templates">
+            <i data-lucide="arrow-left" style="width:1rem;height:1rem" aria-hidden="true"></i>
+          </a>
+        </div>
       </div>
       <div id="at-settings-{{ .Template.ID }}" class="hidden space-y-3 border-t pt-3 mt-1" style="border-color:var(--border)">
         <div>
@@ -33,27 +55,6 @@
         </button>
       </div>
     </form>
-
-    <div class="flex justify-end">
-      <div class="flex items-center gap-2">
-        <form
-          hx-post="/activity-templates/{{ .Template.ID }}/delete"
-          hx-swap="none"
-          method="post"
-          onsubmit="return confirm('Delete this activity template and all its exercises?');"
-          class="inline"
-        >
-          <button
-            type="submit"
-            class="self-start rounded-md btn-ghost px-3 py-2 text-sm"
-            style="color:var(--text-muted)"
-          >Delete</button>
-        </form>
-        <a class="self-start rounded-md btn-ghost px-3 py-2 text-sm" href="/activity-templates">
-          Back to activity templates
-        </a>
-      </div>
-    </div>
   </div>
 
   {{ template "fragments/activity_template_exercises_container" . }}
