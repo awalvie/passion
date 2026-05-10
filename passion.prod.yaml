@@ -1,0 +1,20 @@
+# Production config — deployed automatically by the GitHub Actions workflow.
+# The __JWT_SECRET__ placeholder is replaced with the DEPLOY_JWT_SECRET GitHub secret at deploy time.
+# Do NOT put real secrets in this file.
+
+Server:
+  Addr: ":3000"
+  DBPath: "/opt/passion/passion.db"
+  Seed: false
+
+Auth:
+  JWTSecret: "__JWT_SECRET__"
+  JWTTTLHours: 168
+  DevAuthBypass: false
+
+YAMLImport:
+  Enabled: true
+  ExercisesDir: "/opt/passion/catalog/exercises"
+  SessionTemplatesDir: "/opt/passion/catalog/session_templates"
+  ActivityTemplatesDir: "/opt/passion/catalog/activity_templates"
+  OwnerID: 1
