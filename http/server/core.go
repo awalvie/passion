@@ -18,9 +18,10 @@ type Server struct {
 	jwtSecret     string
 	jwtTTL        time.Duration
 	devAuthBypass bool
+	yamlImport    *db.YAMLImportOptions // nil when YAML import is disabled
 }
 
-func NewServer(store *db.Store, jwtSecret string, jwtTTL time.Duration, devAuthBypass bool) (*Server, error) {
+func NewServer(store *db.Store, jwtSecret string, jwtTTL time.Duration, devAuthBypass bool, yamlImport *db.YAMLImportOptions) (*Server, error) {
 	p, err := pages.NewPages(slog.Default().With("component", "pages"))
 	if err != nil {
 		return nil, err
@@ -32,6 +33,7 @@ func NewServer(store *db.Store, jwtSecret string, jwtTTL time.Duration, devAuthB
 		jwtSecret:     jwtSecret,
 		jwtTTL:        jwtTTL,
 		devAuthBypass: devAuthBypass,
+		yamlImport:    yamlImport,
 	}, nil
 }
 
