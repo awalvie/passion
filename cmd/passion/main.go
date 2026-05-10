@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -74,26 +73,32 @@ func main() {
 			os.Exit(0)
 		}
 	}
+	var yamlImport *db.YAMLImportOptions
 	if cfg.YAMLImport.Enabled {
-		if err := store.EnsureSeedUser(cfg.YAMLImport.OwnerID, fmt.Sprintf("yaml-import-%d@passion.local", cfg.YAMLImport.OwnerID), ""); err != nil {
-			slog.Error("failed to ensure yaml import owner", "owner_id", cfg.YAMLImport.OwnerID, "error", err)
-			os.Exit(1)
-		}
-		slog.Info(
-			"yaml import enabled",
-			"owner_id", cfg.YAMLImport.OwnerID,
-			"exercises_dir", cfg.YAMLImport.ExercisesDir,
-			"activity_templates_dir", cfg.YAMLImport.ActivityTemplatesDir,
-			"session_templates_dir", cfg.YAMLImport.SessionTemplatesDir,
-		)
-		if err := store.ImportYAML(db.YAMLImportOptions{
-			OwnerID:              cfg.YAMLImport.OwnerID,
+		yamlImport = &db.YAMLImportOptions{
 			ExercisesDir:         cfg.YAMLImport.ExercisesDir,
 			SessionTemplatesDir:  cfg.YAMLImport.SessionTemplatesDir,
 			ActivityTemplatesDir: cfg.YAMLImport.ActivityTemplatesDir,
-		}); err != nil {
-			slog.Error("yaml import failed", "error", err)
+		}
+		slog.Info(
+			"yaml import enabled",
+			"exercises_dir", yamlImport.ExercisesDir,
+			"activity_templates_dir", yamlImport.ActivityTemplatesDir,
+			"session_templates_dir", yamlImport.SessionTemplatesDir,
+		)
+		// Import for all existing users at startup (idempotent upsert).
+		var users []db.User
+		if err := store.DB.Find(&users).Error; err != nil {
+			slog.Error("yaml import: failed to list users", "error", err)
 			os.Exit(1)
+		}
+		for _, u := range users {
+			opts := *yamlImport
+			opts.OwnerID = u.ID
+			if err := store.ImportYAML(opts); err != nil {
+				slog.Error("yaml import failed", "owner_id", u.ID, "error", err)
+				os.Exit(1)
+			}
 		}
 	}
 
@@ -112,7 +117,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	srv, err := web.NewServer(store, cfg.Auth.JWTSecret, time.Duration(cfg.Auth.JWTTTLHours)*time.Hour, cfg.Auth.DevAuthBypass)
+	srv, err := web.NewServer(store, cfg.Auth.JWTSecret, time.Duration(cfg.Auth.JWTTTLHours)*time.Hour, cfg.Auth.DevAuthBypass, yamlImport)
 	if err != nil {
 		slog.Error("failed to create server", "error", err)
 		os.Exit(1)
