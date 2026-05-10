@@ -222,7 +222,8 @@
   var isDark = document.documentElement.dataset.theme === 'dark' ||
     (!document.documentElement.dataset.theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
-  var empty = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  var borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
+  var empty = borderColor || (isDark ? '#1f2937' : '#e5e7eb');
   var tiers = isDark
     ? ['rgba(129,140,248,0.15)', 'rgba(129,140,248,0.4)', 'rgba(129,140,248,0.65)', 'rgba(129,140,248,0.9)']
     : ['rgba(79,70,229,0.08)', 'rgba(79,70,229,0.3)', 'rgba(79,70,229,0.55)', 'rgba(79,70,229,0.85)'];
