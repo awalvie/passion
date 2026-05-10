@@ -30,8 +30,12 @@ jobs:
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
           SCP="scp -i /tmp/deploy_key -o StrictHostKeyChecking=no"
 
+          # Inject the JWT secret into the config template.
+          sed "s/__JWT_SECRET__/${{ secrets.DEPLOY_JWT_SECRET }}/" passion.prod.yaml > passion.rendered.yaml
+
           $SSH "mkdir -p /opt/passion/catalog /opt/passion/templates /opt/passion/static"
           $SCP passion                                ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/passion/passion.new
+          $SCP passion.rendered.yaml                 ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/passion/passion.yaml
           $SCP -r catalog/   ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/passion/
           $SCP -r templates/ ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/passion/
           $SCP -r static/    ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/passion/
