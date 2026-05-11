@@ -4,7 +4,6 @@ exercises:
     kind: "reps_and_sets"
     sets: 1
     reps: 10
-    rep_seconds: 3
     notes: |
       Feet at pelvis width, slightly turned out. Arms extended forward, soft elbows and knees.
       Rotate the whole body (including head) side to side. Feet stay glued to the ground.
@@ -14,7 +13,6 @@ exercises:
     kind: "reps_and_sets"
     sets: 1
     reps: 10
-    rep_seconds: 3
     notes: |
       Hands connected above head, elbows wide.
       Bend sideways, keeping chest open.
@@ -24,7 +22,6 @@ exercises:
     kind: "reps_and_sets"
     sets: 2
     reps: 5
-    rep_seconds: 3
     notes: |
       Similar to the synovial leg swing but with a knee dip.
       Semi-dynamic pace — go down with the knee and up. One set per leg.
@@ -32,7 +29,6 @@ exercises:
     kind: "reps_and_sets"
     sets: 1
     reps: 5
-    rep_seconds: 5
     notes: |
       Feet in inner rotation (pigeon-toed), soft knees.
       Rotate maximally to one side, then reach down touching the back of the leg.
@@ -43,7 +39,6 @@ exercises:
     kind: "reps_and_sets"
     sets: 2
     reps: 5
-    rep_seconds: 4
     notes: |
       Get into a deep squat position.
       Reach one arm as high and far back as possible, thumb going backwards.

@@ -1,5 +1,5 @@
 name: "Bulgarian Split Squats"
-kind: "reps_and_sets"
+kind: "timed_reps"
 sets: 1
 reps: 6
 rep_seconds: 6

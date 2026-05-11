@@ -1,5 +1,5 @@
 name: "Middle Splits Hold"
-kind: "reps_and_sets"
+kind: "timed_reps"
 sets: 3
 reps: 1
 rep_seconds: 70

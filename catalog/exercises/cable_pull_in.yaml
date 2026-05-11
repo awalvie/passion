@@ -1,5 +1,5 @@
 name: "Cable Pull-In"
-kind: "reps_and_sets"
+kind: "timed_reps"
 sets: 3
 reps: 5
 rep_seconds: 7
