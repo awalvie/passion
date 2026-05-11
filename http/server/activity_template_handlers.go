@@ -21,7 +21,14 @@ func (s *Server) handleActivityTemplatesIndex(w http.ResponseWriter, r *http.Req
 		s.unauthorizedRedirect(w, r)
 		return
 	}
-	templates, err := db.ListActivityTemplates(s.store.DB, ownerID)
+	labelFilter := strings.TrimSpace(r.URL.Query().Get("label"))
+
+	templates, err := db.ListActivityTemplates(s.store.DB, ownerID, labelFilter)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	distinctLabels, err := db.DistinctActivityTemplateLabels(s.store.DB, ownerID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -29,6 +36,8 @@ func (s *Server) handleActivityTemplatesIndex(w http.ResponseWriter, r *http.Req
 	s.pages.ActivityTemplateList(w, pages.ActivityTemplateListParams{
 		Base:              pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
 		ActivityTemplates: templates,
+		LabelFilter:       labelFilter,
+		DistinctLabels:    distinctLabels,
 	})
 }
 

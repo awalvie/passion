@@ -4,8 +4,19 @@
   <p class="mt-1 text-sm muted">Create an activity plan (warmup, exercises, cooldown) and reuse it for schedules.</p>
 
   <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <div class="text-sm muted">
-      {{ if .Templates }}{{ len .Templates }} template(s){{ else }}No templates yet.{{ end }}
+    <div class="flex items-center gap-2">
+      {{ if .DistinctLabels }}
+      <form method="get" action="/templates" class="flex items-center gap-2">
+        <select name="label" class="input text-sm" style="width:auto;min-width:8rem" onchange="this.form.submit()">
+          <option value=""{{ if eq .LabelFilter "" }} selected{{ end }}>All labels</option>
+          {{ range .DistinctLabels }}
+          <option value="{{ . }}"{{ if eq . $.LabelFilter }} selected{{ end }}>{{ . }}</option>
+          {{ end }}
+        </select>
+        {{ if .LabelFilter }}<a href="/templates" class="text-xs muted hover:underline">Clear</a>{{ end }}
+      </form>
+      {{ end }}
+      <span class="text-sm muted">{{ if .Templates }}{{ len .Templates }} template(s){{ else }}No templates yet.{{ end }}</span>
     </div>
     <a class="inline-flex items-center justify-center rounded-md btn-primary px-4 py-2 text-sm font-medium" href="/templates/new">
       New Session Template
@@ -29,7 +40,9 @@
               <td class="px-3 py-3">
                 <a class="text-sm font-medium link hover:underline" href="/templates/{{.ID}}/edit">{{ .Name }}</a>
               </td>
-              <td class="px-3 py-3 text-xs muted">{{ .Label }}</td>
+              <td class="px-3 py-3">
+                {{ if .Label }}<span class="text-xs font-medium px-1.5 py-0.5 rounded border" style="border-color:var(--border);color:var(--text-muted)">{{ .Label }}</span>{{ end }}
+              </td>
               <td class="px-3 py-3 text-xs muted">
                 {{ len .Activities }}
               </td>

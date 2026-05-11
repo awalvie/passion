@@ -10,7 +10,7 @@
       <div class="at-edit-header">
         <div class="flex items-center gap-2 min-w-0">
           <div class="at-edit-title" id="at-title-display-{{ .Template.ID }}">{{ .Template.Name }}</div>
-          {{ if .Template.Label }}<span class="text-xs font-medium px-1.5 py-0.5 rounded" style="background:var(--surface-raised);color:var(--text-muted)">{{ .Template.Label }}</span>{{ end }}
+          {{ if .Template.Label }}<span class="text-xs font-medium px-1.5 py-0.5 rounded border" style="border-color:var(--border);color:var(--text-muted)">{{ .Template.Label }}</span>{{ end }}
           <button
             type="button"
             class="rounded btn-ghost px-1.5 py-1 text-xs muted shrink-0"
