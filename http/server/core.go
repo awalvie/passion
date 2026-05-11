@@ -99,6 +99,9 @@ func (s *Server) Routes() http.Handler {
 		pr.HandleFunc("/runs/{runID}/journal", s.handleRunJournal)
 
 		pr.HandleFunc("/training-log", s.handleTrainingLog)
+		pr.HandleFunc("/training-log/new", s.handleTrainingLogNew)
+		pr.HandleFunc("/training-log/{journalID}/edit", s.handleTrainingLogEdit)
+		pr.HandleFunc("/training-log/{journalID}/delete", s.handleTrainingLogDelete)
 	})
 	return r
 }

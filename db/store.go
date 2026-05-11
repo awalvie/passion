@@ -43,7 +43,35 @@ func (s *Store) AutoMigrate() error {
 		return err
 	}
 
-	return s.migrateTimedReps()
+	if err := s.migrateTimedReps(); err != nil {
+		return err
+	}
+	return s.migrateSessionJournals()
+}
+
+// migrateSessionJournals recreates the session_journals table if it was created
+// with run_id as NOT NULL (the original schema). SQLite cannot ALTER a column's
+// nullability, so we drop-and-recreate while the table is still empty in dev.
+func (s *Store) migrateSessionJournals() error {
+	type colInfo struct {
+		CID       int    `gorm:"column:cid"`
+		Name      string `gorm:"column:name"`
+		NotNull   int    `gorm:"column:notnull"`
+	}
+	var cols []colInfo
+	if err := s.DB.Raw("PRAGMA table_info(session_journals)").Scan(&cols).Error; err != nil {
+		return err
+	}
+	for _, c := range cols {
+		if c.Name == "run_id" && c.NotNull == 1 {
+			// Old schema — drop and let AutoMigrate recreate with nullable run_id.
+			if err := s.DB.Exec("DROP TABLE IF EXISTS session_journals").Error; err != nil {
+				return err
+			}
+			return s.DB.AutoMigrate(&SessionJournal{})
+		}
+	}
+	return nil
 }
 
 // migrateTimedReps is idempotent: promotes reps_and_sets exercises that use timer fields

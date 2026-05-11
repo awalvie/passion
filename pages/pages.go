@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/yuin/goldmark"
 
@@ -486,13 +487,33 @@ type EditLibraryExerciseParams struct {
 	LibraryExerciseFormErr  string
 }
 
+type TrainingLogNewParams struct {
+	Base
+	JournalID   uint   // 0 = new entry; non-zero = editing an existing entry
+	IsRunLinked bool   // true when editing a journal attached to a run (title/date read-only)
+	RunInfo     string // display string shown when IsRunLinked, e.g. "Strength Base · Jan 5th"
+	DateValue   string // pre-filled date in "2006-01-02" format
+	Title       string
+	SleepScore  int
+	Energy      int
+	RPE         int
+	Focus       string
+	Location    string
+	WentWell    string
+	NextFocus   string
+	FormErr     string
+}
+
 type TrainingLogEntryView struct {
 	RunID         uint
+	JournalEntryID uint     // ID of the SessionJournal row; 0 if no journal yet
+	SortTime      time.Time // used for sorting; not rendered
 	DateLabel     string
 	TemplateName  string
 	Color         string
 	DurationLabel string
 	MonthGroup    string // e.g. "May 2026" — used for grouping in template
+	IsStandalone  bool   // true for entries created directly on /training-log/new
 	HasJournal    bool
 	SleepScore    int    // 0 = not recorded
 	Energy        int    // 0 = not recorded
@@ -608,6 +629,7 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		{"pages/run_summary_content", "run_summary.html"},
 		{"pages/exercise_history_content", "exercise_history.html"},
 		{"pages/training_log_content", "training_log.html"},
+		{"pages/training_log_new_content", "training_log_new.html"},
 	}
 	for _, p := range pages {
 		pageTemplates[p.key], err = parsePage(filepath.Join("templates", p.file))
@@ -793,6 +815,16 @@ func (p *Pages) EditLibraryExercise(w http.ResponseWriter, params EditLibraryExe
 	params.Title = "Edit saved exercise"
 	params.Authenticated = true
 	p.renderPage(w, "pages/edit_exercise_library_content", params)
+}
+
+func (p *Pages) TrainingLogNewPage(w http.ResponseWriter, params TrainingLogNewParams) {
+	if params.JournalID > 0 {
+		params.Title = "Edit Log Entry"
+	} else {
+		params.Title = "New Log Entry"
+	}
+	params.Authenticated = true
+	p.renderPage(w, "pages/training_log_new_content", params)
 }
 
 func (p *Pages) TrainingLogPage(w http.ResponseWriter, params TrainingLogPageParams) {
