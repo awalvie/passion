@@ -3233,3 +3233,73 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
   background: var(--muted);
 }
 /* We use 6 dots via pseudo-elements + child elements */
+
+/* ── Session Journal ────────────────────────────────────────────────────────── */
+
+/* Dot selector (sleep / energy / RPE) */
+.journal-dot-label {
+  cursor: pointer;
+}
+
+.journal-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1.5px solid var(--border);
+  color: var(--muted);
+  background: var(--panel);
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  user-select: none;
+}
+
+.journal-dot--clear {
+  font-size: 0.7rem;
+  opacity: 0.5;
+}
+
+.journal-dot-label input:checked ~ .journal-dot {
+  background: var(--accent, #2563eb);
+  border-color: var(--accent, #2563eb);
+  color: #fff;
+  opacity: 1;
+}
+
+.journal-dot-label:hover .journal-dot {
+  border-color: var(--accent, #2563eb);
+  color: var(--accent, #2563eb);
+}
+
+/* Toggle selector (focus / location) */
+.journal-toggle-label {
+  cursor: pointer;
+}
+
+.journal-toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border: 1.5px solid var(--border);
+  color: var(--muted);
+  background: var(--panel);
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  user-select: none;
+}
+
+.journal-toggle-label input:checked ~ .journal-toggle {
+  background: var(--accent, #2563eb);
+  border-color: var(--accent, #2563eb);
+  color: #fff;
+}
+
+.journal-toggle-label:hover .journal-toggle {
+  border-color: var(--accent, #2563eb);
+  color: var(--accent, #2563eb);
+}

@@ -75,6 +75,12 @@
     {{ end }}
   </div>
   {{ end }}
+
+  <div id="journal-section"
+       hx-get="/runs/{{ .Summary.RunID }}/journal"
+       hx-trigger="load"
+       hx-swap="outerHTML">
+  </div>
 </div>
 <script>if(window.__passionRenderIcons)window.__passionRenderIcons();</script>
 {{ end }}

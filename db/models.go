@@ -275,3 +275,23 @@ type RunExerciseChoice struct {
 	ParentExerciseID uint `gorm:"index;not null"`
 	ChosenExerciseID uint `gorm:"index;not null"`
 }
+
+// SessionJournal holds the athlete's post-session reflection for a single SessionRun.
+// Numeric fields use 0 as "not set" sentinel to avoid nullable columns.
+type SessionJournal struct {
+	gorm.Model
+
+	OwnerID uint `gorm:"index;not null"`
+	RunID   uint `gorm:"uniqueIndex;not null"` // one journal per run
+
+	// Quick-fill fields
+	SleepScore int    // 1–5 night-before sleep quality; 0 = not recorded
+	Energy     int    // 1–5 pre-session energy level; 0 = not recorded
+	RPE        int    // 1–10 post-session perceived exertion; 0 = not recorded
+	Focus      string // "strength" | "endurance" | "technique" | "projects" | "general"
+	Location   string // "indoor" | "outdoor"
+
+	// Reflection text (markdown)
+	WentWell  string
+	NextFocus string
+}

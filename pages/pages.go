@@ -486,6 +486,50 @@ type EditLibraryExerciseParams struct {
 	LibraryExerciseFormErr  string
 }
 
+type TrainingLogEntryView struct {
+	RunID         uint
+	DateLabel     string
+	TemplateName  string
+	Color         string
+	DurationLabel string
+	MonthGroup    string // e.g. "May 2026" — used for grouping in template
+	HasJournal    bool
+	SleepScore    int    // 0 = not recorded
+	Energy        int    // 0 = not recorded
+	RPE           int    // 0 = not recorded
+	Focus         string // capitalised display value, e.g. "Strength"
+	Location      string // "Indoor" | "Outdoor"
+	WentWellHTML  template.HTML
+	NextFocusHTML template.HTML
+}
+
+type AdherenceWeekView struct {
+	WeekLabel string // e.g. "Apr 28 – May 4"
+	Planned   int
+	Completed int
+	Pct       int    // 0–100 for the progress bar
+	PctLabel  string // e.g. "3 / 4"
+}
+
+type TrainingLogPageParams struct {
+	Base
+	Entries   []TrainingLogEntryView
+	Adherence []AdherenceWeekView
+	CycleName string
+}
+
+type JournalFormParams struct {
+	RunID      uint
+	SleepScore int
+	Energy     int
+	RPE        int
+	Focus      string
+	Location   string
+	WentWell   string
+	NextFocus  string
+	Saved      bool // true → render read-only view; false → render editable form
+}
+
 // ---------------------------------------------------------------------------
 // Pages struct and constructor
 // ---------------------------------------------------------------------------
@@ -521,6 +565,7 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		filepath.Join("templates", "fragments", "exercise_history_hint.html"),
 		filepath.Join("templates", "fragments", "exercise_history_popup.html"),
 		filepath.Join("templates", "fragments", "exercise_divergence_hint.html"),
+		filepath.Join("templates", "fragments", "journal_form.html"),
 	}
 
 	fragmentTpl := template.New("fragments").Funcs(funcMap)
@@ -562,6 +607,7 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		{"pages/history_content", "history.html"},
 		{"pages/run_summary_content", "run_summary.html"},
 		{"pages/exercise_history_content", "exercise_history.html"},
+		{"pages/training_log_content", "training_log.html"},
 	}
 	for _, p := range pages {
 		pageTemplates[p.key], err = parsePage(filepath.Join("templates", p.file))
@@ -747,6 +793,16 @@ func (p *Pages) EditLibraryExercise(w http.ResponseWriter, params EditLibraryExe
 	params.Title = "Edit saved exercise"
 	params.Authenticated = true
 	p.renderPage(w, "pages/edit_exercise_library_content", params)
+}
+
+func (p *Pages) TrainingLogPage(w http.ResponseWriter, params TrainingLogPageParams) {
+	params.Title = "Training Log"
+	params.Authenticated = true
+	p.renderPage(w, "pages/training_log_content", params)
+}
+
+func (p *Pages) RenderJournalForm(w http.ResponseWriter, params JournalFormParams) {
+	p.RenderFragment(w, "journal_form.html", params)
 }
 
 // ---------------------------------------------------------------------------
