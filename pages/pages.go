@@ -390,7 +390,9 @@ type ProfileParams struct {
 
 type TemplateListParams struct {
 	Base
-	Templates []db.SessionTemplate
+	Templates      []db.SessionTemplate
+	LabelFilter    string
+	DistinctLabels []string
 }
 
 type NewTemplateParams struct {
@@ -447,6 +449,8 @@ type TrainingCycleDetailParams struct {
 type ActivityTemplateListParams struct {
 	Base
 	ActivityTemplates []db.ActivityTemplate
+	LabelFilter       string
+	DistinctLabels    []string
 }
 
 type NewActivityTemplateParams struct {
