@@ -23,6 +23,8 @@ type seedExercise struct {
 	RepSeconds             int
 	RepRestSeconds         int
 	SetRestSeconds         int
+	PrepSeconds            int
+	RungSeconds            string
 	WeightKg               float64
 }
 
@@ -68,6 +70,8 @@ func (s *Store) SeedDevIfEmpty(ownerID uint) error {
 				RepSeconds:             e.RepSeconds,
 				RepRestSeconds:         e.RepRestSeconds,
 				SetRestSeconds:         e.SetRestSeconds,
+				PrepSeconds:            e.PrepSeconds,
+				RungSeconds:            e.RungSeconds,
 				WeightKg:               e.WeightKg,
 			}
 			if err := tx.Create(&lib).Error; err != nil {
@@ -123,6 +127,8 @@ func (s *Store) SeedDevIfEmpty(ownerID uint) error {
 						RepSeconds:             e.RepSeconds,
 						RepRestSeconds:         e.RepRestSeconds,
 						SetRestSeconds:         e.SetRestSeconds,
+						PrepSeconds:            e.PrepSeconds,
+						RungSeconds:            e.RungSeconds,
 						WeightKg:               e.WeightKg,
 						OrderIndex:             eIdx,
 					}
@@ -180,8 +186,8 @@ func (s *Store) EnsureSeedUser(ownerID uint, email string, passwordHash string) 
 // defaultSeedLibraryExercises creates reusable presets for the exercise library (same shape as template exercises).
 func defaultSeedLibraryExercises() []seedExercise {
 	return []seedExercise{
-		{Name: "Max Hangs", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?auto=format&fit=crop&w=1200&q=80", VideoURL: "https://www.w3schools.com/html/mov_bbb.mp4"}}, Notes: "20mm edge — demo library item", Sets: 6, Reps: 1, RepSeconds: 10, RepRestSeconds: 0, SetRestSeconds: 120, WeightKg: 5},
-		{Name: "Weighted Pull-ups", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Controlled tempo", Sets: 5, Reps: 5, RepSeconds: 5, RepRestSeconds: 0, SetRestSeconds: 120, WeightKg: 10},
+		{Kind: "timed_reps", Name: "Max Hangs", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?auto=format&fit=crop&w=1200&q=80", VideoURL: "https://www.w3schools.com/html/mov_bbb.mp4"}}, Notes: "20mm edge — demo library item", Sets: 6, Reps: 1, RepSeconds: 10, SetRestSeconds: 120, WeightKg: 5},
+		{Kind: "reps_and_sets", Name: "Weighted Pull-ups", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Controlled tempo", Sets: 5, Reps: 5, SetRestSeconds: 120, WeightKg: 10},
 		{Kind: "session", SessionDurationSeconds: 600, Name: "10m Open Mobility", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Session-style block example"},
 	}
 }
@@ -195,22 +201,22 @@ func defaultSeedTemplates() []seedTemplate {
 				{
 					Type: "warmup",
 					Exercises: []seedExercise{
-						{Name: "Mobility Flow", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1545205597-3d9d02c29597?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Shoulders and wrists", Sets: 1, Reps: 1, RepSeconds: 600, RepRestSeconds: 0, SetRestSeconds: 0},
+						{Kind: "session", SessionDurationSeconds: 600, Name: "Mobility Flow", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1545205597-3d9d02c29597?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Shoulders and wrists"},
 						{Kind: "session", SessionDurationSeconds: 600, Name: "10m Open Mobility", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Move freely; jot cues below"},
-						{Name: "Easy Traverses", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1522163182402-834f871fd851?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Smooth movement, light grip", Sets: 3, Reps: 1, RepSeconds: 120, RepRestSeconds: 0, SetRestSeconds: 60},
+						{Kind: "timed_reps", Name: "Easy Traverses", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1522163182402-834f871fd851?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Smooth movement, light grip", Sets: 3, Reps: 1, RepSeconds: 120, SetRestSeconds: 60},
 					},
 				},
 				{
 					Type: "activity",
 					Exercises: []seedExercise{
-						{Name: "Limit Boulders", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1549576490-b0b4831ef60a?auto=format&fit=crop&w=1200&q=80"}}, Notes: "3-5 hard moves", Sets: 5, Reps: 1, RepSeconds: 180, RepRestSeconds: 0, SetRestSeconds: 180},
-						{Name: "Max Hangs", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?auto=format&fit=crop&w=1200&q=80", VideoURL: "https://www.w3schools.com/html/mov_bbb.mp4"}}, Notes: "20mm edge", Sets: 6, Reps: 1, RepSeconds: 10, RepRestSeconds: 0, SetRestSeconds: 120, WeightKg: 5},
+						{Kind: "timed_reps", Name: "Limit Boulders", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1549576490-b0b4831ef60a?auto=format&fit=crop&w=1200&q=80"}}, Notes: "3-5 hard moves", Sets: 5, Reps: 1, RepSeconds: 180, SetRestSeconds: 180},
+						{Kind: "timed_reps", Name: "Max Hangs", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?auto=format&fit=crop&w=1200&q=80", VideoURL: "https://www.w3schools.com/html/mov_bbb.mp4"}}, Notes: "20mm edge", Sets: 6, Reps: 1, RepSeconds: 10, SetRestSeconds: 120, WeightKg: 5},
 					},
 				},
 				{
 					Type: "cooldown",
 					Exercises: []seedExercise{
-						{Name: "Forearm Recovery", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Light band + stretch", Sets: 1, Reps: 1, RepSeconds: 420, RepRestSeconds: 0, SetRestSeconds: 0},
+						{Kind: "session", SessionDurationSeconds: 420, Name: "Forearm Recovery", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Light band + stretch"},
 					},
 				},
 			},
@@ -222,21 +228,21 @@ func defaultSeedTemplates() []seedTemplate {
 				{
 					Type: "warmup",
 					Exercises: []seedExercise{
-						{Name: "Row + Band Prep", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1534368786749-b63e8f22a541?auto=format&fit=crop&w=1200&q=80"}}, Notes: "2 rounds easy pace", Sets: 2, Reps: 12, RepSeconds: 4, RepRestSeconds: 30, SetRestSeconds: 30},
+						{Kind: "reps_and_sets", Name: "Row + Band Prep", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1534368786749-b63e8f22a541?auto=format&fit=crop&w=1200&q=80"}}, Notes: "2 rounds easy pace", Sets: 2, Reps: 12, SetRestSeconds: 30},
 					},
 				},
 				{
 					Type: "activity",
 					Exercises: []seedExercise{
-						{Name: "Weighted Pull-ups", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Controlled tempo", Sets: 5, Reps: 5, RepSeconds: 5, RepRestSeconds: 0, SetRestSeconds: 120, WeightKg: 10},
-						{Name: "Ring Rows", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1579758629938-03607ccdbaba?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Full range", Sets: 4, Reps: 10, RepSeconds: 4, RepRestSeconds: 0, SetRestSeconds: 90},
-						{Name: "Core Hollow Holds", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1598971639058-a67f6b7b0ef4?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Brace and breathe", Sets: 4, Reps: 1, RepSeconds: 30, RepRestSeconds: 0, SetRestSeconds: 45},
+						{Kind: "reps_and_sets", Name: "Weighted Pull-ups", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Controlled tempo", Sets: 5, Reps: 5, SetRestSeconds: 120, WeightKg: 10},
+						{Kind: "reps_and_sets", Name: "Ring Rows", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1579758629938-03607ccdbaba?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Full range", Sets: 4, Reps: 10, SetRestSeconds: 90},
+						{Kind: "timed_reps", Name: "Core Hollow Holds", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1598971639058-a67f6b7b0ef4?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Brace and breathe", Sets: 4, Reps: 1, RepSeconds: 30, SetRestSeconds: 45},
 					},
 				},
 				{
 					Type: "cooldown",
 					Exercises: []seedExercise{
-						{Name: "Lat + Pec Stretch", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1200&q=80"}}, Sets: 1, Reps: 1, RepSeconds: 300, RepRestSeconds: 0, SetRestSeconds: 0},
+						{Kind: "session", SessionDurationSeconds: 300, Name: "Lat + Pec Stretch", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Doorframe + floor stretch"},
 					},
 				},
 			},
@@ -248,20 +254,20 @@ func defaultSeedTemplates() []seedTemplate {
 				{
 					Type: "warmup",
 					Exercises: []seedExercise{
-						{Name: "Easy Routes", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1564769662533-4f00a87b4056?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Progressively harder", Sets: 4, Reps: 1, RepSeconds: 180, RepRestSeconds: 0, SetRestSeconds: 60},
+						{Kind: "timed_reps", Name: "Easy Routes", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1564769662533-4f00a87b4056?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Progressively harder", Sets: 4, Reps: 1, RepSeconds: 180, SetRestSeconds: 60},
 					},
 				},
 				{
 					Type: "activity",
 					Exercises: []seedExercise{
-						{Name: "Footwork Drills", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1526401485004-2fda9f2f1b0d?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Silent feet focus", Sets: 6, Reps: 1, RepSeconds: 120, RepRestSeconds: 0, SetRestSeconds: 45},
-						{Name: "ARC Climbing", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1523419409543-a5e549c1f7eb?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Continuous easy climbing", Sets: 2, Reps: 1, RepSeconds: 900, RepRestSeconds: 0, SetRestSeconds: 180},
+						{Kind: "timed_reps", Name: "Footwork Drills", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1526401485004-2fda9f2f1b0d?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Silent feet focus", Sets: 6, Reps: 1, RepSeconds: 120, SetRestSeconds: 45},
+						{Kind: "timed_reps", Name: "ARC Climbing", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1523419409543-a5e549c1f7eb?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Continuous easy climbing", Sets: 2, Reps: 1, RepSeconds: 900, SetRestSeconds: 180},
 					},
 				},
 				{
 					Type: "cooldown",
 					Exercises: []seedExercise{
-						{Name: "Breathing + Mobility", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=1200&q=80"}}, Sets: 1, Reps: 1, RepSeconds: 360, RepRestSeconds: 0, SetRestSeconds: 0},
+						{Kind: "session", SessionDurationSeconds: 360, Name: "Breathing + Mobility", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=1200&q=80"}}},
 					},
 				},
 			},

@@ -42,5 +42,29 @@ func (s *Store) AutoMigrate() error {
 		return err
 	}
 
+	return s.migrateTimedReps()
+}
+
+// migrateTimedReps is idempotent: promotes reps_and_sets exercises that use timer fields
+// to the new timed_reps kind, then zeroes timer fields on remaining reps_and_sets rows.
+func (s *Store) migrateTimedReps() error {
+	tables := []string{"exercises", "library_exercises"}
+	for _, t := range tables {
+		if err := s.DB.Exec(`
+			UPDATE `+t+`
+			SET kind = 'timed_reps'
+			WHERE kind = 'reps_and_sets'
+			  AND (rep_seconds > 0 OR prep_seconds > 0 OR rep_rest_seconds > 0)
+		`).Error; err != nil {
+			return err
+		}
+		if err := s.DB.Exec(`
+			UPDATE `+t+`
+			SET rep_seconds = 0, rep_rest_seconds = 0, set_rest_seconds = 0, prep_seconds = 0
+			WHERE kind = 'reps_and_sets'
+		`).Error; err != nil {
+			return err
+		}
+	}
 	return nil
 }

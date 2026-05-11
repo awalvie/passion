@@ -16,7 +16,6 @@ func TestNormalizeExerciseKind(t *testing.T) {
 		{"session", "session"},
 		{"  Session  ", "session"},
 		{"exercise_catalog", "exercise_catalog"},
-		{"pick_one", "exercise_catalog"},
 		{"unknown", "reps_and_sets"},
 		{"", "reps_and_sets"},
 	}
@@ -57,7 +56,7 @@ func TestNewExerciseFromLibraryExercise(t *testing.T) {
 	lib := db.LibraryExercise{
 		Name:                   "Pull up",
 		Notes:                  "strict",
-		Kind:                   "",
+		Kind:                   "reps_and_sets",
 		SessionDurationSeconds: 30,
 		Sets:                   5,
 		Reps:                   3,
@@ -71,8 +70,8 @@ func TestNewExerciseFromLibraryExercise(t *testing.T) {
 	if got.OwnerID != 3 || got.ActivityID == nil || *got.ActivityID != 4 || got.OrderIndex != 2 {
 		t.Fatalf("id/order fields not copied: %+v", *got)
 	}
-	if got.Kind != "reps_and_sets" {
-		t.Fatalf("expected default kind reps_and_sets, got %q", got.Kind)
+	if got.Kind != lib.Kind {
+		t.Fatalf("kind not copied: got %q, want %q", got.Kind, lib.Kind)
 	}
 	if got.ParentExerciseID == nil || *got.ParentExerciseID != parentID {
 		t.Fatalf("parent id not copied: %+v", got.ParentExerciseID)

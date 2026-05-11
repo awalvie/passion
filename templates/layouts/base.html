@@ -34,16 +34,27 @@
         window.__passionSyncExerciseKindGroups = function (kindSelect) {
           if (!kindSelect || !kindSelect.form) return;
           const form = kindSelect.form;
-          const session = kindSelect.value === "session";
-          const isCatalog = kindSelect.value === "exercise_catalog";
+          const kind = kindSelect.value;
+          const session = kind === "session";
+          const isCatalog = kind === "exercise_catalog";
+          const isTimed = kind === "timed_reps";
+          const isReps = !session && !isCatalog && !isTimed;
           const reps = form.querySelector("[data-exercise-reps-fields]");
+          const timed = form.querySelector("[data-exercise-timed-fields]");
           const sess = form.querySelector("[data-exercise-session-fields]");
           const media = form.querySelector("[data-exercise-media-fields]");
           if (reps) {
-            reps.hidden = session || isCatalog;
+            reps.hidden = !isReps;
             reps.querySelectorAll("input, textarea, select").forEach(function (el) {
               if (el === kindSelect) return;
-              el.disabled = session || isCatalog;
+              el.disabled = !isReps;
+            });
+          }
+          if (timed) {
+            timed.hidden = !isTimed;
+            timed.querySelectorAll("input, textarea, select").forEach(function (el) {
+              if (el === kindSelect) return;
+              el.disabled = !isTimed;
             });
           }
           if (sess) {

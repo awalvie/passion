@@ -39,6 +39,8 @@ type yamlExercise struct {
 	RepSeconds             int             `yaml:"rep_seconds"`
 	RepRestSeconds         int             `yaml:"rep_rest_seconds"`
 	SetRestSeconds         int             `yaml:"set_rest_seconds"`
+	PrepSeconds            int             `yaml:"prep_seconds"`
+	RungSeconds            string          `yaml:"rung_seconds"`
 	WeightKg               float64         `yaml:"weight_kg"`
 }
 
@@ -80,6 +82,8 @@ type yamlSessionExercise struct {
 	RepSeconds             int                   `yaml:"rep_seconds"`
 	RepRestSeconds         int                   `yaml:"rep_rest_seconds"`
 	SetRestSeconds         int                   `yaml:"set_rest_seconds"`
+	PrepSeconds            int                   `yaml:"prep_seconds"`
+	RungSeconds            string                `yaml:"rung_seconds"`
 	WeightKg               float64               `yaml:"weight_kg"`
 	Children               []yamlSessionExercise `yaml:"children"`
 }
@@ -320,8 +324,10 @@ func NormalizeKind(raw string) string {
 	switch s {
 	case "session":
 		return "session"
-	case "exercise_catalog", "pick_one":
+	case "exercise_catalog":
 		return "exercise_catalog"
+	case "timed_reps":
+		return "timed_reps"
 	default:
 		return "reps_and_sets"
 	}
@@ -459,6 +465,8 @@ func upsertActivityTemplate(tx *gorm.DB, ownerID uint, at yamlActivityTemplate, 
 			ate.RepSeconds = ref.RepSeconds
 			ate.RepRestSeconds = ref.RepRestSeconds
 			ate.SetRestSeconds = ref.SetRestSeconds
+			ate.PrepSeconds = ref.PrepSeconds
+			ate.RungSeconds = ref.RungSeconds
 			ate.WeightKg = ref.WeightKg
 		} else {
 			ate.Name = ex.Name
@@ -470,6 +478,8 @@ func upsertActivityTemplate(tx *gorm.DB, ownerID uint, at yamlActivityTemplate, 
 			ate.RepSeconds = ex.RepSeconds
 			ate.RepRestSeconds = ex.RepRestSeconds
 			ate.SetRestSeconds = ex.SetRestSeconds
+			ate.PrepSeconds = ex.PrepSeconds
+			ate.RungSeconds = ex.RungSeconds
 			ate.WeightKg = ex.WeightKg
 		}
 		if err := tx.Create(&ate).Error; err != nil {
@@ -506,6 +516,8 @@ func upsertActivityTemplate(tx *gorm.DB, ownerID uint, at yamlActivityTemplate, 
 					childEx.RepSeconds = ref.RepSeconds
 					childEx.RepRestSeconds = ref.RepRestSeconds
 					childEx.SetRestSeconds = ref.SetRestSeconds
+					childEx.PrepSeconds = ref.PrepSeconds
+					childEx.RungSeconds = ref.RungSeconds
 					childEx.WeightKg = ref.WeightKg
 				} else {
 					childEx.Name = child.Name
@@ -516,6 +528,8 @@ func upsertActivityTemplate(tx *gorm.DB, ownerID uint, at yamlActivityTemplate, 
 					childEx.RepSeconds = child.RepSeconds
 					childEx.RepRestSeconds = child.RepRestSeconds
 					childEx.SetRestSeconds = child.SetRestSeconds
+					childEx.PrepSeconds = child.PrepSeconds
+					childEx.RungSeconds = child.RungSeconds
 					childEx.WeightKg = child.WeightKg
 				}
 				if err := tx.Create(&childEx).Error; err != nil {
@@ -547,6 +561,8 @@ func upsertLibraryExercise(tx *gorm.DB, ownerID uint, ex yamlExercise) error {
 	row.RepSeconds = ex.RepSeconds
 	row.RepRestSeconds = ex.RepRestSeconds
 	row.SetRestSeconds = ex.SetRestSeconds
+	row.PrepSeconds = ex.PrepSeconds
+	row.RungSeconds = ex.RungSeconds
 	row.WeightKg = ex.WeightKg
 	if err := tx.Save(&row).Error; err != nil {
 		return err
@@ -623,6 +639,8 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 					exercise.RepSeconds = ref.RepSeconds
 					exercise.RepRestSeconds = ref.RepRestSeconds
 					exercise.SetRestSeconds = ref.SetRestSeconds
+					exercise.PrepSeconds = ref.PrepSeconds
+					exercise.RungSeconds = ref.RungSeconds
 					exercise.WeightKg = ref.WeightKg
 					media = ref.Media
 				} else {
@@ -635,6 +653,8 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 					exercise.RepSeconds = ex.RepSeconds
 					exercise.RepRestSeconds = ex.RepRestSeconds
 					exercise.SetRestSeconds = ex.SetRestSeconds
+					exercise.PrepSeconds = ex.PrepSeconds
+					exercise.RungSeconds = ex.RungSeconds
 					exercise.WeightKg = ex.WeightKg
 					media = ex.Media
 				}
@@ -668,6 +688,8 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 							childEx.RepSeconds = ref.RepSeconds
 							childEx.RepRestSeconds = ref.RepRestSeconds
 							childEx.SetRestSeconds = ref.SetRestSeconds
+							childEx.PrepSeconds = ref.PrepSeconds
+							childEx.RungSeconds = ref.RungSeconds
 							childEx.WeightKg = ref.WeightKg
 							childMedia = ref.Media
 						} else {
@@ -680,6 +702,8 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 							childEx.RepSeconds = child.RepSeconds
 							childEx.RepRestSeconds = child.RepRestSeconds
 							childEx.SetRestSeconds = child.SetRestSeconds
+							childEx.PrepSeconds = child.PrepSeconds
+							childEx.RungSeconds = child.RungSeconds
 							childEx.WeightKg = child.WeightKg
 							childMedia = child.Media
 						}
@@ -727,6 +751,8 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 				exercise.RepSeconds = ref.RepSeconds
 				exercise.RepRestSeconds = ref.RepRestSeconds
 				exercise.SetRestSeconds = ref.SetRestSeconds
+				exercise.PrepSeconds = ref.PrepSeconds
+				exercise.RungSeconds = ref.RungSeconds
 				exercise.WeightKg = ref.WeightKg
 				media = ref.Media
 			} else {
@@ -739,6 +765,8 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 				exercise.RepSeconds = ex.RepSeconds
 				exercise.RepRestSeconds = ex.RepRestSeconds
 				exercise.SetRestSeconds = ex.SetRestSeconds
+				exercise.PrepSeconds = ex.PrepSeconds
+				exercise.RungSeconds = ex.RungSeconds
 				exercise.WeightKg = ex.WeightKg
 				media = ex.Media
 			}
@@ -751,9 +779,9 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 			// Create children for exercise_catalog exercises.
 			if exercise.Kind == "exercise_catalog" && len(ex.Children) > 0 {
 				for cIdx, child := range ex.Children {
-					var childName, childNotes string
+					var childName, childNotes, childRungSeconds string
 					var childKind string
-					var childSessionDur, childSets, childReps, childRepSec, childRepRest, childSetRest int
+					var childSessionDur, childSets, childReps, childRepSec, childRepRest, childSetRest, childPrepSec int
 					var childWeight float64
 					var childMedia []yamlMediaItem
 
@@ -771,6 +799,8 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 						childRepSec = ref.RepSeconds
 						childRepRest = ref.RepRestSeconds
 						childSetRest = ref.SetRestSeconds
+						childPrepSec = ref.PrepSeconds
+						childRungSeconds = ref.RungSeconds
 						childWeight = ref.WeightKg
 						childMedia = ref.Media
 					} else {
@@ -783,6 +813,8 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 						childRepSec = child.RepSeconds
 						childRepRest = child.RepRestSeconds
 						childSetRest = child.SetRestSeconds
+						childPrepSec = child.PrepSeconds
+						childRungSeconds = child.RungSeconds
 						childWeight = child.WeightKg
 						childMedia = child.Media
 					}
@@ -798,14 +830,16 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 						Name:                   childName,
 						Kind:                   childKind,
 						SessionDurationSeconds: childSessionDur,
-						Notes:                 childNotes,
-						Sets:                  childSets,
-						Reps:                  childReps,
-						RepSeconds:            childRepSec,
-						RepRestSeconds:        childRepRest,
-						SetRestSeconds:        childSetRest,
-						WeightKg:              childWeight,
-						ParentExerciseID:      &pid,
+						Notes:                  childNotes,
+						Sets:                   childSets,
+						Reps:                   childReps,
+						RepSeconds:             childRepSec,
+						RepRestSeconds:         childRepRest,
+						SetRestSeconds:         childSetRest,
+						PrepSeconds:            childPrepSec,
+						RungSeconds:            childRungSeconds,
+						WeightKg:               childWeight,
+						ParentExerciseID:       &pid,
 					}
 					if err := tx.Create(&childExercise).Error; err != nil {
 						return err

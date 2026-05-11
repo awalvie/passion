@@ -25,6 +25,7 @@
     <select name="kind" class="input" style="width:auto;min-width:8rem">
       <option value=""{{ if eq .LibraryKind "" }} selected{{ end }}>All types</option>
       <option value="reps_and_sets"{{ if eq .LibraryKind "reps_and_sets" }} selected{{ end }}>Reps &amp; sets</option>
+      <option value="timed_reps"{{ if eq .LibraryKind "timed_reps" }} selected{{ end }}>Timed reps</option>
       <option value="session"{{ if eq .LibraryKind "session" }} selected{{ end }}>Session</option>
       <option value="exercise_catalog"{{ if eq .LibraryKind "exercise_catalog" }} selected{{ end }}>Catalog</option>
     </select>

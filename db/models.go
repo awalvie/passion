@@ -110,7 +110,10 @@ type Exercise struct {
 	RepRestSeconds int
 	SetRestSeconds int
 	PrepSeconds    int
-	WeightKg       float64
+	// RungSeconds is a comma-separated list of per-rep durations for ladder protocols (e.g. "3,6,9").
+	// When non-empty, cycles through the values instead of using RepSeconds.
+	RungSeconds string
+	WeightKg    float64
 
 	OrderIndex int `gorm:"not null;default:0;index"`
 }
@@ -149,6 +152,7 @@ type LibraryExercise struct {
 	RepRestSeconds int
 	SetRestSeconds int
 	PrepSeconds    int
+	RungSeconds    string
 	WeightKg       float64
 
 	// ParentLibraryExerciseID links child options to a catalog parent in the library.

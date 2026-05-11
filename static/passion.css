@@ -1153,6 +1153,48 @@ details > summary::-webkit-details-marker {
   padding-top: 0.25rem;
 }
 
+.run-exercise-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.run-exercise-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.run-exercise-nav-btn .run-exercise-nav-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.run-exercise-nav-btn:not(:disabled):hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--muted) 50%, var(--border));
+}
+
+.run-exercise-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 /* Collapsible sections (shared) */
 .run-collapse-toggle {
   display: flex;

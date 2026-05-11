@@ -34,44 +34,69 @@
             class="mt-1 w-full input"
             onchange="window.__passionSyncExerciseKindGroups(this)"
           >
-            <option value="reps_and_sets" {{ if and (ne .Kind "session") (ne .Kind "exercise_catalog") }}selected{{ end }}>Reps and sets</option>
+            <option value="reps_and_sets" {{ if eq .Kind "reps_and_sets" }}selected{{ end }}>Reps and sets</option>
+            <option value="timed_reps" {{ if eq .Kind "timed_reps" }}selected{{ end }}>Timed reps</option>
             <option value="session" {{ if eq .Kind "session" }}selected{{ end }}>Session</option>
             <option value="exercise_catalog" {{ if eq .Kind "exercise_catalog" }}selected{{ end }}>Exercise catalog</option>
           </select>
         </div>
       </div>
 
-      <!-- Section: Configuration -->
-      <div data-exercise-reps-fields="1" class="mt-5 pt-5 border-t" style="border-color: var(--border)" {{ if or (eq .Kind "session") (eq .Kind "exercise_catalog") }}hidden{{ end }}>
+      <!-- Section: Configuration (reps_and_sets) -->
+      <div data-exercise-reps-fields="1" class="mt-5 pt-5 border-t" style="border-color: var(--border)" {{ if ne .Kind "reps_and_sets" }}hidden{{ end }}>
         <div class="text-xs font-semibold muted uppercase tracking-widest mb-3">Configuration</div>
         <div class="grid gap-2 grid-cols-3">
           <div>
             <label class="text-xs font-medium" for="lib-sets">Sets</label>
-            <input id="lib-sets" name="sets" type="number" min="0" class="mt-1 w-full input" value="{{ .Sets }}" {{ if eq .Kind "session" }}disabled{{ end }} />
+            <input id="lib-sets" name="sets" type="number" min="0" class="mt-1 w-full input" value="{{ .Sets }}" {{ if ne .Kind "reps_and_sets" }}disabled{{ end }} />
           </div>
           <div>
             <label class="text-xs font-medium" for="lib-reps">Reps</label>
-            <input id="lib-reps" name="reps" type="number" min="0" class="mt-1 w-full input" value="{{ .Reps }}" {{ if eq .Kind "session" }}disabled{{ end }} />
+            <input id="lib-reps" name="reps" type="number" min="0" class="mt-1 w-full input" value="{{ .Reps }}" {{ if ne .Kind "reps_and_sets" }}disabled{{ end }} />
           </div>
           <div>
             <label class="text-xs font-medium" for="lib-weight">Weight (kg)</label>
-            <input id="lib-weight" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input" value="{{ .WeightKg }}" {{ if eq .Kind "session" }}disabled{{ end }} />
+            <input id="lib-weight" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input" value="{{ .WeightKg }}" {{ if ne .Kind "reps_and_sets" }}disabled{{ end }} />
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Configuration (timed_reps) -->
+      <div data-exercise-timed-fields="1" class="mt-5 pt-5 border-t" style="border-color: var(--border)" {{ if ne .Kind "timed_reps" }}hidden{{ end }}>
+        <div class="text-xs font-semibold muted uppercase tracking-widest mb-3">Configuration</div>
+        <div class="grid gap-2 grid-cols-3">
+          <div>
+            <label class="text-xs font-medium" for="lib-t-sets">Sets</label>
+            <input id="lib-t-sets" name="sets" type="number" min="0" class="mt-1 w-full input" value="{{ .Sets }}" {{ if ne .Kind "timed_reps" }}disabled{{ end }} />
           </div>
           <div>
-            <label class="text-xs font-medium" for="lib-rep-sec">Rep time (s)</label>
-            <input id="lib-rep-sec" name="rep_seconds" type="number" min="0" class="mt-1 w-full input" value="{{ .RepSeconds }}" {{ if eq .Kind "session" }}disabled{{ end }} />
+            <label class="text-xs font-medium" for="lib-t-reps">Reps</label>
+            <input id="lib-t-reps" name="reps" type="number" min="0" class="mt-1 w-full input" value="{{ .Reps }}" {{ if ne .Kind "timed_reps" }}disabled{{ end }} />
           </div>
           <div>
-            <label class="text-xs font-medium" for="lib-rep-rest">Rep rest (s)</label>
-            <input id="lib-rep-rest" name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input" value="{{ .RepRestSeconds }}" {{ if eq .Kind "session" }}disabled{{ end }} />
+            <label class="text-xs font-medium" for="lib-t-weight">Weight (kg)</label>
+            <input id="lib-t-weight" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input" value="{{ .WeightKg }}" {{ if ne .Kind "timed_reps" }}disabled{{ end }} />
           </div>
           <div>
-            <label class="text-xs font-medium" for="lib-set-rest">Set rest (s)</label>
-            <input id="lib-set-rest" name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input" value="{{ .SetRestSeconds }}" {{ if eq .Kind "session" }}disabled{{ end }} />
+            <label class="text-xs font-medium" for="lib-t-rep-sec">Rep time (s)</label>
+            <input id="lib-t-rep-sec" name="rep_seconds" type="number" min="0" class="mt-1 w-full input" value="{{ .RepSeconds }}" {{ if ne .Kind "timed_reps" }}disabled{{ end }} />
+          </div>
+          <div class="col-span-2">
+            <label class="text-xs font-medium" for="lib-t-rung">Rung times</label>
+            <input id="lib-t-rung" name="rung_seconds" type="text" class="mt-1 w-full input" value="{{ .RungSeconds }}" placeholder="e.g. 3,6,9" {{ if ne .Kind "timed_reps" }}disabled{{ end }} />
+            <p class="mt-0.5 text-[10px] muted">Overrides rep time. Use for ladders, e.g. 3,6,9</p>
           </div>
           <div>
-            <label class="text-xs font-medium" for="lib-prep">Prep time (s)</label>
-            <input id="lib-prep" name="prep_seconds" type="number" min="0" class="mt-1 w-full input" value="{{ .PrepSeconds }}" {{ if eq .Kind "session" }}disabled{{ end }} />
+            <label class="text-xs font-medium" for="lib-t-rep-rest">Rep rest (s)</label>
+            <input id="lib-t-rep-rest" name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input" value="{{ .RepRestSeconds }}" {{ if ne .Kind "timed_reps" }}disabled{{ end }} />
+          </div>
+          <div>
+            <label class="text-xs font-medium" for="lib-t-set-rest">Set rest (s)</label>
+            <input id="lib-t-set-rest" name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input" value="{{ .SetRestSeconds }}" {{ if ne .Kind "timed_reps" }}disabled{{ end }} />
+          </div>
+          <div>
+            <label class="text-xs font-medium" for="lib-t-prep">Prep time (s)</label>
+            <input id="lib-t-prep" name="prep_seconds" type="number" min="0" class="mt-1 w-full input" value="{{ .PrepSeconds }}" {{ if ne .Kind "timed_reps" }}disabled{{ end }} />
           </div>
         </div>
       </div>

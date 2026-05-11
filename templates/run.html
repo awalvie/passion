@@ -568,6 +568,16 @@
                   Skip
                 </button>
               </div>
+              <div class="run-exercise-nav">
+                <button type="button" id="btn-prev-exercise" class="run-exercise-nav-btn" disabled>
+                  <i data-lucide="chevron-left" class="run-icon"></i>
+                  <span class="run-exercise-nav-label">Prev</span>
+                </button>
+                <button type="button" id="btn-next-exercise" class="run-exercise-nav-btn" disabled>
+                  <span class="run-exercise-nav-label">Next</span>
+                  <i data-lucide="chevron-right" class="run-icon"></i>
+                </button>
+              </div>
             </div>
           </div>
           {{ if not $isSession }}
@@ -660,6 +670,7 @@
         let repNow = 1;
         let setNow = 1;
         const isSessionExercise = {{ if $isSession }}true{{ else }}false{{ end }};
+        const isTimedReps = {{ if eq .CurrentStep.Kind "timed_reps" }}true{{ else }}false{{ end }};
         const sessionDurationSeconds = Math.max(0, {{ .CurrentStep.SessionDurationSeconds }});
         const repMax = Math.max(1, {{ .CurrentStep.Reps }});
         const setMax = Math.max(1, {{ .CurrentStep.Sets }});
@@ -667,6 +678,10 @@
         const repRestSeconds = Math.max(0, {{ .CurrentStep.RepRestSeconds }});
         const setRestSeconds = Math.max(0, {{ .CurrentStep.SetRestSeconds }});
         const prepSeconds = Math.max(0, {{ .CurrentStep.PrepSeconds }});
+        const rungSecondsRaw = "{{ .CurrentStep.RungSeconds }}";
+        const rungArr = rungSecondsRaw
+          ? rungSecondsRaw.split(",").map(function(s) { return Math.max(0, parseInt(s.trim(), 10) || 0); }).filter(Boolean)
+          : [];
         let phase = "work";
         let phaseDuration = 0;
         let phaseCompleted = false;
@@ -832,10 +847,14 @@
           if (isSessionExercise) {
             return sessionDurationSeconds > 0 ? sessionDurationSeconds : 0;
           }
-          if (kind === "prep") return prepSeconds;
-          if (kind === "work") return repSeconds > 0 ? repSeconds : 0;
-          if (kind === "rep_rest") return repRestSeconds;
-          if (kind === "set_rest") return setRestSeconds;
+          if (kind === "prep") return isTimedReps ? prepSeconds : 0;
+          if (kind === "work") {
+            if (!isTimedReps) return 0;
+            if (rungArr.length > 0) return rungArr[(repNow - 1) % rungArr.length];
+            return repSeconds > 0 ? repSeconds : 0;
+          }
+          if (kind === "rep_rest") return isTimedReps ? repRestSeconds : 0;
+          if (kind === "set_rest") return isTimedReps ? setRestSeconds : 0;
           return 0;
         }
 
@@ -1201,6 +1220,42 @@
             window.location.href = "/runs/" + runID + "?exercise=" + eid;
           });
         });
+
+        // --- Prev / next exercise navigation ---
+        (function () {
+          var allRows = Array.from(document.querySelectorAll(".run-playlist-row[data-exercise-id]"));
+          var currentIdx = allRows.findIndex(function (r) {
+            return r.classList.contains("run-playlist-row-current");
+          });
+          var prevBtn = document.getElementById("btn-prev-exercise");
+          var nextBtn = document.getElementById("btn-next-exercise");
+
+          function exerciseName(row) {
+            var el = row.querySelector(".text-sm");
+            return el ? el.textContent.trim() : "";
+          }
+
+          if (prevBtn) {
+            if (currentIdx > 0) {
+              var prevRow = allRows[currentIdx - 1];
+              prevBtn.querySelector(".run-exercise-nav-label").textContent = exerciseName(prevRow);
+              prevBtn.disabled = false;
+              prevBtn.addEventListener("click", function () {
+                window.location.href = "/runs/" + runID + "?exercise=" + prevRow.dataset.exerciseId;
+              });
+            }
+          }
+          if (nextBtn) {
+            if (currentIdx >= 0 && currentIdx < allRows.length - 1) {
+              var nextRow = allRows[currentIdx + 1];
+              nextBtn.querySelector(".run-exercise-nav-label").textContent = exerciseName(nextRow);
+              nextBtn.disabled = false;
+              nextBtn.addEventListener("click", function () {
+                window.location.href = "/runs/" + runID + "?exercise=" + nextRow.dataset.exerciseId;
+              });
+            }
+          }
+        })();
 
         // --- Keyboard shortcuts ---
         document.addEventListener("keydown", function (event) {

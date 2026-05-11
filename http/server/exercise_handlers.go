@@ -196,12 +196,7 @@ func (s *Server) handleUpdateExercise(w http.ResponseWriter, r *http.Request, ex
 		return
 	}
 
-	oldKind := strings.TrimSpace(ex.Kind)
-	if oldKind == "" {
-		oldKind = "reps_and_sets"
-	}
-
-	if oldKind == "exercise_catalog" && kind != "exercise_catalog" {
+	if ex.Kind == "exercise_catalog" && kind != "exercise_catalog" {
 		if err := s.store.DB.
 			Where("owner_id = ? AND parent_exercise_id = ?", ownerID, ex.ID).
 			Delete(&db.Exercise{}).Error; err != nil {
@@ -230,8 +225,9 @@ func (s *Server) handleUpdateExercise(w http.ResponseWriter, r *http.Request, ex
 		ex.RepRestSeconds = 0
 		ex.SetRestSeconds = 0
 		ex.PrepSeconds = 0
+		ex.RungSeconds = ""
 		ex.WeightKg = 0
-	} else {
+	} else if kind == "timed_reps" {
 		ex.SessionDurationSeconds = 0
 		ex.Sets = formInt(r, "sets")
 		ex.Reps = formInt(r, "reps")
@@ -239,6 +235,18 @@ func (s *Server) handleUpdateExercise(w http.ResponseWriter, r *http.Request, ex
 		ex.RepRestSeconds = formInt(r, "rep_rest_seconds")
 		ex.SetRestSeconds = formInt(r, "set_rest_seconds")
 		ex.PrepSeconds = formInt(r, "prep_seconds")
+		ex.RungSeconds = strings.TrimSpace(r.FormValue("rung_seconds"))
+		ex.WeightKg = formFloat(r, "weight_kg")
+	} else {
+		// reps_and_sets: counter only, no timer fields
+		ex.SessionDurationSeconds = 0
+		ex.Sets = formInt(r, "sets")
+		ex.Reps = formInt(r, "reps")
+		ex.RepSeconds = 0
+		ex.RepRestSeconds = 0
+		ex.SetRestSeconds = 0
+		ex.PrepSeconds = 0
+		ex.RungSeconds = ""
 		ex.WeightKg = formFloat(r, "weight_kg")
 	}
 
@@ -346,13 +354,18 @@ func (s *Server) handleAddExercise(w http.ResponseWriter, r *http.Request, activ
 		}
 		if kind == "session" {
 			ex.SessionDurationSeconds = parseSessionDurationSeconds(r)
-		} else {
+		} else if kind == "timed_reps" {
 			ex.Sets = formInt(r, "sets")
 			ex.Reps = formInt(r, "reps")
 			ex.RepSeconds = formInt(r, "rep_seconds")
 			ex.RepRestSeconds = formInt(r, "rep_rest_seconds")
 			ex.SetRestSeconds = formInt(r, "set_rest_seconds")
 			ex.PrepSeconds = formInt(r, "prep_seconds")
+			ex.RungSeconds = strings.TrimSpace(r.FormValue("rung_seconds"))
+			ex.WeightKg = formFloat(r, "weight_kg")
+		} else {
+			ex.Sets = formInt(r, "sets")
+			ex.Reps = formInt(r, "reps")
 			ex.WeightKg = formFloat(r, "weight_kg")
 		}
 		if err := s.store.DB.Create(ex).Error; err != nil {
@@ -385,13 +398,19 @@ func (s *Server) handleAddExercise(w http.ResponseWriter, r *http.Request, activ
 		// Catalog parent: instructions only in UI.
 	} else if kind == "session" {
 		ex.SessionDurationSeconds = parseSessionDurationSeconds(r)
-	} else {
+	} else if kind == "timed_reps" {
 		ex.Sets = formInt(r, "sets")
 		ex.Reps = formInt(r, "reps")
 		ex.RepSeconds = formInt(r, "rep_seconds")
 		ex.RepRestSeconds = formInt(r, "rep_rest_seconds")
 		ex.SetRestSeconds = formInt(r, "set_rest_seconds")
 		ex.PrepSeconds = formInt(r, "prep_seconds")
+		ex.RungSeconds = strings.TrimSpace(r.FormValue("rung_seconds"))
+		ex.WeightKg = formFloat(r, "weight_kg")
+	} else {
+		// reps_and_sets: counter only
+		ex.Sets = formInt(r, "sets")
+		ex.Reps = formInt(r, "reps")
 		ex.WeightKg = formFloat(r, "weight_kg")
 	}
 

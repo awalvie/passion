@@ -142,15 +142,11 @@ func (s *Server) handleOpenAddExercise(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "library exercise not found", http.StatusNotFound)
 			return
 		}
-		kind := lib.Kind
-		if kind == "" {
-			kind = "reps_and_sets"
-		}
 		ex = db.Exercise{
 			OwnerID:                ownerID,
 			SessionRunID:           &rid,
 			Name:                   lib.Name,
-			Kind:                   kind,
+			Kind:                   lib.Kind,
 			Notes:                  lib.Notes,
 			Sets:                   lib.Sets,
 			Reps:                   lib.Reps,

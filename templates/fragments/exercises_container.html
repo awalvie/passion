@@ -87,7 +87,8 @@
                   class="mt-1 w-full input text-xs"
                   onchange="window.__passionSyncExerciseKindGroups(this)"
                 >
-                  <option value="reps_and_sets" {{ if and (ne .Kind "session") (ne .Kind "exercise_catalog") }}selected{{ end }}>Reps and sets</option>
+                  <option value="reps_and_sets" {{ if eq .Kind "reps_and_sets" }}selected{{ end }}>Reps and sets</option>
+                  <option value="timed_reps" {{ if eq .Kind "timed_reps" }}selected{{ end }}>Timed reps</option>
                   <option value="session" {{ if eq .Kind "session" }}selected{{ end }}>Session</option>
                   <option value="exercise_catalog" {{ if eq .Kind "exercise_catalog" }}selected{{ end }}>Exercise catalog</option>
                 </select>
@@ -148,74 +149,32 @@
                 </div>
               </div>
 
-              <div data-exercise-reps-fields="1" {{ if or (eq .Kind "session") (eq .Kind "exercise_catalog") }}hidden{{ end }}>
-                <div class="grid grid-cols-2 gap-2">
+              <div data-exercise-reps-fields="1" {{ if ne .Kind "reps_and_sets" }}hidden{{ end }}>
+                <div class="grid grid-cols-3 gap-2">
                   <div>
                     <label class="text-xs font-medium" for="ex-sets-{{ .ID }}-edit">Sets</label>
-                    <input
-                      id="ex-sets-{{ .ID }}-edit"
-                      name="sets"
-                      type="number"
-                      min="0"
-                      class="mt-1 w-full input text-xs"
-                      value="{{ .Sets }}"
-                    />
+                    <input id="ex-sets-{{ .ID }}-edit" name="sets" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Sets }}" />
                   </div>
                   <div>
                     <label class="text-xs font-medium" for="ex-reps-{{ .ID }}-edit">Reps</label>
-                    <input
-                      id="ex-reps-{{ .ID }}-edit"
-                      name="reps"
-                      type="number"
-                      min="0"
-                      class="mt-1 w-full input text-xs"
-                      value="{{ .Reps }}"
-                    />
+                    <input id="ex-reps-{{ .ID }}-edit" name="reps" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Reps }}" />
                   </div>
                   <div>
                     <label class="text-xs font-medium" for="ex-weight-{{ .ID }}-edit">Weight (kg)</label>
-                    <input
-                      id="ex-weight-{{ .ID }}-edit"
-                      name="weight_kg"
-                      type="number"
-                      step="0.5"
-                      class="mt-1 w-full input text-xs"
-                      value="{{ .WeightKg }}"
-                    />
+                    <input id="ex-weight-{{ .ID }}-edit" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input text-xs" value="{{ .WeightKg }}" />
                   </div>
-                  <div>
-                    <label class="text-xs font-medium" for="ex-rep-seconds-{{ .ID }}-edit">Rep time (sec)</label>
-                    <input
-                      id="ex-rep-seconds-{{ .ID }}-edit"
-                      name="rep_seconds"
-                      type="number"
-                      min="0"
-                      class="mt-1 w-full input text-xs"
-                      value="{{ .RepSeconds }}"
-                    />
-                  </div>
-                  <div>
-                    <label class="text-xs font-medium" for="ex-rep-rest-seconds-{{ .ID }}-edit">Rep rest (sec)</label>
-                    <input
-                      id="ex-rep-rest-seconds-{{ .ID }}-edit"
-                      name="rep_rest_seconds"
-                      type="number"
-                      min="0"
-                      class="mt-1 w-full input text-xs"
-                      value="{{ .RepRestSeconds }}"
-                    />
-                  </div>
-                  <div>
-                    <label class="text-xs font-medium" for="ex-set-rest-seconds-{{ .ID }}-edit">Set rest (sec)</label>
-                    <input
-                      id="ex-set-rest-seconds-{{ .ID }}-edit"
-                      name="set_rest_seconds"
-                      type="number"
-                      min="0"
-                      class="mt-1 w-full input text-xs"
-                      value="{{ .SetRestSeconds }}"
-                    />
-                  </div>
+                </div>
+              </div>
+              <div data-exercise-timed-fields="1" {{ if ne .Kind "timed_reps" }}hidden{{ end }}>
+                <div class="grid grid-cols-3 gap-2">
+                  <div><label class="text-xs font-medium" for="ex-t-sets-{{ .ID }}-edit">Sets</label><input id="ex-t-sets-{{ .ID }}-edit" name="sets" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Sets }}" /></div>
+                  <div><label class="text-xs font-medium" for="ex-t-reps-{{ .ID }}-edit">Reps</label><input id="ex-t-reps-{{ .ID }}-edit" name="reps" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Reps }}" /></div>
+                  <div><label class="text-xs font-medium" for="ex-t-weight-{{ .ID }}-edit">Weight (kg)</label><input id="ex-t-weight-{{ .ID }}-edit" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input text-xs" value="{{ .WeightKg }}" /></div>
+                  <div><label class="text-xs font-medium" for="ex-t-rep-sec-{{ .ID }}-edit">Rep time (s)</label><input id="ex-t-rep-sec-{{ .ID }}-edit" name="rep_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .RepSeconds }}" /></div>
+                  <div class="col-span-2"><label class="text-xs font-medium" for="ex-t-rung-{{ .ID }}-edit">Rung times</label><input id="ex-t-rung-{{ .ID }}-edit" name="rung_seconds" type="text" class="mt-1 w-full input text-xs" value="{{ .RungSeconds }}" placeholder="e.g. 3,6,9" /></div>
+                  <div><label class="text-xs font-medium" for="ex-t-rep-rest-{{ .ID }}-edit">Rep rest (s)</label><input id="ex-t-rep-rest-{{ .ID }}-edit" name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .RepRestSeconds }}" /></div>
+                  <div><label class="text-xs font-medium" for="ex-t-set-rest-{{ .ID }}-edit">Set rest (s)</label><input id="ex-t-set-rest-{{ .ID }}-edit" name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .SetRestSeconds }}" /></div>
+                  <div><label class="text-xs font-medium" for="ex-t-prep-{{ .ID }}-edit">Prep time (s)</label><input id="ex-t-prep-{{ .ID }}-edit" name="prep_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .PrepSeconds }}" /></div>
                 </div>
               </div>
 
@@ -294,7 +253,8 @@
                     <div>
                       <label class="text-xs font-medium" for="ex-kind-{{ .ID }}-edit">Type</label>
                       <select id="ex-kind-{{ .ID }}-edit" name="kind" class="mt-1 w-full input text-xs" onchange="window.__passionSyncExerciseKindGroups(this)">
-                        <option value="reps_and_sets" {{ if ne .Kind "session" }}selected{{ end }}>Reps and sets</option>
+                        <option value="reps_and_sets" {{ if eq .Kind "reps_and_sets" }}selected{{ end }}>Reps and sets</option>
+                        <option value="timed_reps" {{ if eq .Kind "timed_reps" }}selected{{ end }}>Timed reps</option>
                         <option value="session" {{ if eq .Kind "session" }}selected{{ end }}>Session</option>
                       </select>
                     </div>
@@ -325,32 +285,23 @@
                         </div>
                       </div>
                     </div>
-                    <div data-exercise-reps-fields="1" {{ if eq .Kind "session" }}hidden{{ end }}>
-                      <div class="grid grid-cols-2 gap-2">
-                        <div>
-                          <label class="text-xs font-medium" for="ex-sets-{{ .ID }}-edit">Sets</label>
-                          <input id="ex-sets-{{ .ID }}-edit" name="sets" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Sets }}" />
-                        </div>
-                        <div>
-                          <label class="text-xs font-medium" for="ex-reps-{{ .ID }}-edit">Reps</label>
-                          <input id="ex-reps-{{ .ID }}-edit" name="reps" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Reps }}" />
-                        </div>
-                        <div>
-                          <label class="text-xs font-medium" for="ex-weight-{{ .ID }}-edit">Weight (kg)</label>
-                          <input id="ex-weight-{{ .ID }}-edit" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input text-xs" value="{{ .WeightKg }}" />
-                        </div>
-                        <div>
-                          <label class="text-xs font-medium" for="ex-rep-seconds-{{ .ID }}-edit">Rep time (sec)</label>
-                          <input id="ex-rep-seconds-{{ .ID }}-edit" name="rep_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .RepSeconds }}" />
-                        </div>
-                        <div>
-                          <label class="text-xs font-medium" for="ex-rep-rest-seconds-{{ .ID }}-edit">Rep rest (sec)</label>
-                          <input id="ex-rep-rest-seconds-{{ .ID }}-edit" name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .RepRestSeconds }}" />
-                        </div>
-                        <div>
-                          <label class="text-xs font-medium" for="ex-set-rest-seconds-{{ .ID }}-edit">Set rest (sec)</label>
-                          <input id="ex-set-rest-seconds-{{ .ID }}-edit" name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .SetRestSeconds }}" />
-                        </div>
+                    <div data-exercise-reps-fields="1" {{ if ne .Kind "reps_and_sets" }}hidden{{ end }}>
+                      <div class="grid grid-cols-3 gap-2">
+                        <div><label class="text-xs font-medium" for="ex-sets-{{ .ID }}-edit">Sets</label><input id="ex-sets-{{ .ID }}-edit" name="sets" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Sets }}" /></div>
+                        <div><label class="text-xs font-medium" for="ex-reps-{{ .ID }}-edit">Reps</label><input id="ex-reps-{{ .ID }}-edit" name="reps" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Reps }}" /></div>
+                        <div><label class="text-xs font-medium" for="ex-weight-{{ .ID }}-edit">Weight (kg)</label><input id="ex-weight-{{ .ID }}-edit" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input text-xs" value="{{ .WeightKg }}" /></div>
+                      </div>
+                    </div>
+                    <div data-exercise-timed-fields="1" {{ if ne .Kind "timed_reps" }}hidden{{ end }}>
+                      <div class="grid grid-cols-3 gap-2">
+                        <div><label class="text-xs font-medium">Sets</label><input name="sets" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Sets }}" /></div>
+                        <div><label class="text-xs font-medium">Reps</label><input name="reps" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Reps }}" /></div>
+                        <div><label class="text-xs font-medium">Weight (kg)</label><input name="weight_kg" type="number" step="0.5" class="mt-1 w-full input text-xs" value="{{ .WeightKg }}" /></div>
+                        <div><label class="text-xs font-medium">Rep time (s)</label><input name="rep_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .RepSeconds }}" /></div>
+                        <div class="col-span-2"><label class="text-xs font-medium">Rung times</label><input name="rung_seconds" type="text" class="mt-1 w-full input text-xs" value="{{ .RungSeconds }}" placeholder="e.g. 3,6,9" /></div>
+                        <div><label class="text-xs font-medium">Rep rest (s)</label><input name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .RepRestSeconds }}" /></div>
+                        <div><label class="text-xs font-medium">Set rest (s)</label><input name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .SetRestSeconds }}" /></div>
+                        <div><label class="text-xs font-medium">Prep time (s)</label><input name="prep_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .PrepSeconds }}" /></div>
                       </div>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
@@ -572,6 +523,7 @@
               onchange="window.__passionSyncExerciseKindGroups(this)"
             >
               <option value="reps_and_sets" selected>Reps and sets</option>
+              <option value="timed_reps">Timed reps</option>
               <option value="session">Session</option>
               <option value="exercise_catalog">Exercise catalog</option>
             </select>
@@ -712,7 +664,7 @@
           </div>
 
           <div data-exercise-reps-fields="1" class="sm:col-span-2">
-            <div class="grid gap-2 sm:grid-cols-2">
+            <div class="grid gap-2 grid-cols-3">
               <div>
                 <label class="text-xs font-medium" for="ex-sets-{{ .Activity.ID }}">Sets</label>
                 <input id="ex-sets-{{ .Activity.ID }}" name="sets" type="number" min="0" class="mt-1 w-full input" />
@@ -725,17 +677,43 @@
                 <label class="text-xs font-medium" for="ex-weight-{{ .Activity.ID }}">Weight (kg)</label>
                 <input id="ex-weight-{{ .Activity.ID }}" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input" />
               </div>
+            </div>
+          </div>
+
+          <div data-exercise-timed-fields="1" class="sm:col-span-2" hidden>
+            <div class="grid gap-2 sm:grid-cols-2">
               <div>
-                <label class="text-xs font-medium" for="ex-rep-seconds-{{ .Activity.ID }}">Rep time (sec)</label>
-                <input id="ex-rep-seconds-{{ .Activity.ID }}" name="rep_seconds" type="number" min="0" class="mt-1 w-full input" />
+                <label class="text-xs font-medium" for="ex-t-sets-{{ .Activity.ID }}">Sets</label>
+                <input id="ex-t-sets-{{ .Activity.ID }}" name="sets" type="number" min="0" class="mt-1 w-full input" disabled />
               </div>
               <div>
-                <label class="text-xs font-medium" for="ex-rep-rest-seconds-{{ .Activity.ID }}">Rep rest (sec)</label>
-                <input id="ex-rep-rest-seconds-{{ .Activity.ID }}" name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input" />
+                <label class="text-xs font-medium" for="ex-t-reps-{{ .Activity.ID }}">Reps</label>
+                <input id="ex-t-reps-{{ .Activity.ID }}" name="reps" type="number" min="0" class="mt-1 w-full input" disabled />
               </div>
               <div>
-                <label class="text-xs font-medium" for="ex-set-rest-seconds-{{ .Activity.ID }}">Set rest (sec)</label>
-                <input id="ex-set-rest-seconds-{{ .Activity.ID }}" name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input" />
+                <label class="text-xs font-medium" for="ex-t-weight-{{ .Activity.ID }}">Weight (kg)</label>
+                <input id="ex-t-weight-{{ .Activity.ID }}" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input" disabled />
+              </div>
+              <div>
+                <label class="text-xs font-medium" for="ex-t-rep-seconds-{{ .Activity.ID }}">Rep time (sec)</label>
+                <input id="ex-t-rep-seconds-{{ .Activity.ID }}" name="rep_seconds" type="number" min="0" class="mt-1 w-full input" disabled />
+              </div>
+              <div class="sm:col-span-2">
+                <label class="text-xs font-medium" for="ex-t-rung-seconds-{{ .Activity.ID }}">Rung times (sec)</label>
+                <input id="ex-t-rung-seconds-{{ .Activity.ID }}" name="rung_seconds" type="text" class="mt-1 w-full input" placeholder="e.g. 3,6,9" disabled />
+                <p class="text-[10px] muted mt-0.5">Overrides rep time. Use for ladders, e.g. 3,6,9</p>
+              </div>
+              <div>
+                <label class="text-xs font-medium" for="ex-t-rep-rest-seconds-{{ .Activity.ID }}">Rep rest (sec)</label>
+                <input id="ex-t-rep-rest-seconds-{{ .Activity.ID }}" name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input" disabled />
+              </div>
+              <div>
+                <label class="text-xs font-medium" for="ex-t-set-rest-seconds-{{ .Activity.ID }}">Set rest (sec)</label>
+                <input id="ex-t-set-rest-seconds-{{ .Activity.ID }}" name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input" disabled />
+              </div>
+              <div>
+                <label class="text-xs font-medium" for="ex-t-prep-seconds-{{ .Activity.ID }}">Prep time (sec)</label>
+                <input id="ex-t-prep-seconds-{{ .Activity.ID }}" name="prep_seconds" type="number" min="0" class="mt-1 w-full input" disabled />
               </div>
             </div>
           </div>
@@ -762,16 +740,27 @@
       window.__passionSyncExerciseKindGroups = function (kindSelect) {
         if (!kindSelect || !kindSelect.form) return;
         const form = kindSelect.form;
-        const session = kindSelect.value === "session";
-        const isCatalog = kindSelect.value === "exercise_catalog";
+        const kind = kindSelect.value;
+        const session = kind === "session";
+        const isCatalog = kind === "exercise_catalog";
+        const isTimed = kind === "timed_reps";
+        const isReps = !session && !isCatalog && !isTimed;
         const reps = form.querySelector("[data-exercise-reps-fields]");
+        const timed = form.querySelector("[data-exercise-timed-fields]");
         const sess = form.querySelector("[data-exercise-session-fields]");
         const media = form.querySelector("[data-exercise-media-fields]");
         if (reps) {
-          reps.hidden = session || isCatalog;
+          reps.hidden = !isReps;
           reps.querySelectorAll("input, textarea, select").forEach(function (el) {
             if (el === kindSelect) return;
-            el.disabled = session || isCatalog;
+            el.disabled = !isReps;
+          });
+        }
+        if (timed) {
+          timed.hidden = !isTimed;
+          timed.querySelectorAll("input, textarea, select").forEach(function (el) {
+            if (el === kindSelect) return;
+            el.disabled = !isTimed;
           });
         }
         if (sess) {
