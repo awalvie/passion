@@ -4,38 +4,38 @@ activities:
   - type: "activity"
     exercises:
       - name: "Isometric Hang"
-        kind: "reps_and_sets"
+        kind: "timed_reps"
         sets: 1
         reps: 6
         rep_seconds: 10
         rep_rest_seconds: 20
         notes: "Sub-maximal isometric hangs on an 18-22mm edge with feet on the floor at all times. Keep the intensity very low so only a small strain is felt in the forearms. Aim for roughly 6 hours between this session and climbing or any other fingerboard session."
       - name: "Isometric Hang: Front 3 Open"
-        kind: "reps_and_sets"
+        kind: "timed_reps"
         sets: 1
         reps: 6
         rep_seconds: 10
         rep_rest_seconds: 20
       - name: "Isometric Hang: Front 2 Open"
-        kind: "reps_and_sets"
+        kind: "timed_reps"
         sets: 1
         reps: 2
         rep_seconds: 10
         rep_rest_seconds: 20
       - name: "Isometric Hang: Middle 2 Open"
-        kind: "reps_and_sets"
+        kind: "timed_reps"
         sets: 1
         reps: 2
         rep_seconds: 10
         rep_rest_seconds: 20
       - name: "Isometric Hang: Front 2 Half Crimp"
-        kind: "reps_and_sets"
+        kind: "timed_reps"
         sets: 1
         reps: 2
         rep_seconds: 10
         rep_rest_seconds: 20
       - name: "Isometric Hang: Middle 2 Half Crimp"
-        kind: "reps_and_sets"
+        kind: "timed_reps"
         sets: 1
         reps: 2
         rep_seconds: 10

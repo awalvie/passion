@@ -1,5 +1,5 @@
 name: "PE Flow"
-kind: "reps_and_sets"
+kind: "timed_reps"
 sets: 3
 reps: 1
 rep_seconds: 360

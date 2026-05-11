@@ -2,7 +2,6 @@ name: "Weighted Pull-ups"
 kind: "reps_and_sets"
 sets: 5
 reps: 5
-rep_seconds: 5
 set_rest_seconds: 120
 weight_kg: 10
 notes: "Controlled tempo"

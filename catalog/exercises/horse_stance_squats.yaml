@@ -1,5 +1,5 @@
 name: "Horse Stance Squats"
-kind: "reps_and_sets"
+kind: "timed_reps"
 sets: 2
 reps: 6
 rep_seconds: 6

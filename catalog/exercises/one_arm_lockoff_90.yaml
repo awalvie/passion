@@ -1,5 +1,5 @@
 name: "1-arm lock-off 90 degrees"
-kind: "reps_and_sets"
+kind: "timed_reps"
 sets: 2
 reps: 1
 rep_seconds: 10
