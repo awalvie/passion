@@ -154,3 +154,26 @@ func ListCompletedRunDatesInRange(gdb *gorm.DB, ownerID uint, start, end time.Ti
 		Scan(&rows).Error
 	return rows, err
 }
+
+// GetSessionJournalByRunID returns the journal for a run, or nil if none exists.
+func GetSessionJournalByRunID(gdb *gorm.DB, ownerID, runID uint) (*SessionJournal, error) {
+	var j SessionJournal
+	err := gdb.Where("owner_id = ? AND run_id = ?", ownerID, runID).First(&j).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	return &j, err
+}
+
+// UpsertSessionJournal creates or updates the journal for a run.
+// Pass j.ID = 0 to create, non-zero to update.
+func UpsertSessionJournal(gdb *gorm.DB, j *SessionJournal) error {
+	return gdb.Save(j).Error
+}
+
+// ListSessionJournals returns all journals for a user, newest first.
+func ListSessionJournals(gdb *gorm.DB, ownerID uint) ([]SessionJournal, error) {
+	var journals []SessionJournal
+	err := gdb.Where("owner_id = ?", ownerID).Order("id desc").Find(&journals).Error
+	return journals, err
+}

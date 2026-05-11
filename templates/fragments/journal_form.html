@@ -1,0 +1,220 @@
+{{ define "journal_form.html" }}
+<div id="journal-section" class="run-summary-page-card">
+  <p class="run-summary-page-section-heading">Session Journal</p>
+
+  {{ if .Saved }}
+  {{/* ── Read-only view ─────────────────────────────────────────────────── */}}
+  <div class="p-4 flex flex-col gap-4">
+
+    {{/* Quick-stats row */}}
+    <div class="flex flex-wrap gap-3 text-sm">
+      {{ if gt .SleepScore 0 }}
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style="background:var(--card-muted);font-size:0.78rem;">
+        <i data-lucide="moon" style="width:0.8rem;height:0.8rem;opacity:0.6" aria-hidden="true"></i>
+        Sleep {{ .SleepScore }}/5
+      </span>
+      {{ end }}
+      {{ if gt .Energy 0 }}
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style="background:var(--card-muted);font-size:0.78rem;">
+        <i data-lucide="zap" style="width:0.8rem;height:0.8rem;opacity:0.6" aria-hidden="true"></i>
+        Energy {{ .Energy }}/5
+      </span>
+      {{ end }}
+      {{ if gt .RPE 0 }}
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style="background:var(--card-muted);font-size:0.78rem;">
+        <i data-lucide="flame" style="width:0.8rem;height:0.8rem;opacity:0.6" aria-hidden="true"></i>
+        RPE {{ .RPE }}/10
+      </span>
+      {{ end }}
+      {{ if .Focus }}
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style="background:var(--card-muted);font-size:0.78rem;">
+        <i data-lucide="target" style="width:0.8rem;height:0.8rem;opacity:0.6" aria-hidden="true"></i>
+        {{ .Focus }}
+      </span>
+      {{ end }}
+      {{ if .Location }}
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style="background:var(--card-muted);font-size:0.78rem;">
+        <i data-lucide="map-pin" style="width:0.8rem;height:0.8rem;opacity:0.6" aria-hidden="true"></i>
+        {{ if eq .Location "indoor" }}Indoor{{ else }}Outdoor{{ end }}
+      </span>
+      {{ end }}
+    </div>
+
+    {{ if .WentWell }}
+    <div>
+      <p class="text-xs font-semibold muted mb-1" style="text-transform:uppercase;letter-spacing:0.06em;">What went well</p>
+      <div class="prose prose-sm text-sm">{{ markdownHTML .WentWell }}</div>
+    </div>
+    {{ end }}
+
+    {{ if .NextFocus }}
+    <div>
+      <p class="text-xs font-semibold muted mb-1" style="text-transform:uppercase;letter-spacing:0.06em;">Next focus</p>
+      <div class="prose prose-sm text-sm">{{ markdownHTML .NextFocus }}</div>
+    </div>
+    {{ end }}
+
+    {{ if and (eq .WentWell "") (eq .NextFocus "") (eq .SleepScore 0) (eq .Energy 0) (eq .RPE 0) }}
+    <p class="text-sm muted">No notes recorded.</p>
+    {{ end }}
+
+    <div>
+      <button type="button" class="rounded-md btn-ghost px-3 py-1.5 text-xs"
+        hx-get="/runs/{{ .RunID }}/journal"
+        hx-target="#journal-section"
+        hx-swap="outerHTML">
+        <i data-lucide="pencil" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+        Edit journal
+      </button>
+    </div>
+  </div>
+
+  {{ else }}
+  {{/* ── Edit form ───────────────────────────────────────────────────────── */}}
+  <form hx-post="/runs/{{ .RunID }}/journal"
+        hx-target="#journal-section"
+        hx-swap="outerHTML"
+        class="p-4 flex flex-col gap-5">
+
+    {{/* Sleep quality */}}
+    <div>
+      <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Sleep quality</p>
+      <div class="flex gap-2">
+        {{ range seq 1 5 }}
+        <label class="journal-dot-label">
+          <input type="radio" name="sleep_score" value="{{ . }}" class="sr-only"
+            {{ if eq . $.SleepScore }}checked{{ end }}>
+          <span class="journal-dot">{{ . }}</span>
+        </label>
+        {{ end }}
+        <label class="journal-dot-label">
+          <input type="radio" name="sleep_score" value="0" class="sr-only"
+            {{ if eq $.SleepScore 0 }}checked{{ end }}>
+          <span class="journal-dot journal-dot--clear">–</span>
+        </label>
+      </div>
+    </div>
+
+    {{/* Pre-session energy */}}
+    <div>
+      <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Pre-session energy</p>
+      <div class="flex gap-2">
+        {{ range seq 1 5 }}
+        <label class="journal-dot-label">
+          <input type="radio" name="energy" value="{{ . }}" class="sr-only"
+            {{ if eq . $.Energy }}checked{{ end }}>
+          <span class="journal-dot">{{ . }}</span>
+        </label>
+        {{ end }}
+        <label class="journal-dot-label">
+          <input type="radio" name="energy" value="0" class="sr-only"
+            {{ if eq $.Energy 0 }}checked{{ end }}>
+          <span class="journal-dot journal-dot--clear">–</span>
+        </label>
+      </div>
+    </div>
+
+    {{/* RPE */}}
+    <div>
+      <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Session RPE (effort)</p>
+      <div class="flex flex-wrap gap-2">
+        {{ range seq 1 10 }}
+        <label class="journal-dot-label">
+          <input type="radio" name="rpe" value="{{ . }}" class="sr-only"
+            {{ if eq . $.RPE }}checked{{ end }}>
+          <span class="journal-dot">{{ . }}</span>
+        </label>
+        {{ end }}
+        <label class="journal-dot-label">
+          <input type="radio" name="rpe" value="0" class="sr-only"
+            {{ if eq $.RPE 0 }}checked{{ end }}>
+          <span class="journal-dot journal-dot--clear">–</span>
+        </label>
+      </div>
+    </div>
+
+    {{/* Focus tag */}}
+    <div>
+      <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Session focus</p>
+      <div class="flex flex-wrap gap-2">
+        <label class="journal-toggle-label">
+          <input type="radio" name="focus" value="strength" class="sr-only"
+            {{ if eq $.Focus "strength" }}checked{{ end }}>
+          <span class="journal-toggle">Strength</span>
+        </label>
+        <label class="journal-toggle-label">
+          <input type="radio" name="focus" value="endurance" class="sr-only"
+            {{ if eq $.Focus "endurance" }}checked{{ end }}>
+          <span class="journal-toggle">Endurance</span>
+        </label>
+        <label class="journal-toggle-label">
+          <input type="radio" name="focus" value="technique" class="sr-only"
+            {{ if eq $.Focus "technique" }}checked{{ end }}>
+          <span class="journal-toggle">Technique</span>
+        </label>
+        <label class="journal-toggle-label">
+          <input type="radio" name="focus" value="projects" class="sr-only"
+            {{ if eq $.Focus "projects" }}checked{{ end }}>
+          <span class="journal-toggle">Projects</span>
+        </label>
+        <label class="journal-toggle-label">
+          <input type="radio" name="focus" value="general" class="sr-only"
+            {{ if eq $.Focus "general" }}checked{{ end }}>
+          <span class="journal-toggle">General</span>
+        </label>
+        <label class="journal-toggle-label">
+          <input type="radio" name="focus" value="" class="sr-only"
+            {{ if eq $.Focus "" }}checked{{ end }}>
+          <span class="journal-toggle">None</span>
+        </label>
+      </div>
+    </div>
+
+    {{/* Location */}}
+    <div>
+      <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Location</p>
+      <div class="flex gap-2">
+        <label class="journal-toggle-label">
+          <input type="radio" name="location" value="indoor" class="sr-only"
+            {{ if eq $.Location "indoor" }}checked{{ end }}>
+          <span class="journal-toggle">Indoor</span>
+        </label>
+        <label class="journal-toggle-label">
+          <input type="radio" name="location" value="outdoor" class="sr-only"
+            {{ if eq $.Location "outdoor" }}checked{{ end }}>
+          <span class="journal-toggle">Outdoor</span>
+        </label>
+        <label class="journal-toggle-label">
+          <input type="radio" name="location" value="" class="sr-only"
+            {{ if eq $.Location "" }}checked{{ end }}>
+          <span class="journal-toggle">–</span>
+        </label>
+      </div>
+    </div>
+
+    {{/* What went well */}}
+    <div>
+      <label class="text-xs font-semibold muted mb-1 block" for="went_well_{{ .RunID }}"
+        style="text-transform:uppercase;letter-spacing:0.06em;">What went well</label>
+      <textarea id="went_well_{{ .RunID }}" name="went_well" rows="3"
+        class="mt-1 w-full input text-sm" placeholder="Highlights, sends, good movement…">{{ .WentWell }}</textarea>
+    </div>
+
+    {{/* Next focus */}}
+    <div>
+      <label class="text-xs font-semibold muted mb-1 block" for="next_focus_{{ .RunID }}"
+        style="text-transform:uppercase;letter-spacing:0.06em;">Focus for next session</label>
+      <textarea id="next_focus_{{ .RunID }}" name="next_focus" rows="3"
+        class="mt-1 w-full input text-sm" placeholder="What to work on, technique cues…">{{ .NextFocus }}</textarea>
+    </div>
+
+    <div class="flex gap-2">
+      <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium">
+        Save journal
+      </button>
+    </div>
+  </form>
+  {{ end }}
+</div>
+<script>if(window.__passionRenderIcons)window.__passionRenderIcons();</script>
+{{ end }}
