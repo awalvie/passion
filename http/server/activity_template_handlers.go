@@ -240,6 +240,7 @@ func (s *Server) handleAddActivityTemplateExercise(w http.ResponseWriter, r *htt
 		ex.RepSeconds = formInt(r, "rep_seconds")
 		ex.RepRestSeconds = formInt(r, "rep_rest_seconds")
 		ex.SetRestSeconds = formInt(r, "set_rest_seconds")
+		ex.PrepSeconds = formInt(r, "prep_seconds")
 		ex.WeightKg = formFloat(r, "weight_kg")
 	}
 	if err := s.store.DB.Create(ex).Error; err != nil {
@@ -297,6 +298,7 @@ func (s *Server) handleAddATExerciseFromLibrary(w http.ResponseWriter, r *http.R
 		RepSeconds:             lib.RepSeconds,
 		RepRestSeconds:         lib.RepRestSeconds,
 		SetRestSeconds:         lib.SetRestSeconds,
+		PrepSeconds:            lib.PrepSeconds,
 		WeightKg:               lib.WeightKg,
 		OrderIndex:             orderIndex,
 	}
@@ -323,6 +325,7 @@ func (s *Server) handleAddATExerciseFromLibrary(w http.ResponseWriter, r *http.R
 				RepSeconds:             lc.RepSeconds,
 				RepRestSeconds:         lc.RepRestSeconds,
 				SetRestSeconds:         lc.SetRestSeconds,
+				PrepSeconds:            lc.PrepSeconds,
 				WeightKg:               lc.WeightKg,
 				OrderIndex:             ci,
 				ParentExerciseID:       &pid,

@@ -666,6 +666,7 @@
         const repSeconds = Math.max(0, {{ .CurrentStep.RepSeconds }});
         const repRestSeconds = Math.max(0, {{ .CurrentStep.RepRestSeconds }});
         const setRestSeconds = Math.max(0, {{ .CurrentStep.SetRestSeconds }});
+        const prepSeconds = Math.max(0, {{ .CurrentStep.PrepSeconds }});
         let phase = "work";
         let phaseDuration = 0;
         let phaseCompleted = false;
@@ -821,6 +822,7 @@
         function phaseLabel() {
           if (!hasStartedPlayback) return "Waiting to start";
           if (isSessionExercise) return "Session";
+          if (phase === "prep") return "Get ready…";
           if (phase === "rep_rest") return "Rest (between reps)";
           if (phase === "set_rest") return "Rest (between sets)";
           return "Work";
@@ -830,6 +832,7 @@
           if (isSessionExercise) {
             return sessionDurationSeconds > 0 ? sessionDurationSeconds : 0;
           }
+          if (kind === "prep") return prepSeconds;
           if (kind === "work") return repSeconds > 0 ? repSeconds : 0;
           if (kind === "rep_rest") return repRestSeconds;
           if (kind === "set_rest") return setRestSeconds;
@@ -849,13 +852,17 @@
         }
 
         function setPhase(nextPhase) {
+          // Insert a prep countdown before each work phase (non-session exercises only).
+          if (nextPhase === "work" && !isSessionExercise && prepSeconds > 0 && phase !== "prep") {
+            nextPhase = "prep";
+          }
           phase = nextPhase;
           phaseStartMs = Date.now();
           phaseDuration = phaseDurationFor(nextPhase);
           pausedPhaseOffsetMs = 0;
           phaseCompleted = false;
           timerState.textContent = phaseLabel();
-          setPlaylistRestClass(!isSessionExercise && nextPhase !== "work");
+          setPlaylistRestClass(!isSessionExercise && nextPhase !== "work" && nextPhase !== "prep");
           updateTimerPhaseClass();
         }
 
@@ -972,6 +979,10 @@
 
               if (isSessionExercise) {
                 startAutoAdvance();
+              } else if (phase === "prep") {
+                playPhaseEndTone();
+                setPhase("work");
+                renderCounters();
               } else if (phase === "work") {
                 if (repNow < repMax) {
                   playPhaseEndTone();
@@ -1099,6 +1110,10 @@
           } else {
             if (!hasStartedPlayback) {
               hasStartedPlayback = true;
+              setPhase("work");
+            } else if (!isSessionExercise && phase === "work" && prepSeconds > 0) {
+              // Resuming a paused work phase — insert prep and restart the rep.
+              pausedPhaseOffsetMs = 0;
               setPhase("work");
             }
             sessionRunning = true;

@@ -218,6 +218,7 @@ func (s *Server) handleUpdateExercise(w http.ResponseWriter, r *http.Request, ex
 		ex.RepSeconds = 0
 		ex.RepRestSeconds = 0
 		ex.SetRestSeconds = 0
+		ex.PrepSeconds = 0
 		ex.WeightKg = 0
 		// Clear media for catalog parents.
 		s.store.DB.Where("owner_id = ? AND exercise_id = ?", ownerID, ex.ID).Delete(&db.ExerciseMedia{})
@@ -228,6 +229,7 @@ func (s *Server) handleUpdateExercise(w http.ResponseWriter, r *http.Request, ex
 		ex.RepSeconds = 0
 		ex.RepRestSeconds = 0
 		ex.SetRestSeconds = 0
+		ex.PrepSeconds = 0
 		ex.WeightKg = 0
 	} else {
 		ex.SessionDurationSeconds = 0
@@ -236,6 +238,7 @@ func (s *Server) handleUpdateExercise(w http.ResponseWriter, r *http.Request, ex
 		ex.RepSeconds = formInt(r, "rep_seconds")
 		ex.RepRestSeconds = formInt(r, "rep_rest_seconds")
 		ex.SetRestSeconds = formInt(r, "set_rest_seconds")
+		ex.PrepSeconds = formInt(r, "prep_seconds")
 		ex.WeightKg = formFloat(r, "weight_kg")
 	}
 
@@ -349,6 +352,7 @@ func (s *Server) handleAddExercise(w http.ResponseWriter, r *http.Request, activ
 			ex.RepSeconds = formInt(r, "rep_seconds")
 			ex.RepRestSeconds = formInt(r, "rep_rest_seconds")
 			ex.SetRestSeconds = formInt(r, "set_rest_seconds")
+			ex.PrepSeconds = formInt(r, "prep_seconds")
 			ex.WeightKg = formFloat(r, "weight_kg")
 		}
 		if err := s.store.DB.Create(ex).Error; err != nil {
@@ -387,6 +391,7 @@ func (s *Server) handleAddExercise(w http.ResponseWriter, r *http.Request, activ
 		ex.RepSeconds = formInt(r, "rep_seconds")
 		ex.RepRestSeconds = formInt(r, "rep_rest_seconds")
 		ex.SetRestSeconds = formInt(r, "set_rest_seconds")
+		ex.PrepSeconds = formInt(r, "prep_seconds")
 		ex.WeightKg = formFloat(r, "weight_kg")
 	}
 

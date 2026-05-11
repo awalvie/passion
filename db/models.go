@@ -109,6 +109,7 @@ type Exercise struct {
 	RepSeconds     int
 	RepRestSeconds int
 	SetRestSeconds int
+	PrepSeconds    int
 	WeightKg       float64
 
 	OrderIndex int `gorm:"not null;default:0;index"`
@@ -147,6 +148,7 @@ type LibraryExercise struct {
 	RepSeconds     int
 	RepRestSeconds int
 	SetRestSeconds int
+	PrepSeconds    int
 	WeightKg       float64
 
 	// ParentLibraryExerciseID links child options to a catalog parent in the library.

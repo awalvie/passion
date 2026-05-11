@@ -265,6 +265,7 @@ func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Reques
 		existing.RepSeconds = row.RepSeconds
 		existing.RepRestSeconds = row.RepRestSeconds
 		existing.SetRestSeconds = row.SetRestSeconds
+		existing.PrepSeconds = row.PrepSeconds
 		existing.WeightKg = row.WeightKg
 		if err := s.store.DB.Save(&existing).Error; err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -376,6 +377,7 @@ func (s *Server) libraryExerciseFromForm(r *http.Request, base *db.LibraryExerci
 		row.RepSeconds = formInt(r, "rep_seconds")
 		row.RepRestSeconds = formInt(r, "rep_rest_seconds")
 		row.SetRestSeconds = formInt(r, "set_rest_seconds")
+		row.PrepSeconds = formInt(r, "prep_seconds")
 		row.WeightKg = formFloat(r, "weight_kg")
 	}
 
@@ -421,6 +423,7 @@ func (s *Server) syncLibraryCatalogChildren(r *http.Request, parentID uint, owne
 						child.RepSeconds = src.RepSeconds
 						child.RepRestSeconds = src.RepRestSeconds
 						child.SetRestSeconds = src.SetRestSeconds
+						child.PrepSeconds = src.PrepSeconds
 						child.WeightKg = src.WeightKg
 					}
 				}
