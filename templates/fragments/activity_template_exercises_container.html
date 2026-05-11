@@ -13,18 +13,23 @@
             class="cursor-pointer list-none flex items-center justify-between gap-3 px-3 py-2.5"
             title="Expand or collapse this exercise"
           >
-            <div class="min-w-0">
-              <div class="text-sm font-medium truncate" title="{{ .Name }}">{{ .Name }}</div>
+            <div class="min-w-0 flex-1 ml-2 flex items-baseline gap-3">
+              <div class="text-sm font-medium truncate shrink-0 max-w-[55%]" title="{{ .Name }}">{{ .Name }}</div>
               {{ $summary := exerciseSummary . }}
-              {{ if $summary }}<div class="ex-card-summary">{{ $summary }}</div>{{ end }}
+              {{ if $summary }}<div class="ex-card-summary flex-1 min-w-0 truncate">{{ $summary }}</div>{{ end }}
             </div>
-            <div
-              class="dnd-handle shrink-0 text-[12px] muted leading-none opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity"
-              aria-label="Drag to reorder"
-              draggable="true"
-              data-exercise-drag-handle="1"
-              title="Drag to reorder"
-            >≡</div>
+            <div class="flex items-center gap-2 shrink-0">
+              {{ if ne .Kind "reps_and_sets" }}
+              <span class="text-[10px] font-medium px-1 py-0.5 rounded border" style="border-color:var(--border);color:var(--text-muted)">{{ if eq .Kind "timed_reps" }}timed{{ else if eq .Kind "session" }}session{{ else if eq .Kind "exercise_catalog" }}catalog{{ end }}</span>
+              {{ end }}
+              <div
+                class="dnd-handle text-[12px] muted leading-none opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity"
+                aria-label="Drag to reorder"
+                draggable="true"
+                data-exercise-drag-handle="1"
+                title="Drag to reorder"
+              >≡</div>
+            </div>
           </summary>
 
           <div class="px-3 pb-3 mt-0 space-y-3">
