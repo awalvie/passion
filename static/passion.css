@@ -2538,6 +2538,26 @@ html[data-theme="dark"] .catalog-dialog-actions form[method="dialog"] button {
   border-color: var(--accent);
   color: var(--accent);
 }
+.run-finish-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+.run-finish-btn:hover {
+  border-color: var(--fg);
+  color: var(--fg);
+}
 
 /* ─── Run player: notes icon differentiation ─── */
 .run-collapse-icon {
@@ -3041,26 +3061,33 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
 .cycle-targets-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
 }
+
+/* Each exercise row: name column | steppers | vary toggle — all bottom-aligned */
 .cycle-target-row {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: flex-end;
+  gap: 0.75rem;
   flex-wrap: wrap;
-  padding: 0.5rem 0;
+  padding: 0.6rem 0;
   border-bottom: 1px solid var(--border);
 }
 .cycle-target-row:last-child { border-bottom: none; }
 
+/* Left: name + tiny defaults stacked */
 .cycle-target-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1 1 9rem;
   min-width: 9rem;
+}
+.cycle-target-name-text {
   font-size: 0.8125rem;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  flex: 1 1 9rem;
+  gap: 0.35rem;
 }
 .cycle-target-badge {
   font-size: 0.65rem;
@@ -3072,17 +3099,79 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
   border-radius: 9999px;
   padding: 0.1rem 0.45rem;
 }
-.cycle-target-form {
+.cycle-target-defaults {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+/* Right: vary toggle pill */
+.cycle-target-vary-btn {
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.12s, color 0.12s;
+  align-self: flex-end;
+}
+.cycle-target-vary-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cycle-target-vary-btn--active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+/* Stepper */
+.stepper {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  flex-wrap: wrap;
+  gap: 0.3rem;
 }
+.stepper-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 50%;
+  border: 1px solid var(--accent-border, var(--accent));
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s, color 0.1s;
+}
+.stepper-btn:hover { background: var(--accent); color: #fff; }
+.stepper-btn:active { opacity: 0.8; }
+.stepper-input {
+  width: 2.2rem;
+  height: 1.6rem;
+  padding: 0 0.2rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+  -moz-appearance: textfield;
+}
+.stepper-input::-webkit-inner-spin-button,
+.stepper-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.stepper-input:focus { outline: none; border-color: var(--accent); z-index: 1; position: relative; }
+.stepper-input--modified { border-color: var(--accent); background: var(--accent-bg); }
+
+/* Target field group (label + stepper) */
 .cycle-target-field {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.2rem;
 }
 .cycle-target-field-label {
   font-size: 0.6rem;
@@ -3091,35 +3180,14 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
   text-transform: uppercase;
   color: var(--muted);
 }
-.cycle-target-input {
-  width: 3.8rem;
-  padding: 0.25rem 0.4rem;
-  font-size: 0.78rem;
-  border: 1px solid var(--border);
-  border-radius: 0.35rem;
-  background: var(--bg);
-  color: var(--text);
-  text-align: center;
+
+/* Row of steppers */
+.cycle-target-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.25rem;
+  flex-wrap: wrap;
 }
-.cycle-target-input:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-.cycle-target-save-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.3rem 0.5rem;
-  border-radius: 0.35rem;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  align-self: flex-end;
-  margin-bottom: 1px;
-}
-.cycle-target-save-btn:hover { opacity: 0.85; }
-.cycle-target-clear-form { display: flex; align-self: flex-end; margin-bottom: 1px; }
 .cycle-target-clear-btn {
   display: inline-flex;
   align-items: center;
@@ -3130,8 +3198,25 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
   color: var(--muted);
   border: 1px solid var(--border);
   cursor: pointer;
+  align-self: flex-end;
 }
 .cycle-target-clear-btn:hover { color: var(--text); border-color: var(--text); }
+
+/* Per-week rows — flex: 1 1 100% pushes them onto their own line in the parent flex row */
+.cycle-target-week-rows { display: flex; flex-direction: column; gap: 0.4rem; flex: 1 1 100%; padding-top: 0.4rem; }
+.cycle-target-week-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.cycle-target-week-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+  min-width: 2.8rem;
+  padding-bottom: 0.35rem;
+}
 
 /* ── Exercise Library Edit: two-column layout ── */
 .lib-edit-grid {
@@ -3303,3 +3388,96 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
   border-color: var(--accent, #2563eb);
   color: var(--accent, #2563eb);
 }
+
+/* ---------------------------------------------------------------------------
+   Climbing ticks
+--------------------------------------------------------------------------- */
+
+.tick-kind {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tick-sent-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.tick-unsent-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  background: var(--card-muted);
+  color: var(--muted);
+}
+
+.tick-style {
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+}
+.tick-style--onsight  { background: #dcfce7; color: #16a34a; }
+.tick-style--flash    { background: #fef9c3; color: #a16207; }
+.tick-style--redpoint { background: #fee2e2; color: #dc2626; }
+.tick-style--project  { background: var(--card-muted); color: var(--muted); }
+.tick-style--repeat   { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+.tick-style--top-rope { background: #dbeafe; color: #2563eb; }
+
+/* Style toggle pills in tick add form */
+.tick-style-toggle {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border: 1.5px solid var(--border);
+  color: var(--muted);
+  background: var(--panel);
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  user-select: none;
+}
+.tick-style-toggle.is-selected,
+.tick-style-toggle:has(input:checked) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* Stars selector */
+.tick-stars { display: inline-flex; gap: 0.2rem; }
+.tick-stars button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--border);
+  padding: 0;
+  line-height: 1;
+}
+.tick-stars button.active { color: #f59e0b; }
+
+/* ---------------------------------------------------------------------------
+   Venue / board badges
+--------------------------------------------------------------------------- */
+
+.venue-badge {
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+.venue-badge--commercial { background: var(--accent-bg); color: var(--accent); }
+.venue-badge--outdoor    { background: #dcfce7; color: #16a34a; }
+.venue-badge--board      { background: #fef9c3; color: #a16207; }

@@ -13,8 +13,20 @@
   </div>
   {{ end }}
 
+  {{/* Exercises section — only shown for new entries with a draft run */}}
+  {{ if .DraftRunID }}
+  <div class="mb-5">
+    {{ template "manual_exercises.html" . }}
+  </div>
+  {{ end }}
+
   <form action="{{ if .JournalID }}/training-log/{{ .JournalID }}/edit{{ else }}/training-log/new{{ end }}"
         method="post" class="card card-pad flex flex-col gap-5">
+
+    {{/* Hidden draft run ID so POST can finalise it */}}
+    {{ if .DraftRunID }}
+    <input type="hidden" name="draft_run_id" value="{{ .DraftRunID }}" />
+    {{ end }}
 
     {{/* Title + Date (hidden for run-linked entries) */}}
     {{ if .IsRunLinked }}
@@ -36,6 +48,32 @@
         <input id="date" name="date" type="date" class="w-full input text-sm"
           value="{{ .DateValue }}" required />
       </div>
+    </div>
+    {{ end }}
+
+    {{/* Venue and board (only for new entries) */}}
+    {{ if and .DraftRunID (or .Venues .Boards) }}
+    <div class="grid gap-4 sm:grid-cols-2">
+      {{ if .Venues }}
+      <div>
+        <label class="text-xs font-semibold muted block mb-1" for="venue-sel"
+          style="text-transform:uppercase;letter-spacing:0.06em;">Venue <span class="font-normal">(optional)</span></label>
+        <select id="venue-sel" name="venue_id" class="w-full input text-sm">
+          <option value="">—</option>
+          {{ range .Venues }}<option value="{{ .ID }}" {{ if eq $.VenueID .ID }}selected{{ end }}>{{ .Name }} ({{ .Kind }})</option>{{ end }}
+        </select>
+      </div>
+      {{ end }}
+      {{ if .Boards }}
+      <div>
+        <label class="text-xs font-semibold muted block mb-1" for="board-sel"
+          style="text-transform:uppercase;letter-spacing:0.06em;">Board <span class="font-normal">(optional)</span></label>
+        <select id="board-sel" name="board_id" class="w-full input text-sm">
+          <option value="">—</option>
+          {{ range .Boards }}<option value="{{ .ID }}" {{ if eq $.BoardID .ID }}selected{{ end }}>{{ .Label }}</option>{{ end }}
+        </select>
+      </div>
+      {{ end }}
     </div>
     {{ end }}
 
@@ -133,7 +171,8 @@
       </div>
     </div>
 
-    {{/* Location */}}
+    {{/* Location (only shown when no venues configured, or when editing) */}}
+    {{ if not .Venues }}
     <div>
       <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Location</p>
       <div class="flex gap-2">
@@ -154,6 +193,7 @@
         </label>
       </div>
     </div>
+    {{ end }}
 
     {{/* What went well */}}
     <div>
@@ -175,7 +215,17 @@
       <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium">
         {{ if .JournalID }}Save changes{{ else }}Save entry{{ end }}
       </button>
+      {{ if .DraftRunID }}
+      <button
+        type="button"
+        class="rounded-md btn-ghost px-4 py-2 text-sm"
+        hx-post="/training-log/draft/{{ .DraftRunID }}/discard"
+        hx-swap="none"
+        onclick="window.location='/training-log'"
+      >Discard</button>
+      {{ else }}
       <a href="/training-log" class="rounded-md btn-ghost px-4 py-2 text-sm">Cancel</a>
+      {{ end }}
     </div>
   </form>
 </div>

@@ -66,7 +66,13 @@
             </div>
             <p class="mt-0.5 text-xs muted">
               {{ .DateLabel }}{{ if .DurationLabel }} · {{ .DurationLabel }}{{ end }}
+              {{ if .IsManual }}<span class="ml-1 text-[10px] px-1 rounded" style="background:var(--card-muted)">Manual</span>{{ end }}
             </p>
+            {{ if .TickSummaryLabel }}
+            <p class="mt-0.5 text-xs" style="color:var(--accent)">{{ .TickSummaryLabel }}</p>
+            {{ else if gt .ExerciseCount 0 }}
+            <p class="mt-0.5 text-xs muted">{{ .ExerciseCount }} exercise{{ if ne .ExerciseCount 1 }}s{{ end }}</p>
+            {{ end }}
           </div>
 
           {{/* Edit / delete buttons */}}

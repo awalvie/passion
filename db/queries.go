@@ -121,6 +121,20 @@ func GetActivityTemplateWithExercises(gdb *gorm.DB, ownerID, templateID uint) (*
 	return &tpl, nil
 }
 
+// ListActivityTemplatesWithExercises returns all activity templates for a user with their
+// exercises preloaded, ordered by name ascending.
+func ListActivityTemplatesWithExercises(gdb *gorm.DB, ownerID uint) ([]ActivityTemplate, error) {
+	var rows []ActivityTemplate
+	err := gdb.
+		Preload("Exercises", func(tx *gorm.DB) *gorm.DB {
+			return tx.Where("owner_id = ?", ownerID).Order("order_index asc")
+		}).
+		Where("owner_id = ?", ownerID).
+		Order("name asc").
+		Find(&rows).Error
+	return rows, err
+}
+
 // ListScheduledSessionsInRange returns non-trial scheduled sessions (with their templates)
 // for a user within the given date range, ordered by scheduled_date ascending.
 func ListScheduledSessionsInRange(gdb *gorm.DB, ownerID uint, start, end time.Time) ([]ScheduledSession, error) {
@@ -191,4 +205,280 @@ func GetSessionJournalByID(gdb *gorm.DB, ownerID, id uint) (*SessionJournal, err
 // DeleteSessionJournal hard-deletes a journal entry owned by the given user.
 func DeleteSessionJournal(gdb *gorm.DB, ownerID, id uint) error {
 	return gdb.Where("owner_id = ? AND id = ?", ownerID, id).Delete(&SessionJournal{}).Error
+}
+
+// ListCycleExerciseWeekOverrides returns all week overrides for a cycle, ordered by week asc.
+func ListCycleExerciseWeekOverrides(gdb *gorm.DB, ownerID, cycleID uint) ([]CycleExerciseWeekOverride, error) {
+	var rows []CycleExerciseWeekOverride
+	err := gdb.
+		Where("owner_id = ? AND training_cycle_id = ?", ownerID, cycleID).
+		Order("week asc").
+		Find(&rows).Error
+	return rows, err
+}
+
+// UpsertCycleExerciseWeekOverride creates or updates a week override.
+func UpsertCycleExerciseWeekOverride(gdb *gorm.DB, o *CycleExerciseWeekOverride) error {
+	var existing CycleExerciseWeekOverride
+	q := gdb.Where("owner_id = ? AND training_cycle_id = ? AND week = ?", o.OwnerID, o.TrainingCycleID, o.Week)
+	if o.LibraryExerciseID != nil && *o.LibraryExerciseID != 0 {
+		q = q.Where("library_exercise_id = ?", *o.LibraryExerciseID)
+	} else {
+		q = q.Where("library_exercise_id IS NULL AND exercise_name = ?", o.ExerciseName)
+	}
+	if err := q.First(&existing).Error; err != nil {
+		return gdb.Create(o).Error
+	}
+	existing.Sets = o.Sets
+	existing.Reps = o.Reps
+	existing.WeightKg = o.WeightKg
+	existing.RepSeconds = o.RepSeconds
+	return gdb.Save(&existing).Error
+}
+
+// DeleteCycleExerciseWeekOverridesForExercise deletes all week overrides for one exercise in a cycle.
+func DeleteCycleExerciseWeekOverridesForExercise(gdb *gorm.DB, ownerID, cycleID uint, libID *uint, exerciseName string) error {
+	q := gdb.Where("owner_id = ? AND training_cycle_id = ?", ownerID, cycleID)
+	if libID != nil && *libID != 0 {
+		q = q.Where("library_exercise_id = ?", *libID)
+	} else {
+		q = q.Where("library_exercise_id IS NULL AND exercise_name = ?", exerciseName)
+	}
+	return q.Delete(&CycleExerciseWeekOverride{}).Error
+}
+
+// ---------------------------------------------------------------------------
+// Climbing ticks
+// ---------------------------------------------------------------------------
+
+// ListClimbingTicksByExercise returns all ticks for a specific exercise step, ordered by order_index asc.
+func ListClimbingTicksByExercise(gdb *gorm.DB, ownerID, runID, exerciseID uint) ([]ClimbingTick, error) {
+	var rows []ClimbingTick
+	err := gdb.
+		Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).
+		Order("order_index asc, id asc").
+		Find(&rows).Error
+	return rows, err
+}
+
+// CreateClimbingTick inserts a new tick, assigning the next order_index within the exercise.
+func CreateClimbingTick(gdb *gorm.DB, t *ClimbingTick) error {
+	var maxIdx int
+	gdb.Model(&ClimbingTick{}).
+		Where("owner_id = ? AND run_id = ? AND exercise_id = ?", t.OwnerID, t.RunID, t.ExerciseID).
+		Select("COALESCE(MAX(order_index), -1)").
+		Scan(&maxIdx)
+	t.OrderIndex = maxIdx + 1
+	return gdb.Create(t).Error
+}
+
+// DeleteClimbingTick hard-deletes a tick (validates ownerID).
+func DeleteClimbingTick(gdb *gorm.DB, ownerID, id uint) error {
+	return gdb.Where("owner_id = ? AND id = ?", ownerID, id).Delete(&ClimbingTick{}).Error
+}
+
+// ClimbingTickSummary is a compact summary of ticks for a run, used in the training log.
+type ClimbingTickSummary struct {
+	TotalBoulders int
+	TotalRoutes   int
+	TotalSends    int
+	MinGrade      string
+	MaxGrade      string
+}
+
+// GetClimbingTickSummaryForRun builds a summary of all ticks in a run.
+func GetClimbingTickSummaryForRun(gdb *gorm.DB, ownerID, runID uint) (ClimbingTickSummary, error) {
+	var ticks []ClimbingTick
+	if err := gdb.Where("owner_id = ? AND run_id = ?", ownerID, runID).Find(&ticks).Error; err != nil {
+		return ClimbingTickSummary{}, err
+	}
+	var s ClimbingTickSummary
+	grades := make([]string, 0)
+	for _, t := range ticks {
+		if t.Kind == "boulder" {
+			s.TotalBoulders++
+		} else {
+			s.TotalRoutes++
+		}
+		if t.Sent {
+			s.TotalSends++
+		}
+		if t.Grade != "" {
+			grades = append(grades, t.Grade)
+		}
+	}
+	if len(grades) > 0 {
+		s.MinGrade = grades[0]
+		s.MaxGrade = grades[len(grades)-1]
+		for _, g := range grades {
+			if g < s.MinGrade {
+				s.MinGrade = g
+			}
+			if g > s.MaxGrade {
+				s.MaxGrade = g
+			}
+		}
+	}
+	return s, nil
+}
+
+// ---------------------------------------------------------------------------
+// Climbing venues and boards
+// ---------------------------------------------------------------------------
+
+// ListClimbingVenues returns all venues for a user, ordered by name.
+func ListClimbingVenues(gdb *gorm.DB, ownerID uint) ([]ClimbingVenue, error) {
+	var rows []ClimbingVenue
+	err := gdb.Where("owner_id = ?", ownerID).Order("name asc").Find(&rows).Error
+	return rows, err
+}
+
+// CreateClimbingVenue inserts a new venue.
+func CreateClimbingVenue(gdb *gorm.DB, v *ClimbingVenue) error {
+	return gdb.Create(v).Error
+}
+
+// DeleteClimbingVenue hard-deletes a venue and nulls SessionJournal.VenueID for affected entries.
+func DeleteClimbingVenue(gdb *gorm.DB, ownerID, id uint) error {
+	if err := gdb.Model(&SessionJournal{}).
+		Where("owner_id = ? AND venue_id = ?", ownerID, id).
+		Updates(map[string]interface{}{"venue_id": nil, "board_id": nil}).Error; err != nil {
+		return err
+	}
+	return gdb.Where("owner_id = ? AND id = ?", ownerID, id).Delete(&ClimbingVenue{}).Error
+}
+
+// ListClimbingBoards returns all standalone boards for a user, ordered by name.
+func ListClimbingBoards(gdb *gorm.DB, ownerID uint) ([]ClimbingBoard, error) {
+	var rows []ClimbingBoard
+	err := gdb.Where("owner_id = ?", ownerID).Order("name asc, board_type asc").Find(&rows).Error
+	return rows, err
+}
+
+// CreateClimbingBoard inserts a standalone board.
+func CreateClimbingBoard(gdb *gorm.DB, b *ClimbingBoard) error {
+	return gdb.Create(b).Error
+}
+
+// DeleteClimbingBoard hard-deletes a board and nulls SessionJournal.BoardID for affected entries.
+func DeleteClimbingBoard(gdb *gorm.DB, ownerID, id uint) error {
+	if err := gdb.Model(&SessionJournal{}).
+		Where("owner_id = ? AND board_id = ?", ownerID, id).
+		Update("board_id", nil).Error; err != nil {
+		return err
+	}
+	return gdb.Where("owner_id = ? AND id = ?", ownerID, id).Delete(&ClimbingBoard{}).Error
+}
+
+// ---------------------------------------------------------------------------
+// Draft runs (for manual log entries)
+// ---------------------------------------------------------------------------
+
+// CreateDraftSessionRun creates a draft manual run using the given scheduled session anchor.
+// The caller must create the ScheduledSession anchor first (same pattern as open sessions).
+func CreateDraftSessionRun(gdb *gorm.DB, ownerID, scheduledSessionID uint) (*SessionRun, error) {
+	run := &SessionRun{
+		OwnerID:            ownerID,
+		ScheduledSessionID: scheduledSessionID,
+		IsTrial:            true,
+		IsManual:           true,
+		IsDraft:            true,
+		Status:             "running",
+		StartedAt:          time.Now(),
+	}
+	return run, gdb.Create(run).Error
+}
+
+// FinaliseDraftRun promotes a draft run to a completed manual entry.
+func FinaliseDraftRun(gdb *gorm.DB, ownerID, runID uint, customName string, date time.Time) error {
+	return gdb.Model(&SessionRun{}).
+		Where("owner_id = ? AND id = ? AND is_draft = ?", ownerID, runID, true).
+		Updates(map[string]interface{}{
+			"is_draft":     false,
+			"status":       "completed",
+			"custom_name":  customName,
+			"started_at":   date,
+			"completed_at": date,
+		}).Error
+}
+
+// DeleteDraftRun hard-deletes a draft run and all its exercises, completions, and ticks.
+func DeleteDraftRun(gdb *gorm.DB, ownerID, runID uint) error {
+	// Collect exercise IDs for cascade.
+	var exerciseIDs []uint
+	gdb.Model(&Exercise{}).
+		Where("owner_id = ? AND session_run_id = ?", ownerID, runID).
+		Pluck("id", &exerciseIDs)
+	if len(exerciseIDs) > 0 {
+		gdb.Where("owner_id = ? AND exercise_id IN ?", ownerID, exerciseIDs).Delete(&ClimbingTick{})
+		gdb.Where("owner_id = ? AND exercise_id IN ?", ownerID, exerciseIDs).Delete(&RunExerciseCompletion{})
+		gdb.Where("owner_id = ? AND id IN ?", ownerID, exerciseIDs).Delete(&Exercise{})
+	}
+	gdb.Where("owner_id = ? AND run_id = ?", ownerID, runID).Delete(&ClimbingTick{})
+	return gdb.Where("owner_id = ? AND id = ? AND is_draft = ?", ownerID, runID, true).
+		Delete(&SessionRun{}).Error
+}
+
+// AddManualExercise creates an Exercise attached directly to a SessionRun (no ActivityID).
+func AddManualExercise(gdb *gorm.DB, ownerID, runID uint, name string, libraryExerciseID *uint, kind string) (*Exercise, error) {
+	var orderIndex int
+	gdb.Model(&Exercise{}).
+		Where("owner_id = ? AND session_run_id = ?", ownerID, runID).
+		Select("COALESCE(MAX(order_index), -1)").
+		Scan(&orderIndex)
+	ex := &Exercise{
+		OwnerID:           ownerID,
+		SessionRunID:      &runID,
+		LibraryExerciseID: libraryExerciseID,
+		Name:              name,
+		Kind:              kind,
+		OrderIndex:        orderIndex + 1,
+	}
+	return ex, gdb.Create(ex).Error
+}
+
+// DeleteManualExercise removes an exercise from a draft run, along with any ticks.
+func DeleteManualExercise(gdb *gorm.DB, ownerID, runID, exerciseID uint) error {
+	gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).Delete(&ClimbingTick{})
+	gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).Delete(&RunExerciseCompletion{})
+	return gdb.Where("owner_id = ? AND session_run_id = ? AND id = ?", ownerID, runID, exerciseID).
+		Delete(&Exercise{}).Error
+}
+
+// ListExercisesForRun returns exercises attached directly to a session run, ordered by order_index.
+func ListExercisesForRun(gdb *gorm.DB, ownerID, runID uint) ([]Exercise, error) {
+	var rows []Exercise
+	err := gdb.
+		Where("owner_id = ? AND session_run_id = ?", ownerID, runID).
+		Order("order_index asc").
+		Find(&rows).Error
+	return rows, err
+}
+
+// UpsertManualExerciseCompletion creates or updates the completion record for a manual exercise.
+func UpsertManualExerciseCompletion(gdb *gorm.DB, ownerID, runID, exerciseID uint, sets, reps int, weightKg float64, notes string) error {
+	var existing RunExerciseCompletion
+	err := gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).
+		First(&existing).Error
+	if err == gorm.ErrRecordNotFound {
+		return gdb.Create(&RunExerciseCompletion{
+			OwnerID:        ownerID,
+			RunID:          runID,
+			ExerciseID:     exerciseID,
+			Status:         "completed",
+			CompletedAt:    time.Now(),
+			ActualSets:     sets,
+			ActualReps:     reps,
+			ActualWeightKg: weightKg,
+			RunNotes:       notes,
+		}).Error
+	}
+	if err != nil {
+		return err
+	}
+	existing.ActualSets = sets
+	existing.ActualReps = reps
+	existing.ActualWeightKg = weightKg
+	existing.RunNotes = notes
+	return gdb.Save(&existing).Error
 }

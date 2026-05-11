@@ -193,3 +193,95 @@ func (s *Server) handleOpenAddExercise(w http.ResponseWriter, r *http.Request) {
 		"?exercise="+strconv.FormatUint(uint64(ex.ID), 10))
 	w.WriteHeader(http.StatusOK)
 }
+
+func (s *Server) handleOpenAddTemplate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	ownerID, ok := s.currentUserID(r)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	runID64, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid run id", http.StatusBadRequest)
+		return
+	}
+	runID := uint(runID64)
+
+	var run db.SessionRun
+	if err := s.store.DB.
+		Where("owner_id = ? AND id = ? AND is_open = ?", ownerID, runID, true).
+		First(&run).Error; err != nil {
+		http.Error(w, "run not found", http.StatusNotFound)
+		return
+	}
+	if run.Status != "running" {
+		http.Error(w, "run is not active", http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	templateIDStr := strings.TrimSpace(r.FormValue("activity_template_id"))
+	if templateIDStr == "" {
+		http.Error(w, "activity_template_id is required", http.StatusBadRequest)
+		return
+	}
+	templateID64, err := strconv.ParseUint(templateIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid activity_template_id", http.StatusBadRequest)
+		return
+	}
+
+	tpl, err := db.GetActivityTemplateWithExercises(s.store.DB, ownerID, uint(templateID64))
+	if err != nil {
+		http.Error(w, "template not found", http.StatusNotFound)
+		return
+	}
+
+	var count int64
+	s.store.DB.Model(&db.Exercise{}).
+		Where("session_run_id = ? AND parent_exercise_id IS NULL", runID).
+		Count(&count)
+	orderBase := int(count)
+
+	rid := runID
+	var firstExID uint
+	for i, tmplEx := range tpl.Exercises {
+		ex := db.Exercise{
+			OwnerID:                ownerID,
+			SessionRunID:           &rid,
+			Name:                   tmplEx.Name,
+			Kind:                   tmplEx.Kind,
+			Notes:                  tmplEx.Notes,
+			Sets:                   tmplEx.Sets,
+			Reps:                   tmplEx.Reps,
+			RepSeconds:             tmplEx.RepSeconds,
+			RepRestSeconds:         tmplEx.RepRestSeconds,
+			SetRestSeconds:         tmplEx.SetRestSeconds,
+			WeightKg:               tmplEx.WeightKg,
+			SessionDurationSeconds: tmplEx.SessionDurationSeconds,
+			OrderIndex:             orderBase + i,
+		}
+		if err := s.store.DB.Create(&ex).Error; err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if i == 0 {
+			firstExID = ex.ID
+		}
+	}
+
+	redirect := "/runs/" + strconv.FormatUint(uint64(runID), 10)
+	if firstExID > 0 {
+		redirect += "?exercise=" + strconv.FormatUint(uint64(firstExID), 10)
+	}
+	w.Header().Set("HX-Redirect", redirect)
+	w.WriteHeader(http.StatusOK)
+}

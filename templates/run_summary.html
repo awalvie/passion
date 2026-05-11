@@ -1,9 +1,16 @@
 {{ define "content" }}
 <div class="run-summary-page">
+  {{ if and .Summary.IsOpen (gt .Summary.RunID 0) }}
+  <a href="/runs/{{ .Summary.RunID }}" class="run-summary-page-back">
+    <i data-lucide="arrow-left" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+    Back to session
+  </a>
+  {{ else }}
   <a href="/history" class="run-summary-page-back">
     <i data-lucide="arrow-left" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
     History
   </a>
+  {{ end }}
 
   <div class="run-summary-page-card">
     <div class="run-summary-header"{{ if .Summary.Color }} style="border-left: 4px solid {{ .Summary.Color }}"{{ end }}>

@@ -79,6 +79,8 @@ func (s *Server) Routes() http.Handler {
 		pr.HandleFunc("/training-cycles/new", s.handleTrainingCyclesNew)
 		pr.HandleFunc("/training-cycles/{cycleID}", s.handleTrainingCyclesByID)
 		pr.HandleFunc("/training-cycles/{cycleID}/{action}", s.handleTrainingCyclesByID)
+		pr.HandleFunc("/training-cycles/{cycleID}/week-override-save", s.handleCycleWeekOverrideSave)
+		pr.HandleFunc("/training-cycles/{cycleID}/week-override-toggle", s.handleCycleWeekOverrideToggle)
 
 		pr.HandleFunc("/exercises/{exerciseID}/history-hint", s.handleExerciseHistoryHint)
 		pr.HandleFunc("/exercises/{exerciseID}/history-popup", s.handleExerciseHistoryPopup)
@@ -90,6 +92,7 @@ func (s *Server) Routes() http.Handler {
 		pr.HandleFunc("/runs/open", s.handleStartOpenSession)
 		pr.HandleFunc("/runs/{runID}", s.handleRunsByID)
 		pr.HandleFunc("/runs/{runID}/open/add", s.handleOpenAddExercise)
+		pr.HandleFunc("/runs/{runID}/open/add-template", s.handleOpenAddTemplate)
 		pr.HandleFunc("/runs/{runID}/stop", s.handleRunStop)
 		pr.HandleFunc("/runs/{runID}/delete", s.handleRunDelete)
 		pr.HandleFunc("/runs/{runID}/summary", s.handleRunSummary)
@@ -102,6 +105,20 @@ func (s *Server) Routes() http.Handler {
 		pr.HandleFunc("/training-log/new", s.handleTrainingLogNew)
 		pr.HandleFunc("/training-log/{journalID}/edit", s.handleTrainingLogEdit)
 		pr.HandleFunc("/training-log/{journalID}/delete", s.handleTrainingLogDelete)
+		pr.HandleFunc("/training-log/draft/{runID}/discard", s.handleTrainingLogDraftDiscard)
+		pr.HandleFunc("/training-log/draft/{runID}/exercises", s.handleTrainingLogAddExercise)
+		pr.HandleFunc("/training-log/draft/{runID}/exercises/{exerciseID}/save", s.handleTrainingLogSaveExerciseCompletion)
+		pr.HandleFunc("/training-log/draft/{runID}/exercises/{exerciseID}/delete", s.handleTrainingLogDeleteExercise)
+
+		// Climbing ticks (scoped to a run+exercise)
+		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/ticks", s.handleExerciseTicks)
+		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/ticks/{tickID}/delete", s.handleExerciseTickDelete)
+
+		// Venue and board management (profile sub-routes)
+		pr.HandleFunc("/profile/venues", s.handleProfileVenues)
+		pr.HandleFunc("/profile/venues/{venueID}/delete", s.handleProfileVenueDelete)
+		pr.HandleFunc("/profile/boards", s.handleProfileBoards)
+		pr.HandleFunc("/profile/boards/{boardID}/delete", s.handleProfileBoardDelete)
 	})
 	return r
 }

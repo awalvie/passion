@@ -139,26 +139,29 @@ func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, o
 	}
 
 	var libExercises []db.LibraryExercise
+	var activityTemplates []db.ActivityTemplate
 	if run.IsOpen {
 		libExercises, _ = db.ListLibraryExercises(s.store.DB, ownerID)
+		activityTemplates, _ = db.ListActivityTemplatesWithExercises(s.store.DB, ownerID)
 	}
 
 	s.pages.Run(w, pages.RunParams{
-		Base:                pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
-		RunID:               runID,
-		RunTemplateName:     displayName,
-		RunTotalSteps:       len(steps),
-		RunCompleted:        runCompleted,
-		RunCurrentStepNum:   currentStepNum,
-		RunSessionSeconds:   sumElapsedSeconds(completions),
-		RunIsTrial:          run.IsTrial,
-		RunTemplateID:       ss.SessionTemplate.ID,
-		RunIsOpen:           run.IsOpen,
-		RunCustomName:       run.CustomName,
-		RunLibraryExercises: libExercises,
-		CurrentStep:         currentStep,
-		RunSteps:            steps,
-		RunActivityGroups:   activityGroups,
+		Base:                 pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
+		RunID:                runID,
+		RunTemplateName:      displayName,
+		RunTotalSteps:        len(steps),
+		RunCompleted:         runCompleted,
+		RunCurrentStepNum:    currentStepNum,
+		RunSessionSeconds:    sumElapsedSeconds(completions),
+		RunIsTrial:           run.IsTrial,
+		RunTemplateID:        ss.SessionTemplate.ID,
+		RunIsOpen:            run.IsOpen,
+		RunCustomName:        run.CustomName,
+		RunLibraryExercises:  libExercises,
+		RunActivityTemplates: activityTemplates,
+		CurrentStep:          currentStep,
+		RunSteps:             steps,
+		RunActivityGroups:    activityGroups,
 	})
 }
 
@@ -259,7 +262,7 @@ func (s *Server) completeRunExercise(w http.ResponseWriter, r *http.Request, run
 			break
 		}
 	}
-	if !anyIncomplete {
+	if !anyIncomplete && !run.IsOpen {
 		now := time.Now()
 		run.Status = "completed"
 		run.CompletedAt = &now
@@ -662,7 +665,11 @@ func (s *Server) handleRunStop(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("HX-Redirect", "/dashboard")
+	redirect := "/dashboard"
+	if run.IsOpen {
+		redirect = "/runs/" + chi.URLParam(r, "runID") + "/summary"
+	}
+	w.Header().Set("HX-Redirect", redirect)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -760,12 +767,14 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 		IsOpen:        run.IsOpen,
 	}
 
-	for _, act := range ss.SessionTemplate.Activities {
-		sa := pages.RunSummaryActivity{Name: act.Name}
-		for _, ex := range act.Exercises {
-			if ex.ParentExerciseID != nil && *ex.ParentExerciseID != 0 {
-				continue
-			}
+	if run.IsOpen {
+		var openExercises []db.Exercise
+		s.store.DB.
+			Where("session_run_id = ? AND owner_id = ? AND parent_exercise_id IS NULL", run.ID, ownerID).
+			Order("order_index asc").
+			Find(&openExercises)
+		sa := pages.RunSummaryActivity{Name: "Exercises"}
+		for _, ex := range openExercises {
 			se := pages.RunSummaryExercise{
 				Name:            ex.Name,
 				Kind:            ex.Kind,
@@ -793,6 +802,41 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 		if len(sa.Exercises) > 0 {
 			view.Activities = append(view.Activities, sa)
 		}
+	} else {
+		for _, act := range ss.SessionTemplate.Activities {
+			sa := pages.RunSummaryActivity{Name: act.Name}
+			for _, ex := range act.Exercises {
+				if ex.ParentExerciseID != nil && *ex.ParentExerciseID != 0 {
+					continue
+				}
+				se := pages.RunSummaryExercise{
+					Name:            ex.Name,
+					Kind:            ex.Kind,
+					Sets:            ex.Sets,
+					Reps:            ex.Reps,
+					WeightKg:        ex.WeightKg,
+					RepSeconds:      ex.RepSeconds,
+					SessionDuration: ex.SessionDurationSeconds,
+					Status:          "pending",
+				}
+				if c, ok := compByID[ex.ID]; ok {
+					se.Status = c.Status
+					se.ElapsedSeconds = c.ElapsedSeconds
+					se.Notes = c.RunNotes
+				}
+				switch se.Status {
+				case "completed":
+					view.CompletedCount++
+				case "skipped":
+					view.SkippedCount++
+				}
+				view.TotalCount++
+				sa.Exercises = append(sa.Exercises, se)
+			}
+			if len(sa.Exercises) > 0 {
+				view.Activities = append(view.Activities, sa)
+			}
+		}
 	}
 
 	// Fragment path (HTMX dialog).
@@ -801,8 +845,8 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Full page — redirect in-progress runs to the run page.
-	if run.Status != "completed" {
+	// Full page — redirect in-progress runs to the run page (open sessions can view summary while running).
+	if run.Status != "completed" && !run.IsOpen {
 		http.Redirect(w, r, "/runs/"+chi.URLParam(r, "runID"), http.StatusSeeOther)
 		return
 	}

@@ -1,0 +1,193 @@
+{{ define "run_ticks.html" }}
+<div id="tick-list-{{ .ExerciseID }}" class="space-y-3">
+  {{ if .Ticks }}
+  <div class="space-y-2">
+    {{ range .Ticks }}
+    <div class="card px-3 py-2.5 flex gap-2 items-start">
+      <div class="flex-1 min-w-0">
+        <div class="flex flex-wrap items-center gap-1.5 mb-0.5">
+          <span class="tick-kind">{{ .Kind }}</span>
+          {{ if .Grade }}<span class="text-sm font-semibold">{{ .Grade }}</span>{{ end }}
+          {{ if .Sent }}
+            <span class="tick-sent-badge">✓ Sent</span>
+          {{ else }}
+            <span class="tick-unsent-badge">Project</span>
+          {{ end }}
+          {{ if .Style }}<span class="tick-style tick-style--{{ .StyleClass }}">{{ .Style }}</span>{{ end }}
+          {{ if gt .Stars 0 }}
+            <span class="text-xs">{{ if ge .Stars 1 }}★{{ end }}{{ if ge .Stars 2 }}★{{ end }}{{ if ge .Stars 3 }}★{{ end }}</span>
+          {{ end }}
+          {{ if gt .Attempts 0 }}
+            <span class="text-xs muted">{{ .Attempts }}×</span>
+          {{ end }}
+        </div>
+        {{ if .Focus }}<div class="text-xs muted truncate">{{ .Focus }}</div>{{ end }}
+        {{ if .Thoughts }}<div class="text-xs mt-0.5" style="color:var(--text)">{{ .Thoughts }}</div>{{ end }}
+      </div>
+      <button
+        type="button"
+        class="shrink-0 rounded btn-ghost p-1 inline-flex items-center justify-center"
+        hx-post="/runs/{{ .RunID }}/exercises/{{ .ExerciseID }}/ticks/{{ .ID }}/delete"
+        hx-target="#tick-list-{{ .ExerciseID }}"
+        hx-swap="outerHTML"
+        title="Remove tick"
+      >
+        <i data-lucide="x" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+      </button>
+    </div>
+    {{ end }}
+  </div>
+  {{ end }}
+
+  <form
+    hx-post="/runs/{{ .RunID }}/exercises/{{ .ExerciseID }}/ticks"
+    hx-target="#tick-list-{{ .ExerciseID }}"
+    hx-swap="outerHTML"
+    class="card card-pad space-y-3"
+  >
+    <div class="grid grid-cols-2 gap-2">
+      <div>
+        <label class="text-xs font-medium" for="tick-kind-{{ .ExerciseID }}">Kind</label>
+        <select id="tick-kind-{{ .ExerciseID }}" name="kind" class="mt-1 w-full input text-sm">
+          <option value="boulder">Boulder</option>
+          <option value="route">Route</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs font-medium" for="tick-grade-{{ .ExerciseID }}">Grade</label>
+        <input
+          id="tick-grade-{{ .ExerciseID }}"
+          name="grade"
+          class="mt-1 w-full input text-sm"
+          placeholder="e.g. V6, 7a"
+          autocomplete="off"
+        />
+      </div>
+    </div>
+
+    <div>
+      <label class="text-xs font-medium" for="tick-focus-{{ .ExerciseID }}">Focus <span class="muted font-normal">(what are you working on?)</span></label>
+      <input
+        id="tick-focus-{{ .ExerciseID }}"
+        name="focus"
+        class="mt-1 w-full input text-sm"
+        placeholder="e.g. silent feet, rhythm with breath"
+        autocomplete="off"
+      />
+    </div>
+
+    <div class="flex items-end gap-3">
+      <div>
+        <label class="text-xs font-medium">Attempts</label>
+        <div class="stepper mt-1">
+          <button type="button" class="stepper-btn" data-stepper-dec="tick-attempts-{{ .ExerciseID }}" aria-label="Fewer attempts">−</button>
+          <input
+            id="tick-attempts-{{ .ExerciseID }}"
+            name="attempts"
+            type="number"
+            min="1"
+            value="1"
+            class="stepper-input"
+            style="width:3rem"
+          />
+          <button type="button" class="stepper-btn" data-stepper-inc="tick-attempts-{{ .ExerciseID }}" aria-label="More attempts">+</button>
+        </div>
+      </div>
+      <label class="flex items-center gap-1.5 text-sm cursor-pointer pb-1">
+        <input type="checkbox" name="sent" value="1" class="rounded" />
+        <span>Sent</span>
+      </label>
+    </div>
+
+    <details class="text-sm">
+      <summary class="cursor-pointer text-xs muted list-none flex items-center gap-1">
+        <i data-lucide="chevron-right" style="width:0.75rem;height:0.75rem;transition:transform 150ms ease" class="disclosure-chevron" aria-hidden="true"></i>
+        Style &amp; notes
+      </summary>
+      <div class="mt-2 space-y-2">
+        <div>
+          <label class="text-xs font-medium">Ascent style</label>
+          <div class="mt-1 flex flex-wrap gap-1.5">
+            <label class="tick-style-toggle"><input type="radio" name="style" value="onsight" class="sr-only tick-style-radio" /><span>Onsight</span></label>
+            <label class="tick-style-toggle"><input type="radio" name="style" value="flash" class="sr-only tick-style-radio" /><span>Flash</span></label>
+            <label class="tick-style-toggle"><input type="radio" name="style" value="redpoint" class="sr-only tick-style-radio" /><span>Redpoint</span></label>
+            <label class="tick-style-toggle"><input type="radio" name="style" value="project" class="sr-only tick-style-radio" /><span>Project</span></label>
+            <label class="tick-style-toggle"><input type="radio" name="style" value="repeat" class="sr-only tick-style-radio" /><span>Repeat</span></label>
+            <label class="tick-style-toggle"><input type="radio" name="style" value="top_rope" class="sr-only tick-style-radio" /><span>Top Rope</span></label>
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-medium" for="tick-thoughts-{{ .ExerciseID }}">Thoughts <span class="muted font-normal">(how did it go?)</span></label>
+          <textarea
+            id="tick-thoughts-{{ .ExerciseID }}"
+            name="thoughts"
+            rows="2"
+            class="mt-1 w-full input text-sm resize-none"
+            placeholder="What did you notice? What to try next?"
+          ></textarea>
+        </div>
+        <div>
+          <label class="text-xs font-medium">Stars</label>
+          <div class="tick-stars mt-1" data-stars-target="tick-stars-val-{{ .ExerciseID }}">
+            <button type="button" data-star="1" aria-label="1 star">★</button>
+            <button type="button" data-star="2" aria-label="2 stars">★</button>
+            <button type="button" data-star="3" aria-label="3 stars">★</button>
+          </div>
+          <input type="hidden" name="stars" id="tick-stars-val-{{ .ExerciseID }}" value="0" />
+        </div>
+      </div>
+    </details>
+
+    <button type="submit" class="rounded-md btn-primary px-3 py-2 text-sm font-medium w-full">
+      Log climb
+    </button>
+  </form>
+</div>
+<script>
+(function () {
+  var exID = {{ .ExerciseID }};
+  var root = document.getElementById("tick-list-" + exID);
+  if (!root) return;
+
+  // Stepper buttons.
+  root.querySelectorAll("[data-stepper-inc],[data-stepper-dec]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var targetID = btn.dataset.stepperInc || btn.dataset.stepperDec;
+      var input = document.getElementById(targetID);
+      if (!input) return;
+      var val = parseInt(input.value, 10) || 1;
+      if (btn.dataset.stepperInc !== undefined) val++;
+      else val = Math.max(1, val - 1);
+      input.value = val;
+    });
+  });
+
+  // Style toggle: radio buttons styled as pills.
+  root.querySelectorAll(".tick-style-radio").forEach(function (radio) {
+    radio.addEventListener("change", function () {
+      root.querySelectorAll(".tick-style-toggle").forEach(function (l) {
+        l.classList.remove("is-selected");
+      });
+      if (radio.checked) radio.closest(".tick-style-toggle").classList.add("is-selected");
+    });
+  });
+
+  // Stars.
+  var starsContainer = root.querySelector(".tick-stars");
+  if (starsContainer) {
+    var starsHidden = document.getElementById(starsContainer.dataset.starsTarget);
+    starsContainer.querySelectorAll("[data-star]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var val = parseInt(btn.dataset.star, 10);
+        var current = parseInt(starsHidden ? starsHidden.value : "0", 10) || 0;
+        var next = current === val ? 0 : val;
+        if (starsHidden) starsHidden.value = next;
+        starsContainer.querySelectorAll("[data-star]").forEach(function (b) {
+          b.classList.toggle("active", parseInt(b.dataset.star, 10) <= next);
+        });
+      });
+    });
+  }
+})();
+</script>
+{{ end }}

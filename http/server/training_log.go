@@ -51,10 +51,10 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load all completed runs, newest first.
+	// Load all completed non-draft runs, newest first.
 	var runs []db.SessionRun
 	if err := s.store.DB.
-		Where("owner_id = ? AND status = ?", ownerID, "completed").
+		Where("owner_id = ? AND status = ? AND is_draft = ?", ownerID, "completed", false).
 		Order("started_at desc").
 		Find(&runs).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -116,14 +116,53 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 		dateLabel := fmt.Sprintf("%s %d%s %d", t.Format("Jan"), t.Day(), daySuffix(t.Day()), t.Year())
 		monthGroup := t.Format("January 2006")
 
+		// Build tick summary if this is a manual climbing run.
+		tickSummaryLabel := ""
+		exerciseCount := 0
+		if run.IsManual {
+			if exs, err2 := db.ListExercisesForRun(s.store.DB, ownerID, run.ID); err2 == nil {
+				exerciseCount = len(exs)
+			}
+			if ts, err2 := db.GetClimbingTickSummaryForRun(s.store.DB, ownerID, run.ID); err2 == nil {
+				if ts.TotalBoulders > 0 || ts.TotalRoutes > 0 {
+					label := ""
+					if ts.TotalBoulders > 0 {
+						label += fmt.Sprintf("%d boulder", ts.TotalBoulders)
+						if ts.TotalBoulders != 1 {
+							label += "s"
+						}
+					}
+					if ts.TotalRoutes > 0 {
+						if label != "" {
+							label += " · "
+						}
+						label += fmt.Sprintf("%d route", ts.TotalRoutes)
+						if ts.TotalRoutes != 1 {
+							label += "s"
+						}
+					}
+					if ts.TotalSends > 0 {
+						label += fmt.Sprintf(" · %d send", ts.TotalSends)
+						if ts.TotalSends != 1 {
+							label += "s"
+						}
+					}
+					tickSummaryLabel = label
+				}
+			}
+		}
+
 		entry := pages.TrainingLogEntryView{
-			RunID:         run.ID,
-			SortTime:      run.StartedAt,
-			DateLabel:     dateLabel,
-			TemplateName:  templateName,
-			Color:         ss.SessionTemplate.Color,
-			DurationLabel: dur,
-			MonthGroup:    monthGroup,
+			RunID:            run.ID,
+			SortTime:         run.StartedAt,
+			DateLabel:        dateLabel,
+			TemplateName:     templateName,
+			Color:            ss.SessionTemplate.Color,
+			DurationLabel:    dur,
+			MonthGroup:       monthGroup,
+			IsManual:         run.IsManual,
+			TickSummaryLabel: tickSummaryLabel,
+			ExerciseCount:    exerciseCount,
 		}
 
 		if j, ok := journalByRun[run.ID]; ok {
@@ -399,8 +438,9 @@ func (s *Server) saveJournal(w http.ResponseWriter, r *http.Request, ownerID, ru
 	s.serveJournalForm(w, r, ownerID, runID, true)
 }
 
-// handleTrainingLogNew serves GET|POST /training-log/new — standalone journal entries
-// not tied to any session run.
+// handleTrainingLogNew serves GET|POST /training-log/new.
+// GET: creates a draft SessionRun so exercise/tick HTMX routes are live from page load.
+// POST: finalises the draft run, creates a SessionJournal, redirects to /training-log.
 func (s *Server) handleTrainingLogNew(w http.ResponseWriter, r *http.Request) {
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
@@ -409,16 +449,56 @@ func (s *Server) handleTrainingLogNew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == http.MethodPost {
-		s.saveStandaloneJournal(w, r, ownerID)
+		s.finaliseManualEntry(w, r, ownerID)
+		return
+	}
+
+	// GET: create a draft run anchored to the open-session system template.
+	tpl, err := s.getOrCreateOpenSessionTemplate(ownerID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	now := time.Now()
+	scheduled := &db.ScheduledSession{
+		OwnerID:           ownerID,
+		IsTrial:           true,
+		ScheduledDate:     localDate(now),
+		SessionTemplateID: tpl.ID,
+	}
+	if err := s.store.DB.Create(scheduled).Error; err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	draft, err := db.CreateDraftSessionRun(s.store.DB, ownerID, scheduled.ID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	libExercises, err := db.ListLibraryExercises(s.store.DB, ownerID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	venues, boards, err := s.loadVenuesAndBoards(ownerID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	s.pages.TrainingLogNewPage(w, pages.TrainingLogNewParams{
-		DateValue: time.Now().Format("2006-01-02"),
+		DateValue:        now.Format("2006-01-02"),
+		DraftRunID:       draft.ID,
+		LibraryExercises: libExercises,
+		Venues:           venues,
+		Boards:           boards,
 	})
 }
 
-func (s *Server) saveStandaloneJournal(w http.ResponseWriter, r *http.Request, ownerID uint) {
+// finaliseManualEntry is called on POST /training-log/new.
+// It finalises the draft run and creates a journal entry linked to it.
+func (s *Server) finaliseManualEntry(w http.ResponseWriter, r *http.Request, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad form data", http.StatusBadRequest)
 		return
@@ -435,18 +515,64 @@ func (s *Server) saveStandaloneJournal(w http.ResponseWriter, r *http.Request, o
 		date = time.Now()
 	}
 
+	runIDStr := strings.TrimSpace(r.FormValue("draft_run_id"))
+	runID64, parseErr := strconv.ParseUint(runIDStr, 10, 64)
+	runID := uint(runID64)
+
+	// If we have a valid draft run ID, finalise it.
+	if parseErr == nil && runID > 0 {
+		customName := strings.TrimSpace(r.FormValue("title"))
+		if err := db.FinaliseDraftRun(s.store.DB, ownerID, runID, customName, date); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		// No draft run (shouldn't normally happen, but fall back gracefully).
+		runID = 0
+	}
+
+	// Parse optional venue and board IDs.
+	venueIDStr := strings.TrimSpace(r.FormValue("venue_id"))
+	boardIDStr := strings.TrimSpace(r.FormValue("board_id"))
+	var venueID, boardID *uint
+	if v, err2 := strconv.ParseUint(venueIDStr, 10, 64); err2 == nil && v > 0 {
+		vv := uint(v)
+		venueID = &vv
+	}
+	if b, err2 := strconv.ParseUint(boardIDStr, 10, 64); err2 == nil && b > 0 {
+		bv := uint(b)
+		boardID = &bv
+	}
+
+	// Determine location from venue kind if a venue was selected.
+	location := strings.TrimSpace(r.FormValue("location"))
+	if venueID != nil {
+		var venue db.ClimbingVenue
+		if err2 := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, *venueID).First(&venue).Error; err2 == nil {
+			if venue.Kind == "outdoor" {
+				location = "outdoor"
+			} else {
+				location = "indoor"
+			}
+		}
+	}
+
 	j := db.SessionJournal{
 		OwnerID:    ownerID,
-		RunID:      nil, // standalone — no session run
 		Title:      strings.TrimSpace(r.FormValue("title")),
 		Date:       date,
 		SleepScore: parseInt("sleep_score"),
 		Energy:     parseInt("energy"),
 		RPE:        parseInt("rpe"),
 		Focus:      strings.TrimSpace(r.FormValue("focus")),
-		Location:   strings.TrimSpace(r.FormValue("location")),
+		Location:   location,
+		VenueID:    venueID,
+		BoardID:    boardID,
 		WentWell:   strings.TrimSpace(r.FormValue("went_well")),
 		NextFocus:  strings.TrimSpace(r.FormValue("next_focus")),
+	}
+	if runID > 0 {
+		j.RunID = &runID
 	}
 
 	if err := db.UpsertSessionJournal(s.store.DB, &j); err != nil {
@@ -455,6 +581,197 @@ func (s *Server) saveStandaloneJournal(w http.ResponseWriter, r *http.Request, o
 	}
 
 	http.Redirect(w, r, "/training-log", http.StatusSeeOther)
+}
+
+// handleTrainingLogDraftDiscard serves POST /training-log/draft/{runID}/discard.
+func (s *Server) handleTrainingLogDraftDiscard(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	ownerID, ok := s.currentUserID(r)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid run ID", http.StatusBadRequest)
+		return
+	}
+	if err := db.DeleteDraftRun(s.store.DB, ownerID, uint(runID)); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/training-log", http.StatusSeeOther)
+}
+
+// handleTrainingLogAddExercise serves POST /training-log/draft/{runID}/exercises.
+func (s *Server) handleTrainingLogAddExercise(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	ownerID, ok := s.currentUserID(r)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid run ID", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form data", http.StatusBadRequest)
+		return
+	}
+
+	var libExerciseID *uint
+	libIDStr := strings.TrimSpace(r.FormValue("library_exercise_id"))
+	if libIDStr != "" {
+		if lid, err2 := strconv.ParseUint(libIDStr, 10, 64); err2 == nil && lid > 0 {
+			lv := uint(lid)
+			libExerciseID = &lv
+		}
+	}
+
+	name := strings.TrimSpace(r.FormValue("name"))
+	kind := strings.TrimSpace(r.FormValue("kind"))
+	if kind == "" {
+		kind = "reps_and_sets"
+	}
+
+	// If a library exercise was selected, pull name and kind from it.
+	if libExerciseID != nil {
+		var le db.LibraryExercise
+		if err2 := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, *libExerciseID).First(&le).Error; err2 == nil {
+			if name == "" {
+				name = le.Name
+			}
+			kind = le.Kind
+		}
+	}
+	if name == "" {
+		name = "Exercise"
+	}
+
+	if _, err := db.AddManualExercise(s.store.DB, ownerID, uint(runID), name, libExerciseID, kind); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	s.renderManualExercises(w, ownerID, uint(runID))
+}
+
+// handleTrainingLogSaveExerciseCompletion serves POST /training-log/draft/{runID}/exercises/{exerciseID}/save.
+func (s *Server) handleTrainingLogSaveExerciseCompletion(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	ownerID, ok := s.currentUserID(r)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid run ID", http.StatusBadRequest)
+		return
+	}
+	exerciseID, err := strconv.ParseUint(chi.URLParam(r, "exerciseID"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid exercise ID", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form data", http.StatusBadRequest)
+		return
+	}
+	parseInt := func(key string) int {
+		v, _ := strconv.Atoi(strings.TrimSpace(r.FormValue(key)))
+		return v
+	}
+	parseFloat := func(key string) float64 {
+		v, _ := strconv.ParseFloat(strings.TrimSpace(r.FormValue(key)), 64)
+		return v
+	}
+	if err := db.UpsertManualExerciseCompletion(
+		s.store.DB, ownerID, uint(runID), uint(exerciseID),
+		parseInt("sets"), parseInt("reps"), parseFloat("weight_kg"),
+		strings.TrimSpace(r.FormValue("notes")),
+	); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// handleTrainingLogDeleteExercise serves POST /training-log/draft/{runID}/exercises/{exerciseID}/delete.
+func (s *Server) handleTrainingLogDeleteExercise(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	ownerID, ok := s.currentUserID(r)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid run ID", http.StatusBadRequest)
+		return
+	}
+	exerciseID, err := strconv.ParseUint(chi.URLParam(r, "exerciseID"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid exercise ID", http.StatusBadRequest)
+		return
+	}
+	if err := db.DeleteManualExercise(s.store.DB, ownerID, uint(runID), uint(exerciseID)); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	s.renderManualExercises(w, ownerID, uint(runID))
+}
+
+// renderManualExercises renders the manual exercises container fragment.
+func (s *Server) renderManualExercises(w http.ResponseWriter, ownerID, runID uint) {
+	exs, err := db.ListExercisesForRun(s.store.DB, ownerID, runID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	libExercises, err := db.ListLibraryExercises(s.store.DB, ownerID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	views := make([]pages.ManualExerciseView, 0, len(exs))
+	for _, ex := range exs {
+		mev := pages.ManualExerciseView{
+			ExerciseID: ex.ID,
+			RunID:      runID,
+			Name:       ex.Name,
+			Kind:       ex.Kind,
+		}
+		// Load completion if it exists.
+		var comp db.RunExerciseCompletion
+		if err2 := s.store.DB.Where("owner_id = ? AND run_id = ? AND exercise_id = ?",
+			ownerID, runID, ex.ID).First(&comp).Error; err2 == nil {
+			mev.ActualSets = comp.ActualSets
+			mev.ActualReps = comp.ActualReps
+			mev.ActualWeightKg = comp.ActualWeightKg
+			mev.Notes = comp.RunNotes
+		}
+		views = append(views, mev)
+	}
+	s.pages.RenderManualExercisesContainer(w, pages.TrainingLogNewParams{
+		DraftRunID:       runID,
+		LibraryExercises: libExercises,
+		Exercises:        views,
+	})
 }
 
 // handleTrainingLogEdit serves GET|POST /training-log/{journalID}/edit.
