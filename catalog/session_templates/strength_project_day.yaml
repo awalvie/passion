@@ -1,5 +1,6 @@
 name: "Strength Project Day"
 color: "#f59e0b"
+label: "strength"
 activities:
   - ref: "Warm Up"
   - ref: "Drills"
@@ -12,3 +13,4 @@ activities:
       - ref: "1-arm lock-off 120 degrees"
       - ref: "Wide-Grip Pull-Ups"
       - ref: "Dumbbell Row"
+      - ref: "TRX/Rings Body Saws"

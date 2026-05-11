@@ -10,6 +10,7 @@
       <div class="at-edit-header">
         <div class="flex items-center gap-2 min-w-0">
           <div class="at-edit-title" id="at-title-display-{{ .Template.ID }}">{{ .Template.Name }}</div>
+          {{ if .Template.Label }}<span class="text-xs font-medium px-1.5 py-0.5 rounded" style="background:var(--surface-raised);color:var(--text-muted)">{{ .Template.Label }}</span>{{ end }}
           <button
             type="button"
             class="rounded btn-ghost px-1.5 py-1 text-xs muted shrink-0"
@@ -48,6 +49,17 @@
             required
             class="mt-1 w-full input text-sm"
             value="{{ .Template.Name }}"
+          />
+        </div>
+        <div>
+          <label class="text-xs font-medium" for="at-label-{{ .Template.ID }}">Label</label>
+          <input
+            id="at-label-{{ .Template.ID }}"
+            name="label"
+            class="mt-1 w-full input text-sm"
+            value="{{ .Template.Label }}"
+            placeholder="e.g. warmup, technique, bouldering"
+            autocomplete="off"
           />
         </div>
         <button type="submit" class="rounded-md btn-primary px-3 py-2 text-sm font-medium">

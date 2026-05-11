@@ -57,6 +57,7 @@ func (s *Server) handleActivityTemplatesNew(w http.ResponseWriter, r *http.Reque
 		tpl := &db.ActivityTemplate{
 			OwnerID: ownerID,
 			Name:    name,
+			Label:   strings.TrimSpace(r.FormValue("label")),
 		}
 		if err := s.store.DB.Create(tpl).Error; err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -158,12 +159,14 @@ func (s *Server) handleUpdateActivityTemplate(w http.ResponseWriter, r *http.Req
 		http.Error(w, "name is required", http.StatusBadRequest)
 		return
 	}
+	label := strings.TrimSpace(r.FormValue("label"))
 	var tpl db.ActivityTemplate
 	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, tplID).First(&tpl).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 	tpl.Name = name
+	tpl.Label = label
 	if err := s.store.DB.Save(&tpl).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

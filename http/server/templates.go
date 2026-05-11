@@ -186,6 +186,7 @@ func (s *Server) handleTemplatesNew(w http.ResponseWriter, r *http.Request) {
 		tpl := &db.SessionTemplate{
 			OwnerID: ownerID,
 			Name:    name,
+			Label:   strings.TrimSpace(r.FormValue("label")),
 		}
 		if err := s.store.DB.Create(tpl).Error; err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -452,6 +453,7 @@ func (s *Server) handleUpdateSessionTemplate(w http.ResponseWriter, r *http.Requ
 	} else {
 		color = normalizeTemplateColor(r.FormValue("color"))
 	}
+	label := strings.TrimSpace(r.FormValue("label"))
 
 	var tpl db.SessionTemplate
 	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, templateID).First(&tpl).Error; err != nil {
@@ -460,6 +462,7 @@ func (s *Server) handleUpdateSessionTemplate(w http.ResponseWriter, r *http.Requ
 	}
 	tpl.Name = name
 	tpl.Color = color
+	tpl.Label = label
 	if err := s.store.DB.Save(&tpl).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

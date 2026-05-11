@@ -1,4 +1,5 @@
 name: "Drills"
+label: "technique"
 exercises:
   - name: "Drills"
     kind: "exercise_catalog"
