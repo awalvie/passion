@@ -1,0 +1,45 @@
+{{ define "boards_list.html" }}
+<div id="boards-list" class="space-y-1">
+  {{ if .Boards }}
+    {{ range .Boards }}
+    <div class="flex items-center gap-2 py-1">
+      <div class="flex-1 min-w-0 flex items-center gap-1.5">
+        <span class="text-sm truncate">{{ .Label }}</span>
+        <span class="venue-badge venue-badge--board">{{ .BoardType }}</span>
+      </div>
+      <button
+        type="button"
+        class="shrink-0 rounded btn-ghost p-1 inline-flex items-center justify-center"
+        hx-post="/profile/boards/{{ .ID }}/delete"
+        hx-target="#boards-list"
+        hx-swap="outerHTML"
+        hx-confirm="Delete this board?"
+        title="Delete board"
+      >
+        <i data-lucide="trash-2" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+      </button>
+    </div>
+    {{ end }}
+  {{ else }}
+    <p class="text-sm muted">No boards added yet.</p>
+  {{ end }}
+  <form hx-post="/profile/boards" hx-target="#boards-list" hx-swap="outerHTML" class="mt-2 flex gap-2 items-end" hx-on:htmx:after-request="this.reset()">
+    <div>
+      <label class="text-xs font-medium" for="board-type">Type</label>
+      <select id="board-type" name="board_type" required class="mt-1 input text-sm">
+        <option value="">Choose…</option>
+        <option value="kilter">Kilter</option>
+        <option value="moon">Moon</option>
+        <option value="tension">Tension</option>
+        <option value="spray">Spray Wall</option>
+        <option value="custom">Custom</option>
+      </select>
+    </div>
+    <div class="flex-1 min-w-0">
+      <label class="text-xs font-medium" for="board-name">Name <span class="font-normal muted">(optional)</span></label>
+      <input id="board-name" name="name" class="mt-1 w-full input text-sm" placeholder="e.g. Home Kilter" autocomplete="off" />
+    </div>
+    <button type="submit" class="shrink-0 rounded-md btn-primary px-3 py-2 text-sm font-medium">Add</button>
+  </form>
+</div>
+{{ end }}

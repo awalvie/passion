@@ -1,5 +1,5 @@
 {{ define "content" }}
-<div class="max-w-2xl">
+<div class="max-w-2xl space-y-4">
   <div class="card card-pad">
     <h2 class="text-sm font-semibold">Your statistics</h2>
     <p class="mt-1 text-sm muted">Store a few personal metrics you may want to track alongside your training.</p>
@@ -55,6 +55,20 @@
         </a>
       </div>
     </form>
+  </div>
+
+  {{/* ── Climbing venues ───────────────────────────────────────────────── */}}
+  <div class="card card-pad" id="venues">
+    <h2 class="text-sm font-semibold mb-1">Climbing Venues</h2>
+    <p class="text-xs muted mb-3">Places you climb — gyms, crags, walls.</p>
+    {{ template "venues_list.html" . }}
+  </div>
+
+  {{/* ── Training boards ───────────────────────────────────────────────── */}}
+  <div class="card card-pad" id="boards">
+    <h2 class="text-sm font-semibold mb-1">Training Boards</h2>
+    <p class="text-xs muted mb-3">Boards you use — independent of location.</p>
+    {{ template "boards_list.html" . }}
   </div>
 </div>
 {{ end }}

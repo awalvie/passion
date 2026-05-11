@@ -144,63 +144,146 @@
       </span>
       <i data-lucide="chevron-down" class="cycle-targets-chevron" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
     </summary>
-    <p class="text-xs muted mt-2 mb-3">
-      Override exercise variables for this cycle only. Leave a field at 0 to keep the template default.
-    </p>
+    <p class="text-xs muted mt-2 mb-3">Override targets for this cycle. Changes save automatically.</p>
     <div class="cycle-targets-list">
       {{ range .ExerciseOverrides }}
+      {{ $showWeight := or (eq .Kind "reps_and_sets") (eq .Kind "exercise_catalog") (eq .Kind "") }}
+      {{ $showSecs   := eq .Kind "timed_reps" }}
       <div class="cycle-target-row">
+
+        {{/* Left: name + defaults */}}
         <div class="cycle-target-name">
-          {{ .ExerciseName }}
-          {{ if .HasOverride }}<span class="cycle-target-badge">overridden</span>{{ end }}
+          <span class="cycle-target-name-text">
+            {{ .ExerciseName }}
+            {{ if .HasOverride }}<span class="cycle-target-badge">modified</span>{{ end }}
+          </span>
+          <span class="cycle-target-defaults">{{ .PlannedSets }}×{{ .PlannedReps }}{{ if and $showWeight (gt .PlannedWeightKg 0.0) }} · {{ printf "%.1f" .PlannedWeightKg }}kg{{ end }}{{ if and $showSecs (gt .PlannedRepSecs 0) }} · {{ .PlannedRepSecs }}s{{ end }}</span>
         </div>
+
+        {{ $ex := . }}
+        {{ if .VariesByWeek }}
+        {{/* Vary toggle (active) — sits inline after name, then week rows wrap below */}}
+        <form hx-post="/training-cycles/{{ $.CycleID }}/week-override-toggle" hx-swap="none" method="post">
+          <input type="hidden" name="exercise_name" value="{{ .ExerciseName }}" />
+          {{ if .LibraryExerciseID }}<input type="hidden" name="library_exercise_id" value="{{ .LibraryExerciseID }}" />{{ end }}
+          <input type="hidden" name="mode" value="same" />
+          <button type="submit" class="cycle-target-vary-btn cycle-target-vary-btn--active">Varies by week ✕</button>
+        </form>
+        {{/* Week rows — flex: 1 1 100% forces them onto a new line in the wrapping flex row */}}
+        <div class="cycle-target-week-rows">
+          {{ range .WeekOverrides }}
+          <div class="cycle-target-week-row">
+            <span class="cycle-target-week-label">Wk {{ .Week }}</span>
+            <form
+              hx-post="/training-cycles/{{ $.CycleID }}/week-override-save"
+              hx-swap="none"
+              hx-trigger="change delay:400ms"
+              method="post"
+              class="cycle-target-form"
+            >
+              <input type="hidden" name="exercise_name" value="{{ $ex.ExerciseName }}" />
+              {{ if $ex.LibraryExerciseID }}<input type="hidden" name="library_exercise_id" value="{{ $ex.LibraryExerciseID }}" />{{ end }}
+              <input type="hidden" name="week" value="{{ .Week }}" />
+              <div class="cycle-target-field">
+                <span class="cycle-target-field-label">Sets</span>
+                <div class="stepper">
+                  <button type="button" class="stepper-btn" onclick="stepAdj(this,-1)">−</button>
+                  <input type="number" name="sets" min="0" step="1" value="{{ .Sets }}" class="stepper-input{{ if .HasOverride }} stepper-input--modified{{ end }}" />
+                  <button type="button" class="stepper-btn" onclick="stepAdj(this,1)">+</button>
+                </div>
+              </div>
+              <div class="cycle-target-field">
+                <span class="cycle-target-field-label">Reps</span>
+                <div class="stepper">
+                  <button type="button" class="stepper-btn" onclick="stepAdj(this,-1)">−</button>
+                  <input type="number" name="reps" min="0" step="1" value="{{ .Reps }}" class="stepper-input{{ if .HasOverride }} stepper-input--modified{{ end }}" />
+                  <button type="button" class="stepper-btn" onclick="stepAdj(this,1)">+</button>
+                </div>
+              </div>
+              {{ if $showWeight }}
+              <div class="cycle-target-field">
+                <span class="cycle-target-field-label">kg</span>
+                <div class="stepper">
+                  <button type="button" class="stepper-btn" onclick="stepAdj(this,-0.5)">−</button>
+                  <input type="number" name="weight_kg" min="0" step="0.5" value="{{ printf "%.1f" .WeightKg }}" class="stepper-input{{ if .HasOverride }} stepper-input--modified{{ end }}" />
+                  <button type="button" class="stepper-btn" onclick="stepAdj(this,0.5)">+</button>
+                </div>
+              </div>
+              {{ end }}
+              {{ if $showSecs }}
+              <div class="cycle-target-field">
+                <span class="cycle-target-field-label">s/rep</span>
+                <div class="stepper">
+                  <button type="button" class="stepper-btn" onclick="stepAdj(this,-1)">−</button>
+                  <input type="number" name="rep_seconds" min="0" step="1" value="{{ .RepSeconds }}" class="stepper-input{{ if .HasOverride }} stepper-input--modified{{ end }}" />
+                  <button type="button" class="stepper-btn" onclick="stepAdj(this,1)">+</button>
+                </div>
+              </div>
+              {{ end }}
+            </form>
+          </div>
+          {{ end }}
+        </div>
+
+        {{ else }}
+        {{/* Single global stepper row */}}
         <form
           hx-post="/training-cycles/{{ $.CycleID }}/override-save"
           hx-swap="none"
+          hx-trigger="change delay:400ms"
           method="post"
           class="cycle-target-form"
         >
           <input type="hidden" name="exercise_name" value="{{ .ExerciseName }}" />
           {{ if .LibraryExerciseID }}<input type="hidden" name="library_exercise_id" value="{{ .LibraryExerciseID }}" />{{ end }}
-          <label class="cycle-target-field">
+          <div class="cycle-target-field">
             <span class="cycle-target-field-label">Sets</span>
-            <input type="number" name="sets" min="0" step="1"
-              value="{{ if .HasOverride }}{{ .OverrideSets }}{{ else }}{{ .PlannedSets }}{{ end }}"
-              placeholder="{{ .PlannedSets }}"
-              class="cycle-target-input" />
-          </label>
-          <label class="cycle-target-field">
+            <div class="stepper">
+              <button type="button" class="stepper-btn" onclick="stepAdj(this,-1)">−</button>
+              <input type="number" name="sets" min="0" step="1"
+                value="{{ if .HasOverride }}{{ .OverrideSets }}{{ else }}{{ .PlannedSets }}{{ end }}"
+                class="stepper-input{{ if .HasOverride }} stepper-input--modified{{ end }}" />
+              <button type="button" class="stepper-btn" onclick="stepAdj(this,1)">+</button>
+            </div>
+          </div>
+          <div class="cycle-target-field">
             <span class="cycle-target-field-label">Reps</span>
-            <input type="number" name="reps" min="0" step="1"
-              value="{{ if .HasOverride }}{{ .OverrideReps }}{{ else }}{{ .PlannedReps }}{{ end }}"
-              placeholder="{{ .PlannedReps }}"
-              class="cycle-target-input" />
-          </label>
-          <label class="cycle-target-field">
+            <div class="stepper">
+              <button type="button" class="stepper-btn" onclick="stepAdj(this,-1)">−</button>
+              <input type="number" name="reps" min="0" step="1"
+                value="{{ if .HasOverride }}{{ .OverrideReps }}{{ else }}{{ .PlannedReps }}{{ end }}"
+                class="stepper-input{{ if .HasOverride }} stepper-input--modified{{ end }}" />
+              <button type="button" class="stepper-btn" onclick="stepAdj(this,1)">+</button>
+            </div>
+          </div>
+          {{ if $showWeight }}
+          <div class="cycle-target-field">
             <span class="cycle-target-field-label">kg</span>
-            <input type="number" name="weight_kg" min="0" step="0.5"
-              value="{{ if .HasOverride }}{{ printf "%.1f" .OverrideWeightKg }}{{ else }}{{ printf "%.1f" .PlannedWeightKg }}{{ end }}"
-              placeholder="{{ printf "%.1f" .PlannedWeightKg }}"
-              class="cycle-target-input" />
-          </label>
-          <label class="cycle-target-field">
+            <div class="stepper">
+              <button type="button" class="stepper-btn" onclick="stepAdj(this,-0.5)">−</button>
+              <input type="number" name="weight_kg" min="0" step="0.5"
+                value="{{ if .HasOverride }}{{ printf "%.1f" .OverrideWeightKg }}{{ else }}{{ printf "%.1f" .PlannedWeightKg }}{{ end }}"
+                class="stepper-input{{ if .HasOverride }} stepper-input--modified{{ end }}" />
+              <button type="button" class="stepper-btn" onclick="stepAdj(this,0.5)">+</button>
+            </div>
+          </div>
+          {{ end }}
+          {{ if $showSecs }}
+          <div class="cycle-target-field">
             <span class="cycle-target-field-label">s/rep</span>
-            <input type="number" name="rep_seconds" min="0" step="1"
-              value="{{ if .HasOverride }}{{ .OverrideRepSecs }}{{ else }}{{ .PlannedRepSecs }}{{ end }}"
-              placeholder="{{ .PlannedRepSecs }}"
-              class="cycle-target-input" />
-          </label>
-          <button type="submit" class="cycle-target-save-btn" title="Save override">
-            <i data-lucide="check" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
-          </button>
+            <div class="stepper">
+              <button type="button" class="stepper-btn" onclick="stepAdj(this,-1)">−</button>
+              <input type="number" name="rep_seconds" min="0" step="1"
+                value="{{ if .HasOverride }}{{ .OverrideRepSecs }}{{ else }}{{ .PlannedRepSecs }}{{ end }}"
+                class="stepper-input{{ if .HasOverride }} stepper-input--modified{{ end }}" />
+              <button type="button" class="stepper-btn" onclick="stepAdj(this,1)">+</button>
+            </div>
+          </div>
+          {{ end }}
         </form>
+        {{/* Clear button is a separate sibling form — nested forms are invalid HTML */}}
         {{ if .HasOverride }}
-        <form
-          hx-post="/training-cycles/{{ $.CycleID }}/override-clear"
-          hx-swap="none"
-          method="post"
-          class="cycle-target-clear-form"
-        >
+        <form hx-post="/training-cycles/{{ $.CycleID }}/override-clear" hx-swap="none" method="post">
           <input type="hidden" name="exercise_name" value="{{ .ExerciseName }}" />
           {{ if .LibraryExerciseID }}<input type="hidden" name="library_exercise_id" value="{{ .LibraryExerciseID }}" />{{ end }}
           <button type="submit" class="cycle-target-clear-btn" title="Reset to template default">
@@ -208,11 +291,29 @@
           </button>
         </form>
         {{ end }}
+        <form hx-post="/training-cycles/{{ $.CycleID }}/week-override-toggle" hx-swap="none" method="post">
+          <input type="hidden" name="exercise_name" value="{{ .ExerciseName }}" />
+          {{ if .LibraryExerciseID }}<input type="hidden" name="library_exercise_id" value="{{ .LibraryExerciseID }}" />{{ end }}
+          <input type="hidden" name="mode" value="varies" />
+          <button type="submit" class="cycle-target-vary-btn">Varies by week</button>
+        </form>
+        {{ end }}
+
       </div>
       {{ end }}
     </div>
   </details>
   {{ end }}
+  <script>
+  function stepAdj(btn, delta) {
+    var input = btn.closest('.stepper').querySelector('input[type="number"]');
+    var val = parseFloat(input.value) || 0;
+    var min = parseFloat(input.min) || 0;
+    var newVal = Math.max(min, val + delta);
+    input.value = (newVal % 1 === 0) ? newVal : newVal.toFixed(1);
+    input.dispatchEvent(new Event('change', {bubbles: true}));
+  }
+  </script>
 
   {{/* ── Add-session dialog ── */}}
   {{ if .CycleTemplates }}

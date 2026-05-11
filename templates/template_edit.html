@@ -268,7 +268,7 @@
     });
 
     // After settings form saves (HTMX), update the inline title display
-    root.querySelectorAll("form[hx-post]").forEach((form) => {
+    root.querySelectorAll("form[hx-post='/templates/{{ .Template.ID }}/update']").forEach((form) => {
       form.addEventListener("htmx:afterRequest", () => {
         const nameInput = form.querySelector('input[name="name"]');
         const titleID = "tpl-title-display-{{ .Template.ID }}";

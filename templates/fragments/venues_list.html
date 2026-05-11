@@ -1,0 +1,41 @@
+{{ define "venues_list.html" }}
+<div id="venues-list" class="space-y-1">
+  {{ if .Venues }}
+    {{ range .Venues }}
+    <div class="flex items-center gap-2 py-1">
+      <div class="flex-1 min-w-0 flex items-center gap-1.5">
+        <span class="text-sm truncate">{{ .Name }}</span>
+        <span class="venue-badge venue-badge--{{ if eq .Kind "Outdoor" }}outdoor{{ else }}commercial{{ end }}">{{ .Kind }}</span>
+      </div>
+      <button
+        type="button"
+        class="shrink-0 rounded btn-ghost p-1 inline-flex items-center justify-center"
+        hx-post="/profile/venues/{{ .ID }}/delete"
+        hx-target="#venues-list"
+        hx-swap="outerHTML"
+        hx-confirm="Delete this venue?"
+        title="Delete venue"
+      >
+        <i data-lucide="trash-2" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+      </button>
+    </div>
+    {{ end }}
+  {{ else }}
+    <p class="text-sm muted">No venues added yet.</p>
+  {{ end }}
+  <form hx-post="/profile/venues" hx-target="#venues-list" hx-swap="outerHTML" class="mt-2 flex gap-2 items-end" hx-on:htmx:after-request="this.reset()">
+    <div class="flex-1 min-w-0">
+      <label class="text-xs font-medium" for="venue-name">Name</label>
+      <input id="venue-name" name="name" required class="mt-1 w-full input text-sm" placeholder="e.g. The Arch" autocomplete="off" />
+    </div>
+    <div>
+      <label class="text-xs font-medium" for="venue-kind">Type</label>
+      <select id="venue-kind" name="kind" class="mt-1 input text-sm">
+        <option value="commercial">Indoor</option>
+        <option value="outdoor">Outdoor</option>
+      </select>
+    </div>
+    <button type="submit" class="shrink-0 rounded-md btn-primary px-3 py-2 text-sm font-medium">Add</button>
+  </form>
+</div>
+{{ end }}

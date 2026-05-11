@@ -1,17 +1,43 @@
 {{ define "content" }}
 <div class="max-w-6xl w-full run-shell">
+  <script>
+    function openExercisePanel() {
+      var ep = document.getElementById('open-exercise-panel');
+      var tp = document.getElementById('open-template-panel');
+      if (!ep) return;
+      var opening = ep.classList.contains('hidden');
+      ep.classList.toggle('hidden', !opening);
+      if (tp) tp.classList.add('hidden');
+    }
+    function openTemplatePanel() {
+      var tp = document.getElementById('open-template-panel');
+      var ep = document.getElementById('open-exercise-panel');
+      if (!tp) return;
+      var opening = tp.classList.contains('hidden');
+      tp.classList.toggle('hidden', !opening);
+      if (ep) ep.classList.add('hidden');
+    }
+  </script>
   {{ if .RunCompleted }}
     {{ if and .RunIsOpen (eq .RunTotalSteps 0) }}
       {{/* Open session — no exercises added yet */}}
       <div class="card card-pad run-complete">
         <div class="text-base font-semibold">What's first?</div>
         <p class="mt-2 text-sm muted">Add your first exercise to get started.</p>
-        <div class="mt-4">
-          <button type="button" class="rounded-md btn-primary px-4 py-2 text-sm font-medium" onclick="document.getElementById('open-add-panel').classList.remove('hidden');this.classList.add('hidden')">
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button type="button" class="rounded-md btn-primary px-4 py-2 text-sm font-medium" onclick="openExercisePanel()">
+            <i data-lucide="plus" style="width:0.875rem;height:0.875rem;display:inline-block;vertical-align:-2px" aria-hidden="true"></i>
             Add exercise
           </button>
+          {{ if .RunActivityTemplates }}
+          <button type="button" class="rounded-md btn-accent px-4 py-2 text-sm font-medium" onclick="openTemplatePanel()">
+            <i data-lucide="layout-list" style="width:0.875rem;height:0.875rem;display:inline-block;vertical-align:-2px" aria-hidden="true"></i>
+            From template
+          </button>
+          {{ end }}
         </div>
-        {{ template "open-add-panel" . }}
+        {{ template "open-exercise-panel" . }}
+        {{ if .RunActivityTemplates }}{{ template "open-template-panel" . }}{{ end }}
       </div>
     {{ else }}
       <div class="card card-pad run-complete">
@@ -19,13 +45,34 @@
         <p class="mt-2 text-sm muted">Nice work. All exercises in this run are completed or skipped.</p>
         <div class="mt-4 flex flex-wrap gap-3">
           {{ if .RunIsOpen }}
-            <button type="button" class="rounded-md btn-accent px-4 py-2 text-sm font-medium" onclick="document.getElementById('open-add-panel').classList.remove('hidden');this.classList.add('hidden')">
-              Add another exercise
+            <button type="button" class="rounded-md btn-ghost px-4 py-2 text-sm font-medium" onclick="openExercisePanel()">
+              <i data-lucide="plus" style="width:0.875rem;height:0.875rem;display:inline-block;vertical-align:-2px" aria-hidden="true"></i>
+              Add exercise
             </button>
+            {{ if .RunActivityTemplates }}
+            <button type="button" class="rounded-md btn-ghost px-4 py-2 text-sm font-medium" onclick="openTemplatePanel()">
+              <i data-lucide="layout-list" style="width:0.875rem;height:0.875rem;display:inline-block;vertical-align:-2px" aria-hidden="true"></i>
+              From template
+            </button>
+            {{ end }}
+            <a class="rounded-md btn-ghost px-4 py-2 text-sm font-medium inline-flex items-center gap-1.5" href="/runs/{{ .RunID }}/summary">
+              <i data-lucide="clipboard-list" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+              View summary
+            </a>
+            <form hx-post="/runs/{{ .RunID }}/stop" hx-swap="none" hx-confirm="Finish this session? You won't be able to add more exercises." method="post">
+              <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium inline-flex items-center gap-1.5">
+                <i data-lucide="circle-check" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+                Finish session
+              </button>
+            </form>
+          {{ else }}
+            <a class="rounded-md btn-primary px-4 py-2 text-sm font-medium inline-flex" href="/dashboard">Return to dashboard</a>
           {{ end }}
-          <a class="rounded-md btn-primary px-4 py-2 text-sm font-medium inline-flex" href="/dashboard">Return to dashboard</a>
         </div>
-        {{ if .RunIsOpen }}{{ template "open-add-panel" . }}{{ end }}
+        {{ if .RunIsOpen }}
+          {{ template "open-exercise-panel" . }}
+          {{ if .RunActivityTemplates }}{{ template "open-template-panel" . }}{{ end }}
+        {{ end }}
       </div>
     {{ end }}
   {{ else }}
@@ -580,7 +627,22 @@
               </div>
             </div>
           </div>
-          {{ if not $isSession }}
+          {{ if eq .CurrentStep.Kind "climbing" }}
+          {{/* Climbing exercise: show tick log inline; no sets/reps/weight. */}}
+          <input type="hidden" name="actual_sets" value="0" />
+          <input type="hidden" name="actual_reps" value="0" />
+          <input type="hidden" name="actual_weight_kg" value="0" />
+          <div class="mb-3 mt-2 px-1">
+            <section
+              id="tick-list-{{ .CurrentStep.ExerciseID }}"
+              hx-get="/runs/{{ .RunID }}/exercises/{{ .CurrentStep.ExerciseID }}/ticks"
+              hx-trigger="load"
+              hx-swap="outerHTML"
+            >
+              <div class="text-sm muted py-2">Loading climbs…</div>
+            </section>
+          </div>
+          {{ else if not $isSession }}
           <details class="run-notes-collapse" id="actual-values-detail">
             <summary class="run-collapse-toggle"><i data-lucide="sliders-horizontal" class="run-collapse-icon"></i><i data-lucide="chevron-right" class="run-collapse-chevron"></i>
               Logged as:
@@ -606,16 +668,29 @@
           <input type="hidden" name="actual_reps" value="0" />
           <input type="hidden" name="actual_weight_kg" value="0" />
           {{ end }}
-          <details class="run-notes-collapse">
+          <details class="run-notes-collapse" id="run-notes-details">
             <summary class="run-collapse-toggle"><i data-lucide="pencil" class="run-collapse-icon"></i><i data-lucide="chevron-right" class="run-collapse-chevron"></i> Add notes</summary>
-            <textarea id="run-notes" name="run_notes" rows="2" class="w-full input text-sm mt-1" placeholder="e.g., felt heavy, changed grip, RPE..."></textarea>
+            <textarea id="run-notes" name="run_notes" rows="2" class="w-full input text-sm mt-1" placeholder="e.g., felt heavy, changed grip, RPE..." oninput="runNotesPreview(this)"></textarea>
+            <div id="run-notes-preview" class="prose prose-sm mt-2 px-1 hidden"></div>
           </details>
         </form>
 
         {{ if .RunIsOpen }}
-        <button type="button" class="run-open-add-btn" id="btn-open-add-exercise" onclick="document.getElementById('open-add-panel').classList.toggle('hidden')">
-          <i data-lucide="plus" class="run-icon"></i> Add exercise
-        </button>
+        <div class="flex gap-2 mt-3">
+          <button type="button" class="run-open-add-btn flex-1" onclick="openExercisePanel()">
+            <i data-lucide="plus" class="run-icon"></i> Add exercise
+          </button>
+          {{ if .RunActivityTemplates }}
+          <button type="button" class="run-open-add-btn flex-1" onclick="openTemplatePanel()">
+            <i data-lucide="layout-list" class="run-icon"></i> From template
+          </button>
+          {{ end }}
+        </div>
+        <form hx-post="/runs/{{ .RunID }}/stop" hx-swap="none" hx-confirm="Finish this session? Progress will be saved." method="post" class="mt-2">
+          <button type="submit" class="run-finish-btn">
+            <i data-lucide="circle-check" class="run-icon"></i> Finish session
+          </button>
+        </form>
         {{ end }}
 
         <form
@@ -637,8 +712,32 @@
       </button>
     </div>
 
-    {{ if .RunIsOpen }}{{ template "open-add-panel" . }}{{ end }}
+    {{ if .RunIsOpen }}
+      {{ template "open-exercise-panel" . }}
+      {{ if .RunActivityTemplates }}{{ template "open-template-panel" . }}{{ end }}
+    {{ end }}
 
+    <script>
+      var _runNotesPreviewTimer = null;
+      function runNotesPreview(ta) {
+        var preview = document.getElementById('run-notes-preview');
+        if (!preview) return;
+        clearTimeout(_runNotesPreviewTimer);
+        var text = ta.value;
+        if (!text.trim()) { preview.innerHTML = ''; preview.classList.add('hidden'); return; }
+        _runNotesPreviewTimer = setTimeout(function() {
+          fetch('/preview/markdown', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'content=' + encodeURIComponent(text)
+          }).then(function(r) { return r.text(); }).then(function(html) {
+            preview.innerHTML = html;
+            preview.classList.remove('hidden');
+            if (window.__passionRenderIcons) window.__passionRenderIcons();
+          });
+        }, 300);
+      }
+    </script>
     <script>
       function updateActualLabel() {
         var s = parseInt(document.getElementById('actual-sets-input')?.value || 0);
@@ -1353,13 +1452,13 @@
 {{ end }}
 
 {{/* ------------------------------------------------------------------ */}}
-{{/* Shared add-exercise panel for open sessions                         */}}
+{{/* Open session: Add exercise panel                                    */}}
 {{/* ------------------------------------------------------------------ */}}
-{{ define "open-add-panel" }}
-<div id="open-add-panel" class="hidden mt-4 card overflow-hidden">
+{{ define "open-exercise-panel" }}
+<div id="open-exercise-panel" class="hidden mt-4 card overflow-hidden">
   <div class="px-4 py-3 flex items-center justify-between border-b" style="border-color:var(--border)">
     <span class="text-sm font-semibold">Add exercise</span>
-    <button type="button" class="rounded btn-ghost p-1 inline-flex" onclick="document.getElementById('open-add-panel').classList.add('hidden')">
+    <button type="button" class="rounded btn-ghost p-1 inline-flex" onclick="document.getElementById('open-exercise-panel').classList.add('hidden')">
       <i data-lucide="x" style="width:14px;height:14px"></i>
     </button>
   </div>
@@ -1467,6 +1566,126 @@
   });
   libList.addEventListener('mousedown', function (e) { var li = e.target.closest('li[role="option"]'); if (li) { e.preventDefault(); selectItem(li); } });
   document.addEventListener('click', function (e) { if (!libSearch.contains(e.target) && !libList.contains(e.target)) closeList(); }, true);
+  if (typeof window.__passionRenderIcons === 'function') window.__passionRenderIcons();
+})();
+</script>
+{{ end }}
+
+{{/* ------------------------------------------------------------------ */}}
+{{/* Open session: Add from activity template panel                      */}}
+{{/* ------------------------------------------------------------------ */}}
+{{ define "open-template-panel" }}
+<div id="open-template-panel" class="hidden mt-4 card overflow-hidden">
+  <div class="px-4 py-3 flex items-center justify-between border-b" style="border-color:var(--border)">
+    <span class="text-sm font-semibold">Add from template</span>
+    <button type="button" class="rounded btn-ghost p-1 inline-flex" onclick="document.getElementById('open-template-panel').classList.add('hidden')">
+      <i data-lucide="x" style="width:14px;height:14px"></i>
+    </button>
+  </div>
+  <div class="px-4 py-4">
+    <form
+      hx-post="/runs/{{ .RunID }}/open/add-template"
+      hx-swap="none"
+      method="post"
+      class="flex flex-col gap-2 sm:flex-row sm:items-end"
+    >
+      <div class="flex-1 min-w-0 flex flex-col gap-2">
+        <div class="relative" data-tpl-combo="open-{{ .RunID }}">
+          <input
+            type="text"
+            class="w-full input text-sm"
+            placeholder="Search activity templates…"
+            autocomplete="off"
+            role="combobox"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            aria-controls="open-tpl-list-{{ .RunID }}"
+            data-tpl-search="open-{{ .RunID }}"
+          />
+          <select
+            name="activity_template_id"
+            required
+            class="sr-only"
+            tabindex="-1"
+            aria-hidden="true"
+            data-tpl-select="open-{{ .RunID }}"
+          >
+            <option value=""></option>
+            {{ range .RunActivityTemplates }}
+            <option value="{{ .ID }}"
+              data-label="{{ .Name }}{{ if .Label }} ({{ .Label }}){{ end }}"
+              data-exercises="{{ range $i, $e := .Exercises }}{{ if $i }},{{ end }}{{ $e.Name }}{{ if and (gt $e.Sets 0) (gt $e.Reps 0) }} ({{ $e.Sets }}×{{ $e.Reps }}){{ end }}{{ end }}"
+            >{{ .Name }}{{ if .Label }} ({{ .Label }}){{ end }}</option>
+            {{ end }}
+          </select>
+          <ul
+            id="open-tpl-list-{{ .RunID }}"
+            role="listbox"
+            class="hidden absolute z-50 left-0 right-0 mt-1 rounded-md border overflow-y-auto text-sm"
+            style="background:var(--panel);border-color:var(--border);max-height:180px"
+            data-tpl-list="open-{{ .RunID }}"
+          >
+            {{ range .RunActivityTemplates }}
+            <li role="option" aria-selected="false"
+              data-value="{{ .ID }}"
+              data-label="{{ .Name }}{{ if .Label }} ({{ .Label }}){{ end }}"
+              data-exercises="{{ range $i, $e := .Exercises }}{{ if $i }},{{ end }}{{ $e.Name }}{{ if and (gt $e.Sets 0) (gt $e.Reps 0) }} ({{ $e.Sets }}×{{ $e.Reps }}){{ end }}{{ end }}"
+              class="px-3 py-2 cursor-pointer select-none"
+              onmouseover="this.style.background='var(--hover)'"
+              onmouseout="this.style.background=''"
+            >
+              <div class="font-medium">{{ .Name }}</div>
+              {{ if .Label }}<div class="text-[11px] muted">{{ .Label }}</div>{{ end }}
+            </li>
+            {{ end }}
+          </ul>
+        </div>
+        <div id="open-tpl-preview-open-{{ .RunID }}" class="hidden text-xs muted rounded-md px-2 py-1.5" style="background:var(--card-muted)"></div>
+      </div>
+      <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium shrink-0">Add</button>
+    </form>
+  </div>
+</div>
+<script>
+(function() {
+  var key = 'open-{{ .RunID }}';
+  var tplSearch  = document.querySelector('[data-tpl-search="' + key + '"]');
+  var tplSelect  = document.querySelector('[data-tpl-select="' + key + '"]');
+  var tplList    = document.querySelector('[data-tpl-list="' + key + '"]');
+  var tplPreview = document.getElementById('open-tpl-preview-' + key);
+  if (!tplSearch || !tplSelect || !tplList) return;
+  var allItems  = function() { return Array.from(tplList.querySelectorAll('li[role="option"]')); };
+  var openList  = function() { tplList.classList.remove('hidden'); tplSearch.setAttribute('aria-expanded','true'); };
+  var closeList = function() { tplList.classList.add('hidden'); tplSearch.setAttribute('aria-expanded','false'); };
+  function showPreview(exercises) {
+    if (!tplPreview) return;
+    if (!exercises) { tplPreview.classList.add('hidden'); tplPreview.textContent = ''; return; }
+    tplPreview.textContent = exercises.split(',').filter(Boolean).join(' · ');
+    tplPreview.classList.remove('hidden');
+  }
+  var selectItem = function(li) {
+    tplSelect.value = li.dataset.value; tplSearch.value = li.dataset.label;
+    allItems().forEach(function(i) { i.setAttribute('aria-selected','false'); });
+    li.setAttribute('aria-selected','true'); closeList(); showPreview(li.dataset.exercises);
+  };
+  tplSearch.addEventListener('input', function() {
+    var q = this.value.trim().toLowerCase(); var hasVisible = false;
+    allItems().forEach(function(li) { var m = !q || li.dataset.label.toLowerCase().includes(q); li.hidden = !m; if (m) hasVisible = true; });
+    var chosen = allItems().find(function(li) { return li.getAttribute('aria-selected') === 'true'; });
+    if (chosen && chosen.hidden) { tplSelect.value = ''; chosen.setAttribute('aria-selected','false'); showPreview(null); }
+    if (q && hasVisible) openList(); else if (!q) { allItems().forEach(function(li) { li.hidden = false; }); openList(); } else closeList();
+  });
+  tplSearch.addEventListener('focus', function() { allItems().forEach(function(li) { li.hidden = false; }); openList(); });
+  tplSearch.addEventListener('keydown', function(e) {
+    var visible = allItems().filter(function(li) { return !li.hidden; });
+    var active  = tplList.querySelector('[aria-selected="true"]:not([hidden])');
+    if (e.key === 'ArrowDown') { e.preventDefault(); var nxt = active ? (visible[visible.indexOf(active)+1]||visible[0]) : visible[0]; if (nxt) { allItems().forEach(function(i) { i.setAttribute('aria-selected','false'); }); nxt.setAttribute('aria-selected','true'); nxt.scrollIntoView({block:'nearest'}); tplSelect.value = nxt.dataset.value; showPreview(nxt.dataset.exercises); } }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); var prv = active ? (visible[visible.indexOf(active)-1]||visible[visible.length-1]) : visible[visible.length-1]; if (prv) { allItems().forEach(function(i) { i.setAttribute('aria-selected','false'); }); prv.setAttribute('aria-selected','true'); prv.scrollIntoView({block:'nearest'}); tplSelect.value = prv.dataset.value; showPreview(prv.dataset.exercises); } }
+    else if (e.key === 'Enter') { var sel = tplList.querySelector('[aria-selected="true"]:not([hidden])'); if (sel && !tplList.classList.contains('hidden')) { e.preventDefault(); selectItem(sel); } }
+    else if (e.key === 'Escape') { closeList(); }
+  });
+  tplList.addEventListener('mousedown', function(e) { var li = e.target.closest('li[role="option"]'); if (li) { e.preventDefault(); selectItem(li); } });
+  document.addEventListener('click', function(e) { if (!tplSearch.contains(e.target) && !tplList.contains(e.target)) closeList(); }, true);
   if (typeof window.__passionRenderIcons === 'function') window.__passionRenderIcons();
 })();
 </script>

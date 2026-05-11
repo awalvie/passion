@@ -1,0 +1,107 @@
+{{ define "manual_exercises.html" }}
+<div id="manual-exercises-{{ .DraftRunID }}" class="space-y-3">
+  {{ range .Exercises }}
+  <details class="card overflow-hidden" open>
+    <summary class="cursor-pointer list-none flex items-center gap-2 px-3 py-3">
+      <i data-lucide="chevron-right" style="width:0.875rem;height:0.875rem;transition:transform 150ms ease" class="shrink-0 muted disclosure-chevron" aria-hidden="true"></i>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-semibold truncate">{{ .Name }}</div>
+        <div class="text-xs muted mt-0.5">{{ .Kind }}</div>
+      </div>
+      <button
+        type="button"
+        class="shrink-0 rounded-md btn-ghost p-1.5 inline-flex items-center justify-center"
+        hx-post="/training-log/draft/{{ .RunID }}/exercises/{{ .ExerciseID }}/delete"
+        hx-target="#manual-exercises-{{ .RunID }}"
+        hx-swap="outerHTML"
+        hx-confirm="Remove this exercise?"
+        onclick="event.preventDefault(); event.stopPropagation();"
+        title="Remove exercise"
+      >
+        <i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+      </button>
+    </summary>
+    <div class="px-4 pb-4 space-y-3">
+      {{ if eq .Kind "climbing" }}
+        {{/* Ticks are loaded via HTMX using the same handler as the live run player */}}
+        <section
+          id="tick-list-{{ .ExerciseID }}"
+          hx-get="/runs/{{ .RunID }}/exercises/{{ .ExerciseID }}/ticks"
+          hx-trigger="load"
+          hx-swap="outerHTML"
+        >
+          <div class="text-sm muted">Loading…</div>
+        </section>
+      {{ else }}
+        <form
+          hx-post="/training-log/draft/{{ .RunID }}/exercises/{{ .ExerciseID }}/save"
+          hx-swap="none"
+          hx-trigger="change delay:600ms from:find input, change delay:600ms from:find textarea"
+          class="grid gap-2 sm:grid-cols-4"
+        >
+          <div>
+            <label class="text-xs font-medium" for="ex-sets-{{ .ExerciseID }}">Sets</label>
+            <input id="ex-sets-{{ .ExerciseID }}" name="sets" type="number" min="0" value="{{ .ActualSets }}" class="mt-1 w-full input text-sm" />
+          </div>
+          <div>
+            <label class="text-xs font-medium" for="ex-reps-{{ .ExerciseID }}">Reps</label>
+            <input id="ex-reps-{{ .ExerciseID }}" name="reps" type="number" min="0" value="{{ .ActualReps }}" class="mt-1 w-full input text-sm" />
+          </div>
+          <div>
+            <label class="text-xs font-medium" for="ex-weight-{{ .ExerciseID }}">kg</label>
+            <input id="ex-weight-{{ .ExerciseID }}" name="weight_kg" type="number" min="0" step="0.5" value="{{ if .ActualWeightKg }}{{ .ActualWeightKg }}{{ end }}" class="mt-1 w-full input text-sm" />
+          </div>
+          <div class="sm:col-span-4">
+            <label class="text-xs font-medium" for="ex-notes-{{ .ExerciseID }}">Notes</label>
+            <input id="ex-notes-{{ .ExerciseID }}" name="notes" type="text" value="{{ .Notes }}" class="mt-1 w-full input text-sm" placeholder="Optional notes" />
+          </div>
+        </form>
+      {{ end }}
+    </div>
+  </details>
+  {{ end }}
+
+  <div class="card card-pad space-y-3">
+    <div class="text-sm font-semibold">Add exercise</div>
+    {{ if .LibraryExercises }}
+    <form
+      hx-post="/training-log/draft/{{ .DraftRunID }}/exercises"
+      hx-target="#manual-exercises-{{ .DraftRunID }}"
+      hx-swap="outerHTML"
+      class="flex gap-2 items-end"
+    >
+      <div class="flex-1 min-w-0">
+        <label class="text-xs font-medium" for="lib-ex-select-{{ .DraftRunID }}">From library</label>
+        <select id="lib-ex-select-{{ .DraftRunID }}" name="library_exercise_id" class="mt-1 w-full input text-sm">
+          <option value="">Choose…</option>
+          {{ range .LibraryExercises }}
+          <option value="{{ .ID }}">{{ .Name }}{{ if eq .Kind "climbing" }} 🧗{{ end }}</option>
+          {{ end }}
+        </select>
+      </div>
+      <button type="submit" class="shrink-0 rounded-md btn-primary px-3 py-2 text-sm font-medium">Add</button>
+    </form>
+    {{ end }}
+    <form
+      hx-post="/training-log/draft/{{ .DraftRunID }}/exercises"
+      hx-target="#manual-exercises-{{ .DraftRunID }}"
+      hx-swap="outerHTML"
+      class="flex gap-2 items-end"
+    >
+      <div class="flex-1 min-w-0">
+        <label class="text-xs font-medium" for="ex-name-{{ .DraftRunID }}">Custom name</label>
+        <input id="ex-name-{{ .DraftRunID }}" name="name" class="mt-1 w-full input text-sm" placeholder="e.g. Limit Bouldering" autocomplete="off" />
+      </div>
+      <div>
+        <label class="text-xs font-medium" for="ex-kind-{{ .DraftRunID }}">Type</label>
+        <select id="ex-kind-{{ .DraftRunID }}" name="kind" class="mt-1 input text-sm">
+          <option value="reps_and_sets">Reps/Sets</option>
+          <option value="climbing">Climbing</option>
+          <option value="session">Session</option>
+        </select>
+      </div>
+      <button type="submit" class="shrink-0 rounded-md btn-primary px-3 py-2 text-sm font-medium">Add</button>
+    </form>
+  </div>
+</div>
+{{ end }}

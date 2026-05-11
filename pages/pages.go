@@ -354,7 +354,8 @@ type RunParams struct {
 	RunTemplateID     uint
 	RunIsOpen         bool
 	RunCustomName     string
-	RunLibraryExercises []db.LibraryExercise
+	RunLibraryExercises   []db.LibraryExercise
+	RunActivityTemplates  []db.ActivityTemplate
 	CurrentStep       RunStep
 	RunSteps          []RunStep
 	RunActivityGroups []RunActivityGroup
@@ -383,10 +384,57 @@ type HistoryParams struct {
 	WeeklyTrend  []WeeklyTrendItem
 }
 
+type ClimbingTickView struct {
+	ID         uint
+	RunID      uint
+	ExerciseID uint
+	Kind       string // "Boulder" | "Route"
+	Grade      string
+	Focus      string
+	Thoughts   string
+	Style      string    // display: "Onsight", "Flash", "Redpoint", "Project", "Repeat", "Top Rope"
+	StyleClass string    // CSS modifier, e.g. "onsight", "flash" — empty if no style
+	Attempts   int
+	Sent       bool
+	Stars      int // 0–3
+}
+
+type ExerciseTicksParams struct {
+	RunID      uint
+	ExerciseID uint
+	Ticks      []ClimbingTickView
+}
+
+type ManualExerciseView struct {
+	ExerciseID     uint
+	RunID          uint
+	Name           string
+	Kind           string // "reps_and_sets" | "climbing" | etc.
+	ActualSets     int
+	ActualReps     int
+	ActualWeightKg float64
+	Notes          string
+}
+
+type ClimbingVenueView struct {
+	ID   uint
+	Name string
+	Kind string // "Commercial" | "Outdoor"
+}
+
+type ClimbingBoardView struct {
+	ID        uint
+	BoardType string // "Kilter" | "Moon" | "Tension" | "Spray" | "Custom"
+	Name      string
+	Label     string // e.g. "Home Kilter" if named, otherwise "Kilter Board"
+}
+
 type ProfileParams struct {
 	Base
 	UserProfile      *db.User
 	ProfileFormError string
+	Venues           []ClimbingVenueView
+	Boards           []ClimbingBoardView
 }
 
 type TemplateListParams struct {
@@ -417,22 +465,36 @@ type NewTrainingCycleParams struct {
 	Templates []db.SessionTemplate
 }
 
+// CycleWeekTargetView holds resolved targets for one week of a per-week override.
+type CycleWeekTargetView struct {
+	Week        int
+	Sets        int
+	Reps        int
+	WeightKg    float64
+	RepSeconds  int
+	HasOverride bool // true if a CycleExerciseWeekOverride row exists for this week
+}
+
 // CycleExerciseOverrideView represents one exercise row in the cycle targets panel.
 type CycleExerciseOverrideView struct {
 	// identity
 	LibraryExerciseID uint
 	ExerciseName      string
+	Kind              string // "reps_and_sets" | "timed_reps" | "exercise_catalog"
 	// planned defaults (from template)
 	PlannedSets     int
 	PlannedReps     int
 	PlannedWeightKg float64
 	PlannedRepSecs  int
-	// current override values (0 = not overridden)
+	// current cycle-level override values
 	OverrideSets     int
 	OverrideReps     int
 	OverrideWeightKg float64
 	OverrideRepSecs  int
 	HasOverride      bool
+	// per-week variation
+	VariesByWeek bool
+	WeekOverrides []CycleWeekTargetView // len == CycleWeeks, indexed by week-1
 }
 
 type TrainingCycleDetailParams struct {
@@ -502,26 +564,39 @@ type TrainingLogNewParams struct {
 	WentWell    string
 	NextFocus   string
 	FormErr     string
+
+	// Draft run fields (set when creating a new manual entry with exercises)
+	DraftRunID       uint
+	LibraryExercises []db.LibraryExercise
+	Exercises        []ManualExerciseView
+	Venues           []ClimbingVenueView
+	Boards           []ClimbingBoardView
+	VenueID          uint
+	BoardID          uint
 }
 
 type TrainingLogEntryView struct {
-	RunID         uint
-	JournalEntryID uint     // ID of the SessionJournal row; 0 if no journal yet
-	SortTime      time.Time // used for sorting; not rendered
-	DateLabel     string
-	TemplateName  string
-	Color         string
-	DurationLabel string
-	MonthGroup    string // e.g. "May 2026" — used for grouping in template
-	IsStandalone  bool   // true for entries created directly on /training-log/new
-	HasJournal    bool
-	SleepScore    int    // 0 = not recorded
-	Energy        int    // 0 = not recorded
-	RPE           int    // 0 = not recorded
-	Focus         string // capitalised display value, e.g. "Strength"
-	Location      string // "Indoor" | "Outdoor"
-	WentWellHTML  template.HTML
-	NextFocusHTML template.HTML
+	RunID          uint
+	JournalEntryID uint      // ID of the SessionJournal row; 0 if no journal yet
+	SortTime       time.Time // used for sorting; not rendered
+	DateLabel      string
+	TemplateName   string
+	Color          string
+	DurationLabel  string
+	MonthGroup     string // e.g. "May 2026" — used for grouping in template
+	IsStandalone   bool   // true for entries created directly on /training-log/new
+	IsManual       bool   // true for runs created via manual log entry
+	HasJournal     bool
+	SleepScore     int // 0 = not recorded
+	Energy         int // 0 = not recorded
+	RPE            int // 0 = not recorded
+	Focus          string // capitalised display value, e.g. "Strength"
+	Location       string // "Indoor" | "Outdoor"
+	WentWellHTML   template.HTML
+	NextFocusHTML  template.HTML
+	// Tick summary (non-zero when this run has climbing ticks)
+	TickSummaryLabel string // e.g. "3 boulders · 2 routes · 4 sends"
+	ExerciseCount    int    // total exercises in the run
 }
 
 type AdherenceWeekView struct {
@@ -573,6 +648,9 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		filepath.Join("templates", "fragments", "preview_container.html"),
 		filepath.Join("templates", "fragments", "scheduled_session_preview.html"),
 		filepath.Join("templates", "fragments", "activity_template_exercises_container.html"),
+		filepath.Join("templates", "fragments", "venues_list.html"),
+		filepath.Join("templates", "fragments", "boards_list.html"),
+		filepath.Join("templates", "fragments", "manual_exercises.html"),
 	}
 
 	fragmentFiles := []string{
@@ -587,6 +665,10 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		filepath.Join("templates", "fragments", "exercise_history_popup.html"),
 		filepath.Join("templates", "fragments", "exercise_divergence_hint.html"),
 		filepath.Join("templates", "fragments", "journal_form.html"),
+		filepath.Join("templates", "fragments", "run_ticks.html"),
+		filepath.Join("templates", "fragments", "manual_exercises.html"),
+		filepath.Join("templates", "fragments", "venues_list.html"),
+		filepath.Join("templates", "fragments", "boards_list.html"),
 	}
 
 	fragmentTpl := template.New("fragments").Funcs(funcMap)
@@ -835,6 +917,22 @@ func (p *Pages) TrainingLogPage(w http.ResponseWriter, params TrainingLogPagePar
 
 func (p *Pages) RenderJournalForm(w http.ResponseWriter, params JournalFormParams) {
 	p.RenderFragment(w, "journal_form.html", params)
+}
+
+func (p *Pages) RenderExerciseTicks(w http.ResponseWriter, params ExerciseTicksParams) {
+	p.RenderFragment(w, "run_ticks.html", params)
+}
+
+func (p *Pages) RenderManualExercisesContainer(w http.ResponseWriter, params TrainingLogNewParams) {
+	p.RenderFragment(w, "manual_exercises.html", params)
+}
+
+func (p *Pages) RenderVenuesList(w http.ResponseWriter, params ProfileParams) {
+	p.RenderFragment(w, "venues_list.html", params)
+}
+
+func (p *Pages) RenderBoardsList(w http.ResponseWriter, params ProfileParams) {
+	p.RenderFragment(w, "boards_list.html", params)
 }
 
 // ---------------------------------------------------------------------------

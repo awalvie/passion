@@ -85,10 +85,18 @@ func (s *Server) renderProfilePage(w http.ResponseWriter, ownerID uint, formErro
 		return
 	}
 
+	venues, boards, err := s.loadVenuesAndBoards(ownerID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	s.pages.Profile(w, pages.ProfileParams{
 		Base:             pages.Base{CurrentUserEmail: user.Email},
 		UserProfile:      &user,
 		ProfileFormError: formError,
+		Venues:           venues,
+		Boards:           boards,
 	})
 }
 

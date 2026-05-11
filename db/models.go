@@ -198,10 +198,28 @@ type TrainingCycleWeekdayMapping struct {
 type CycleExerciseOverride struct {
 	gorm.Model
 
-	OwnerID         uint  `gorm:"index;not null"`
-	TrainingCycleID uint  `gorm:"index;not null"`
+	OwnerID           uint  `gorm:"index;not null"`
+	TrainingCycleID   uint  `gorm:"index;not null"`
 	LibraryExerciseID *uint `gorm:"index"` // preferred match key
-	ExerciseName    string `gorm:"not null"` // display + fallback match key
+	ExerciseName      string `gorm:"not null"` // display + fallback match key
+
+	Sets         int
+	Reps         int
+	WeightKg     float64
+	RepSeconds   int
+	VariesByWeek bool // when true, per-week overrides take precedence
+}
+
+// CycleExerciseWeekOverride stores per-week targets for a single movement within a cycle.
+// Resolution order at runtime: week override → cycle override → template default.
+type CycleExerciseWeekOverride struct {
+	gorm.Model
+
+	OwnerID           uint   `gorm:"index;not null"`
+	TrainingCycleID   uint   `gorm:"index;not null"`
+	Week              int    `gorm:"not null"` // 1-based week number within the cycle
+	ExerciseName      string `gorm:"not null"`
+	LibraryExerciseID *uint  `gorm:"index"`
 
 	Sets       int
 	Reps       int
@@ -233,6 +251,10 @@ type SessionRun struct {
 	IsTrial            bool `gorm:"index;not null;default:false"`
 	// IsOpen marks a freeform "open session" where exercises are added on-the-fly.
 	IsOpen bool `gorm:"index;not null;default:false"`
+	// IsManual marks a run created via manual log entry (not from a live scheduled session).
+	IsManual bool `gorm:"index;not null;default:false"`
+	// IsDraft is true until the user saves the manual entry; draft runs are hidden from history/log.
+	IsDraft bool `gorm:"index;not null;default:false"`
 	// CustomName is an optional user-set display name that overrides the template name.
 	CustomName string `gorm:"type:text"`
 
@@ -296,7 +318,51 @@ type SessionJournal struct {
 	Focus      string // "strength" | "endurance" | "technique" | "projects" | "general"
 	Location   string // "indoor" | "outdoor"
 
+	// Venue and board (optional — set when user has configured climbing venues/boards)
+	VenueID *uint `gorm:"index"` // optional climbing venue
+	BoardID *uint `gorm:"index"` // optional standalone training board
+
 	// Reflection text (markdown)
 	WentWell  string
 	NextFocus string
+}
+
+// ClimbingVenue is a named climbing location (gym or outdoor crag) belonging to a user.
+type ClimbingVenue struct {
+	gorm.Model
+
+	OwnerID uint   `gorm:"index;not null"`
+	Name    string `gorm:"size:128;not null"`
+	Kind    string `gorm:"size:32;not null"` // "commercial" | "outdoor"
+}
+
+// ClimbingBoard is a standalone training board (Kilter, Moon, Tension, etc.) belonging to a user.
+// Boards are independent of venues — a user can log "trained on Home Kilter" without specifying a venue.
+type ClimbingBoard struct {
+	gorm.Model
+
+	OwnerID   uint   `gorm:"index;not null"`
+	BoardType string `gorm:"size:32;not null"` // "kilter" | "moon" | "tension" | "spray" | "custom"
+	Name      string `gorm:"size:128"`         // optional display name, e.g. "Home Kilter"
+}
+
+// ClimbingTick records a single boulder or route attempt within a climbing exercise step.
+// ExerciseID is always set — ticks only exist within exercises where Kind == "climbing".
+type ClimbingTick struct {
+	gorm.Model
+
+	OwnerID    uint `gorm:"index;not null"`
+	RunID      uint `gorm:"index;not null"`
+	ExerciseID uint `gorm:"index;not null"`
+
+	Kind     string `gorm:"not null"` // "boulder" | "route"
+	Grade    string `gorm:"size:32"`
+	Focus    string `gorm:"type:text"` // pre-climb intention: "silent feet", "rhythm with breath"
+	Thoughts string `gorm:"type:text"` // post-climb reflection
+	Style    string `gorm:"size:32"`   // optional: "onsight"|"flash"|"redpoint"|"project"|"repeat"|"top_rope"
+	Attempts int
+	Sent     bool
+	Stars    int `gorm:"default:0"` // 0 = unrated; 1–3 = quality rating
+
+	OrderIndex int `gorm:"default:0"`
 }
