@@ -1,5 +1,6 @@
 name: "Emil's Sub-max Daily Fingerboard Routine"
 color: "#f97316"
+label: "hangboard"
 activities:
   - type: "activity"
     exercises:

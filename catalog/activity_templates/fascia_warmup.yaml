@@ -1,4 +1,5 @@
 name: "Fascia Warm-Up"
+label: "warmup"
 exercises:
   - name: "Standing Trunk Rotations"
     kind: "reps_and_sets"

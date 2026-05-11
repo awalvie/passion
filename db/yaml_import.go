@@ -51,6 +51,7 @@ type yamlSessionTemplateDoc struct {
 type yamlSessionTemplate struct {
 	Name       string                `yaml:"name"`
 	Color      string                `yaml:"color"`
+	Label      string                `yaml:"label"`
 	Activities []yamlSessionActivity `yaml:"activities"`
 }
 
@@ -67,6 +68,7 @@ type yamlActivityTemplateDoc struct {
 
 type yamlActivityTemplate struct {
 	Name      string                `yaml:"name"`
+	Label     string                `yaml:"label"`
 	Exercises []yamlSessionExercise `yaml:"exercises"`
 }
 
@@ -434,6 +436,7 @@ func upsertActivityTemplate(tx *gorm.DB, ownerID uint, at yamlActivityTemplate, 
 	if res.RowsAffected == 0 {
 		row = ActivityTemplate{OwnerID: ownerID, Name: at.Name}
 	}
+	row.Label = strings.TrimSpace(at.Label)
 	if err := tx.Save(&row).Error; err != nil {
 		return err
 	}
@@ -588,6 +591,7 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 		}
 	}
 	template.Color = strings.TrimSpace(tpl.Color)
+	template.Label = strings.TrimSpace(tpl.Label)
 	if err := tx.Save(&template).Error; err != nil {
 		return err
 	}

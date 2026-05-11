@@ -1,4 +1,5 @@
 name: "Warm Up"
+label: "warmup"
 exercises:
   - ref: "Finger Base Warm-Up"
   - ref: "Dynamic Stretching"

@@ -181,6 +181,7 @@ func (s *Server) handleExportLibraryExercisesBulk(w http.ResponseWriter, r *http
 
 type exportActivityTemplate struct {
 	Name      string                   `yaml:"name"`
+	Label     string                   `yaml:"label,omitempty"`
 	Exercises []exportTemplateExercise `yaml:"exercises"`
 }
 
@@ -208,7 +209,7 @@ func (s *Server) handleExportActivityTemplate(w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	out := exportActivityTemplate{Name: at.Name}
+	out := exportActivityTemplate{Name: at.Name, Label: at.Label}
 	for _, ex := range at.Exercises {
 		if ex.ParentExerciseID != nil && *ex.ParentExerciseID != 0 {
 			continue
@@ -289,6 +290,7 @@ type exportActivity struct {
 type exportTemplate struct {
 	Name       string           `yaml:"name"`
 	Color      string           `yaml:"color,omitempty"`
+	Label      string           `yaml:"label,omitempty"`
 	Activities []exportActivity `yaml:"activities"`
 }
 
@@ -315,6 +317,7 @@ func (s *Server) handleExportTemplate(w http.ResponseWriter, r *http.Request, ow
 	out := exportTemplate{
 		Name:  tpl.Name,
 		Color: tpl.Color,
+		Label: tpl.Label,
 	}
 	for _, act := range tpl.Activities {
 		// Build a map of parent ID → children for exercise_catalog nesting.

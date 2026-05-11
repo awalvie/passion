@@ -13,6 +13,7 @@
         <span class="inline-block w-3 h-3 rounded-full shrink-0" style="background:{{ .Template.Color }}"></span>
         {{ end }}
         <div class="text-lg font-semibold" id="tpl-title-display-{{ .Template.ID }}">{{ .Template.Name }}</div>
+        {{ if .Template.Label }}<span class="text-xs font-medium px-1.5 py-0.5 rounded" style="background:var(--surface-raised);color:var(--text-muted)">{{ .Template.Label }}</span>{{ end }}
         <button
           type="button"
           class="rounded btn-ghost px-1.5 py-1 text-xs muted"
@@ -29,6 +30,17 @@
           required
           class="mt-1 w-full input text-sm"
           value="{{ .Template.Name }}"
+        />
+      </div>
+      <div>
+        <label class="text-xs font-medium" for="tpl-label-{{ .Template.ID }}">Label</label>
+        <input
+          id="tpl-label-{{ .Template.ID }}"
+          name="label"
+          class="mt-1 w-full input text-sm"
+          value="{{ .Template.Label }}"
+          placeholder="e.g. hangboard, strength, bouldering"
+          autocomplete="off"
         />
       </div>
       <div>
