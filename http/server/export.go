@@ -64,6 +64,7 @@ type exportExercise struct {
 	RepSeconds             int               `yaml:"rep_seconds,omitempty"`
 	RepRestSeconds         int               `yaml:"rep_rest_seconds,omitempty"`
 	SetRestSeconds         int               `yaml:"set_rest_seconds,omitempty"`
+	PrepSeconds            int               `yaml:"prep_seconds,omitempty"`
 	WeightKg               float64           `yaml:"weight_kg,omitempty"`
 }
 
@@ -88,6 +89,7 @@ func (s *Server) handleExportLibraryExercise(w http.ResponseWriter, r *http.Requ
 		RepSeconds:             row.RepSeconds,
 		RepRestSeconds:         row.RepRestSeconds,
 		SetRestSeconds:         row.SetRestSeconds,
+		PrepSeconds:            row.PrepSeconds,
 		WeightKg:               row.WeightKg,
 	}
 	data, err := yaml.Marshal(out)
@@ -153,6 +155,7 @@ func (s *Server) handleExportLibraryExercisesBulk(w http.ResponseWriter, r *http
 			RepSeconds:             row.RepSeconds,
 			RepRestSeconds:         row.RepRestSeconds,
 			SetRestSeconds:         row.SetRestSeconds,
+			PrepSeconds:            row.PrepSeconds,
 			WeightKg:               row.WeightKg,
 		}
 		chunk, err := yaml.Marshal(out)
@@ -218,6 +221,7 @@ func (s *Server) handleExportActivityTemplate(w http.ResponseWriter, r *http.Req
 			RepSeconds:             ex.RepSeconds,
 			RepRestSeconds:         ex.RepRestSeconds,
 			SetRestSeconds:         ex.SetRestSeconds,
+			PrepSeconds:            ex.PrepSeconds,
 			WeightKg:               ex.WeightKg,
 		}
 		if children, ok := childrenByParent[ex.ID]; ok {
@@ -233,6 +237,7 @@ func (s *Server) handleExportActivityTemplate(w http.ResponseWriter, r *http.Req
 					RepSeconds:             ch.RepSeconds,
 					RepRestSeconds:         ch.RepRestSeconds,
 					SetRestSeconds:         ch.SetRestSeconds,
+					PrepSeconds:            ch.PrepSeconds,
 					WeightKg:               ch.WeightKg,
 				})
 			}
@@ -265,6 +270,7 @@ type exportTemplateExercise struct {
 	RepSeconds             int                      `yaml:"rep_seconds,omitempty"`
 	RepRestSeconds         int                      `yaml:"rep_rest_seconds,omitempty"`
 	SetRestSeconds         int                      `yaml:"set_rest_seconds,omitempty"`
+	PrepSeconds            int                      `yaml:"prep_seconds,omitempty"`
 	WeightKg               float64                  `yaml:"weight_kg,omitempty"`
 	Children               []exportTemplateExercise `yaml:"children,omitempty"`
 }
@@ -330,6 +336,7 @@ func (s *Server) handleExportTemplate(w http.ResponseWriter, r *http.Request, ow
 				RepSeconds:             ex.RepSeconds,
 				RepRestSeconds:         ex.RepRestSeconds,
 				SetRestSeconds:         ex.SetRestSeconds,
+				PrepSeconds:            ex.PrepSeconds,
 				WeightKg:               ex.WeightKg,
 			}
 			if children, ok := childrenByParent[ex.ID]; ok {
@@ -345,6 +352,7 @@ func (s *Server) handleExportTemplate(w http.ResponseWriter, r *http.Request, ow
 						RepSeconds:             ch.RepSeconds,
 						RepRestSeconds:         ch.RepRestSeconds,
 						SetRestSeconds:         ch.SetRestSeconds,
+						PrepSeconds:            ch.PrepSeconds,
 						WeightKg:               ch.WeightKg,
 					})
 				}

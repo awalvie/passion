@@ -69,6 +69,10 @@
             <label class="text-xs font-medium" for="lib-set-rest">Set rest (s)</label>
             <input id="lib-set-rest" name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input" value="{{ .SetRestSeconds }}" {{ if eq .Kind "session" }}disabled{{ end }} />
           </div>
+          <div>
+            <label class="text-xs font-medium" for="lib-prep">Prep time (s)</label>
+            <input id="lib-prep" name="prep_seconds" type="number" min="0" class="mt-1 w-full input" value="{{ .PrepSeconds }}" {{ if eq .Kind "session" }}disabled{{ end }} />
+          </div>
         </div>
       </div>
 

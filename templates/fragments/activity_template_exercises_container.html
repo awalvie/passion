@@ -109,6 +109,10 @@
                     <label class="text-xs font-medium" for="at-ex-set-rest-{{ .ID }}-edit">Set rest (sec)</label>
                     <input id="at-ex-set-rest-{{ .ID }}-edit" name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .SetRestSeconds }}" />
                   </div>
+                  <div>
+                    <label class="text-xs font-medium" for="at-ex-prep-{{ .ID }}-edit">Prep time (sec)</label>
+                    <input id="at-ex-prep-{{ .ID }}-edit" name="prep_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .PrepSeconds }}" />
+                  </div>
                 </div>
               </div>
 
@@ -175,6 +179,7 @@
                         <div><label class="text-xs font-medium">Rep time (sec)</label><input name="rep_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .RepSeconds }}" /></div>
                         <div><label class="text-xs font-medium">Rep rest (sec)</label><input name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .RepRestSeconds }}" /></div>
                         <div><label class="text-xs font-medium">Set rest (sec)</label><input name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .SetRestSeconds }}" /></div>
+                        <div><label class="text-xs font-medium">Prep time (sec)</label><input name="prep_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .PrepSeconds }}" /></div>
                       </div>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
@@ -327,6 +332,7 @@
               <div><label class="text-xs font-medium">Rep time (sec)</label><input name="rep_seconds" type="number" min="0" class="mt-1 w-full input" /></div>
               <div><label class="text-xs font-medium">Rep rest (sec)</label><input name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input" /></div>
               <div><label class="text-xs font-medium">Set rest (sec)</label><input name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input" /></div>
+              <div><label class="text-xs font-medium">Prep time (sec)</label><input name="prep_seconds" type="number" min="0" class="mt-1 w-full input" /></div>
             </div>
           </div>
           <div class="sm:col-span-2">

@@ -442,6 +442,7 @@ func exerciseToRunStep(ex db.Exercise) pages.RunStep {
 		RepSeconds:             ex.RepSeconds,
 		RepRestSeconds:         ex.RepRestSeconds,
 		SetRestSeconds:         ex.SetRestSeconds,
+		PrepSeconds:            ex.PrepSeconds,
 		TemplateNotes:          ex.Notes,
 		Status:                 "pending",
 	}

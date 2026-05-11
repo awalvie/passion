@@ -35,6 +35,7 @@ func newExerciseFromLibraryExercise(lib db.LibraryExercise, ownerID, activityID 
 		RepSeconds:             lib.RepSeconds,
 		RepRestSeconds:         lib.RepRestSeconds,
 		SetRestSeconds:         lib.SetRestSeconds,
+		PrepSeconds:            lib.PrepSeconds,
 		WeightKg:               lib.WeightKg,
 		OrderIndex:             orderIndex,
 		ParentExerciseID:       parentID,
