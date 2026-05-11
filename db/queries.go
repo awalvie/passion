@@ -177,3 +177,18 @@ func ListSessionJournals(gdb *gorm.DB, ownerID uint) ([]SessionJournal, error) {
 	err := gdb.Where("owner_id = ?", ownerID).Order("id desc").Find(&journals).Error
 	return journals, err
 }
+
+// GetSessionJournalByID returns a single journal by primary key, scoped to the owner.
+func GetSessionJournalByID(gdb *gorm.DB, ownerID, id uint) (*SessionJournal, error) {
+	var j SessionJournal
+	err := gdb.Where("owner_id = ? AND id = ?", ownerID, id).First(&j).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	return &j, err
+}
+
+// DeleteSessionJournal hard-deletes a journal entry owned by the given user.
+func DeleteSessionJournal(gdb *gorm.DB, ownerID, id uint) error {
+	return gdb.Where("owner_id = ? AND id = ?", ownerID, id).Delete(&SessionJournal{}).Error
+}

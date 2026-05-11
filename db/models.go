@@ -276,13 +276,18 @@ type RunExerciseChoice struct {
 	ChosenExerciseID uint `gorm:"index;not null"`
 }
 
-// SessionJournal holds the athlete's post-session reflection for a single SessionRun.
+// SessionJournal holds the athlete's post-session reflection.
+// RunID is nil for standalone entries created directly from the Training Log page.
 // Numeric fields use 0 as "not set" sentinel to avoid nullable columns.
 type SessionJournal struct {
 	gorm.Model
 
-	OwnerID uint `gorm:"index;not null"`
-	RunID   uint `gorm:"uniqueIndex;not null"` // one journal per run
+	OwnerID uint  `gorm:"index;not null"`
+	RunID   *uint `gorm:"uniqueIndex"` // nil for standalone entries; SQLite unique index allows multiple NULLs
+
+	// Standalone entry fields (only used when RunID is nil)
+	Title string    // optional display name for standalone entries
+	Date  time.Time // date of the entry; for run-linked entries this mirrors the run's date
 
 	// Quick-fill fields
 	SleepScore int    // 1–5 night-before sleep quality; 0 = not recorded

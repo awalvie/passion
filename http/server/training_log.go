@@ -82,19 +82,24 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Load all journals for this user and index by RunID.
+	// Load all journals for this user; split into run-linked and standalone.
 	journals, err := db.ListSessionJournals(s.store.DB, ownerID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	journalByRun := map[uint]db.SessionJournal{}
+	var standaloneJournals []db.SessionJournal
 	for _, j := range journals {
-		journalByRun[j.RunID] = j
+		if j.RunID != nil {
+			journalByRun[*j.RunID] = j
+		} else {
+			standaloneJournals = append(standaloneJournals, j)
+		}
 	}
 
-	// Build entry views.
-	entries := make([]pages.TrainingLogEntryView, 0, len(runs))
+	// Build entry views for completed runs.
+	entries := make([]pages.TrainingLogEntryView, 0, len(runs)+len(standaloneJournals))
 	for _, run := range runs {
 		ss := ssMap[run.ScheduledSessionID]
 		templateName := ss.SessionTemplate.Name
@@ -113,6 +118,7 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 
 		entry := pages.TrainingLogEntryView{
 			RunID:         run.ID,
+			SortTime:      run.StartedAt,
 			DateLabel:     dateLabel,
 			TemplateName:  templateName,
 			Color:         ss.SessionTemplate.Color,
@@ -122,6 +128,7 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 
 		if j, ok := journalByRun[run.ID]; ok {
 			entry.HasJournal = true
+			entry.JournalEntryID = j.ID
 			entry.SleepScore = j.SleepScore
 			entry.Energy = j.Energy
 			entry.RPE = j.RPE
@@ -133,6 +140,40 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 
 		entries = append(entries, entry)
 	}
+
+	// Append standalone journal entries.
+	for _, j := range standaloneJournals {
+		t := j.Date
+		if t.IsZero() {
+			t = j.CreatedAt
+		}
+		title := j.Title
+		if title == "" {
+			title = "Log entry"
+		}
+		dateLabel := fmt.Sprintf("%s %d%s %d", t.Format("Jan"), t.Day(), daySuffix(t.Day()), t.Year())
+		entries = append(entries, pages.TrainingLogEntryView{
+			JournalEntryID: j.ID,
+			SortTime:       t,
+			DateLabel:      dateLabel,
+			TemplateName:   title,
+			MonthGroup:     t.Format("January 2006"),
+			IsStandalone:   true,
+			HasJournal:     true,
+			SleepScore:     j.SleepScore,
+			Energy:         j.Energy,
+			RPE:            j.RPE,
+			Focus:          focusDisplayName(j.Focus),
+			Location:       locationDisplayName(j.Location),
+			WentWellHTML:   markdownToHTML(j.WentWell),
+			NextFocusHTML:  markdownToHTML(j.NextFocus),
+		})
+	}
+
+	// Sort all entries newest-first so standalone and run entries interleave correctly.
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].SortTime.After(entries[j].SortTime)
+	})
 
 	// Build adherence block from the most recent training cycle.
 	adherence, cycleName := s.buildAdherenceView(ownerID)
@@ -311,9 +352,6 @@ func (s *Server) serveJournalForm(w http.ResponseWriter, r *http.Request, ownerI
 		params.Location = j.Location
 		params.WentWell = j.WentWell
 		params.NextFocus = j.NextFocus
-		if saved {
-			// Render the pre-filled read view.
-		}
 	}
 
 	s.pages.RenderJournalForm(w, params)
@@ -338,15 +376,15 @@ func (s *Server) saveJournal(w http.ResponseWriter, r *http.Request, ownerID, ru
 	}
 
 	j := db.SessionJournal{
-		OwnerID:   ownerID,
-		RunID:     runID,
+		OwnerID:    ownerID,
+		RunID:      &runID,
 		SleepScore: parseInt("sleep_score"),
-		Energy:    parseInt("energy"),
-		RPE:       parseInt("rpe"),
-		Focus:     strings.TrimSpace(r.FormValue("focus")),
-		Location:  strings.TrimSpace(r.FormValue("location")),
-		WentWell:  strings.TrimSpace(r.FormValue("went_well")),
-		NextFocus: strings.TrimSpace(r.FormValue("next_focus")),
+		Energy:     parseInt("energy"),
+		RPE:        parseInt("rpe"),
+		Focus:      strings.TrimSpace(r.FormValue("focus")),
+		Location:   strings.TrimSpace(r.FormValue("location")),
+		WentWell:   strings.TrimSpace(r.FormValue("went_well")),
+		NextFocus:  strings.TrimSpace(r.FormValue("next_focus")),
 	}
 	if existing != nil {
 		j.Model = existing.Model // preserve ID + timestamps for update
@@ -361,3 +399,190 @@ func (s *Server) saveJournal(w http.ResponseWriter, r *http.Request, ownerID, ru
 	s.serveJournalForm(w, r, ownerID, runID, true)
 }
 
+// handleTrainingLogNew serves GET|POST /training-log/new — standalone journal entries
+// not tied to any session run.
+func (s *Server) handleTrainingLogNew(w http.ResponseWriter, r *http.Request) {
+	ownerID, ok := s.currentUserID(r)
+	if !ok {
+		s.unauthorizedRedirect(w, r)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		s.saveStandaloneJournal(w, r, ownerID)
+		return
+	}
+
+	s.pages.TrainingLogNewPage(w, pages.TrainingLogNewParams{
+		DateValue: time.Now().Format("2006-01-02"),
+	})
+}
+
+func (s *Server) saveStandaloneJournal(w http.ResponseWriter, r *http.Request, ownerID uint) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form data", http.StatusBadRequest)
+		return
+	}
+
+	parseInt := func(key string) int {
+		v, _ := strconv.Atoi(strings.TrimSpace(r.FormValue(key)))
+		return v
+	}
+
+	dateStr := strings.TrimSpace(r.FormValue("date"))
+	date, err := time.ParseInLocation("2006-01-02", dateStr, time.Local)
+	if err != nil {
+		date = time.Now()
+	}
+
+	j := db.SessionJournal{
+		OwnerID:    ownerID,
+		RunID:      nil, // standalone — no session run
+		Title:      strings.TrimSpace(r.FormValue("title")),
+		Date:       date,
+		SleepScore: parseInt("sleep_score"),
+		Energy:     parseInt("energy"),
+		RPE:        parseInt("rpe"),
+		Focus:      strings.TrimSpace(r.FormValue("focus")),
+		Location:   strings.TrimSpace(r.FormValue("location")),
+		WentWell:   strings.TrimSpace(r.FormValue("went_well")),
+		NextFocus:  strings.TrimSpace(r.FormValue("next_focus")),
+	}
+
+	if err := db.UpsertSessionJournal(s.store.DB, &j); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/training-log", http.StatusSeeOther)
+}
+
+// handleTrainingLogEdit serves GET|POST /training-log/{journalID}/edit.
+func (s *Server) handleTrainingLogEdit(w http.ResponseWriter, r *http.Request) {
+	ownerID, ok := s.currentUserID(r)
+	if !ok {
+		s.unauthorizedRedirect(w, r)
+		return
+	}
+
+	journalID, err := strconv.ParseUint(chi.URLParam(r, "journalID"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid journal ID", http.StatusBadRequest)
+		return
+	}
+
+	j, err := db.GetSessionJournalByID(s.store.DB, ownerID, uint(journalID))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if j == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		s.updateJournal(w, r, ownerID, j)
+		return
+	}
+
+	// Build the run info string for run-linked entries.
+	runInfo := ""
+	isRunLinked := j.RunID != nil
+	if isRunLinked {
+		var run db.SessionRun
+		if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, *j.RunID).First(&run).Error; err == nil {
+			ss := db.ScheduledSession{}
+			s.store.DB.Preload("SessionTemplate").Where("id = ?", run.ScheduledSessionID).First(&ss)
+			name := ss.SessionTemplate.Name
+			if run.CustomName != "" {
+				name = run.CustomName
+			}
+			t := run.StartedAt
+			runInfo = fmt.Sprintf("%s · %s %d%s", name, t.Format("Jan"), t.Day(), daySuffix(t.Day()))
+		}
+	}
+
+	dateVal := j.Date.Format("2006-01-02")
+	if j.Date.IsZero() {
+		dateVal = j.CreatedAt.Format("2006-01-02")
+	}
+
+	s.pages.TrainingLogNewPage(w, pages.TrainingLogNewParams{
+		JournalID:   uint(journalID),
+		IsRunLinked: isRunLinked,
+		RunInfo:     runInfo,
+		DateValue:   dateVal,
+		Title:       j.Title,
+		SleepScore:  j.SleepScore,
+		Energy:      j.Energy,
+		RPE:         j.RPE,
+		Focus:       j.Focus,
+		Location:    j.Location,
+		WentWell:    j.WentWell,
+		NextFocus:   j.NextFocus,
+	})
+}
+
+func (s *Server) updateJournal(w http.ResponseWriter, r *http.Request, ownerID uint, j *db.SessionJournal) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form data", http.StatusBadRequest)
+		return
+	}
+
+	parseInt := func(key string) int {
+		v, _ := strconv.Atoi(strings.TrimSpace(r.FormValue(key)))
+		return v
+	}
+
+	j.SleepScore = parseInt("sleep_score")
+	j.Energy = parseInt("energy")
+	j.RPE = parseInt("rpe")
+	j.Focus = strings.TrimSpace(r.FormValue("focus"))
+	j.Location = strings.TrimSpace(r.FormValue("location"))
+	j.WentWell = strings.TrimSpace(r.FormValue("went_well"))
+	j.NextFocus = strings.TrimSpace(r.FormValue("next_focus"))
+
+	// Only update title/date for standalone entries.
+	if j.RunID == nil {
+		j.Title = strings.TrimSpace(r.FormValue("title"))
+		dateStr := strings.TrimSpace(r.FormValue("date"))
+		if d, err := time.ParseInLocation("2006-01-02", dateStr, time.Local); err == nil {
+			j.Date = d
+		}
+	}
+
+	if err := db.UpsertSessionJournal(s.store.DB, j); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/training-log", http.StatusSeeOther)
+}
+
+// handleTrainingLogDelete serves POST /training-log/{journalID}/delete.
+func (s *Server) handleTrainingLogDelete(w http.ResponseWriter, r *http.Request) {
+	ownerID, ok := s.currentUserID(r)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	journalID, err := strconv.ParseUint(chi.URLParam(r, "journalID"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid journal ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := db.DeleteSessionJournal(s.store.DB, ownerID, uint(journalID)); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// HTMX: return empty body so hx-swap="outerHTML" removes the card.
+	if r.Header.Get("HX-Request") == "true" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	http.Redirect(w, r, "/training-log", http.StatusSeeOther)
+}
