@@ -234,13 +234,19 @@ func (s *Server) handleAddActivityTemplateExercise(w http.ResponseWriter, r *htt
 	}
 	if kind == "session" {
 		ex.SessionDurationSeconds = parseSessionDurationSeconds(r)
-	} else if kind != "exercise_catalog" {
+	} else if kind == "timed_reps" {
 		ex.Sets = formInt(r, "sets")
 		ex.Reps = formInt(r, "reps")
 		ex.RepSeconds = formInt(r, "rep_seconds")
 		ex.RepRestSeconds = formInt(r, "rep_rest_seconds")
 		ex.SetRestSeconds = formInt(r, "set_rest_seconds")
 		ex.PrepSeconds = formInt(r, "prep_seconds")
+		ex.RungSeconds = strings.TrimSpace(r.FormValue("rung_seconds"))
+		ex.WeightKg = formFloat(r, "weight_kg")
+	} else if kind != "exercise_catalog" {
+		// reps_and_sets: counter only
+		ex.Sets = formInt(r, "sets")
+		ex.Reps = formInt(r, "reps")
 		ex.WeightKg = formFloat(r, "weight_kg")
 	}
 	if err := s.store.DB.Create(ex).Error; err != nil {
@@ -282,10 +288,7 @@ func (s *Server) handleAddATExerciseFromLibrary(w http.ResponseWriter, r *http.R
 		return
 	}
 	atID := tplID
-	kind := strings.TrimSpace(lib.Kind)
-	if kind == "" {
-		kind = "reps_and_sets"
-	}
+	kind := lib.Kind
 	ex := &db.Exercise{
 		OwnerID:                ownerID,
 		ActivityTemplateID:     &atID,
@@ -299,6 +302,7 @@ func (s *Server) handleAddATExerciseFromLibrary(w http.ResponseWriter, r *http.R
 		RepRestSeconds:         lib.RepRestSeconds,
 		SetRestSeconds:         lib.SetRestSeconds,
 		PrepSeconds:            lib.PrepSeconds,
+		RungSeconds:            lib.RungSeconds,
 		WeightKg:               lib.WeightKg,
 		OrderIndex:             orderIndex,
 	}
@@ -308,10 +312,7 @@ func (s *Server) handleAddATExerciseFromLibrary(w http.ResponseWriter, r *http.R
 	}
 	if kind == "exercise_catalog" {
 		for ci, lc := range lib.Children {
-			childKind := strings.TrimSpace(lc.Kind)
-			if childKind == "" {
-				childKind = "reps_and_sets"
-			}
+			childKind := lc.Kind
 			pid := ex.ID
 			child := &db.Exercise{
 				OwnerID:                ownerID,
@@ -326,6 +327,7 @@ func (s *Server) handleAddATExerciseFromLibrary(w http.ResponseWriter, r *http.R
 				RepRestSeconds:         lc.RepRestSeconds,
 				SetRestSeconds:         lc.SetRestSeconds,
 				PrepSeconds:            lc.PrepSeconds,
+				RungSeconds:            lc.RungSeconds,
 				WeightKg:               lc.WeightKg,
 				OrderIndex:             ci,
 				ParentExerciseID:       &pid,

@@ -300,15 +300,7 @@ func (s *Server) handleRunExerciseChoose(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "bad form", http.StatusBadRequest)
 		return
 	}
-	// Accept multiple child IDs (child_exercise_ids[]) or a single legacy field.
 	rawIDs := r.Form["child_exercise_ids[]"]
-	if len(rawIDs) == 0 {
-		// Fallback: single value for backward compat.
-		single := strings.TrimSpace(r.FormValue("child_exercise_id"))
-		if single != "" {
-			rawIDs = []string{single}
-		}
-	}
 	if len(rawIDs) == 0 {
 		http.Error(w, "no exercises selected", http.StatusBadRequest)
 		return
@@ -317,7 +309,7 @@ func (s *Server) handleRunExerciseChoose(w http.ResponseWriter, r *http.Request)
 	for _, raw := range rawIDs {
 		v, err := strconv.ParseUint(strings.TrimSpace(raw), 10, 64)
 		if err != nil || v == 0 {
-			http.Error(w, "invalid child_exercise_id", http.StatusBadRequest)
+			http.Error(w, "invalid child_exercise_ids[]", http.StatusBadRequest)
 			return
 		}
 		childIDs = append(childIDs, uint(v))
@@ -426,15 +418,11 @@ func (s *Server) loadOpenSteps(runID uint) []pages.RunStep {
 }
 
 func exerciseToRunStep(ex db.Exercise) pages.RunStep {
-	kind := ex.Kind
-	if kind == "" {
-		kind = "reps_and_sets"
-	}
 	return pages.RunStep{
 		ExerciseID:             ex.ID,
 		Name:                   ex.Name,
 		Media:                  ex.Media,
-		Kind:                   kind,
+		Kind:                   ex.Kind,
 		SessionDurationSeconds: ex.SessionDurationSeconds,
 		Sets:                   ex.Sets,
 		Reps:                   ex.Reps,
@@ -443,6 +431,7 @@ func exerciseToRunStep(ex db.Exercise) pages.RunStep {
 		RepRestSeconds:         ex.RepRestSeconds,
 		SetRestSeconds:         ex.SetRestSeconds,
 		PrepSeconds:            ex.PrepSeconds,
+		RungSeconds:            ex.RungSeconds,
 		TemplateNotes:          ex.Notes,
 		Status:                 "pending",
 	}
@@ -467,15 +456,11 @@ func catalogMenuRunStep(parent db.Exercise, children []db.Exercise) pages.RunSte
 	st.Kind = "exercise_catalog"
 	st.CatalogOptions = make([]pages.RunStepOption, 0, len(children))
 	for _, c := range children {
-		k := c.Kind
-		if k == "" {
-			k = "reps_and_sets"
-		}
 		st.CatalogOptions = append(st.CatalogOptions, pages.RunStepOption{
 			ExerciseID:             c.ID,
 			Name:                   c.Name,
 			Media:                  c.Media,
-			Kind:                   k,
+			Kind:                   c.Kind,
 			SessionDurationSeconds: c.SessionDurationSeconds,
 			Sets:                   c.Sets,
 			Reps:                   c.Reps,
@@ -567,11 +552,7 @@ func (s *Server) buildRunSteps(ss db.ScheduledSession, runID uint, ownerID uint)
 			if ex.ParentExerciseID != nil && *ex.ParentExerciseID != 0 {
 				continue
 			}
-			kind := ex.Kind
-			if kind == "" {
-				kind = "reps_and_sets"
-			}
-			if kind == "exercise_catalog" {
+			if ex.Kind == "exercise_catalog" {
 				children := catalogChildren(act.Exercises, ex.ID)
 				if childIDs, ok := choicesByParent[ex.ID]; ok && len(childIDs) > 0 {
 					// Expand chosen children into individual steps.

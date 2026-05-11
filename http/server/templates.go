@@ -16,10 +16,6 @@ import (
 
 // newExerciseFromLibraryExercise copies a library preset into a template Exercise (optional parent for catalog children).
 func newExerciseFromLibraryExercise(lib db.LibraryExercise, ownerID, activityID uint, orderIndex int, parentID *uint) *db.Exercise {
-	kind := strings.TrimSpace(lib.Kind)
-	if kind == "" {
-		kind = "reps_and_sets"
-	}
 	aid := activityID
 	libID := lib.ID
 	return &db.Exercise{
@@ -28,7 +24,7 @@ func newExerciseFromLibraryExercise(lib db.LibraryExercise, ownerID, activityID 
 		LibraryExerciseID:      &libID,
 		Name:                   lib.Name,
 		Notes:                  lib.Notes,
-		Kind:                   kind,
+		Kind:                   lib.Kind,
 		SessionDurationSeconds: lib.SessionDurationSeconds,
 		Sets:                   lib.Sets,
 		Reps:                   lib.Reps,
@@ -36,6 +32,7 @@ func newExerciseFromLibraryExercise(lib db.LibraryExercise, ownerID, activityID 
 		RepRestSeconds:         lib.RepRestSeconds,
 		SetRestSeconds:         lib.SetRestSeconds,
 		PrepSeconds:            lib.PrepSeconds,
+		RungSeconds:            lib.RungSeconds,
 		WeightKg:               lib.WeightKg,
 		OrderIndex:             orderIndex,
 		ParentExerciseID:       parentID,

@@ -136,6 +136,7 @@ type RunStep struct {
 	RepRestSeconds int
 	SetRestSeconds int
 	PrepSeconds    int
+	RungSeconds    string
 	TemplateNotes  string
 	Status         string
 

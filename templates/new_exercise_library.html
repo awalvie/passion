@@ -50,6 +50,7 @@
           onchange="window.__passionSyncExerciseKindGroups(this)"
         >
           <option value="reps_and_sets" selected>Reps and sets</option>
+          <option value="timed_reps">Timed reps</option>
           <option value="session">Session</option>
           <option value="exercise_catalog">Exercise catalog</option>
         </select>
@@ -151,7 +152,7 @@
         </div>
       </div>
 
-      <div data-exercise-reps-fields="1" class="grid gap-2 sm:grid-cols-2">
+      <div data-exercise-reps-fields="1" class="grid gap-2 sm:grid-cols-3">
         <div>
           <label class="text-xs font-medium" for="lib-sets">Sets</label>
           <input id="lib-sets" name="sets" type="number" min="0" class="mt-1 w-full input" />
@@ -164,17 +165,41 @@
           <label class="text-xs font-medium" for="lib-weight">Weight (kg)</label>
           <input id="lib-weight" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input" />
         </div>
+      </div>
+
+      <div data-exercise-timed-fields="1" class="grid gap-2 sm:grid-cols-3" hidden>
         <div>
-          <label class="text-xs font-medium" for="lib-rep-sec">Rep time (sec)</label>
-          <input id="lib-rep-sec" name="rep_seconds" type="number" min="0" class="mt-1 w-full input" />
+          <label class="text-xs font-medium" for="lib-t-sets">Sets</label>
+          <input id="lib-t-sets" name="sets" type="number" min="0" class="mt-1 w-full input" disabled />
         </div>
         <div>
-          <label class="text-xs font-medium" for="lib-rep-rest">Rep rest (sec)</label>
-          <input id="lib-rep-rest" name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input" />
+          <label class="text-xs font-medium" for="lib-t-reps">Reps</label>
+          <input id="lib-t-reps" name="reps" type="number" min="0" class="mt-1 w-full input" disabled />
         </div>
         <div>
-          <label class="text-xs font-medium" for="lib-set-rest">Set rest (sec)</label>
-          <input id="lib-set-rest" name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input" />
+          <label class="text-xs font-medium" for="lib-t-weight">Weight (kg)</label>
+          <input id="lib-t-weight" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input" disabled />
+        </div>
+        <div>
+          <label class="text-xs font-medium" for="lib-t-rep-sec">Rep time (s)</label>
+          <input id="lib-t-rep-sec" name="rep_seconds" type="number" min="0" class="mt-1 w-full input" disabled />
+        </div>
+        <div class="col-span-2">
+          <label class="text-xs font-medium" for="lib-t-rung">Rung times</label>
+          <input id="lib-t-rung" name="rung_seconds" type="text" class="mt-1 w-full input" placeholder="e.g. 3,6,9" disabled />
+          <p class="mt-0.5 text-[10px] muted">Overrides rep time. Use for ladders, e.g. 3,6,9</p>
+        </div>
+        <div>
+          <label class="text-xs font-medium" for="lib-t-rep-rest">Rep rest (s)</label>
+          <input id="lib-t-rep-rest" name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input" disabled />
+        </div>
+        <div>
+          <label class="text-xs font-medium" for="lib-t-set-rest">Set rest (s)</label>
+          <input id="lib-t-set-rest" name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input" disabled />
+        </div>
+        <div>
+          <label class="text-xs font-medium" for="lib-t-prep">Prep time (s)</label>
+          <input id="lib-t-prep" name="prep_seconds" type="number" min="0" class="mt-1 w-full input" disabled />
         </div>
       </div>
 

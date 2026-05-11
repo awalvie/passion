@@ -27,7 +27,7 @@ func (s *Server) handleExerciseLibraryIndex(w http.ResponseWriter, r *http.Reque
 	// Search, filter, sort params
 	searchQ := strings.TrimSpace(r.URL.Query().Get("q"))
 	kindFilter := r.URL.Query().Get("kind")
-	validKinds := map[string]bool{"reps_and_sets": true, "session": true, "exercise_catalog": true}
+	validKinds := map[string]bool{"reps_and_sets": true, "timed_reps": true, "session": true, "exercise_catalog": true}
 	if !validKinds[kindFilter] {
 		kindFilter = ""
 	}
@@ -266,6 +266,7 @@ func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Reques
 		existing.RepRestSeconds = row.RepRestSeconds
 		existing.SetRestSeconds = row.SetRestSeconds
 		existing.PrepSeconds = row.PrepSeconds
+		existing.RungSeconds = row.RungSeconds
 		existing.WeightKg = row.WeightKg
 		if err := s.store.DB.Save(&existing).Error; err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -371,13 +372,19 @@ func (s *Server) libraryExerciseFromForm(r *http.Request, base *db.LibraryExerci
 		row.SessionDurationSeconds = parseSessionDurationSeconds(r)
 	} else if kind == "exercise_catalog" {
 		// Keep zero defaults for non-reps fields.
-	} else {
+	} else if kind == "timed_reps" {
 		row.Sets = formInt(r, "sets")
 		row.Reps = formInt(r, "reps")
 		row.RepSeconds = formInt(r, "rep_seconds")
 		row.RepRestSeconds = formInt(r, "rep_rest_seconds")
 		row.SetRestSeconds = formInt(r, "set_rest_seconds")
 		row.PrepSeconds = formInt(r, "prep_seconds")
+		row.RungSeconds = strings.TrimSpace(r.FormValue("rung_seconds"))
+		row.WeightKg = formFloat(r, "weight_kg")
+	} else {
+		// reps_and_sets: counter only
+		row.Sets = formInt(r, "sets")
+		row.Reps = formInt(r, "reps")
 		row.WeightKg = formFloat(r, "weight_kg")
 	}
 
@@ -424,6 +431,7 @@ func (s *Server) syncLibraryCatalogChildren(r *http.Request, parentID uint, owne
 						child.RepRestSeconds = src.RepRestSeconds
 						child.SetRestSeconds = src.SetRestSeconds
 						child.PrepSeconds = src.PrepSeconds
+						child.RungSeconds = src.RungSeconds
 						child.WeightKg = src.WeightKg
 					}
 				}
