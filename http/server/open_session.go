@@ -7,10 +7,35 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-
 	"passion/db"
 )
+
+// sliceStr returns the trimmed string at index i of sl, or def if out of range or blank.
+func sliceStr(sl []string, i int, def string) string {
+	if i < len(sl) && strings.TrimSpace(sl[i]) != "" {
+		return strings.TrimSpace(sl[i])
+	}
+	return def
+}
+
+func sliceInt(sl []string, i int) int {
+	n, _ := strconv.Atoi(sliceStr(sl, i, "0"))
+	return n
+}
+
+func sliceFloat(sl []string, i int) float64 {
+	f, _ := strconv.ParseFloat(sliceStr(sl, i, "0"), 64)
+	return f
+}
+
+// sliceDurSecs parses a decimal minutes string and returns whole seconds (0 on error).
+func sliceDurSecs(sl []string, i int) int {
+	f, err := strconv.ParseFloat(sliceStr(sl, i, ""), 64)
+	if err != nil || f <= 0 {
+		return 0
+	}
+	return int(math.Round(f * 60))
+}
 
 // getOrCreateOpenSessionTemplate returns the per-user hidden system template used
 // as the ScheduledSession anchor for all open sessions, creating it on first use.
@@ -74,7 +99,7 @@ func (s *Server) handleStartOpenSession(w http.ResponseWriter, r *http.Request) 
 		IsTrial:            false,
 		IsOpen:             true,
 		CustomName:         customName,
-		Status:             "draft",
+		Status:             db.RunStatusDraft,
 	}
 	if err := s.store.DB.Create(run).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -95,12 +120,11 @@ func (s *Server) handleOpenAddExercise(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	runID64, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)
 		return
 	}
-	runID := uint(runID64)
 
 	var run db.SessionRun
 	if err := s.store.DB.
@@ -109,7 +133,7 @@ func (s *Server) handleOpenAddExercise(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "run not found", http.StatusNotFound)
 		return
 	}
-	if run.Status != "draft" && run.Status != "running" {
+	if run.Status != db.RunStatusDraft && run.Status != db.RunStatusRunning {
 		http.Error(w, "run is not active", http.StatusBadRequest)
 		return
 	}
@@ -183,12 +207,11 @@ func (s *Server) handleOpenAddTemplate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	runID64, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)
 		return
 	}
-	runID := uint(runID64)
 
 	var run db.SessionRun
 	if err := s.store.DB.
@@ -197,7 +220,7 @@ func (s *Server) handleOpenAddTemplate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "run not found", http.StatusNotFound)
 		return
 	}
-	if run.Status != "draft" && run.Status != "running" {
+	if run.Status != db.RunStatusDraft && run.Status != db.RunStatusRunning {
 		http.Error(w, "run is not active", http.StatusBadRequest)
 		return
 	}
@@ -211,28 +234,6 @@ func (s *Server) handleOpenAddTemplate(w http.ResponseWriter, r *http.Request) {
 	if len(names) == 0 {
 		http.Error(w, "no exercises provided", http.StatusBadRequest)
 		return
-	}
-
-	getStr := func(sl []string, i int, def string) string {
-		if i < len(sl) && strings.TrimSpace(sl[i]) != "" {
-			return strings.TrimSpace(sl[i])
-		}
-		return def
-	}
-	getInt := func(sl []string, i int) int {
-		n, _ := strconv.Atoi(getStr(sl, i, "0"))
-		return n
-	}
-	getFloat := func(sl []string, i int) float64 {
-		f, _ := strconv.ParseFloat(getStr(sl, i, "0"), 64)
-		return f
-	}
-	getDurSecs := func(sl []string, i int) int {
-		f, err := strconv.ParseFloat(getStr(sl, i, ""), 64)
-		if err != nil || f <= 0 {
-			return 0
-		}
-		return int(math.Round(f * 60))
 	}
 
 	kinds       := r.Form["ex_kind"]
@@ -261,16 +262,16 @@ func (s *Server) handleOpenAddTemplate(w http.ResponseWriter, r *http.Request) {
 			OwnerID:                ownerID,
 			SessionRunID:           &rid,
 			Name:                   name,
-			Kind:                   getStr(kinds, i, "reps_and_sets"),
-			Sets:                   getInt(setsList, i),
-			Reps:                   getInt(repsList, i),
-			WeightKg:               getFloat(weights, i),
-			RepSeconds:             getInt(repSecs, i),
-			RepRestSeconds:         getInt(repRestSecs, i),
-			SetRestSeconds:         getInt(setRestSecs, i),
-			PrepSeconds:            getInt(prepSecs, i),
-			SessionDurationSeconds: getDurSecs(durMins, i),
-			Notes:                  getStr(notesList, i, ""),
+			Kind:                   sliceStr(kinds, i, "reps_and_sets"),
+			Sets:                   sliceInt(setsList, i),
+			Reps:                   sliceInt(repsList, i),
+			WeightKg:               sliceFloat(weights, i),
+			RepSeconds:             sliceInt(repSecs, i),
+			RepRestSeconds:         sliceInt(repRestSecs, i),
+			SetRestSeconds:         sliceInt(setRestSecs, i),
+			PrepSeconds:            sliceInt(prepSecs, i),
+			SessionDurationSeconds: sliceDurSecs(durMins, i),
+			Notes:                  sliceStr(notesList, i, ""),
 			OrderIndex:             int(count) + i,
 		}
 		if err := s.store.DB.Create(&ex).Error; err != nil {
@@ -293,12 +294,11 @@ func (s *Server) handleOpenStartSession(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	runID64, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)
 		return
 	}
-	runID := uint(runID64)
 
 	var run db.SessionRun
 	if err := s.store.DB.
@@ -307,13 +307,13 @@ func (s *Server) handleOpenStartSession(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "run not found", http.StatusNotFound)
 		return
 	}
-	if run.Status != "draft" {
+	if run.Status != db.RunStatusDraft {
 		http.Error(w, "run is not in draft state", http.StatusBadRequest)
 		return
 	}
 
 	now := time.Now()
-	run.Status = "running"
+	run.Status = db.RunStatusRunning
 	run.StartedAt = now
 	if err := s.store.DB.Save(&run).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -334,18 +334,16 @@ func (s *Server) handleOpenUpdateExercise(w http.ResponseWriter, r *http.Request
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	runID64, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)
 		return
 	}
-	runID := uint(runID64)
-	exID64, err := strconv.ParseUint(chi.URLParam(r, "exerciseID"), 10, 64)
+	exID, err := parseUintParam(r, "exerciseID")
 	if err != nil {
 		http.Error(w, "invalid exercise id", http.StatusBadRequest)
 		return
 	}
-	exID := uint(exID64)
 
 	var run db.SessionRun
 	if err := s.store.DB.
@@ -354,7 +352,7 @@ func (s *Server) handleOpenUpdateExercise(w http.ResponseWriter, r *http.Request
 		http.Error(w, "run not found", http.StatusNotFound)
 		return
 	}
-	if run.Status != "draft" && run.Status != "running" {
+	if run.Status != db.RunStatusDraft && run.Status != db.RunStatusRunning {
 		http.Error(w, "run is not active", http.StatusBadRequest)
 		return
 	}
@@ -412,18 +410,16 @@ func (s *Server) handleOpenDeleteExercise(w http.ResponseWriter, r *http.Request
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	runID64, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)
 		return
 	}
-	runID := uint(runID64)
-	exID64, err := strconv.ParseUint(chi.URLParam(r, "exerciseID"), 10, 64)
+	exID, err := parseUintParam(r, "exerciseID")
 	if err != nil {
 		http.Error(w, "invalid exercise id", http.StatusBadRequest)
 		return
 	}
-	exID := uint(exID64)
 
 	var run db.SessionRun
 	if err := s.store.DB.
@@ -432,7 +428,7 @@ func (s *Server) handleOpenDeleteExercise(w http.ResponseWriter, r *http.Request
 		http.Error(w, "run not found", http.StatusNotFound)
 		return
 	}
-	if run.Status != "draft" && run.Status != "running" {
+	if run.Status != db.RunStatusDraft && run.Status != db.RunStatusRunning {
 		http.Error(w, "run is not active", http.StatusBadRequest)
 		return
 	}

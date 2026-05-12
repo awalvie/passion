@@ -22,7 +22,7 @@ func (s *Server) handleRunsByID(w http.ResponseWriter, r *http.Request) {
 		s.unauthorizedRedirect(w, r)
 		return
 	}
-	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)
 		return
@@ -35,7 +35,7 @@ func (s *Server) handleRunsByID(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		s.renderRun(w, r, uint(runID), ownerID)
+		s.renderRun(w, r, runID, ownerID)
 		return
 	}
 
@@ -44,7 +44,7 @@ func (s *Server) handleRunsByID(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	exerciseID, err := strconv.ParseUint(exerciseParam, 10, 64)
+	exerciseID64, err := strconv.ParseUint(exerciseParam, 10, 64)
 	if err != nil {
 		http.Error(w, "invalid exercise id", http.StatusBadRequest)
 		return
@@ -53,7 +53,7 @@ func (s *Server) handleRunsByID(w http.ResponseWriter, r *http.Request) {
 	if strings.HasSuffix(r.URL.Path, "/skip") {
 		action = "skip"
 	}
-	if err := s.completeRunExercise(w, r, uint(runID), uint(exerciseID), action, ownerID); err != nil {
+	if err := s.completeRunExercise(w, r, runID, uint(exerciseID64), action, ownerID); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -147,8 +147,17 @@ func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, o
 	var libExercises []db.LibraryExercise
 	var activityTemplates []db.ActivityTemplate
 	if run.IsOpen {
-		libExercises, _ = db.ListLibraryExercises(s.store.DB, ownerID)
-		activityTemplates, _ = db.ListActivityTemplatesWithExercises(s.store.DB, ownerID)
+		var err error
+		libExercises, err = db.ListLibraryExercises(s.store.DB, ownerID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		activityTemplates, err = db.ListActivityTemplatesWithExercises(s.store.DB, ownerID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	s.pages.Run(w, pages.RunParams{
@@ -203,8 +212,16 @@ func (s *Server) renderOpenSession(w http.ResponseWriter, r *http.Request, run d
 		}
 	}
 
-	libExercises, _ := db.ListLibraryExercises(s.store.DB, ownerID)
-	activityTemplates, _ := db.ListActivityTemplatesWithExercises(s.store.DB, ownerID)
+	libExercises, err := db.ListLibraryExercises(s.store.DB, ownerID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	activityTemplates, err := db.ListActivityTemplatesWithExercises(s.store.DB, ownerID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	displayName := run.CustomName
 	if displayName == "" {
@@ -222,7 +239,7 @@ func (s *Server) renderOpenSession(w http.ResponseWriter, r *http.Request, run d
 		RunTemplateName:      displayName,
 		RunTotalSteps:        len(steps),
 		RunIsOpen:            true,
-		RunIsDraft:           run.Status == "draft",
+		RunIsDraft:           run.Status == db.RunStatusDraft,
 		RunCustomName:        run.CustomName,
 		StartedAtUnix:        startedAtUnix,
 		RunLibraryExercises:  libExercises,
@@ -289,9 +306,9 @@ func (s *Server) completeRunExercise(w http.ResponseWriter, r *http.Request, run
 		elapsedSeconds = 0
 	}
 
-	status := "completed"
+	status := db.RunStatusCompleted
 	if action == "skip" {
-		status = "skipped"
+		status = db.RunStatusSkipped
 	}
 	comp := &db.RunExerciseCompletion{
 		OwnerID:        ownerID,
@@ -330,7 +347,7 @@ func (s *Server) completeRunExercise(w http.ResponseWriter, r *http.Request, run
 	}
 	if !anyIncomplete && !run.IsOpen {
 		now := time.Now()
-		run.Status = "completed"
+		run.Status = db.RunStatusCompleted
 		run.CompletedAt = &now
 		if err := s.store.DB.Save(&run).Error; err != nil {
 			return err
@@ -357,18 +374,16 @@ func (s *Server) handleRunExerciseChoose(w http.ResponseWriter, r *http.Request)
 		s.unauthorizedRedirect(w, r)
 		return
 	}
-	runID64, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)
 		return
 	}
-	parentID64, err := strconv.ParseUint(chi.URLParam(r, "exerciseID"), 10, 64)
+	parentID, err := parseUintParam(r, "exerciseID")
 	if err != nil {
 		http.Error(w, "invalid exercise id", http.StatusBadRequest)
 		return
 	}
-	runID := uint(runID64)
-	parentID := uint(parentID64)
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad form", http.StatusBadRequest)
@@ -649,7 +664,7 @@ func (s *Server) buildRunSteps(ss db.ScheduledSession, runID uint, ownerID uint)
 					}
 					continue
 				}
-				if st := completionByID[ex.ID]; st == "skipped" || st == "completed" {
+				if st := completionByID[ex.ID]; st == db.RunStatusSkipped || st == db.RunStatusCompleted {
 					continue
 				}
 				catStep := catalogMenuRunStep(ex, children)
@@ -712,7 +727,7 @@ func (s *Server) handleRunStop(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)
 		return
@@ -723,13 +738,13 @@ func (s *Server) handleRunStop(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	if run.Status != "running" {
+	if run.Status != db.RunStatusRunning {
 		http.Error(w, "run is not in progress", http.StatusBadRequest)
 		return
 	}
 
 	now := time.Now()
-	run.Status = "completed"
+	run.Status = db.RunStatusCompleted
 	run.CompletedAt = &now
 	if err := s.store.DB.Save(&run).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -758,7 +773,7 @@ func (s *Server) handleRunDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)
 		return
@@ -794,7 +809,7 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 		s.unauthorizedRedirect(w, r)
 		return
 	}
-	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)
 		return
@@ -830,7 +845,7 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	view := pages.RunSummaryView{
-		RunID:         uint(runID),
+		RunID:         runID,
 		TemplateName:  name,
 		Color:         normalizeTemplateColor(ss.SessionTemplate.Color),
 		DateLabel:     run.StartedAt.Format("Mon, Jan 2, 2006"),
@@ -862,9 +877,9 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 				se.Notes = c.RunNotes
 			}
 			switch se.Status {
-			case "completed":
+			case db.RunStatusCompleted:
 				view.CompletedCount++
-			case "skipped":
+			case db.RunStatusSkipped:
 				view.SkippedCount++
 			}
 			view.TotalCount++
@@ -896,9 +911,9 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 					se.Notes = c.RunNotes
 				}
 				switch se.Status {
-				case "completed":
+				case db.RunStatusCompleted:
 					view.CompletedCount++
-				case "skipped":
+				case db.RunStatusSkipped:
 					view.SkippedCount++
 				}
 				view.TotalCount++
@@ -917,7 +932,7 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Full page — redirect in-progress runs to the run page (open sessions can view summary while running).
-	if run.Status != "completed" && !run.IsOpen {
+	if run.Status != db.RunStatusCompleted && !run.IsOpen {
 		http.Redirect(w, r, "/runs/"+chi.URLParam(r, "runID"), http.StatusSeeOther)
 		return
 	}
@@ -944,7 +959,7 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 		s.store.DB.Where("run_id = ? AND owner_id = ?", pr.ID, ownerID).Find(&comps)
 		done := 0
 		for _, c := range comps {
-			if c.Status == "completed" {
+			if c.Status == db.RunStatusCompleted {
 				done++
 			}
 		}

@@ -3,11 +3,12 @@ package web
 import (
 	"fmt"
 	"time"
+
+	"passion/db"
 )
 
 func localDate(t time.Time) time.Time {
-	y, m, d := t.Date()
-	return time.Date(y, m, d, 0, 0, 0, 0, t.Location())
+	return db.LocalDate(t)
 }
 
 func localDateKey(t time.Time) string {

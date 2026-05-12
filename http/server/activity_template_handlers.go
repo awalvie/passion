@@ -85,7 +85,7 @@ func (s *Server) handleActivityTemplatesByID(w http.ResponseWriter, r *http.Requ
 		s.unauthorizedRedirect(w, r)
 		return
 	}
-	tplID, err := strconv.ParseUint(chi.URLParam(r, "activityTemplateID"), 10, 64)
+	tplID, err := parseUintParam(r, "activityTemplateID")
 	if err != nil {
 		http.Error(w, "invalid activity template id", http.StatusBadRequest)
 		return

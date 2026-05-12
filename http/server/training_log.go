@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
 	"passion/db"
@@ -54,7 +53,7 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 	// Load all completed non-draft runs, newest first.
 	var runs []db.SessionRun
 	if err := s.store.DB.
-		Where("owner_id = ? AND status = ? AND is_draft = ?", ownerID, "completed", false).
+		Where("owner_id = ? AND status = ? AND is_draft = ?", ownerID, db.RunStatusCompleted, false).
 		Order("started_at desc").
 		Find(&runs).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -256,7 +255,7 @@ func (s *Server) buildAdherenceView(ownerID uint) ([]pages.AdherenceWeekView, st
 	s.store.DB.
 		Joins("JOIN scheduled_sessions ON scheduled_sessions.id = session_runs.scheduled_session_id").
 		Where("session_runs.owner_id = ? AND session_runs.status = ? AND scheduled_sessions.training_cycle_id = ? AND session_runs.deleted_at IS NULL",
-			ownerID, "completed", cycle.ID).
+			ownerID, db.RunStatusCompleted, cycle.ID).
 		Find(&completedRuns)
 
 	// Load the scheduled dates for these runs.
@@ -345,7 +344,7 @@ func (s *Server) handleRunJournal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run ID", http.StatusBadRequest)
 		return
@@ -353,7 +352,7 @@ func (s *Server) handleRunJournal(w http.ResponseWriter, r *http.Request) {
 
 	// Validate ownership of the run.
 	var run db.SessionRun
-	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, uint(runID)).First(&run).Error; err != nil {
+	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, runID).First(&run).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
@@ -364,9 +363,9 @@ func (s *Server) handleRunJournal(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		s.serveJournalForm(w, r, ownerID, uint(runID), false)
+		s.serveJournalForm(w, r, ownerID, runID, false)
 	case http.MethodPost:
-		s.saveJournal(w, r, ownerID, uint(runID))
+		s.saveJournal(w, r, ownerID, runID)
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -402,11 +401,6 @@ func (s *Server) saveJournal(w http.ResponseWriter, r *http.Request, ownerID, ru
 		return
 	}
 
-	parseInt := func(key string) int {
-		v, _ := strconv.Atoi(strings.TrimSpace(r.FormValue(key)))
-		return v
-	}
-
 	// Look up existing journal (upsert).
 	existing, err := db.GetSessionJournalByRunID(s.store.DB, ownerID, runID)
 	if err != nil {
@@ -417,9 +411,9 @@ func (s *Server) saveJournal(w http.ResponseWriter, r *http.Request, ownerID, ru
 	j := db.SessionJournal{
 		OwnerID:    ownerID,
 		RunID:      &runID,
-		SleepScore: parseInt("sleep_score"),
-		Energy:     parseInt("energy"),
-		RPE:        parseInt("rpe"),
+		SleepScore: formInt(r, "sleep_score"),
+		Energy:     formInt(r, "energy"),
+		RPE:        formInt(r, "rpe"),
 		Focus:      strings.TrimSpace(r.FormValue("focus")),
 		Location:   strings.TrimSpace(r.FormValue("location")),
 		WentWell:   strings.TrimSpace(r.FormValue("went_well")),
@@ -504,11 +498,6 @@ func (s *Server) finaliseManualEntry(w http.ResponseWriter, r *http.Request, own
 		return
 	}
 
-	parseInt := func(key string) int {
-		v, _ := strconv.Atoi(strings.TrimSpace(r.FormValue(key)))
-		return v
-	}
-
 	dateStr := strings.TrimSpace(r.FormValue("date"))
 	date, err := time.ParseInLocation("2006-01-02", dateStr, time.Local)
 	if err != nil {
@@ -561,9 +550,9 @@ func (s *Server) finaliseManualEntry(w http.ResponseWriter, r *http.Request, own
 		OwnerID:    ownerID,
 		Title:      strings.TrimSpace(r.FormValue("title")),
 		Date:       date,
-		SleepScore: parseInt("sleep_score"),
-		Energy:     parseInt("energy"),
-		RPE:        parseInt("rpe"),
+		SleepScore: formInt(r, "sleep_score"),
+		Energy:     formInt(r, "energy"),
+		RPE:        formInt(r, "rpe"),
 		Focus:      strings.TrimSpace(r.FormValue("focus")),
 		Location:   location,
 		VenueID:    venueID,
@@ -594,12 +583,12 @@ func (s *Server) handleTrainingLogDraftDiscard(w http.ResponseWriter, r *http.Re
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run ID", http.StatusBadRequest)
 		return
 	}
-	if err := db.DeleteDraftRun(s.store.DB, ownerID, uint(runID)); err != nil {
+	if err := db.DeleteDraftRun(s.store.DB, ownerID, runID); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -617,7 +606,7 @@ func (s *Server) handleTrainingLogAddExercise(w http.ResponseWriter, r *http.Req
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run ID", http.StatusBadRequest)
 		return
@@ -656,12 +645,12 @@ func (s *Server) handleTrainingLogAddExercise(w http.ResponseWriter, r *http.Req
 		name = "Exercise"
 	}
 
-	if _, err := db.AddManualExercise(s.store.DB, ownerID, uint(runID), name, libExerciseID, kind); err != nil {
+	if _, err := db.AddManualExercise(s.store.DB, ownerID, runID, name, libExerciseID, kind); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	s.renderManualExercises(w, ownerID, uint(runID))
+	s.renderManualExercises(w, ownerID, runID)
 }
 
 // handleTrainingLogSaveExerciseCompletion serves POST /training-log/draft/{runID}/exercises/{exerciseID}/save.
@@ -675,12 +664,12 @@ func (s *Server) handleTrainingLogSaveExerciseCompletion(w http.ResponseWriter, 
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run ID", http.StatusBadRequest)
 		return
 	}
-	exerciseID, err := strconv.ParseUint(chi.URLParam(r, "exerciseID"), 10, 64)
+	exerciseID, err := parseUintParam(r, "exerciseID")
 	if err != nil {
 		http.Error(w, "invalid exercise ID", http.StatusBadRequest)
 		return
@@ -689,17 +678,9 @@ func (s *Server) handleTrainingLogSaveExerciseCompletion(w http.ResponseWriter, 
 		http.Error(w, "bad form data", http.StatusBadRequest)
 		return
 	}
-	parseInt := func(key string) int {
-		v, _ := strconv.Atoi(strings.TrimSpace(r.FormValue(key)))
-		return v
-	}
-	parseFloat := func(key string) float64 {
-		v, _ := strconv.ParseFloat(strings.TrimSpace(r.FormValue(key)), 64)
-		return v
-	}
 	if err := db.UpsertManualExerciseCompletion(
-		s.store.DB, ownerID, uint(runID), uint(exerciseID),
-		parseInt("sets"), parseInt("reps"), parseFloat("weight_kg"),
+		s.store.DB, ownerID, runID, exerciseID,
+		formInt(r, "sets"), formInt(r, "reps"), formFloat(r, "weight_kg"),
 		strings.TrimSpace(r.FormValue("notes")),
 	); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -719,21 +700,21 @@ func (s *Server) handleTrainingLogDeleteExercise(w http.ResponseWriter, r *http.
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run ID", http.StatusBadRequest)
 		return
 	}
-	exerciseID, err := strconv.ParseUint(chi.URLParam(r, "exerciseID"), 10, 64)
+	exerciseID, err := parseUintParam(r, "exerciseID")
 	if err != nil {
 		http.Error(w, "invalid exercise ID", http.StatusBadRequest)
 		return
 	}
-	if err := db.DeleteManualExercise(s.store.DB, ownerID, uint(runID), uint(exerciseID)); err != nil {
+	if err := db.DeleteManualExercise(s.store.DB, ownerID, runID, exerciseID); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	s.renderManualExercises(w, ownerID, uint(runID))
+	s.renderManualExercises(w, ownerID, runID)
 }
 
 // renderManualExercises renders the manual exercises container fragment.
@@ -782,7 +763,7 @@ func (s *Server) handleTrainingLogEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	journalID, err := strconv.ParseUint(chi.URLParam(r, "journalID"), 10, 64)
+	journalID, err := parseUintParam(r, "journalID")
 	if err != nil {
 		http.Error(w, "invalid journal ID", http.StatusBadRequest)
 		return
@@ -847,14 +828,9 @@ func (s *Server) updateJournal(w http.ResponseWriter, r *http.Request, ownerID u
 		return
 	}
 
-	parseInt := func(key string) int {
-		v, _ := strconv.Atoi(strings.TrimSpace(r.FormValue(key)))
-		return v
-	}
-
-	j.SleepScore = parseInt("sleep_score")
-	j.Energy = parseInt("energy")
-	j.RPE = parseInt("rpe")
+	j.SleepScore = formInt(r, "sleep_score")
+	j.Energy = formInt(r, "energy")
+	j.RPE = formInt(r, "rpe")
 	j.Focus = strings.TrimSpace(r.FormValue("focus"))
 	j.Location = strings.TrimSpace(r.FormValue("location"))
 	j.WentWell = strings.TrimSpace(r.FormValue("went_well"))
@@ -885,7 +861,7 @@ func (s *Server) handleTrainingLogDelete(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	journalID, err := strconv.ParseUint(chi.URLParam(r, "journalID"), 10, 64)
+	journalID, err := parseUintParam(r, "journalID")
 	if err != nil {
 		http.Error(w, "invalid journal ID", http.StatusBadRequest)
 		return

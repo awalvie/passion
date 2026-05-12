@@ -275,10 +275,6 @@ func defaultSeedTemplates() []seedTemplate {
 	}
 }
 
-func localDate(t time.Time) time.Time {
-	y, m, d := t.Date()
-	return time.Date(y, m, d, 0, 0, 0, 0, t.Location())
-}
 
 // seedHistoricalRuns creates ~40 completed session runs spread across the last 3 months
 // plus one "running" session for today, to populate the history page.
@@ -323,7 +319,7 @@ func seedHistoricalRuns(tx *gorm.DB, ownerID uint, templateIDs []uint) error {
 		-21, -19, -17,      // week 3
 		-14, -12, -10, -9,  // week 2
 		-7, -5, -3, -1,     // last week
-		0,                  // today (will be "running")
+		0,                  // today (will be RunStatusRunning)
 	}
 
 	// Session durations (minutes) to vary completed times
@@ -331,7 +327,7 @@ func seedHistoricalRuns(tx *gorm.DB, ownerID uint, templateIDs []uint) error {
 
 	for i, offset := range dayOffsets {
 		tplID := templateIDs[i%len(templateIDs)]
-		sessionDate := localDate(now.AddDate(0, 0, offset))
+		sessionDate := LocalDate(now.AddDate(0, 0, offset))
 		startHour := 7 + (i % 4) // vary start between 7-10am
 		startedAt := sessionDate.Add(time.Duration(startHour) * time.Hour)
 
@@ -347,13 +343,13 @@ func seedHistoricalRuns(tx *gorm.DB, ownerID uint, templateIDs []uint) error {
 		}
 
 		isToday := offset == 0
-		status := "completed"
+		status := RunStatusCompleted
 		if isToday {
-			status = "running"
+			status = RunStatusRunning
 		}
 
 		var completedAt *time.Time
-		if status == "completed" {
+		if status == RunStatusCompleted {
 			dur := time.Duration(durations[i%len(durations)]) * time.Minute
 			t := startedAt.Add(dur)
 			completedAt = &t
@@ -372,7 +368,7 @@ func seedHistoricalRuns(tx *gorm.DB, ownerID uint, templateIDs []uint) error {
 
 		// Create exercise completions
 		exerciseIDs := exercisesByTemplate[tplID]
-		if status == "completed" && len(exerciseIDs) > 0 {
+		if status == RunStatusCompleted && len(exerciseIDs) > 0 {
 			// Complete all exercises for most sessions, skip last one occasionally
 			completeCount := len(exerciseIDs)
 			if i%5 == 0 && completeCount > 1 {
@@ -383,7 +379,7 @@ func seedHistoricalRuns(tx *gorm.DB, ownerID uint, templateIDs []uint) error {
 					OwnerID:     ownerID,
 					RunID:       run.ID,
 					ExerciseID:  exerciseIDs[j],
-					Status:      "completed",
+					Status:      RunStatusCompleted,
 					CompletedAt: startedAt.Add(time.Duration(10*(j+1)) * time.Minute),
 				}
 				if err := tx.Create(&comp).Error; err != nil {
@@ -397,7 +393,7 @@ func seedHistoricalRuns(tx *gorm.DB, ownerID uint, templateIDs []uint) error {
 					OwnerID:     ownerID,
 					RunID:       run.ID,
 					ExerciseID:  exerciseIDs[j],
-					Status:      "completed",
+					Status:      RunStatusCompleted,
 					CompletedAt: startedAt.Add(time.Duration(10*(j+1)) * time.Minute),
 				}
 				if err := tx.Create(&comp).Error; err != nil {
