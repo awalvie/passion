@@ -1,6 +1,7 @@
 package web
 
 import (
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -39,21 +40,16 @@ func newExerciseFromLibraryExercise(lib db.LibraryExercise, ownerID, activityID 
 }
 
 func parseSessionDurationSeconds(r *http.Request) int {
-	parseNonNegInt := func(key string) int {
-		v := strings.TrimSpace(r.FormValue(key))
-		if v == "" {
-			return 0
-		}
-		n, _ := strconv.Atoi(v)
-		if n < 0 {
-			return 0
-		}
-		return n
+	// "session_duration_minutes" as a float (e.g. "12.5" → 750s). Empty/zero → 0 (count-up).
+	v := strings.TrimSpace(r.FormValue("session_duration_minutes"))
+	if v == "" {
+		return 0
 	}
-	h := parseNonNegInt("session_duration_hours")
-	m := parseNonNegInt("session_duration_minutes")
-	s := parseNonNegInt("session_duration_seconds")
-	return h*3600 + m*60 + s
+	f, err := strconv.ParseFloat(v, 64)
+	if err != nil || f <= 0 {
+		return 0
+	}
+	return int(math.Round(f * 60))
 }
 
 func (s *Server) syncMediaFromForm(r *http.Request, ownerID uint, exerciseID *uint, libraryExerciseID *uint) error {

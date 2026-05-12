@@ -51,14 +51,14 @@
         <div class="run-summary-row-body">
           <span class="run-summary-row-name{{ if eq .Status "skipped" }} run-summary-row-name--skipped{{ end }}">{{ .Name }}</span>
           <span class="run-summary-row-detail">
-            {{ if eq .Kind "session" -}}
-              {{ if gt .SessionDuration 0 }}{{ formatSessionDuration .SessionDuration }}{{ else }}Open-ended{{ end }}
+            {{ if or (eq .Kind "session") (eq .Kind "climbing") -}}
+              {{ if gt .SessionDuration 0 }}{{ formatSessionDuration .SessionDuration }}{{ if gt .ElapsedSeconds 0 }} · {{ formatElapsed .ElapsedSeconds }}{{ end }}{{ else if gt .ElapsedSeconds 0 }}{{ formatElapsed .ElapsedSeconds }}{{ end }}
             {{- else -}}
               {{ if gt .Sets 0 }}{{ .Sets }}×{{ .Reps }}{{ end -}}
               {{ if gt .WeightKg 0.0 }} · {{ printf "%.1f" .WeightKg }}kg{{ end -}}
               {{ if gt .RepSeconds 0 }} · {{ .RepSeconds }}s/rep{{ end -}}
-            {{ end -}}
-            {{ if gt .ElapsedSeconds 0 }} · {{ formatElapsed .ElapsedSeconds }}{{ end }}
+              {{ if gt .ElapsedSeconds 0 }} · {{ formatElapsed .ElapsedSeconds }}{{ end -}}
+            {{ end }}
           </span>
           {{ if .Notes }}<p class="run-summary-row-notes">{{ .Notes }}</p>{{ end }}
         </div>

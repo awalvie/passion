@@ -1,6 +1,5 @@
 name: "Dynamic Stretching"
 kind: "session"
-session_duration_seconds: 750
 media:
   - video_url: "https://www.youtube.com/watch?v=58fr4fxk5MA"
     thumbnail_url: "https://i.ytimg.com/vi/58fr4fxk5MA/maxresdefault.jpg"

@@ -20,7 +20,7 @@
             </div>
             <div class="flex items-center gap-2 shrink-0">
               {{ if ne .Kind "reps_and_sets" }}
-              <span class="text-[10px] font-medium px-1 py-0.5 rounded border" style="border-color:var(--border);color:var(--text-muted)">{{ if eq .Kind "timed_reps" }}timed{{ else if eq .Kind "session" }}session{{ else if eq .Kind "exercise_catalog" }}catalog{{ end }}</span>
+              <span class="text-[10px] font-medium px-1 py-0.5 rounded border" style="border-color:var(--border);color:var(--text-muted)">{{ if eq .Kind "timed_reps" }}timed{{ else if eq .Kind "session" }}session{{ else if eq .Kind "exercise_catalog" }}catalog{{ else if eq .Kind "climbing" }}climbing{{ end }}</span>
               {{ end }}
               <div
                 class="dnd-handle text-[12px] muted leading-none opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity"
@@ -57,7 +57,9 @@
                   <option value="timed_reps" {{ if eq .Kind "timed_reps" }}selected{{ end }}>Timed reps</option>
                   <option value="session" {{ if eq .Kind "session" }}selected{{ end }}>Session</option>
                   <option value="exercise_catalog" {{ if eq .Kind "exercise_catalog" }}selected{{ end }}>Exercise catalog</option>
+                  <option value="climbing" {{ if eq .Kind "climbing" }}selected{{ end }}>Climbing</option>
                 </select>
+                <p class="text-[10px] muted mt-0.5 mb-0" data-kind-hint></p>
               </div>
 
               <div data-notes-editor>
@@ -71,21 +73,17 @@
                 <div data-notes-preview class="notes-preview-panel hidden mt-1" aria-live="polite"></div>
               </div>
 
-              {{ $hms := durationHMS .SessionDurationSeconds }}
               <div data-exercise-session-fields="1" {{ if or (ne .Kind "session") (eq .Kind "exercise_catalog") }}hidden{{ end }}>
-                <div class="grid grid-cols-3 gap-2">
-                  <div>
-                    <label class="text-xs font-medium" for="at-ex-sess-h-{{ .ID }}-edit">Hours</label>
-                    <input id="at-ex-sess-h-{{ .ID }}-edit" name="session_duration_hours" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ index $hms "h" }}" />
-                  </div>
-                  <div>
-                    <label class="text-xs font-medium" for="at-ex-sess-m-{{ .ID }}-edit">Minutes</label>
-                    <input id="at-ex-sess-m-{{ .ID }}-edit" name="session_duration_minutes" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ index $hms "m" }}" />
-                  </div>
-                  <div>
-                    <label class="text-xs font-medium" for="at-ex-sess-s-{{ .ID }}-edit">Seconds</label>
-                    <input id="at-ex-sess-s-{{ .ID }}-edit" name="session_duration_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ index $hms "s" }}" />
-                  </div>
+                <label class="text-xs font-medium">Timer</label>
+                <div class="flex gap-0 border-b mt-1" style="border-color: var(--border)">
+                  <button type="button" class="notes-tab {{ if eq .SessionDurationSeconds 0 }}notes-tab-active{{ end }}"
+                    onclick="var s=this.closest('[data-exercise-session-fields]');s.querySelector('[data-dur-field]').hidden=true;s.querySelector('input[name=session_duration_minutes]').value='';this.classList.add('notes-tab-active');this.nextElementSibling.classList.remove('notes-tab-active')">Stopwatch</button>
+                  <button type="button" class="notes-tab {{ if gt .SessionDurationSeconds 0 }}notes-tab-active{{ end }}"
+                    onclick="var s=this.closest('[data-exercise-session-fields]');s.querySelector('[data-dur-field]').hidden=false;this.classList.add('notes-tab-active');this.previousElementSibling.classList.remove('notes-tab-active')">Time limit</button>
+                </div>
+                <div data-dur-field class="mt-2" {{ if eq .SessionDurationSeconds 0 }}hidden{{ end }}>
+                  <label class="text-xs font-medium" for="at-ex-sess-min-{{ .ID }}-edit">Duration (min)</label>
+                  <input id="at-ex-sess-min-{{ .ID }}-edit" name="session_duration_minutes" type="number" min="0" step="0.5" class="mt-1 w-full input text-xs" value="{{ durationMinutes .SessionDurationSeconds }}" {{ if or (ne .Kind "session") (eq .Kind "exercise_catalog") }}disabled{{ end }} />
                 </div>
               </div>
 
@@ -180,6 +178,7 @@
                         <option value="timed_reps" {{ if eq .Kind "timed_reps" }}selected{{ end }}>Timed reps</option>
                         <option value="session" {{ if eq .Kind "session" }}selected{{ end }}>Session</option>
                       </select>
+                      <p class="text-[10px] muted mt-0.5 mb-0" data-kind-hint></p>
                     </div>
                     <div data-notes-editor>
                       <label class="text-xs font-medium" for="at-ex-notes-{{ .ID }}-edit">Notes</label>
@@ -190,12 +189,17 @@
                       <textarea id="at-ex-notes-{{ .ID }}-edit" name="notes" rows="3" class="mt-1 w-full input text-xs">{{ .Notes }}</textarea>
                       <div data-notes-preview class="notes-preview-panel hidden mt-1" aria-live="polite"></div>
                     </div>
-                    {{ $chms := durationHMS .SessionDurationSeconds }}
                     <div data-exercise-session-fields="1" {{ if ne .Kind "session" }}hidden{{ end }}>
-                      <div class="grid grid-cols-3 gap-2">
-                        <div><label class="text-xs font-medium">Hours</label><input name="session_duration_hours" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ index $chms "h" }}" /></div>
-                        <div><label class="text-xs font-medium">Minutes</label><input name="session_duration_minutes" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ index $chms "m" }}" /></div>
-                        <div><label class="text-xs font-medium">Seconds</label><input name="session_duration_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ index $chms "s" }}" /></div>
+                      <label class="text-xs font-medium">Timer</label>
+                      <div class="flex gap-0 border-b mt-1" style="border-color: var(--border)">
+                        <button type="button" class="notes-tab {{ if eq .SessionDurationSeconds 0 }}notes-tab-active{{ end }}"
+                          onclick="var s=this.closest('[data-exercise-session-fields]');s.querySelector('[data-dur-field]').hidden=true;s.querySelector('input[name=session_duration_minutes]').value='';this.classList.add('notes-tab-active');this.nextElementSibling.classList.remove('notes-tab-active')">Stopwatch</button>
+                        <button type="button" class="notes-tab {{ if gt .SessionDurationSeconds 0 }}notes-tab-active{{ end }}"
+                          onclick="var s=this.closest('[data-exercise-session-fields]');s.querySelector('[data-dur-field]').hidden=false;this.classList.add('notes-tab-active');this.previousElementSibling.classList.remove('notes-tab-active')">Time limit</button>
+                      </div>
+                      <div data-dur-field class="mt-2" {{ if eq .SessionDurationSeconds 0 }}hidden{{ end }}>
+                        <label class="text-xs font-medium">Duration (min)</label>
+                        <input name="session_duration_minutes" type="number" min="0" step="0.5" class="mt-1 w-full input text-xs" value="{{ durationMinutes .SessionDurationSeconds }}" {{ if ne .Kind "session" }}disabled{{ end }} />
                       </div>
                     </div>
                     <div data-exercise-reps-fields="1" {{ if ne .Kind "reps_and_sets" }}hidden{{ end }}>
@@ -342,7 +346,9 @@
               <option value="reps_and_sets" selected>Reps and sets</option>
               <option value="timed_reps">Timed reps</option>
               <option value="session">Session</option>
+              <option value="climbing">Climbing</option>
             </select>
+            <p class="text-[10px] muted mt-0.5 mb-0" data-kind-hint></p>
           </div>
           <div class="sm:col-span-2" data-notes-editor>
             <label class="text-xs font-medium" for="at-ex-notes-{{ .Template.ID }}">Notes <span class="font-normal muted">(optional)</span></label>
@@ -354,10 +360,16 @@
             <div data-notes-preview class="notes-preview-panel hidden mt-1" aria-live="polite"></div>
           </div>
           <div data-exercise-session-fields="1" class="sm:col-span-2" hidden>
-            <div class="grid grid-cols-3 gap-2">
-              <div><label class="text-xs font-medium">Hours</label><input name="session_duration_hours" type="number" min="0" class="mt-1 w-full input" disabled /></div>
-              <div><label class="text-xs font-medium">Minutes</label><input name="session_duration_minutes" type="number" min="0" class="mt-1 w-full input" disabled /></div>
-              <div><label class="text-xs font-medium">Seconds</label><input name="session_duration_seconds" type="number" min="0" class="mt-1 w-full input" disabled /></div>
+            <label class="text-xs font-medium">Timer</label>
+            <div class="flex gap-0 border-b mt-1" style="border-color: var(--border)">
+              <button type="button" class="notes-tab notes-tab-active"
+                onclick="var s=this.closest('[data-exercise-session-fields]');s.querySelector('[data-dur-field]').hidden=true;s.querySelector('input[name=session_duration_minutes]').value='';this.classList.add('notes-tab-active');this.nextElementSibling.classList.remove('notes-tab-active')">Stopwatch</button>
+              <button type="button" class="notes-tab"
+                onclick="var s=this.closest('[data-exercise-session-fields]');s.querySelector('[data-dur-field]').hidden=false;this.classList.add('notes-tab-active');this.previousElementSibling.classList.remove('notes-tab-active')">Time limit</button>
+            </div>
+            <div data-dur-field class="mt-2" hidden>
+              <label class="text-xs font-medium">Duration (min)</label>
+              <input name="session_duration_minutes" type="number" min="0" step="0.5" class="mt-1 w-full input" disabled />
             </div>
           </div>
           <div data-exercise-reps-fields="1" class="sm:col-span-2">

@@ -1,5 +1,5 @@
 name: "Honest Project"
-kind: "session"
+kind: "climbing"
 session_duration_seconds: 2400
 media:
   - video_url: "https://www.youtube.com/watch?v=rgX4p7asAcA"

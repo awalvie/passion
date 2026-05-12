@@ -1,0 +1,229 @@
+{{ define "open-exercise-panel" }}
+<div id="open-exercise-panel" class="hidden mt-4 card overflow-hidden">
+  <div class="px-4 py-3 flex items-center justify-between border-b" style="border-color:var(--border)">
+    <span class="text-sm font-semibold">Add exercise</span>
+    <button type="button" class="rounded btn-ghost p-1 inline-flex" onclick="document.getElementById('open-exercise-panel').classList.add('hidden')">
+      <i data-lucide="x" style="width:14px;height:14px"></i>
+    </button>
+  </div>
+
+  {{ if .RunLibraryExercises }}
+  <div class="px-4 py-4 border-b" style="border-color:var(--border)">
+    <div class="text-[11px] font-semibold muted uppercase tracking-widest mb-3">From library</div>
+
+    {{/* Combobox — no submit; selecting populates the edit form below */}}
+    <div class="relative" data-lib-combo="open-{{ .RunID }}">
+      <input
+        type="text"
+        class="w-full input text-sm"
+        placeholder="Search your library…"
+        autocomplete="off"
+        role="combobox"
+        aria-expanded="false"
+        aria-autocomplete="list"
+        aria-controls="open-lib-list-{{ .RunID }}"
+        data-lib-search="open-{{ .RunID }}"
+      />
+      <ul
+        id="open-lib-list-{{ .RunID }}"
+        role="listbox"
+        class="hidden absolute z-50 left-0 right-0 mt-1 rounded-md border overflow-y-auto text-sm"
+        style="background:var(--panel);border-color:var(--border);max-height:180px"
+        data-lib-list="open-{{ .RunID }}"
+      >
+        {{ range .RunLibraryExercises }}
+          <li role="option" aria-selected="false"
+            data-value="{{ .ID }}"
+            data-label="{{ .Name }}"
+            data-kind="{{ .Kind }}"
+            data-summary="{{ libExerciseSummary . }}"
+            data-notes="{{ libExerciseNotesSnippet .Notes }}"
+            data-ex="{{ libExJSON . }}"
+            class="px-3 py-2 cursor-pointer select-none"
+            onmouseover="this.style.background='var(--hover)'"
+            onmouseout="this.style.background=''"
+          >{{ .Name }}</li>
+        {{ end }}
+      </ul>
+    </div>
+
+    {{/* Edit form — hidden until an item is selected */}}
+    <form id="open-lib-edit-{{ .RunID }}"
+          hx-post="/runs/{{ .RunID }}/open/add"
+          hx-swap="none"
+          method="post"
+          class="hidden mt-3 space-y-2"
+    >
+      <div>
+        <label class="text-xs font-medium" for="open-lib-name-{{ .RunID }}">Name</label>
+        <input id="open-lib-name-{{ .RunID }}" name="name" required class="mt-1 w-full input text-xs" />
+      </div>
+      <div>
+        <label class="text-xs font-medium" for="open-lib-kind-{{ .RunID }}">Type</label>
+        <select id="open-lib-kind-{{ .RunID }}" name="kind" class="mt-1 w-full input text-xs"
+                onchange="window.__passionSyncExerciseKindGroups(this)">
+          <option value="reps_and_sets">Reps and sets</option>
+          <option value="timed_reps">Timed reps</option>
+          <option value="session">Session</option>
+          <option value="climbing">Climbing</option>
+        </select>
+        <p class="text-[10px] muted mt-0.5 mb-0" data-kind-hint></p>
+      </div>
+      <div data-notes-editor>
+        <label class="text-xs font-medium" for="open-lib-notes-{{ .RunID }}">Notes</label>
+        <div class="flex gap-1 border-b mb-1" style="border-color:var(--border)">
+          <button type="button" class="notes-tab notes-tab-active" data-notes-tab="write">Write</button>
+          <button type="button" class="notes-tab" data-notes-tab="preview">Preview</button>
+        </div>
+        <textarea id="open-lib-notes-{{ .RunID }}" name="notes" rows="3" class="mt-1 w-full input text-xs"></textarea>
+        <div data-notes-preview class="notes-preview-panel hidden mt-1" aria-live="polite"></div>
+      </div>
+      <div data-exercise-session-fields="1" hidden>
+        <label class="text-xs font-medium">Timer</label>
+        <div class="flex gap-0 border-b mt-1" style="border-color:var(--border)">
+          <button type="button" class="notes-tab notes-tab-active"
+            onclick="var s=this.closest('[data-exercise-session-fields]');s.querySelector('[data-dur-field]').hidden=true;s.querySelector('input[name=session_duration_minutes]').value='';this.classList.add('notes-tab-active');this.nextElementSibling.classList.remove('notes-tab-active')">Stopwatch</button>
+          <button type="button" class="notes-tab"
+            onclick="var s=this.closest('[data-exercise-session-fields]');s.querySelector('[data-dur-field]').hidden=false;this.classList.add('notes-tab-active');this.previousElementSibling.classList.remove('notes-tab-active')">Time limit</button>
+        </div>
+        <div data-dur-field class="mt-2" hidden>
+          <label class="text-xs font-medium">Duration (min)</label>
+          <input name="session_duration_minutes" type="number" min="0" step="0.5" class="mt-1 w-full input text-xs" />
+        </div>
+      </div>
+      <div data-exercise-reps-fields="1">
+        <div class="grid grid-cols-3 gap-2">
+          <div><label class="text-xs font-medium">Sets</label><input name="sets" type="number" min="0" class="mt-1 w-full input text-xs" /></div>
+          <div><label class="text-xs font-medium">Reps</label><input name="reps" type="number" min="0" class="mt-1 w-full input text-xs" /></div>
+          <div><label class="text-xs font-medium">Weight (kg)</label><input name="weight_kg" type="number" step="0.5" class="mt-1 w-full input text-xs" /></div>
+        </div>
+      </div>
+      <div data-exercise-timed-fields="1" hidden>
+        <div class="grid grid-cols-3 gap-2">
+          <div><label class="text-xs font-medium">Sets</label><input name="sets" type="number" min="0" class="mt-1 w-full input text-xs" /></div>
+          <div><label class="text-xs font-medium">Reps</label><input name="reps" type="number" min="0" class="mt-1 w-full input text-xs" /></div>
+          <div><label class="text-xs font-medium">Weight (kg)</label><input name="weight_kg" type="number" step="0.5" class="mt-1 w-full input text-xs" /></div>
+          <div><label class="text-xs font-medium">Rep time (s)</label><input name="rep_seconds" type="number" min="0" class="mt-1 w-full input text-xs" /></div>
+          <div><label class="text-xs font-medium">Rep rest (s)</label><input name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" /></div>
+          <div><label class="text-xs font-medium">Set rest (s)</label><input name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" /></div>
+          <div><label class="text-xs font-medium">Prep time (s)</label><input name="prep_seconds" type="number" min="0" class="mt-1 w-full input text-xs" /></div>
+        </div>
+      </div>
+      <button type="submit" class="w-full rounded-md btn-primary px-4 py-2 text-sm font-medium">Add to session</button>
+    </form>
+  </div>
+  {{ end }}
+
+  <div class="px-4 py-4">
+    <div class="text-[11px] font-semibold muted uppercase tracking-widest mb-3">New exercise</div>
+    <form
+      hx-post="/runs/{{ .RunID }}/open/add"
+      hx-swap="none"
+      method="post"
+      class="flex flex-col gap-3"
+    >
+      <div>
+        <label class="text-xs font-medium" for="open-ex-name">Name</label>
+        <input id="open-ex-name" name="name" required class="mt-1 w-full input" placeholder="e.g., Pull-ups" autocomplete="off" />
+      </div>
+      <label class="flex items-center gap-2 text-sm cursor-pointer">
+        <input type="checkbox" name="save_to_library" value="1" class="rounded" />
+        Save to exercise library
+      </label>
+      <button type="submit" class="rounded-md btn-primary px-3 py-2 text-sm font-medium">Add exercise</button>
+    </form>
+  </div>
+</div>
+<script>
+(function () {
+  var libSearch  = document.querySelector('[data-lib-search="open-{{ .RunID }}"]');
+  var libList    = document.querySelector('[data-lib-list="open-{{ .RunID }}"]');
+  var editForm   = document.getElementById('open-lib-edit-{{ .RunID }}');
+  if (!libSearch || !libList) return;
+
+  var allItems  = function() { return Array.from(libList.querySelectorAll('li[role="option"]')); };
+  var openList  = function() { libList.classList.remove('hidden'); libSearch.setAttribute('aria-expanded','true'); };
+  var closeList = function() { libList.classList.add('hidden'); libSearch.setAttribute('aria-expanded','false'); };
+
+  var populateEditForm = function(li) {
+    if (!editForm) return;
+    var ex;
+    try { ex = JSON.parse(li.getAttribute('data-ex')); } catch(e) { return; }
+    editForm.querySelector('[name="name"]').value = ex.name || '';
+    var kindSel = editForm.querySelector('[name="kind"]');
+    kindSel.value = ex.kind || 'reps_and_sets';
+    editForm.querySelector('[name="notes"]').value = ex.notes || '';
+
+    var setsEl      = editForm.querySelector('[data-exercise-reps-fields] [name="sets"]');
+    var repsEl      = editForm.querySelector('[data-exercise-reps-fields] [name="reps"]');
+    var weightEl    = editForm.querySelector('[data-exercise-reps-fields] [name="weight_kg"]');
+    if (setsEl)   setsEl.value   = ex.sets  || '';
+    if (repsEl)   repsEl.value   = ex.reps  || '';
+    if (weightEl) weightEl.value = ex.wkg   || '';
+
+    var tSetsEl    = editForm.querySelector('[data-exercise-timed-fields] [name="sets"]');
+    var tRepsEl    = editForm.querySelector('[data-exercise-timed-fields] [name="reps"]');
+    var tWeightEl  = editForm.querySelector('[data-exercise-timed-fields] [name="weight_kg"]');
+    var tRsEl      = editForm.querySelector('[name="rep_seconds"]');
+    var tRrsEl     = editForm.querySelector('[name="rep_rest_seconds"]');
+    var tSrsEl     = editForm.querySelector('[name="set_rest_seconds"]');
+    var tPsEl      = editForm.querySelector('[name="prep_seconds"]');
+    if (tSetsEl)  tSetsEl.value  = ex.sets || '';
+    if (tRepsEl)  tRepsEl.value  = ex.reps || '';
+    if (tWeightEl) tWeightEl.value = ex.wkg || '';
+    if (tRsEl)    tRsEl.value    = ex.rs   || '';
+    if (tRrsEl)   tRrsEl.value   = ex.rrs  || '';
+    if (tSrsEl)   tSrsEl.value   = ex.srs  || '';
+    if (tPsEl)    tPsEl.value    = ex.ps   || '';
+
+    var sessFields  = editForm.querySelector('[data-exercise-session-fields]');
+    var durField    = sessFields ? sessFields.querySelector('[data-dur-field]') : null;
+    var durInput    = sessFields ? sessFields.querySelector('[name="session_duration_minutes"]') : null;
+    var tabs        = sessFields ? sessFields.querySelectorAll('.notes-tab') : [];
+    if (ex.sds > 0 && durInput && durField) {
+      durInput.value = (ex.sds / 60).toFixed(4).replace(/\.?0+$/, '');
+      durField.hidden = false;
+      if (tabs[0]) tabs[0].classList.remove('notes-tab-active');
+      if (tabs[1]) tabs[1].classList.add('notes-tab-active');
+    } else if (durInput) {
+      durInput.value = '';
+      if (durField) durField.hidden = true;
+      if (tabs[0]) tabs[0].classList.add('notes-tab-active');
+      if (tabs[1]) tabs[1].classList.remove('notes-tab-active');
+    }
+
+    window.__passionSyncExerciseKindGroups(kindSel);
+    editForm.classList.remove('hidden');
+    if (typeof window.__passionRenderIcons === 'function') window.__passionRenderIcons();
+  };
+
+  var selectItem = function(li) {
+    libSearch.value = li.dataset.label;
+    allItems().forEach(function(i) { i.setAttribute('aria-selected','false'); });
+    li.setAttribute('aria-selected','true');
+    closeList();
+    populateEditForm(li);
+  };
+
+  libSearch.addEventListener('input', function () {
+    var q = this.value.trim().toLowerCase(); var hasVisible = false;
+    allItems().forEach(function(li) { var m = !q || li.dataset.label.toLowerCase().includes(q); li.hidden = !m; if (m) hasVisible = true; });
+    var chosen = allItems().find(function(li) { return li.getAttribute('aria-selected') === 'true'; });
+    if (chosen && chosen.hidden) { chosen.setAttribute('aria-selected','false'); }
+    if (q && hasVisible) openList(); else if (!q) { allItems().forEach(function(li) { li.hidden = false; }); openList(); } else closeList();
+  });
+  libSearch.addEventListener('focus', function () { allItems().forEach(function(li) { li.hidden = false; }); openList(); });
+  libSearch.addEventListener('keydown', function (e) {
+    var visible = allItems().filter(function(li) { return !li.hidden; });
+    var active  = libList.querySelector('[aria-selected="true"]:not([hidden])');
+    if (e.key === 'ArrowDown') { e.preventDefault(); var nxt = active ? (visible[visible.indexOf(active)+1]||visible[0]) : visible[0]; if (nxt) { allItems().forEach(function(i) { i.setAttribute('aria-selected','false'); }); nxt.setAttribute('aria-selected','true'); nxt.scrollIntoView({block:'nearest'}); } }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); var prv = active ? (visible[visible.indexOf(active)-1]||visible[visible.length-1]) : visible[visible.length-1]; if (prv) { allItems().forEach(function(i) { i.setAttribute('aria-selected','false'); }); prv.setAttribute('aria-selected','true'); prv.scrollIntoView({block:'nearest'}); } }
+    else if (e.key === 'Enter') { var sel = libList.querySelector('[aria-selected="true"]:not([hidden])'); if (sel && !libList.classList.contains('hidden')) { e.preventDefault(); selectItem(sel); } }
+    else if (e.key === 'Escape') { closeList(); }
+  });
+  libList.addEventListener('mousedown', function (e) { var li = e.target.closest('li[role="option"]'); if (li) { e.preventDefault(); selectItem(li); } });
+  document.addEventListener('click', function (e) { if (!libSearch.contains(e.target) && !libList.contains(e.target)) closeList(); }, true);
+  if (typeof window.__passionRenderIcons === 'function') window.__passionRenderIcons();
+})();
+</script>
+{{ end }}

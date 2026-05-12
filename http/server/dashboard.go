@@ -108,10 +108,11 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		for _, ar := range activeRuns {
 			ss := arSSMap[ar.ScheduledSessionID]
 			activeRunViews = append(activeRunViews, pages.ActiveRunView{
-				RunID:        ar.ID,
-				TemplateName: ss.SessionTemplate.Name,
-				Color:        normalizeTemplateColor(ss.SessionTemplate.Color),
-				StartedLabel: ar.StartedAt.Format("Mon 3:04 PM"),
+				RunID:         ar.ID,
+				TemplateName:  ss.SessionTemplate.Name,
+				Color:         normalizeTemplateColor(ss.SessionTemplate.Color),
+				StartedLabel:  ar.StartedAt.Format("Mon 3:04 PM"),
+				StartedAtUnix: ar.StartedAt.Unix(),
 			})
 		}
 	}

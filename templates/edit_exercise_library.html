@@ -38,7 +38,9 @@
             <option value="timed_reps" {{ if eq .Kind "timed_reps" }}selected{{ end }}>Timed reps</option>
             <option value="session" {{ if eq .Kind "session" }}selected{{ end }}>Session</option>
             <option value="exercise_catalog" {{ if eq .Kind "exercise_catalog" }}selected{{ end }}>Exercise catalog</option>
+            <option value="climbing" {{ if eq .Kind "climbing" }}selected{{ end }}>Climbing</option>
           </select>
+          <p class="text-[10px] muted mt-0.5 mb-0" data-kind-hint></p>
         </div>
       </div>
 

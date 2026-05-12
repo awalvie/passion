@@ -28,26 +28,28 @@ func TestNormalizeExerciseKind(t *testing.T) {
 }
 
 func TestParseSessionDurationSeconds(t *testing.T) {
-	body := strings.NewReader("session_duration_hours=1&session_duration_minutes=2&session_duration_seconds=3")
-	r := httptest.NewRequest("POST", "/", body)
-	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	if err := r.ParseForm(); err != nil {
-		t.Fatal(err)
+	cases := []struct {
+		body string
+		want int
+	}{
+		{"session_duration_minutes=30", 1800},
+		{"session_duration_minutes=12.5", 750},
+		{"session_duration_minutes=75", 4500},
+		{"session_duration_minutes=", 0},
+		{"session_duration_minutes=0", 0},
+		{"session_duration_minutes=-5", 0},
+		{"session_duration_minutes=oops", 0},
+		{"", 0},
 	}
-	if got := parseSessionDurationSeconds(r); got != 3723 {
-		t.Fatalf("parseSessionDurationSeconds = %d, want 3723", got)
-	}
-}
-
-func TestParseSessionDurationSecondsNegativeAndInvalid(t *testing.T) {
-	body := strings.NewReader("session_duration_hours=-1&session_duration_minutes=oops&session_duration_seconds=5")
-	r := httptest.NewRequest("POST", "/", body)
-	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	if err := r.ParseForm(); err != nil {
-		t.Fatal(err)
-	}
-	if got := parseSessionDurationSeconds(r); got != 5 {
-		t.Fatalf("parseSessionDurationSeconds invalid handling = %d, want 5", got)
+	for _, tc := range cases {
+		r := httptest.NewRequest("POST", "/", strings.NewReader(tc.body))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		if err := r.ParseForm(); err != nil {
+			t.Fatal(err)
+		}
+		if got := parseSessionDurationSeconds(r); got != tc.want {
+			t.Errorf("parseSessionDurationSeconds(%q) = %d, want %d", tc.body, got, tc.want)
+		}
 	}
 }
 
