@@ -3,6 +3,7 @@ package pages
 import (
 	"bytes"
 	"cmp"
+	"encoding/json"
 	"fmt"
 	"html"
 	"html/template"
@@ -35,10 +36,11 @@ type DashboardSession struct {
 }
 
 type ActiveRunView struct {
-	RunID        uint
-	TemplateName string
-	Color        string
-	StartedLabel string
+	RunID          uint
+	TemplateName   string
+	Color          string
+	StartedLabel   string
+	StartedAtUnix  int64
 }
 
 type DashboardDayGroup struct {
@@ -140,6 +142,10 @@ type RunStep struct {
 	RungSeconds    string
 	TemplateNotes  string
 	Status         string
+
+	// Set from RunExerciseCompletion for completed/skipped exercises.
+	ElapsedSeconds int
+	RunNotes       string
 
 	ActivityID   uint
 	ActivityName string
@@ -353,7 +359,9 @@ type RunParams struct {
 	RunIsTrial        bool
 	RunTemplateID     uint
 	RunIsOpen         bool
+	RunIsDraft        bool
 	RunCustomName     string
+	StartedAtUnix     int64
 	RunLibraryExercises   []db.LibraryExercise
 	RunActivityTemplates  []db.ActivityTemplate
 	CurrentStep       RunStep
@@ -651,6 +659,8 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		filepath.Join("templates", "fragments", "venues_list.html"),
 		filepath.Join("templates", "fragments", "boards_list.html"),
 		filepath.Join("templates", "fragments", "manual_exercises.html"),
+		filepath.Join("templates", "fragments", "open_exercise_panel.html"),
+		filepath.Join("templates", "fragments", "open_template_panel.html"),
 	}
 
 	fragmentFiles := []string{
@@ -698,6 +708,7 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		{"pages/new_cycle_content", "new_cycle.html"},
 		{"pages/training_cycle_detail_content", "training_cycle_detail.html"},
 		{"pages/run_content", "run.html"},
+		{"pages/open_session_content", "open_session.html"},
 		{"pages/activity_templates_content", "activity_templates.html"},
 		{"pages/new_activity_template_content", "new_activity_template.html"},
 		{"pages/activity_template_edit_content", "activity_template_edit.html"},
@@ -803,6 +814,12 @@ func (p *Pages) Run(w http.ResponseWriter, params RunParams) {
 	params.Authenticated = true
 	params.WideLayout = true
 	p.renderPage(w, "pages/run_content", params)
+}
+
+func (p *Pages) OpenSession(w http.ResponseWriter, params RunParams) {
+	params.Title = "Open Session"
+	params.Authenticated = true
+	p.renderPage(w, "pages/open_session_content", params)
 }
 
 func (p *Pages) History(w http.ResponseWriter, params HistoryParams) {
@@ -1026,6 +1043,16 @@ func buildFuncMap() template.FuncMap {
 				"s": sec % 60,
 			}
 		},
+		"durationMinutes": func(sec int) string {
+			if sec <= 0 {
+				return ""
+			}
+			mins := float64(sec) / 60.0
+			if mins == float64(int(mins)) {
+				return fmt.Sprintf("%d", int(mins))
+			}
+			return fmt.Sprintf("%.4g", mins)
+		},
 		"formatElapsed": func(sec int) string {
 			if sec <= 0 {
 				return ""
@@ -1147,9 +1174,158 @@ func buildFuncMap() template.FuncMap {
 				return strings.Join(parts, " · ")
 			}
 		},
+		"runStepSummary": func(rs RunStep) string {
+			switch rs.Kind {
+			case "session":
+				if rs.SessionDurationSeconds > 0 {
+					h := rs.SessionDurationSeconds / 3600
+					m := (rs.SessionDurationSeconds % 3600) / 60
+					s := rs.SessionDurationSeconds % 60
+					if h > 0 && m == 0 && s == 0 {
+						return fmt.Sprintf("%dh session", h)
+					}
+					if h > 0 {
+						return fmt.Sprintf("%dh %dm session", h, m)
+					}
+					if m > 0 && s == 0 {
+						return fmt.Sprintf("%dm session", m)
+					}
+					if m > 0 {
+						return fmt.Sprintf("%dm %ds session", m, s)
+					}
+					return fmt.Sprintf("%ds session", s)
+				}
+				return "Session"
+			case "exercise_catalog":
+				return "Exercise catalog"
+			default:
+				parts := []string{}
+				if rs.Sets > 0 && rs.Reps > 0 {
+					parts = append(parts, fmt.Sprintf("%d×%d", rs.Sets, rs.Reps))
+				} else if rs.Sets > 0 {
+					parts = append(parts, fmt.Sprintf("%d sets", rs.Sets))
+				} else if rs.Reps > 0 {
+					parts = append(parts, fmt.Sprintf("%d reps", rs.Reps))
+				}
+				if rs.WeightKg > 0 {
+					if rs.WeightKg == float64(int(rs.WeightKg)) {
+						parts = append(parts, fmt.Sprintf("%.0fkg", rs.WeightKg))
+					} else {
+						parts = append(parts, fmt.Sprintf("%.1fkg", rs.WeightKg))
+					}
+				}
+				if rs.RepSeconds > 0 {
+					parts = append(parts, fmt.Sprintf("%ds/rep", rs.RepSeconds))
+				}
+				return strings.Join(parts, " · ")
+			}
+		},
 		"markdownHTML": func(s string) template.HTML {
 			return markdownToHTML(s)
 		},
 		"youtubeEmbedURL": youtubeEmbedURL,
+		"libExJSON": func(ex db.LibraryExercise) string {
+			b, _ := json.Marshal(struct {
+				Name string  `json:"name"`
+				Kind string  `json:"kind"`
+				Sets int     `json:"sets"`
+				Reps int     `json:"reps"`
+				Wkg  float64 `json:"wkg"`
+				Rs   int     `json:"rs"`
+				Rrs  int     `json:"rrs"`
+				Srs  int     `json:"srs"`
+				Ps   int     `json:"ps"`
+				Sds  int     `json:"sds"`
+				Notes string `json:"notes"`
+			}{ex.Name, ex.Kind, ex.Sets, ex.Reps, ex.WeightKg,
+				ex.RepSeconds, ex.RepRestSeconds, ex.SetRestSeconds,
+				ex.PrepSeconds, ex.SessionDurationSeconds, ex.Notes})
+			return string(b)
+		},
+		"activityTemplateExJSON": func(tpl db.ActivityTemplate) string {
+			type row struct {
+				Name string  `json:"name"`
+				Kind string  `json:"kind"`
+				Sets int     `json:"sets"`
+				Reps int     `json:"reps"`
+				Wkg  float64 `json:"wkg"`
+				Rs   int     `json:"rs"`
+				Rrs  int     `json:"rrs"`
+				Srs  int     `json:"srs"`
+				Ps   int     `json:"ps"`
+				Sds  int     `json:"sds"`
+				Notes string `json:"notes"`
+			}
+			var out []row
+			for _, e := range tpl.Exercises {
+				if e.ParentExerciseID != nil {
+					continue
+				}
+				out = append(out, row{e.Name, e.Kind, e.Sets, e.Reps, e.WeightKg,
+					e.RepSeconds, e.RepRestSeconds, e.SetRestSeconds,
+					e.PrepSeconds, e.SessionDurationSeconds, e.Notes})
+			}
+			if out == nil {
+				out = []row{}
+			}
+			b, _ := json.Marshal(out)
+			return string(b)
+		},
+		"libExerciseSummary": func(ex db.LibraryExercise) string {
+			switch ex.Kind {
+			case "session", "climbing":
+				if ex.SessionDurationSeconds > 0 {
+					h := ex.SessionDurationSeconds / 3600
+					m := (ex.SessionDurationSeconds % 3600) / 60
+					s := ex.SessionDurationSeconds % 60
+					if h > 0 && m == 0 && s == 0 {
+						return fmt.Sprintf("%dh", h)
+					}
+					if h > 0 {
+						return fmt.Sprintf("%dh %dm", h, m)
+					}
+					if m > 0 && s == 0 {
+						return fmt.Sprintf("%dm", m)
+					}
+					if m > 0 {
+						return fmt.Sprintf("%dm %ds", m, s)
+					}
+					return fmt.Sprintf("%ds", s)
+				}
+				return ""
+			case "exercise_catalog":
+				return "menu"
+			default:
+				parts := []string{}
+				if ex.Sets > 0 && ex.Reps > 0 {
+					parts = append(parts, fmt.Sprintf("%d×%d", ex.Sets, ex.Reps))
+				} else if ex.Sets > 0 {
+					parts = append(parts, fmt.Sprintf("%d sets", ex.Sets))
+				} else if ex.Reps > 0 {
+					parts = append(parts, fmt.Sprintf("%d reps", ex.Reps))
+				}
+				if ex.WeightKg > 0 {
+					if ex.WeightKg == float64(int(ex.WeightKg)) {
+						parts = append(parts, fmt.Sprintf("%.0fkg", ex.WeightKg))
+					} else {
+						parts = append(parts, fmt.Sprintf("%.1fkg", ex.WeightKg))
+					}
+				}
+				if ex.RepSeconds > 0 {
+					parts = append(parts, fmt.Sprintf("%ds/rep", ex.RepSeconds))
+				}
+				return strings.Join(parts, " · ")
+			}
+		},
+		"libExerciseNotesSnippet": func(s string) string {
+			// Replace newlines with spaces and truncate for use in preview.
+			out := strings.ReplaceAll(s, "\n", " ")
+			out = strings.Join(strings.Fields(out), " ")
+			if len([]rune(out)) > 180 {
+				runes := []rune(out)
+				return string(runes[:180]) + "…"
+			}
+			return out
+		},
 	}
 }

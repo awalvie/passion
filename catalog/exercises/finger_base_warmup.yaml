@@ -1,6 +1,5 @@
 name: "Finger Base Warm-Up"
 kind: "session"
-session_duration_seconds: 750
 media:
   - video_url: "https://www.youtube.com/watch?v=JUdRNZ5_j7k"
     thumbnail_url: "https://i.ytimg.com/vi/JUdRNZ5_j7k/maxresdefault.jpg"

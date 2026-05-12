@@ -69,6 +69,12 @@ func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, o
 		return
 	}
 
+	// Open sessions get their own builder/manager view.
+	if run.IsOpen && r.URL.Query().Get("exercise") == "" {
+		s.renderOpenSession(w, r, run, ownerID)
+		return
+	}
+
 	ss, err := db.GetScheduledSessionWithTemplate(s.store.DB, ownerID, run.ScheduledSessionID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -162,6 +168,66 @@ func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, o
 		CurrentStep:          currentStep,
 		RunSteps:             steps,
 		RunActivityGroups:    activityGroups,
+	})
+}
+
+func (s *Server) renderOpenSession(w http.ResponseWriter, r *http.Request, run db.SessionRun, ownerID uint) {
+	runID := run.ID
+	steps := s.loadOpenSteps(runID)
+
+	var completions []db.RunExerciseCompletion
+	if err := s.store.DB.
+		Where("owner_id = ? AND run_id = ?", ownerID, runID).
+		Find(&completions).Error; err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	type compInfo struct {
+		status  string
+		elapsed int
+		notes   string
+	}
+	compByID := map[uint]compInfo{}
+	for _, c := range completions {
+		compByID[c.ExerciseID] = compInfo{status: c.Status, elapsed: c.ElapsedSeconds, notes: c.RunNotes}
+	}
+	for i := range steps {
+		st := &steps[i]
+		if info, ok := compByID[st.ExerciseID]; ok {
+			st.Status = info.status
+			st.ElapsedSeconds = info.elapsed
+			st.RunNotes = info.notes
+		} else {
+			st.Status = "pending"
+		}
+	}
+
+	libExercises, _ := db.ListLibraryExercises(s.store.DB, ownerID)
+	activityTemplates, _ := db.ListActivityTemplatesWithExercises(s.store.DB, ownerID)
+
+	displayName := run.CustomName
+	if displayName == "" {
+		displayName = "Open Session"
+	}
+
+	var startedAtUnix int64
+	if !run.StartedAt.IsZero() {
+		startedAtUnix = run.StartedAt.Unix()
+	}
+
+	s.pages.OpenSession(w, pages.RunParams{
+		Base:                 pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
+		RunID:                runID,
+		RunTemplateName:      displayName,
+		RunTotalSteps:        len(steps),
+		RunIsOpen:            true,
+		RunIsDraft:           run.Status == "draft",
+		RunCustomName:        run.CustomName,
+		StartedAtUnix:        startedAtUnix,
+		RunLibraryExercises:  libExercises,
+		RunActivityTemplates: activityTemplates,
+		RunSteps:             steps,
 	})
 }
 
@@ -271,7 +337,12 @@ func (s *Server) completeRunExercise(w http.ResponseWriter, r *http.Request, run
 		}
 	}
 
-	w.Header().Set("HX-Redirect", "/runs/"+strconv.FormatUint(uint64(runID), 10)+"?t="+strconv.FormatInt(time.Now().UnixNano(), 10)+"#run-current-step")
+	runIDStr := strconv.FormatUint(uint64(runID), 10)
+	redirect := "/runs/" + runIDStr + "?t=" + strconv.FormatInt(time.Now().UnixNano(), 10) + "#run-current-step"
+	if run.IsOpen {
+		redirect = "/runs/" + runIDStr
+	}
+	w.Header().Set("HX-Redirect", redirect)
 	w.WriteHeader(http.StatusOK)
 	return nil
 }

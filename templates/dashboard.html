@@ -13,7 +13,7 @@
           </span>
           <div class="min-w-0">
             <div class="text-sm font-semibold truncate">{{ .TemplateName }}</div>
-            <div class="text-xs muted">Started {{ .StartedLabel }}</div>
+            <div class="text-xs muted">Started {{ .StartedLabel }} &middot; <span data-session-elapsed="{{ .StartedAtUnix }}">–</span></div>
           </div>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
@@ -288,6 +288,27 @@
       }
       panel.classList.remove("hidden");
     };
+  })();
+
+  (function () {
+    function fmtElapsed(secs) {
+      var h = Math.floor(secs / 3600);
+      var m = Math.floor((secs % 3600) / 60);
+      var s = secs % 60;
+      if (h > 0) return h + "h " + String(m).padStart(2, "0") + "m";
+      if (m > 0) return m + "m " + String(s).padStart(2, "0") + "s";
+      return s + "s";
+    }
+    function tickElapsed() {
+      var now = Math.floor(Date.now() / 1000);
+      document.querySelectorAll("[data-session-elapsed]").forEach(function (el) {
+        var started = parseInt(el.getAttribute("data-session-elapsed"), 10);
+        if (!started) return;
+        el.textContent = fmtElapsed(Math.max(0, now - started));
+      });
+    }
+    tickElapsed();
+    setInterval(tickElapsed, 1000);
   })();
 </script>
 {{ end }}

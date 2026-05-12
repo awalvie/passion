@@ -330,6 +330,8 @@ func NormalizeKind(raw string) string {
 		return "exercise_catalog"
 	case "timed_reps":
 		return "timed_reps"
+	case "climbing":
+		return "climbing"
 	default:
 		return "reps_and_sets"
 	}

@@ -38,7 +38,8 @@
           const session = kind === "session";
           const isCatalog = kind === "exercise_catalog";
           const isTimed = kind === "timed_reps";
-          const isReps = !session && !isCatalog && !isTimed;
+          const isClimbing = kind === "climbing";
+          const isReps = !session && !isCatalog && !isTimed && !isClimbing;
           const reps = form.querySelector("[data-exercise-reps-fields]");
           const timed = form.querySelector("[data-exercise-timed-fields]");
           const sess = form.querySelector("[data-exercise-session-fields]");
@@ -58,15 +59,15 @@
             });
           }
           if (sess) {
-            sess.hidden = !session || isCatalog;
+            sess.hidden = !session || isCatalog || isClimbing;
             sess.querySelectorAll("input, textarea, select").forEach(function (el) {
-              el.disabled = !session || isCatalog;
+              el.disabled = !session || isCatalog || isClimbing;
             });
           }
           if (media) {
-            media.hidden = isCatalog;
+            media.hidden = isCatalog || isClimbing;
             media.querySelectorAll("input, textarea, select").forEach(function (el) {
-              el.disabled = isCatalog;
+              el.disabled = isCatalog || isClimbing;
             });
           }
           var addHint = form.querySelector("[data-catalog-add-hint]");
@@ -89,6 +90,17 @@
             optPanel.querySelectorAll("[data-catalog-lib-search], [data-catalog-lib-select], [data-catalog-add-from-library]").forEach(function (el) {
               el.disabled = !isCatalog;
             });
+          }
+          var kindHint = kindSelect.parentElement && kindSelect.parentElement.querySelector("[data-kind-hint]");
+          if (kindHint) {
+            var kindHints = {
+              "reps_and_sets":    "Track sets, reps, and optional weight. Progress through each set manually.",
+              "timed_reps":       "Each rep runs a countdown timer — great for holds, stretches, or timed intervals.",
+              "session":          "A stopwatch or countdown for an open activity block. No set/rep tracking.",
+              "climbing":         "Log individual climbs with grades and styles. Supports an optional time limit.",
+              "exercise_catalog": "A menu — during the run, choose which exercise to perform from a list of options.",
+            };
+            kindHint.textContent = kindHints[kind] || "";
           }
           window.__passionRenderIcons();
         };
@@ -205,6 +217,11 @@
         }
         if (typeof window.__passionBindMediaRows === "function") {
           window.__passionBindMediaRows(document);
+        }
+        if (typeof window.__passionSyncExerciseKindGroups === "function") {
+          document.querySelectorAll('select[name="kind"]').forEach(function (sel) {
+            window.__passionSyncExerciseKindGroups(sel);
+          });
         }
       });
     </script>

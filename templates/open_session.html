@@ -1,0 +1,248 @@
+{{ define "content" }}
+<div class="max-w-2xl w-full mx-auto px-4 py-6 space-y-4">
+
+  {{/* ── Header bar ── */}}
+  <div class="flex items-center justify-between gap-3">
+    <a href="/dashboard" class="rounded-md btn-ghost p-2 inline-flex items-center justify-center shrink-0" aria-label="Back to dashboard">
+      <i data-lucide="arrow-left" style="width:1rem;height:1rem" aria-hidden="true"></i>
+    </a>
+    <h1 class="text-base font-semibold truncate flex-1 text-center">{{ if .RunCustomName }}{{ .RunCustomName }}{{ else }}Open Session{{ end }}</h1>
+    <div class="shrink-0 flex items-center gap-2">
+      {{ if .RunIsDraft }}
+        {{ if .RunSteps }}
+        <form hx-post="/runs/{{ .RunID }}/open/start" hx-swap="none" method="post">
+          <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium whitespace-nowrap">Start session</button>
+        </form>
+        {{ else }}
+        <button type="button" class="rounded-md btn-primary px-4 py-2 text-sm font-medium whitespace-nowrap opacity-50 cursor-not-allowed" disabled title="Add at least one exercise first">Start session</button>
+        {{ end }}
+      {{ else }}
+        <span class="text-xs muted whitespace-nowrap"><span data-session-elapsed="{{ .StartedAtUnix }}">–</span></span>
+        <form hx-post="/runs/{{ .RunID }}/stop" hx-swap="none" method="post" onsubmit="return confirm('Finish this session?');">
+          <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium whitespace-nowrap">Finish session</button>
+        </form>
+      {{ end }}
+    </div>
+  </div>
+
+  {{/* ── Exercise list ── */}}
+  <div class="space-y-2">
+    {{ if .RunSteps }}
+      {{ range .RunSteps }}
+        {{ $isCompleted := eq .Status "completed" }}
+        {{ $isSkipped   := eq .Status "skipped" }}
+        {{ $isDone      := or $isCompleted $isSkipped }}
+        {{ if $isDone }}
+        {{/* Completed or skipped — read-only row */}}
+        <div class="card-muted rounded-lg px-3 py-2.5 flex items-center gap-3">
+          <span class="shrink-0 text-sm" aria-hidden="true">{{ if $isCompleted }}✓{{ else }}⊘{{ end }}</span>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium truncate">{{ .Name }}</div>
+            <div class="text-xs muted">
+              {{ if $isSkipped }}skipped{{ else }}
+                {{ $summary := runStepSummary . }}
+                {{ if $summary }}{{ $summary }}{{ end }}
+                {{ if gt .ElapsedSeconds 0 }} · {{ formatElapsed .ElapsedSeconds }}{{ end }}
+              {{ end }}
+              {{ if .RunNotes }}<span class="ml-1 italic">{{ .RunNotes }}</span>{{ end }}
+            </div>
+          </div>
+        </div>
+        {{ else }}
+        {{/* Pending exercise — collapsible edit card */}}
+        <details class="card-muted overflow-hidden rounded-lg passion-disclosure">
+          <summary class="cursor-pointer list-none flex items-center gap-3 px-3 py-2.5">
+            <span class="shrink-0 text-sm muted" aria-hidden="true">○</span>
+            <div class="min-w-0 flex-1 flex items-baseline gap-3">
+              <div class="text-sm font-medium truncate shrink-0 max-w-[55%]">{{ .Name }}</div>
+              {{ $summary := runStepSummary . }}
+              {{ if $summary }}<div class="ex-card-summary flex-1 min-w-0 truncate">{{ $summary }}</div>{{ end }}
+            </div>
+            {{ if not $.RunIsDraft }}
+            <a
+              href="/runs/{{ $.RunID }}?exercise={{ .ExerciseID }}"
+              class="shrink-0 rounded-md btn-accent px-3 py-1 text-xs font-medium inline-flex items-center gap-1"
+              onclick="event.stopPropagation()"
+            >Start <i data-lucide="arrow-right" style="width:12px;height:12px"></i></a>
+            {{ end }}
+          </summary>
+
+          <div class="px-3 pb-3 mt-0 space-y-3">
+            <form
+              class="space-y-2"
+              hx-post="/runs/{{ $.RunID }}/open/exercises/{{ .ExerciseID }}/update"
+              hx-swap="none"
+              method="post"
+            >
+              <div>
+                <label class="text-xs font-medium" for="open-ex-name-{{ .ExerciseID }}">Exercise name</label>
+                <input id="open-ex-name-{{ .ExerciseID }}" name="name" required class="mt-1 w-full input text-xs" value="{{ .Name }}" />
+              </div>
+              <div>
+                <label class="text-xs font-medium" for="open-ex-kind-{{ .ExerciseID }}">Type</label>
+                <select id="open-ex-kind-{{ .ExerciseID }}" name="kind" class="mt-1 w-full input text-xs" onchange="window.__passionSyncExerciseKindGroups(this)">
+                  <option value="reps_and_sets" {{ if eq .Kind "reps_and_sets" }}selected{{ end }}>Reps and sets</option>
+                  <option value="timed_reps"    {{ if eq .Kind "timed_reps"    }}selected{{ end }}>Timed reps</option>
+                  <option value="session"        {{ if eq .Kind "session"        }}selected{{ end }}>Session</option>
+                  <option value="climbing"       {{ if eq .Kind "climbing"       }}selected{{ end }}>Climbing</option>
+                </select>
+                <p class="text-[10px] muted mt-0.5 mb-0" data-kind-hint></p>
+              </div>
+              <div data-notes-editor>
+                <label class="text-xs font-medium" for="open-ex-notes-{{ .ExerciseID }}">Notes</label>
+                <p class="text-[10px] muted mt-0.5 mb-1">Markdown supported.</p>
+                <div class="flex gap-1 border-b mb-1" style="border-color: var(--border)">
+                  <button type="button" class="notes-tab notes-tab-active" data-notes-tab="write">Write</button>
+                  <button type="button" class="notes-tab" data-notes-tab="preview">Preview</button>
+                </div>
+                <textarea id="open-ex-notes-{{ .ExerciseID }}" name="notes" rows="3" class="mt-1 w-full input text-xs">{{ .TemplateNotes }}</textarea>
+                <div data-notes-preview class="notes-preview-panel hidden mt-1" aria-live="polite"></div>
+              </div>
+              <div data-exercise-session-fields="1" {{ if or (ne .Kind "session") (eq .Kind "exercise_catalog") }}hidden{{ end }}>
+                <label class="text-xs font-medium">Timer</label>
+                <div class="flex gap-0 border-b mt-1" style="border-color: var(--border)">
+                  <button type="button" class="notes-tab {{ if eq .SessionDurationSeconds 0 }}notes-tab-active{{ end }}"
+                    onclick="var s=this.closest('[data-exercise-session-fields]');s.querySelector('[data-dur-field]').hidden=true;s.querySelector('input[name=session_duration_minutes]').value='';this.classList.add('notes-tab-active');this.nextElementSibling.classList.remove('notes-tab-active')">Stopwatch</button>
+                  <button type="button" class="notes-tab {{ if gt .SessionDurationSeconds 0 }}notes-tab-active{{ end }}"
+                    onclick="var s=this.closest('[data-exercise-session-fields]');s.querySelector('[data-dur-field]').hidden=false;this.classList.add('notes-tab-active');this.previousElementSibling.classList.remove('notes-tab-active')">Time limit</button>
+                </div>
+                <div data-dur-field class="mt-2" {{ if eq .SessionDurationSeconds 0 }}hidden{{ end }}>
+                  <label class="text-xs font-medium" for="open-ex-sess-min-{{ .ExerciseID }}">Duration (min)</label>
+                  <input id="open-ex-sess-min-{{ .ExerciseID }}" name="session_duration_minutes" type="number" min="0" step="0.5" class="mt-1 w-full input text-xs" value="{{ durationMinutes .SessionDurationSeconds }}" />
+                </div>
+              </div>
+              <div data-exercise-reps-fields="1" {{ if ne .Kind "reps_and_sets" }}hidden{{ end }}>
+                <div class="grid grid-cols-3 gap-2">
+                  <div>
+                    <label class="text-xs font-medium" for="open-ex-sets-{{ .ExerciseID }}">Sets</label>
+                    <input id="open-ex-sets-{{ .ExerciseID }}" name="sets" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Sets }}" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="open-ex-reps-{{ .ExerciseID }}">Reps</label>
+                    <input id="open-ex-reps-{{ .ExerciseID }}" name="reps" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Reps }}" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="open-ex-weight-{{ .ExerciseID }}">Weight (kg)</label>
+                    <input id="open-ex-weight-{{ .ExerciseID }}" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input text-xs" value="{{ .WeightKg }}" />
+                  </div>
+                </div>
+              </div>
+              <div data-exercise-timed-fields="1" {{ if ne .Kind "timed_reps" }}hidden{{ end }}>
+                <div class="grid grid-cols-3 gap-2">
+                  <div>
+                    <label class="text-xs font-medium" for="open-ex-t-sets-{{ .ExerciseID }}">Sets</label>
+                    <input id="open-ex-t-sets-{{ .ExerciseID }}" name="sets" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Sets }}" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="open-ex-t-reps-{{ .ExerciseID }}">Reps</label>
+                    <input id="open-ex-t-reps-{{ .ExerciseID }}" name="reps" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Reps }}" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="open-ex-t-weight-{{ .ExerciseID }}">Weight (kg)</label>
+                    <input id="open-ex-t-weight-{{ .ExerciseID }}" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input text-xs" value="{{ .WeightKg }}" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="open-ex-t-rep-sec-{{ .ExerciseID }}">Rep time (s)</label>
+                    <input id="open-ex-t-rep-sec-{{ .ExerciseID }}" name="rep_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .RepSeconds }}" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="open-ex-t-rep-rest-{{ .ExerciseID }}">Rep rest (s)</label>
+                    <input id="open-ex-t-rep-rest-{{ .ExerciseID }}" name="rep_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .RepRestSeconds }}" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="open-ex-t-set-rest-{{ .ExerciseID }}">Set rest (s)</label>
+                    <input id="open-ex-t-set-rest-{{ .ExerciseID }}" name="set_rest_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .SetRestSeconds }}" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium" for="open-ex-t-prep-{{ .ExerciseID }}">Prep time (s)</label>
+                    <input id="open-ex-t-prep-{{ .ExerciseID }}" name="prep_seconds" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .PrepSeconds }}" />
+                  </div>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="submit" class="w-full rounded-md btn-primary px-3 py-2 text-sm font-medium">Save</button>
+                <button
+                  type="button"
+                  class="w-full rounded-md btn-ghost px-3 py-2 text-sm font-medium"
+                  hx-post="/runs/{{ $.RunID }}/open/exercises/{{ .ExerciseID }}/delete"
+                  hx-swap="none"
+                  hx-confirm="Remove this exercise?"
+                >Delete</button>
+              </div>
+            </form>
+          </div>
+        </details>
+        {{ end }}
+      {{ end }}
+    {{ else }}
+      <div class="card-muted rounded-lg p-4 text-sm muted text-center">No exercises yet. Add one below to get started.</div>
+    {{ end }}
+  </div>
+
+  {{/* ── Add panels ── */}}
+  <div class="flex flex-wrap gap-2 mt-2">
+    <button
+      type="button"
+      class="rounded-md btn-accent px-3 py-1.5 text-sm font-medium inline-flex items-center gap-1"
+      onclick="openExercisePanel()"
+    ><i data-lucide="plus" style="width:14px;height:14px"></i> Add exercise</button>
+    {{ if .RunActivityTemplates }}
+    <button
+      type="button"
+      class="rounded-md btn-ghost px-3 py-1.5 text-sm font-medium inline-flex items-center gap-1"
+      onclick="openTemplatePanel()"
+    ><i data-lucide="layout-list" style="width:14px;height:14px"></i> Add from template</button>
+    {{ end }}
+  </div>
+
+  {{ template "open-exercise-panel" . }}
+  {{ if .RunActivityTemplates }}{{ template "open-template-panel" . }}{{ end }}
+
+</div>
+
+<script>
+  function openExercisePanel() {
+    var ep = document.getElementById('open-exercise-panel');
+    var tp = document.getElementById('open-template-panel');
+    if (!ep) return;
+    var opening = ep.classList.contains('hidden');
+    ep.classList.toggle('hidden', !opening);
+    if (tp) tp.classList.add('hidden');
+  }
+  function openTemplatePanel() {
+    var tp = document.getElementById('open-template-panel');
+    var ep = document.getElementById('open-exercise-panel');
+    if (!tp) return;
+    var opening = tp.classList.contains('hidden');
+    tp.classList.toggle('hidden', !opening);
+    if (ep) ep.classList.add('hidden');
+  }
+
+  (function () {
+    function fmtElapsed(s) {
+      var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+      if (h > 0) return h + 'h ' + m + 'm';
+      if (m > 0) return m + 'm ' + (sec > 0 ? sec + 's' : '');
+      return s + 's';
+    }
+    function tickElapsed() {
+      var now = Math.floor(Date.now() / 1000);
+      document.querySelectorAll('[data-session-elapsed]').forEach(function (el) {
+        var started = parseInt(el.getAttribute('data-session-elapsed'), 10);
+        if (!started) return;
+        el.textContent = fmtElapsed(Math.max(0, now - started));
+      });
+    }
+    tickElapsed();
+    setInterval(tickElapsed, 1000);
+
+    document.querySelectorAll('select[name="kind"]').forEach(function (sel) {
+      if (typeof window.__passionSyncExerciseKindGroups === 'function') {
+        window.__passionSyncExerciseKindGroups(sel);
+      }
+    });
+
+    if (typeof window.__passionRenderIcons === 'function') window.__passionRenderIcons();
+  })();
+</script>
+{{ end }}

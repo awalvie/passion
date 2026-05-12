@@ -1,6 +1,5 @@
 name: "Muscular Activation"
 kind: "session"
-session_duration_seconds: 900
 media:
   - thumbnail_url: "https://d3vyx8wioyqr3c.cloudfront.net/files/rit_01jed2jtpaf3j8w3nk7npvteqc/image_8743ec68a96c430786206bba8cbc7280_thumbnail"
 notes: |
