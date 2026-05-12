@@ -1,6 +1,5 @@
 name: "Sub Limit for Guaranteed Improvement"
 kind: "climbing"
-session_duration_seconds: 4500
 media:
   - video_url: "https://www.youtube.com/watch?v=K5NLcANk1X8"
     thumbnail_url: "https://i.ytimg.com/vi/K5NLcANk1X8/maxresdefault.jpg"

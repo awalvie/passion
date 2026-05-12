@@ -1,6 +1,5 @@
 name: "Ideal Circuit (boulders)"
-kind: "session"
-session_duration_seconds: 3600
+kind: "climbing"
 media:
   - video_url: "https://www.youtube.com/watch?v=K30druQcvos"
     thumbnail_url: "https://i.ytimg.com/vi/K30druQcvos/maxresdefault.jpg"

@@ -1,6 +1,5 @@
 name: "Foot Switching"
-kind: "session"
-session_duration_seconds: 900
+kind: "climbing"
 media:
   - video_url: "https://www.youtube.com/watch?v=ODMuRgduTds"
     thumbnail_url: "https://i.ytimg.com/vi/ODMuRgduTds/maxresdefault.jpg"

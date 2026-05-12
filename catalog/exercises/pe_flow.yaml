@@ -1,9 +1,5 @@
 name: "PE Flow"
-kind: "timed_reps"
-sets: 3
-reps: 1
-rep_seconds: 360
-set_rest_seconds: 600
+kind: "climbing"
 media:
   - video_url: "https://www.youtube.com/watch?v=8X8BbVjrZ7g"
     thumbnail_url: "https://i.ytimg.com/vi/8X8BbVjrZ7g/maxresdefault.jpg"

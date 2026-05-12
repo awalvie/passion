@@ -1,6 +1,5 @@
 name: "Directional Holds and Body Positioning"
-kind: "session"
-session_duration_seconds: 900
+kind: "climbing"
 media:
   - video_url: "https://www.youtube.com/watch?v=3apLxqWvTXU"
     thumbnail_url: "https://i.ytimg.com/vi/3apLxqWvTXU/maxresdefault.jpg"

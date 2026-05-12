@@ -1,6 +1,5 @@
 name: "Deadpoint Focused"
-kind: "session"
-session_duration_seconds: 900
+kind: "climbing"
 media:
   - video_url: "https://www.youtube.com/watch?v=8NtYU94DwsE"
     thumbnail_url: "https://i.ytimg.com/vi/8NtYU94DwsE/maxresdefault.jpg"
