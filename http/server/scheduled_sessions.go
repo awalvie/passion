@@ -17,7 +17,7 @@ func (s *Server) handleScheduledSessionsByID(w http.ResponseWriter, r *http.Requ
 		s.unauthorizedRedirect(w, r)
 		return
 	}
-	scheduledID, err := strconv.ParseUint(chi.URLParam(r, "scheduledID"), 10, 64)
+	scheduledID, err := parseUintParam(r, "scheduledID")
 	if err != nil {
 		http.Error(w, "invalid scheduled session id", http.StatusBadRequest)
 		return
@@ -58,7 +58,7 @@ func (s *Server) handleScheduledSessionsByID(w http.ResponseWriter, r *http.Requ
 			OwnerID:            ownerID,
 			ScheduledSessionID: uint(ss.ID),
 			IsTrial:            ss.IsTrial,
-			Status:             "running",
+			Status:             db.RunStatusRunning,
 			StartedAt:          time.Now(),
 		}
 		if err := s.store.DB.Create(run).Error; err != nil {

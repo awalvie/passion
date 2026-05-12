@@ -784,7 +784,7 @@ type StartSessionPickerParams struct {
 }
 
 func (p *Pages) StartSessionPicker(w http.ResponseWriter, params StartSessionPickerParams) {
-	p.RenderFragment(w, "fragments/start-session-picker", params)
+	p.RenderFragment(w, "start_session_picker.html", params)
 }
 
 // ---------------------------------------------------------------------------

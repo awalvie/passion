@@ -18,7 +18,7 @@ func (s *Server) handleExercisesByID(w http.ResponseWriter, r *http.Request) {
 		s.unauthorizedRedirect(w, r)
 		return
 	}
-	exerciseID, err := strconv.ParseUint(chi.URLParam(r, "exerciseID"), 10, 64)
+	exerciseID, err := parseUintParam(r, "exerciseID")
 	if err != nil {
 		http.Error(w, "invalid exercise id", http.StatusBadRequest)
 		return
@@ -31,14 +31,14 @@ func (s *Server) handleExercisesByID(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		s.handleUpdateExercise(w, r, uint(exerciseID), ownerID)
+		s.handleUpdateExercise(w, r, exerciseID, ownerID)
 		return
 	case "delete":
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		s.handleDeleteExercise(w, r, uint(exerciseID), ownerID)
+		s.handleDeleteExercise(w, r, exerciseID, ownerID)
 		return
 	default:
 		http.NotFound(w, r)

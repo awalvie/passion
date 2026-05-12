@@ -6,6 +6,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// LocalDate truncates t to midnight in its own location (strips time-of-day).
+func LocalDate(t time.Time) time.Time {
+	y, m, d := t.Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, t.Location())
+}
+
 // GetScheduledSessionWithTemplate loads a ScheduledSession with its full template graph
 // (Activities ordered by order_index → Exercises ordered by order_index → Media)
 // for the given owner.
@@ -164,7 +170,7 @@ func ListCompletedRunDatesInRange(gdb *gorm.DB, ownerID uint, start, end time.Ti
 		Select("scheduled_sessions.scheduled_date, session_runs.is_trial, session_runs.scheduled_session_id").
 		Joins("JOIN scheduled_sessions ON scheduled_sessions.id = session_runs.scheduled_session_id").
 		Where("session_runs.owner_id = ? AND session_runs.status = ? AND session_runs.deleted_at IS NULL AND scheduled_sessions.scheduled_date >= ? AND scheduled_sessions.scheduled_date <= ?",
-			ownerID, "completed", start, end).
+			ownerID, RunStatusCompleted, start, end).
 		Scan(&rows).Error
 	return rows, err
 }
@@ -264,10 +270,12 @@ func ListClimbingTicksByExercise(gdb *gorm.DB, ownerID, runID, exerciseID uint) 
 // CreateClimbingTick inserts a new tick, assigning the next order_index within the exercise.
 func CreateClimbingTick(gdb *gorm.DB, t *ClimbingTick) error {
 	var maxIdx int
-	gdb.Model(&ClimbingTick{}).
+	if err := gdb.Model(&ClimbingTick{}).
 		Where("owner_id = ? AND run_id = ? AND exercise_id = ?", t.OwnerID, t.RunID, t.ExerciseID).
 		Select("COALESCE(MAX(order_index), -1)").
-		Scan(&maxIdx)
+		Scan(&maxIdx).Error; err != nil {
+		return err
+	}
 	t.OrderIndex = maxIdx + 1
 	return gdb.Create(t).Error
 }
@@ -383,7 +391,7 @@ func CreateDraftSessionRun(gdb *gorm.DB, ownerID, scheduledSessionID uint) (*Ses
 		IsTrial:            true,
 		IsManual:           true,
 		IsDraft:            true,
-		Status:             "running",
+		Status:             RunStatusRunning,
 		StartedAt:          time.Now(),
 	}
 	return run, gdb.Create(run).Error
@@ -395,7 +403,7 @@ func FinaliseDraftRun(gdb *gorm.DB, ownerID, runID uint, customName string, date
 		Where("owner_id = ? AND id = ? AND is_draft = ?", ownerID, runID, true).
 		Updates(map[string]interface{}{
 			"is_draft":     false,
-			"status":       "completed",
+			"status":       RunStatusCompleted,
 			"custom_name":  customName,
 			"started_at":   date,
 			"completed_at": date,
@@ -404,28 +412,41 @@ func FinaliseDraftRun(gdb *gorm.DB, ownerID, runID uint, customName string, date
 
 // DeleteDraftRun hard-deletes a draft run and all its exercises, completions, and ticks.
 func DeleteDraftRun(gdb *gorm.DB, ownerID, runID uint) error {
-	// Collect exercise IDs for cascade.
-	var exerciseIDs []uint
-	gdb.Model(&Exercise{}).
-		Where("owner_id = ? AND session_run_id = ?", ownerID, runID).
-		Pluck("id", &exerciseIDs)
-	if len(exerciseIDs) > 0 {
-		gdb.Where("owner_id = ? AND exercise_id IN ?", ownerID, exerciseIDs).Delete(&ClimbingTick{})
-		gdb.Where("owner_id = ? AND exercise_id IN ?", ownerID, exerciseIDs).Delete(&RunExerciseCompletion{})
-		gdb.Where("owner_id = ? AND id IN ?", ownerID, exerciseIDs).Delete(&Exercise{})
-	}
-	gdb.Where("owner_id = ? AND run_id = ?", ownerID, runID).Delete(&ClimbingTick{})
-	return gdb.Where("owner_id = ? AND id = ? AND is_draft = ?", ownerID, runID, true).
-		Delete(&SessionRun{}).Error
+	return gdb.Transaction(func(tx *gorm.DB) error {
+		var exerciseIDs []uint
+		if err := tx.Model(&Exercise{}).
+			Where("owner_id = ? AND session_run_id = ?", ownerID, runID).
+			Pluck("id", &exerciseIDs).Error; err != nil {
+			return err
+		}
+		if len(exerciseIDs) > 0 {
+			if err := tx.Where("owner_id = ? AND exercise_id IN ?", ownerID, exerciseIDs).Delete(&ClimbingTick{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("owner_id = ? AND exercise_id IN ?", ownerID, exerciseIDs).Delete(&RunExerciseCompletion{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("owner_id = ? AND id IN ?", ownerID, exerciseIDs).Delete(&Exercise{}).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Where("owner_id = ? AND run_id = ?", ownerID, runID).Delete(&ClimbingTick{}).Error; err != nil {
+			return err
+		}
+		return tx.Where("owner_id = ? AND id = ? AND is_draft = ?", ownerID, runID, true).
+			Delete(&SessionRun{}).Error
+	})
 }
 
 // AddManualExercise creates an Exercise attached directly to a SessionRun (no ActivityID).
 func AddManualExercise(gdb *gorm.DB, ownerID, runID uint, name string, libraryExerciseID *uint, kind string) (*Exercise, error) {
 	var orderIndex int
-	gdb.Model(&Exercise{}).
+	if err := gdb.Model(&Exercise{}).
 		Where("owner_id = ? AND session_run_id = ?", ownerID, runID).
 		Select("COALESCE(MAX(order_index), -1)").
-		Scan(&orderIndex)
+		Scan(&orderIndex).Error; err != nil {
+		return nil, err
+	}
 	ex := &Exercise{
 		OwnerID:           ownerID,
 		SessionRunID:      &runID,
@@ -439,8 +460,12 @@ func AddManualExercise(gdb *gorm.DB, ownerID, runID uint, name string, libraryEx
 
 // DeleteManualExercise removes an exercise from a draft run, along with any ticks.
 func DeleteManualExercise(gdb *gorm.DB, ownerID, runID, exerciseID uint) error {
-	gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).Delete(&ClimbingTick{})
-	gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).Delete(&RunExerciseCompletion{})
+	if err := gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).Delete(&ClimbingTick{}).Error; err != nil {
+		return err
+	}
+	if err := gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).Delete(&RunExerciseCompletion{}).Error; err != nil {
+		return err
+	}
 	return gdb.Where("owner_id = ? AND session_run_id = ? AND id = ?", ownerID, runID, exerciseID).
 		Delete(&Exercise{}).Error
 }
@@ -465,7 +490,7 @@ func UpsertManualExerciseCompletion(gdb *gorm.DB, ownerID, runID, exerciseID uin
 			OwnerID:        ownerID,
 			RunID:          runID,
 			ExerciseID:     exerciseID,
-			Status:         "completed",
+			Status:         RunStatusCompleted,
 			CompletedAt:    time.Now(),
 			ActualSets:     sets,
 			ActualReps:     reps,

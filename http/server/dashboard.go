@@ -78,7 +78,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	// --- Active (in-progress) runs ---
 	var activeRuns []db.SessionRun
 	err = s.store.DB.
-		Where("owner_id = ? AND status = ?", ownerID, "running").
+		Where("owner_id = ? AND status = ?", ownerID, db.RunStatusRunning).
 		Order("started_at desc").
 		Find(&activeRuns).Error
 	if err != nil {
@@ -239,7 +239,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		}
 		var completedWeekRuns []db.SessionRun
 		if err = s.store.DB.
-			Where("owner_id = ? AND status = ? AND scheduled_session_id IN ?", ownerID, "completed", ssIDs).
+			Where("owner_id = ? AND status = ? AND scheduled_session_id IN ?", ownerID, db.RunStatusCompleted, ssIDs).
 			Find(&completedWeekRuns).Error; err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

@@ -57,7 +57,7 @@ func (s *Server) handleActivitiesByID(w http.ResponseWriter, r *http.Request) {
 	// Supported:
 	// - POST /activities/{id}/exercises
 	// - POST /activities/{id}/delete
-	activityID, err := strconv.ParseUint(chi.URLParam(r, "activityID"), 10, 64)
+	activityID, err := parseUintParam(r, "activityID")
 	if err != nil {
 		http.Error(w, "invalid activity id", http.StatusBadRequest)
 		return

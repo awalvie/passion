@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
 	"passion/db"
@@ -65,12 +64,12 @@ func (s *Server) handleExerciseTicks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run ID", http.StatusBadRequest)
 		return
 	}
-	exerciseID, err := strconv.ParseUint(chi.URLParam(r, "exerciseID"), 10, 64)
+	exerciseID, err := parseUintParam(r, "exerciseID")
 	if err != nil {
 		http.Error(w, "invalid exercise ID", http.StatusBadRequest)
 		return
@@ -79,10 +78,10 @@ func (s *Server) handleExerciseTicks(w http.ResponseWriter, r *http.Request) {
 	// Validate that the exercise belongs to this run and owner.
 	var ex db.Exercise
 	if err := s.store.DB.Where("owner_id = ? AND id = ? AND session_run_id = ?",
-		ownerID, uint(exerciseID), uint(runID)).First(&ex).Error; err != nil {
+		ownerID, exerciseID, runID).First(&ex).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			// Also accept exercises from activity-based runs (via ActivityID).
-			if err2 := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, uint(exerciseID)).
+			if err2 := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, exerciseID).
 				First(&ex).Error; err2 != nil {
 				http.Error(w, "not found", http.StatusNotFound)
 				return
@@ -95,9 +94,9 @@ func (s *Server) handleExerciseTicks(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		s.serveExerciseTicks(w, ownerID, uint(runID), uint(exerciseID))
+		s.serveExerciseTicks(w, ownerID, runID, exerciseID)
 	case http.MethodPost:
-		s.createExerciseTick(w, r, ownerID, uint(runID), uint(exerciseID))
+		s.createExerciseTick(w, r, ownerID, runID, exerciseID)
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -178,17 +177,17 @@ func (s *Server) handleExerciseTickDelete(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	runID, err := strconv.ParseUint(chi.URLParam(r, "runID"), 10, 64)
+	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run ID", http.StatusBadRequest)
 		return
 	}
-	exerciseID, err := strconv.ParseUint(chi.URLParam(r, "exerciseID"), 10, 64)
+	exerciseID, err := parseUintParam(r, "exerciseID")
 	if err != nil {
 		http.Error(w, "invalid exercise ID", http.StatusBadRequest)
 		return
 	}
-	tickID, err := strconv.ParseUint(chi.URLParam(r, "tickID"), 10, 64)
+	tickID, err := parseUintParam(r, "tickID")
 	if err != nil {
 		http.Error(w, "invalid tick ID", http.StatusBadRequest)
 		return
@@ -199,7 +198,7 @@ func (s *Server) handleExerciseTickDelete(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	s.serveExerciseTicks(w, ownerID, uint(runID), uint(exerciseID))
+	s.serveExerciseTicks(w, ownerID, runID, exerciseID)
 }
 
 // ---------------------------------------------------------------------------
@@ -307,7 +306,7 @@ func (s *Server) handleProfileVenueDelete(w http.ResponseWriter, r *http.Request
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	id, err := strconv.ParseUint(chi.URLParam(r, "venueID"), 10, 64)
+	id, err := parseUintParam(r, "venueID")
 	if err != nil {
 		http.Error(w, "invalid ID", http.StatusBadRequest)
 		return
@@ -371,7 +370,7 @@ func (s *Server) handleProfileBoardDelete(w http.ResponseWriter, r *http.Request
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	id, err := strconv.ParseUint(chi.URLParam(r, "boardID"), 10, 64)
+	id, err := parseUintParam(r, "boardID")
 	if err != nil {
 		http.Error(w, "invalid ID", http.StatusBadRequest)
 		return

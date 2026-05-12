@@ -109,10 +109,9 @@ func (s *Server) syncLibraryExerciseMediaFromForm(r *http.Request, libraryExerci
 // copyMediaToExercise copies ExerciseMedia from a library exercise to a template exercise.
 func (s *Server) copyMediaToExercise(srcMedia []db.ExerciseMedia, exerciseID uint, ownerID uint) error {
 	for _, m := range srcMedia {
-		eid := exerciseID
 		cm := db.ExerciseMedia{
 			OwnerID:      ownerID,
-			ExerciseID:   &eid,
+			ExerciseID:   &exerciseID,
 			VideoURL:     m.VideoURL,
 			ThumbnailURL: m.ThumbnailURL,
 			OrderIndex:   m.OrderIndex,
@@ -211,7 +210,7 @@ func (s *Server) handleTemplatesByID(w http.ResponseWriter, r *http.Request) {
 	// - POST /templates/{id}/trial
 	// - POST /templates/{id}/delete
 	// - POST /templates/{id}/update  (name + color)
-	templateID, err := strconv.ParseUint(chi.URLParam(r, "templateID"), 10, 64)
+	templateID, err := parseUintParam(r, "templateID")
 	if err != nil {
 		http.Error(w, "invalid template id", http.StatusBadRequest)
 		return
@@ -492,7 +491,7 @@ func (s *Server) startTrialRun(templateID uint, ownerID uint) (uint, error) {
 		OwnerID:            ownerID,
 		ScheduledSessionID: scheduled.ID,
 		IsTrial:            true,
-		Status:             "running",
+		Status:             db.RunStatusRunning,
 		StartedAt:          now,
 	}
 	if err := s.store.DB.Create(run).Error; err != nil {

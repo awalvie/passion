@@ -163,7 +163,7 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 		rc := completionsByRun[run.ID]
 		completed := 0
 		for _, c := range rc {
-			if c.Status == "completed" {
+			if c.Status == db.RunStatusCompleted {
 				completed++
 			}
 		}
@@ -182,7 +182,7 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 			TotalCount:     totalExercises,
 		})
 
-		if run.Status == "completed" {
+		if run.Status == db.RunStatusCompleted {
 			completedCount++
 			if run.CompletedAt != nil {
 				totalCompletedDuration += run.CompletedAt.Sub(run.StartedAt)

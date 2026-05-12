@@ -242,6 +242,13 @@ type ScheduledSession struct {
 	SessionTemplate   SessionTemplate `gorm:"foreignKey:SessionTemplateID;constraint:OnDelete:CASCADE;"`
 }
 
+const (
+	RunStatusDraft     = "draft"
+	RunStatusRunning   = "running"
+	RunStatusCompleted = "completed"
+	RunStatusSkipped   = "skipped"
+)
+
 // SessionRun tracks a one-shot guided run created from a scheduled session.
 type SessionRun struct {
 	gorm.Model

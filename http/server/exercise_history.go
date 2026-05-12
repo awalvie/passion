@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-chi/chi/v5"
-
 	"passion/db"
 	"passion/pages"
 )
@@ -100,14 +98,14 @@ func (s *Server) handleExerciseHistoryHint(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	exID, err := strconv.ParseUint(chi.URLParam(r, "exerciseID"), 10, 64)
+	exID, err := parseUintParam(r, "exerciseID")
 	if err != nil {
 		http.Error(w, "invalid exercise id", http.StatusBadRequest)
 		return
 	}
 
 	var ex db.Exercise
-	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, uint(exID)).First(&ex).Error; err != nil {
+	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, exID).First(&ex).Error; err != nil {
 		// Return empty fragment silently (exercise may belong to another user).
 		w.WriteHeader(http.StatusOK)
 		return
@@ -115,7 +113,7 @@ func (s *Server) handleExerciseHistoryHint(w http.ResponseWriter, r *http.Reques
 
 	items := s.exerciseHistoryItems(ex, ownerID, 3)
 	s.pages.RenderFragment(w, "fragments/exercise_history_hint", pages.ExerciseHistoryHintView{
-		ExerciseID:   uint(exID),
+		ExerciseID:   exID,
 		ExerciseName: ex.Name,
 		Items:        items,
 	})
@@ -128,14 +126,14 @@ func (s *Server) handleExerciseHistoryPopup(w http.ResponseWriter, r *http.Reque
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	exID, err := strconv.ParseUint(chi.URLParam(r, "exerciseID"), 10, 64)
+	exID, err := parseUintParam(r, "exerciseID")
 	if err != nil {
 		http.Error(w, "invalid exercise id", http.StatusBadRequest)
 		return
 	}
 
 	var ex db.Exercise
-	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, uint(exID)).First(&ex).Error; err != nil {
+	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, exID).First(&ex).Error; err != nil {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
@@ -146,7 +144,7 @@ func (s *Server) handleExerciseHistoryPopup(w http.ResponseWriter, r *http.Reque
 		libID = *ex.LibraryExerciseID
 	}
 	s.pages.RenderFragment(w, "fragments/exercise_history_popup", pages.ExerciseHistoryPopupView{
-		ExerciseID:        uint(exID),
+		ExerciseID:        exID,
 		ExerciseName:      ex.Name,
 		LibraryExerciseID: libID,
 		Items:             items,
@@ -160,14 +158,14 @@ func (s *Server) handleExerciseDivergenceHint(w http.ResponseWriter, r *http.Req
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	exID, err := strconv.ParseUint(chi.URLParam(r, "exerciseID"), 10, 64)
+	exID, err := parseUintParam(r, "exerciseID")
 	if err != nil {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
 	var ex db.Exercise
-	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, uint(exID)).First(&ex).Error; err != nil {
+	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, exID).First(&ex).Error; err != nil {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -177,7 +175,7 @@ func (s *Server) handleExerciseDivergenceHint(w http.ResponseWriter, r *http.Req
 	// Need at least 2 recent completions with actuals to detect divergence.
 	var diverged []pages.ExerciseHistoryItem
 	for _, it := range items {
-		if it.Status == "completed" && it.HasActuals() {
+		if it.Status == db.RunStatusCompleted && it.HasActuals() {
 			diverged = append(diverged, it)
 		}
 	}
@@ -231,7 +229,7 @@ func (s *Server) handleExerciseLibraryHistory(w http.ResponseWriter, r *http.Req
 		s.unauthorizedRedirect(w, r)
 		return
 	}
-	libID, err := strconv.ParseUint(chi.URLParam(r, "libraryExerciseID"), 10, 64)
+	libID, err := parseUintParam(r, "libraryExerciseID")
 	if err != nil {
 		http.Error(w, "invalid exercise id", http.StatusBadRequest)
 		return

@@ -186,7 +186,7 @@ func (s *Server) handleTrainingCyclesByID(w http.ResponseWriter, r *http.Request
 		s.unauthorizedRedirect(w, r)
 		return
 	}
-	cycleID, err := strconv.ParseUint(chi.URLParam(r, "cycleID"), 10, 64)
+	cycleID, err := parseUintParam(r, "cycleID")
 	if err != nil {
 		http.Error(w, "invalid training cycle id", http.StatusBadRequest)
 		return
@@ -199,7 +199,7 @@ func (s *Server) handleTrainingCyclesByID(w http.ResponseWriter, r *http.Request
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		s.renderTrainingCycleDetail(w, r, uint(cycleID), ownerID)
+		s.renderTrainingCycleDetail(w, r, cycleID, ownerID)
 		return
 	}
 
@@ -210,19 +210,19 @@ func (s *Server) handleTrainingCyclesByID(w http.ResponseWriter, r *http.Request
 	if r.Method == http.MethodPost {
 		switch action {
 		case "move":
-			s.handleTrainingCycleMove(w, r, uint(cycleID), ownerID)
+			s.handleTrainingCycleMove(w, r, cycleID, ownerID)
 			return
 		case "add":
-			s.handleTrainingCycleAdd(w, r, uint(cycleID), ownerID)
+			s.handleTrainingCycleAdd(w, r, cycleID, ownerID)
 			return
 		case "remove":
-			s.handleTrainingCycleRemove(w, r, uint(cycleID), ownerID)
+			s.handleTrainingCycleRemove(w, r, cycleID, ownerID)
 			return
 		case "override-save":
-			s.handleCycleOverrideSave(w, r, uint(cycleID), ownerID)
+			s.handleCycleOverrideSave(w, r, cycleID, ownerID)
 			return
 		case "override-clear":
-			s.handleCycleOverrideClear(w, r, uint(cycleID), ownerID)
+			s.handleCycleOverrideClear(w, r, cycleID, ownerID)
 			return
 		}
 	}
@@ -688,12 +688,11 @@ func (s *Server) handleCycleWeekOverrideSave(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	cycleID64, err := strconv.ParseUint(chi.URLParam(r, "cycleID"), 10, 64)
+	cycleID, err := parseUintParam(r, "cycleID")
 	if err != nil {
 		http.Error(w, "invalid cycleID", http.StatusBadRequest)
 		return
 	}
-	cycleID := uint(cycleID64)
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -735,12 +734,11 @@ func (s *Server) handleCycleWeekOverrideToggle(w http.ResponseWriter, r *http.Re
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	cycleID64, err := strconv.ParseUint(chi.URLParam(r, "cycleID"), 10, 64)
+	cycleID, err := parseUintParam(r, "cycleID")
 	if err != nil {
 		http.Error(w, "invalid cycleID", http.StatusBadRequest)
 		return
 	}
-	cycleID := uint(cycleID64)
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
