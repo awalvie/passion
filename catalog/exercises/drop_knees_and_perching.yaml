@@ -1,6 +1,5 @@
 name: "Drop-Knees and Perching"
-kind: "session"
-session_duration_seconds: 900
+kind: "climbing"
 media:
   - video_url: "https://www.youtube.com/watch?v=fDqotYWElcs"
     thumbnail_url: "https://i.ytimg.com/vi/fDqotYWElcs/maxresdefault.jpg"

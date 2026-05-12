@@ -1,6 +1,5 @@
 name: "Max Lifts (power)"
 kind: "session"
-session_duration_seconds: 1800
 media:
   - video_url: "https://www.youtube.com/watch?v=JTkuzCx51eA"
     thumbnail_url: "https://i.ytimg.com/vi/JTkuzCx51eA/maxresdefault.jpg"

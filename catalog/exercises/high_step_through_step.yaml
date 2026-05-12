@@ -1,6 +1,5 @@
 name: "High-Step + Through-Step"
 kind: "session"
-session_duration_seconds: 900
 media:
   - video_url: "https://www.youtube.com/watch?v=FzN01EhPqjc"
     thumbnail_url: "https://i.ytimg.com/vi/FzN01EhPqjc/maxresdefault.jpg"

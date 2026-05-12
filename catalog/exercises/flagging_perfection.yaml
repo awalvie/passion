@@ -1,6 +1,5 @@
 name: "Flagging Perfection"
-kind: "session"
-session_duration_seconds: 900
+kind: "climbing"
 media:
   - video_url: "https://www.youtube.com/watch?v=lAbQ41NOabA"
     thumbnail_url: "https://i.ytimg.com/vi/lAbQ41NOabA/maxresdefault.jpg"

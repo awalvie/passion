@@ -1,6 +1,5 @@
 name: "Toe Placements"
 kind: "session"
-session_duration_seconds: 900
 media:
   - video_url: "https://www.youtube.com/watch?v=jFTzHomU0RU"
     thumbnail_url: "https://i.ytimg.com/vi/jFTzHomU0RU/maxresdefault.jpg"
