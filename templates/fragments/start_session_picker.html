@@ -5,7 +5,6 @@
       <div class="flex items-start justify-between gap-3">
         <div>
           <h3 class="m-0 text-base font-semibold">Start session</h3>
-          <p class="mt-1 text-sm muted">Choose a template to begin an unscheduled run.</p>
         </div>
         <form method="dialog">
           <button type="submit" class="rounded-md btn-ghost px-3 py-1 text-sm font-medium">Close</button>
@@ -20,7 +19,7 @@
           class="mt-4 flex flex-col gap-3"
         >
           <div>
-            <label for="start-session-template-id" class="mb-1 block text-xs font-medium muted">Template</label>
+            <label for="start-session-template-id" class="mb-1 block text-xs font-medium muted">From template</label>
             <select
               id="start-session-template-id"
               name="template_id"
@@ -38,12 +37,35 @@
             Start now
           </button>
         </form>
+
+        <div class="my-4 flex items-center gap-3">
+          <div class="flex-1 border-t" style="border-color:var(--border)"></div>
+          <span class="text-xs muted">or</span>
+          <div class="flex-1 border-t" style="border-color:var(--border)"></div>
+        </div>
       {{ else }}
-        <p class="mt-4 text-sm muted">
+        <p class="mt-4 mb-4 text-sm muted">
           No templates yet.
           <a href="/templates/new" class="underline">Create one first.</a>
         </p>
       {{ end }}
+
+      <form hx-post="/runs/open" hx-swap="none" method="post" class="flex flex-col gap-3">
+        <div>
+          <label class="mb-1 block text-xs font-medium muted" for="open-session-name">Open session name <span class="font-normal">(optional)</span></label>
+          <input
+            id="open-session-name"
+            name="name"
+            type="text"
+            class="w-full input"
+            placeholder="e.g., Morning mobility, Push day…"
+            autocomplete="off"
+          />
+        </div>
+        <button type="submit" class="rounded-md btn-ghost border px-4 py-2 text-sm font-medium" style="border-color:var(--border)">
+          Start open session
+        </button>
+      </form>
     </div>
   </div>
 </dialog>

@@ -61,10 +61,6 @@
         <a href="/dashboard" class="inline-flex items-center min-h-[2.75rem] px-1 text-xs muted underline underline-offset-2" aria-label="Go to current week">Today</a>
       </div>
       <div class="flex items-center gap-2 shrink-0">
-        <button type="button" class="rounded-md btn-ghost px-3 py-1.5 text-sm font-medium inline-flex items-center gap-1.5 min-h-[2.75rem]" onclick="document.getElementById('open-session-dialog').showModal()">
-          <i data-lucide="play" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
-          <span class="hidden sm:inline">Open session</span>
-        </button>
         {{ if not .Templates }}
           <a href="/templates/new" class="rounded-md btn-primary px-4 py-2 text-sm font-medium">Create template</a>
         {{ end }}
@@ -187,36 +183,6 @@
     </div>
   </section>
 </div>
-
-<!-- Open session dialog -->
-<dialog id="open-session-dialog" class="catalog-dialog">
-  <div class="catalog-dialog-panel">
-    <div class="catalog-dialog-body">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-base font-semibold">Start open session</h2>
-        <button type="button" class="rounded btn-ghost p-1 inline-flex" onclick="document.getElementById('open-session-dialog').close()">
-          <i data-lucide="x" style="width:14px;height:14px"></i>
-        </button>
-      </div>
-      <form hx-post="/runs/open" hx-swap="none" method="post" class="flex flex-col gap-4">
-        <div>
-          <label class="text-sm font-medium" for="open-session-name">Session name <span class="font-normal muted">(optional)</span></label>
-          <input
-            id="open-session-name"
-            name="name"
-            type="text"
-            class="mt-1.5 w-full input"
-            placeholder="e.g., Morning mobility, Push day…"
-            autocomplete="off"
-          />
-        </div>
-        <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium">
-          Start session
-        </button>
-      </form>
-    </div>
-  </div>
-</dialog>
 
 <!-- Workout preview dialog -->
 <dialog id="scheduled-session-preview-dialog" class="catalog-dialog">
