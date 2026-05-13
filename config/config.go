@@ -78,6 +78,42 @@ func defaultConfig() *Config {
 	}
 }
 
+// Validate checks that required fields are present and well-formed.
+// Call after Load. Returns a non-nil error on the first problem found.
+func (c *Config) Validate() error {
+	if strings.TrimSpace(c.Server.Addr) == "" {
+		return fmt.Errorf("server.addr must not be empty")
+	}
+	if strings.TrimSpace(c.Server.DBPath) == "" {
+		return fmt.Errorf("server.db_path must not be empty")
+	}
+	if strings.TrimSpace(c.Auth.JWTSecret) == "" {
+		return fmt.Errorf("auth.jwt_secret must not be empty")
+	}
+	if c.Auth.JWTTTLHours <= 0 {
+		return fmt.Errorf("auth.jwt_ttl_hours must be a positive integer, got %d", c.Auth.JWTTTLHours)
+	}
+	if c.YAMLImport.Enabled {
+		if strings.TrimSpace(c.YAMLImport.ExercisesDir) == "" {
+			return fmt.Errorf("yaml_import.exercises_dir must not be empty when import is enabled")
+		}
+		if strings.TrimSpace(c.YAMLImport.SessionTemplatesDir) == "" {
+			return fmt.Errorf("yaml_import.session_templates_dir must not be empty when import is enabled")
+		}
+		for _, dir := range []string{c.YAMLImport.ExercisesDir, c.YAMLImport.SessionTemplatesDir} {
+			if _, err := os.Stat(dir); err != nil {
+				return fmt.Errorf("yaml_import directory %q: %w", dir, err)
+			}
+		}
+		if d := strings.TrimSpace(c.YAMLImport.ActivityTemplatesDir); d != "" {
+			if _, err := os.Stat(d); err != nil {
+				return fmt.Errorf("yaml_import directory %q: %w", d, err)
+			}
+		}
+	}
+	return nil
+}
+
 // Load reads an optional YAML file, then applies environment overrides.
 // If path is empty, only defaults + env are used.
 func Load(path string) (*Config, error) {
