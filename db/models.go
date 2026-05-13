@@ -396,3 +396,16 @@ type ClimbingTick struct {
 
 	OrderIndex int `gorm:"default:0"`
 }
+
+// CalendarEvent marks a period on the user's calendar (trip, injury, rest, etc.).
+// When Blocks is true, the cycle planner warns about or skips sessions on those dates.
+type CalendarEvent struct {
+	gorm.Model
+	OwnerID   uint      `gorm:"index;not null"`
+	Title     string    `gorm:"size:128;not null"`
+	Kind      string    `gorm:"size:32;not null"` // "trip"|"injury"|"rest"|"competition"|"other"
+	StartDate time.Time `gorm:"not null"`          // local midnight, inclusive
+	EndDate   time.Time `gorm:"not null"`          // local midnight, inclusive
+	Notes     string    `gorm:"type:text"`
+	Blocks    bool      `gorm:"default:true"`
+}
