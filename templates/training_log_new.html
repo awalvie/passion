@@ -1,267 +1,281 @@
 {{ define "content" }}
-<div class="max-w-2xl">
-  <div class="flex items-center gap-3 mb-5">
-    <a href="/training-log" class="muted hover:opacity-70">
-      <i data-lucide="arrow-left" style="width:1rem;height:1rem" aria-hidden="true"></i>
-    </a>
-    <h1 class="text-xl font-bold">{{ if .JournalID }}Edit Log Entry{{ else }}New Log Entry{{ end }}</h1>
-  </div>
+<div class="{{ if or .TemplateActivities .DraftRunID }}flex flex-col-reverse gap-5 md:grid md:grid-cols-[1fr_22rem] md:gap-6 md:items-start{{ else }}max-w-2xl{{ end }}">
 
-  {{ if .FormErr }}
-  <div class="mb-4 card-muted p-3 text-sm rounded-lg" style="border-left: 3px solid #dc2626; color: #dc2626;">
-    {{ .FormErr }}
-  </div>
-  {{ end }}
+  {{/* LEFT column: heading + form */}}
+  <div>
+    <div class="flex items-center gap-3 mb-5">
+      <a href="/training-log" class="muted hover:opacity-70">
+        <i data-lucide="arrow-left" style="width:1rem;height:1rem" aria-hidden="true"></i>
+      </a>
+      <h1 class="text-xl font-bold">{{ if .JournalID }}Edit Log Entry{{ else }}New Log Entry{{ end }}</h1>
+    </div>
 
-  {{/* Template exercises — read-only summary for sessions run from a template */}}
-  {{ if .TemplateActivities }}
-  <div class="mb-5 card card-pad space-y-3">
-    <div class="text-sm font-semibold">Session exercises</div>
-    {{ range .TemplateActivities }}
-    <div class="space-y-1">
-      {{ if .Name }}<p class="text-[11px] font-bold uppercase tracking-widest muted">{{ .Name }}</p>{{ end }}
-      {{ range .Exercises }}
-      <div class="flex items-start gap-2 py-1" style="border-top: 1px solid var(--border)">
-        <span class="mt-0.5 shrink-0" style="color:{{ if eq .Status "completed" }}var(--accent){{ else if eq .Status "skipped" }}var(--muted){{ else }}var(--muted){{ end }}">
-          {{ if eq .Status "completed" }}<i data-lucide="check" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
-          {{ else if eq .Status "skipped" }}<i data-lucide="minus" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
-          {{ else }}<i data-lucide="circle" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>{{ end }}
-        </span>
-        <div class="flex-1 min-w-0">
-          <span class="text-xs{{ if eq .Status "skipped" }} line-through muted{{ end }}">{{ .Name }}</span>
-          <span class="ml-2 text-[11px] muted">
-            {{- if or (eq .Kind "session") (eq .Kind "climbing") -}}
-              {{- if gt .ElapsedSeconds 0 }}{{ formatElapsed .ElapsedSeconds }}{{ end -}}
-            {{- else -}}
-              {{- if gt .Sets 0 }}{{ .Sets }}×{{ .Reps }}{{ end -}}
-              {{- if gt .WeightKg 0.0 }} · {{ printf "%.1f" .WeightKg }}kg{{ end -}}
-              {{- if gt .ElapsedSeconds 0 }} · {{ formatElapsed .ElapsedSeconds }}{{ end -}}
-            {{- end -}}
-          </span>
-          {{ if .Notes }}<p class="mt-0.5 text-[11px] muted">{{ .Notes }}</p>{{ end }}
+    {{ if .FormErr }}
+    <div class="mb-4 card-muted p-3 text-sm rounded-lg" style="border-left: 3px solid #dc2626; color: #dc2626;">
+      {{ .FormErr }}
+    </div>
+    {{ end }}
+
+    <form action="{{ if .JournalID }}/training-log/{{ .JournalID }}/edit{{ else }}/training-log/new{{ end }}"
+          method="post" class="card card-pad flex flex-col gap-5">
+
+      {{/* Hidden draft run ID so POST can finalise it */}}
+      {{ if .DraftRunID }}
+      <input type="hidden" name="draft_run_id" value="{{ .DraftRunID }}" />
+      {{ end }}
+
+      {{/* Title + Date (hidden for run-linked entries) */}}
+      {{ if .IsRunLinked }}
+      <div class="flex items-center gap-2 text-sm muted">
+        <i data-lucide="link" style="width:0.85rem;height:0.85rem" aria-hidden="true"></i>
+        {{ .RunInfo }}
+      </div>
+      {{ else }}
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label class="text-xs font-semibold muted block mb-1" for="title"
+            style="text-transform:uppercase;letter-spacing:0.06em;">Title <span class="font-normal">(optional)</span></label>
+          <input id="title" name="title" type="text" class="w-full input text-sm"
+            placeholder="e.g. Morning boulder session" value="{{ .Title }}" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold muted block mb-1" for="date"
+            style="text-transform:uppercase;letter-spacing:0.06em;">Date</label>
+          <input id="date" name="date" type="date" class="w-full input text-sm"
+            value="{{ .DateValue }}" required />
         </div>
       </div>
       {{ end }}
+
+      {{/* Venue and board (only for new entries) */}}
+      {{ if and .DraftRunID (or .Venues .Boards) }}
+      <div class="grid gap-4 sm:grid-cols-2">
+        {{ if .Venues }}
+        <div>
+          <label class="text-xs font-semibold muted block mb-1" for="venue-sel"
+            style="text-transform:uppercase;letter-spacing:0.06em;">Venue <span class="font-normal">(optional)</span></label>
+          <select id="venue-sel" name="venue_id" class="w-full input text-sm">
+            <option value="">—</option>
+            {{ range .Venues }}<option value="{{ .ID }}" {{ if eq $.VenueID .ID }}selected{{ end }}>{{ .Name }} ({{ .Kind }})</option>{{ end }}
+          </select>
+        </div>
+        {{ end }}
+        {{ if .Boards }}
+        <div>
+          <label class="text-xs font-semibold muted block mb-1" for="board-sel"
+            style="text-transform:uppercase;letter-spacing:0.06em;">Board <span class="font-normal">(optional)</span></label>
+          <select id="board-sel" name="board_id" class="w-full input text-sm">
+            <option value="">—</option>
+            {{ range .Boards }}<option value="{{ .ID }}" {{ if eq $.BoardID .ID }}selected{{ end }}>{{ .Label }}</option>{{ end }}
+          </select>
+        </div>
+        {{ end }}
+      </div>
+      {{ end }}
+
+      {{/* Sleep quality */}}
+      <div>
+        <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Sleep quality</p>
+        <div class="flex gap-2">
+          {{ range seq 1 5 }}
+          <label class="journal-dot-label">
+            <input type="radio" name="sleep_score" value="{{ . }}" class="sr-only"
+              {{ if eq . $.SleepScore }}checked{{ end }}>
+            <span class="journal-dot">{{ . }}</span>
+          </label>
+          {{ end }}
+          <label class="journal-dot-label">
+            <input type="radio" name="sleep_score" value="0" class="sr-only"
+              {{ if eq $.SleepScore 0 }}checked{{ end }}>
+            <span class="journal-dot journal-dot--clear">–</span>
+          </label>
+        </div>
+      </div>
+
+      {{/* Pre-session energy */}}
+      <div>
+        <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Pre-session energy</p>
+        <div class="flex gap-2">
+          {{ range seq 1 5 }}
+          <label class="journal-dot-label">
+            <input type="radio" name="energy" value="{{ . }}" class="sr-only"
+              {{ if eq . $.Energy }}checked{{ end }}>
+            <span class="journal-dot">{{ . }}</span>
+          </label>
+          {{ end }}
+          <label class="journal-dot-label">
+            <input type="radio" name="energy" value="0" class="sr-only"
+              {{ if eq $.Energy 0 }}checked{{ end }}>
+            <span class="journal-dot journal-dot--clear">–</span>
+          </label>
+        </div>
+      </div>
+
+      {{/* RPE */}}
+      <div>
+        <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Session RPE (effort)</p>
+        <div class="flex flex-wrap gap-2">
+          {{ range seq 1 10 }}
+          <label class="journal-dot-label">
+            <input type="radio" name="rpe" value="{{ . }}" class="sr-only"
+              {{ if eq . $.RPE }}checked{{ end }}>
+            <span class="journal-dot">{{ . }}</span>
+          </label>
+          {{ end }}
+          <label class="journal-dot-label">
+            <input type="radio" name="rpe" value="0" class="sr-only"
+              {{ if eq $.RPE 0 }}checked{{ end }}>
+            <span class="journal-dot journal-dot--clear">–</span>
+          </label>
+        </div>
+      </div>
+
+      {{/* Focus */}}
+      <div>
+        <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Session focus</p>
+        <div class="flex flex-wrap gap-2">
+          <label class="journal-toggle-label">
+            <input type="radio" name="focus" value="strength" class="sr-only"
+              {{ if eq $.Focus "strength" }}checked{{ end }}>
+            <span class="journal-toggle">Strength</span>
+          </label>
+          <label class="journal-toggle-label">
+            <input type="radio" name="focus" value="endurance" class="sr-only"
+              {{ if eq $.Focus "endurance" }}checked{{ end }}>
+            <span class="journal-toggle">Endurance</span>
+          </label>
+          <label class="journal-toggle-label">
+            <input type="radio" name="focus" value="technique" class="sr-only"
+              {{ if eq $.Focus "technique" }}checked{{ end }}>
+            <span class="journal-toggle">Technique</span>
+          </label>
+          <label class="journal-toggle-label">
+            <input type="radio" name="focus" value="projects" class="sr-only"
+              {{ if eq $.Focus "projects" }}checked{{ end }}>
+            <span class="journal-toggle">Projects</span>
+          </label>
+          <label class="journal-toggle-label">
+            <input type="radio" name="focus" value="general" class="sr-only"
+              {{ if eq $.Focus "general" }}checked{{ end }}>
+            <span class="journal-toggle">General</span>
+          </label>
+          <label class="journal-toggle-label">
+            <input type="radio" name="focus" value="" class="sr-only"
+              {{ if eq $.Focus "" }}checked{{ end }}>
+            <span class="journal-toggle">None</span>
+          </label>
+        </div>
+      </div>
+
+      {{/* Location (only shown when no venues configured, or when editing) */}}
+      {{ if not .Venues }}
+      <div>
+        <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Location</p>
+        <div class="flex gap-2">
+          <label class="journal-toggle-label">
+            <input type="radio" name="location" value="indoor" class="sr-only"
+              {{ if eq $.Location "indoor" }}checked{{ end }}>
+            <span class="journal-toggle">Indoor</span>
+          </label>
+          <label class="journal-toggle-label">
+            <input type="radio" name="location" value="outdoor" class="sr-only"
+              {{ if eq $.Location "outdoor" }}checked{{ end }}>
+            <span class="journal-toggle">Outdoor</span>
+          </label>
+          <label class="journal-toggle-label">
+            <input type="radio" name="location" value="" class="sr-only"
+              {{ if eq $.Location "" }}checked{{ end }}>
+            <span class="journal-toggle">–</span>
+          </label>
+        </div>
+      </div>
+      {{ end }}
+
+      {{/* What went well */}}
+      <div>
+        <label class="text-xs font-semibold muted block mb-1" for="went_well"
+          style="text-transform:uppercase;letter-spacing:0.06em;">What went well</label>
+        <textarea id="went_well" name="went_well" rows="3"
+          class="w-full input text-sm" placeholder="Highlights, sends, good movement…">{{ .WentWell }}</textarea>
+      </div>
+
+      {{/* Next focus */}}
+      <div>
+        <label class="text-xs font-semibold muted block mb-1" for="next_focus"
+          style="text-transform:uppercase;letter-spacing:0.06em;">Focus for next session</label>
+        <textarea id="next_focus" name="next_focus" rows="3"
+          class="w-full input text-sm" placeholder="What to work on, technique cues…">{{ .NextFocus }}</textarea>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium">
+          {{ if .JournalID }}Save changes{{ else }}Save entry{{ end }}
+        </button>
+        {{ if and .DraftRunID (eq .JournalID 0) }}
+        <button
+          type="button"
+          class="rounded-md btn-ghost px-4 py-2 text-sm"
+          hx-post="/training-log/draft/{{ .DraftRunID }}/discard"
+          hx-swap="none"
+          onclick="window.location='/training-log'"
+        >Discard</button>
+        {{ else }}
+        <a href="/training-log" class="rounded-md btn-ghost px-4 py-2 text-sm">Cancel</a>
+        {{ end }}
+      </div>
+    </form>
+  </div>
+
+  {{/* RIGHT column: session exercises + manual exercises */}}
+  {{ if or .TemplateActivities .DraftRunID }}
+  <div class="space-y-4 md:sticky md:top-6">
+
+    {{/* Template exercises — read-only summary for sessions run from a template */}}
+    {{ if .TemplateActivities }}
+    <div class="card card-pad">
+      <div class="text-sm font-semibold mb-2">Session exercises</div>
+      {{ range .TemplateActivities }}
+        {{ if .Name }}
+        <div class="pt-1 pb-0.5" style="border-top: 1px solid var(--border)">
+          <p class="text-[10px] font-bold uppercase tracking-widest muted">{{ .Name }}</p>
+        </div>
+        {{ end }}
+        {{ range .Exercises }}
+        <div class="flex items-start gap-2 py-1.5" style="border-top: 1px solid var(--border)">
+          <span class="mt-0.5 shrink-0" style="color:{{ if eq .Status "completed" }}var(--accent){{ else }}var(--muted){{ end }}">
+            {{ if eq .Status "completed" }}<i data-lucide="check" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+            {{ else if eq .Status "skipped" }}<i data-lucide="minus" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+            {{ else }}<i data-lucide="circle" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>{{ end }}
+          </span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-baseline justify-between gap-2">
+              <span class="text-xs{{ if eq .Status "skipped" }} line-through muted{{ end }}">{{ .Name }}</span>
+              <span class="text-[11px] muted shrink-0">
+                {{- if or (eq .Kind "session") (eq .Kind "climbing") -}}
+                  {{- if gt .ElapsedSeconds 0 }}{{ formatElapsed .ElapsedSeconds }}{{ end -}}
+                {{- else -}}
+                  {{- if gt .Sets 0 }}{{ .Sets }}×{{ .Reps }}{{ end -}}
+                  {{- if gt .WeightKg 0.0 }} · {{ printf "%.1f" .WeightKg }}kg{{ end -}}
+                  {{- if gt .ElapsedSeconds 0 }} · {{ formatElapsed .ElapsedSeconds }}{{ end -}}
+                {{- end -}}
+              </span>
+            </div>
+            {{ if .Notes }}<p class="mt-0.5 text-[11px] muted">{{ .Notes }}</p>{{ end }}
+          </div>
+        </div>
+        {{ end }}
+      {{ end }}
     </div>
     {{ end }}
-  </div>
-  {{ end }}
 
-  {{/* Exercises section — add/manage exercises on the run */}}
-  {{ if .DraftRunID }}
-  <div class="mb-5">
-    {{ template "manual_exercises.html" . }}
-  </div>
-  {{ end }}
-
-  <form action="{{ if .JournalID }}/training-log/{{ .JournalID }}/edit{{ else }}/training-log/new{{ end }}"
-        method="post" class="card card-pad flex flex-col gap-5">
-
-    {{/* Hidden draft run ID so POST can finalise it */}}
+    {{/* Exercises section — add/manage exercises on the run */}}
     {{ if .DraftRunID }}
-    <input type="hidden" name="draft_run_id" value="{{ .DraftRunID }}" />
+    {{ template "manual_exercises.html" . }}
     {{ end }}
 
-    {{/* Title + Date (hidden for run-linked entries) */}}
-    {{ if .IsRunLinked }}
-    <div class="flex items-center gap-2 text-sm muted">
-      <i data-lucide="link" style="width:0.85rem;height:0.85rem" aria-hidden="true"></i>
-      {{ .RunInfo }}
-    </div>
-    {{ else }}
-    <div class="grid gap-4 sm:grid-cols-2">
-      <div>
-        <label class="text-xs font-semibold muted block mb-1" for="title"
-          style="text-transform:uppercase;letter-spacing:0.06em;">Title <span class="font-normal">(optional)</span></label>
-        <input id="title" name="title" type="text" class="w-full input text-sm"
-          placeholder="e.g. Morning boulder session" value="{{ .Title }}" />
-      </div>
-      <div>
-        <label class="text-xs font-semibold muted block mb-1" for="date"
-          style="text-transform:uppercase;letter-spacing:0.06em;">Date</label>
-        <input id="date" name="date" type="date" class="w-full input text-sm"
-          value="{{ .DateValue }}" required />
-      </div>
-    </div>
-    {{ end }}
+  </div>
+  {{ end }}
 
-    {{/* Venue and board (only for new entries) */}}
-    {{ if and .DraftRunID (or .Venues .Boards) }}
-    <div class="grid gap-4 sm:grid-cols-2">
-      {{ if .Venues }}
-      <div>
-        <label class="text-xs font-semibold muted block mb-1" for="venue-sel"
-          style="text-transform:uppercase;letter-spacing:0.06em;">Venue <span class="font-normal">(optional)</span></label>
-        <select id="venue-sel" name="venue_id" class="w-full input text-sm">
-          <option value="">—</option>
-          {{ range .Venues }}<option value="{{ .ID }}" {{ if eq $.VenueID .ID }}selected{{ end }}>{{ .Name }} ({{ .Kind }})</option>{{ end }}
-        </select>
-      </div>
-      {{ end }}
-      {{ if .Boards }}
-      <div>
-        <label class="text-xs font-semibold muted block mb-1" for="board-sel"
-          style="text-transform:uppercase;letter-spacing:0.06em;">Board <span class="font-normal">(optional)</span></label>
-        <select id="board-sel" name="board_id" class="w-full input text-sm">
-          <option value="">—</option>
-          {{ range .Boards }}<option value="{{ .ID }}" {{ if eq $.BoardID .ID }}selected{{ end }}>{{ .Label }}</option>{{ end }}
-        </select>
-      </div>
-      {{ end }}
-    </div>
-    {{ end }}
-
-    {{/* Sleep quality */}}
-    <div>
-      <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Sleep quality</p>
-      <div class="flex gap-2">
-        {{ range seq 1 5 }}
-        <label class="journal-dot-label">
-          <input type="radio" name="sleep_score" value="{{ . }}" class="sr-only"
-            {{ if eq . $.SleepScore }}checked{{ end }}>
-          <span class="journal-dot">{{ . }}</span>
-        </label>
-        {{ end }}
-        <label class="journal-dot-label">
-          <input type="radio" name="sleep_score" value="0" class="sr-only"
-            {{ if eq $.SleepScore 0 }}checked{{ end }}>
-          <span class="journal-dot journal-dot--clear">–</span>
-        </label>
-      </div>
-    </div>
-
-    {{/* Pre-session energy */}}
-    <div>
-      <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Pre-session energy</p>
-      <div class="flex gap-2">
-        {{ range seq 1 5 }}
-        <label class="journal-dot-label">
-          <input type="radio" name="energy" value="{{ . }}" class="sr-only"
-            {{ if eq . $.Energy }}checked{{ end }}>
-          <span class="journal-dot">{{ . }}</span>
-        </label>
-        {{ end }}
-        <label class="journal-dot-label">
-          <input type="radio" name="energy" value="0" class="sr-only"
-            {{ if eq $.Energy 0 }}checked{{ end }}>
-          <span class="journal-dot journal-dot--clear">–</span>
-        </label>
-      </div>
-    </div>
-
-    {{/* RPE */}}
-    <div>
-      <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Session RPE (effort)</p>
-      <div class="flex flex-wrap gap-2">
-        {{ range seq 1 10 }}
-        <label class="journal-dot-label">
-          <input type="radio" name="rpe" value="{{ . }}" class="sr-only"
-            {{ if eq . $.RPE }}checked{{ end }}>
-          <span class="journal-dot">{{ . }}</span>
-        </label>
-        {{ end }}
-        <label class="journal-dot-label">
-          <input type="radio" name="rpe" value="0" class="sr-only"
-            {{ if eq $.RPE 0 }}checked{{ end }}>
-          <span class="journal-dot journal-dot--clear">–</span>
-        </label>
-      </div>
-    </div>
-
-    {{/* Focus */}}
-    <div>
-      <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Session focus</p>
-      <div class="flex flex-wrap gap-2">
-        <label class="journal-toggle-label">
-          <input type="radio" name="focus" value="strength" class="sr-only"
-            {{ if eq $.Focus "strength" }}checked{{ end }}>
-          <span class="journal-toggle">Strength</span>
-        </label>
-        <label class="journal-toggle-label">
-          <input type="radio" name="focus" value="endurance" class="sr-only"
-            {{ if eq $.Focus "endurance" }}checked{{ end }}>
-          <span class="journal-toggle">Endurance</span>
-        </label>
-        <label class="journal-toggle-label">
-          <input type="radio" name="focus" value="technique" class="sr-only"
-            {{ if eq $.Focus "technique" }}checked{{ end }}>
-          <span class="journal-toggle">Technique</span>
-        </label>
-        <label class="journal-toggle-label">
-          <input type="radio" name="focus" value="projects" class="sr-only"
-            {{ if eq $.Focus "projects" }}checked{{ end }}>
-          <span class="journal-toggle">Projects</span>
-        </label>
-        <label class="journal-toggle-label">
-          <input type="radio" name="focus" value="general" class="sr-only"
-            {{ if eq $.Focus "general" }}checked{{ end }}>
-          <span class="journal-toggle">General</span>
-        </label>
-        <label class="journal-toggle-label">
-          <input type="radio" name="focus" value="" class="sr-only"
-            {{ if eq $.Focus "" }}checked{{ end }}>
-          <span class="journal-toggle">None</span>
-        </label>
-      </div>
-    </div>
-
-    {{/* Location (only shown when no venues configured, or when editing) */}}
-    {{ if not .Venues }}
-    <div>
-      <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Location</p>
-      <div class="flex gap-2">
-        <label class="journal-toggle-label">
-          <input type="radio" name="location" value="indoor" class="sr-only"
-            {{ if eq $.Location "indoor" }}checked{{ end }}>
-          <span class="journal-toggle">Indoor</span>
-        </label>
-        <label class="journal-toggle-label">
-          <input type="radio" name="location" value="outdoor" class="sr-only"
-            {{ if eq $.Location "outdoor" }}checked{{ end }}>
-          <span class="journal-toggle">Outdoor</span>
-        </label>
-        <label class="journal-toggle-label">
-          <input type="radio" name="location" value="" class="sr-only"
-            {{ if eq $.Location "" }}checked{{ end }}>
-          <span class="journal-toggle">–</span>
-        </label>
-      </div>
-    </div>
-    {{ end }}
-
-    {{/* What went well */}}
-    <div>
-      <label class="text-xs font-semibold muted block mb-1" for="went_well"
-        style="text-transform:uppercase;letter-spacing:0.06em;">What went well</label>
-      <textarea id="went_well" name="went_well" rows="3"
-        class="w-full input text-sm" placeholder="Highlights, sends, good movement…">{{ .WentWell }}</textarea>
-    </div>
-
-    {{/* Next focus */}}
-    <div>
-      <label class="text-xs font-semibold muted block mb-1" for="next_focus"
-        style="text-transform:uppercase;letter-spacing:0.06em;">Focus for next session</label>
-      <textarea id="next_focus" name="next_focus" rows="3"
-        class="w-full input text-sm" placeholder="What to work on, technique cues…">{{ .NextFocus }}</textarea>
-    </div>
-
-    <div class="flex items-center gap-3">
-      <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium">
-        {{ if .JournalID }}Save changes{{ else }}Save entry{{ end }}
-      </button>
-      {{ if and .DraftRunID (eq .JournalID 0) }}
-      <button
-        type="button"
-        class="rounded-md btn-ghost px-4 py-2 text-sm"
-        hx-post="/training-log/draft/{{ .DraftRunID }}/discard"
-        hx-swap="none"
-        onclick="window.location='/training-log'"
-      >Discard</button>
-      {{ else }}
-      <a href="/training-log" class="rounded-md btn-ghost px-4 py-2 text-sm">Cancel</a>
-      {{ end }}
-    </div>
-  </form>
 </div>
 <script>if(window.__passionRenderIcons)window.__passionRenderIcons();</script>
 {{ end }}

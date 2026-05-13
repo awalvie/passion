@@ -15,7 +15,7 @@
         hx-target="#manual-exercises-{{ .RunID }}"
         hx-swap="outerHTML"
         hx-confirm="Remove this exercise?"
-        onclick="event.preventDefault(); event.stopPropagation();"
+        onclick="event.stopPropagation();"
         title="Remove exercise"
       >
         <i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
@@ -23,7 +23,38 @@
     </summary>
     <div class="px-4 pb-4 space-y-3">
       {{ if eq .Kind "climbing" }}
-        {{/* Ticks are loaded via HTMX using the same handler as the live run player */}}
+        <form
+          hx-post="/training-log/draft/{{ .RunID }}/exercises/{{ .ExerciseID }}/climbing-meta"
+          hx-swap="none"
+          hx-trigger="change delay:400ms"
+          class="grid gap-2 sm:grid-cols-2"
+        >
+          <div>
+            <label class="text-xs font-medium" for="ctype-{{ .ExerciseID }}">Session type</label>
+            <select id="ctype-{{ .ExerciseID }}" name="climb_type" class="mt-1 w-full input text-sm"
+                    data-board-toggle="{{ .ExerciseID }}">
+              <option value="">—</option>
+              <option value="indoor_bouldering"  {{ if eq .ClimbingMeta.Type "indoor_bouldering"  }}selected{{ end }}>Indoor Bouldering</option>
+              <option value="board"              {{ if eq .ClimbingMeta.Type "board"              }}selected{{ end }}>Board</option>
+              <option value="gym_routes"         {{ if eq .ClimbingMeta.Type "gym_routes"         }}selected{{ end }}>Gym Routes</option>
+              <option value="outdoor_bouldering" {{ if eq .ClimbingMeta.Type "outdoor_bouldering" }}selected{{ end }}>Outdoor Bouldering</option>
+              <option value="sport"              {{ if eq .ClimbingMeta.Type "sport"              }}selected{{ end }}>Sport Climbing</option>
+              <option value="trad"               {{ if eq .ClimbingMeta.Type "trad"               }}selected{{ end }}>Trad Climbing</option>
+              <option value="top_rope"           {{ if eq .ClimbingMeta.Type "top_rope"           }}selected{{ end }}>Top Rope</option>
+            </select>
+          </div>
+          <div id="board-kind-wrap-{{ .ExerciseID }}"{{ if ne .ClimbingMeta.Type "board" }} class="hidden"{{ end }}>
+            <label class="text-xs font-medium" for="bkind-{{ .ExerciseID }}">Board kind</label>
+            <select id="bkind-{{ .ExerciseID }}" name="board_kind" class="mt-1 w-full input text-sm">
+              <option value="">—</option>
+              <option value="kilter"  {{ if eq .ClimbingMeta.BoardKind "kilter"  }}selected{{ end }}>Kilter</option>
+              <option value="moon"    {{ if eq .ClimbingMeta.BoardKind "moon"    }}selected{{ end }}>Moon</option>
+              <option value="tension" {{ if eq .ClimbingMeta.BoardKind "tension" }}selected{{ end }}>Tension</option>
+              <option value="spray"   {{ if eq .ClimbingMeta.BoardKind "spray"   }}selected{{ end }}>Spray Wall</option>
+              <option value="custom"  {{ if eq .ClimbingMeta.BoardKind "custom"  }}selected{{ end }}>Custom / Other</option>
+            </select>
+          </div>
+        </form>
         <section
           id="tick-list-{{ .ExerciseID }}"
           hx-get="/runs/{{ .RunID }}/exercises/{{ .ExerciseID }}/ticks"
@@ -32,30 +63,113 @@
         >
           <div class="text-sm muted">Loading…</div>
         </section>
-      {{ else }}
+      {{ else if eq .Kind "session" }}
         <form
           hx-post="/training-log/draft/{{ .RunID }}/exercises/{{ .ExerciseID }}/save"
           hx-swap="none"
-          hx-trigger="change delay:600ms from:find input, change delay:600ms from:find textarea"
-          class="grid gap-2 sm:grid-cols-4"
+          hx-trigger="change delay:600ms"
+          class="grid gap-2"
         >
           <div>
-            <label class="text-xs font-medium" for="ex-sets-{{ .ExerciseID }}">Sets</label>
-            <input id="ex-sets-{{ .ExerciseID }}" name="sets" type="number" min="0" value="{{ .ActualSets }}" class="mt-1 w-full input text-sm" />
+            <label class="text-xs font-medium" for="ex-dur-{{ .ExerciseID }}">Duration (min)</label>
+            <input id="ex-dur-{{ .ExerciseID }}" name="elapsed_minutes" type="number" min="0"
+              value="{{ if .ElapsedMinutes }}{{ .ElapsedMinutes }}{{ end }}"
+              class="mt-1 w-full input text-sm" />
           </div>
           <div>
-            <label class="text-xs font-medium" for="ex-reps-{{ .ExerciseID }}">Reps</label>
-            <input id="ex-reps-{{ .ExerciseID }}" name="reps" type="number" min="0" value="{{ .ActualReps }}" class="mt-1 w-full input text-sm" />
-          </div>
-          <div>
-            <label class="text-xs font-medium" for="ex-weight-{{ .ExerciseID }}">kg</label>
-            <input id="ex-weight-{{ .ExerciseID }}" name="weight_kg" type="number" min="0" step="0.5" value="{{ if .ActualWeightKg }}{{ .ActualWeightKg }}{{ end }}" class="mt-1 w-full input text-sm" />
-          </div>
-          <div class="sm:col-span-4">
             <label class="text-xs font-medium" for="ex-notes-{{ .ExerciseID }}">Notes</label>
-            <input id="ex-notes-{{ .ExerciseID }}" name="notes" type="text" value="{{ .Notes }}" class="mt-1 w-full input text-sm" placeholder="Optional notes" />
+            <input id="ex-notes-{{ .ExerciseID }}" name="notes" type="text" value="{{ .Notes }}"
+              class="mt-1 w-full input text-sm" placeholder="Optional notes" />
           </div>
         </form>
+      {{ else }}
+        {{ if .PerSetMode }}
+          {{/* Per-set mode */}}
+          <div class="space-y-2">
+            {{ range .SetLogs }}
+            <div class="flex items-center gap-2">
+              <span class="text-xs muted w-10 shrink-0">Set {{ .SetIndex }}</span>
+              <form
+                hx-post="/training-log/draft/{{ $.RunID }}/exercises/{{ $.ExerciseID }}/sets/{{ .SetIndex }}/save"
+                hx-swap="none"
+                hx-trigger="change delay:600ms"
+                class="flex-1 grid grid-cols-2 gap-2"
+              >
+                <div>
+                  <label class="text-xs font-medium sr-only" for="set-reps-{{ $.ExerciseID }}-{{ .SetIndex }}">Reps</label>
+                  <input id="set-reps-{{ $.ExerciseID }}-{{ .SetIndex }}" name="reps" type="number" min="0"
+                    value="{{ .Reps }}" placeholder="Reps" class="w-full input text-sm" />
+                </div>
+                <div>
+                  <label class="text-xs font-medium sr-only" for="set-kg-{{ $.ExerciseID }}-{{ .SetIndex }}">kg</label>
+                  <input id="set-kg-{{ $.ExerciseID }}-{{ .SetIndex }}" name="weight_kg" type="number" min="0" step="0.5"
+                    value="{{ if .WeightKg }}{{ .WeightKg }}{{ end }}" placeholder="kg" class="w-full input text-sm" />
+                </div>
+              </form>
+              <button
+                type="button"
+                class="shrink-0 rounded-md btn-ghost p-1.5 inline-flex items-center justify-center"
+                hx-post="/training-log/draft/{{ $.RunID }}/exercises/{{ $.ExerciseID }}/sets/{{ .SetIndex }}/delete"
+                hx-target="#manual-exercises-{{ $.RunID }}"
+                hx-swap="outerHTML"
+                title="Remove set"
+              >
+                <i data-lucide="x" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+              </button>
+            </div>
+            {{ end }}
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="rounded-md btn-ghost px-3 py-1.5 text-xs font-medium"
+              hx-post="/training-log/draft/{{ .RunID }}/exercises/{{ .ExerciseID }}/sets"
+              hx-target="#manual-exercises-{{ .RunID }}"
+              hx-swap="outerHTML"
+            >+ Add set</button>
+            <form
+              hx-post="/training-log/draft/{{ .RunID }}/exercises/{{ .ExerciseID }}/sets/mode"
+              hx-target="#manual-exercises-{{ .RunID }}"
+              hx-swap="outerHTML"
+            >
+              <input type="hidden" name="mode" value="off" />
+              <button type="submit" class="rounded-md btn-ghost px-3 py-1.5 text-xs muted">← Summary</button>
+            </form>
+          </div>
+        {{ else }}
+          {{/* Aggregate mode */}}
+          <form
+            hx-post="/training-log/draft/{{ .RunID }}/exercises/{{ .ExerciseID }}/save"
+            hx-swap="none"
+            hx-trigger="change delay:600ms"
+            class="grid gap-2 sm:grid-cols-4"
+          >
+            <div>
+              <label class="text-xs font-medium" for="ex-sets-{{ .ExerciseID }}">Sets</label>
+              <input id="ex-sets-{{ .ExerciseID }}" name="sets" type="number" min="0" value="{{ .ActualSets }}" class="mt-1 w-full input text-sm" />
+            </div>
+            <div>
+              <label class="text-xs font-medium" for="ex-reps-{{ .ExerciseID }}">Reps</label>
+              <input id="ex-reps-{{ .ExerciseID }}" name="reps" type="number" min="0" value="{{ .ActualReps }}" class="mt-1 w-full input text-sm" />
+            </div>
+            <div>
+              <label class="text-xs font-medium" for="ex-weight-{{ .ExerciseID }}">kg</label>
+              <input id="ex-weight-{{ .ExerciseID }}" name="weight_kg" type="number" min="0" step="0.5" value="{{ if .ActualWeightKg }}{{ .ActualWeightKg }}{{ end }}" class="mt-1 w-full input text-sm" />
+            </div>
+            <div class="sm:col-span-4">
+              <label class="text-xs font-medium" for="ex-notes-{{ .ExerciseID }}">Notes</label>
+              <input id="ex-notes-{{ .ExerciseID }}" name="notes" type="text" value="{{ .Notes }}" class="mt-1 w-full input text-sm" placeholder="Optional notes" />
+            </div>
+          </form>
+          <form
+            hx-post="/training-log/draft/{{ .RunID }}/exercises/{{ .ExerciseID }}/sets/mode"
+            hx-target="#manual-exercises-{{ .RunID }}"
+            hx-swap="outerHTML"
+          >
+            <input type="hidden" name="mode" value="on" />
+            <button type="submit" class="rounded-md btn-ghost px-3 py-1.5 text-xs muted">Log per set ▸</button>
+          </form>
+        {{ end }}
       {{ end }}
     </div>
   </details>
@@ -73,13 +187,54 @@
       class="flex gap-2 items-end"
     >
       <div class="flex-1 min-w-0">
-        <label class="text-xs font-medium" for="at-select-{{ .DraftRunID }}">Activity template</label>
-        <select id="at-select-{{ .DraftRunID }}" name="activity_template_id" class="mt-1 w-full input text-sm">
-          <option value="">Choose template…</option>
-          {{ range .ActivityTemplates }}
-          <option value="{{ .ID }}">{{ .Name }}{{ if .Label }} · {{ .Label }}{{ end }}</option>
-          {{ end }}
-        </select>
+        <label class="text-xs font-medium" for="at-search-{{ .DraftRunID }}">Activity template</label>
+        <div class="relative mt-1" data-at-combo="{{ .DraftRunID }}">
+          <input
+            id="at-search-{{ .DraftRunID }}"
+            type="text"
+            class="w-full input text-sm"
+            placeholder="Choose template…"
+            autocomplete="off"
+            role="combobox"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            aria-controls="at-list-{{ .DraftRunID }}"
+            data-at-search="{{ .DraftRunID }}"
+          />
+          <select
+            name="activity_template_id"
+            required
+            class="sr-only"
+            tabindex="-1"
+            aria-hidden="true"
+            data-at-select="{{ .DraftRunID }}"
+          >
+            <option value=""></option>
+            {{ range .ActivityTemplates }}
+            <option value="{{ .ID }}">{{ .Name }}{{ if .Label }} · {{ .Label }}{{ end }}</option>
+            {{ end }}
+          </select>
+          <ul
+            id="at-list-{{ .DraftRunID }}"
+            role="listbox"
+            class="hidden absolute z-50 left-0 right-0 mt-1 rounded-md border overflow-y-auto text-sm"
+            style="background:var(--panel);border-color:var(--border);max-height:180px"
+            data-at-list="{{ .DraftRunID }}"
+          >
+            {{ range .ActivityTemplates }}
+            <li
+              role="option"
+              aria-selected="false"
+              data-value="{{ .ID }}"
+              data-label="{{ .Name }}{{ if .Label }} · {{ .Label }}{{ end }}"
+              class="px-3 py-2 cursor-pointer select-none"
+              style="transition:background .1s"
+              onmouseover="this.style.background='var(--hover)'"
+              onmouseout="this.style.background=''"
+            >{{ .Name }}{{ if .Label }} · {{ .Label }}{{ end }}</li>
+            {{ end }}
+          </ul>
+        </div>
       </div>
       <button type="submit" class="shrink-0 rounded-md btn-primary px-3 py-2 text-sm font-medium">Add all</button>
     </form>
@@ -103,13 +258,57 @@
       class="flex gap-2 items-end"
     >
       <div class="flex-1 min-w-0">
-        <label class="text-xs font-medium" for="lib-ex-select-{{ .DraftRunID }}">From library</label>
-        <select id="lib-ex-select-{{ .DraftRunID }}" name="library_exercise_id" class="mt-1 w-full input text-sm">
-          <option value="">Choose…</option>
-          {{ range .LibraryExercises }}
-          <option value="{{ .ID }}">{{ .Name }}{{ if eq .Kind "climbing" }} 🧗{{ end }}</option>
-          {{ end }}
-        </select>
+        <label class="text-xs font-medium" for="lib-ex-search-{{ .DraftRunID }}">From library</label>
+        <div class="relative mt-1" data-lib-combo="{{ .DraftRunID }}">
+          <input
+            id="lib-ex-search-{{ .DraftRunID }}"
+            type="text"
+            class="w-full input text-sm"
+            placeholder="Choose exercise…"
+            autocomplete="off"
+            role="combobox"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            aria-controls="lib-ex-list-{{ .DraftRunID }}"
+            data-lib-search="{{ .DraftRunID }}"
+          />
+          <select
+            name="library_exercise_id"
+            required
+            class="sr-only"
+            tabindex="-1"
+            aria-hidden="true"
+            data-lib-select="{{ .DraftRunID }}"
+          >
+            <option value=""></option>
+            {{ range .LibraryExercises }}
+            <option value="{{ .ID }}">{{ .Name }}</option>
+            {{ end }}
+          </select>
+          <ul
+            id="lib-ex-list-{{ .DraftRunID }}"
+            role="listbox"
+            class="hidden absolute z-50 left-0 right-0 mt-1 rounded-md border overflow-y-auto text-sm"
+            style="background:var(--panel);border-color:var(--border);max-height:180px"
+            data-lib-list="{{ .DraftRunID }}"
+          >
+            {{ range .LibraryExercises }}
+            <li
+              role="option"
+              aria-selected="false"
+              data-value="{{ .ID }}"
+              data-label="{{ .Name }}"
+              class="px-3 py-2 cursor-pointer select-none flex items-center justify-between gap-2"
+              style="transition:background .1s"
+              onmouseover="this.style.background='var(--hover)'"
+              onmouseout="this.style.background=''"
+            >
+              <span>{{ .Name }}</span>
+              <span class="text-[10px] muted shrink-0">{{ .Kind }}</span>
+            </li>
+            {{ end }}
+          </ul>
+        </div>
       </div>
       <button type="submit" class="shrink-0 rounded-md btn-primary px-3 py-2 text-sm font-medium">Add</button>
     </form>
@@ -130,6 +329,7 @@
         <label class="text-xs font-medium" for="ex-kind-{{ .DraftRunID }}">Type</label>
         <select id="ex-kind-{{ .DraftRunID }}" name="kind" class="mt-1 input text-sm">
           <option value="reps_and_sets">Reps/Sets</option>
+          <option value="timed_reps">Timed reps</option>
           <option value="climbing">Climbing</option>
           <option value="session">Session</option>
         </select>
@@ -137,5 +337,94 @@
       <button type="submit" class="shrink-0 rounded-md btn-primary px-3 py-2 text-sm font-medium">Add</button>
     </form>
   </div>
+  <script>
+(function () {
+  var draftID = {{ .DraftRunID }};
+
+  function makeCombo(containerSel, searchSel, selectSel, listSel) {
+    var container = document.querySelector('[' + containerSel + '="' + draftID + '"]');
+    if (!container) return;
+    var search = container.querySelector('[' + searchSel + '="' + draftID + '"]');
+    var sel    = container.querySelector('[' + selectSel + '="' + draftID + '"]');
+    var list   = container.querySelector('[' + listSel   + '="' + draftID + '"]');
+    if (!search || !sel || !list) return;
+
+    var items   = function () { return Array.from(list.querySelectorAll('li[role="option"]')); };
+    var open    = function () { list.classList.remove('hidden'); search.setAttribute('aria-expanded', 'true'); };
+    var close   = function () { list.classList.add('hidden'); search.setAttribute('aria-expanded', 'false'); };
+    var visible = function () { return items().filter(function (li) { return li.style.display !== 'none'; }); };
+
+    var choose = function (li) {
+      sel.value = li.dataset.value;
+      search.value = li.dataset.label;
+      items().forEach(function (i) { i.setAttribute('aria-selected', 'false'); });
+      li.setAttribute('aria-selected', 'true');
+      close();
+    };
+
+    search.addEventListener('input', function () {
+      var q = this.value.trim().toLowerCase();
+      var hasVisible = false;
+      items().forEach(function (li) {
+        var match = !q || li.dataset.label.toLowerCase().includes(q);
+        li.style.display = match ? '' : 'none';
+        if (match) hasVisible = true;
+      });
+      var chosen = items().find(function (li) { return li.getAttribute('aria-selected') === 'true'; });
+      if (chosen && chosen.style.display === 'none') { sel.value = ''; chosen.setAttribute('aria-selected', 'false'); }
+      if (q && hasVisible) open();
+      else if (!q) { items().forEach(function (li) { li.style.display = ''; }); open(); }
+      else close();
+    });
+
+    search.addEventListener('focus', function () {
+      items().forEach(function (li) { li.style.display = ''; });
+      open();
+    });
+
+    search.addEventListener('keydown', function (e) {
+      var vis = visible();
+      var active = vis.find(function (li) { return li.getAttribute('aria-selected') === 'true'; });
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        var next = active ? (vis[vis.indexOf(active) + 1] || vis[0]) : vis[0];
+        if (next) { items().forEach(function (i) { i.setAttribute('aria-selected', 'false'); }); next.setAttribute('aria-selected', 'true'); next.scrollIntoView({block: 'nearest'}); sel.value = next.dataset.value; }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        var prev = active ? (vis[vis.indexOf(active) - 1] || vis[vis.length - 1]) : vis[vis.length - 1];
+        if (prev) { items().forEach(function (i) { i.setAttribute('aria-selected', 'false'); }); prev.setAttribute('aria-selected', 'true'); prev.scrollIntoView({block: 'nearest'}); sel.value = prev.dataset.value; }
+      } else if (e.key === 'Enter') {
+        var activeNow = vis.find(function (li) { return li.getAttribute('aria-selected') === 'true'; });
+        if (activeNow && !list.classList.contains('hidden')) { e.preventDefault(); choose(activeNow); }
+      } else if (e.key === 'Escape') {
+        close();
+      }
+    });
+
+    list.addEventListener('mousedown', function (e) {
+      var li = e.target.closest('li[role="option"]');
+      if (li) { e.preventDefault(); choose(li); }
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!container.contains(e.target)) close();
+    }, true);
+  }
+
+  makeCombo('data-at-combo',  'data-at-search',  'data-at-select',  'data-at-list');
+  makeCombo('data-lib-combo', 'data-lib-search', 'data-lib-select', 'data-lib-list');
+
+  // Board-kind visibility: show the board kind select only when session type = "board".
+  document.querySelectorAll('[data-board-toggle]').forEach(function (sel) {
+    var id = sel.dataset.boardToggle;
+    var wrap = document.getElementById('board-kind-wrap-' + id);
+    if (!wrap) return;
+    sel.addEventListener('change', function () {
+      wrap.classList.toggle('hidden', sel.value !== 'board');
+    });
+  });
+})();
+if(window.__passionRenderIcons)window.__passionRenderIcons();
+</script>
 </div>
 {{ end }}
