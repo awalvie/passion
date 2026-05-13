@@ -13,14 +13,14 @@
       <button
         type="button"
         onclick="document.getElementById('edit-venue-dialog-{{ .ID }}').showModal()"
-        class="rounded p-1.5 btn-ghost"
+        class="rounded p-2 min-w-[2rem] min-h-[2rem] btn-ghost"
         title="Edit venue"
       >
         <i data-lucide="pencil" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
       </button>
       <button
         type="button"
-        class="rounded p-1.5 btn-ghost"
+        class="rounded p-2 min-w-[2rem] min-h-[2rem] btn-ghost"
         hx-post="/profile/venues/{{ .ID }}/delete"
         hx-target="#venues-list"
         hx-swap="outerHTML"
@@ -48,7 +48,7 @@
             <label class="block text-xs font-medium muted mb-1">Name</label>
             <input name="name" type="text" required class="w-full input text-sm" value="{{ .Name }}" />
           </div>
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-medium muted mb-1">Type</label>
               <select name="kind" class="w-full input text-sm">
@@ -73,17 +73,23 @@
   {{ end }}
 
   <form hx-post="/profile/venues" hx-target="#venues-list" hx-swap="outerHTML"
-        class="mt-1 grid grid-cols-[2fr_120px_110px] gap-x-2 gap-y-1" hx-on:htmx:after-request="this.reset()">
-    <label class="text-xs font-medium" for="venue-name">Name</label>
-    <label class="text-xs font-medium" for="venue-location">Location</label>
-    <label class="text-xs font-medium" for="venue-kind">Type</label>
-    <input id="venue-name" name="name" required class="w-full input text-sm" placeholder="e.g. The Arch" autocomplete="off" />
-    <input id="venue-location" name="location" class="w-full input text-sm" placeholder="e.g. London" autocomplete="off" />
-    <select id="venue-kind" name="kind" class="w-full input text-sm">
-      <option value="commercial">Indoor</option>
-      <option value="outdoor">Outdoor</option>
-    </select>
-    <button type="submit" class="w-full rounded-md btn-primary px-3 py-2 text-sm font-medium col-start-3">Add</button>
+        class="mt-1 grid grid-cols-1 sm:grid-cols-[2fr_120px_110px] gap-x-2 gap-y-2" hx-on:htmx:after-request="this.reset()">
+    <div>
+      <label class="text-xs font-medium" for="venue-name">Name</label>
+      <input id="venue-name" name="name" required class="mt-1 w-full input text-sm" placeholder="e.g. The Arch" autocomplete="off" />
+    </div>
+    <div>
+      <label class="text-xs font-medium" for="venue-location">Location</label>
+      <input id="venue-location" name="location" class="mt-1 w-full input text-sm" placeholder="e.g. London" autocomplete="off" />
+    </div>
+    <div>
+      <label class="text-xs font-medium" for="venue-kind">Type</label>
+      <select id="venue-kind" name="kind" class="mt-1 w-full input text-sm">
+        <option value="commercial">Indoor</option>
+        <option value="outdoor">Outdoor</option>
+      </select>
+    </div>
+    <button type="submit" class="w-full rounded-md btn-primary px-3 py-2 text-sm font-medium sm:col-start-3">Add</button>
   </form>
 </div>
 {{ end }}

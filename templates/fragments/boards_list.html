@@ -7,7 +7,7 @@
     <div class="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
       <button
         type="button"
-        class="rounded p-1.5 btn-ghost"
+        class="rounded p-2 min-w-[2rem] min-h-[2rem] btn-ghost"
         hx-post="/profile/boards/{{ .ID }}/delete"
         hx-target="#boards-list"
         hx-swap="outerHTML"
@@ -26,10 +26,10 @@
   {{ end }}
 
   <form hx-post="/profile/boards" hx-target="#boards-list" hx-swap="outerHTML"
-        class="mt-1 flex gap-2 items-end" hx-on:htmx:after-request="this.reset()">
-    <div>
+        class="mt-1 flex flex-col sm:flex-row sm:items-end gap-2" hx-on:htmx:after-request="this.reset()">
+    <div class="sm:w-36">
       <label class="text-xs font-medium" for="board-type">Type</label>
-      <select id="board-type" name="board_type" required class="mt-1 input text-sm">
+      <select id="board-type" name="board_type" required class="mt-1 w-full input text-sm">
         <option value="">Choose…</option>
         <option value="kilter">Kilter</option>
         <option value="moon">Moon</option>

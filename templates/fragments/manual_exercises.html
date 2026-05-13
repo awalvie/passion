@@ -10,7 +10,7 @@
       </div>
       <button
         type="button"
-        class="shrink-0 rounded-md btn-ghost p-1.5 inline-flex items-center justify-center"
+        class="shrink-0 rounded-md btn-ghost p-2 min-w-[2rem] min-h-[2rem] inline-flex items-center justify-center"
         hx-post="/training-log/draft/{{ .RunID }}/exercises/{{ .ExerciseID }}/delete"
         hx-target="#manual-exercises-{{ .RunID }}"
         hx-swap="outerHTML"
@@ -118,7 +118,7 @@
               </form>
               <button
                 type="button"
-                class="shrink-0 rounded-md btn-ghost p-1.5 inline-flex items-center justify-center"
+                class="shrink-0 rounded-md btn-ghost p-2 min-w-[2rem] min-h-[2rem] inline-flex items-center justify-center"
                 hx-post="/training-log/draft/{{ $.RunID }}/exercises/{{ $.ExerciseID }}/sets/{{ .SetIndex }}/delete"
                 hx-target="#manual-exercises-{{ $.RunID }}"
                 hx-swap="outerHTML"
