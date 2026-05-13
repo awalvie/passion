@@ -328,6 +328,22 @@ func DeleteClimbingTick(gdb *gorm.DB, ownerID, id uint) error {
 	return gdb.Where("owner_id = ? AND id = ?", ownerID, id).Delete(&ClimbingTick{}).Error
 }
 
+// UpdateClimbingTick replaces all editable fields on an existing tick.
+func UpdateClimbingTick(gdb *gorm.DB, ownerID, id uint, kind, grade, focus, thoughts, style string, attempts, stars int, sent bool) error {
+	return gdb.Model(&ClimbingTick{}).
+		Where("owner_id = ? AND id = ?", ownerID, id).
+		Updates(map[string]interface{}{
+			"kind":     kind,
+			"grade":    grade,
+			"focus":    focus,
+			"thoughts": thoughts,
+			"style":    style,
+			"attempts": attempts,
+			"stars":    stars,
+			"sent":     sent,
+		}).Error
+}
+
 // ClimbingTickSummary is a compact summary of ticks for a run, used in the training log.
 type ClimbingTickSummary struct {
 	TotalBoulders int
@@ -501,12 +517,15 @@ func AddManualExercise(gdb *gorm.DB, ownerID, runID uint, name string, libraryEx
 	return ex, gdb.Create(ex).Error
 }
 
-// DeleteManualExercise removes an exercise from a draft run, along with any ticks.
+// DeleteManualExercise removes an exercise from a run, along with ticks, completions, and set logs.
 func DeleteManualExercise(gdb *gorm.DB, ownerID, runID, exerciseID uint) error {
 	if err := gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).Delete(&ClimbingTick{}).Error; err != nil {
 		return err
 	}
 	if err := gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).Delete(&RunExerciseCompletion{}).Error; err != nil {
+		return err
+	}
+	if err := gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).Delete(&ManualExerciseSetLog{}).Error; err != nil {
 		return err
 	}
 	return gdb.Where("owner_id = ? AND session_run_id = ? AND id = ?", ownerID, runID, exerciseID).
@@ -584,7 +603,7 @@ func ListTickSummariesByRun(gdb *gorm.DB, ownerID uint, runIDs []uint) (map[uint
 }
 
 // UpsertManualExerciseCompletion creates or updates the completion record for a manual exercise.
-func UpsertManualExerciseCompletion(gdb *gorm.DB, ownerID, runID, exerciseID uint, sets, reps int, weightKg float64, notes string) error {
+func UpsertManualExerciseCompletion(gdb *gorm.DB, ownerID, runID, exerciseID uint, sets, reps int, weightKg float64, notes string, elapsedSeconds int) error {
 	var existing RunExerciseCompletion
 	err := gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).
 		First(&existing).Error
@@ -599,6 +618,7 @@ func UpsertManualExerciseCompletion(gdb *gorm.DB, ownerID, runID, exerciseID uin
 			ActualReps:     reps,
 			ActualWeightKg: weightKg,
 			RunNotes:       notes,
+			ElapsedSeconds: elapsedSeconds,
 		}).Error
 	}
 	if err != nil {
@@ -608,5 +628,82 @@ func UpsertManualExerciseCompletion(gdb *gorm.DB, ownerID, runID, exerciseID uin
 	existing.ActualReps = reps
 	existing.ActualWeightKg = weightKg
 	existing.RunNotes = notes
+	existing.ElapsedSeconds = elapsedSeconds
 	return gdb.Save(&existing).Error
+}
+
+// UpsertClimbingExerciseMeta creates or updates session-level climbing metadata for an exercise.
+func UpsertClimbingExerciseMeta(gdb *gorm.DB, ownerID, runID, exerciseID uint, climbType, boardKind string) error {
+	var existing ClimbingExerciseMeta
+	err := gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).
+		First(&existing).Error
+	if err == gorm.ErrRecordNotFound {
+		return gdb.Create(&ClimbingExerciseMeta{
+			OwnerID:    ownerID,
+			RunID:      runID,
+			ExerciseID: exerciseID,
+			Type:       climbType,
+			BoardKind:  boardKind,
+		}).Error
+	}
+	if err != nil {
+		return err
+	}
+	existing.Type = climbType
+	existing.BoardKind = boardKind
+	return gdb.Save(&existing).Error
+}
+
+// GetClimbingExerciseMeta returns the climbing meta for an exercise in a run, or nil if not set.
+func GetClimbingExerciseMeta(gdb *gorm.DB, ownerID, runID, exerciseID uint) (*ClimbingExerciseMeta, error) {
+	var m ClimbingExerciseMeta
+	err := gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).
+		First(&m).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	return &m, err
+}
+
+// UpsertManualExerciseSetLog creates or updates a per-set log entry.
+func UpsertManualExerciseSetLog(gdb *gorm.DB, ownerID, runID, exerciseID uint, setIndex, reps int, weightKg float64) error {
+	var existing ManualExerciseSetLog
+	err := gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ? AND set_index = ?", ownerID, runID, exerciseID, setIndex).
+		First(&existing).Error
+	if err == gorm.ErrRecordNotFound {
+		return gdb.Create(&ManualExerciseSetLog{
+			OwnerID:    ownerID,
+			RunID:      runID,
+			ExerciseID: exerciseID,
+			SetIndex:   setIndex,
+			Reps:       reps,
+			WeightKg:   weightKg,
+		}).Error
+	}
+	if err != nil {
+		return err
+	}
+	existing.Reps = reps
+	existing.WeightKg = weightKg
+	return gdb.Save(&existing).Error
+}
+
+// ListManualExerciseSetLogs returns all set logs for an exercise ordered by set_index.
+func ListManualExerciseSetLogs(gdb *gorm.DB, ownerID, runID, exerciseID uint) ([]ManualExerciseSetLog, error) {
+	var logs []ManualExerciseSetLog
+	err := gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).
+		Order("set_index asc").Find(&logs).Error
+	return logs, err
+}
+
+// DeleteManualExerciseSetLog removes a single set log entry.
+func DeleteManualExerciseSetLog(gdb *gorm.DB, ownerID, runID, exerciseID uint, setIndex int) error {
+	return gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ? AND set_index = ?", ownerID, runID, exerciseID, setIndex).
+		Delete(&ManualExerciseSetLog{}).Error
+}
+
+// DeleteAllManualExerciseSetLogs removes all set logs for an exercise.
+func DeleteAllManualExerciseSetLogs(gdb *gorm.DB, ownerID, runID, exerciseID uint) error {
+	return gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).
+		Delete(&ManualExerciseSetLog{}).Error
 }

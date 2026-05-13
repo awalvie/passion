@@ -398,11 +398,13 @@ type ClimbingTickView struct {
 	RunID      uint
 	ExerciseID uint
 	Kind       string // "Boulder" | "Route"
+	KindRaw    string // "boulder" | "route" — used in edit form select
 	Grade      string
 	Focus      string
 	Thoughts   string
 	Style      string    // display: "Onsight", "Flash", "Redpoint", "Project", "Repeat", "Top Rope"
 	StyleClass string    // CSS modifier, e.g. "onsight", "flash" — empty if no style
+	StyleRaw   string    // raw DB value: "onsight", "flash", etc. — used in edit form radio
 	Attempts   int
 	Sent       bool
 	Stars      int // 0–3
@@ -414,15 +416,30 @@ type ExerciseTicksParams struct {
 	Ticks      []ClimbingTickView
 }
 
+type ManualExerciseSetLogView struct {
+	SetIndex int
+	Reps     int
+	WeightKg float64
+}
+
+type ClimbingExerciseMetaView struct {
+	Type      string // "indoor_bouldering" | "board" | "gym_routes" | "outdoor_bouldering" | "sport" | "trad" | "top_rope"
+	BoardKind string // "kilter" | "moon" | "tension" | "spray" | "custom"
+}
+
 type ManualExerciseView struct {
 	ExerciseID     uint
 	RunID          uint
 	Name           string
-	Kind           string // "reps_and_sets" | "climbing" | etc.
+	Kind           string // "reps_and_sets" | "climbing" | "session" | "timed_reps"
 	ActualSets     int
 	ActualReps     int
 	ActualWeightKg float64
+	ElapsedMinutes int
 	Notes          string
+	PerSetMode     bool
+	SetLogs        []ManualExerciseSetLogView
+	ClimbingMeta   ClimbingExerciseMetaView
 }
 
 type ClimbingVenueView struct {
