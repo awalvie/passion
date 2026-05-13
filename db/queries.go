@@ -707,3 +707,36 @@ func DeleteAllManualExerciseSetLogs(gdb *gorm.DB, ownerID, runID, exerciseID uin
 	return gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).
 		Delete(&ManualExerciseSetLog{}).Error
 }
+
+// ListCalendarEventsInRange returns all calendar events that overlap [start, end] (inclusive),
+// ordered by start_date ascending.
+func ListCalendarEventsInRange(gdb *gorm.DB, ownerID uint, start, end time.Time) ([]CalendarEvent, error) {
+	var events []CalendarEvent
+	err := gdb.Where("owner_id = ? AND start_date <= ? AND end_date >= ?", ownerID, end, start).
+		Order("start_date asc").Find(&events).Error
+	return events, err
+}
+
+// CreateCalendarEvent inserts a new calendar event.
+func CreateCalendarEvent(gdb *gorm.DB, event *CalendarEvent) error {
+	return gdb.Create(event).Error
+}
+
+// UpdateCalendarEvent updates a calendar event owned by ownerID.
+func UpdateCalendarEvent(gdb *gorm.DB, ownerID, id uint, title, kind, notes string, startDate, endDate time.Time, blocks bool) error {
+	return gdb.Model(&CalendarEvent{}).
+		Where("id = ? AND owner_id = ?", id, ownerID).
+		Updates(map[string]any{
+			"title":      title,
+			"kind":       kind,
+			"notes":      notes,
+			"start_date": startDate,
+			"end_date":   endDate,
+			"blocks":     blocks,
+		}).Error
+}
+
+// DeleteCalendarEvent soft-deletes a calendar event owned by ownerID.
+func DeleteCalendarEvent(gdb *gorm.DB, ownerID, id uint) error {
+	return gdb.Where("id = ? AND owner_id = ?", id, ownerID).Delete(&CalendarEvent{}).Error
+}
