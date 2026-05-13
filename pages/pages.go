@@ -593,16 +593,21 @@ type TrainingLogEntryView struct {
 	Color          string
 	DurationLabel  string
 	MonthGroup     string // e.g. "May 2026" — used for grouping in template
+	WeekGroup      string // e.g. "May 12 – 18" — used for week-based grouping
 	IsStandalone   bool   // true for entries created directly on /training-log/new
 	IsManual       bool   // true for runs created via manual log entry
 	HasJournal     bool
 	SleepScore     int // 0 = not recorded
 	Energy         int // 0 = not recorded
 	RPE            int // 0 = not recorded
+	SleepPct       int // SleepScore * 20, for CSS progress bar width
+	EnergyPct      int // Energy * 20
+	RPEPct         int // RPE * 10
 	Focus          string // capitalised display value, e.g. "Strength"
 	Location       string // "Indoor" | "Outdoor"
 	WentWellHTML   template.HTML
 	NextFocusHTML  template.HTML
+	JournalTeaser  string // plain-text first line of WentWell, truncated to 120 chars
 	// Tick summary (non-zero when this run has climbing ticks)
 	TickSummaryLabel string // e.g. "3 boulders · 2 routes · 4 sends"
 	ExerciseCount    int    // total exercises in the run
@@ -616,11 +621,25 @@ type AdherenceWeekView struct {
 	PctLabel  string // e.g. "3 / 4"
 }
 
+type TrainingLogStatsView struct {
+	TotalSessions int
+	ThisMonth     int
+	ThisWeek      int
+	CurrentStreak int
+	AvgSleep      string // "3.8 / 5" or "—"
+	AvgEnergy     string
+	AvgRPE        string
+	TopFocus      string // most common focus, or ""
+	IndoorCount   int
+	OutdoorCount  int
+}
+
 type TrainingLogPageParams struct {
 	Base
 	Entries   []TrainingLogEntryView
 	Adherence []AdherenceWeekView
 	CycleName string
+	Stats     TrainingLogStatsView
 }
 
 type JournalFormParams struct {
@@ -1081,6 +1100,13 @@ func youtubeEmbedURL(raw string) string {
 
 func buildFuncMap() template.FuncMap {
 	return template.FuncMap{
+		"add": func(a, b int) int { return a + b },
+		"pct": func(part, total int) int {
+			if total == 0 {
+				return 0
+			}
+			return part * 100 / total
+		},
 		"seq": func(start, end int) []int {
 			if end < start {
 				return []int{}

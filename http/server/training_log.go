@@ -123,8 +123,11 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 		}
 
 		t := run.StartedAt
-		dateLabel := fmt.Sprintf("%s %d%s %d", t.Format("Jan"), t.Day(), daySuffix(t.Day()), t.Year())
+		dateLabel := fmt.Sprintf("%s, %s %d%s %d", t.Format("Mon"), t.Format("Jan"), t.Day(), daySuffix(t.Day()), t.Year())
 		monthGroup := t.Format("January 2006")
+		monday := mondayOfLocalDate(t)
+		sunday := monday.AddDate(0, 0, 6)
+		weekGroup := fmt.Sprintf("%s %d – %s %d", monday.Format("Jan"), monday.Day(), sunday.Format("Jan"), sunday.Day())
 
 		tickSummaryLabel := ""
 		exerciseCount := exerciseCountsByRun[run.ID]
@@ -165,6 +168,7 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 			Color:            ss.SessionTemplate.Color,
 			DurationLabel:    dur,
 			MonthGroup:       monthGroup,
+			WeekGroup:        weekGroup,
 			IsManual:         run.IsManual,
 			TickSummaryLabel: tickSummaryLabel,
 			ExerciseCount:    exerciseCount,
@@ -176,10 +180,14 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 			entry.SleepScore = j.SleepScore
 			entry.Energy = j.Energy
 			entry.RPE = j.RPE
+			entry.SleepPct = j.SleepScore * 20
+			entry.EnergyPct = j.Energy * 20
+			entry.RPEPct = j.RPE * 10
 			entry.Focus = focusDisplayName(j.Focus)
 			entry.Location = locationDisplayName(j.Location)
 			entry.WentWellHTML = markdownToHTML(j.WentWell)
 			entry.NextFocusHTML = markdownToHTML(j.NextFocus)
+			entry.JournalTeaser = journalTeaser(j.WentWell)
 		}
 
 		entries = append(entries, entry)
@@ -195,22 +203,30 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 		if title == "" {
 			title = "Log entry"
 		}
-		dateLabel := fmt.Sprintf("%s %d%s %d", t.Format("Jan"), t.Day(), daySuffix(t.Day()), t.Year())
+		dateLabel := fmt.Sprintf("%s, %s %d%s %d", t.Format("Mon"), t.Format("Jan"), t.Day(), daySuffix(t.Day()), t.Year())
+		monday := mondayOfLocalDate(t)
+		sunday := monday.AddDate(0, 0, 6)
+		weekGroup := fmt.Sprintf("%s %d – %s %d", monday.Format("Jan"), monday.Day(), sunday.Format("Jan"), sunday.Day())
 		entries = append(entries, pages.TrainingLogEntryView{
 			JournalEntryID: j.ID,
 			SortTime:       t,
 			DateLabel:      dateLabel,
 			TemplateName:   title,
 			MonthGroup:     t.Format("January 2006"),
+			WeekGroup:      weekGroup,
 			IsStandalone:   true,
 			HasJournal:     true,
 			SleepScore:     j.SleepScore,
 			Energy:         j.Energy,
 			RPE:            j.RPE,
+			SleepPct:       j.SleepScore * 20,
+			EnergyPct:      j.Energy * 20,
+			RPEPct:         j.RPE * 10,
 			Focus:          focusDisplayName(j.Focus),
 			Location:       locationDisplayName(j.Location),
 			WentWellHTML:   markdownToHTML(j.WentWell),
 			NextFocusHTML:  markdownToHTML(j.NextFocus),
+			JournalTeaser:  journalTeaser(j.WentWell),
 		})
 	}
 
@@ -219,6 +235,8 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 		return entries[i].SortTime.After(entries[j].SortTime)
 	})
 
+	stats := buildTrainingLogStats(entries, time.Now())
+
 	// Build adherence block from the most recent training cycle.
 	adherence, cycleName := s.buildAdherenceView(ownerID)
 
@@ -226,6 +244,7 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 		Entries:   entries,
 		Adherence: adherence,
 		CycleName: cycleName,
+		Stats:     stats,
 	})
 }
 
@@ -458,4 +477,105 @@ func (s *Server) handleTrainingLogDelete(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	http.Redirect(w, r, "/training-log", http.StatusSeeOther)
+}
+
+// buildTrainingLogStats derives aggregate stats from the already-computed entry list.
+func buildTrainingLogStats(entries []pages.TrainingLogEntryView, now time.Time) pages.TrainingLogStatsView {
+	var sleepSum, sleepN, energySum, energyN, rpeSum, rpeN int
+	focusCounts := map[string]int{}
+	var indoorCount, outdoorCount, thisMonth, thisWeek int
+	activeDays := map[string]bool{}
+
+	weekStart := mondayOfLocalDate(now)
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+
+	for _, e := range entries {
+		if e.SleepScore > 0 {
+			sleepSum += e.SleepScore
+			sleepN++
+		}
+		if e.Energy > 0 {
+			energySum += e.Energy
+			energyN++
+		}
+		if e.RPE > 0 {
+			rpeSum += e.RPE
+			rpeN++
+		}
+		if e.Focus != "" {
+			focusCounts[e.Focus]++
+		}
+		switch e.Location {
+		case "Indoor":
+			indoorCount++
+		case "Outdoor":
+			outdoorCount++
+		}
+		if !e.SortTime.Before(monthStart) {
+			thisMonth++
+		}
+		if !e.SortTime.Before(weekStart) {
+			thisWeek++
+		}
+		activeDays[localDateKey(e.SortTime)] = true
+	}
+
+	avg := func(sum, n int, denom string) string {
+		if n == 0 {
+			return "—"
+		}
+		whole := sum / n
+		frac := (sum*10/n) % 10
+		if frac == 0 {
+			return fmt.Sprintf("%d / %s", whole, denom)
+		}
+		return fmt.Sprintf("%d.%d / %s", whole, frac, denom)
+	}
+
+	topFocus := ""
+	topCount := 0
+	for f, c := range focusCounts {
+		if c > topCount {
+			topCount = c
+			topFocus = f
+		}
+	}
+
+	currentStreak, _ := computeStreaks(activeDays, now)
+
+	return pages.TrainingLogStatsView{
+		TotalSessions: len(entries),
+		ThisMonth:     thisMonth,
+		ThisWeek:      thisWeek,
+		CurrentStreak: currentStreak,
+		AvgSleep:      avg(sleepSum, sleepN, "5"),
+		AvgEnergy:     avg(energySum, energyN, "5"),
+		AvgRPE:        avg(rpeSum, rpeN, "10"),
+		TopFocus:      topFocus,
+		IndoorCount:   indoorCount,
+		OutdoorCount:  outdoorCount,
+	}
+}
+
+// journalTeaser returns a plain-text single-line preview of a journal field,
+// stripped of markdown syntax and truncated to 120 characters.
+func journalTeaser(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	// Take only the first line.
+	if idx := strings.IndexByte(raw, '\n'); idx >= 0 {
+		raw = raw[:idx]
+	}
+	// Strip common markdown: headers, bold, italic, code, links.
+	raw = strings.TrimLeft(raw, "#> ")
+	replacer := strings.NewReplacer("**", "", "__", "", "*", "", "_", "", "`", "")
+	raw = replacer.Replace(raw)
+	raw = strings.TrimSpace(raw)
+	if len([]rune(raw)) > 120 {
+		runes := []rune(raw)
+		raw = string(runes[:120]) + "…"
+	}
+	return raw
 }
