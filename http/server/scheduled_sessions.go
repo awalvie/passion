@@ -30,12 +30,12 @@ func (s *Server) handleScheduledSessionsByID(w http.ResponseWriter, r *http.Requ
 		if err := s.store.DB.
 			Where("owner_id = ? AND id = ?", ownerID, scheduledID).
 			First(&ss).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusNotFound)
+			s.notFound(w)
 			return
 		}
 		tpl, err := s.loadTemplateWithGraph(ss.SessionTemplateID, ownerID)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -43,14 +43,14 @@ func (s *Server) handleScheduledSessionsByID(w http.ResponseWriter, r *http.Requ
 		return
 	case "start":
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		var ss db.ScheduledSession
 		if err := s.store.DB.
 			Where("owner_id = ? AND id = ?", ownerID, scheduledID).
 			First(&ss).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusNotFound)
+			s.notFound(w)
 			return
 		}
 
@@ -62,7 +62,7 @@ func (s *Server) handleScheduledSessionsByID(w http.ResponseWriter, r *http.Requ
 			StartedAt:          time.Now(),
 		}
 		if err := s.store.DB.Create(run).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 
@@ -71,12 +71,12 @@ func (s *Server) handleScheduledSessionsByID(w http.ResponseWriter, r *http.Requ
 		return
 	case "move":
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 
 		if err := r.ParseForm(); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			s.badRequest(w, "bad request")
 			return
 		}
 
@@ -98,13 +98,13 @@ func (s *Server) handleScheduledSessionsByID(w http.ResponseWriter, r *http.Requ
 		if err := s.store.DB.
 			Where("owner_id = ? AND id = ?", ownerID, scheduledID).
 			First(&ss).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusNotFound)
+			s.notFound(w)
 			return
 		}
 
 		ss.ScheduledDate = parsed
 		if err := s.store.DB.Save(&ss).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 
@@ -124,12 +124,12 @@ func (s *Server) handleAddScheduledSession(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 
@@ -159,7 +159,7 @@ func (s *Server) handleAddScheduledSession(w http.ResponseWriter, r *http.Reques
 	if err := s.store.DB.
 		Where("owner_id = ? AND id = ?", ownerID, templateID).
 		First(&tpl).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		s.notFound(w)
 		return
 	}
 
@@ -171,7 +171,7 @@ func (s *Server) handleAddScheduledSession(w http.ResponseWriter, r *http.Reques
 		SessionTemplateID: uint(tpl.ID),
 	}
 	if err := s.store.DB.Create(ss).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 

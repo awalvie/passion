@@ -71,7 +71,7 @@ type exportExercise struct {
 
 func (s *Server) handleExportLibraryExercise(w http.ResponseWriter, r *http.Request, ownerID uint, id uint) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	var row db.LibraryExercise
@@ -96,7 +96,7 @@ func (s *Server) handleExportLibraryExercise(w http.ResponseWriter, r *http.Requ
 	}
 	data, err := yaml.Marshal(out)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	filename := slugifyName(row.Name) + ".yaml"
@@ -111,7 +111,7 @@ func (s *Server) handleExportLibraryExercise(w http.ResponseWriter, r *http.Requ
 // It accepts POST with form field ids[] containing selected exercise IDs.
 func (s *Server) handleExportLibraryExercisesBulk(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	ownerID, ok := s.currentUserID(r)
@@ -120,7 +120,7 @@ func (s *Server) handleExportLibraryExercisesBulk(w http.ResponseWriter, r *http
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 	rawIDs := r.Form["ids[]"]
@@ -140,7 +140,7 @@ func (s *Server) handleExportLibraryExercisesBulk(w http.ResponseWriter, r *http
 
 	var rows []db.LibraryExercise
 	if err := s.store.DB.Where("owner_id = ? AND id IN ?", ownerID, ids).Preload("Media").Find(&rows).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -163,7 +163,7 @@ func (s *Server) handleExportLibraryExercisesBulk(w http.ResponseWriter, r *http
 		}
 		chunk, err := yaml.Marshal(out)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		buf.WriteString("---\n")
@@ -187,7 +187,7 @@ type exportActivityTemplate struct {
 
 func (s *Server) handleExportActivityTemplate(w http.ResponseWriter, r *http.Request, ownerID uint, templateID uint) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	var at db.ActivityTemplate
@@ -253,7 +253,7 @@ func (s *Server) handleExportActivityTemplate(w http.ResponseWriter, r *http.Req
 
 	data, err := yaml.Marshal(out)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	filename := slugifyName(at.Name) + ".yaml"
@@ -296,7 +296,7 @@ type exportTemplate struct {
 
 func (s *Server) handleExportTemplate(w http.ResponseWriter, r *http.Request, ownerID uint, templateID uint) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	var tpl db.SessionTemplate
@@ -375,7 +375,7 @@ func (s *Server) handleExportTemplate(w http.ResponseWriter, r *http.Request, ow
 
 	data, err := yaml.Marshal(out)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	filename := slugifyName(tpl.Name) + ".yaml"

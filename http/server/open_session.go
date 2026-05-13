@@ -60,7 +60,7 @@ func (s *Server) getOrCreateOpenSessionTemplate(ownerID uint) (db.SessionTemplat
 
 func (s *Server) handleStartOpenSession(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	ownerID, ok := s.currentUserID(r)
@@ -69,7 +69,7 @@ func (s *Server) handleStartOpenSession(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 
@@ -77,7 +77,7 @@ func (s *Server) handleStartOpenSession(w http.ResponseWriter, r *http.Request) 
 
 	tpl, err := s.getOrCreateOpenSessionTemplate(ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -89,7 +89,7 @@ func (s *Server) handleStartOpenSession(w http.ResponseWriter, r *http.Request) 
 		SessionTemplateID: tpl.ID,
 	}
 	if err := s.store.DB.Create(scheduled).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -102,7 +102,7 @@ func (s *Server) handleStartOpenSession(w http.ResponseWriter, r *http.Request) 
 		Status:             db.RunStatusDraft,
 	}
 	if err := s.store.DB.Create(run).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -112,12 +112,12 @@ func (s *Server) handleStartOpenSession(w http.ResponseWriter, r *http.Request) 
 
 func (s *Server) handleOpenAddExercise(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 	runID, err := parseUintParam(r, "runID")
@@ -139,7 +139,7 @@ func (s *Server) handleOpenAddExercise(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 
@@ -189,7 +189,7 @@ func (s *Server) handleOpenAddExercise(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.store.DB.Create(&ex).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -199,12 +199,12 @@ func (s *Server) handleOpenAddExercise(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleOpenAddTemplate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 	runID, err := parseUintParam(r, "runID")
@@ -226,7 +226,7 @@ func (s *Server) handleOpenAddTemplate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 
@@ -275,7 +275,7 @@ func (s *Server) handleOpenAddTemplate(w http.ResponseWriter, r *http.Request) {
 			OrderIndex:             int(count) + i,
 		}
 		if err := s.store.DB.Create(&ex).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 	}
@@ -286,12 +286,12 @@ func (s *Server) handleOpenAddTemplate(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleOpenStartSession(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 	runID, err := parseUintParam(r, "runID")
@@ -316,7 +316,7 @@ func (s *Server) handleOpenStartSession(w http.ResponseWriter, r *http.Request) 
 	run.Status = db.RunStatusRunning
 	run.StartedAt = now
 	if err := s.store.DB.Save(&run).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -326,12 +326,12 @@ func (s *Server) handleOpenStartSession(w http.ResponseWriter, r *http.Request) 
 
 func (s *Server) handleOpenUpdateExercise(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 	runID, err := parseUintParam(r, "runID")
@@ -366,7 +366,7 @@ func (s *Server) handleOpenUpdateExercise(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 
@@ -392,7 +392,7 @@ func (s *Server) handleOpenUpdateExercise(w http.ResponseWriter, r *http.Request
 	ex.Notes = strings.TrimSpace(r.FormValue("notes"))
 
 	if err := s.store.DB.Save(&ex).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -402,12 +402,12 @@ func (s *Server) handleOpenUpdateExercise(w http.ResponseWriter, r *http.Request
 
 func (s *Server) handleOpenDeleteExercise(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 	runID, err := parseUintParam(r, "runID")
@@ -452,7 +452,7 @@ func (s *Server) handleOpenDeleteExercise(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := s.store.DB.Unscoped().Delete(&ex).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 

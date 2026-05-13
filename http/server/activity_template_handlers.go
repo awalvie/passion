@@ -13,7 +13,7 @@ import (
 
 func (s *Server) handleActivityTemplatesIndex(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	ownerID, ok := s.currentUserID(r)
@@ -25,12 +25,12 @@ func (s *Server) handleActivityTemplatesIndex(w http.ResponseWriter, r *http.Req
 
 	templates, err := db.ListActivityTemplates(s.store.DB, ownerID, labelFilter)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	distinctLabels, err := db.DistinctActivityTemplateLabels(s.store.DB, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	s.pages.ActivityTemplateList(w, pages.ActivityTemplateListParams{
@@ -55,7 +55,7 @@ func (s *Server) handleActivityTemplatesNew(w http.ResponseWriter, r *http.Reque
 		return
 	case http.MethodPost:
 		if err := r.ParseForm(); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			s.badRequest(w, "bad request")
 			return
 		}
 		name := strings.TrimSpace(r.FormValue("name"))
@@ -69,13 +69,13 @@ func (s *Server) handleActivityTemplatesNew(w http.ResponseWriter, r *http.Reque
 			Label:   strings.TrimSpace(r.FormValue("label")),
 		}
 		if err := s.store.DB.Create(tpl).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		w.Header().Set("HX-Redirect", "/activity-templates/"+strconv.FormatUint(uint64(tpl.ID), 10)+"/edit")
 		w.WriteHeader(http.StatusOK)
 	default:
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 	}
 }
 
@@ -97,23 +97,23 @@ func (s *Server) handleActivityTemplatesByID(w http.ResponseWriter, r *http.Requ
 	switch action {
 	case "edit":
 		if r.Method != http.MethodGet {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		s.renderActivityTemplateEdit(w, r, uint(tplID), ownerID)
 	case "update":
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		s.handleUpdateActivityTemplate(w, r, uint(tplID), ownerID)
 	case "delete":
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		if err := s.deleteActivityTemplate(uint(tplID), ownerID); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		w.Header().Set("HX-Redirect", "/activity-templates")
@@ -122,7 +122,7 @@ func (s *Server) handleActivityTemplatesByID(w http.ResponseWriter, r *http.Requ
 		s.handleExportActivityTemplate(w, r, ownerID, uint(tplID))
 	case "exercises":
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		switch subaction {
@@ -143,12 +143,12 @@ func (s *Server) handleActivityTemplatesByID(w http.ResponseWriter, r *http.Requ
 func (s *Server) renderActivityTemplateEdit(w http.ResponseWriter, r *http.Request, tplID, ownerID uint) {
 	tpl, err := db.GetActivityTemplateWithExercises(s.store.DB, ownerID, tplID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		s.notFound(w)
 		return
 	}
 	lib, err := db.ListLibraryExercises(s.store.DB, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	s.pages.ActivityTemplateEdit(w, pages.ActivityTemplateEditParams{
@@ -160,7 +160,7 @@ func (s *Server) renderActivityTemplateEdit(w http.ResponseWriter, r *http.Reque
 
 func (s *Server) handleUpdateActivityTemplate(w http.ResponseWriter, r *http.Request, tplID, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
@@ -171,13 +171,13 @@ func (s *Server) handleUpdateActivityTemplate(w http.ResponseWriter, r *http.Req
 	label := strings.TrimSpace(r.FormValue("label"))
 	var tpl db.ActivityTemplate
 	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, tplID).First(&tpl).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		s.notFound(w)
 		return
 	}
 	tpl.Name = name
 	tpl.Label = label
 	if err := s.store.DB.Save(&tpl).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	w.Header().Set("HX-Redirect", "/activity-templates/"+strconv.FormatUint(uint64(tplID), 10)+"/edit")
@@ -206,10 +206,10 @@ func (s *Server) nextATExerciseOrder(tplID, ownerID uint) (int, error) {
 	return maxOrder + 1, nil
 }
 
-func (s *Server) renderActivityTemplateExercises(w http.ResponseWriter, tpl *db.ActivityTemplate, ownerID uint) {
+func (s *Server) renderActivityTemplateExercises(w http.ResponseWriter, r *http.Request, tpl *db.ActivityTemplate, ownerID uint) {
 	lib, err := db.ListLibraryExercises(s.store.DB, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	data := struct {
@@ -221,7 +221,7 @@ func (s *Server) renderActivityTemplateExercises(w http.ResponseWriter, tpl *db.
 
 func (s *Server) handleAddActivityTemplateExercise(w http.ResponseWriter, r *http.Request, tplID, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
@@ -231,7 +231,7 @@ func (s *Server) handleAddActivityTemplateExercise(w http.ResponseWriter, r *htt
 	}
 	orderIndex, err := s.nextATExerciseOrder(tplID, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	kind := db.NormalizeKind(r.FormValue("kind"))
@@ -262,20 +262,20 @@ func (s *Server) handleAddActivityTemplateExercise(w http.ResponseWriter, r *htt
 		ex.WeightKg = formFloat(r, "weight_kg")
 	}
 	if err := s.store.DB.Create(ex).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	tpl, err := db.GetActivityTemplateWithExercises(s.store.DB, ownerID, tplID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
-	s.renderActivityTemplateExercises(w, tpl, ownerID)
+	s.renderActivityTemplateExercises(w, r, tpl, ownerID)
 }
 
 func (s *Server) handleAddATExerciseFromLibrary(w http.ResponseWriter, r *http.Request, tplID, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 	libIDStr := strings.TrimSpace(r.FormValue("library_exercise_id"))
@@ -296,7 +296,7 @@ func (s *Server) handleAddATExerciseFromLibrary(w http.ResponseWriter, r *http.R
 	}
 	orderIndex, err := s.nextATExerciseOrder(tplID, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	atID := tplID
@@ -319,7 +319,7 @@ func (s *Server) handleAddATExerciseFromLibrary(w http.ResponseWriter, r *http.R
 		OrderIndex:             orderIndex,
 	}
 	if err := s.store.DB.Create(ex).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	if kind == "exercise_catalog" {
@@ -345,22 +345,22 @@ func (s *Server) handleAddATExerciseFromLibrary(w http.ResponseWriter, r *http.R
 				ParentExerciseID:       &pid,
 			}
 			if err := s.store.DB.Create(child).Error; err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				s.serverError(w, r, err)
 				return
 			}
 		}
 	}
 	tpl, err := db.GetActivityTemplateWithExercises(s.store.DB, ownerID, tplID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
-	s.renderActivityTemplateExercises(w, tpl, ownerID)
+	s.renderActivityTemplateExercises(w, r, tpl, ownerID)
 }
 
 func (s *Server) handleReorderActivityTemplateExercises(w http.ResponseWriter, r *http.Request, tplID, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 	orderedStr := strings.TrimSpace(r.FormValue("ordered_ids"))
@@ -393,18 +393,18 @@ func (s *Server) handleReorderActivityTemplateExercises(w http.ResponseWriter, r
 			Where("owner_id = ? AND activity_template_id = ? AND id = ?", ownerID, tplID, id).
 			Update("order_index", idx).Error; err != nil {
 			tx.Rollback()
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 	}
 	if err := tx.Commit().Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	tpl, err := db.GetActivityTemplateWithExercises(s.store.DB, ownerID, tplID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
-	s.renderActivityTemplateExercises(w, tpl, ownerID)
+	s.renderActivityTemplateExercises(w, r, tpl, ownerID)
 }

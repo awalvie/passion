@@ -61,7 +61,7 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 	var runs []db.SessionRun
 	err := query.Find(&runs).Error
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -87,7 +87,7 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 			Where("id IN ?", ssIDs).
 			Find(&scheduledSessions).Error
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 	}
@@ -115,7 +115,7 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 			Where("owner_id = ? AND run_id IN ?", ownerID, runIDs).
 			Find(&completions).Error
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 	}

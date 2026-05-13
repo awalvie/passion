@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -28,14 +29,14 @@ func (s *Server) handleExercisesByID(w http.ResponseWriter, r *http.Request) {
 	switch action {
 	case "update":
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		s.handleUpdateExercise(w, r, exerciseID, ownerID)
 		return
 	case "delete":
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		s.handleDeleteExercise(w, r, exerciseID, ownerID)
@@ -72,7 +73,7 @@ func (s *Server) nextExerciseOrder(activityID uint, ownerID uint) (int, error) {
 
 func (s *Server) handleReorderExercises(w http.ResponseWriter, r *http.Request, activityID uint, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 
@@ -107,7 +108,7 @@ func (s *Server) handleReorderExercises(w http.ResponseWriter, r *http.Request, 
 	if err := s.store.DB.
 		Where("owner_id = ? AND activity_id = ?", ownerID, activityID).
 		Find(&existing).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -147,26 +148,26 @@ func (s *Server) handleReorderExercises(w http.ResponseWriter, r *http.Request, 
 			Where("owner_id = ? AND id = ?", ownerID, id).
 			Update("order_index", idx+1).Error; err != nil {
 			tx.Rollback()
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 	}
 	if err := tx.Commit().Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
 	act, err := s.loadActivityExercises(activityID, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
-	s.renderExercisesWithPreview(w, act, ownerID)
+	s.renderExercisesWithPreview(w, r, act, ownerID)
 }
 
 func (s *Server) handleUpdateExercise(w http.ResponseWriter, r *http.Request, exerciseID uint, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 
@@ -174,7 +175,7 @@ func (s *Server) handleUpdateExercise(w http.ResponseWriter, r *http.Request, ex
 	if err := s.store.DB.
 		Where("owner_id = ? AND id = ?", ownerID, exerciseID).
 		First(&ex).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		s.notFound(w)
 		return
 	}
 
@@ -200,7 +201,7 @@ func (s *Server) handleUpdateExercise(w http.ResponseWriter, r *http.Request, ex
 		if err := s.store.DB.
 			Where("owner_id = ? AND parent_exercise_id = ?", ownerID, ex.ID).
 			Delete(&db.Exercise{}).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 	}
@@ -251,20 +252,20 @@ func (s *Server) handleUpdateExercise(w http.ResponseWriter, r *http.Request, ex
 	}
 
 	if err := s.store.DB.Save(&ex).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
 	// Sync media rows from form (non-catalog kinds only; catalogs have no media).
 	if kind != "exercise_catalog" {
 		if err := s.syncExerciseMediaFromForm(r, ex.ID, ownerID); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 	}
 
-	if err := s.rerenderExerciseOwner(w, &ex, ownerID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := s.rerenderExerciseOwner(w, r, &ex, ownerID); err != nil {
+		s.serverError(w, r, err)
 	}
 }
 
@@ -273,7 +274,7 @@ func (s *Server) handleDeleteExercise(w http.ResponseWriter, r *http.Request, ex
 	if err := s.store.DB.
 		Where("owner_id = ? AND id = ?", ownerID, exerciseID).
 		First(&ex).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		s.notFound(w)
 		return
 	}
 
@@ -281,7 +282,7 @@ func (s *Server) handleDeleteExercise(w http.ResponseWriter, r *http.Request, ex
 		if err := s.store.DB.
 			Where("owner_id = ? AND parent_exercise_id = ?", ownerID, ex.ID).
 			Delete(&db.Exercise{}).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 	}
@@ -289,18 +290,18 @@ func (s *Server) handleDeleteExercise(w http.ResponseWriter, r *http.Request, ex
 	if err := s.store.DB.
 		Where("owner_id = ? AND id = ?", ownerID, exerciseID).
 		Delete(&db.Exercise{}).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
-	if err := s.rerenderExerciseOwner(w, &ex, ownerID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := s.rerenderExerciseOwner(w, r, &ex, ownerID); err != nil {
+		s.serverError(w, r, err)
 	}
 }
 
 func (s *Server) handleAddExercise(w http.ResponseWriter, r *http.Request, activityID uint, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 
@@ -314,7 +315,7 @@ func (s *Server) handleAddExercise(w http.ResponseWriter, r *http.Request, activ
 
 	orderIndex, err := s.nextExerciseOrder(activityID, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -369,19 +370,19 @@ func (s *Server) handleAddExercise(w http.ResponseWriter, r *http.Request, activ
 			ex.WeightKg = formFloat(r, "weight_kg")
 		}
 		if err := s.store.DB.Create(ex).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		if err := s.syncExerciseMediaFromForm(r, ex.ID, ownerID); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		act, err := s.loadActivityExercises(activityID, ownerID)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
-		s.renderExercisesWithPreview(w, act, ownerID)
+		s.renderExercisesWithPreview(w, r, act, ownerID)
 		return
 	}
 
@@ -417,7 +418,7 @@ func (s *Server) handleAddExercise(w http.ResponseWriter, r *http.Request, activ
 	tx := s.store.DB.Begin()
 	if err := tx.Create(ex).Error; err != nil {
 		tx.Rollback()
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	if kind == "exercise_catalog" {
@@ -446,7 +447,7 @@ func (s *Server) handleAddExercise(w http.ResponseWriter, r *http.Request, activ
 				Select("COALESCE(MAX(order_index), 0)").
 				Scan(&maxOrder).Error; err != nil {
 				tx.Rollback()
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				s.serverError(w, r, err)
 				return
 			}
 			nextOrder := maxOrder + 1
@@ -466,7 +467,7 @@ func (s *Server) handleAddExercise(w http.ResponseWriter, r *http.Request, activ
 				child := newExerciseFromLibraryExercise(lib, ownerID, activityID, nextOrder, &p)
 				if err := tx.Create(child).Error; err != nil {
 					tx.Rollback()
-					http.Error(w, err.Error(), http.StatusInternalServerError)
+					s.serverError(w, r, err)
 					return
 				}
 				continue
@@ -482,35 +483,35 @@ func (s *Server) handleAddExercise(w http.ResponseWriter, r *http.Request, activ
 			}
 			if err := tx.Create(child).Error; err != nil {
 				tx.Rollback()
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				s.serverError(w, r, err)
 				return
 			}
 		}
 	}
 	if err := tx.Commit().Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
 	// Sync media for the top-level exercise (non-catalog kinds only).
 	if kind != "exercise_catalog" {
 		if err := s.syncExerciseMediaFromForm(r, ex.ID, ownerID); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 	}
 
 	act, err := s.loadActivityExercises(activityID, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
-	s.renderExercisesWithPreview(w, act, ownerID)
+	s.renderExercisesWithPreview(w, r, act, ownerID)
 }
 
 func (s *Server) handleAddExerciseFromLibrary(w http.ResponseWriter, r *http.Request, activityID uint, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 	libIDStr := strings.TrimSpace(r.FormValue("library_exercise_id"))
@@ -558,19 +559,19 @@ func (s *Server) handleAddExerciseFromLibrary(w http.ResponseWriter, r *http.Req
 
 	orderIndex, err := s.nextExerciseOrder(activityID, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
 	ex := newExerciseFromLibraryExercise(lib, ownerID, activityID, orderIndex, parentPtr)
 	if err := s.store.DB.Create(ex).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
 	// Copy media from library exercise to template exercise.
 	if err := s.copyMediaToExercise(lib.Media, ex.ID, ownerID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -583,12 +584,12 @@ func (s *Server) handleAddExerciseFromLibrary(w http.ResponseWriter, r *http.Req
 		for ci, lc := range libChildren {
 			childEx := newExerciseFromLibraryExercise(lc, ownerID, activityID, ci, &ex.ID)
 			if err := s.store.DB.Create(childEx).Error; err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				s.serverError(w, r, err)
 				return
 			}
 			// Copy media for each child.
 			if err := s.copyMediaToExercise(lc.Media, childEx.ID, ownerID); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				s.serverError(w, r, err)
 				return
 			}
 		}
@@ -596,21 +597,21 @@ func (s *Server) handleAddExerciseFromLibrary(w http.ResponseWriter, r *http.Req
 
 	act, err := s.loadActivityExercises(activityID, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
-	s.renderExercisesWithPreview(w, act, ownerID)
+	s.renderExercisesWithPreview(w, r, act, ownerID)
 }
 
 // rerenderExerciseOwner re-renders the appropriate exercises fragment after an update or delete,
 // routing to the activity view or the activity-template view based on which FK is set.
-func (s *Server) rerenderExerciseOwner(w http.ResponseWriter, ex *db.Exercise, ownerID uint) error {
+func (s *Server) rerenderExerciseOwner(w http.ResponseWriter, r *http.Request, ex *db.Exercise, ownerID uint) error {
 	if ex.ActivityID != nil {
 		act, err := s.loadActivityExercises(*ex.ActivityID, ownerID)
 		if err != nil {
 			return err
 		}
-		s.renderExercisesWithPreview(w, act, ownerID)
+		s.renderExercisesWithPreview(w, r, act, ownerID)
 		return nil
 	}
 	if ex.ActivityTemplateID != nil {
@@ -618,23 +619,23 @@ func (s *Server) rerenderExerciseOwner(w http.ResponseWriter, ex *db.Exercise, o
 		if err != nil {
 			return err
 		}
-		s.renderActivityTemplateExercises(w, tpl, ownerID)
+		s.renderActivityTemplateExercises(w, r, tpl, ownerID)
 		return nil
 	}
-	http.Error(w, "exercise has no owner", http.StatusInternalServerError)
+	s.serverError(w, r, fmt.Errorf("exercise %d has no owner", ex.ID))
 	return nil
 }
 
-func (s *Server) renderExercisesWithPreview(w http.ResponseWriter, act db.Activity, ownerID uint) {
+func (s *Server) renderExercisesWithPreview(w http.ResponseWriter, r *http.Request, act db.Activity, ownerID uint) {
 	tpl, err := s.loadTemplateWithGraph(act.SessionTemplateID, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
 	lib, err := s.listLibraryExercises(ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 

@@ -125,7 +125,7 @@ func (s *Server) copyMediaToExercise(srcMedia []db.ExerciseMedia, exerciseID uin
 
 func (s *Server) handleTemplatesIndex(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 
@@ -139,12 +139,12 @@ func (s *Server) handleTemplatesIndex(w http.ResponseWriter, r *http.Request) {
 
 	templates, err := db.ListTemplates(s.store.DB, ownerID, labelFilter)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	distinctLabels, err := db.DistinctTemplateLabels(s.store.DB, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -170,7 +170,7 @@ func (s *Server) handleTemplatesNew(w http.ResponseWriter, r *http.Request) {
 		return
 	case http.MethodPost:
 		if err := r.ParseForm(); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			s.badRequest(w, "bad request")
 			return
 		}
 		name := strings.TrimSpace(r.FormValue("name"))
@@ -185,7 +185,7 @@ func (s *Server) handleTemplatesNew(w http.ResponseWriter, r *http.Request) {
 			Label:   strings.TrimSpace(r.FormValue("label")),
 		}
 		if err := s.store.DB.Create(tpl).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 
@@ -194,7 +194,7 @@ func (s *Server) handleTemplatesNew(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	default:
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 	}
 }
 
@@ -221,14 +221,14 @@ func (s *Server) handleTemplatesByID(w http.ResponseWriter, r *http.Request) {
 	switch action {
 	case "edit":
 		if r.Method != http.MethodGet {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		s.renderTemplateEdit(w, r, uint(templateID), ownerID)
 		return
 	case "activities":
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		if subaction == "reorder" {
@@ -243,12 +243,12 @@ func (s *Server) handleTemplatesByID(w http.ResponseWriter, r *http.Request) {
 		return
 	case "trial":
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		runID, err := s.startTrialRun(uint(templateID), ownerID)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		w.Header().Set("HX-Redirect", "/runs/"+strconv.FormatUint(uint64(runID), 10))
@@ -256,11 +256,11 @@ func (s *Server) handleTemplatesByID(w http.ResponseWriter, r *http.Request) {
 		return
 	case "delete":
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		if err := s.deleteTemplate(uint(templateID), ownerID); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		w.Header().Set("HX-Redirect", "/templates")
@@ -268,7 +268,7 @@ func (s *Server) handleTemplatesByID(w http.ResponseWriter, r *http.Request) {
 		return
 	case "update":
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		s.handleUpdateSessionTemplate(w, r, uint(templateID), ownerID)
@@ -284,7 +284,7 @@ func (s *Server) handleTemplatesByID(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleReorderActivities(w http.ResponseWriter, r *http.Request, templateID uint, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 	orderedStr := strings.TrimSpace(r.FormValue("ordered_ids"))
@@ -318,7 +318,7 @@ func (s *Server) handleReorderActivities(w http.ResponseWriter, r *http.Request,
 	if err := s.store.DB.
 		Where("owner_id = ? AND session_template_id = ?", ownerID, templateID).
 		Find(&existing).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	if len(existing) != len(orderedIDs) {
@@ -343,21 +343,21 @@ func (s *Server) handleReorderActivities(w http.ResponseWriter, r *http.Request,
 			Where("owner_id = ? AND id = ?", ownerID, id).
 			Update("order_index", idx).Error; err != nil {
 			tx.Rollback()
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 	}
 	if err := tx.Commit().Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
 	tpl, err := s.loadTemplateWithGraph(templateID, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
-	s.renderActivitiesWithPreview(w, tpl, ownerID)
+	s.renderActivitiesWithPreview(w, r, tpl, ownerID)
 }
 
 func (s *Server) deleteTemplate(templateID uint, ownerID uint) error {
@@ -408,19 +408,19 @@ func (s *Server) listTemplates(ownerID uint) ([]db.SessionTemplate, error) {
 func (s *Server) renderTemplateEdit(w http.ResponseWriter, r *http.Request, templateID uint, ownerID uint) {
 	tpl, err := db.GetTemplateWithGraph(s.store.DB, ownerID, uint(templateID))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		s.notFound(w)
 		return
 	}
 
 	lib, err := db.ListLibraryExercises(s.store.DB, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
 	ats, err := db.ListActivityTemplates(s.store.DB, ownerID, "")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -434,7 +434,7 @@ func (s *Server) renderTemplateEdit(w http.ResponseWriter, r *http.Request, temp
 
 func (s *Server) handleUpdateSessionTemplate(w http.ResponseWriter, r *http.Request, templateID uint, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
@@ -453,14 +453,14 @@ func (s *Server) handleUpdateSessionTemplate(w http.ResponseWriter, r *http.Requ
 
 	var tpl db.SessionTemplate
 	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, templateID).First(&tpl).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		s.notFound(w)
 		return
 	}
 	tpl.Name = name
 	tpl.Color = color
 	tpl.Label = label
 	if err := s.store.DB.Save(&tpl).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	w.Header().Set("HX-Redirect", "/templates/"+strconv.FormatUint(uint64(templateID), 10)+"/edit")
@@ -500,10 +500,10 @@ func (s *Server) startTrialRun(templateID uint, ownerID uint) (uint, error) {
 	return run.ID, nil
 }
 
-func (s *Server) renderActivitiesWithPreview(w http.ResponseWriter, tpl *db.SessionTemplate, ownerID uint) {
+func (s *Server) renderActivitiesWithPreview(w http.ResponseWriter, r *http.Request, tpl *db.SessionTemplate, ownerID uint) {
 	lib, err := db.ListLibraryExercises(s.store.DB, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	data := struct {

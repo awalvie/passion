@@ -221,7 +221,7 @@ func (s *Server) handleExerciseDivergenceHint(w http.ResponseWriter, r *http.Req
 // handleExerciseLibraryHistory shows the full history page for a library exercise.
 func (s *Server) handleExerciseLibraryHistory(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	ownerID, ok := s.currentUserID(r)

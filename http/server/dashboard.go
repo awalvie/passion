@@ -19,11 +19,11 @@ func (s *Server) handleDashboardStartFromTemplate(w http.ResponseWriter, r *http
 		return
 	}
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 
@@ -35,7 +35,7 @@ func (s *Server) handleDashboardStartFromTemplate(w http.ResponseWriter, r *http
 
 	runID, err := s.startTrialRun(uint(templateID), ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -46,12 +46,12 @@ func (s *Server) handleDashboardStartFromTemplate(w http.ResponseWriter, r *http
 func (s *Server) handleStartSessionPicker(w http.ResponseWriter, r *http.Request) {
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 	var templates []db.SessionTemplate
 	if err := s.store.DB.Where("owner_id = ?", ownerID).Order("name asc").Find(&templates).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	s.pages.StartSessionPicker(w, pages.StartSessionPickerParams{Templates: templates})
@@ -71,7 +71,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		Order("name asc").
 		Find(&templates).Error
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -82,7 +82,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		Order("started_at desc").
 		Find(&activeRuns).Error
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -98,7 +98,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 			Where("id IN ?", arSSIDs).
 			Find(&arSessions).Error
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		arSSMap := map[uint]db.ScheduledSession{}
@@ -159,13 +159,13 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 
 	weekSessions, err := db.ListScheduledSessionsInRange(s.store.DB, ownerID, weekStart, weekEnd)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
 	monthSessions, err := db.ListScheduledSessionsInRange(s.store.DB, ownerID, monthCalendarStart, monthCalendarEnd)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -191,7 +191,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 			Where("id IN ? AND owner_id = ?", uniqueTplIDs, ownerID).
 			Find(&tplsWithExercises).Error
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		for _, tpl := range tplsWithExercises {
@@ -221,7 +221,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 			var cycles []db.TrainingCycle
 			err = s.store.DB.Where("id IN ?", uniqueCycleIDs).Find(&cycles).Error
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				s.serverError(w, r, err)
 				return
 			}
 			for _, c := range cycles {
@@ -241,7 +241,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		if err = s.store.DB.
 			Where("owner_id = ? AND status = ? AND scheduled_session_id IN ?", ownerID, db.RunStatusCompleted, ssIDs).
 			Find(&completedWeekRuns).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		for _, r := range completedWeekRuns {
@@ -255,7 +255,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	completedSSIDSet := map[uint]bool{}   // scheduled_session_id -> completed
 	completedMonthRuns, err := db.ListCompletedRunDatesInRange(s.store.DB, ownerID, monthCalendarStart, monthCalendarEnd)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	for _, r := range completedMonthRuns {
