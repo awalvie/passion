@@ -48,6 +48,7 @@ func (s *Server) Routes() http.Handler {
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	r.Group(func(pr chi.Router) {
+		pr.Use(s.csrfMiddleware)
 		pr.Use(s.authMiddleware)
 		pr.HandleFunc("/logout", s.handleLogout)
 		pr.HandleFunc("/dashboard", s.handleDashboard)
