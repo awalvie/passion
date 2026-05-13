@@ -46,6 +46,10 @@ func main() {
 	if cfgPath != "" {
 		slog.Info("config loaded", "path", cfgPath)
 	}
+	if err := cfg.Validate(); err != nil {
+		slog.Error("invalid config", "error", err)
+		os.Exit(1)
+	}
 
 	store, err := db.NewSqlite(cfg.Server.DBPath)
 	if err != nil {
@@ -102,19 +106,11 @@ func main() {
 		}
 	}
 
-	if strings.TrimSpace(cfg.Auth.JWTSecret) == "" {
-		slog.Error("jwt secret is required")
-		os.Exit(1)
-	}
 	if cfg.Auth.JWTSecret == "change-me-in-production" {
 		slog.Warn("jwt secret is set to the default example value — change it before deploying")
 	}
 	if cfg.Auth.DevAuthBypass {
 		slog.Warn("dev auth bypass is enabled — all requests are auto-authenticated; disable before deploying")
-	}
-	if cfg.Auth.JWTTTLHours <= 0 {
-		slog.Error("jwt ttl hours must be positive", "jwt_ttl_hours", cfg.Auth.JWTTTLHours)
-		os.Exit(1)
 	}
 
 	srv, err := web.NewServer(store, cfg.Auth.JWTSecret, time.Duration(cfg.Auth.JWTTTLHours)*time.Hour, cfg.Auth.DevAuthBypass, yamlImport)
