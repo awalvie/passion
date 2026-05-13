@@ -55,6 +55,57 @@ type CalendarCellSession struct {
 	Done      bool
 }
 
+// CalendarEventView is a user-defined calendar event (trip, injury, etc.) for template rendering.
+type CalendarEventView struct {
+	ID         uint
+	Title      string
+	Kind       string
+	Color      string
+	StartKey   string // YYYY-MM-DD
+	EndKey     string
+	StartLabel string // "May 20"
+	EndLabel   string
+	Notes      string
+	Blocks     bool
+	SpanDays   int
+}
+
+// CalendarEventColor returns the accent hex color for a given event kind.
+func CalendarEventColor(kind string) string {
+	switch kind {
+	case "trip":
+		return "#f97316"
+	case "injury":
+		return "#ef4444"
+	case "rest":
+		return "#8b5cf6"
+	case "competition":
+		return "#3b82f6"
+	default:
+		return "#6b7280"
+	}
+}
+
+// CycleConflictView describes a blocking event that overlaps a proposed cycle.
+type CycleConflictView struct {
+	EventTitle    string
+	EventColor    string
+	AffectedDates []string
+	AffectedLabel string // comma-joined AffectedDates for display
+	AffectedCount int
+}
+
+// ConflictWarningView is used by the dashboard banner to surface upcoming conflicts.
+type ConflictWarningView struct {
+	EventTitle   string
+	EventColor   string
+	StartLabel   string
+	EndLabel     string
+	SessionCount int
+	CycleName    string
+	CycleID      uint
+}
+
 type CalendarCell struct {
 	Day               int
 	InMonth           bool
@@ -63,6 +114,7 @@ type CalendarCell struct {
 	Sessions          []CalendarCellSession
 	CompletedCount    int
 	UnscheduledCount  int
+	Events            []CalendarEventView
 }
 
 type WeekColumn struct {
@@ -90,6 +142,7 @@ type CycleDayCellView struct {
 	SessionTemplateName  string
 	SessionTemplateColor string
 	HasSession           bool
+	Events               []CalendarEventView
 }
 
 type CycleWeekRowView struct {
@@ -332,21 +385,29 @@ type SignupParams struct {
 	AuthFormError string
 }
 
+// DraftLogEntryView represents an abandoned manual log draft shown on the dashboard.
+type DraftLogEntryView struct {
+	RunID     uint
+	DateLabel string // relative label, e.g. "Today", "Yesterday", "Mon Jan 20"
+}
+
 type DashboardParams struct {
 	Base
-	Templates       []db.SessionTemplate
-	ActiveRuns      []ActiveRunView
-	WeekSessions    []DashboardSession
-	WeekDayGroups   []DashboardDayGroup
-	WeekLabel       string
-	WeekPrevURL     string
-	WeekNextURL     string
-	CalendarCells   []CalendarCell
-	CalendarMonth   string
-	CalendarYear    string
-	CalendarWeekday []string
-	MonthPrevURL    string
-	MonthNextURL    string
+	Templates        []db.SessionTemplate
+	ActiveRuns       []ActiveRunView
+	DraftLogEntries  []DraftLogEntryView
+	WeekSessions     []DashboardSession
+	WeekDayGroups    []DashboardDayGroup
+	WeekLabel        string
+	WeekPrevURL      string
+	WeekNextURL      string
+	CalendarCells    []CalendarCell
+	CalendarMonth    string
+	CalendarYear     string
+	CalendarWeekday  []string
+	MonthPrevURL     string
+	MonthNextURL     string
+	ConflictWarnings []ConflictWarningView
 }
 
 type RunParams struct {
@@ -488,7 +549,9 @@ type TrainingCycleListParams struct {
 
 type NewTrainingCycleParams struct {
 	Base
-	Templates []db.SessionTemplate
+	Templates  []db.SessionTemplate
+	Conflicts  []CycleConflictView
+	FormValues map[string]string
 }
 
 // CycleWeekTargetView holds resolved targets for one week of a per-week override.
@@ -533,6 +596,18 @@ type TrainingCycleDetailParams struct {
 	CycleRows          []CycleWeekRowView
 	TotalScheduled     int
 	ExerciseOverrides  []CycleExerciseOverrideView
+	Events             []CalendarEventView
+}
+
+type CalendarPageParams struct {
+	Base
+	Cells           []CalendarCell
+	AllEvents       []CalendarEventView
+	CalendarMonth   string
+	CalendarYear    string
+	CalendarWeekday []string
+	MonthPrevURL    string
+	MonthNextURL    string
 }
 
 type ActivityTemplateListParams struct {
@@ -764,6 +839,7 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		{"pages/exercise_history_content", "exercise_history.html"},
 		{"pages/training_log_content", "training_log.html"},
 		{"pages/training_log_new_content", "training_log_new.html"},
+		{"pages/calendar_content", "calendar.html"},
 	}
 	for _, p := range pages {
 		pageTemplates[p.key], err = parsePage(filepath.Join("templates", p.file))
@@ -965,6 +1041,13 @@ func (p *Pages) TrainingLogNewPage(w http.ResponseWriter, params TrainingLogNewP
 	}
 	params.Authenticated = true
 	p.renderPage(w, "pages/training_log_new_content", params)
+}
+
+func (p *Pages) CalendarPage(w http.ResponseWriter, params CalendarPageParams) {
+	params.Title = "Calendar"
+	params.Authenticated = true
+	params.WideLayout = true
+	p.renderPage(w, "pages/calendar_content", params)
 }
 
 func (p *Pages) TrainingLogPage(w http.ResponseWriter, params TrainingLogPageParams) {
