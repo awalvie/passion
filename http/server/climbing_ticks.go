@@ -60,7 +60,7 @@ func ticksToViews(ticks []db.ClimbingTick) []pages.ClimbingTickView {
 func (s *Server) handleExerciseTicks(w http.ResponseWriter, r *http.Request) {
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 
@@ -87,25 +87,25 @@ func (s *Server) handleExerciseTicks(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 	}
 
 	switch r.Method {
 	case http.MethodGet:
-		s.serveExerciseTicks(w, ownerID, runID, exerciseID)
+		s.serveExerciseTicks(w, r, ownerID, runID, exerciseID)
 	case http.MethodPost:
 		s.createExerciseTick(w, r, ownerID, runID, exerciseID)
 	default:
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 	}
 }
 
-func (s *Server) serveExerciseTicks(w http.ResponseWriter, ownerID, runID, exerciseID uint) {
+func (s *Server) serveExerciseTicks(w http.ResponseWriter, r *http.Request, ownerID, runID, exerciseID uint) {
 	ticks, err := db.ListClimbingTicksByExercise(s.store.DB, ownerID, runID, exerciseID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	s.pages.RenderExerciseTicks(w, pages.ExerciseTicksParams{
@@ -158,22 +158,22 @@ func (s *Server) createExerciseTick(w http.ResponseWriter, r *http.Request, owne
 	}
 
 	if err := db.CreateClimbingTick(s.store.DB, tick); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
-	s.serveExerciseTicks(w, ownerID, runID, exerciseID)
+	s.serveExerciseTicks(w, r, ownerID, runID, exerciseID)
 }
 
 // handleExerciseTickDelete serves POST /runs/{runID}/exercises/{exerciseID}/ticks/{tickID}/delete.
 func (s *Server) handleExerciseTickDelete(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 
@@ -194,11 +194,11 @@ func (s *Server) handleExerciseTickDelete(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := db.DeleteClimbingTick(s.store.DB, ownerID, uint(tickID)); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
-	s.serveExerciseTicks(w, ownerID, runID, exerciseID)
+	s.serveExerciseTicks(w, r, ownerID, runID, exerciseID)
 }
 
 // ---------------------------------------------------------------------------
@@ -261,7 +261,7 @@ func (s *Server) loadVenuesAndBoards(ownerID uint) ([]pages.ClimbingVenueView, [
 func (s *Server) handleProfileVenues(w http.ResponseWriter, r *http.Request) {
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 
@@ -282,14 +282,14 @@ func (s *Server) handleProfileVenues(w http.ResponseWriter, r *http.Request) {
 		if err := db.CreateClimbingVenue(s.store.DB, &db.ClimbingVenue{
 			OwnerID: ownerID, Name: name, Kind: kind,
 		}); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 	}
 
 	vv, _, err := s.loadVenuesAndBoards(ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	s.pages.RenderVenuesList(w, pages.ProfileParams{Venues: vv})
@@ -298,12 +298,12 @@ func (s *Server) handleProfileVenues(w http.ResponseWriter, r *http.Request) {
 // handleProfileVenueDelete serves POST /profile/venues/{venueID}/delete.
 func (s *Server) handleProfileVenueDelete(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 	id, err := parseUintParam(r, "venueID")
@@ -312,12 +312,12 @@ func (s *Server) handleProfileVenueDelete(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if err := db.DeleteClimbingVenue(s.store.DB, ownerID, uint(id)); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	vv, _, err := s.loadVenuesAndBoards(ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	s.pages.RenderVenuesList(w, pages.ProfileParams{Venues: vv})
@@ -327,7 +327,7 @@ func (s *Server) handleProfileVenueDelete(w http.ResponseWriter, r *http.Request
 func (s *Server) handleProfileBoards(w http.ResponseWriter, r *http.Request) {
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 
@@ -346,14 +346,14 @@ func (s *Server) handleProfileBoards(w http.ResponseWriter, r *http.Request) {
 			BoardType: boardType,
 			Name:      strings.TrimSpace(r.FormValue("name")),
 		}); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 	}
 
 	_, bv, err := s.loadVenuesAndBoards(ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	s.pages.RenderBoardsList(w, pages.ProfileParams{Boards: bv})
@@ -362,12 +362,12 @@ func (s *Server) handleProfileBoards(w http.ResponseWriter, r *http.Request) {
 // handleProfileBoardDelete serves POST /profile/boards/{boardID}/delete.
 func (s *Server) handleProfileBoardDelete(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 	id, err := parseUintParam(r, "boardID")
@@ -376,12 +376,12 @@ func (s *Server) handleProfileBoardDelete(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if err := db.DeleteClimbingBoard(s.store.DB, ownerID, uint(id)); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	_, bv, err := s.loadVenuesAndBoards(ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	s.pages.RenderBoardsList(w, pages.ProfileParams{Boards: bv})

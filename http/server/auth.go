@@ -36,7 +36,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	case http.MethodPost:
 		if err := r.ParseForm(); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			s.badRequest(w, "bad request")
 			return
 		}
 		email := strings.TrimSpace(strings.ToLower(r.FormValue("email")))
@@ -57,14 +57,14 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := s.setAuthCookie(w, user.ID); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		w.Header().Set("HX-Redirect", "/dashboard")
 		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 		return
 	default:
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 	}
 }
 
@@ -75,7 +75,7 @@ func (s *Server) handleSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	case http.MethodPost:
 		if err := r.ParseForm(); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			s.badRequest(w, "bad request")
 			return
 		}
 		email := strings.TrimSpace(strings.ToLower(r.FormValue("email")))
@@ -101,7 +101,7 @@ func (s *Server) handleSignup(w http.ResponseWriter, r *http.Request) {
 
 		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		user := &db.User{
@@ -109,7 +109,7 @@ func (s *Server) handleSignup(w http.ResponseWriter, r *http.Request) {
 			PasswordHash: string(hash),
 		}
 		if err := s.store.DB.Create(user).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		if s.yamlImport != nil {
@@ -120,20 +120,20 @@ func (s *Server) handleSignup(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if err := s.setAuthCookie(w, user.ID); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		w.Header().Set("HX-Redirect", "/dashboard")
 		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 		return
 	default:
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 	}
 }
 
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	http.SetCookie(w, &http.Cookie{

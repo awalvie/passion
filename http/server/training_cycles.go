@@ -23,7 +23,7 @@ func (s *Server) handleTrainingCycles(w http.ResponseWriter, r *http.Request) {
 		Order("id desc").
 		Find(&cycles).Error
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -43,7 +43,7 @@ func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request)
 	case http.MethodGet:
 		templates, err := s.listTemplates(ownerID)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 
@@ -54,7 +54,7 @@ func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request)
 		return
 	case http.MethodPost:
 		if err := r.ParseForm(); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			s.badRequest(w, "bad request")
 			return
 		}
 
@@ -86,7 +86,7 @@ func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request)
 
 		templates, err := s.listTemplates(ownerID)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		allowedTemplateIDs := map[uint]bool{}
@@ -101,7 +101,7 @@ func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request)
 			Weeks:     weeks,
 		}
 		if err := s.store.DB.Create(cycle).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 
@@ -146,7 +146,7 @@ func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request)
 		}
 
 		if err := s.store.DB.Create(&mappingRows).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 
@@ -167,7 +167,7 @@ func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request)
 					SessionTemplateID: mr.SessionTemplateID,
 				}
 				if err := s.store.DB.Create(ss).Error; err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
+					s.serverError(w, r, err)
 					return
 				}
 			}
@@ -176,7 +176,7 @@ func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request)
 		http.Redirect(w, r, "/training-cycles/"+strconv.FormatUint(uint64(cycle.ID), 10), http.StatusSeeOther)
 		return
 	default:
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 	}
 }
 
@@ -196,7 +196,7 @@ func (s *Server) handleTrainingCyclesByID(w http.ResponseWriter, r *http.Request
 	// Detail page: GET /training-cycles/{id}
 	if action == "" {
 		if r.Method != http.MethodGet {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		s.renderTrainingCycleDetail(w, r, cycleID, ownerID)
@@ -250,7 +250,7 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 	// Load available templates for "Add" controls.
 	templates, err := s.listTemplates(ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -261,7 +261,7 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 			ownerID, cycleID, gridStart, gridEnd).
 		Order("scheduled_date asc").
 		Find(&scheduled).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -318,7 +318,7 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 
 func (s *Server) handleTrainingCycleMove(w http.ResponseWriter, r *http.Request, cycleID uint, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 
@@ -347,13 +347,13 @@ func (s *Server) handleTrainingCycleMove(w http.ResponseWriter, r *http.Request,
 	if err := s.store.DB.
 		Where("owner_id = ? AND id = ? AND training_cycle_id = ?", ownerID, scheduledSessionID, cycleID).
 		First(&ss).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		s.notFound(w)
 		return
 	}
 
 	ss.ScheduledDate = parsed
 	if err := s.store.DB.Save(&ss).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -363,7 +363,7 @@ func (s *Server) handleTrainingCycleMove(w http.ResponseWriter, r *http.Request,
 
 func (s *Server) handleTrainingCycleAdd(w http.ResponseWriter, r *http.Request, cycleID uint, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 
@@ -384,7 +384,7 @@ func (s *Server) handleTrainingCycleAdd(w http.ResponseWriter, r *http.Request, 
 	if err := s.store.DB.
 		Where("owner_id = ? AND id = ?", ownerID, templateID).
 		First(&tpl).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		s.notFound(w)
 		return
 	}
 
@@ -404,7 +404,7 @@ func (s *Server) handleTrainingCycleAdd(w http.ResponseWriter, r *http.Request, 
 	if err == nil {
 		existing.SessionTemplateID = uint(tpl.ID)
 		if err := s.store.DB.Save(&existing).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		w.Header().Set("HX-Redirect", "/training-cycles/"+strconv.FormatUint(uint64(cycleID), 10))
@@ -419,7 +419,7 @@ func (s *Server) handleTrainingCycleAdd(w http.ResponseWriter, r *http.Request, 
 		SessionTemplateID: uint(tpl.ID),
 	}
 	if err := s.store.DB.Create(ss).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -429,7 +429,7 @@ func (s *Server) handleTrainingCycleAdd(w http.ResponseWriter, r *http.Request, 
 
 func (s *Server) handleTrainingCycleRemove(w http.ResponseWriter, r *http.Request, cycleID uint, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 
@@ -449,7 +449,7 @@ func (s *Server) handleTrainingCycleRemove(w http.ResponseWriter, r *http.Reques
 	if err := s.store.DB.
 		Where("owner_id = ? AND id = ? AND training_cycle_id = ?", ownerID, scheduledSessionID, cycleID).
 		Delete(&db.ScheduledSession{}).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -606,7 +606,7 @@ func (s *Server) buildCycleExerciseOverrides(cycleID uint, ownerID uint, cycleWe
 // handleCycleOverrideSave upserts a CycleExerciseOverride for one exercise (silent auto-save).
 func (s *Server) handleCycleOverrideSave(w http.ResponseWriter, r *http.Request, cycleID uint, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 	exName := strings.TrimSpace(r.FormValue("exercise_name"))
@@ -651,7 +651,7 @@ func (s *Server) handleCycleOverrideSave(w http.ResponseWriter, r *http.Request,
 // handleCycleOverrideClear deletes the CycleExerciseOverride and all week overrides for one exercise.
 func (s *Server) handleCycleOverrideClear(w http.ResponseWriter, r *http.Request, cycleID uint, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 	exName := strings.TrimSpace(r.FormValue("exercise_name"))
@@ -681,11 +681,11 @@ func (s *Server) handleCycleOverrideClear(w http.ResponseWriter, r *http.Request
 func (s *Server) handleCycleWeekOverrideSave(w http.ResponseWriter, r *http.Request) {
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	cycleID, err := parseUintParam(r, "cycleID")
@@ -694,7 +694,7 @@ func (s *Server) handleCycleWeekOverrideSave(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 	exName := strings.TrimSpace(r.FormValue("exercise_name"))
@@ -727,11 +727,11 @@ func (s *Server) handleCycleWeekOverrideSave(w http.ResponseWriter, r *http.Requ
 func (s *Server) handleCycleWeekOverrideToggle(w http.ResponseWriter, r *http.Request) {
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	cycleID, err := parseUintParam(r, "cycleID")
@@ -740,7 +740,7 @@ func (s *Server) handleCycleWeekOverrideToggle(w http.ResponseWriter, r *http.Re
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 	exName := strings.TrimSpace(r.FormValue("exercise_name"))

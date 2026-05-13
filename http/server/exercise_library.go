@@ -14,7 +14,7 @@ import (
 
 func (s *Server) handleExerciseLibraryIndex(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 
@@ -81,7 +81,7 @@ func (s *Server) handleExerciseLibraryIndex(w http.ResponseWriter, r *http.Reque
 		Offset((page - 1) * pageSize).
 		Find(&rows).Error
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -143,7 +143,7 @@ func (s *Server) handleExerciseLibraryNew(w http.ResponseWriter, r *http.Request
 		return
 	case http.MethodPost:
 		if err := r.ParseForm(); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			s.badRequest(w, "bad request")
 			return
 		}
 		row, errMsg := s.libraryExerciseFromForm(r, nil)
@@ -157,20 +157,20 @@ func (s *Server) handleExerciseLibraryNew(w http.ResponseWriter, r *http.Request
 		}
 		row.OwnerID = ownerID
 		if err := s.store.DB.Create(row).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 
 		// Sync media for the library exercise.
 		if err := s.syncLibraryExerciseMediaFromForm(r, row.ID, ownerID); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 
 		// Create child library exercises for exercise_catalog.
 		if row.Kind == "exercise_catalog" {
 			if err := s.syncLibraryCatalogChildren(r, row.ID, ownerID); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				s.serverError(w, r, err)
 				return
 			}
 		}
@@ -179,7 +179,7 @@ func (s *Server) handleExerciseLibraryNew(w http.ResponseWriter, r *http.Request
 		w.WriteHeader(http.StatusOK)
 		return
 	default:
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 	}
 }
 
@@ -201,7 +201,7 @@ func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Reques
 	switch action {
 	case "edit":
 		if r.Method != http.MethodGet {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		var row db.LibraryExercise
@@ -227,11 +227,11 @@ func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Reques
 		return
 	case "update":
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		if err := r.ParseForm(); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			s.badRequest(w, "bad request")
 			return
 		}
 		var existing db.LibraryExercise
@@ -269,20 +269,20 @@ func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Reques
 		existing.RungSeconds = row.RungSeconds
 		existing.WeightKg = row.WeightKg
 		if err := s.store.DB.Save(&existing).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 
 		// Sync media for the library exercise.
 		if err := s.syncLibraryExerciseMediaFromForm(r, existing.ID, ownerID); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 
 		// Sync catalog children: delete old, re-create from form.
 		if existing.Kind == "exercise_catalog" {
 			if err := s.syncLibraryCatalogChildren(r, existing.ID, ownerID); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				s.serverError(w, r, err)
 				return
 			}
 		} else {
@@ -299,7 +299,7 @@ func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Reques
 		return
 	case "delete":
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		// Delete children first (catalog options), then the parent.
@@ -308,7 +308,7 @@ func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Reques
 		if err := s.store.DB.
 			Where("owner_id = ? AND id = ?", ownerID, id).
 			Delete(&db.LibraryExercise{}).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		w.Header().Set("HX-Redirect", "/exercise-library")
@@ -324,11 +324,11 @@ func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Reques
 // library dropdown refreshes immediately.
 func (s *Server) handleSaveToLibraryFromActivity(w http.ResponseWriter, r *http.Request, activityID uint, ownerID uint) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 	row, errMsg := s.libraryExerciseFromForm(r, nil)
@@ -338,15 +338,15 @@ func (s *Server) handleSaveToLibraryFromActivity(w http.ResponseWriter, r *http.
 	}
 	row.OwnerID = ownerID
 	if err := s.store.DB.Create(row).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	act, err := s.loadActivityExercises(activityID, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
-	s.renderExercisesWithPreview(w, act, ownerID)
+	s.renderExercisesWithPreview(w, r, act, ownerID)
 }
 
 // libraryExerciseFromForm parses POST fields into a LibraryExercise. If base is non-nil, missing name uses base.Name.

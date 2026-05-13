@@ -12,7 +12,7 @@ import (
 
 func (s *Server) handleAddActivity(w http.ResponseWriter, r *http.Request, templateID uint, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 
@@ -24,7 +24,7 @@ func (s *Server) handleAddActivity(w http.ResponseWriter, r *http.Request, templ
 
 	orderIndex, err := s.nextActivityOrder(templateID, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -35,17 +35,17 @@ func (s *Server) handleAddActivity(w http.ResponseWriter, r *http.Request, templ
 		OrderIndex:        orderIndex,
 	}
 	if err := s.store.DB.Create(act).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
 	tpl, err := s.loadTemplateWithGraph(templateID, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
-	s.renderActivitiesWithPreview(w, tpl, ownerID)
+	s.renderActivitiesWithPreview(w, r, tpl, ownerID)
 }
 
 func (s *Server) handleActivitiesByID(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +67,7 @@ func (s *Server) handleActivitiesByID(w http.ResponseWriter, r *http.Request) {
 	switch action {
 	case "exercises":
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		subaction := chi.URLParam(r, "subaction")
@@ -91,10 +91,10 @@ func (s *Server) handleActivitiesByID(w http.ResponseWriter, r *http.Request) {
 		return
 	case "delete":
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
-		s.handleDeleteActivity(w, uint(activityID), ownerID)
+		s.handleDeleteActivity(w, r, uint(activityID), ownerID)
 		return
 	default:
 		http.NotFound(w, r)
@@ -104,7 +104,7 @@ func (s *Server) handleActivitiesByID(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleAddActivityFromTemplate(w http.ResponseWriter, r *http.Request, templateID uint, ownerID uint) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 
@@ -122,13 +122,13 @@ func (s *Server) handleAddActivityFromTemplate(w http.ResponseWriter, r *http.Re
 
 	at, err := db.GetActivityTemplateWithExercises(s.store.DB, ownerID, atID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		s.notFound(w)
 		return
 	}
 
 	orderIndex, err := s.nextActivityOrder(templateID, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -139,7 +139,7 @@ func (s *Server) handleAddActivityFromTemplate(w http.ResponseWriter, r *http.Re
 		OrderIndex:        orderIndex,
 	}
 	if err := s.store.DB.Create(act).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -166,11 +166,11 @@ func (s *Server) handleAddActivityFromTemplate(w http.ResponseWriter, r *http.Re
 			OrderIndex:             ex.OrderIndex,
 		}
 		if err := s.store.DB.Create(&newEx).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		if err := s.copyMediaToExercise(ex.Media, newEx.ID, ownerID); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		oldToNew[ex.ID] = newEx.ID
@@ -201,50 +201,50 @@ func (s *Server) handleAddActivityFromTemplate(w http.ResponseWriter, r *http.Re
 			OrderIndex:             ex.OrderIndex,
 		}
 		if err := s.store.DB.Create(&newEx).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		if err := s.copyMediaToExercise(ex.Media, newEx.ID, ownerID); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 	}
 
 	tpl, err := s.loadTemplateWithGraph(templateID, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
-	s.renderActivitiesWithPreview(w, tpl, ownerID)
+	s.renderActivitiesWithPreview(w, r, tpl, ownerID)
 }
 
-func (s *Server) handleDeleteActivity(w http.ResponseWriter, activityID uint, ownerID uint) {
+func (s *Server) handleDeleteActivity(w http.ResponseWriter, r *http.Request, activityID uint, ownerID uint) {
 	var act db.Activity
 	if err := s.store.DB.
 		Where("owner_id = ? AND id = ?", ownerID, activityID).
 		First(&act).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		s.notFound(w)
 		return
 	}
 
 	if err := s.store.DB.
 		Where("owner_id = ? AND activity_id = ?", ownerID, activityID).
 		Delete(&db.Exercise{}).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
 	if err := s.store.DB.
 		Where("owner_id = ? AND id = ?", ownerID, activityID).
 		Delete(&db.Activity{}).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
 	tpl, err := s.loadTemplateWithGraph(act.SessionTemplateID, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
-	s.renderActivitiesWithPreview(w, tpl, ownerID)
+	s.renderActivitiesWithPreview(w, r, tpl, ownerID)
 }

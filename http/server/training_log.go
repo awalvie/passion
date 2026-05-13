@@ -56,7 +56,7 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 		Where("owner_id = ? AND status = ? AND is_draft = ?", ownerID, db.RunStatusCompleted, false).
 		Order("started_at desc").
 		Find(&runs).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -73,7 +73,7 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 			Preload("SessionTemplate").
 			Where("id IN ?", ssIDs).
 			Find(&ssList).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		for _, ss := range ssList {
@@ -84,7 +84,7 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 	// Load all journals for this user; split into run-linked and standalone.
 	journals, err := db.ListSessionJournals(s.store.DB, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	journalByRun := map[uint]db.SessionJournal{}
@@ -340,7 +340,7 @@ func (s *Server) buildAdherenceView(ownerID uint) ([]pages.AdherenceWeekView, st
 func (s *Server) handleRunJournal(w http.ResponseWriter, r *http.Request) {
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 
@@ -357,7 +357,7 @@ func (s *Server) handleRunJournal(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -367,14 +367,14 @@ func (s *Server) handleRunJournal(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		s.saveJournal(w, r, ownerID, runID)
 	default:
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 	}
 }
 
 func (s *Server) serveJournalForm(w http.ResponseWriter, r *http.Request, ownerID, runID uint, saved bool) {
 	j, err := db.GetSessionJournalByRunID(s.store.DB, ownerID, runID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -404,7 +404,7 @@ func (s *Server) saveJournal(w http.ResponseWriter, r *http.Request, ownerID, ru
 	// Look up existing journal (upsert).
 	existing, err := db.GetSessionJournalByRunID(s.store.DB, ownerID, runID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -424,7 +424,7 @@ func (s *Server) saveJournal(w http.ResponseWriter, r *http.Request, ownerID, ru
 	}
 
 	if err := db.UpsertSessionJournal(s.store.DB, &j); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -450,7 +450,7 @@ func (s *Server) handleTrainingLogNew(w http.ResponseWriter, r *http.Request) {
 	// GET: create a draft run anchored to the open-session system template.
 	tpl, err := s.getOrCreateOpenSessionTemplate(ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	now := time.Now()
@@ -461,23 +461,23 @@ func (s *Server) handleTrainingLogNew(w http.ResponseWriter, r *http.Request) {
 		SessionTemplateID: tpl.ID,
 	}
 	if err := s.store.DB.Create(scheduled).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	draft, err := db.CreateDraftSessionRun(s.store.DB, ownerID, scheduled.ID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
 	libExercises, err := db.ListLibraryExercises(s.store.DB, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	venues, boards, err := s.loadVenuesAndBoards(ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -512,7 +512,7 @@ func (s *Server) finaliseManualEntry(w http.ResponseWriter, r *http.Request, own
 	if parseErr == nil && runID > 0 {
 		customName := strings.TrimSpace(r.FormValue("title"))
 		if err := db.FinaliseDraftRun(s.store.DB, ownerID, runID, customName, date); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 	} else {
@@ -565,7 +565,7 @@ func (s *Server) finaliseManualEntry(w http.ResponseWriter, r *http.Request, own
 	}
 
 	if err := db.UpsertSessionJournal(s.store.DB, &j); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -575,12 +575,12 @@ func (s *Server) finaliseManualEntry(w http.ResponseWriter, r *http.Request, own
 // handleTrainingLogDraftDiscard serves POST /training-log/draft/{runID}/discard.
 func (s *Server) handleTrainingLogDraftDiscard(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 	runID, err := parseUintParam(r, "runID")
@@ -589,7 +589,7 @@ func (s *Server) handleTrainingLogDraftDiscard(w http.ResponseWriter, r *http.Re
 		return
 	}
 	if err := db.DeleteDraftRun(s.store.DB, ownerID, runID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	http.Redirect(w, r, "/training-log", http.StatusSeeOther)
@@ -598,12 +598,12 @@ func (s *Server) handleTrainingLogDraftDiscard(w http.ResponseWriter, r *http.Re
 // handleTrainingLogAddExercise serves POST /training-log/draft/{runID}/exercises.
 func (s *Server) handleTrainingLogAddExercise(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 	runID, err := parseUintParam(r, "runID")
@@ -646,22 +646,22 @@ func (s *Server) handleTrainingLogAddExercise(w http.ResponseWriter, r *http.Req
 	}
 
 	if _, err := db.AddManualExercise(s.store.DB, ownerID, runID, name, libExerciseID, kind); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
-	s.renderManualExercises(w, ownerID, runID)
+	s.renderManualExercises(w, r, ownerID, runID)
 }
 
 // handleTrainingLogSaveExerciseCompletion serves POST /training-log/draft/{runID}/exercises/{exerciseID}/save.
 func (s *Server) handleTrainingLogSaveExerciseCompletion(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 	runID, err := parseUintParam(r, "runID")
@@ -683,7 +683,7 @@ func (s *Server) handleTrainingLogSaveExerciseCompletion(w http.ResponseWriter, 
 		formInt(r, "sets"), formInt(r, "reps"), formFloat(r, "weight_kg"),
 		strings.TrimSpace(r.FormValue("notes")),
 	); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -692,12 +692,12 @@ func (s *Server) handleTrainingLogSaveExerciseCompletion(w http.ResponseWriter, 
 // handleTrainingLogDeleteExercise serves POST /training-log/draft/{runID}/exercises/{exerciseID}/delete.
 func (s *Server) handleTrainingLogDeleteExercise(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 	runID, err := parseUintParam(r, "runID")
@@ -711,22 +711,22 @@ func (s *Server) handleTrainingLogDeleteExercise(w http.ResponseWriter, r *http.
 		return
 	}
 	if err := db.DeleteManualExercise(s.store.DB, ownerID, runID, exerciseID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
-	s.renderManualExercises(w, ownerID, runID)
+	s.renderManualExercises(w, r, ownerID, runID)
 }
 
 // renderManualExercises renders the manual exercises container fragment.
-func (s *Server) renderManualExercises(w http.ResponseWriter, ownerID, runID uint) {
+func (s *Server) renderManualExercises(w http.ResponseWriter, r *http.Request, ownerID, runID uint) {
 	exs, err := db.ListExercisesForRun(s.store.DB, ownerID, runID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	libExercises, err := db.ListLibraryExercises(s.store.DB, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	views := make([]pages.ManualExerciseView, 0, len(exs))
@@ -771,7 +771,7 @@ func (s *Server) handleTrainingLogEdit(w http.ResponseWriter, r *http.Request) {
 
 	j, err := db.GetSessionJournalByID(s.store.DB, ownerID, uint(journalID))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	if j == nil {
@@ -846,7 +846,7 @@ func (s *Server) updateJournal(w http.ResponseWriter, r *http.Request, ownerID u
 	}
 
 	if err := db.UpsertSessionJournal(s.store.DB, j); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -857,7 +857,7 @@ func (s *Server) updateJournal(w http.ResponseWriter, r *http.Request, ownerID u
 func (s *Server) handleTrainingLogDelete(w http.ResponseWriter, r *http.Request) {
 	ownerID, ok := s.currentUserID(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.unauthorizedRedirect(w, r)
 		return
 	}
 
@@ -868,7 +868,7 @@ func (s *Server) handleTrainingLogDelete(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := db.DeleteSessionJournal(s.store.DB, ownerID, uint(journalID)); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 

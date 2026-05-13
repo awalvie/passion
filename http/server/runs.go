@@ -32,7 +32,7 @@ func (s *Server) handleRunsByID(w http.ResponseWriter, r *http.Request) {
 	// GET /runs/{runID}
 	if exerciseParam == "" {
 		if r.Method != http.MethodGet {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			s.methodNotAllowed(w)
 			return
 		}
 		s.renderRun(w, r, runID, ownerID)
@@ -41,7 +41,7 @@ func (s *Server) handleRunsByID(w http.ResponseWriter, r *http.Request) {
 
 	// POST /runs/{runID}/exercises/{exerciseID}/complete|skip
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	exerciseID64, err := strconv.ParseUint(exerciseParam, 10, 64)
@@ -54,7 +54,7 @@ func (s *Server) handleRunsByID(w http.ResponseWriter, r *http.Request) {
 		action = "skip"
 	}
 	if err := s.completeRunExercise(w, r, runID, uint(exerciseID64), action, ownerID); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 	return
@@ -65,7 +65,7 @@ func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, o
 	if err := s.store.DB.
 		Where("owner_id = ? AND id = ?", ownerID, runID).
 		First(&run).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		s.notFound(w)
 		return
 	}
 
@@ -77,7 +77,7 @@ func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, o
 
 	ss, err := db.GetScheduledSessionWithTemplate(s.store.DB, ownerID, run.ScheduledSessionID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -90,7 +90,7 @@ func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, o
 	if err := s.store.DB.
 		Where("owner_id = ? AND run_id = ?", ownerID, runID).
 		Find(&completions).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -150,12 +150,12 @@ func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, o
 		var err error
 		libExercises, err = db.ListLibraryExercises(s.store.DB, ownerID)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 		activityTemplates, err = db.ListActivityTemplatesWithExercises(s.store.DB, ownerID)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 	}
@@ -188,7 +188,7 @@ func (s *Server) renderOpenSession(w http.ResponseWriter, r *http.Request, run d
 	if err := s.store.DB.
 		Where("owner_id = ? AND run_id = ?", ownerID, runID).
 		Find(&completions).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -214,12 +214,12 @@ func (s *Server) renderOpenSession(w http.ResponseWriter, r *http.Request, run d
 
 	libExercises, err := db.ListLibraryExercises(s.store.DB, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	activityTemplates, err := db.ListActivityTemplatesWithExercises(s.store.DB, ownerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -366,7 +366,7 @@ func (s *Server) completeRunExercise(w http.ResponseWriter, r *http.Request, run
 
 func (s *Server) handleRunExerciseChoose(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	ownerID, ok := s.currentUserID(r)
@@ -408,13 +408,13 @@ func (s *Server) handleRunExerciseChoose(w http.ResponseWriter, r *http.Request)
 	if err := s.store.DB.
 		Where("owner_id = ? AND id = ?", ownerID, runID).
 		First(&run).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		s.notFound(w)
 		return
 	}
 
 	ss, err := db.GetScheduledSessionWithTemplate(s.store.DB, ownerID, run.ScheduledSessionID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -446,7 +446,7 @@ func (s *Server) handleRunExerciseChoose(w http.ResponseWriter, r *http.Request)
 	if err := s.store.DB.
 		Where("owner_id = ? AND run_id = ?", ownerID, runID).
 		Find(&completions).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	completedByID := map[uint]bool{}
@@ -470,7 +470,7 @@ func (s *Server) handleRunExerciseChoose(w http.ResponseWriter, r *http.Request)
 	if err := s.store.DB.
 		Where("owner_id = ? AND run_id = ? AND parent_exercise_id = ?", ownerID, runID, parentID).
 		Delete(&db.RunExerciseChoice{}).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 	for _, cid := range childIDs {
@@ -481,7 +481,7 @@ func (s *Server) handleRunExerciseChoose(w http.ResponseWriter, r *http.Request)
 			ChosenExerciseID: cid,
 		}
 		if err := s.store.DB.Create(row).Error; err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.serverError(w, r, err)
 			return
 		}
 	}
@@ -724,7 +724,7 @@ func (s *Server) handleRunStop(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	runID, err := parseUintParam(r, "runID")
@@ -735,7 +735,7 @@ func (s *Server) handleRunStop(w http.ResponseWriter, r *http.Request) {
 
 	var run db.SessionRun
 	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, runID).First(&run).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		s.notFound(w)
 		return
 	}
 	if run.Status != db.RunStatusRunning {
@@ -747,7 +747,7 @@ func (s *Server) handleRunStop(w http.ResponseWriter, r *http.Request) {
 	run.Status = db.RunStatusCompleted
 	run.CompletedAt = &now
 	if err := s.store.DB.Save(&run).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -766,11 +766,11 @@ func (s *Server) handleRunDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		s.methodNotAllowed(w)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.badRequest(w, "bad request")
 		return
 	}
 	runID, err := parseUintParam(r, "runID")
@@ -781,7 +781,7 @@ func (s *Server) handleRunDelete(w http.ResponseWriter, r *http.Request) {
 
 	var run db.SessionRun
 	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, runID).First(&run).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		s.notFound(w)
 		return
 	}
 
@@ -823,7 +823,7 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 
 	ss, err := db.GetScheduledSessionWithTemplate(s.store.DB, ownerID, run.ScheduledSessionID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.serverError(w, r, err)
 		return
 	}
 
