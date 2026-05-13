@@ -17,6 +17,14 @@
         </span>
       </div>
     </div>
+    <button
+      type="button"
+      onclick="document.getElementById('add-event-dialog').showModal()"
+      class="rounded-md btn-ghost px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 shrink-0"
+    >
+      <i data-lucide="calendar-plus" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+      Add event
+    </button>
   </div>
 
   {{/* ── Desktop: calendar grid ── */}}
@@ -45,6 +53,14 @@
             {{ if .HasSession }}style="background: var(--accent-bg)"{{ else if .IsWeekend }}style="opacity: 0.5"{{ end }}
           >
             <div class="text-xs font-semibold leading-tight">{{ .DayNum }}</div>
+            {{ range .Events }}
+            <span class="inline-flex items-center gap-1 mt-0.5 px-1 py-0.5 rounded text-[10px] font-medium truncate max-w-full cursor-pointer"
+                  style="background:{{ .Color }}22;color:{{ .Color }};border:1px solid {{ .Color }}44"
+                  onclick="openEditEventDialog({{ .ID }})"
+                  title="{{ .Title }}">
+              {{ .Title }}
+            </span>
+            {{ end }}
             {{ if .HasSession }}
               <div
                 class="session-card dnd-item mt-1 rounded-md px-1.5 py-1 text-xs relative"
@@ -94,6 +110,14 @@
               data-day-number="{{ .DayNumber }}"
             >
               <div class="w-14 shrink-0 text-xs {{ if .IsWeekend }}muted{{ else }}font-medium{{ end }}">{{ .DateLabel }}</div>
+              {{ range .Events }}
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium cursor-pointer"
+                    style="background:{{ .Color }}22;color:{{ .Color }};border:1px solid {{ .Color }}44"
+                    onclick="openEditEventDialog({{ .ID }})"
+                    title="{{ .Title }}">
+                {{ .Title }}
+              </span>
+              {{ end }}
               {{ if .HasSession }}
                 <div
                   class="flex flex-1 items-center justify-between gap-2 rounded-md border px-2.5 py-1.5 min-w-0"
@@ -315,6 +339,129 @@
   }
   </script>
 
+  {{/* ── Add-event dialog ── */}}
+  <dialog id="add-event-dialog" class="catalog-dialog">
+    <div class="catalog-dialog-panel">
+      <div class="catalog-dialog-body">
+        <div class="flex items-start justify-between gap-3">
+          <h3 class="m-0 text-base font-semibold">Add calendar event</h3>
+          <form method="dialog">
+            <button type="submit" class="rounded-md btn-ghost px-3 py-1 text-sm font-medium">Close</button>
+          </form>
+        </div>
+        <form method="post" action="/calendar-events" class="mt-4 space-y-3">
+          <div>
+            <label class="block text-xs font-medium muted mb-1" for="new-event-title">Title</label>
+            <input id="new-event-title" name="title" type="text" required class="w-full input text-sm" placeholder="e.g., Fontainebleau trip" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium muted mb-1" for="new-event-kind">Type</label>
+              <select id="new-event-kind" name="kind" class="w-full input text-sm">
+                <option value="trip">Trip</option>
+                <option value="injury">Injury</option>
+                <option value="rest">Rest / Deload</option>
+                <option value="competition">Competition</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <span class="block text-xs font-medium mb-1 invisible" aria-hidden="true">Type</span>
+              <div class="flex h-[2.25rem] items-center">
+                <label class="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                  <input type="checkbox" name="blocks" checked class="rounded" />
+                  Blocks training
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium muted mb-1" for="new-event-start">Start</label>
+              <input id="new-event-start" name="start_date" type="date" required class="w-full input text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium muted mb-1" for="new-event-end">End</label>
+              <input id="new-event-end" name="end_date" type="date" required class="w-full input text-sm" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium muted mb-1" for="new-event-notes">Notes</label>
+            <textarea id="new-event-notes" name="notes" rows="2" class="w-full input text-sm resize-none" placeholder="Optional details…"></textarea>
+          </div>
+          <button type="submit" class="w-full rounded-md btn-primary px-4 py-2 text-sm font-medium">Save event</button>
+        </form>
+      </div>
+    </div>
+  </dialog>
+
+  {{/* ── Per-event edit dialogs ── */}}
+  {{ range .Events }}
+  <dialog id="edit-event-dialog-{{ .ID }}" class="catalog-dialog">
+    <div class="catalog-dialog-panel">
+      <div class="catalog-dialog-body">
+        <div class="flex items-start justify-between gap-3">
+          <h3 class="m-0 text-base font-semibold">Edit event</h3>
+          <form method="dialog">
+            <button type="submit" class="rounded-md btn-ghost px-3 py-1 text-sm font-medium">Close</button>
+          </form>
+        </div>
+        <form method="post" action="/calendar-events/{{ .ID }}/update" class="mt-4 space-y-3">
+          <div>
+            <label class="block text-xs font-medium muted mb-1">Title</label>
+            <input name="title" type="text" required class="w-full input text-sm" value="{{ .Title }}" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium muted mb-1">Type</label>
+              <select name="kind" class="w-full input text-sm">
+                <option value="trip" {{ if eq .Kind "trip" }}selected{{ end }}>Trip</option>
+                <option value="injury" {{ if eq .Kind "injury" }}selected{{ end }}>Injury</option>
+                <option value="rest" {{ if eq .Kind "rest" }}selected{{ end }}>Rest / Deload</option>
+                <option value="competition" {{ if eq .Kind "competition" }}selected{{ end }}>Competition</option>
+                <option value="other" {{ if eq .Kind "other" }}selected{{ end }}>Other</option>
+              </select>
+            </div>
+            <div>
+              <span class="block text-xs font-medium mb-1 invisible" aria-hidden="true">Type</span>
+              <div class="flex h-[2.25rem] items-center">
+                <label class="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                  <input type="checkbox" name="blocks" {{ if .Blocks }}checked{{ end }} class="rounded" />
+                  Blocks training
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium muted mb-1">Start</label>
+              <input name="start_date" type="date" required class="w-full input text-sm" value="{{ .StartKey }}" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium muted mb-1">End</label>
+              <input name="end_date" type="date" required class="w-full input text-sm" value="{{ .EndKey }}" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium muted mb-1">Notes</label>
+            <textarea name="notes" rows="2" class="w-full input text-sm resize-none">{{ .Notes }}</textarea>
+          </div>
+          <div class="flex gap-2">
+            <button type="submit" class="flex-1 rounded-md btn-primary px-4 py-2 text-sm font-medium">Save</button>
+            <form method="post" action="/calendar-events/{{ .ID }}/delete">
+              <button type="submit" class="rounded-md btn-ghost px-3 py-2 text-sm font-medium"
+                      onclick="return confirm('Delete this event?')"
+                      style="color:var(--muted)">
+                <i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+              </button>
+            </form>
+          </div>
+        </form>
+      </div>
+    </div>
+  </dialog>
+  {{ end }}
+
   {{/* ── Add-session dialog ── */}}
   {{ if .CycleTemplates }}
     <dialog id="add-session-dialog" class="catalog-dialog">
@@ -363,6 +510,15 @@
 </div>
 
 <script>
+  function openEditEventDialog(id) {
+    const d = document.getElementById('edit-event-dialog-' + id);
+    if (d) d.showModal();
+  }
+  // Close any catalog-dialog on backdrop click.
+  document.querySelectorAll('.catalog-dialog').forEach((d) => {
+    d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
+  });
+
   (function () {
     const cycleID = {{ .CycleID }};
     const cells = document.querySelectorAll('[data-date-key]');
@@ -377,11 +533,6 @@
         dialog.showModal();
       });
     });
-    if (dialog) {
-      dialog.addEventListener('click', (e) => {
-        if (e.target === dialog) dialog.close();
-      });
-    }
 
     // ── Drag and drop (desktop grid only) ──
     const clearDropPreview = () => {

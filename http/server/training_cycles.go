@@ -86,19 +86,8 @@ func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request)
 			allowedTemplateIDs[t.ID] = true
 		}
 
-		cycle := &db.TrainingCycle{
-			OwnerID:   ownerID,
-			Name:      name,
-			StartDate: startDate,
-			Weeks:     weeks,
-		}
-		if err := s.store.DB.Create(cycle).Error; err != nil {
-			s.serverError(w, r, err)
-			return
-		}
-
 		// Weekday params map to Mon=1..Sun=7
-		mappings := []struct {
+		weekdayKeys := []struct {
 			weekday int
 			key     string
 		}{
@@ -111,45 +100,156 @@ func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request)
 			{7, "template_sun"},
 		}
 
-		var mappingRows []db.TrainingCycleWeekdayMapping
-		for _, m := range mappings {
+		type pendingMapping struct {
+			weekday   int
+			key       string
+			templateID uint
+		}
+		var pendingMappings []pendingMapping
+		for _, m := range weekdayKeys {
 			raw := strings.TrimSpace(r.FormValue(m.key))
 			if raw == "" {
 				continue
 			}
 			id, err := strconv.ParseUint(raw, 10, 64)
-			if err != nil || id == 0 {
+			if err != nil || id == 0 || !allowedTemplateIDs[uint(id)] {
 				continue
 			}
-			if !allowedTemplateIDs[uint(id)] {
-				continue
-			}
-			mappingRows = append(mappingRows, db.TrainingCycleWeekdayMapping{
-				OwnerID:           ownerID,
-				TrainingCycleID:   cycle.ID,
-				Weekday:           m.weekday,
-				SessionTemplateID: uint(id),
-			})
+			pendingMappings = append(pendingMappings, pendingMapping{m.weekday, m.key, uint(id)})
 		}
 
-		if len(mappingRows) == 0 {
+		if len(pendingMappings) == 0 {
 			http.Error(w, "select at least one template for a weekday", http.StatusBadRequest)
 			return
 		}
 
+		// Compute the set of would-be session dates so we can check for conflicts.
+		week1Monday := mondayOfLocalDate(startDate)
+		cycleEnd := week1Monday.AddDate(0, 0, weeks*7-1)
+
+		confirmed := r.FormValue("confirmed")
+
+		// Conflict detection: only run on first submission (confirmed == "").
+		if confirmed == "" {
+			blockingEvents, err := db.ListCalendarEventsInRange(s.store.DB, ownerID, startDate, cycleEnd)
+			if err != nil {
+				s.serverError(w, r, err)
+				return
+			}
+			// Filter to blocking-only events.
+			var blocking []db.CalendarEvent
+			for _, e := range blockingEvents {
+				if e.Blocks {
+					blocking = append(blocking, e)
+				}
+			}
+
+			if len(blocking) > 0 {
+				// Compute the set of session dates that would be generated.
+				wouldBeKeys := map[string]bool{}
+				for weekIdx := 0; weekIdx < weeks; weekIdx++ {
+					for _, pm := range pendingMappings {
+						d := localDate(week1Monday.AddDate(0, 0, weekIdx*7+(pm.weekday-1)))
+						if !d.Before(startDate) {
+							wouldBeKeys[localDateKey(d)] = true
+						}
+					}
+				}
+
+				// Match would-be session dates against each blocking event.
+				var conflicts []pages.CycleConflictView
+				for _, e := range blocking {
+					var affected []string
+					for d := e.StartDate; !d.After(e.EndDate); d = d.AddDate(0, 0, 1) {
+						if wouldBeKeys[localDateKey(d)] {
+							affected = append(affected, d.Format("Mon Jan 2"))
+						}
+					}
+					if len(affected) > 0 {
+						conflicts = append(conflicts, pages.CycleConflictView{
+							EventTitle:    e.Title,
+							EventColor:    pages.CalendarEventColor(e.Kind),
+							AffectedDates: affected,
+							AffectedLabel: strings.Join(affected, ", "),
+							AffectedCount: len(affected),
+						})
+					}
+				}
+
+				if len(conflicts) > 0 {
+					// Preserve form values for hidden inputs in the conflict review step.
+					formValues := map[string]string{
+						"name":       name,
+						"start_date": startDateStr,
+						"weeks":      strconv.Itoa(weeks),
+					}
+					for _, pm := range pendingMappings {
+						formValues[pm.key] = strconv.FormatUint(uint64(pm.templateID), 10)
+					}
+
+					s.pages.NewTrainingCycle(w, pages.NewTrainingCycleParams{
+						Base:       pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
+						Templates:  templates,
+						Conflicts:  conflicts,
+						FormValues: formValues,
+					})
+					return
+				}
+			}
+		}
+
+		// Build blocked date set when skipping.
+		blockedKeys := map[string]bool{}
+		if confirmed == "skip" {
+			blockingEvents, err := db.ListCalendarEventsInRange(s.store.DB, ownerID, startDate, cycleEnd)
+			if err != nil {
+				s.serverError(w, r, err)
+				return
+			}
+			for _, e := range blockingEvents {
+				if e.Blocks {
+					for d := e.StartDate; !d.After(e.EndDate); d = d.AddDate(0, 0, 1) {
+						blockedKeys[localDateKey(d)] = true
+					}
+				}
+			}
+		}
+
+		cycle := &db.TrainingCycle{
+			OwnerID:   ownerID,
+			Name:      name,
+			StartDate: startDate,
+			Weeks:     weeks,
+		}
+		if err := s.store.DB.Create(cycle).Error; err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+
+		var mappingRows []db.TrainingCycleWeekdayMapping
+		for _, pm := range pendingMappings {
+			mappingRows = append(mappingRows, db.TrainingCycleWeekdayMapping{
+				OwnerID:           ownerID,
+				TrainingCycleID:   cycle.ID,
+				Weekday:           pm.weekday,
+				SessionTemplateID: pm.templateID,
+			})
+		}
 		if err := s.store.DB.Create(&mappingRows).Error; err != nil {
 			s.serverError(w, r, err)
 			return
 		}
 
-		// Generate scheduled sessions.
-		week1Monday := mondayOfLocalDate(startDate)
+		// Generate scheduled sessions, skipping blocked dates when requested.
 		cycleID := cycle.ID
 		for weekIdx := 0; weekIdx < weeks; weekIdx++ {
 			for _, mr := range mappingRows {
 				scheduled := week1Monday.AddDate(0, 0, weekIdx*7+(mr.Weekday-1))
 				scheduled = localDate(scheduled)
 				if scheduled.Before(startDate) {
+					continue
+				}
+				if blockedKeys[localDateKey(scheduled)] {
 					continue
 				}
 				ss := &db.ScheduledSession{
@@ -259,6 +359,20 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 		sessionsByDateKey[key] = ss
 	}
 
+	// Load calendar events covering the cycle range and index by date key.
+	calEvents, err := db.ListCalendarEventsInRange(s.store.DB, ownerID, gridStart, gridEnd)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	eventsByDateKey := buildEventsByDateKey(calEvents)
+
+	// Build full event view list for the add/edit/delete dialogs.
+	eventViews := make([]pages.CalendarEventView, len(calEvents))
+	for i, e := range calEvents {
+		eventViews[i] = calendarEventToView(e)
+	}
+
 	weekdayLabels := []string{"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}
 	rows := make([]pages.CycleWeekRowView, 0, cycle.Weeks)
 	for weekIdx := 0; weekIdx < cycle.Weeks; weekIdx++ {
@@ -273,6 +387,7 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 				DayNumber:  d.Day(),
 				IsWeekend:  d.Weekday() == time.Saturday || d.Weekday() == time.Sunday,
 				HasSession: false,
+				Events:     eventsByDateKey[key],
 			}
 			if ss, ok := sessionsByDateKey[key]; ok {
 				cell.HasSession = true
@@ -301,6 +416,7 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 		CycleRows:          rows,
 		TotalScheduled:     len(scheduled),
 		ExerciseOverrides:  exerciseOverrides,
+		Events:             eventViews,
 	})
 }
 
