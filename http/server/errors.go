@@ -1,8 +1,11 @@
 package web
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
+
+	"passion/db"
 )
 
 func (s *Server) serverError(w http.ResponseWriter, r *http.Request, err error) {
@@ -24,4 +27,13 @@ func (s *Server) methodNotAllowed(w http.ResponseWriter) {
 
 func (s *Server) notFound(w http.ResponseWriter) {
 	http.Error(w, "not found", http.StatusNotFound)
+}
+
+// dbError writes a 404 for db.ErrNotFound and a 500 for any other error.
+func (s *Server) dbError(w http.ResponseWriter, r *http.Request, err error) {
+	if errors.Is(err, db.ErrNotFound) {
+		s.notFound(w)
+		return
+	}
+	s.serverError(w, r, err)
 }

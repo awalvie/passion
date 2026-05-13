@@ -143,7 +143,7 @@ func (s *Server) handleActivityTemplatesByID(w http.ResponseWriter, r *http.Requ
 func (s *Server) renderActivityTemplateEdit(w http.ResponseWriter, r *http.Request, tplID, ownerID uint) {
 	tpl, err := db.GetActivityTemplateWithExercises(s.store.DB, ownerID, tplID)
 	if err != nil {
-		s.notFound(w)
+		s.dbError(w, r, err)
 		return
 	}
 	lib, err := db.ListLibraryExercises(s.store.DB, ownerID)
@@ -267,7 +267,7 @@ func (s *Server) handleAddActivityTemplateExercise(w http.ResponseWriter, r *htt
 	}
 	tpl, err := db.GetActivityTemplateWithExercises(s.store.DB, ownerID, tplID)
 	if err != nil {
-		s.serverError(w, r, err)
+		s.dbError(w, r, err)
 		return
 	}
 	s.renderActivityTemplateExercises(w, r, tpl, ownerID)
@@ -352,7 +352,7 @@ func (s *Server) handleAddATExerciseFromLibrary(w http.ResponseWriter, r *http.R
 	}
 	tpl, err := db.GetActivityTemplateWithExercises(s.store.DB, ownerID, tplID)
 	if err != nil {
-		s.serverError(w, r, err)
+		s.dbError(w, r, err)
 		return
 	}
 	s.renderActivityTemplateExercises(w, r, tpl, ownerID)
@@ -403,7 +403,7 @@ func (s *Server) handleReorderActivityTemplateExercises(w http.ResponseWriter, r
 	}
 	tpl, err := db.GetActivityTemplateWithExercises(s.store.DB, ownerID, tplID)
 	if err != nil {
-		s.serverError(w, r, err)
+		s.dbError(w, r, err)
 		return
 	}
 	s.renderActivityTemplateExercises(w, r, tpl, ownerID)
