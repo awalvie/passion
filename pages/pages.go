@@ -504,9 +504,10 @@ type ManualExerciseView struct {
 }
 
 type ClimbingVenueView struct {
-	ID   uint
-	Name string
-	Kind string // "Commercial" | "Outdoor"
+	ID       uint
+	Name     string
+	Kind     string // "Commercial" | "Outdoor"
+	Location string // optional city / area
 }
 
 type ClimbingBoardView struct {

@@ -1,29 +1,32 @@
 {{ define "boards_list.html" }}
-<div id="boards-list" class="space-y-1">
-  {{ if .Boards }}
-    {{ range .Boards }}
-    <div class="flex items-center gap-2 py-1">
-      <div class="flex-1 min-w-0 flex items-center gap-1.5">
-        <span class="text-sm truncate">{{ .Label }}</span>
-        <span class="venue-badge venue-badge--board">{{ .BoardType }}</span>
-      </div>
+<div id="boards-list" class="space-y-2">
+  {{ range .Boards }}
+  <div class="flex items-center gap-3 rounded-md border px-3 py-2.5 group" style="border-color:var(--border);background:var(--panel)">
+    <span class="venue-badge venue-badge--board shrink-0 text-[11px]">{{ .BoardType }}</span>
+    <span class="text-sm font-medium flex-1 truncate">{{ .Label }}</span>
+    <div class="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
       <button
         type="button"
-        class="shrink-0 rounded btn-ghost p-1 inline-flex items-center justify-center"
+        class="rounded p-1.5 btn-ghost"
         hx-post="/profile/boards/{{ .ID }}/delete"
         hx-target="#boards-list"
         hx-swap="outerHTML"
         hx-confirm="Delete this board?"
         title="Delete board"
+        style="color:var(--muted)"
       >
         <i data-lucide="trash-2" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
       </button>
     </div>
-    {{ end }}
-  {{ else }}
-    <p class="text-sm muted">No boards added yet.</p>
+  </div>
   {{ end }}
-  <form hx-post="/profile/boards" hx-target="#boards-list" hx-swap="outerHTML" class="mt-2 flex gap-2 items-end" hx-on:htmx:after-request="this.reset()">
+
+  {{ if not .Boards }}
+    <p class="text-sm muted py-1">No boards added yet.</p>
+  {{ end }}
+
+  <form hx-post="/profile/boards" hx-target="#boards-list" hx-swap="outerHTML"
+        class="mt-1 flex gap-2 items-end" hx-on:htmx:after-request="this.reset()">
     <div>
       <label class="text-xs font-medium" for="board-type">Type</label>
       <select id="board-type" name="board_type" required class="mt-1 input text-sm">

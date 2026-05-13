@@ -405,6 +405,13 @@ func CreateClimbingVenue(gdb *gorm.DB, v *ClimbingVenue) error {
 	return gdb.Create(v).Error
 }
 
+// UpdateClimbingVenue updates a venue's name, kind, and location.
+func UpdateClimbingVenue(gdb *gorm.DB, ownerID, id uint, name, kind, location string) error {
+	return gdb.Model(&ClimbingVenue{}).
+		Where("id = ? AND owner_id = ?", id, ownerID).
+		Updates(map[string]any{"name": name, "kind": kind, "location": location}).Error
+}
+
 // DeleteClimbingVenue hard-deletes a venue and nulls SessionJournal.VenueID for affected entries.
 func DeleteClimbingVenue(gdb *gorm.DB, ownerID, id uint) error {
 	if err := gdb.Model(&SessionJournal{}).
