@@ -1,0 +1,261 @@
+{{ define "content" }}
+<div class="space-y-4">
+
+  {{/* ── Header ── */}}
+  <div class="flex items-center justify-between gap-3">
+    <div class="flex items-center gap-2">
+      <a href="{{ .MonthPrevURL }}" class="rounded-md btn-ghost p-1.5" title="Previous month">
+        <i data-lucide="chevron-left" style="width:1rem;height:1rem" aria-hidden="true"></i>
+      </a>
+      <h1 class="m-0 text-sm font-semibold">{{ .CalendarMonth }} {{ .CalendarYear }}</h1>
+      <a href="{{ .MonthNextURL }}" class="rounded-md btn-ghost p-1.5" title="Next month">
+        <i data-lucide="chevron-right" style="width:1rem;height:1rem" aria-hidden="true"></i>
+      </a>
+    </div>
+    <button
+      type="button"
+      onclick="document.getElementById('add-event-dialog').showModal()"
+      class="rounded-md btn-ghost px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 shrink-0"
+    >
+      <i data-lucide="calendar-plus" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+      Add event
+    </button>
+  </div>
+
+  {{/* ── Desktop: 2-col layout (grid + sidebar) ── */}}
+  <div class="grid gap-6 lg:grid-cols-[1fr_280px]">
+
+    {{/* ── Calendar grid ── */}}
+    <div class="card card-pad overflow-auto">
+      <div class="grid grid-cols-7 gap-1 text-center text-[11px] muted mb-1">
+        {{ range .CalendarWeekday }}
+          <div class="font-semibold uppercase tracking-widest py-1">{{ . }}</div>
+        {{ end }}
+      </div>
+      <div class="grid grid-cols-7 gap-1">
+        {{ range .Cells }}
+          <div
+            class="cal-cell cell-base flex flex-col gap-0.5 p-1.5 min-h-[90px] cursor-pointer group {{ if .InMonth }}cell-in{{ else }}cell-dim{{ end }}"
+            data-date-key="{{ .DateKey }}"
+          >
+            <div class="text-[11px] font-semibold leading-tight {{ if not .InMonth }}muted{{ end }}">{{ .Day }}</div>
+            {{ range .Events }}
+              <span
+                class="inline-flex items-center px-1 py-0.5 rounded text-[10px] font-medium truncate max-w-full cursor-pointer"
+                style="background:{{ .Color }}22;color:{{ .Color }};border:1px solid {{ .Color }}44"
+                onclick="event.stopPropagation(); openEditEventDialog({{ .ID }})"
+                title="{{ .Title }}"
+              >{{ .Title }}</span>
+            {{ end }}
+            {{ range .Sessions }}
+              <span
+                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium truncate max-w-full {{ if .Done }}opacity-50{{ end }}"
+                style="border-left: 2px solid {{ .Color }}; background: color-mix(in srgb, {{ .Color }} 12%, var(--panel))"
+                title="{{ .Name }}{{ if .CycleName }} · {{ .CycleName }}{{ end }}"
+              >{{ .Name }}</span>
+            {{ end }}
+            {{ if and (not .Events) (not .Sessions) }}
+              <span class="mt-auto text-[10px] muted opacity-0 group-hover:opacity-60 transition-opacity self-center">+ event</span>
+            {{ end }}
+          </div>
+        {{ end }}
+      </div>{{/* end cells grid */}}
+    </div>{{/* end card */}}
+
+    {{/* ── Events sidebar ── */}}
+    <div class="space-y-3">
+      <h2 class="m-0 text-[11px] font-bold muted uppercase tracking-widest">Events this month</h2>
+      {{ if .AllEvents }}
+        <div class="space-y-2">
+          {{ range .AllEvents }}
+            <div
+              class="rounded-md p-3 cursor-pointer"
+              style="background: var(--card); border: 1px solid var(--border); border-left: 3px solid {{ .Color }}"
+              onclick="openEditEventDialog({{ .ID }})"
+            >
+              <div class="flex items-start justify-between gap-2">
+                <span class="text-sm font-medium truncate">{{ .Title }}</span>
+              </div>
+              <div class="mt-0.5 text-[11px] muted">
+                {{ .StartLabel }}{{ if ne .StartLabel .EndLabel }} – {{ .EndLabel }}{{ end }}
+              </div>
+              <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] muted">
+                {{ if eq .Kind "trip" }}<i data-lucide="plane" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i> Trip
+                {{ else if eq .Kind "injury" }}<i data-lucide="bandage" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i> Injury
+                {{ else if eq .Kind "rest" }}<i data-lucide="moon" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i> Rest
+                {{ else if eq .Kind "competition" }}<i data-lucide="trophy" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i> Competition
+                {{ else }}<i data-lucide="map-pin" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i> Other{{ end }}
+                {{ if .Blocks }}<span class="rounded px-1 py-0.5" style="background: var(--card-muted)">blocks training</span>{{ end }}
+              </div>
+              {{ if .Notes }}
+                <p class="mt-1 text-[11px] muted truncate">{{ .Notes }}</p>
+              {{ end }}
+            </div>
+          {{ end }}
+        </div>
+      {{ else }}
+        <p class="text-sm muted">No events this month.</p>
+      {{ end }}
+      <button
+        type="button"
+        onclick="document.getElementById('add-event-dialog').showModal()"
+        class="w-full rounded-md btn-ghost px-3 py-1.5 text-xs font-medium flex items-center justify-center gap-1.5"
+      >
+        <i data-lucide="plus" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+        Add event
+      </button>
+    </div>
+
+  </div>
+
+  {{/* ── Add-event dialog ── */}}
+  <dialog id="add-event-dialog" class="catalog-dialog">
+    <div class="catalog-dialog-panel">
+      <div class="catalog-dialog-body">
+        <div class="flex items-start justify-between gap-3">
+          <h3 class="m-0 text-base font-semibold">Add calendar event</h3>
+          <form method="dialog">
+            <button type="submit" class="rounded-md btn-ghost px-3 py-1 text-sm font-medium">Close</button>
+          </form>
+        </div>
+        <form method="post" action="/calendar-events" class="mt-4 space-y-3">
+          <div>
+            <label class="block text-xs font-medium muted mb-1" for="new-event-title">Title</label>
+            <input id="new-event-title" name="title" type="text" required class="w-full input text-sm" placeholder="e.g., Fontainebleau trip" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium muted mb-1" for="new-event-kind">Type</label>
+              <select id="new-event-kind" name="kind" class="w-full input text-sm">
+                <option value="trip">Trip</option>
+                <option value="injury">Injury</option>
+                <option value="rest">Rest / Deload</option>
+                <option value="competition">Competition</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <span class="block text-xs font-medium mb-1 invisible" aria-hidden="true">Type</span>
+              <div class="flex h-[2.25rem] items-center">
+                <label class="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                  <input type="checkbox" name="blocks" checked class="rounded" />
+                  Blocks training
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium muted mb-1" for="new-event-start">Start</label>
+              <input id="new-event-start" name="start_date" type="date" required class="w-full input text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium muted mb-1" for="new-event-end">End</label>
+              <input id="new-event-end" name="end_date" type="date" required class="w-full input text-sm" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium muted mb-1" for="new-event-notes">Notes</label>
+            <textarea id="new-event-notes" name="notes" rows="2" class="w-full input text-sm resize-none" placeholder="Optional details…"></textarea>
+          </div>
+          <button type="submit" class="w-full rounded-md btn-primary px-4 py-2 text-sm font-medium">Save event</button>
+        </form>
+      </div>
+    </div>
+  </dialog>
+
+  {{/* ── Per-event edit dialogs ── */}}
+  {{ range .AllEvents }}
+  <dialog id="edit-event-dialog-{{ .ID }}" class="catalog-dialog">
+    <div class="catalog-dialog-panel">
+      <div class="catalog-dialog-body">
+        <div class="flex items-start justify-between gap-3">
+          <h3 class="m-0 text-base font-semibold">Edit event</h3>
+          <form method="dialog">
+            <button type="submit" class="rounded-md btn-ghost px-3 py-1 text-sm font-medium">Close</button>
+          </form>
+        </div>
+        <form method="post" action="/calendar-events/{{ .ID }}/update" class="mt-4 space-y-3">
+          <div>
+            <label class="block text-xs font-medium muted mb-1">Title</label>
+            <input name="title" type="text" required class="w-full input text-sm" value="{{ .Title }}" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium muted mb-1">Type</label>
+              <select name="kind" class="w-full input text-sm">
+                <option value="trip" {{ if eq .Kind "trip" }}selected{{ end }}>Trip</option>
+                <option value="injury" {{ if eq .Kind "injury" }}selected{{ end }}>Injury</option>
+                <option value="rest" {{ if eq .Kind "rest" }}selected{{ end }}>Rest / Deload</option>
+                <option value="competition" {{ if eq .Kind "competition" }}selected{{ end }}>Competition</option>
+                <option value="other" {{ if eq .Kind "other" }}selected{{ end }}>Other</option>
+              </select>
+            </div>
+            <div>
+              <span class="block text-xs font-medium mb-1 invisible" aria-hidden="true">Type</span>
+              <div class="flex h-[2.25rem] items-center">
+                <label class="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                  <input type="checkbox" name="blocks" {{ if .Blocks }}checked{{ end }} class="rounded" />
+                  Blocks training
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium muted mb-1">Start</label>
+              <input name="start_date" type="date" required class="w-full input text-sm" value="{{ .StartKey }}" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium muted mb-1">End</label>
+              <input name="end_date" type="date" required class="w-full input text-sm" value="{{ .EndKey }}" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium muted mb-1">Notes</label>
+            <textarea name="notes" rows="2" class="w-full input text-sm resize-none">{{ .Notes }}</textarea>
+          </div>
+          <div class="flex gap-2">
+            <button type="submit" class="flex-1 rounded-md btn-primary px-4 py-2 text-sm font-medium">Save</button>
+            <form method="post" action="/calendar-events/{{ .ID }}/delete">
+              <button type="submit" class="rounded-md btn-ghost px-3 py-2 text-sm font-medium"
+                      onclick="return confirm('Delete this event?')"
+                      style="color:var(--muted)">
+                <i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+              </button>
+            </form>
+          </div>
+        </form>
+      </div>
+    </div>
+  </dialog>
+  {{ end }}
+
+</div>
+
+<script>
+  function openEditEventDialog(id) {
+    const d = document.getElementById('edit-event-dialog-' + id);
+    if (d) d.showModal();
+  }
+
+  document.querySelectorAll('.catalog-dialog').forEach((d) => {
+    d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
+  });
+
+  (function () {
+    const addDialog = document.getElementById('add-event-dialog');
+    const startInput = document.getElementById('new-event-start');
+    const endInput   = document.getElementById('new-event-end');
+    document.querySelectorAll('.cal-cell').forEach((cell) => {
+      cell.addEventListener('click', () => {
+        if (!addDialog || !startInput || !endInput) return;
+        const key = cell.dataset.dateKey;
+        startInput.value = key;
+        endInput.value   = key;
+        addDialog.showModal();
+      });
+    });
+  })();
+</script>
+{{ end }}

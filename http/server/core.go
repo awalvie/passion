@@ -76,6 +76,11 @@ func (s *Server) Routes() http.Handler {
 		pr.HandleFunc("/activities/{activityID}/{action}", s.handleActivitiesByID)
 		pr.HandleFunc("/activities/{activityID}/{action}/{subaction}", s.handleActivitiesByID)
 
+		pr.HandleFunc("/calendar", s.handleCalendar)
+		pr.HandleFunc("/calendar-events", s.handleCalendarEventCreate)
+		pr.HandleFunc("/calendar-events/{eventID}/update", s.handleCalendarEventUpdate)
+		pr.HandleFunc("/calendar-events/{eventID}/delete", s.handleCalendarEventDelete)
+
 		pr.HandleFunc("/training-cycles", s.handleTrainingCycles)
 		pr.HandleFunc("/training-cycles/new", s.handleTrainingCyclesNew)
 		pr.HandleFunc("/training-cycles/{cycleID}", s.handleTrainingCyclesByID)
