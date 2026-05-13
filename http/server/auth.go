@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -146,6 +147,38 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	})
 	w.Header().Set("HX-Redirect", "/login")
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+// csrfMiddleware rejects state-changing requests whose Origin doesn't match the
+// request host. Safe methods (GET, HEAD, OPTIONS) are always passed through.
+// This is a lightweight defence-in-depth layer on top of SameSite=Lax cookies.
+func (s *Server) csrfMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet, http.MethodHead, http.MethodOptions:
+			next.ServeHTTP(w, r)
+			return
+		}
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			// No Origin header — allow (same-site form submissions omit it).
+			next.ServeHTTP(w, r)
+			return
+		}
+		// Compare the Origin host to the request Host.
+		parsed, err := url.Parse(origin)
+		if err != nil || !strings.EqualFold(parsed.Host, r.Host) {
+			s.logger.Warn("csrf: origin mismatch",
+				"origin", origin,
+				"host", r.Host,
+				"method", r.Method,
+				"path", r.URL.Path,
+			)
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) authMiddleware(next http.Handler) http.Handler {
