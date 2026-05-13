@@ -956,6 +956,63 @@ func (p *Pages) RenderBoardsList(w http.ResponseWriter, params ProfileParams) {
 // Template FuncMap
 // ---------------------------------------------------------------------------
 
+// formatExerciseSummary formats an exercise's parameters into a compact human-readable string.
+// sessionSuffix appends " session" to duration strings (used for session-template exercises).
+// catalogLabel is returned for exercise_catalog kind (e.g. "Exercise catalog" or "menu").
+func formatExerciseSummary(kind string, sessionDurSec, sets, reps int, weightKg float64, repSec int, sessionSuffix bool, catalogLabel string) string {
+	switch kind {
+	case "session", "climbing":
+		if sessionDurSec > 0 {
+			h := sessionDurSec / 3600
+			m := (sessionDurSec % 3600) / 60
+			s := sessionDurSec % 60
+			sfx := ""
+			if sessionSuffix {
+				sfx = " session"
+			}
+			if h > 0 && m == 0 && s == 0 {
+				return fmt.Sprintf("%dh%s", h, sfx)
+			}
+			if h > 0 {
+				return fmt.Sprintf("%dh %dm%s", h, m, sfx)
+			}
+			if m > 0 && s == 0 {
+				return fmt.Sprintf("%dm%s", m, sfx)
+			}
+			if m > 0 {
+				return fmt.Sprintf("%dm %ds%s", m, s, sfx)
+			}
+			return fmt.Sprintf("%ds%s", s, sfx)
+		}
+		if sessionSuffix {
+			return "Session"
+		}
+		return ""
+	case "exercise_catalog":
+		return catalogLabel
+	default:
+		var parts []string
+		if sets > 0 && reps > 0 {
+			parts = append(parts, fmt.Sprintf("%d×%d", sets, reps))
+		} else if sets > 0 {
+			parts = append(parts, fmt.Sprintf("%d sets", sets))
+		} else if reps > 0 {
+			parts = append(parts, fmt.Sprintf("%d reps", reps))
+		}
+		if weightKg > 0 {
+			if weightKg == float64(int(weightKg)) {
+				parts = append(parts, fmt.Sprintf("%.0fkg", weightKg))
+			} else {
+				parts = append(parts, fmt.Sprintf("%.1fkg", weightKg))
+			}
+		}
+		if repSec > 0 {
+			parts = append(parts, fmt.Sprintf("%ds/rep", repSec))
+		}
+		return strings.Join(parts, " · ")
+	}
+}
+
 var markdownEngine = goldmark.New()
 
 func markdownToHTML(s string) template.HTML {
@@ -1126,99 +1183,10 @@ func buildFuncMap() template.FuncMap {
 			return n
 		},
 		"exerciseSummary": func(ex db.Exercise) string {
-			switch ex.Kind {
-			case "session":
-				if ex.SessionDurationSeconds > 0 {
-					h := ex.SessionDurationSeconds / 3600
-					m := (ex.SessionDurationSeconds % 3600) / 60
-					s := ex.SessionDurationSeconds % 60
-					if h > 0 && m == 0 && s == 0 {
-						return fmt.Sprintf("%dh session", h)
-					}
-					if h > 0 {
-						return fmt.Sprintf("%dh %dm session", h, m)
-					}
-					if m > 0 && s == 0 {
-						return fmt.Sprintf("%dm session", m)
-					}
-					if m > 0 {
-						return fmt.Sprintf("%dm %ds session", m, s)
-					}
-					return fmt.Sprintf("%ds session", s)
-				}
-				return "Session"
-			case "exercise_catalog":
-				return "Exercise catalog"
-			default:
-				parts := []string{}
-				if ex.Sets > 0 && ex.Reps > 0 {
-					parts = append(parts, fmt.Sprintf("%d×%d", ex.Sets, ex.Reps))
-				} else if ex.Sets > 0 {
-					parts = append(parts, fmt.Sprintf("%d sets", ex.Sets))
-				} else if ex.Reps > 0 {
-					parts = append(parts, fmt.Sprintf("%d reps", ex.Reps))
-				}
-				if ex.WeightKg > 0 {
-					if ex.WeightKg == float64(int(ex.WeightKg)) {
-						parts = append(parts, fmt.Sprintf("%.0fkg", ex.WeightKg))
-					} else {
-						parts = append(parts, fmt.Sprintf("%.1fkg", ex.WeightKg))
-					}
-				}
-				if ex.RepSeconds > 0 {
-					parts = append(parts, fmt.Sprintf("%ds/rep", ex.RepSeconds))
-				}
-				if len(parts) == 0 {
-					return ""
-				}
-				return strings.Join(parts, " · ")
-			}
+			return formatExerciseSummary(ex.Kind, ex.SessionDurationSeconds, ex.Sets, ex.Reps, ex.WeightKg, ex.RepSeconds, true, "Exercise catalog")
 		},
 		"runStepSummary": func(rs RunStep) string {
-			switch rs.Kind {
-			case "session":
-				if rs.SessionDurationSeconds > 0 {
-					h := rs.SessionDurationSeconds / 3600
-					m := (rs.SessionDurationSeconds % 3600) / 60
-					s := rs.SessionDurationSeconds % 60
-					if h > 0 && m == 0 && s == 0 {
-						return fmt.Sprintf("%dh session", h)
-					}
-					if h > 0 {
-						return fmt.Sprintf("%dh %dm session", h, m)
-					}
-					if m > 0 && s == 0 {
-						return fmt.Sprintf("%dm session", m)
-					}
-					if m > 0 {
-						return fmt.Sprintf("%dm %ds session", m, s)
-					}
-					return fmt.Sprintf("%ds session", s)
-				}
-				return "Session"
-			case "exercise_catalog":
-				return "Exercise catalog"
-			default:
-				parts := []string{}
-				if rs.Sets > 0 && rs.Reps > 0 {
-					parts = append(parts, fmt.Sprintf("%d×%d", rs.Sets, rs.Reps))
-				} else if rs.Sets > 0 {
-					parts = append(parts, fmt.Sprintf("%d sets", rs.Sets))
-				} else if rs.Reps > 0 {
-					parts = append(parts, fmt.Sprintf("%d reps", rs.Reps))
-				}
-				if rs.WeightKg > 0 {
-					if rs.WeightKg == float64(int(rs.WeightKg)) {
-						parts = append(parts, fmt.Sprintf("%.0fkg", rs.WeightKg))
-					} else {
-						parts = append(parts, fmt.Sprintf("%.1fkg", rs.WeightKg))
-					}
-				}
-				if rs.RepSeconds > 0 {
-					parts = append(parts, fmt.Sprintf("%ds/rep", rs.RepSeconds))
-				}
-				return strings.Join(parts, " · ")
-			}
+			return formatExerciseSummary(rs.Kind, rs.SessionDurationSeconds, rs.Sets, rs.Reps, rs.WeightKg, rs.RepSeconds, true, "Exercise catalog")
 		},
 		"markdownHTML": func(s string) template.HTML {
 			return markdownToHTML(s)
@@ -1272,50 +1240,7 @@ func buildFuncMap() template.FuncMap {
 			return string(b)
 		},
 		"libExerciseSummary": func(ex db.LibraryExercise) string {
-			switch ex.Kind {
-			case "session", "climbing":
-				if ex.SessionDurationSeconds > 0 {
-					h := ex.SessionDurationSeconds / 3600
-					m := (ex.SessionDurationSeconds % 3600) / 60
-					s := ex.SessionDurationSeconds % 60
-					if h > 0 && m == 0 && s == 0 {
-						return fmt.Sprintf("%dh", h)
-					}
-					if h > 0 {
-						return fmt.Sprintf("%dh %dm", h, m)
-					}
-					if m > 0 && s == 0 {
-						return fmt.Sprintf("%dm", m)
-					}
-					if m > 0 {
-						return fmt.Sprintf("%dm %ds", m, s)
-					}
-					return fmt.Sprintf("%ds", s)
-				}
-				return ""
-			case "exercise_catalog":
-				return "menu"
-			default:
-				parts := []string{}
-				if ex.Sets > 0 && ex.Reps > 0 {
-					parts = append(parts, fmt.Sprintf("%d×%d", ex.Sets, ex.Reps))
-				} else if ex.Sets > 0 {
-					parts = append(parts, fmt.Sprintf("%d sets", ex.Sets))
-				} else if ex.Reps > 0 {
-					parts = append(parts, fmt.Sprintf("%d reps", ex.Reps))
-				}
-				if ex.WeightKg > 0 {
-					if ex.WeightKg == float64(int(ex.WeightKg)) {
-						parts = append(parts, fmt.Sprintf("%.0fkg", ex.WeightKg))
-					} else {
-						parts = append(parts, fmt.Sprintf("%.1fkg", ex.WeightKg))
-					}
-				}
-				if ex.RepSeconds > 0 {
-					parts = append(parts, fmt.Sprintf("%ds/rep", ex.RepSeconds))
-				}
-				return strings.Join(parts, " · ")
-			}
+			return formatExerciseSummary(ex.Kind, ex.SessionDurationSeconds, ex.Sets, ex.Reps, ex.WeightKg, ex.RepSeconds, false, "menu")
 		},
 		"libExerciseNotesSnippet": func(s string) string {
 			// Replace newlines with spaces and truncate for use in preview.
