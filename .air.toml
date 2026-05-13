@@ -8,7 +8,7 @@
 
 [watch]
   # Watch Go code and templates.
-  include = ["cmd", "config", "http", "db", "appview", "static"]
+  include = ["cmd", "config", "http", "db", "appview", "static", "templates"]
   exclude = [".git", "tmp"]
 
 [run]

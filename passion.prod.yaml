@@ -9,7 +9,7 @@ Server:
 
 Auth:
   JWTSecret: "__JWT_SECRET__"
-  JWTTTLHours: 168
+  JWTTTLHours: 720
   DevAuthBypass: false
 
 YAMLImport:
