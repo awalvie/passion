@@ -452,6 +452,27 @@ func (s *Server) handleTrainingLogEdit(w http.ResponseWriter, r *http.Request) {
 					mev.ActualReps = comp.ActualReps
 					mev.ActualWeightKg = comp.ActualWeightKg
 					mev.Notes = comp.RunNotes
+					mev.ElapsedMinutes = comp.ElapsedSeconds / 60
+				}
+				setLogs, _ := db.ListManualExerciseSetLogs(s.store.DB, ownerID, run.ID, ex.ID)
+				if len(setLogs) > 0 {
+					mev.PerSetMode = true
+					mev.SetLogs = make([]pages.ManualExerciseSetLogView, len(setLogs))
+					for i, sl := range setLogs {
+						mev.SetLogs[i] = pages.ManualExerciseSetLogView{
+							SetIndex: sl.SetIndex,
+							Reps:     sl.Reps,
+							WeightKg: sl.WeightKg,
+						}
+					}
+				}
+				if ex.Kind == "climbing" {
+					if meta, _ := db.GetClimbingExerciseMeta(s.store.DB, ownerID, run.ID, ex.ID); meta != nil {
+						mev.ClimbingMeta = pages.ClimbingExerciseMetaView{
+							Type:      meta.Type,
+							BoardKind: meta.BoardKind,
+						}
+					}
 				}
 				views = append(views, mev)
 			}
