@@ -81,6 +81,24 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Bulk-load per-run data for manual runs to avoid N+1 queries.
+	manualRunIDs := make([]uint, 0)
+	for _, run := range runs {
+		if run.IsManual {
+			manualRunIDs = append(manualRunIDs, run.ID)
+		}
+	}
+	exerciseCountsByRun, err := db.ListExerciseCountsByRun(s.store.DB, ownerID, manualRunIDs)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	tickSummariesByRun, err := db.ListTickSummariesByRun(s.store.DB, ownerID, manualRunIDs)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+
 	// Load all journals for this user; split into run-linked and standalone.
 	journals, err := db.ListSessionJournals(s.store.DB, ownerID)
 	if err != nil {
@@ -115,39 +133,34 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 		dateLabel := fmt.Sprintf("%s %d%s %d", t.Format("Jan"), t.Day(), daySuffix(t.Day()), t.Year())
 		monthGroup := t.Format("January 2006")
 
-		// Build tick summary if this is a manual climbing run.
 		tickSummaryLabel := ""
-		exerciseCount := 0
+		exerciseCount := exerciseCountsByRun[run.ID]
 		if run.IsManual {
-			if exs, err2 := db.ListExercisesForRun(s.store.DB, ownerID, run.ID); err2 == nil {
-				exerciseCount = len(exs)
-			}
-			if ts, err2 := db.GetClimbingTickSummaryForRun(s.store.DB, ownerID, run.ID); err2 == nil {
-				if ts.TotalBoulders > 0 || ts.TotalRoutes > 0 {
-					label := ""
-					if ts.TotalBoulders > 0 {
-						label += fmt.Sprintf("%d boulder", ts.TotalBoulders)
-						if ts.TotalBoulders != 1 {
-							label += "s"
-						}
+			ts := tickSummariesByRun[run.ID]
+			if ts.TotalBoulders > 0 || ts.TotalRoutes > 0 {
+				label := ""
+				if ts.TotalBoulders > 0 {
+					label += fmt.Sprintf("%d boulder", ts.TotalBoulders)
+					if ts.TotalBoulders != 1 {
+						label += "s"
 					}
-					if ts.TotalRoutes > 0 {
-						if label != "" {
-							label += " · "
-						}
-						label += fmt.Sprintf("%d route", ts.TotalRoutes)
-						if ts.TotalRoutes != 1 {
-							label += "s"
-						}
-					}
-					if ts.TotalSends > 0 {
-						label += fmt.Sprintf(" · %d send", ts.TotalSends)
-						if ts.TotalSends != 1 {
-							label += "s"
-						}
-					}
-					tickSummaryLabel = label
 				}
+				if ts.TotalRoutes > 0 {
+					if label != "" {
+						label += " · "
+					}
+					label += fmt.Sprintf("%d route", ts.TotalRoutes)
+					if ts.TotalRoutes != 1 {
+						label += "s"
+					}
+				}
+				if ts.TotalSends > 0 {
+					label += fmt.Sprintf(" · %d send", ts.TotalSends)
+					if ts.TotalSends != 1 {
+						label += "s"
+					}
+				}
+				tickSummaryLabel = label
 			}
 		}
 
