@@ -37,6 +37,20 @@ func dayWithSuffix(t time.Time) string {
 	return t.Format("Jan") + " " + fmt.Sprintf("%d%s", d, daySuffix(d))
 }
 
+// relativeDateLabel returns "Today", "Yesterday", or "Mon Jan 2" for a given time.
+func relativeDateLabel(t time.Time) string {
+	today := localDate(time.Now())
+	d := localDate(t)
+	switch {
+	case d.Equal(today):
+		return "Today"
+	case d.Equal(today.AddDate(0, 0, -1)):
+		return "Yesterday"
+	default:
+		return t.Format("Mon Jan 2")
+	}
+}
+
 // mondayOfLocalDate returns the local Monday for the week containing t.
 func mondayOfLocalDate(t time.Time) time.Time {
 	t = localDate(t)

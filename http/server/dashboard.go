@@ -63,15 +63,33 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// --- Active (in-progress) runs ---
+	// --- Active (in-progress) runs — exclude manual log drafts ---
 	var activeRuns []db.SessionRun
 	err = s.store.DB.
-		Where("owner_id = ? AND status = ?", ownerID, db.RunStatusRunning).
+		Where("owner_id = ? AND status = ? AND is_draft = ?", ownerID, db.RunStatusRunning, false).
 		Order("started_at desc").
 		Find(&activeRuns).Error
 	if err != nil {
 		s.serverError(w, r, err)
 		return
+	}
+
+	// --- Draft manual log entries ---
+	var draftRuns []db.SessionRun
+	err = s.store.DB.
+		Where("owner_id = ? AND is_draft = ?", ownerID, true).
+		Order("started_at desc").
+		Find(&draftRuns).Error
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	draftLogViews := make([]pages.DraftLogEntryView, 0, len(draftRuns))
+	for _, dr := range draftRuns {
+		draftLogViews = append(draftLogViews, pages.DraftLogEntryView{
+			RunID:     dr.ID,
+			DateLabel: relativeDateLabel(dr.StartedAt),
+		})
 	}
 
 	activeRunViews := make([]pages.ActiveRunView, 0, len(activeRuns))
@@ -297,6 +315,14 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		byDate[key] = append(byDate[key], ss)
 	}
 
+	// Load calendar events for the month grid.
+	monthCalEvents, err := db.ListCalendarEventsInRange(s.store.DB, ownerID, monthCalendarStart, monthCalendarEnd)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	monthEventsByDateKey := buildEventsByDateKey(monthCalEvents)
+
 	cells := make([]pages.CalendarCell, 0, 42)
 	for dayIdx := 0; dayIdx < 42; dayIdx++ {
 		d := monthCalendarStart.AddDate(0, 0, dayIdx)
@@ -308,6 +334,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 			DateKey:          key,
 			CompletedCount:   completedByDate[key],
 			UnscheduledCount: unscheduledByDate[key],
+			Events:           monthEventsByDateKey[key],
 		}
 		if len(sessions) > 0 {
 			cell.FirstSessionColor = normalizeTemplateColor(sessions[0].SessionTemplate.Color)
@@ -327,12 +354,64 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		cells = append(cells, cell)
 	}
 
+	// Conflict warnings: blocking events in the next 30 days that overlap scheduled sessions.
+	today := localDate(now)
+	upcoming := today.AddDate(0, 0, 30)
+	upcomingEvents, err := db.ListCalendarEventsInRange(s.store.DB, ownerID, today, upcoming)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	// Build a map of dateKey → scheduled sessions for the next 30 days.
+	upcomingSessions, err := db.ListScheduledSessionsInRange(s.store.DB, ownerID, today, upcoming)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	upcomingByDate := map[string][]db.ScheduledSession{}
+	for _, ss := range upcomingSessions {
+		key := localDateKey(ss.ScheduledDate)
+		upcomingByDate[key] = append(upcomingByDate[key], ss)
+	}
+	var conflictWarnings []pages.ConflictWarningView
+	for _, e := range upcomingEvents {
+		if !e.Blocks {
+			continue
+		}
+		count := 0
+		cycleID := uint(0)
+		for d := e.StartDate; !d.After(e.EndDate); d = d.AddDate(0, 0, 1) {
+			sss := upcomingByDate[localDateKey(d)]
+			count += len(sss)
+			if cycleID == 0 && len(sss) > 0 && sss[0].TrainingCycleID != nil {
+				cycleID = *sss[0].TrainingCycleID
+			}
+		}
+		if count == 0 {
+			continue
+		}
+		cycleName := ""
+		if cycleID != 0 {
+			cycleName = cycleNameMap[cycleID]
+		}
+		conflictWarnings = append(conflictWarnings, pages.ConflictWarningView{
+			EventTitle:   e.Title,
+			EventColor:   pages.CalendarEventColor(e.Kind),
+			StartLabel:   e.StartDate.Format("Jan 2"),
+			EndLabel:     e.EndDate.Format("Jan 2"),
+			SessionCount: count,
+			CycleName:    cycleName,
+			CycleID:      cycleID,
+		})
+	}
+
 	weekdayLabels := []string{"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}
 
 	s.pages.Dashboard(w, pages.DashboardParams{
 		Base:             pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
 		Templates:        templates,
 		ActiveRuns:       activeRunViews,
+		DraftLogEntries:  draftLogViews,
 		WeekSessions:     weekSessionViews,
 		WeekDayGroups:    weekDayGroups,
 		WeekLabel:        weekLabel,
@@ -344,5 +423,6 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		CalendarWeekday:  weekdayLabels,
 		MonthPrevURL:     monthPrevURL,
 		MonthNextURL:     monthNextURL,
+		ConflictWarnings: conflictWarnings,
 	})
 }
