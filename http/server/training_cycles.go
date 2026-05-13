@@ -12,11 +12,7 @@ import (
 )
 
 func (s *Server) handleTrainingCycles(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	var cycles []db.TrainingCycle
 	err := s.store.DB.
 		Where("owner_id = ?", ownerID).
@@ -34,11 +30,7 @@ func (s *Server) handleTrainingCycles(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	switch r.Method {
 	case http.MethodGet:
 		templates, err := s.listTemplates(ownerID)
@@ -181,11 +173,7 @@ func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *Server) handleTrainingCyclesByID(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	cycleID, err := parseUintParam(r, "cycleID")
 	if err != nil {
 		http.Error(w, "invalid training cycle id", http.StatusBadRequest)
@@ -679,11 +667,7 @@ func (s *Server) handleCycleOverrideClear(w http.ResponseWriter, r *http.Request
 // handleCycleWeekOverrideSave upserts a CycleExerciseWeekOverride for one exercise+week (silent auto-save).
 // POST /training-cycles/{cycleID}/week-override-save
 func (s *Server) handleCycleWeekOverrideSave(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	if r.Method != http.MethodPost {
 		s.methodNotAllowed(w)
 		return
@@ -725,11 +709,7 @@ func (s *Server) handleCycleWeekOverrideSave(w http.ResponseWriter, r *http.Requ
 // handleCycleWeekOverrideToggle switches an exercise between "same every week" and "varies by week".
 // POST /training-cycles/{cycleID}/week-override-toggle
 func (s *Server) handleCycleWeekOverrideToggle(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	if r.Method != http.MethodPost {
 		s.methodNotAllowed(w)
 		return

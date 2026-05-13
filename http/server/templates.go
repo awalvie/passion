@@ -129,11 +129,7 @@ func (s *Server) handleTemplatesIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 
 	labelFilter := strings.TrimSpace(r.URL.Query().Get("label"))
 
@@ -157,11 +153,7 @@ func (s *Server) handleTemplatesIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTemplatesNew(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	switch r.Method {
 	case http.MethodGet:
 		s.pages.NewTemplate(w, pages.NewTemplateParams{
@@ -199,11 +191,7 @@ func (s *Server) handleTemplatesNew(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTemplatesByID(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	// Supported:
 	// - GET  /templates/{id}/edit
 	// - POST /templates/{id}/activities

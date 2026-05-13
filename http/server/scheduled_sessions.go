@@ -12,11 +12,7 @@ import (
 )
 
 func (s *Server) handleScheduledSessionsByID(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	scheduledID, err := parseUintParam(r, "scheduledID")
 	if err != nil {
 		http.Error(w, "invalid scheduled session id", http.StatusBadRequest)
@@ -118,11 +114,7 @@ func (s *Server) handleScheduledSessionsByID(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *Server) handleAddScheduledSession(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	if r.Method != http.MethodPost {
 		s.methodNotAllowed(w)
 		return

@@ -18,11 +18,7 @@ func (s *Server) handleExerciseLibraryIndex(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 
 	// Search, filter, sort params
 	searchQ := strings.TrimSpace(r.URL.Query().Get("q"))
@@ -128,11 +124,7 @@ func (s *Server) handleExerciseLibraryIndex(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Server) handleExerciseLibraryNew(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	switch r.Method {
 	case http.MethodGet:
 		lib, _ := s.listLibraryExercises(ownerID)
@@ -184,11 +176,7 @@ func (s *Server) handleExerciseLibraryNew(w http.ResponseWriter, r *http.Request
 }
 
 func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	idStr := chi.URLParam(r, "libraryExerciseID")
 	id64, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
