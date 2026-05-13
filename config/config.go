@@ -65,7 +65,7 @@ func defaultConfig() *Config {
 		},
 		Auth: AuthConfig{
 			JWTSecret:     "change-me-in-production",
-			JWTTTLHours:   24 * 7,
+			JWTTTLHours:   24 * 30,
 			DevAuthBypass: false,
 		},
 		YAMLImport: YAMLImportConfig{
