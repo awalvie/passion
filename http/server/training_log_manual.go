@@ -20,27 +20,44 @@ func (s *Server) handleTrainingLogNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// GET: create a draft run anchored to the open-session system template.
-	tpl, err := s.getOrCreateOpenSessionTemplate(ownerID)
-	if err != nil {
-		s.serverError(w, r, err)
-		return
-	}
 	now := time.Now()
-	scheduled := &db.ScheduledSession{
-		OwnerID:           ownerID,
-		IsTrial:           true,
-		ScheduledDate:     localDate(now),
-		SessionTemplateID: tpl.ID,
+	var draft *db.SessionRun
+
+	// If ?resume=N is provided, load the existing draft instead of creating a new one.
+	if resumeID := r.URL.Query().Get("resume"); resumeID != "" {
+		id, err := strconv.ParseUint(resumeID, 10, 64)
+		if err == nil {
+			var existing db.SessionRun
+			if err := s.store.DB.
+				Where("owner_id = ? AND id = ? AND is_draft = ?", ownerID, uint(id), true).
+				First(&existing).Error; err == nil {
+				draft = &existing
+			}
+		}
 	}
-	if err := s.store.DB.Create(scheduled).Error; err != nil {
-		s.serverError(w, r, err)
-		return
-	}
-	draft, err := db.CreateDraftSessionRun(s.store.DB, ownerID, scheduled.ID)
-	if err != nil {
-		s.serverError(w, r, err)
-		return
+
+	if draft == nil {
+		// GET: create a draft run anchored to the open-session system template.
+		tpl, err := s.getOrCreateOpenSessionTemplate(ownerID)
+		if err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		scheduled := &db.ScheduledSession{
+			OwnerID:           ownerID,
+			IsTrial:           true,
+			ScheduledDate:     localDate(now),
+			SessionTemplateID: tpl.ID,
+		}
+		if err := s.store.DB.Create(scheduled).Error; err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		draft, err = db.CreateDraftSessionRun(s.store.DB, ownerID, scheduled.ID)
+		if err != nil {
+			s.serverError(w, r, err)
+			return
+		}
 	}
 
 	libExercises, err := db.ListLibraryExercises(s.store.DB, ownerID)
