@@ -63,11 +63,7 @@ func (s *Server) handleStartOpenSession(w http.ResponseWriter, r *http.Request) 
 		s.methodNotAllowed(w)
 		return
 	}
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	if err := r.ParseForm(); err != nil {
 		s.badRequest(w, "bad request")
 		return
@@ -115,11 +111,7 @@ func (s *Server) handleOpenAddExercise(w http.ResponseWriter, r *http.Request) {
 		s.methodNotAllowed(w)
 		return
 	}
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)
@@ -202,11 +194,7 @@ func (s *Server) handleOpenAddTemplate(w http.ResponseWriter, r *http.Request) {
 		s.methodNotAllowed(w)
 		return
 	}
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)
@@ -289,11 +277,7 @@ func (s *Server) handleOpenStartSession(w http.ResponseWriter, r *http.Request) 
 		s.methodNotAllowed(w)
 		return
 	}
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)
@@ -329,11 +313,7 @@ func (s *Server) handleOpenUpdateExercise(w http.ResponseWriter, r *http.Request
 		s.methodNotAllowed(w)
 		return
 	}
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)
@@ -405,11 +385,7 @@ func (s *Server) handleOpenDeleteExercise(w http.ResponseWriter, r *http.Request
 		s.methodNotAllowed(w)
 		return
 	}
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)

@@ -49,11 +49,7 @@ func (s *Server) handleAddActivity(w http.ResponseWriter, r *http.Request, templ
 }
 
 func (s *Server) handleActivitiesByID(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	// Supported:
 	// - POST /activities/{id}/exercises
 	// - POST /activities/{id}/delete

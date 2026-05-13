@@ -31,11 +31,7 @@ type WeeklyDataPoint struct {
 }
 
 func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 
 	now := time.Now()
 

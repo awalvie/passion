@@ -114,11 +114,7 @@ func (s *Server) handleExportLibraryExercisesBulk(w http.ResponseWriter, r *http
 		s.methodNotAllowed(w)
 		return
 	}
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	if err := r.ParseForm(); err != nil {
 		s.badRequest(w, "bad request")
 		return

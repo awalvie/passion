@@ -93,11 +93,7 @@ func formatHistoryDate(yyyymmdd string) string {
 
 // handleExerciseHistoryHint serves the lazy-loaded history pill shown on the run page.
 func (s *Server) handleExerciseHistoryHint(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	exID, err := parseUintParam(r, "exerciseID")
 	if err != nil {
 		http.Error(w, "invalid exercise id", http.StatusBadRequest)
@@ -121,11 +117,7 @@ func (s *Server) handleExerciseHistoryHint(w http.ResponseWriter, r *http.Reques
 
 // handleExerciseHistoryPopup serves the full popup content loaded into the dialog.
 func (s *Server) handleExerciseHistoryPopup(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	exID, err := parseUintParam(r, "exerciseID")
 	if err != nil {
 		http.Error(w, "invalid exercise id", http.StatusBadRequest)
@@ -153,11 +145,7 @@ func (s *Server) handleExerciseHistoryPopup(w http.ResponseWriter, r *http.Reque
 
 // handleExerciseDivergenceHint checks whether recent actuals diverge from planned values.
 func (s *Server) handleExerciseDivergenceHint(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	exID, err := parseUintParam(r, "exerciseID")
 	if err != nil {
 		w.WriteHeader(http.StatusOK)
@@ -224,11 +212,7 @@ func (s *Server) handleExerciseLibraryHistory(w http.ResponseWriter, r *http.Req
 		s.methodNotAllowed(w)
 		return
 	}
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	libID, err := parseUintParam(r, "libraryExerciseID")
 	if err != nil {
 		http.Error(w, "invalid exercise id", http.StatusBadRequest)

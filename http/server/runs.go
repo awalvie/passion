@@ -17,11 +17,7 @@ import (
 // RunStep, RunStepOption, and RunActivityGroup are defined in passion/pages.
 
 func (s *Server) handleRunsByID(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)
@@ -369,11 +365,7 @@ func (s *Server) handleRunExerciseChoose(w http.ResponseWriter, r *http.Request)
 		s.methodNotAllowed(w)
 		return
 	}
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)
@@ -718,11 +710,7 @@ func sumElapsedSeconds(completions []db.RunExerciseCompletion) int {
 }
 
 func (s *Server) handleRunStop(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	if r.Method != http.MethodPost {
 		s.methodNotAllowed(w)
 		return
@@ -760,11 +748,7 @@ func (s *Server) handleRunStop(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleRunDelete(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	if r.Method != http.MethodPost {
 		s.methodNotAllowed(w)
 		return
@@ -804,11 +788,7 @@ func (s *Server) handleRunDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run id", http.StatusBadRequest)

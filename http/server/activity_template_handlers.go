@@ -16,11 +16,7 @@ func (s *Server) handleActivityTemplatesIndex(w http.ResponseWriter, r *http.Req
 		s.methodNotAllowed(w)
 		return
 	}
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	labelFilter := strings.TrimSpace(r.URL.Query().Get("label"))
 
 	templates, err := db.ListActivityTemplates(s.store.DB, ownerID, labelFilter)
@@ -42,11 +38,7 @@ func (s *Server) handleActivityTemplatesIndex(w http.ResponseWriter, r *http.Req
 }
 
 func (s *Server) handleActivityTemplatesNew(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	switch r.Method {
 	case http.MethodGet:
 		s.pages.NewActivityTemplate(w, pages.NewActivityTemplateParams{
@@ -80,11 +72,7 @@ func (s *Server) handleActivityTemplatesNew(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Server) handleActivityTemplatesByID(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	tplID, err := parseUintParam(r, "activityTemplateID")
 	if err != nil {
 		http.Error(w, "invalid activity template id", http.StatusBadRequest)

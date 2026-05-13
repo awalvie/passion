@@ -58,11 +58,7 @@ func ticksToViews(ticks []db.ClimbingTick) []pages.ClimbingTickView {
 
 // handleExerciseTicks serves GET|POST /runs/{runID}/exercises/{exerciseID}/ticks.
 func (s *Server) handleExerciseTicks(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 
 	runID, err := parseUintParam(r, "runID")
 	if err != nil {
@@ -171,11 +167,7 @@ func (s *Server) handleExerciseTickDelete(w http.ResponseWriter, r *http.Request
 		s.methodNotAllowed(w)
 		return
 	}
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 
 	runID, err := parseUintParam(r, "runID")
 	if err != nil {
@@ -259,11 +251,7 @@ func (s *Server) loadVenuesAndBoards(ownerID uint) ([]pages.ClimbingVenueView, [
 
 // handleProfileVenues serves GET|POST /profile/venues.
 func (s *Server) handleProfileVenues(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 
 	if r.Method == http.MethodPost {
 		if err := r.ParseForm(); err != nil {
@@ -301,11 +289,7 @@ func (s *Server) handleProfileVenueDelete(w http.ResponseWriter, r *http.Request
 		s.methodNotAllowed(w)
 		return
 	}
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	id, err := parseUintParam(r, "venueID")
 	if err != nil {
 		http.Error(w, "invalid ID", http.StatusBadRequest)
@@ -325,11 +309,7 @@ func (s *Server) handleProfileVenueDelete(w http.ResponseWriter, r *http.Request
 
 // handleProfileBoards serves GET|POST /profile/boards.
 func (s *Server) handleProfileBoards(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 
 	if r.Method == http.MethodPost {
 		if err := r.ParseForm(); err != nil {
@@ -365,11 +345,7 @@ func (s *Server) handleProfileBoardDelete(w http.ResponseWriter, r *http.Request
 		s.methodNotAllowed(w)
 		return
 	}
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	id, err := parseUintParam(r, "boardID")
 	if err != nil {
 		http.Error(w, "invalid ID", http.StatusBadRequest)

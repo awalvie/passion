@@ -14,11 +14,7 @@ import (
 )
 
 func (s *Server) handleExercisesByID(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	exerciseID, err := parseUintParam(r, "exerciseID")
 	if err != nil {
 		http.Error(w, "invalid exercise id", http.StatusBadRequest)

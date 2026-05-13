@@ -10,11 +10,7 @@ import (
 )
 
 func (s *Server) handleProfile(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 
 	switch r.Method {
 	case http.MethodGet:

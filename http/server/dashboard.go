@@ -13,11 +13,7 @@ import (
 )
 
 func (s *Server) handleDashboardStartFromTemplate(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	if r.Method != http.MethodPost {
 		s.methodNotAllowed(w)
 		return
@@ -44,11 +40,7 @@ func (s *Server) handleDashboardStartFromTemplate(w http.ResponseWriter, r *http
 }
 
 func (s *Server) handleStartSessionPicker(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	var templates []db.SessionTemplate
 	if err := s.store.DB.Where("owner_id = ?", ownerID).Order("name asc").Find(&templates).Error; err != nil {
 		s.serverError(w, r, err)
@@ -58,11 +50,7 @@ func (s *Server) handleStartSessionPicker(w http.ResponseWriter, r *http.Request
 }
 
 func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	now := time.Now()
 
 	var templates []db.SessionTemplate

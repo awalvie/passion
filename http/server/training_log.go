@@ -44,11 +44,7 @@ func locationDisplayName(l string) string {
 
 // handleTrainingLog serves GET /training-log.
 func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 
 	// Load all completed non-draft runs, newest first.
 	var runs []db.SessionRun
@@ -351,11 +347,7 @@ func (s *Server) buildAdherenceView(ownerID uint) ([]pages.AdherenceWeekView, st
 
 // handleRunJournal serves GET|POST /runs/{runID}/journal.
 func (s *Server) handleRunJournal(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 
 	runID, err := parseUintParam(r, "runID")
 	if err != nil {
@@ -449,11 +441,7 @@ func (s *Server) saveJournal(w http.ResponseWriter, r *http.Request, ownerID, ru
 // GET: creates a draft SessionRun so exercise/tick HTMX routes are live from page load.
 // POST: finalises the draft run, creates a SessionJournal, redirects to /training-log.
 func (s *Server) handleTrainingLogNew(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 
 	if r.Method == http.MethodPost {
 		s.finaliseManualEntry(w, r, ownerID)
@@ -591,11 +579,7 @@ func (s *Server) handleTrainingLogDraftDiscard(w http.ResponseWriter, r *http.Re
 		s.methodNotAllowed(w)
 		return
 	}
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run ID", http.StatusBadRequest)
@@ -614,11 +598,7 @@ func (s *Server) handleTrainingLogAddExercise(w http.ResponseWriter, r *http.Req
 		s.methodNotAllowed(w)
 		return
 	}
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run ID", http.StatusBadRequest)
@@ -672,11 +652,7 @@ func (s *Server) handleTrainingLogSaveExerciseCompletion(w http.ResponseWriter, 
 		s.methodNotAllowed(w)
 		return
 	}
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run ID", http.StatusBadRequest)
@@ -708,11 +684,7 @@ func (s *Server) handleTrainingLogDeleteExercise(w http.ResponseWriter, r *http.
 		s.methodNotAllowed(w)
 		return
 	}
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 	runID, err := parseUintParam(r, "runID")
 	if err != nil {
 		http.Error(w, "invalid run ID", http.StatusBadRequest)
@@ -770,11 +742,7 @@ func (s *Server) renderManualExercises(w http.ResponseWriter, r *http.Request, o
 
 // handleTrainingLogEdit serves GET|POST /training-log/{journalID}/edit.
 func (s *Server) handleTrainingLogEdit(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 
 	journalID, err := parseUintParam(r, "journalID")
 	if err != nil {
@@ -868,11 +836,7 @@ func (s *Server) updateJournal(w http.ResponseWriter, r *http.Request, ownerID u
 
 // handleTrainingLogDelete serves POST /training-log/{journalID}/delete.
 func (s *Server) handleTrainingLogDelete(w http.ResponseWriter, r *http.Request) {
-	ownerID, ok := s.currentUserID(r)
-	if !ok {
-		s.unauthorizedRedirect(w, r)
-		return
-	}
+	ownerID := s.mustUserID(r)
 
 	journalID, err := parseUintParam(r, "journalID")
 	if err != nil {

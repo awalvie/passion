@@ -275,6 +275,16 @@ func (s *Server) currentUserID(r *http.Request) (uint, bool) {
 	return id, true
 }
 
+// mustUserID returns the authenticated user's ID from context.
+// It panics if the auth middleware hasn't run — only call from routes inside the auth group.
+func (s *Server) mustUserID(r *http.Request) uint {
+	id, ok := s.currentUserID(r)
+	if !ok {
+		panic("mustUserID called outside auth middleware")
+	}
+	return id
+}
+
 func (s *Server) currentUserEmail(r *http.Request) string {
 	v := r.Context().Value(authUserEmailKey)
 	email, _ := v.(string)
