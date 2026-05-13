@@ -47,18 +47,6 @@
       </div>
       {{ end }}
 
-      {{/* Board (only for new entries with exercises) */}}
-      {{ if and .DraftRunID .Boards }}
-      <div>
-        <label class="text-xs font-semibold muted block mb-1" for="board-sel"
-          style="text-transform:uppercase;letter-spacing:0.06em;">Board <span class="font-normal">(optional)</span></label>
-        <select id="board-sel" name="board_id" class="w-full input text-sm">
-          <option value="">—</option>
-          {{ range .Boards }}<option value="{{ .ID }}" {{ if eq $.BoardID .ID }}selected{{ end }}>{{ .Label }}</option>{{ end }}
-        </select>
-      </div>
-      {{ end }}
-
       {{/* Sleep quality */}}
       <div>
         <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Sleep quality</p>
@@ -173,14 +161,43 @@
             <span class="journal-toggle">–</span>
           </label>
         </div>
-        {{ if .Venues }}
-        <div id="venue-picker" class="mt-2" style="display:none">
-          <select name="venue_id" class="w-full input text-sm">
-            <option value="">— no specific venue</option>
-            {{ range .Venues }}<option value="{{ .ID }}" {{ if eq $.VenueID .ID }}selected{{ end }}>{{ .Name }}</option>{{ end }}
-          </select>
+        <div id="venue-picker" class="mt-3" style="display:none">
+          <div class="relative" id="venue-combo">
+            <input
+              id="venue-name-input"
+              name="venue_name"
+              type="text"
+              class="w-full input text-sm"
+              placeholder="Venue or crag (optional)"
+              value="{{ .VenueName }}"
+              autocomplete="off"
+              role="combobox"
+              aria-expanded="false"
+              aria-autocomplete="list"
+              aria-controls="venue-suggestions-list"
+            />
+            {{ if .Venues }}
+            <ul
+              id="venue-suggestions-list"
+              role="listbox"
+              class="hidden absolute z-50 left-0 right-0 mt-1 rounded-md border overflow-y-auto text-sm"
+              style="background:var(--panel);border-color:var(--border);max-height:180px"
+            >
+              {{ range .Venues }}
+              <li
+                role="option"
+                aria-selected="false"
+                data-label="{{ .Name }}"
+                class="px-3 py-2 cursor-pointer select-none flex items-center justify-between gap-2"
+                style="transition:background .1s"
+                onmouseover="this.style.background='var(--hover)'"
+                onmouseout="this.style.background=''"
+              ><span>{{ .Name }}</span>{{ if .Location }}<span class="text-[11px] muted shrink-0">{{ .Location }}</span>{{ end }}</li>
+              {{ end }}
+            </ul>
+            {{ end }}
+          </div>
         </div>
-        {{ end }}
       </div>
 
       {{/* What went well */}}
@@ -220,18 +237,80 @@
 
 <script>
 (function () {
-  const picker = document.getElementById('venue-picker');
-  if (!picker) return;
-  function sync() {
-    const checked = document.querySelector('input[name="location"]:checked');
-    const isIndoor = checked && checked.value === 'indoor';
-    picker.style.display = isIndoor ? '' : 'none';
-    if (!isIndoor) {
-      const sel = picker.querySelector('select');
-      if (sel) sel.value = '';
+  var venuePicker = document.getElementById('venue-picker');
+
+  // Venue combobox (free-text with styled suggestions).
+  var venueCombo = document.getElementById('venue-combo');
+  if (venueCombo) {
+    var venueInput = venueCombo.querySelector('input[name="venue_name"]');
+    var venueList  = venueCombo.querySelector('ul[role="listbox"]');
+    if (venueInput && venueList) {
+      var items   = function () { return Array.from(venueList.querySelectorAll('li[role="option"]')); };
+      var open    = function () { venueList.classList.remove('hidden'); venueInput.setAttribute('aria-expanded', 'true'); };
+      var close   = function () { venueList.classList.add('hidden'); venueInput.setAttribute('aria-expanded', 'false'); };
+      var visible = function () { return items().filter(function (li) { return li.style.display !== 'none'; }); };
+      var choose  = function (li) {
+        venueInput.value = li.dataset.label;
+        items().forEach(function (i) { i.setAttribute('aria-selected', 'false'); });
+        li.setAttribute('aria-selected', 'true');
+        close();
+      };
+      venueInput.addEventListener('input', function () {
+        var q = this.value.trim().toLowerCase();
+        var hasVisible = false;
+        items().forEach(function (li) {
+          var match = !q || li.dataset.label.toLowerCase().includes(q);
+          li.style.display = match ? '' : 'none';
+          if (match) hasVisible = true;
+        });
+        if (q && hasVisible) open();
+        else if (!q) { items().forEach(function (li) { li.style.display = ''; }); open(); }
+        else close();
+      });
+      venueInput.addEventListener('focus', function () {
+        items().forEach(function (li) { li.style.display = ''; });
+        open();
+      });
+      venueInput.addEventListener('keydown', function (e) {
+        var vis = visible();
+        var active = vis.find(function (li) { return li.getAttribute('aria-selected') === 'true'; });
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          var next = active ? (vis[vis.indexOf(active) + 1] || vis[0]) : vis[0];
+          if (next) { items().forEach(function (i) { i.setAttribute('aria-selected', 'false'); }); next.setAttribute('aria-selected', 'true'); next.scrollIntoView({block:'nearest'}); }
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          var prev = active ? (vis[vis.indexOf(active) - 1] || vis[vis.length - 1]) : vis[vis.length - 1];
+          if (prev) { items().forEach(function (i) { i.setAttribute('aria-selected', 'false'); }); prev.setAttribute('aria-selected', 'true'); prev.scrollIntoView({block:'nearest'}); }
+        } else if (e.key === 'Enter') {
+          var activeNow = vis.find(function (li) { return li.getAttribute('aria-selected') === 'true'; });
+          if (activeNow && !venueList.classList.contains('hidden')) { e.preventDefault(); choose(activeNow); }
+        } else if (e.key === 'Escape') {
+          close();
+        }
+      });
+      venueList.addEventListener('mousedown', function (e) {
+        var li = e.target.closest('li[role="option"]');
+        if (li) { e.preventDefault(); choose(li); }
+      });
+      document.addEventListener('click', function (e) {
+        if (!venueCombo.contains(e.target)) close();
+      }, true);
     }
   }
-  document.querySelectorAll('input[name="location"]').forEach(r => r.addEventListener('change', sync));
+
+  // Location sync: venue shows for any location, board only for indoor.
+  function sync() {
+    var checked = document.querySelector('input[name="location"]:checked');
+    var val = checked ? checked.value : '';
+    var hasLocation = val !== '';
+    var isIndoor = val === 'indoor';
+    if (venuePicker) {
+      venuePicker.style.display = hasLocation ? '' : 'none';
+      if (!hasLocation) { var inp = venuePicker.querySelector('input[name="venue_name"]'); if (inp) inp.value = ''; }
+    }
+  }
+  document.querySelectorAll('input[name="location"]').forEach(function (r) { r.addEventListener('change', sync); });
   sync();
 })();
 </script>
