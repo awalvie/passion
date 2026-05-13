@@ -64,7 +64,7 @@
     <div class="flex items-center gap-2 shrink-0">
       <a href="/training-log/new?resume={{ .RunID }}"
          class="rounded-md btn-primary px-3 py-1 text-xs font-medium">Continue →</a>
-      <form method="post" action="/training-log/draft/{{ .RunID }}/discard" hx-post="/training-log/draft/{{ .RunID }}/discard" hx-swap="none">
+      <form method="post" action="/training-log/draft/{{ .RunID }}/discard" hx-post="/training-log/draft/{{ .RunID }}/discard" hx-swap="none" hx-on:htmx:after-request="window.location.reload()">
         <button type="submit" class="rounded-md btn-ghost px-2 py-1 text-xs muted" title="Discard draft">Discard</button>
       </form>
     </div>
