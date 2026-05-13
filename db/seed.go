@@ -2,6 +2,7 @@ package db
 
 import (
 	"log/slog"
+	"math/rand"
 	"time"
 
 	"gorm.io/gorm"
@@ -276,60 +277,115 @@ func defaultSeedTemplates() []seedTemplate {
 }
 
 
-// seedHistoricalRuns creates ~40 completed session runs spread across the last 3 months
-// plus one "running" session for today, to populate the history page.
+type seedExerciseInfo struct {
+	ID   uint
+	Kind string
+}
+
+// seedHistoricalRuns creates ~45 completed session runs spread across the last 14 weeks
+// plus one "running" session for today. It seeds journal entries, climbing ticks, and
+// manual exercise completions to give the stats panel meaningful data.
 func seedHistoricalRuns(tx *gorm.DB, ownerID uint, templateIDs []uint) error {
 	if len(templateIDs) == 0 {
 		return nil
 	}
 
+	rng := rand.New(rand.NewSource(42))
 	now := time.Now()
 
-	// Load root exercises for each template so we can create completions
-	exercisesByTemplate := map[uint][]uint{}
+	// Load root exercises for each template, including kind, so we can create
+	// ticks for climbing exercises.
+	exercisesByTemplate := map[uint][]seedExerciseInfo{}
 	for _, tplID := range templateIDs {
 		var exercises []Exercise
 		err := tx.
 			Joins("JOIN activities ON activities.id = exercises.activity_id").
 			Where("activities.session_template_id = ? AND exercises.parent_exercise_id IS NULL", tplID).
-			Select("exercises.id").
+			Select("exercises.id, exercises.kind").
 			Find(&exercises).Error
 		if err != nil {
 			return err
 		}
-		ids := make([]uint, len(exercises))
+		infos := make([]seedExerciseInfo, len(exercises))
 		for i, e := range exercises {
-			ids[i] = e.ID
+			infos[i] = seedExerciseInfo{ID: e.ID, Kind: e.Kind}
 		}
-		exercisesByTemplate[tplID] = ids
+		exercisesByTemplate[tplID] = infos
 	}
 
-	// Training days: offsets from today (negative = past).
-	// One session per day, ~3-4 days per week across 12 weeks.
-	dayOffsets := []int{
-		-84, -82, -80, -78, // week 12 ago
-		-77, -75, -73,      // week 11
-		-70, -68, -66,      // week 10
-		-63, -61, -59, -57, // week 9
-		-56, -54, -52,      // week 8
-		-49, -47, -45, -43, // week 7
-		-42, -40, -38,      // week 6
-		-35, -33, -31,      // week 5
-		-28, -26, -24, -22, // week 4
-		-21, -19, -17,      // week 3
-		-14, -12, -10, -9,  // week 2
-		-7, -5, -3, -1,     // last week
-		0,                  // today (will be RunStatusRunning)
+	// Training schedule: irregular pattern across 14 weeks, 2–4 sessions/week.
+	// Mix of morning (7–9 am) and evening (17–19) start hours.
+	type sessionSlot struct {
+		offset    int // days from today
+		startHour int
+	}
+	slots := []sessionSlot{
+		{-97, 7}, {-95, 18}, {-93, 7},             // week 14
+		{-90, 17}, {-88, 7},                        // week 13 (rest-ish)
+		{-84, 8}, {-82, 18}, {-80, 7}, {-78, 17},  // week 12
+		{-77, 7}, {-75, 18}, {-73, 8},              // week 11
+		{-70, 7}, {-67, 18},                        // week 10 (lighter)
+		{-63, 8}, {-61, 7}, {-59, 18}, {-57, 7},   // week 9
+		{-55, 18}, {-53, 7}, {-51, 8},              // week 8
+		{-49, 7}, {-47, 17}, {-45, 7},              // week 7
+		{-42, 8}, {-39, 18},                        // week 6 (lighter — travel)
+		{-35, 7}, {-33, 18}, {-31, 7}, {-29, 8},   // week 5
+		{-28, 17}, {-26, 7}, {-24, 18},             // week 4
+		{-21, 8}, {-19, 7}, {-17, 18}, {-15, 7},   // week 3
+		{-14, 17}, {-12, 7}, {-10, 18}, {-9, 8},   // week 2
+		{-7, 7}, {-5, 18}, {-3, 7}, {-1, 17},      // last week
+		{0, 8},                                     // today (RunStatusRunning)
 	}
 
-	// Session durations (minutes) to vary completed times
-	durations := []int{55, 70, 45, 80, 60, 75, 50, 65, 90, 55}
+	// Realistic session durations in minutes, by template index.
+	durationRanges := [][2]int{
+		{60, 90}, // bouldering power — longer
+		{50, 75}, // strength base
+		{70, 100}, // technique + volume — longest
+	}
 
-	for i, offset := range dayOffsets {
-		tplID := templateIDs[i%len(templateIDs)]
-		sessionDate := LocalDate(now.AddDate(0, 0, offset))
-		startHour := 7 + (i % 4) // vary start between 7-10am
-		startedAt := sessionDate.Add(time.Duration(startHour) * time.Hour)
+	// Journal data pools.
+	focusByTemplate := [][]string{
+		{"projects", "strength", "projects", "general"},
+		{"strength", "general", "strength"},
+		{"technique", "endurance", "technique", "general"},
+	}
+	wentWellPool := []string{
+		"Movement felt crisp on the crux sequences.",
+		"Footwork stayed precise throughout.",
+		"Good tension through the core on overhang.",
+		"Managed rest positions well on the route.",
+		"Pull-up strength noticeably improved.",
+		"Breathing stayed calm even on hard moves.",
+		"Hit all planned sets without dropping reps.",
+		"Shoulder felt stable, no niggles.",
+		"Dialled the beta on the project third go.",
+		"Energy was high the whole session.",
+	}
+	nextFocusPool := []string{
+		"Work hip positioning on steep terrain.",
+		"Keep rest intervals strict — tendency to cut them short.",
+		"Focus on quiet feet next session.",
+		"More volume on open-hand grip.",
+		"Try the direct start on the project.",
+		"Add antagonist work — fingers are fatiguing fast.",
+		"Earlier session time to avoid evening crowds.",
+		"Film a run on the project to spot beta.",
+	}
+
+	// Boulder grades (Font scale) and route grades (French sport).
+	boulderGrades := []string{"5+", "6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b"}
+	routeGrades := []string{"6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b", "7b+"}
+	tickStyles := []string{"onsight", "flash", "redpoint", "redpoint", "redpoint", "project", "project", "repeat"}
+
+	pick := func(pool []string) string { return pool[rng.Intn(len(pool))] }
+	between := func(lo, hi int) int { return lo + rng.Intn(hi-lo+1) }
+
+	for i, slot := range slots {
+		tplIdx := i % len(templateIDs)
+		tplID := templateIDs[tplIdx]
+		sessionDate := LocalDate(now.AddDate(0, 0, slot.offset))
+		startedAt := sessionDate.Add(time.Duration(slot.startHour) * time.Hour)
 
 		ss := ScheduledSession{
 			OwnerID:           ownerID,
@@ -342,16 +398,18 @@ func seedHistoricalRuns(tx *gorm.DB, ownerID uint, templateIDs []uint) error {
 			return err
 		}
 
-		isToday := offset == 0
+		isToday := slot.offset == 0
 		status := RunStatusCompleted
 		if isToday {
 			status = RunStatusRunning
 		}
 
+		durRange := durationRanges[tplIdx]
+		durMin := between(durRange[0], durRange[1])
+
 		var completedAt *time.Time
 		if status == RunStatusCompleted {
-			dur := time.Duration(durations[i%len(durations)]) * time.Minute
-			t := startedAt.Add(dur)
+			t := startedAt.Add(time.Duration(durMin) * time.Minute)
 			completedAt = &t
 		}
 
@@ -366,33 +424,90 @@ func seedHistoricalRuns(tx *gorm.DB, ownerID uint, templateIDs []uint) error {
 			return err
 		}
 
-		// Create exercise completions
-		exerciseIDs := exercisesByTemplate[tplID]
-		if status == RunStatusCompleted && len(exerciseIDs) > 0 {
-			// Complete all exercises for most sessions, skip last one occasionally
-			completeCount := len(exerciseIDs)
-			if i%5 == 0 && completeCount > 1 {
-				completeCount-- // skip one exercise every 5th session
+		exercises := exercisesByTemplate[tplID]
+
+		if status == RunStatusCompleted && len(exercises) > 0 {
+			completeCount := len(exercises)
+			if rng.Intn(6) == 0 && completeCount > 1 {
+				completeCount-- // skip last exercise ~17% of sessions
 			}
+
 			for j := 0; j < completeCount; j++ {
+				ex := exercises[j]
 				comp := RunExerciseCompletion{
 					OwnerID:     ownerID,
 					RunID:       run.ID,
-					ExerciseID:  exerciseIDs[j],
+					ExerciseID:  ex.ID,
 					Status:      RunStatusCompleted,
-					CompletedAt: startedAt.Add(time.Duration(10*(j+1)) * time.Minute),
+					CompletedAt: startedAt.Add(time.Duration(between(8, 18)*(j+1)) * time.Minute),
 				}
 				if err := tx.Create(&comp).Error; err != nil {
 					return err
 				}
+
+				if ex.Kind == "climbing" {
+					tickCount := between(3, 8)
+					grades := boulderGrades
+					if tplIdx == 2 { // Technique+Volume uses routes
+						grades = routeGrades
+					}
+					for t := 0; t < tickCount; t++ {
+						sent := rng.Intn(3) != 0 // ~67% send rate
+						tick := ClimbingTick{
+							OwnerID:    ownerID,
+							RunID:      run.ID,
+							ExerciseID: ex.ID,
+							Kind:       "boulder",
+							Grade:      pick(grades),
+							Style:      pick(tickStyles),
+							Attempts:   between(1, 5),
+							Sent:       sent,
+							Stars:      rng.Intn(4), // 0–3
+							OrderIndex: t,
+						}
+						if tplIdx == 2 {
+							tick.Kind = "route"
+						}
+						if err := tx.Create(&tick).Error; err != nil {
+							return err
+						}
+					}
+				}
 			}
-		} else if isToday && len(exerciseIDs) > 1 {
-			// Today's running session: complete first 2 exercises
-			for j := 0; j < 2 && j < len(exerciseIDs); j++ {
+
+			// Add a journal entry for ~85% of completed sessions.
+			if rng.Intn(20) < 17 {
+				sleep := between(2, 5)
+				energy := between(2, 5)
+				rpe := between(5, 9)
+				location := "indoor"
+				if rng.Intn(8) == 0 { // ~12% outdoor
+					location = "outdoor"
+				}
+				focusPool := focusByTemplate[tplIdx]
+				journal := SessionJournal{
+					OwnerID:   ownerID,
+					RunID:     &run.ID,
+					Date:      startedAt,
+					SleepScore: sleep,
+					Energy:    energy,
+					RPE:       rpe,
+					Focus:     pick(focusPool),
+					Location:  location,
+					WentWell:  pick(wentWellPool),
+					NextFocus: pick(nextFocusPool),
+				}
+				if err := tx.Create(&journal).Error; err != nil {
+					return err
+				}
+			}
+
+		} else if isToday && len(exercises) > 1 {
+			for j := 0; j < 2 && j < len(exercises); j++ {
 				comp := RunExerciseCompletion{
 					OwnerID:     ownerID,
 					RunID:       run.ID,
-					ExerciseID:  exerciseIDs[j],
+					ExerciseID:  exercises[j].ID,
 					Status:      RunStatusCompleted,
 					CompletedAt: startedAt.Add(time.Duration(10*(j+1)) * time.Minute),
 				}
