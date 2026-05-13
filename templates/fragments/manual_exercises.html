@@ -61,8 +61,40 @@
   </details>
   {{ end }}
 
-  <div class="card card-pad space-y-3">
-    <div class="text-sm font-semibold">Add exercise</div>
+  <div class="card card-pad space-y-4">
+    <div class="text-sm font-semibold">Add exercises</div>
+
+    {{/* From activity template */}}
+    {{ if .ActivityTemplates }}
+    <form
+      hx-post="/training-log/draft/{{ .DraftRunID }}/from-activity-template"
+      hx-target="#manual-exercises-{{ .DraftRunID }}"
+      hx-swap="outerHTML"
+      class="flex gap-2 items-end"
+    >
+      <div class="flex-1 min-w-0">
+        <label class="text-xs font-medium" for="at-select-{{ .DraftRunID }}">Activity template</label>
+        <select id="at-select-{{ .DraftRunID }}" name="activity_template_id" class="mt-1 w-full input text-sm">
+          <option value="">Choose template…</option>
+          {{ range .ActivityTemplates }}
+          <option value="{{ .ID }}">{{ .Name }}{{ if .Label }} · {{ .Label }}{{ end }}</option>
+          {{ end }}
+        </select>
+      </div>
+      <button type="submit" class="shrink-0 rounded-md btn-primary px-3 py-2 text-sm font-medium">Add all</button>
+    </form>
+    {{ end }}
+
+    {{/* Divider */}}
+    {{ if and .ActivityTemplates (or .LibraryExercises true) }}
+    <div class="flex items-center gap-2">
+      <div class="flex-1 h-px" style="background:var(--border)"></div>
+      <span class="text-[10px] uppercase tracking-widest muted">or single exercise</span>
+      <div class="flex-1 h-px" style="background:var(--border)"></div>
+    </div>
+    {{ end }}
+
+    {{/* From library */}}
     {{ if .LibraryExercises }}
     <form
       hx-post="/training-log/draft/{{ .DraftRunID }}/exercises"
@@ -82,6 +114,8 @@
       <button type="submit" class="shrink-0 rounded-md btn-primary px-3 py-2 text-sm font-medium">Add</button>
     </form>
     {{ end }}
+
+    {{/* Custom */}}
     <form
       hx-post="/training-log/draft/{{ .DraftRunID }}/exercises"
       hx-target="#manual-exercises-{{ .DraftRunID }}"
@@ -89,7 +123,7 @@
       class="flex gap-2 items-end"
     >
       <div class="flex-1 min-w-0">
-        <label class="text-xs font-medium" for="ex-name-{{ .DraftRunID }}">Custom name</label>
+        <label class="text-xs font-medium" for="ex-name-{{ .DraftRunID }}">Custom</label>
         <input id="ex-name-{{ .DraftRunID }}" name="name" class="mt-1 w-full input text-sm" placeholder="e.g. Limit Bouldering" autocomplete="off" />
       </div>
       <div>

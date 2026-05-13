@@ -178,15 +178,9 @@
               {{ if eq .Status "running" }}
                 <a href="/runs/{{ .RunID }}" class="rounded-md btn-primary px-3 py-1 text-xs font-medium">Resume</a>
               {{ else }}
-                {{ if gt .JournalEntryID 0 }}
-                  <a href="/training-log/{{ .JournalEntryID }}/edit" class="rounded p-1 md:opacity-0 transition-opacity md:group-hover:opacity-100" style="color:var(--muted)" title="View training log">
-                    <i data-lucide="notebook-pen" style="width:0.8rem;height:0.8rem" aria-hidden="true"></i>
-                  </a>
-                {{ else }}
-                  <a href="/runs/{{ .RunID }}/summary" class="rounded p-1 md:opacity-0 transition-opacity md:group-hover:opacity-100" style="color:var(--muted)" title="Add journal entry">
-                    <i data-lucide="notebook" style="width:0.8rem;height:0.8rem" aria-hidden="true"></i>
-                  </a>
-                {{ end }}
+                <a href="/training-log/for-run/{{ .RunID }}" class="rounded p-1 md:opacity-0 transition-opacity md:group-hover:opacity-100" style="color:var(--muted)" title="Edit training log">
+                  <i data-lucide="notebook-pen" style="width:0.8rem;height:0.8rem" aria-hidden="true"></i>
+                </a>
                 <form
                   hx-post="/runs/{{ .ID }}/delete"
                   hx-swap="none"

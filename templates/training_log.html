@@ -32,8 +32,8 @@
 
             <div class="flex items-start justify-between gap-2">
               <span class="text-sm font-semibold leading-snug">{{ .TemplateName }}</span>
-              {{ if gt .JournalEntryID 0 }}
-              <div class="flex items-center gap-0.5 shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                <div class="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                {{ if .IsStandalone }}
                 <a href="/training-log/{{ .JournalEntryID }}/edit"
                    class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Edit">
                   <i data-lucide="pencil" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
@@ -47,8 +47,20 @@
                     <i data-lucide="trash-2" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
                   </button>
                 </form>
+                {{ else }}
+                {{ if gt .JournalEntryID 0 }}
+                <a href="/training-log/{{ .JournalEntryID }}/edit"
+                   class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Edit">
+                  <i data-lucide="pencil" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+                </a>
+                {{ else }}
+                <a href="/training-log/for-run/{{ .RunID }}"
+                   class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Add to training log">
+                  <i data-lucide="pencil" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+                </a>
+                {{ end }}
+                {{ end }}
               </div>
-              {{ end }}
             </div>
 
             <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
@@ -129,21 +141,7 @@
             {{ end }}
 
             {{ if .JournalTeaser }}
-            <p class="mt-2.5 text-xs truncate" style="color:var(--muted)">
-              "{{ .JournalTeaser }}"
-              <a href="/training-log/{{ .JournalEntryID }}/edit"
-                 class="ml-1 font-medium hover:underline" style="color:var(--accent)">edit →</a>
-            </p>
-            {{ else if and .HasJournal (gt .JournalEntryID 0) }}
-            <p class="mt-2 text-xs">
-              <a href="/training-log/{{ .JournalEntryID }}/edit"
-                 class="hover:underline" style="color:var(--accent)">Add notes →</a>
-            </p>
-            {{ else if not .IsStandalone }}
-            <p class="mt-2 text-xs">
-              <a href="/runs/{{ .RunID }}/summary"
-                 class="hover:underline" style="color:var(--accent)">Add notes →</a>
-            </p>
+            <p class="mt-2.5 text-xs truncate" style="color:var(--muted)">"{{ .JournalTeaser }}"</p>
             {{ end }}
 
           </div>

@@ -575,13 +575,17 @@ type TrainingLogNewParams struct {
 	FormErr     string
 
 	// Draft run fields (set when creating a new manual entry with exercises)
-	DraftRunID       uint
-	LibraryExercises []db.LibraryExercise
-	Exercises        []ManualExerciseView
-	Venues           []ClimbingVenueView
-	Boards           []ClimbingBoardView
-	VenueID          uint
-	BoardID          uint
+	DraftRunID         uint
+	LibraryExercises   []db.LibraryExercise
+	ActivityTemplates  []db.ActivityTemplate
+	Exercises          []ManualExerciseView
+	Venues             []ClimbingVenueView
+	Boards             []ClimbingBoardView
+	VenueID            uint
+	BoardID            uint
+	// TemplateActivities holds read-only exercise data from the session template
+	// for non-manual runs shown on the edit page.
+	TemplateActivities []RunSummaryActivity
 }
 
 type TrainingLogEntryView struct {
