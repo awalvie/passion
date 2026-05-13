@@ -13,7 +13,21 @@
   </div>
 
   {{ if .TrainingCycles }}
-    <div class="mt-6 overflow-auto">
+    {{/* Mobile card list */}}
+    <div class="mt-6 md:hidden space-y-2">
+      {{ range .TrainingCycles }}
+      <a href="/training-cycles/{{ .ID }}" class="flex items-center justify-between gap-3 rounded-lg border px-4 py-3 no-underline" style="border-color:var(--border);background:var(--panel)">
+        <div class="min-w-0">
+          <div class="text-sm font-medium truncate">{{ .Name }}</div>
+          <div class="text-xs muted mt-0.5">Starting {{ .StartDate.Format "Jan 2, 2006" }} · {{ .Weeks }} weeks</div>
+        </div>
+        <i data-lucide="chevron-right" class="shrink-0 muted" style="width:1rem;height:1rem" aria-hidden="true"></i>
+      </a>
+      {{ end }}
+    </div>
+
+    {{/* Desktop table */}}
+    <div class="mt-6 hidden md:block overflow-auto">
       <table class="min-w-full text-sm">
         <thead>
           <tr class="text-left text-xs font-semibold muted">
