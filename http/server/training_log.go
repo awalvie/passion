@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -387,42 +388,135 @@ func (s *Server) handleTrainingLogEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build the run info string for run-linked entries.
+	// Build the run info string and load exercise data for manual run-linked entries.
 	runInfo := ""
 	isRunLinked := j.RunID != nil
+	params := pages.TrainingLogNewParams{
+		JournalID:  uint(journalID),
+		SleepScore: j.SleepScore,
+		Energy:     j.Energy,
+		RPE:        j.RPE,
+		Focus:      j.Focus,
+		Location:   j.Location,
+		WentWell:   j.WentWell,
+		NextFocus:  j.NextFocus,
+	}
+
 	if isRunLinked {
 		var run db.SessionRun
 		if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, *j.RunID).First(&run).Error; err == nil {
-			ss := db.ScheduledSession{}
-			s.store.DB.Preload("SessionTemplate").Where("id = ?", run.ScheduledSessionID).First(&ss)
-			name := ss.SessionTemplate.Name
-			if run.CustomName != "" {
-				name = run.CustomName
+			ss, ssErr := db.GetScheduledSessionWithTemplate(s.store.DB, ownerID, run.ScheduledSessionID)
+			if ssErr == nil {
+				name := ss.SessionTemplate.Name
+				if run.CustomName != "" {
+					name = run.CustomName
+				}
+				t := run.StartedAt
+				runInfo = fmt.Sprintf("%s · %s %d%s", name, t.Format("Jan"), t.Day(), daySuffix(t.Day()))
 			}
-			t := run.StartedAt
-			runInfo = fmt.Sprintf("%s · %s %d%s", name, t.Format("Jan"), t.Day(), daySuffix(t.Day()))
+
+			// Load exercise management for all run-linked entries.
+			libExercises, err := db.ListLibraryExercises(s.store.DB, ownerID)
+			if err != nil {
+				s.serverError(w, r, err)
+				return
+			}
+			activityTemplates, err := db.ListActivityTemplates(s.store.DB, ownerID, "")
+			if err != nil {
+				s.serverError(w, r, err)
+				return
+			}
+			venues, boards, err := s.loadVenuesAndBoards(ownerID)
+			if err != nil {
+				s.serverError(w, r, err)
+				return
+			}
+			// Exercises added on-the-fly (manual or added after the fact).
+			exs, err := db.ListExercisesForRun(s.store.DB, ownerID, run.ID)
+			if err != nil {
+				s.serverError(w, r, err)
+				return
+			}
+			views := make([]pages.ManualExerciseView, 0, len(exs))
+			for _, ex := range exs {
+				mev := pages.ManualExerciseView{
+					ExerciseID: ex.ID,
+					RunID:      run.ID,
+					Name:       ex.Name,
+					Kind:       ex.Kind,
+				}
+				var comp db.RunExerciseCompletion
+				if err2 := s.store.DB.Where("owner_id = ? AND run_id = ? AND exercise_id = ?",
+					ownerID, run.ID, ex.ID).First(&comp).Error; err2 == nil {
+					mev.ActualSets = comp.ActualSets
+					mev.ActualReps = comp.ActualReps
+					mev.ActualWeightKg = comp.ActualWeightKg
+					mev.Notes = comp.RunNotes
+				}
+				views = append(views, mev)
+			}
+			params.DraftRunID = run.ID
+			params.LibraryExercises = libExercises
+			params.ActivityTemplates = activityTemplates
+			params.Venues = venues
+			params.Boards = boards
+			params.Exercises = views
+			if j.VenueID != nil {
+				params.VenueID = *j.VenueID
+			}
+			if j.BoardID != nil {
+				params.BoardID = *j.BoardID
+			}
+
+			// For template-based runs, load activities with their completions as read-only.
+			if ssErr == nil && !run.IsManual && !run.IsOpen {
+				var completions []db.RunExerciseCompletion
+				s.store.DB.Where("run_id = ? AND owner_id = ?", run.ID, ownerID).Find(&completions)
+				compByID := make(map[uint]db.RunExerciseCompletion, len(completions))
+				for _, c := range completions {
+					compByID[c.ExerciseID] = c
+				}
+				for _, act := range ss.SessionTemplate.Activities {
+					sa := pages.RunSummaryActivity{Name: act.Name}
+					for _, ex := range act.Exercises {
+						if ex.ParentExerciseID != nil {
+							continue
+						}
+						se := pages.RunSummaryExercise{
+							Name:            ex.Name,
+							Kind:            ex.Kind,
+							Sets:            ex.Sets,
+							Reps:            ex.Reps,
+							WeightKg:        ex.WeightKg,
+							RepSeconds:      ex.RepSeconds,
+							SessionDuration: ex.SessionDurationSeconds,
+							Status:          "pending",
+						}
+						if c, ok := compByID[ex.ID]; ok {
+							se.Status = c.Status
+							se.Notes = c.RunNotes
+							se.ElapsedSeconds = c.ElapsedSeconds
+						}
+						sa.Exercises = append(sa.Exercises, se)
+					}
+					if len(sa.Exercises) > 0 {
+						params.TemplateActivities = append(params.TemplateActivities, sa)
+					}
+				}
+			}
 		}
+		params.IsRunLinked = true
+		params.RunInfo = runInfo
+	} else {
+		dateVal := j.Date.Format("2006-01-02")
+		if j.Date.IsZero() {
+			dateVal = j.CreatedAt.Format("2006-01-02")
+		}
+		params.DateValue = dateVal
+		params.Title = j.Title
 	}
 
-	dateVal := j.Date.Format("2006-01-02")
-	if j.Date.IsZero() {
-		dateVal = j.CreatedAt.Format("2006-01-02")
-	}
-
-	s.pages.TrainingLogNewPage(w, pages.TrainingLogNewParams{
-		JournalID:   uint(journalID),
-		IsRunLinked: isRunLinked,
-		RunInfo:     runInfo,
-		DateValue:   dateVal,
-		Title:       j.Title,
-		SleepScore:  j.SleepScore,
-		Energy:      j.Energy,
-		RPE:         j.RPE,
-		Focus:       j.Focus,
-		Location:    j.Location,
-		WentWell:    j.WentWell,
-		NextFocus:   j.NextFocus,
-	})
+	s.pages.TrainingLogNewPage(w, params)
 }
 
 func (s *Server) updateJournal(w http.ResponseWriter, r *http.Request, ownerID uint, j *db.SessionJournal) {
@@ -435,9 +529,34 @@ func (s *Server) updateJournal(w http.ResponseWriter, r *http.Request, ownerID u
 	j.Energy = formInt(r, "energy")
 	j.RPE = formInt(r, "rpe")
 	j.Focus = strings.TrimSpace(r.FormValue("focus"))
-	j.Location = strings.TrimSpace(r.FormValue("location"))
 	j.WentWell = strings.TrimSpace(r.FormValue("went_well"))
 	j.NextFocus = strings.TrimSpace(r.FormValue("next_focus"))
+
+	// Venue / board / location (present when editing a manual run-linked entry).
+	venueIDStr := strings.TrimSpace(r.FormValue("venue_id"))
+	boardIDStr := strings.TrimSpace(r.FormValue("board_id"))
+	if v, err2 := strconv.ParseUint(venueIDStr, 10, 64); err2 == nil && v > 0 {
+		vv := uint(v)
+		j.VenueID = &vv
+		// Derive location from venue kind.
+		var venue db.ClimbingVenue
+		if err2 := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, vv).First(&venue).Error; err2 == nil {
+			if venue.Kind == "outdoor" {
+				j.Location = "outdoor"
+			} else {
+				j.Location = "indoor"
+			}
+		}
+	} else {
+		j.VenueID = nil
+		j.Location = strings.TrimSpace(r.FormValue("location"))
+	}
+	if b, err2 := strconv.ParseUint(boardIDStr, 10, 64); err2 == nil && b > 0 {
+		bv := uint(b)
+		j.BoardID = &bv
+	} else {
+		j.BoardID = nil
+	}
 
 	// Only update title/date for standalone entries.
 	if j.RunID == nil {
@@ -477,6 +596,31 @@ func (s *Server) handleTrainingLogDelete(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	http.Redirect(w, r, "/training-log", http.StatusSeeOther)
+}
+
+// handleTrainingLogForRun serves GET /training-log/for-run/{runID}.
+// It ensures a SessionJournal exists for the given run, then redirects to its edit page.
+func (s *Server) handleTrainingLogForRun(w http.ResponseWriter, r *http.Request) {
+	ownerID := s.mustUserID(r)
+	runID, err := parseUintParam(r, "runID")
+	if err != nil {
+		http.Error(w, "invalid run ID", http.StatusBadRequest)
+		return
+	}
+
+	j, err := db.GetSessionJournalByRunID(s.store.DB, ownerID, runID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	if j == nil {
+		j = &db.SessionJournal{OwnerID: ownerID, RunID: &runID}
+		if err := db.UpsertSessionJournal(s.store.DB, j); err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+	}
+	http.Redirect(w, r, fmt.Sprintf("/training-log/%d/edit", j.ID), http.StatusSeeOther)
 }
 
 // buildTrainingLogStats derives aggregate stats from the already-computed entry list.

@@ -48,6 +48,11 @@ func (s *Server) handleTrainingLogNew(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	activityTemplates, err := db.ListActivityTemplates(s.store.DB, ownerID, "")
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
 	venues, boards, err := s.loadVenuesAndBoards(ownerID)
 	if err != nil {
 		s.serverError(w, r, err)
@@ -55,11 +60,12 @@ func (s *Server) handleTrainingLogNew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.pages.TrainingLogNewPage(w, pages.TrainingLogNewParams{
-		DateValue:        now.Format("2006-01-02"),
-		DraftRunID:       draft.ID,
-		LibraryExercises: libExercises,
-		Venues:           venues,
-		Boards:           boards,
+		DateValue:         now.Format("2006-01-02"),
+		DraftRunID:        draft.ID,
+		LibraryExercises:  libExercises,
+		ActivityTemplates: activityTemplates,
+		Venues:            venues,
+		Boards:            boards,
 	})
 }
 
@@ -305,9 +311,56 @@ func (s *Server) renderManualExercises(w http.ResponseWriter, r *http.Request, o
 		}
 		views = append(views, mev)
 	}
+	activityTemplates, _ := db.ListActivityTemplates(s.store.DB, ownerID, "")
 	s.pages.RenderManualExercisesContainer(w, pages.TrainingLogNewParams{
-		DraftRunID:       runID,
-		LibraryExercises: libExercises,
-		Exercises:        views,
+		DraftRunID:        runID,
+		LibraryExercises:  libExercises,
+		ActivityTemplates: activityTemplates,
+		Exercises:         views,
 	})
+}
+
+// handleTrainingLogAddFromTemplate serves POST /training-log/draft/{runID}/from-activity-template.
+// It copies all exercises from an activity template into the draft run.
+func (s *Server) handleTrainingLogAddFromTemplate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+	runID, err := parseUintParam(r, "runID")
+	if err != nil {
+		http.Error(w, "invalid run ID", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form data", http.StatusBadRequest)
+		return
+	}
+
+	atIDStr := strings.TrimSpace(r.FormValue("activity_template_id"))
+	atID, err := strconv.ParseUint(atIDStr, 10, 64)
+	if err != nil || atID == 0 {
+		http.Error(w, "invalid activity_template_id", http.StatusBadRequest)
+		return
+	}
+
+	tpl, err := db.GetActivityTemplateWithExercises(s.store.DB, ownerID, uint(atID))
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	if tpl == nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	for _, ex := range tpl.Exercises {
+		if _, err := db.AddManualExercise(s.store.DB, ownerID, runID, ex.Name, nil, ex.Kind); err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+	}
+
+	s.renderManualExercises(w, r, ownerID, runID)
 }

@@ -13,7 +13,41 @@
   </div>
   {{ end }}
 
-  {{/* Exercises section — only shown for new entries with a draft run */}}
+  {{/* Template exercises — read-only summary for sessions run from a template */}}
+  {{ if .TemplateActivities }}
+  <div class="mb-5 card card-pad space-y-3">
+    <div class="text-sm font-semibold">Session exercises</div>
+    {{ range .TemplateActivities }}
+    <div class="space-y-1">
+      {{ if .Name }}<p class="text-[11px] font-bold uppercase tracking-widest muted">{{ .Name }}</p>{{ end }}
+      {{ range .Exercises }}
+      <div class="flex items-start gap-2 py-1" style="border-top: 1px solid var(--border)">
+        <span class="mt-0.5 shrink-0" style="color:{{ if eq .Status "completed" }}var(--accent){{ else if eq .Status "skipped" }}var(--muted){{ else }}var(--muted){{ end }}">
+          {{ if eq .Status "completed" }}<i data-lucide="check" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+          {{ else if eq .Status "skipped" }}<i data-lucide="minus" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+          {{ else }}<i data-lucide="circle" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>{{ end }}
+        </span>
+        <div class="flex-1 min-w-0">
+          <span class="text-xs{{ if eq .Status "skipped" }} line-through muted{{ end }}">{{ .Name }}</span>
+          <span class="ml-2 text-[11px] muted">
+            {{- if or (eq .Kind "session") (eq .Kind "climbing") -}}
+              {{- if gt .ElapsedSeconds 0 }}{{ formatElapsed .ElapsedSeconds }}{{ end -}}
+            {{- else -}}
+              {{- if gt .Sets 0 }}{{ .Sets }}×{{ .Reps }}{{ end -}}
+              {{- if gt .WeightKg 0.0 }} · {{ printf "%.1f" .WeightKg }}kg{{ end -}}
+              {{- if gt .ElapsedSeconds 0 }} · {{ formatElapsed .ElapsedSeconds }}{{ end -}}
+            {{- end -}}
+          </span>
+          {{ if .Notes }}<p class="mt-0.5 text-[11px] muted">{{ .Notes }}</p>{{ end }}
+        </div>
+      </div>
+      {{ end }}
+    </div>
+    {{ end }}
+  </div>
+  {{ end }}
+
+  {{/* Exercises section — add/manage exercises on the run */}}
   {{ if .DraftRunID }}
   <div class="mb-5">
     {{ template "manual_exercises.html" . }}
@@ -215,7 +249,7 @@
       <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium">
         {{ if .JournalID }}Save changes{{ else }}Save entry{{ end }}
       </button>
-      {{ if .DraftRunID }}
+      {{ if and .DraftRunID (eq .JournalID 0) }}
       <button
         type="button"
         class="rounded-md btn-ghost px-4 py-2 text-sm"

@@ -107,9 +107,11 @@ func (s *Server) Routes() http.Handler {
 
 		pr.HandleFunc("/training-log", s.handleTrainingLog)
 		pr.HandleFunc("/training-log/new", s.handleTrainingLogNew)
+		pr.HandleFunc("/training-log/for-run/{runID}", s.handleTrainingLogForRun)
 		pr.HandleFunc("/training-log/{journalID}/edit", s.handleTrainingLogEdit)
 		pr.HandleFunc("/training-log/{journalID}/delete", s.handleTrainingLogDelete)
 		pr.HandleFunc("/training-log/draft/{runID}/discard", s.handleTrainingLogDraftDiscard)
+		pr.HandleFunc("/training-log/draft/{runID}/from-activity-template", s.handleTrainingLogAddFromTemplate)
 		pr.HandleFunc("/training-log/draft/{runID}/exercises", s.handleTrainingLogAddExercise)
 		pr.HandleFunc("/training-log/draft/{runID}/exercises/{exerciseID}/save", s.handleTrainingLogSaveExerciseCompletion)
 		pr.HandleFunc("/training-log/draft/{runID}/exercises/{exerciseID}/delete", s.handleTrainingLogDeleteExercise)
