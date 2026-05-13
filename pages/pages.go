@@ -198,6 +198,7 @@ type HistoryRunView struct {
 	DurationLabel  string
 	Status         string
 	RunID          uint
+	JournalEntryID uint // 0 if no journal exists yet
 	CompletedCount int
 	TotalCount     int
 }

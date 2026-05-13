@@ -217,6 +217,30 @@ func ListSessionJournals(gdb *gorm.DB, ownerID uint) ([]SessionJournal, error) {
 	return journals, err
 }
 
+// ListJournalIDsByRun returns a map of runID → journal ID for all runs in runIDs that have a journal.
+func ListJournalIDsByRun(gdb *gorm.DB, ownerID uint, runIDs []uint) (map[uint]uint, error) {
+	if len(runIDs) == 0 {
+		return map[uint]uint{}, nil
+	}
+	type row struct {
+		RunID uint
+		ID    uint
+	}
+	var rows []row
+	err := gdb.Model(&SessionJournal{}).
+		Select("run_id, id").
+		Where("owner_id = ? AND run_id IN ?", ownerID, runIDs).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	m := make(map[uint]uint, len(rows))
+	for _, r := range rows {
+		m[r.RunID] = r.ID
+	}
+	return m, nil
+}
+
 // GetSessionJournalByID returns a single journal by primary key, scoped to the owner.
 func GetSessionJournalByID(gdb *gorm.DB, ownerID, id uint) (*SessionJournal, error) {
 	var j SessionJournal

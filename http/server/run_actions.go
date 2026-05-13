@@ -41,6 +41,15 @@ func (s *Server) handleRunStop(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Ensure an empty journal exists so the run always has one.
+	if existing, _ := db.GetSessionJournalByRunID(s.store.DB, ownerID, runID); existing == nil {
+		j := db.SessionJournal{OwnerID: ownerID, RunID: &runID}
+		if err := db.UpsertSessionJournal(s.store.DB, &j); err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+	}
+
 	redirect := "/dashboard"
 	if run.IsOpen {
 		redirect = "/runs/" + chi.URLParam(r, "runID") + "/summary"
