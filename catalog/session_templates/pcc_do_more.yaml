@@ -1,0 +1,21 @@
+name: "Do More | Power Company Climbing"
+color: "#3b82f6"
+label: "endurance"
+activities:
+  - ref: "Warm Up"
+  - type: "activity"
+    name: "Endurance Work"
+    exercises:
+      - name: "Endurance Method"
+        kind: "exercise_catalog"
+        notes: |
+          Choose the type of endurance work based on your current goals.
+
+          **If focused on strength/power:** favor low intensity endurance — shorter, more frequent sessions where you come in fresh for go-hard days. A small amount of low intensity will hold you over.
+
+          **If close to performance time:** spin up middle intensity (power endurance) with a handful of sessions. The more skilled you are at managing a pump, the faster it spins up.
+
+          **If still developing endurance skills:** if you regularly take because you think you're going to fall, invest in middle intensity work to learn those skills early.
+        children:
+          - ref: "Low Intensity Endurance (continuous boulders)"
+          - ref: "Power Endurance Intervals"

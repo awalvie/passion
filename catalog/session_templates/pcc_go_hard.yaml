@@ -1,0 +1,18 @@
+name: "Go Hard | Power Company Climbing"
+color: "#ef4444"
+label: "bouldering"
+activities:
+  - ref: "Warm Up"
+  - ref: "Drills"
+  - type: "activity"
+    name: "Hard Bouldering"
+    exercises:
+      - name: "Climbing Method"
+        kind: "exercise_catalog"
+        notes: |
+          Pick one or more of these approaches for today's session. The only rule is to give high **intensive** effort. Come in fresh — have a rest day before if needed.
+        children:
+          - ref: "Hard Flash/Onsight Attempts"
+          - ref: "High Pressure Sends"
+          - ref: "Short-Term Project"
+          - ref: "Long-Term Project"
