@@ -480,6 +480,66 @@ func ListExercisesForRun(gdb *gorm.DB, ownerID, runID uint) ([]Exercise, error) 
 	return rows, err
 }
 
+// ListExerciseCountsByRun returns a map of runID → exercise count for the given run IDs.
+// Replaces per-run ListExercisesForRun calls in list views.
+func ListExerciseCountsByRun(gdb *gorm.DB, ownerID uint, runIDs []uint) (map[uint]int, error) {
+	if len(runIDs) == 0 {
+		return map[uint]int{}, nil
+	}
+	type row struct {
+		SessionRunID uint
+		Count        int
+	}
+	var rows []row
+	err := gdb.Model(&Exercise{}).
+		Select("session_run_id, COUNT(*) as count").
+		Where("owner_id = ? AND session_run_id IN ?", ownerID, runIDs).
+		Group("session_run_id").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	m := make(map[uint]int, len(rows))
+	for _, r := range rows {
+		m[r.SessionRunID] = r.Count
+	}
+	return m, nil
+}
+
+// ListTickSummariesByRun returns a map of runID → ClimbingTickSummary for the given run IDs.
+// Replaces per-run GetClimbingTickSummaryForRun calls in list views.
+func ListTickSummariesByRun(gdb *gorm.DB, ownerID uint, runIDs []uint) (map[uint]ClimbingTickSummary, error) {
+	if len(runIDs) == 0 {
+		return map[uint]ClimbingTickSummary{}, nil
+	}
+	var ticks []ClimbingTick
+	if err := gdb.Where("owner_id = ? AND run_id IN ?", ownerID, runIDs).Find(&ticks).Error; err != nil {
+		return nil, err
+	}
+	m := make(map[uint]ClimbingTickSummary)
+	for _, t := range ticks {
+		s := m[t.RunID]
+		if t.Kind == "boulder" {
+			s.TotalBoulders++
+		} else {
+			s.TotalRoutes++
+		}
+		if t.Sent {
+			s.TotalSends++
+		}
+		if t.Grade != "" {
+			if s.MinGrade == "" || t.Grade < s.MinGrade {
+				s.MinGrade = t.Grade
+			}
+			if t.Grade > s.MaxGrade {
+				s.MaxGrade = t.Grade
+			}
+		}
+		m[t.RunID] = s
+	}
+	return m, nil
+}
+
 // UpsertManualExerciseCompletion creates or updates the completion record for a manual exercise.
 func UpsertManualExerciseCompletion(gdb *gorm.DB, ownerID, runID, exerciseID uint, sets, reps int, weightKg float64, notes string) error {
 	var existing RunExerciseCompletion
