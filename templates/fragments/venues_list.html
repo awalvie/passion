@@ -1,41 +1,89 @@
 {{ define "venues_list.html" }}
-<div id="venues-list" class="space-y-1">
-  {{ if .Venues }}
-    {{ range .Venues }}
-    <div class="flex items-center gap-2 py-1">
-      <div class="flex-1 min-w-0 flex items-center gap-1.5">
-        <span class="text-sm truncate">{{ .Name }}</span>
-        <span class="venue-badge venue-badge--{{ if eq .Kind "Outdoor" }}outdoor{{ else }}commercial{{ end }}">{{ .Kind }}</span>
-      </div>
+<div id="venues-list" class="space-y-2">
+  {{ range .Venues }}
+  <div class="flex items-center gap-3 rounded-md border px-3 py-2.5 group" style="border-color:var(--border);background:var(--panel)">
+    <div class="flex-1 min-w-0">
+      <div class="text-sm font-medium truncate">{{ .Name }}</div>
+      {{ if .Location }}<div class="text-xs muted truncate">{{ .Location }}</div>{{ end }}
+    </div>
+    <span class="venue-badge venue-badge--{{ if eq .Kind "Outdoor" }}outdoor{{ else }}commercial{{ end }} shrink-0 text-[11px]">
+      {{ if eq .Kind "Outdoor" }}Outdoor{{ else }}Indoor{{ end }}
+    </span>
+    <div class="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
       <button
         type="button"
-        class="shrink-0 rounded btn-ghost p-1 inline-flex items-center justify-center"
+        onclick="document.getElementById('edit-venue-dialog-{{ .ID }}').showModal()"
+        class="rounded p-1.5 btn-ghost"
+        title="Edit venue"
+      >
+        <i data-lucide="pencil" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+      </button>
+      <button
+        type="button"
+        class="rounded p-1.5 btn-ghost"
         hx-post="/profile/venues/{{ .ID }}/delete"
         hx-target="#venues-list"
         hx-swap="outerHTML"
         hx-confirm="Delete this venue?"
         title="Delete venue"
+        style="color:var(--muted)"
       >
         <i data-lucide="trash-2" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
       </button>
     </div>
-    {{ end }}
-  {{ else }}
-    <p class="text-sm muted">No venues added yet.</p>
+  </div>
+
+  <dialog id="edit-venue-dialog-{{ .ID }}" class="catalog-dialog" onclick="if(event.target===this)this.close()">
+    <div class="catalog-dialog-panel">
+      <div class="catalog-dialog-body">
+        <div class="flex items-start justify-between gap-3">
+          <h3 class="m-0 text-base font-semibold">Edit venue</h3>
+          <form method="dialog">
+            <button type="submit" class="rounded-md btn-ghost px-3 py-1 text-sm font-medium">Close</button>
+          </form>
+        </div>
+        <form hx-post="/profile/venues/{{ .ID }}/update" hx-target="#venues-list" hx-swap="outerHTML" class="mt-4 space-y-3"
+              hx-on:htmx:after-request="document.getElementById('edit-venue-dialog-{{ .ID }}')?.close()">
+          <div>
+            <label class="block text-xs font-medium muted mb-1">Name</label>
+            <input name="name" type="text" required class="w-full input text-sm" value="{{ .Name }}" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium muted mb-1">Type</label>
+              <select name="kind" class="w-full input text-sm">
+                <option value="commercial" {{ if eq .Kind "Commercial" }}selected{{ end }}>Indoor</option>
+                <option value="outdoor" {{ if eq .Kind "Outdoor" }}selected{{ end }}>Outdoor</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium muted mb-1">Location</label>
+              <input name="location" type="text" class="w-full input text-sm" value="{{ .Location }}" placeholder="e.g. London" />
+            </div>
+          </div>
+          <button type="submit" class="w-full rounded-md btn-primary px-4 py-2 text-sm font-medium">Save</button>
+        </form>
+      </div>
+    </div>
+  </dialog>
   {{ end }}
-  <form hx-post="/profile/venues" hx-target="#venues-list" hx-swap="outerHTML" class="mt-2 flex gap-2 items-end" hx-on:htmx:after-request="this.reset()">
-    <div class="flex-1 min-w-0">
-      <label class="text-xs font-medium" for="venue-name">Name</label>
-      <input id="venue-name" name="name" required class="mt-1 w-full input text-sm" placeholder="e.g. The Arch" autocomplete="off" />
-    </div>
-    <div>
-      <label class="text-xs font-medium" for="venue-kind">Type</label>
-      <select id="venue-kind" name="kind" class="mt-1 input text-sm">
-        <option value="commercial">Indoor</option>
-        <option value="outdoor">Outdoor</option>
-      </select>
-    </div>
-    <button type="submit" class="shrink-0 rounded-md btn-primary px-3 py-2 text-sm font-medium">Add</button>
+
+  {{ if not .Venues }}
+    <p class="text-sm muted py-1">No venues added yet.</p>
+  {{ end }}
+
+  <form hx-post="/profile/venues" hx-target="#venues-list" hx-swap="outerHTML"
+        class="mt-1 grid grid-cols-[2fr_120px_110px] gap-x-2 gap-y-1" hx-on:htmx:after-request="this.reset()">
+    <label class="text-xs font-medium" for="venue-name">Name</label>
+    <label class="text-xs font-medium" for="venue-location">Location</label>
+    <label class="text-xs font-medium" for="venue-kind">Type</label>
+    <input id="venue-name" name="name" required class="w-full input text-sm" placeholder="e.g. The Arch" autocomplete="off" />
+    <input id="venue-location" name="location" class="w-full input text-sm" placeholder="e.g. London" autocomplete="off" />
+    <select id="venue-kind" name="kind" class="w-full input text-sm">
+      <option value="commercial">Indoor</option>
+      <option value="outdoor">Outdoor</option>
+    </select>
+    <button type="submit" class="w-full rounded-md btn-primary px-3 py-2 text-sm font-medium col-start-3">Add</button>
   </form>
 </div>
 {{ end }}

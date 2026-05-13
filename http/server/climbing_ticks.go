@@ -269,7 +269,7 @@ func venueToView(v db.ClimbingVenue) pages.ClimbingVenueView {
 	if v.Kind == "outdoor" {
 		kind = "Outdoor"
 	}
-	return pages.ClimbingVenueView{ID: v.ID, Name: v.Name, Kind: kind}
+	return pages.ClimbingVenueView{ID: v.ID, Name: v.Name, Kind: kind, Location: v.Location}
 }
 
 func boardToView(b db.ClimbingBoard) pages.ClimbingBoardView {
@@ -334,14 +334,53 @@ func (s *Server) handleProfileVenues(w http.ResponseWriter, r *http.Request) {
 		if kind != "commercial" && kind != "outdoor" {
 			kind = "commercial"
 		}
+		location := strings.TrimSpace(r.FormValue("location"))
 		if err := db.CreateClimbingVenue(s.store.DB, &db.ClimbingVenue{
-			OwnerID: ownerID, Name: name, Kind: kind,
+			OwnerID: ownerID, Name: name, Kind: kind, Location: location,
 		}); err != nil {
 			s.serverError(w, r, err)
 			return
 		}
 	}
 
+	vv, _, err := s.loadVenuesAndBoards(ownerID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.pages.RenderVenuesList(w, pages.ProfileParams{Venues: vv})
+}
+
+// handleProfileVenueUpdate serves POST /profile/venues/{venueID}/update.
+func (s *Server) handleProfileVenueUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+	id, err := parseUintParam(r, "venueID")
+	if err != nil {
+		http.Error(w, "invalid ID", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form data", http.StatusBadRequest)
+		return
+	}
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" {
+		http.Error(w, "name required", http.StatusBadRequest)
+		return
+	}
+	kind := strings.TrimSpace(r.FormValue("kind"))
+	if kind != "commercial" && kind != "outdoor" {
+		kind = "commercial"
+	}
+	location := strings.TrimSpace(r.FormValue("location"))
+	if err := db.UpdateClimbingVenue(s.store.DB, ownerID, uint(id), name, kind, location); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
 	vv, _, err := s.loadVenuesAndBoards(ownerID)
 	if err != nil {
 		s.serverError(w, r, err)

@@ -361,9 +361,10 @@ type SessionJournal struct {
 type ClimbingVenue struct {
 	gorm.Model
 
-	OwnerID uint   `gorm:"index;not null"`
-	Name    string `gorm:"size:128;not null"`
-	Kind    string `gorm:"size:32;not null"` // "commercial" | "outdoor"
+	OwnerID  uint   `gorm:"index;not null"`
+	Name     string `gorm:"size:128;not null"`
+	Kind     string `gorm:"size:32;not null"` // "commercial" | "outdoor"
+	Location string `gorm:"size:128"`         // optional city / area, e.g. "London"
 }
 
 // ClimbingBoard is a standalone training board (Kilter, Moon, Tension, etc.) belonging to a user.
