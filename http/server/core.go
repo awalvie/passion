@@ -115,10 +115,16 @@ func (s *Server) Routes() http.Handler {
 		pr.HandleFunc("/training-log/draft/{runID}/exercises", s.handleTrainingLogAddExercise)
 		pr.HandleFunc("/training-log/draft/{runID}/exercises/{exerciseID}/save", s.handleTrainingLogSaveExerciseCompletion)
 		pr.HandleFunc("/training-log/draft/{runID}/exercises/{exerciseID}/delete", s.handleTrainingLogDeleteExercise)
+		pr.HandleFunc("/training-log/draft/{runID}/exercises/{exerciseID}/climbing-meta", s.handleTrainingLogSaveClimbingMeta)
+		pr.HandleFunc("/training-log/draft/{runID}/exercises/{exerciseID}/sets/mode", s.handleTrainingLogSetMode)
+		pr.HandleFunc("/training-log/draft/{runID}/exercises/{exerciseID}/sets", s.handleTrainingLogAddSet)
+		pr.HandleFunc("/training-log/draft/{runID}/exercises/{exerciseID}/sets/{setIndex}/save", s.handleTrainingLogSaveSet)
+		pr.HandleFunc("/training-log/draft/{runID}/exercises/{exerciseID}/sets/{setIndex}/delete", s.handleTrainingLogDeleteSet)
 
 		// Climbing ticks (scoped to a run+exercise)
 		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/ticks", s.handleExerciseTicks)
 		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/ticks/{tickID}/delete", s.handleExerciseTickDelete)
+		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/ticks/{tickID}/update", s.handleExerciseTickUpdate)
 
 		// Venue and board management (profile sub-routes)
 		pr.HandleFunc("/profile/venues", s.handleProfileVenues)

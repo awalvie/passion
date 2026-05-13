@@ -293,6 +293,29 @@ type RunExerciseCompletion struct {
 	ActualWeightKg float64
 }
 
+// ClimbingExerciseMeta stores session-level context for a climbing exercise in a run.
+// Type values: "indoor_bouldering" | "board" | "gym_routes" | "outdoor_bouldering" | "sport" | "trad" | "top_rope"
+// BoardKind values: "kilter" | "moon" | "tension" | "spray" | "custom"
+type ClimbingExerciseMeta struct {
+	gorm.Model
+	OwnerID    uint   `gorm:"index;not null"`
+	RunID      uint   `gorm:"index;not null"`
+	ExerciseID uint   `gorm:"index;not null"`
+	Type       string `gorm:"size:32"`
+	BoardKind  string `gorm:"size:32"`
+}
+
+// ManualExerciseSetLog records per-set reps and weight for a manual exercise.
+type ManualExerciseSetLog struct {
+	gorm.Model
+	OwnerID    uint    `gorm:"index;not null"`
+	RunID      uint    `gorm:"index;not null"`
+	ExerciseID uint    `gorm:"index;not null"`
+	SetIndex   int     `gorm:"not null"` // 1-based
+	Reps       int
+	WeightKg   float64
+}
+
 // RunExerciseChoice records which child option was selected for an exercise_catalog parent during a run.
 // Multiple rows per (RunID, ParentExerciseID) are allowed so the user can pick N exercises.
 type RunExerciseChoice struct {

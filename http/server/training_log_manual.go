@@ -245,10 +245,11 @@ func (s *Server) handleTrainingLogSaveExerciseCompletion(w http.ResponseWriter, 
 		http.Error(w, "bad form data", http.StatusBadRequest)
 		return
 	}
+	elapsedSeconds := formInt(r, "elapsed_minutes") * 60
 	if err := db.UpsertManualExerciseCompletion(
 		s.store.DB, ownerID, runID, exerciseID,
 		formInt(r, "sets"), formInt(r, "reps"), formFloat(r, "weight_kg"),
-		strings.TrimSpace(r.FormValue("notes")),
+		strings.TrimSpace(r.FormValue("notes")), elapsedSeconds,
 	); err != nil {
 		s.serverError(w, r, err)
 		return
@@ -300,7 +301,6 @@ func (s *Server) renderManualExercises(w http.ResponseWriter, r *http.Request, o
 			Name:       ex.Name,
 			Kind:       ex.Kind,
 		}
-		// Load completion if it exists.
 		var comp db.RunExerciseCompletion
 		if err2 := s.store.DB.Where("owner_id = ? AND run_id = ? AND exercise_id = ?",
 			ownerID, runID, ex.ID).First(&comp).Error; err2 == nil {
@@ -308,6 +308,27 @@ func (s *Server) renderManualExercises(w http.ResponseWriter, r *http.Request, o
 			mev.ActualReps = comp.ActualReps
 			mev.ActualWeightKg = comp.ActualWeightKg
 			mev.Notes = comp.RunNotes
+			mev.ElapsedMinutes = comp.ElapsedSeconds / 60
+		}
+		setLogs, _ := db.ListManualExerciseSetLogs(s.store.DB, ownerID, runID, ex.ID)
+		if len(setLogs) > 0 {
+			mev.PerSetMode = true
+			mev.SetLogs = make([]pages.ManualExerciseSetLogView, len(setLogs))
+			for i, sl := range setLogs {
+				mev.SetLogs[i] = pages.ManualExerciseSetLogView{
+					SetIndex: sl.SetIndex,
+					Reps:     sl.Reps,
+					WeightKg: sl.WeightKg,
+				}
+			}
+		}
+		if ex.Kind == "climbing" {
+			if meta, _ := db.GetClimbingExerciseMeta(s.store.DB, ownerID, runID, ex.ID); meta != nil {
+				mev.ClimbingMeta = pages.ClimbingExerciseMetaView{
+					Type:      meta.Type,
+					BoardKind: meta.BoardKind,
+				}
+			}
 		}
 		views = append(views, mev)
 	}
@@ -363,4 +384,169 @@ func (s *Server) handleTrainingLogAddFromTemplate(w http.ResponseWriter, r *http
 	}
 
 	s.renderManualExercises(w, r, ownerID, runID)
+}
+
+// handleTrainingLogSetMode serves POST /training-log/draft/{runID}/exercises/{exerciseID}/sets/mode.
+// mode=on creates the first set log; mode=off deletes all set logs.
+func (s *Server) handleTrainingLogSetMode(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+	runID, err := parseUintParam(r, "runID")
+	if err != nil {
+		http.Error(w, "invalid run ID", http.StatusBadRequest)
+		return
+	}
+	exerciseID, err := parseUintParam(r, "exerciseID")
+	if err != nil {
+		http.Error(w, "invalid exercise ID", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form data", http.StatusBadRequest)
+		return
+	}
+	if r.FormValue("mode") == "on" {
+		if err := db.UpsertManualExerciseSetLog(s.store.DB, ownerID, runID, exerciseID, 1, 0, 0); err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+	} else {
+		if err := db.DeleteAllManualExerciseSetLogs(s.store.DB, ownerID, runID, exerciseID); err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+	}
+	s.renderManualExercises(w, r, ownerID, runID)
+}
+
+// handleTrainingLogAddSet serves POST /training-log/draft/{runID}/exercises/{exerciseID}/sets.
+// Appends a new empty set row.
+func (s *Server) handleTrainingLogAddSet(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+	runID, err := parseUintParam(r, "runID")
+	if err != nil {
+		http.Error(w, "invalid run ID", http.StatusBadRequest)
+		return
+	}
+	exerciseID, err := parseUintParam(r, "exerciseID")
+	if err != nil {
+		http.Error(w, "invalid exercise ID", http.StatusBadRequest)
+		return
+	}
+	logs, err := db.ListManualExerciseSetLogs(s.store.DB, ownerID, runID, exerciseID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	nextIndex := len(logs) + 1
+	if err := db.UpsertManualExerciseSetLog(s.store.DB, ownerID, runID, exerciseID, nextIndex, 0, 0); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.renderManualExercises(w, r, ownerID, runID)
+}
+
+// handleTrainingLogSaveSet serves POST /training-log/draft/{runID}/exercises/{exerciseID}/sets/{setIndex}/save.
+// Auto-saves a single set row on input change.
+func (s *Server) handleTrainingLogSaveSet(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+	runID, err := parseUintParam(r, "runID")
+	if err != nil {
+		http.Error(w, "invalid run ID", http.StatusBadRequest)
+		return
+	}
+	exerciseID, err := parseUintParam(r, "exerciseID")
+	if err != nil {
+		http.Error(w, "invalid exercise ID", http.StatusBadRequest)
+		return
+	}
+	setIndex, err := parseUintParam(r, "setIndex")
+	if err != nil {
+		http.Error(w, "invalid set index", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form data", http.StatusBadRequest)
+		return
+	}
+	if err := db.UpsertManualExerciseSetLog(s.store.DB, ownerID, runID, exerciseID,
+		int(setIndex), formInt(r, "reps"), formFloat(r, "weight_kg")); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// handleTrainingLogDeleteSet serves POST /training-log/draft/{runID}/exercises/{exerciseID}/sets/{setIndex}/delete.
+func (s *Server) handleTrainingLogDeleteSet(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+	runID, err := parseUintParam(r, "runID")
+	if err != nil {
+		http.Error(w, "invalid run ID", http.StatusBadRequest)
+		return
+	}
+	exerciseID, err := parseUintParam(r, "exerciseID")
+	if err != nil {
+		http.Error(w, "invalid exercise ID", http.StatusBadRequest)
+		return
+	}
+	setIndex, err := parseUintParam(r, "setIndex")
+	if err != nil {
+		http.Error(w, "invalid set index", http.StatusBadRequest)
+		return
+	}
+	if err := db.DeleteManualExerciseSetLog(s.store.DB, ownerID, runID, exerciseID, int(setIndex)); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.renderManualExercises(w, r, ownerID, runID)
+}
+
+// handleTrainingLogSaveClimbingMeta serves POST /training-log/draft/{runID}/exercises/{exerciseID}/climbing-meta.
+// Auto-saves session-level climbing context (type, board kind) with hx-swap="none".
+func (s *Server) handleTrainingLogSaveClimbingMeta(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+	runID, err := parseUintParam(r, "runID")
+	if err != nil {
+		http.Error(w, "invalid run ID", http.StatusBadRequest)
+		return
+	}
+	exerciseID, err := parseUintParam(r, "exerciseID")
+	if err != nil {
+		http.Error(w, "invalid exercise ID", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form data", http.StatusBadRequest)
+		return
+	}
+	climbType := strings.TrimSpace(r.FormValue("climb_type"))
+	boardKind := strings.TrimSpace(r.FormValue("board_kind"))
+	if climbType != "board" {
+		boardKind = ""
+	}
+	if err := db.UpsertClimbingExerciseMeta(s.store.DB, ownerID, runID, exerciseID, climbType, boardKind); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
