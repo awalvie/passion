@@ -303,6 +303,7 @@ type ClimbingExerciseMeta struct {
 	ExerciseID uint   `gorm:"index;not null"`
 	Type       string `gorm:"size:32"`
 	BoardKind  string `gorm:"size:32"`
+	BoardID    *uint  `gorm:"index"` // optional reference to a configured ClimbingBoard
 }
 
 // ManualExerciseSetLog records per-set reps and weight for a manual exercise.

@@ -116,28 +116,22 @@ func (s *Server) finaliseManualEntry(w http.ResponseWriter, r *http.Request, own
 		runID = 0
 	}
 
-	// Parse optional venue and board IDs.
-	venueIDStr := strings.TrimSpace(r.FormValue("venue_id"))
-	boardIDStr := strings.TrimSpace(r.FormValue("board_id"))
-	var venueID, boardID *uint
-	if v, err2 := strconv.ParseUint(venueIDStr, 10, 64); err2 == nil && v > 0 {
-		vv := uint(v)
-		venueID = &vv
-	}
-	if b, err2 := strconv.ParseUint(boardIDStr, 10, 64); err2 == nil && b > 0 {
-		bv := uint(b)
-		boardID = &bv
-	}
-
-	// Determine location from venue kind if a venue was selected.
+	// Parse venue (free-text, find-or-create) and board.
 	location := strings.TrimSpace(r.FormValue("location"))
-	if venueID != nil {
-		var venue db.ClimbingVenue
-		if err2 := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, *venueID).First(&venue).Error; err2 == nil {
-			if venue.Kind == "outdoor" {
-				location = "outdoor"
-			} else {
-				location = "indoor"
+	venueName := strings.TrimSpace(r.FormValue("venue_name"))
+	var venueID *uint
+	if venueName != "" {
+		kind := "commercial"
+		if location == "outdoor" {
+			kind = "outdoor"
+		}
+		var existing db.ClimbingVenue
+		if err2 := s.store.DB.Where("owner_id = ? AND LOWER(name) = LOWER(?)", ownerID, venueName).First(&existing).Error; err2 == nil {
+			venueID = &existing.ID
+		} else {
+			newVenue := &db.ClimbingVenue{OwnerID: ownerID, Name: venueName, Kind: kind}
+			if err2 := db.CreateClimbingVenue(s.store.DB, newVenue); err2 == nil {
+				venueID = &newVenue.ID
 			}
 		}
 	}
@@ -151,8 +145,7 @@ func (s *Server) finaliseManualEntry(w http.ResponseWriter, r *http.Request, own
 		RPE:        formInt(r, "rpe"),
 		Focus:      strings.TrimSpace(r.FormValue("focus")),
 		Location:   location,
-		VenueID:    venueID,
-		BoardID:    boardID,
+		VenueID: venueID,
 		WentWell:   strings.TrimSpace(r.FormValue("went_well")),
 		NextFocus:  strings.TrimSpace(r.FormValue("next_focus")),
 	}
@@ -341,19 +334,25 @@ func (s *Server) renderManualExercises(w http.ResponseWriter, r *http.Request, o
 		}
 		if ex.Kind == "climbing" {
 			if meta, _ := db.GetClimbingExerciseMeta(s.store.DB, ownerID, runID, ex.ID); meta != nil {
-				mev.ClimbingMeta = pages.ClimbingExerciseMetaView{
+				mv := pages.ClimbingExerciseMetaView{
 					Type:      meta.Type,
 					BoardKind: meta.BoardKind,
 				}
+				if meta.BoardID != nil {
+					mv.BoardID = *meta.BoardID
+				}
+				mev.ClimbingMeta = mv
 			}
 		}
 		views = append(views, mev)
 	}
 	activityTemplates, _ := db.ListActivityTemplates(s.store.DB, ownerID, "")
+	_, boards, _ := s.loadVenuesAndBoards(ownerID)
 	s.pages.RenderManualExercisesContainer(w, pages.TrainingLogNewParams{
 		DraftRunID:        runID,
 		LibraryExercises:  libExercises,
 		ActivityTemplates: activityTemplates,
+		Boards:            boards,
 		Exercises:         views,
 	})
 }
@@ -558,10 +557,21 @@ func (s *Server) handleTrainingLogSaveClimbingMeta(w http.ResponseWriter, r *htt
 	}
 	climbType := strings.TrimSpace(r.FormValue("climb_type"))
 	boardKind := strings.TrimSpace(r.FormValue("board_kind"))
-	if climbType != "board" {
+	var boardID *uint
+	if climbType == "board" {
+		boardIDStr := strings.TrimSpace(r.FormValue("board_id"))
+		if bid, err2 := strconv.ParseUint(boardIDStr, 10, 64); err2 == nil && bid > 0 {
+			bv := uint(bid)
+			boardID = &bv
+			var board db.ClimbingBoard
+			if err2 := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, bv).First(&board).Error; err2 == nil {
+				boardKind = board.BoardType
+			}
+		}
+	} else {
 		boardKind = ""
 	}
-	if err := db.UpsertClimbingExerciseMeta(s.store.DB, ownerID, runID, exerciseID, climbType, boardKind); err != nil {
+	if err := db.UpsertClimbingExerciseMeta(s.store.DB, ownerID, runID, exerciseID, climbType, boardKind, boardID); err != nil {
 		s.serverError(w, r, err)
 		return
 	}

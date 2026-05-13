@@ -640,7 +640,7 @@ func UpsertManualExerciseCompletion(gdb *gorm.DB, ownerID, runID, exerciseID uin
 }
 
 // UpsertClimbingExerciseMeta creates or updates session-level climbing metadata for an exercise.
-func UpsertClimbingExerciseMeta(gdb *gorm.DB, ownerID, runID, exerciseID uint, climbType, boardKind string) error {
+func UpsertClimbingExerciseMeta(gdb *gorm.DB, ownerID, runID, exerciseID uint, climbType, boardKind string, boardID *uint) error {
 	var existing ClimbingExerciseMeta
 	err := gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).
 		First(&existing).Error
@@ -651,6 +651,7 @@ func UpsertClimbingExerciseMeta(gdb *gorm.DB, ownerID, runID, exerciseID uint, c
 			ExerciseID: exerciseID,
 			Type:       climbType,
 			BoardKind:  boardKind,
+			BoardID:    boardID,
 		}).Error
 	}
 	if err != nil {
@@ -658,6 +659,7 @@ func UpsertClimbingExerciseMeta(gdb *gorm.DB, ownerID, runID, exerciseID uint, c
 	}
 	existing.Type = climbType
 	existing.BoardKind = boardKind
+	existing.BoardID = boardID
 	return gdb.Save(&existing).Error
 }
 

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -402,6 +401,20 @@ func (s *Server) handleTrainingLogEdit(w http.ResponseWriter, r *http.Request) {
 		NextFocus:  j.NextFocus,
 	}
 
+	// Always load venues/boards so the pickers work for all entry types.
+	venues, boards, err := s.loadVenuesAndBoards(ownerID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	params.Venues = venues
+	params.Boards = boards
+	if j.VenueID != nil {
+		var venue db.ClimbingVenue
+		if err2 := s.store.DB.Where("id = ? AND owner_id = ?", *j.VenueID, ownerID).First(&venue).Error; err2 == nil {
+			params.VenueName = venue.Name
+		}
+	}
 	if isRunLinked {
 		var run db.SessionRun
 		if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, *j.RunID).First(&run).Error; err == nil {
@@ -422,11 +435,6 @@ func (s *Server) handleTrainingLogEdit(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			activityTemplates, err := db.ListActivityTemplates(s.store.DB, ownerID, "")
-			if err != nil {
-				s.serverError(w, r, err)
-				return
-			}
-			venues, boards, err := s.loadVenuesAndBoards(ownerID)
 			if err != nil {
 				s.serverError(w, r, err)
 				return
@@ -468,10 +476,14 @@ func (s *Server) handleTrainingLogEdit(w http.ResponseWriter, r *http.Request) {
 				}
 				if ex.Kind == "climbing" {
 					if meta, _ := db.GetClimbingExerciseMeta(s.store.DB, ownerID, run.ID, ex.ID); meta != nil {
-						mev.ClimbingMeta = pages.ClimbingExerciseMetaView{
+						mv := pages.ClimbingExerciseMetaView{
 							Type:      meta.Type,
 							BoardKind: meta.BoardKind,
 						}
+						if meta.BoardID != nil {
+							mv.BoardID = *meta.BoardID
+						}
+						mev.ClimbingMeta = mv
 					}
 				}
 				views = append(views, mev)
@@ -479,15 +491,7 @@ func (s *Server) handleTrainingLogEdit(w http.ResponseWriter, r *http.Request) {
 			params.DraftRunID = run.ID
 			params.LibraryExercises = libExercises
 			params.ActivityTemplates = activityTemplates
-			params.Venues = venues
-			params.Boards = boards
 			params.Exercises = views
-			if j.VenueID != nil {
-				params.VenueID = *j.VenueID
-			}
-			if j.BoardID != nil {
-				params.BoardID = *j.BoardID
-			}
 
 			// For template-based runs, load activities with their completions as read-only.
 			if ssErr == nil && !run.IsManual && !run.IsOpen {
@@ -553,30 +557,25 @@ func (s *Server) updateJournal(w http.ResponseWriter, r *http.Request, ownerID u
 	j.WentWell = strings.TrimSpace(r.FormValue("went_well"))
 	j.NextFocus = strings.TrimSpace(r.FormValue("next_focus"))
 
-	// Venue / board / location (present when editing a manual run-linked entry).
-	venueIDStr := strings.TrimSpace(r.FormValue("venue_id"))
-	boardIDStr := strings.TrimSpace(r.FormValue("board_id"))
-	if v, err2 := strconv.ParseUint(venueIDStr, 10, 64); err2 == nil && v > 0 {
-		vv := uint(v)
-		j.VenueID = &vv
-		// Derive location from venue kind.
-		var venue db.ClimbingVenue
-		if err2 := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, vv).First(&venue).Error; err2 == nil {
-			if venue.Kind == "outdoor" {
-				j.Location = "outdoor"
-			} else {
-				j.Location = "indoor"
+	// Venue / board / location.
+	j.Location = strings.TrimSpace(r.FormValue("location"))
+	venueName := strings.TrimSpace(r.FormValue("venue_name"))
+	if venueName != "" {
+		kind := "commercial"
+		if j.Location == "outdoor" {
+			kind = "outdoor"
+		}
+		var existing db.ClimbingVenue
+		if err2 := s.store.DB.Where("owner_id = ? AND LOWER(name) = LOWER(?)", ownerID, venueName).First(&existing).Error; err2 == nil {
+			j.VenueID = &existing.ID
+		} else {
+			newVenue := &db.ClimbingVenue{OwnerID: ownerID, Name: venueName, Kind: kind}
+			if err2 := db.CreateClimbingVenue(s.store.DB, newVenue); err2 == nil {
+				j.VenueID = &newVenue.ID
 			}
 		}
 	} else {
 		j.VenueID = nil
-		j.Location = strings.TrimSpace(r.FormValue("location"))
-	}
-	if b, err2 := strconv.ParseUint(boardIDStr, 10, 64); err2 == nil && b > 0 {
-		bv := uint(b)
-		j.BoardID = &bv
-	} else {
-		j.BoardID = nil
 	}
 
 	// Only update title/date for standalone entries.
