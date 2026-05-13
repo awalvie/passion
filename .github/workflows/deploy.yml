@@ -38,11 +38,7 @@ jobs:
           SCP="scp -i /tmp/deploy_key -o StrictHostKeyChecking=no"
 
           # Inject the JWT secret into the config template (plain string replace, safe for any secret chars).
-          python3 -c "
-import sys
-content = open('passion.prod.yaml').read()
-open('passion.rendered.yaml', 'w').write(content.replace('__JWT_SECRET__', sys.argv[1]))
-" "${JWT_SECRET}"
+          python3 -c "import sys; c=open('passion.prod.yaml').read(); open('passion.rendered.yaml','w').write(c.replace('__JWT_SECRET__',sys.argv[1]))" "${JWT_SECRET}"
 
           $SSH "mkdir -p /opt/passion/catalog /opt/passion/templates /opt/passion/static"
           $SCP passion                                ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/passion/passion.new
