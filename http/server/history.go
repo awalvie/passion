@@ -122,6 +122,13 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 		completionsByRun[c.RunID] = append(completionsByRun[c.RunID], c)
 	}
 
+	// Bulk-load journal IDs for all runs.
+	journalIDByRun, err := db.ListJournalIDsByRun(s.store.DB, ownerID, runIDs)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+
 	// Build views and compute stats
 	weekStart := mondayOfLocalDate(now)
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
@@ -174,6 +181,7 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 			Color:          color,
 			DurationLabel:  durationLabel,
 			Status:         run.Status,
+			JournalEntryID: journalIDByRun[run.ID],
 			CompletedCount: completed,
 			TotalCount:     totalExercises,
 		})
