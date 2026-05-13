@@ -1,10 +1,20 @@
 package db
 
 import (
+	"errors"
 	"time"
 
 	"gorm.io/gorm"
 )
+
+// ErrNotFound is returned by query helpers when a record is not found.
+// Callers can distinguish it from real DB failures with errors.Is(err, ErrNotFound).
+var ErrNotFound = errors.New("not found")
+
+// isNotFound reports whether err is a GORM record-not-found error.
+func isNotFound(err error) bool {
+	return errors.Is(err, gorm.ErrRecordNotFound)
+}
 
 // LocalDate truncates t to midnight in its own location (strips time-of-day).
 func LocalDate(t time.Time) time.Time {
@@ -30,6 +40,9 @@ func GetScheduledSessionWithTemplate(gdb *gorm.DB, ownerID, ssID uint) (Schedule
 		}).
 		Where("owner_id = ? AND id = ?", ownerID, ssID).
 		First(&ss).Error
+	if isNotFound(err) {
+		return ss, ErrNotFound
+	}
 	return ss, err
 }
 
@@ -47,6 +60,9 @@ func GetTemplateWithGraph(gdb *gorm.DB, ownerID, templateID uint) (*SessionTempl
 		Preload("Activities.Exercises.Media").
 		Where("id = ? AND owner_id = ?", templateID, ownerID).
 		First(&tpl).Error
+	if isNotFound(err) {
+		return nil, ErrNotFound
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -121,6 +137,9 @@ func GetActivityTemplateWithExercises(gdb *gorm.DB, ownerID, templateID uint) (*
 		Preload("Exercises.Media").
 		Where("id = ? AND owner_id = ?", templateID, ownerID).
 		First(&tpl).Error
+	if isNotFound(err) {
+		return nil, ErrNotFound
+	}
 	if err != nil {
 		return nil, err
 	}

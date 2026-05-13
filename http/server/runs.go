@@ -77,7 +77,7 @@ func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, o
 
 	ss, err := db.GetScheduledSessionWithTemplate(s.store.DB, ownerID, run.ScheduledSessionID)
 	if err != nil {
-		s.serverError(w, r, err)
+		s.dbError(w, r, err)
 		return
 	}
 
@@ -414,7 +414,7 @@ func (s *Server) handleRunExerciseChoose(w http.ResponseWriter, r *http.Request)
 
 	ss, err := db.GetScheduledSessionWithTemplate(s.store.DB, ownerID, run.ScheduledSessionID)
 	if err != nil {
-		s.serverError(w, r, err)
+		s.dbError(w, r, err)
 		return
 	}
 
@@ -823,7 +823,7 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 
 	ss, err := db.GetScheduledSessionWithTemplate(s.store.DB, ownerID, run.ScheduledSessionID)
 	if err != nil {
-		s.serverError(w, r, err)
+		s.dbError(w, r, err)
 		return
 	}
 

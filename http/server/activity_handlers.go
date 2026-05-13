@@ -122,7 +122,7 @@ func (s *Server) handleAddActivityFromTemplate(w http.ResponseWriter, r *http.Re
 
 	at, err := db.GetActivityTemplateWithExercises(s.store.DB, ownerID, atID)
 	if err != nil {
-		s.notFound(w)
+		s.dbError(w, r, err)
 		return
 	}
 
