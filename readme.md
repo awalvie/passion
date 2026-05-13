@@ -77,12 +77,10 @@ Passion helps you plan, schedule, and track climbing training sessions. Build se
 # Clone and run
 git clone https://github.com/<you>/passion.git
 cd passion
-make watch        # hot-reload dev server
-
-# Open http://localhost:3000
+make watch        # hot-reload dev server at :3000
 ```
 
-Sign up at `/signup`. For faster local dev, skip auth entirely:
+Sign up at `/signup`. For faster local dev, skip auth entirely and load demo data:
 
 ```sh
 PASSION_SEED=1 PASSION_DEV_AUTH_BYPASS=1 make run
@@ -98,14 +96,15 @@ Copy [`passion.example.yaml`](passion.example.yaml) to `passion.yaml` or configu
 |---|---|---|
 | `PASSION_ADDR` | `:3000` | Listen address |
 | `PASSION_DB_PATH` | `passion.db` | SQLite database path |
-| `PASSION_JWT_SECRET` | — | JWT signing secret |
-| `PASSION_JWT_TTL_HOURS` | `168` | Token lifetime |
+| `PASSION_JWT_SECRET` | `change-me-in-production` | JWT signing secret — **change this in production** |
+| `PASSION_JWT_TTL_HOURS` | `168` | Token lifetime in hours (7 days) |
 | `PASSION_SEED` | off | Populate demo data on empty DB |
-| `PASSION_DEV_AUTH_BYPASS` | off | Auto-login as user 1 |
+| `PASSION_DEV_AUTH_BYPASS` | off | Auto-login as user 1 (dev only) |
 | `PASSION_YAML_IMPORT_ENABLED` | off | Import catalog YAML at startup |
 | `PASSION_YAML_EXERCISES_DIR` | `catalog/exercises` | Exercise YAML directory |
-| `PASSION_YAML_SESSION_TEMPLATES_DIR` | `catalog/session_templates` | Template YAML directory |
-| `PASSION_YAML_IMPORT_OWNER_ID` | `1` | Owner for imported records |
+| `PASSION_YAML_SESSION_TEMPLATES_DIR` | `catalog/session_templates` | Session template YAML directory |
+| `PASSION_YAML_ACTIVITY_TEMPLATES_DIR` | `catalog/activity_templates` | Activity template YAML directory |
+| `PASSION_YAML_IMPORT_OWNER_ID` | `1` | Owner ID for imported records |
 
 Pass `1`, `true`, `yes`, or `on` for boolean flags.
 
@@ -172,18 +171,26 @@ Import behavior:
 ## Project structure
 
 ```
-cmd/passion/           Entry point
-config/                12-factor config (YAML + env)
-db/                    GORM models, store, seed, YAML importer
-http/server/           Chi router, handlers, template rendering
-templates/             Go HTML templates (pages, fragments, layouts)
-static/                CSS
-catalog/               YAML exercise + template definitions
+cmd/passion/           Entry point — config loading, DB init, server startup
+config/                12-factor config (YAML + env vars)
+db/                    GORM models, SQLite store, seed data, YAML importer
+http/server/           Chi router, all HTTP handlers, middleware
+pages/                 Compiles and renders all Go HTML templates
+templates/             Go HTML templates — pages, fragments, layouts
+static/                CSS, JS (HTMX, Tailwind, Lucide), icons
+catalog/               YAML exercise and template definitions
+docs/                  Screenshots and documentation
+scripts/               Utility scripts
 ```
+
+---
+
+## Developer guide
+
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ---
 
 ## License
 
 Personal project. Not currently licensed for redistribution.
-
