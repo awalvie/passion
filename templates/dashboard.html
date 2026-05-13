@@ -50,6 +50,46 @@
 </div>
 {{ end }}
 
+{{ if .DraftLogEntries }}
+<div class="mb-4 space-y-1.5">
+  {{ range .DraftLogEntries }}
+  <div class="flex items-center justify-between gap-3 rounded-lg border px-4 py-2.5"
+       style="border-color:var(--border);background:var(--card-muted)">
+    <div class="flex items-center gap-2 text-sm">
+      <i data-lucide="notebook-pen" style="width:0.875rem;height:0.875rem;color:var(--muted)" aria-hidden="true"></i>
+      <span class="muted">Unfinished log entry</span>
+      <span class="text-xs muted">·</span>
+      <span class="text-xs muted">{{ .DateLabel }}</span>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      <a href="/training-log/new?resume={{ .RunID }}"
+         class="rounded-md btn-primary px-3 py-1 text-xs font-medium">Continue →</a>
+      <form method="post" action="/training-log/draft/{{ .RunID }}/discard" hx-post="/training-log/draft/{{ .RunID }}/discard" hx-swap="none">
+        <button type="submit" class="rounded-md btn-ghost px-2 py-1 text-xs muted" title="Discard draft">Discard</button>
+      </form>
+    </div>
+  </div>
+  {{ end }}
+</div>
+{{ end }}
+
+{{ if .ConflictWarnings }}
+<div class="mb-4 rounded-lg px-4 py-3 space-y-2" style="background:#fef3c7;border:1px solid #f59e0b">
+  <p class="text-xs font-semibold" style="color:#92400e">Upcoming scheduling conflicts</p>
+  {{ range .ConflictWarnings }}
+  <div class="flex items-center justify-between text-xs">
+    <span class="flex items-center gap-1.5">
+      <span class="w-2 h-2 rounded-full shrink-0" style="background:{{ .EventColor }}"></span>
+      <span style="color:#78350f">{{ .EventTitle }} ({{ .StartLabel }}–{{ .EndLabel }})</span>
+    </span>
+    <a href="/training-cycles/{{ .CycleID }}" class="font-medium underline underline-offset-2" style="color:#b45309">
+      {{ .SessionCount }} session{{ if ne .SessionCount 1 }}s{{ end }} →
+    </a>
+  </div>
+  {{ end }}
+</div>
+{{ end }}
+
 <div class="grid gap-4 md:grid-cols-2">
   <!-- Current week -->
   <section class="card card-pad">
@@ -166,6 +206,9 @@
             <div class="mt-auto">
               <div class="calendar-session-dash" style="background-color:var(--muted)"></div>
             </div>
+          {{ end }}
+          {{ range .Events }}
+            <div class="h-0.5 rounded-full mt-0.5" style="background:{{ .Color }}" title="{{ .Title }}"></div>
           {{ end }}
           {{ range .Sessions }}
             <span class="hidden" data-session-name="{{ .Name }}" data-session-color="{{ .Color }}" data-session-cycle="{{ .CycleName }}" data-session-done="{{ .Done }}"></span>
