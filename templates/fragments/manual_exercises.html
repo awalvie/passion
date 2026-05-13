@@ -44,7 +44,16 @@
             </select>
           </div>
           <div id="board-kind-wrap-{{ .ExerciseID }}"{{ if ne .ClimbingMeta.Type "board" }} class="hidden"{{ end }}>
-            <label class="text-xs font-medium" for="bkind-{{ .ExerciseID }}">Board kind</label>
+            <label class="text-xs font-medium" for="bkind-{{ .ExerciseID }}">Board</label>
+            {{ if $.Boards }}
+            {{ $boardID := .ClimbingMeta.BoardID }}
+            <select id="bkind-{{ .ExerciseID }}" name="board_id" class="mt-1 w-full input text-sm">
+              <option value="">—</option>
+              {{ range $.Boards }}
+              <option value="{{ .ID }}" {{ if eq .ID $boardID }}selected{{ end }}>{{ .Label }}</option>
+              {{ end }}
+            </select>
+            {{ else }}
             <select id="bkind-{{ .ExerciseID }}" name="board_kind" class="mt-1 w-full input text-sm">
               <option value="">—</option>
               <option value="kilter"  {{ if eq .ClimbingMeta.BoardKind "kilter"  }}selected{{ end }}>Kilter</option>
@@ -53,6 +62,7 @@
               <option value="spray"   {{ if eq .ClimbingMeta.BoardKind "spray"   }}selected{{ end }}>Spray Wall</option>
               <option value="custom"  {{ if eq .ClimbingMeta.BoardKind "custom"  }}selected{{ end }}>Custom / Other</option>
             </select>
+            {{ end }}
           </div>
         </form>
         <section

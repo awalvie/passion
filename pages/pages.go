@@ -486,6 +486,7 @@ type ManualExerciseSetLogView struct {
 type ClimbingExerciseMetaView struct {
 	Type      string // "indoor_bouldering" | "board" | "gym_routes" | "outdoor_bouldering" | "sport" | "trad" | "top_rope"
 	BoardKind string // "kilter" | "moon" | "tension" | "spray" | "custom"
+	BoardID   uint   // 0 = unset; non-zero = configured ClimbingBoard ID
 }
 
 type ManualExerciseView struct {
@@ -672,10 +673,9 @@ type TrainingLogNewParams struct {
 	LibraryExercises   []db.LibraryExercise
 	ActivityTemplates  []db.ActivityTemplate
 	Exercises          []ManualExerciseView
-	Venues             []ClimbingVenueView
-	Boards             []ClimbingBoardView
-	VenueID            uint
-	BoardID            uint
+	Venues    []ClimbingVenueView
+	Boards    []ClimbingBoardView
+	VenueName string
 	// TemplateActivities holds read-only exercise data from the session template
 	// for non-manual runs shown on the edit page.
 	TemplateActivities []RunSummaryActivity
