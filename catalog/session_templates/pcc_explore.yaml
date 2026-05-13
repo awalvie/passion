@@ -1,0 +1,9 @@
+name: "Explore | Power Company Climbing"
+color: "#a855f7"
+label: "technique"
+activities:
+  - ref: "Warm Up"
+  - type: "activity"
+    name: "Movement Exploration"
+    exercises:
+      - ref: "Movement Exploration"
