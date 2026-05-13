@@ -209,7 +209,7 @@ func defaultSeedTemplates() []seedTemplate {
 				{
 					Type: "activity",
 					Exercises: []seedExercise{
-						{Kind: "timed_reps", Name: "Limit Boulders", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1549576490-b0b4831ef60a?auto=format&fit=crop&w=1200&q=80"}}, Notes: "3-5 hard moves", Sets: 5, Reps: 1, RepSeconds: 180, SetRestSeconds: 180},
+						{Kind: "climbing", Name: "Limit Boulders", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1549576490-b0b4831ef60a?auto=format&fit=crop&w=1200&q=80"}}, Notes: "3-5 hard moves — log each attempt as a tick"},
 						{Kind: "timed_reps", Name: "Max Hangs", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?auto=format&fit=crop&w=1200&q=80", VideoURL: "https://www.w3schools.com/html/mov_bbb.mp4"}}, Notes: "20mm edge", Sets: 6, Reps: 1, RepSeconds: 10, SetRestSeconds: 120, WeightKg: 5},
 					},
 				},
@@ -254,7 +254,7 @@ func defaultSeedTemplates() []seedTemplate {
 				{
 					Type: "warmup",
 					Exercises: []seedExercise{
-						{Kind: "timed_reps", Name: "Easy Routes", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1564769662533-4f00a87b4056?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Progressively harder", Sets: 4, Reps: 1, RepSeconds: 180, SetRestSeconds: 60},
+						{Kind: "climbing", Name: "Easy Routes", Media: []seedMedia{{ThumbnailURL: "https://images.unsplash.com/photo-1564769662533-4f00a87b4056?auto=format&fit=crop&w=1200&q=80"}}, Notes: "Progressively harder — log each route as a tick"},
 					},
 				},
 				{
