@@ -43,11 +43,13 @@ func ticksToViews(ticks []db.ClimbingTick) []pages.ClimbingTickView {
 			RunID:      t.RunID,
 			ExerciseID: t.ExerciseID,
 			Kind:       kind,
+			KindRaw:    t.Kind,
 			Grade:      t.Grade,
 			Focus:      t.Focus,
 			Thoughts:   t.Thoughts,
 			Style:      style,
 			StyleClass: styleClass,
+			StyleRaw:   t.Style,
 			Attempts:   t.Attempts,
 			Sent:       t.Sent,
 			Stars:      t.Stars,
@@ -186,6 +188,71 @@ func (s *Server) handleExerciseTickDelete(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := db.DeleteClimbingTick(s.store.DB, ownerID, uint(tickID)); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+
+	s.serveExerciseTicks(w, r, ownerID, runID, exerciseID)
+}
+
+// handleExerciseTickUpdate serves POST /runs/{runID}/exercises/{exerciseID}/ticks/{tickID}/update.
+func (s *Server) handleExerciseTickUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+
+	runID, err := parseUintParam(r, "runID")
+	if err != nil {
+		http.Error(w, "invalid run ID", http.StatusBadRequest)
+		return
+	}
+	exerciseID, err := parseUintParam(r, "exerciseID")
+	if err != nil {
+		http.Error(w, "invalid exercise ID", http.StatusBadRequest)
+		return
+	}
+	tickID, err := parseUintParam(r, "tickID")
+	if err != nil {
+		http.Error(w, "invalid tick ID", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form data", http.StatusBadRequest)
+		return
+	}
+
+	parseInt := func(key string, def int) int {
+		v, err := strconv.Atoi(strings.TrimSpace(r.FormValue(key)))
+		if err != nil {
+			return def
+		}
+		return v
+	}
+
+	kind := strings.TrimSpace(r.FormValue("kind"))
+	if kind != "boulder" && kind != "route" {
+		kind = "boulder"
+	}
+	attempts := parseInt("attempts", 1)
+	if attempts < 1 {
+		attempts = 1
+	}
+	stars := parseInt("stars", 0)
+	if stars < 0 || stars > 3 {
+		stars = 0
+	}
+
+	if err := db.UpdateClimbingTick(s.store.DB, ownerID, tickID,
+		kind,
+		strings.TrimSpace(r.FormValue("grade")),
+		strings.TrimSpace(r.FormValue("focus")),
+		strings.TrimSpace(r.FormValue("thoughts")),
+		strings.TrimSpace(r.FormValue("style")),
+		attempts, stars,
+		r.FormValue("sent") == "1",
+	); err != nil {
 		s.serverError(w, r, err)
 		return
 	}
