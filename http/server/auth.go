@@ -260,6 +260,7 @@ func (s *Server) setAuthCookie(w http.ResponseWriter, userID uint) error {
 		Value:    tokenStr,
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(s.jwtTTL.Seconds()),
 	})
