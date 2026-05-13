@@ -12,116 +12,145 @@
     </a>
   </div>
 
-  <div class="md:grid md:grid-cols-[1fr_20rem] md:gap-6 md:items-start space-y-5 md:space-y-0">
+  <div class="md:grid md:grid-cols-[3fr_2fr] md:gap-6 md:items-start space-y-5 md:space-y-0">
 
-    {{/* ── Left: log entries ────────────────────────────────────────────── */}}
+    {{/* ── Left (60%): log entries ──────────────────────────────────────── */}}
     <div>
       {{ if .Entries }}
-      <div class="space-y-1">
+      <div class="space-y-2">
         {{ $lastGroup := "" }}
         {{ range .Entries }}
-          {{ if ne .MonthGroup $lastGroup }}
-            {{ $lastGroup = .MonthGroup }}
-            <div class="pt-3 pb-1 first:pt-0">
-              <div class="text-[11px] font-bold muted uppercase tracking-widest">{{ .MonthGroup }}</div>
+          {{ if ne .WeekGroup $lastGroup }}
+            {{ $lastGroup = .WeekGroup }}
+            <div class="pt-4 pb-1 first:pt-0 flex items-center gap-3">
+              <div class="text-[11px] font-bold muted uppercase tracking-widest shrink-0">{{ .WeekGroup }}</div>
+              <div class="flex-1 h-px" style="background:var(--border)"></div>
             </div>
           {{ end }}
 
-          <div class="group card card-pad" style="{{ if .Color }}border-left: 3px solid {{ .Color }};{{ end }}">
-            {{/* Header row */}}
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="text-sm font-semibold truncate">{{ .TemplateName }}</span>
-                  {{ if .Focus }}
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium"
-                    style="background:var(--accent-bg);color:var(--accent)">{{ .Focus }}</span>
-                  {{ end }}
-                  {{ if .Location }}
-                  <span class="text-[10px] muted">
-                    <i data-lucide="map-pin" style="width:0.65rem;height:0.65rem;display:inline" aria-hidden="true"></i>
-                    {{ if eq .Location "Indoor" }}Indoor{{ else }}Outdoor{{ end }}
-                  </span>
-                  {{ end }}
-                </div>
-                <p class="mt-0.5 text-xs muted">
-                  {{ .DateLabel }}{{ if .DurationLabel }} · {{ .DurationLabel }}{{ end }}
-                  {{ if .IsManual }}<span class="ml-1 text-[10px] px-1 rounded" style="background:var(--card-muted)">Manual</span>{{ end }}
-                </p>
-                {{ if .TickSummaryLabel }}
-                <p class="mt-0.5 text-xs" style="color:var(--accent)">{{ .TickSummaryLabel }}</p>
-                {{ else if gt .ExerciseCount 0 }}
-                <p class="mt-0.5 text-xs muted">{{ .ExerciseCount }} exercise{{ if ne .ExerciseCount 1 }}s{{ end }}</p>
-                {{ end }}
-              </div>
+          <div class="group card" style="border-left: 4px solid {{ if .Color }}{{ .Color }}{{ else }}var(--border){{ end }}; padding: 0.875rem 1rem;">
 
-              {{/* Edit / delete buttons */}}
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-sm font-semibold leading-snug">{{ .TemplateName }}</span>
               {{ if gt .JournalEntryID 0 }}
-              <div class="flex items-center gap-1 shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+              <div class="flex items-center gap-0.5 shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                 <a href="/training-log/{{ .JournalEntryID }}/edit"
-                   class="rounded p-1 muted hover:opacity-70" title="Edit">
-                  <i data-lucide="pencil" style="width:0.8rem;height:0.8rem" aria-hidden="true"></i>
+                   class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Edit">
+                  <i data-lucide="pencil" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
                 </a>
                 <form method="post" action="/training-log/{{ .JournalEntryID }}/delete"
                       hx-post="/training-log/{{ .JournalEntryID }}/delete"
                       hx-confirm="Delete this journal entry? This cannot be undone."
                       hx-target="closest .card"
                       hx-swap="outerHTML">
-                  <button type="submit" class="rounded p-1 muted hover:opacity-70" title="Delete">
-                    <i data-lucide="trash-2" style="width:0.8rem;height:0.8rem" aria-hidden="true"></i>
+                  <button type="submit" class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Delete">
+                    <i data-lucide="trash-2" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
                   </button>
                 </form>
               </div>
               {{ end }}
+            </div>
 
-              {{/* Quick metrics */}}
-              {{ if or (gt .SleepScore 0) (gt .Energy 0) (gt .RPE 0) }}
-              <div class="flex items-center gap-2 shrink-0 text-[11px] muted">
-                {{ if gt .SleepScore 0 }}
-                <span class="flex items-center gap-1" title="Sleep quality">
-                  <i data-lucide="moon" style="width:0.7rem;height:0.7rem" aria-hidden="true"></i>{{ .SleepScore }}/5
-                </span>
-                {{ end }}
-                {{ if gt .Energy 0 }}
-                <span class="flex items-center gap-1" title="Pre-session energy">
-                  <i data-lucide="zap" style="width:0.7rem;height:0.7rem" aria-hidden="true"></i>{{ .Energy }}/5
-                </span>
-                {{ end }}
-                {{ if gt .RPE 0 }}
-                <span class="flex items-center gap-1" title="Perceived exertion">
-                  <i data-lucide="flame" style="width:0.7rem;height:0.7rem" aria-hidden="true"></i>{{ .RPE }}/10
-                </span>
-                {{ end }}
-              </div>
+            <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
+              <span class="text-[11px]" style="color:var(--muted)">{{ .DateLabel }}</span>
+              {{ if .DurationLabel }}
+              <span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full"
+                    style="background:var(--card-muted);color:var(--muted)">
+                <i data-lucide="clock" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
+                {{ .DurationLabel }}
+              </span>
+              {{ end }}
+              {{ if .Focus }}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
+                    style="background:var(--accent-bg);color:var(--accent)">{{ .Focus }}</span>
+              {{ end }}
+              {{ if .Location }}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]"
+                    style="background:var(--card-muted);color:var(--muted)">
+                <i data-lucide="map-pin" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
+                {{ .Location }}
+              </span>
+              {{ end }}
+              {{ if .IsManual }}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px]"
+                    style="background:var(--card-muted);color:var(--muted)">Manual</span>
               {{ end }}
             </div>
 
-            {{/* Journal text preview */}}
-            {{ if .HasJournal }}
-            <div class="mt-3 pt-3 grid gap-3 text-sm" style="border-top:1px solid var(--border)">
-              {{ if .WentWellHTML }}
-              <div>
-                <p class="text-[10px] font-bold muted mb-1" style="text-transform:uppercase;letter-spacing:0.07em;">What went well</p>
-                <div class="prose prose-sm line-clamp-3">{{ .WentWellHTML }}</div>
-              </div>
-              {{ end }}
-              {{ if .NextFocusHTML }}
-              <div>
-                <p class="text-[10px] font-bold muted mb-1" style="text-transform:uppercase;letter-spacing:0.07em;">Next focus</p>
-                <div class="prose prose-sm line-clamp-3">{{ .NextFocusHTML }}</div>
-              </div>
-              {{ end }}
-            </div>
-            {{ else if not .IsStandalone }}
+            {{ if .TickSummaryLabel }}
             <div class="mt-2">
-              <a href="/runs/{{ .RunID }}/summary" class="text-xs muted hover:underline">Add journal entry →</a>
+              <span class="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full"
+                    style="background:var(--accent-bg);color:var(--accent)">
+                <i data-lucide="mountain" style="width:0.65rem;height:0.65rem" aria-hidden="true"></i>
+                {{ .TickSummaryLabel }}
+              </span>
+            </div>
+            {{ else if gt .ExerciseCount 0 }}
+            <div class="mt-2">
+              <span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full"
+                    style="background:var(--card-muted);color:var(--muted)">
+                <i data-lucide="dumbbell" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
+                {{ .ExerciseCount }} exercise{{ if ne .ExerciseCount 1 }}s{{ end }}
+              </span>
             </div>
             {{ end }}
+
+            {{ if or (gt .SleepScore 0) (gt .Energy 0) (gt .RPE 0) }}
+            <div class="mt-3 pt-2.5 flex flex-wrap gap-x-5 gap-y-1.5"
+                 style="border-top: 1px solid var(--border)">
+              {{ if gt .SleepScore 0 }}
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] shrink-0" style="color:var(--muted);width:2.75rem">Sleep</span>
+                <div class="rounded-full overflow-hidden" style="width:4rem;height:4px;background:var(--card-muted)">
+                  <div class="h-full rounded-full" style="width:{{ .SleepPct }}%;background:var(--accent)"></div>
+                </div>
+                <span class="text-[10px] tabular-nums font-medium" style="color:var(--muted)">{{ .SleepScore }}/5</span>
+              </div>
+              {{ end }}
+              {{ if gt .Energy 0 }}
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] shrink-0" style="color:var(--muted);width:2.75rem">Energy</span>
+                <div class="rounded-full overflow-hidden" style="width:4rem;height:4px;background:var(--card-muted)">
+                  <div class="h-full rounded-full" style="width:{{ .EnergyPct }}%;background:var(--accent)"></div>
+                </div>
+                <span class="text-[10px] tabular-nums font-medium" style="color:var(--muted)">{{ .Energy }}/5</span>
+              </div>
+              {{ end }}
+              {{ if gt .RPE 0 }}
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] shrink-0" style="color:var(--muted);width:2.75rem">RPE</span>
+                <div class="rounded-full overflow-hidden" style="width:4rem;height:4px;background:var(--card-muted)">
+                  <div class="h-full rounded-full" style="width:{{ .RPEPct }}%;background:var(--accent)"></div>
+                </div>
+                <span class="text-[10px] tabular-nums font-medium" style="color:var(--muted)">{{ .RPE }}/10</span>
+              </div>
+              {{ end }}
+            </div>
+            {{ end }}
+
+            {{ if .JournalTeaser }}
+            <p class="mt-2.5 text-xs truncate" style="color:var(--muted)">
+              "{{ .JournalTeaser }}"
+              <a href="/training-log/{{ .JournalEntryID }}/edit"
+                 class="ml-1 font-medium hover:underline" style="color:var(--accent)">edit →</a>
+            </p>
+            {{ else if and .HasJournal (gt .JournalEntryID 0) }}
+            <p class="mt-2 text-xs">
+              <a href="/training-log/{{ .JournalEntryID }}/edit"
+                 class="hover:underline" style="color:var(--accent)">Add notes →</a>
+            </p>
+            {{ else if not .IsStandalone }}
+            <p class="mt-2 text-xs">
+              <a href="/runs/{{ .RunID }}/summary"
+                 class="hover:underline" style="color:var(--accent)">Add notes →</a>
+            </p>
+            {{ end }}
+
           </div>
         {{ end }}
       </div>
       {{ else }}
-      <div class="card card-pad text-center py-10">
+      <div class="card card-pad text-center py-12">
         <i data-lucide="notebook-pen" style="width:2rem;height:2rem;opacity:0.3;margin:0 auto 0.75rem" aria-hidden="true"></i>
         <p class="text-sm font-semibold">No sessions logged yet</p>
         <p class="mt-1 text-xs muted">Complete a session and fill in the journal at the end of the summary page.</p>
@@ -129,30 +158,124 @@
       {{ end }}
     </div>
 
-    {{/* ── Right: adherence sidebar ──────────────────────────────────────── */}}
-    {{ if .Adherence }}
-    <div class="md:sticky md:top-6">
-      <section class="card card-pad">
-        <div class="flex items-center gap-2 mb-3">
-          <i data-lucide="calendar-check" style="width:1rem;height:1rem;color:var(--accent)" aria-hidden="true"></i>
-          <h2 class="text-sm font-semibold">Plan adherence{{ if .CycleName }} — {{ .CycleName }}{{ end }}</h2>
+    {{/* ── Right (40%): stats panels ────────────────────────────────────── */}}
+    <div class="md:sticky md:top-6 space-y-4">
+
+      {{/* Volume */}}
+      {{ if gt .Stats.TotalSessions 0 }}
+      <section class="card card-pad space-y-3">
+        <h2 class="text-[11px] font-bold uppercase tracking-widest muted">Volume</h2>
+        <div class="grid grid-cols-2 gap-2">
+          <div class="rounded-lg px-3 py-2.5" style="background:var(--card-muted)">
+            <p class="text-[10px] uppercase tracking-wide muted">All time</p>
+            <p class="mt-0.5 text-2xl font-bold tabular-nums">{{ .Stats.TotalSessions }}</p>
+          </div>
+          <div class="rounded-lg px-3 py-2.5" style="background:var(--card-muted)">
+            <p class="text-[10px] uppercase tracking-wide muted">This month</p>
+            <p class="mt-0.5 text-2xl font-bold tabular-nums">{{ .Stats.ThisMonth }}</p>
+          </div>
+          <div class="rounded-lg px-3 py-2.5" style="background:var(--card-muted)">
+            <p class="text-[10px] uppercase tracking-wide muted">This week</p>
+            <p class="mt-0.5 text-2xl font-bold tabular-nums">{{ .Stats.ThisWeek }}</p>
+          </div>
+          <div class="rounded-lg px-3 py-2.5" style="background:var(--card-muted)">
+            <p class="text-[10px] uppercase tracking-wide muted">Streak</p>
+            <p class="mt-0.5 text-2xl font-bold tabular-nums">{{ .Stats.CurrentStreak }}<span class="text-sm font-normal muted ml-0.5">d</span></p>
+          </div>
         </div>
-        <div class="space-y-1.5">
-          {{ range .Adherence }}
-          <div class="flex items-center gap-3 text-xs">
-            <span class="muted shrink-0" style="width:9rem">{{ .WeekLabel }}</span>
-            <div class="flex-1 h-1.5 rounded-full overflow-hidden" style="background:var(--card-muted)">
-              {{ if gt .Pct 0 }}
-              <div class="h-full rounded-full" style="width:{{ .Pct }}%;background:var(--accent)"></div>
-              {{ end }}
-            </div>
-            <span class="shrink-0 tabular-nums" style="width:3rem;text-align:right">{{ .PctLabel }}</span>
+      </section>
+      {{ end }}
+
+      {{/* Location split */}}
+      {{ if or (gt .Stats.IndoorCount 0) (gt .Stats.OutdoorCount 0) }}
+      <section class="card card-pad space-y-3">
+        <h2 class="text-[11px] font-bold uppercase tracking-widest muted">Location</h2>
+        <div class="grid grid-cols-2 gap-2">
+          <div class="rounded-lg px-3 py-2.5" style="background:var(--card-muted)">
+            <p class="text-[10px] uppercase tracking-wide muted">Indoor</p>
+            <p class="mt-0.5 text-2xl font-bold tabular-nums">{{ .Stats.IndoorCount }}</p>
+          </div>
+          <div class="rounded-lg px-3 py-2.5" style="background:var(--card-muted)">
+            <p class="text-[10px] uppercase tracking-wide muted">Outdoor</p>
+            <p class="mt-0.5 text-2xl font-bold tabular-nums">{{ .Stats.OutdoorCount }}</p>
+          </div>
+        </div>
+        {{ if and (gt .Stats.IndoorCount 0) (gt .Stats.OutdoorCount 0) }}
+        {{/* Indoor ratio bar */}}
+        <div class="h-1.5 rounded-full overflow-hidden" style="background:var(--card-muted)">
+          {{ $total := add .Stats.IndoorCount .Stats.OutdoorCount }}
+          <div class="h-full rounded-full" style="width:{{ pct .Stats.IndoorCount $total }}%;background:var(--accent)"></div>
+        </div>
+        <p class="text-[10px] muted text-center">{{ pct .Stats.IndoorCount $total }}% indoor</p>
+        {{ end }}
+      </section>
+      {{ end }}
+
+      {{/* Averages */}}
+      {{ if or (ne .Stats.AvgSleep "—") (ne .Stats.AvgEnergy "—") (ne .Stats.AvgRPE "—") }}
+      <section class="card card-pad space-y-3">
+        <h2 class="text-[11px] font-bold uppercase tracking-widest muted">Averages</h2>
+        <div class="space-y-2.5">
+          {{ if ne .Stats.AvgSleep "—" }}
+          <div class="flex items-center justify-between text-xs">
+            <span class="flex items-center gap-2 muted">
+              <i data-lucide="moon" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>Sleep
+            </span>
+            <span class="font-semibold tabular-nums">{{ .Stats.AvgSleep }}</span>
+          </div>
+          {{ end }}
+          {{ if ne .Stats.AvgEnergy "—" }}
+          <div class="flex items-center justify-between text-xs">
+            <span class="flex items-center gap-2 muted">
+              <i data-lucide="zap" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>Energy
+            </span>
+            <span class="font-semibold tabular-nums">{{ .Stats.AvgEnergy }}</span>
+          </div>
+          {{ end }}
+          {{ if ne .Stats.AvgRPE "—" }}
+          <div class="flex items-center justify-between text-xs">
+            <span class="flex items-center gap-2 muted">
+              <i data-lucide="flame" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>RPE
+            </span>
+            <span class="font-semibold tabular-nums">{{ .Stats.AvgRPE }}</span>
+          </div>
+          {{ end }}
+          {{ if .Stats.TopFocus }}
+          <div class="flex items-center justify-between text-xs">
+            <span class="flex items-center gap-2 muted">
+              <i data-lucide="target" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>Top focus
+            </span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
+                  style="background:var(--accent-bg);color:var(--accent)">{{ .Stats.TopFocus }}</span>
           </div>
           {{ end }}
         </div>
       </section>
+      {{ end }}
+
+      {{/* Plan adherence */}}
+      {{ if .Adherence }}
+      <section class="card card-pad space-y-3">
+        <h2 class="text-[11px] font-bold uppercase tracking-widest muted">
+          Adherence{{ if .CycleName }} — {{ .CycleName }}{{ end }}
+        </h2>
+        <div class="space-y-2">
+          {{ range .Adherence }}
+          <div class="flex items-center gap-3 text-xs">
+            <span class="muted shrink-0" style="width:9rem">{{ .WeekLabel }}</span>
+            <div class="flex-1 rounded-full overflow-hidden" style="height:4px;background:var(--card-muted)">
+              {{ if gt .Pct 0 }}
+              <div class="h-full rounded-full" style="width:{{ .Pct }}%;background:var(--accent)"></div>
+              {{ end }}
+            </div>
+            <span class="shrink-0 tabular-nums font-medium muted" style="width:2.5rem;text-align:right">{{ .PctLabel }}</span>
+          </div>
+          {{ end }}
+        </div>
+      </section>
+      {{ end }}
+
     </div>
-    {{ end }}
 
   </div>
 
