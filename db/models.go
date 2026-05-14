@@ -264,6 +264,8 @@ type SessionRun struct {
 	IsDraft bool `gorm:"index;not null;default:false"`
 	// CustomName is an optional user-set display name that overrides the template name.
 	CustomName string `gorm:"type:text"`
+	// ExercisesMaterialised is set true once template exercises have been copied to RunExercise rows for log editing.
+	ExercisesMaterialised bool `gorm:"not null;default:false"`
 
 	Status string `gorm:"not null;default:running"` // running/completed
 

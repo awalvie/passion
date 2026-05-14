@@ -652,6 +652,40 @@ type EditLibraryExerciseParams struct {
 	LibraryExerciseFormErr  string
 }
 
+// SessionExerciseSummaryView is a unified exercise row for the summary page,
+// covering both template-based and manually-logged exercises.
+type SessionExerciseSummaryView struct {
+	Name           string
+	Kind           string
+	Status         string // "completed"|"skipped"|"pending"|"" (blank for manual)
+	ActualSets     int
+	ActualReps     int
+	ActualWeightKg float64
+	ElapsedMinutes int
+	Notes          string
+	PerSetMode     bool
+	SetLogs        []ManualExerciseSetLogView
+	ClimbingType   string
+}
+
+type TrainingLogSummaryParams struct {
+	Base
+	JournalID   uint
+	Title       string
+	DateLabel   string // e.g. "Mon, 13 Jan 2026"
+	IsRunLinked bool
+	RunInfo     string // e.g. "Strength Base · Jan 5th"
+	SleepScore  int
+	Energy      int
+	RPE         int
+	Focus       string
+	Location    string
+	VenueName   string
+	WentWell    string
+	NextFocus   string
+	Exercises   []SessionExerciseSummaryView
+}
+
 type TrainingLogNewParams struct {
 	Base
 	JournalID   uint   // 0 = new entry; non-zero = editing an existing entry
@@ -670,6 +704,7 @@ type TrainingLogNewParams struct {
 
 	// Draft run fields (set when creating a new manual entry with exercises)
 	DraftRunID         uint
+	OpenExerciseID     uint // exercise ID to auto-open in the list (newly added)
 	LibraryExercises   []db.LibraryExercise
 	ActivityTemplates  []db.ActivityTemplate
 	Exercises          []ManualExerciseView
@@ -840,6 +875,7 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		{"pages/exercise_history_content", "exercise_history.html"},
 		{"pages/training_log_content", "training_log.html"},
 		{"pages/training_log_new_content", "training_log_new.html"},
+		{"pages/training_log_summary_content", "training_log_summary.html"},
 		{"pages/calendar_content", "calendar.html"},
 	}
 	for _, p := range pages {
@@ -1032,6 +1068,14 @@ func (p *Pages) EditLibraryExercise(w http.ResponseWriter, params EditLibraryExe
 	params.Title = "Edit saved exercise"
 	params.Authenticated = true
 	p.renderPage(w, "pages/edit_exercise_library_content", params)
+}
+
+func (p *Pages) TrainingLogSummaryPage(w http.ResponseWriter, params TrainingLogSummaryParams) {
+	params.Authenticated = true
+	if params.Title == "" {
+		params.Title = "Session"
+	}
+	p.renderPage(w, "pages/training_log_summary_content", params)
 }
 
 func (p *Pages) TrainingLogNewPage(w http.ResponseWriter, params TrainingLogNewParams) {

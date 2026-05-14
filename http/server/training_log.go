@@ -428,6 +428,11 @@ func (s *Server) handleTrainingLogEdit(w http.ResponseWriter, r *http.Request) {
 				runInfo = fmt.Sprintf("%s · %s %d%s", name, t.Format("Jan"), t.Day(), daySuffix(t.Day()))
 			}
 
+			// Materialise template exercises into RunExercise rows on first edit.
+			if ssErr == nil && !run.IsManual && !run.IsOpen && !run.ExercisesMaterialised {
+				_ = db.MaterialiseTemplateExercises(s.store.DB, ownerID, run.ID, ss)
+			}
+
 			// Load exercise management for all run-linked entries.
 			libExercises, err := db.ListLibraryExercises(s.store.DB, ownerID)
 			if err != nil {
@@ -492,43 +497,6 @@ func (s *Server) handleTrainingLogEdit(w http.ResponseWriter, r *http.Request) {
 			params.LibraryExercises = libExercises
 			params.ActivityTemplates = activityTemplates
 			params.Exercises = views
-
-			// For template-based runs, load activities with their completions as read-only.
-			if ssErr == nil && !run.IsManual && !run.IsOpen {
-				var completions []db.RunExerciseCompletion
-				s.store.DB.Where("run_id = ? AND owner_id = ?", run.ID, ownerID).Find(&completions)
-				compByID := make(map[uint]db.RunExerciseCompletion, len(completions))
-				for _, c := range completions {
-					compByID[c.ExerciseID] = c
-				}
-				for _, act := range ss.SessionTemplate.Activities {
-					sa := pages.RunSummaryActivity{Name: act.Name}
-					for _, ex := range act.Exercises {
-						if ex.ParentExerciseID != nil {
-							continue
-						}
-						se := pages.RunSummaryExercise{
-							Name:            ex.Name,
-							Kind:            ex.Kind,
-							Sets:            ex.Sets,
-							Reps:            ex.Reps,
-							WeightKg:        ex.WeightKg,
-							RepSeconds:      ex.RepSeconds,
-							SessionDuration: ex.SessionDurationSeconds,
-							Status:          "pending",
-						}
-						if c, ok := compByID[ex.ID]; ok {
-							se.Status = c.Status
-							se.Notes = c.RunNotes
-							se.ElapsedSeconds = c.ElapsedSeconds
-						}
-						sa.Exercises = append(sa.Exercises, se)
-					}
-					if len(sa.Exercises) > 0 {
-						params.TemplateActivities = append(params.TemplateActivities, sa)
-					}
-				}
-			}
 		}
 		params.IsRunLinked = true
 		params.RunInfo = runInfo
@@ -542,6 +510,151 @@ func (s *Server) handleTrainingLogEdit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.pages.TrainingLogNewPage(w, params)
+}
+
+// handleTrainingLogView serves GET /training-log/{journalID} — read-only summary.
+func (s *Server) handleTrainingLogView(w http.ResponseWriter, r *http.Request) {
+	ownerID := s.mustUserID(r)
+
+	journalID, err := parseUintParam(r, "journalID")
+	if err != nil {
+		http.Error(w, "invalid journal ID", http.StatusBadRequest)
+		return
+	}
+
+	j, err := db.GetSessionJournalByID(s.store.DB, ownerID, uint(journalID))
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	if j == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	dateLabel := ""
+	titleVal := j.Title
+	if j.RunID != nil {
+		var run db.SessionRun
+		if err2 := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, *j.RunID).First(&run).Error; err2 == nil {
+			dateLabel = run.StartedAt.Format("Mon, 2 Jan 2006")
+		}
+	} else {
+		d := j.Date
+		if d.IsZero() {
+			d = j.CreatedAt
+		}
+		dateLabel = d.Format("Mon, 2 Jan 2006")
+	}
+
+	params := pages.TrainingLogSummaryParams{
+		JournalID:   uint(journalID),
+		Title:       titleVal,
+		DateLabel:   dateLabel,
+		IsRunLinked: j.RunID != nil,
+		SleepScore:  j.SleepScore,
+		Energy:      j.Energy,
+		RPE:         j.RPE,
+		Focus:       focusDisplayName(j.Focus),
+		Location:    locationDisplayName(j.Location),
+		WentWell:    j.WentWell,
+		NextFocus:   j.NextFocus,
+	}
+
+	if j.VenueID != nil {
+		var venue db.ClimbingVenue
+		if err2 := s.store.DB.Where("id = ? AND owner_id = ?", *j.VenueID, ownerID).First(&venue).Error; err2 == nil {
+			params.VenueName = venue.Name
+		}
+	}
+
+	if j.RunID != nil {
+		var run db.SessionRun
+		if err2 := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, *j.RunID).First(&run).Error; err2 == nil {
+			ss, ssErr := db.GetScheduledSessionWithTemplate(s.store.DB, ownerID, run.ScheduledSessionID)
+			if ssErr == nil {
+				name := ss.SessionTemplate.Name
+				if run.CustomName != "" {
+					name = run.CustomName
+				}
+				t := run.StartedAt
+				params.RunInfo = fmt.Sprintf("%s · %s %d%s", name, t.Format("Jan"), t.Day(), daySuffix(t.Day()))
+			}
+
+			// If not yet materialised, show template exercises from the template graph.
+			if ssErr == nil && !run.IsManual && !run.IsOpen && !run.ExercisesMaterialised {
+				var completions []db.RunExerciseCompletion
+				s.store.DB.Where("run_id = ? AND owner_id = ?", run.ID, ownerID).Find(&completions)
+				compByID := make(map[uint]db.RunExerciseCompletion, len(completions))
+				for _, c := range completions {
+					compByID[c.ExerciseID] = c
+				}
+				for _, act := range ss.SessionTemplate.Activities {
+					for _, ex := range act.Exercises {
+						if ex.ParentExerciseID != nil {
+							continue
+						}
+						sv := pages.SessionExerciseSummaryView{
+							Name:   ex.Name,
+							Kind:   ex.Kind,
+							Status: "pending",
+						}
+						if c, ok := compByID[ex.ID]; ok {
+							sv.Status = c.Status
+							sv.Notes = c.RunNotes
+							sv.ElapsedMinutes = c.ElapsedSeconds / 60
+						}
+						params.Exercises = append(params.Exercises, sv)
+					}
+				}
+			}
+
+			// Materialised / manual / open-session: all exercises live in RunExercise rows.
+			if run.ExercisesMaterialised || run.IsManual || run.IsOpen {
+				exs, _ := db.ListExercisesForRun(s.store.DB, ownerID, run.ID)
+				for _, ex := range exs {
+					sv := pages.SessionExerciseSummaryView{
+						Name: ex.Name,
+						Kind: ex.Kind,
+					}
+					var comp db.RunExerciseCompletion
+					if err3 := s.store.DB.Where("owner_id = ? AND run_id = ? AND exercise_id = ?",
+						ownerID, run.ID, ex.ID).First(&comp).Error; err3 == nil {
+						sv.ActualSets = comp.ActualSets
+						sv.ActualReps = comp.ActualReps
+						sv.ActualWeightKg = comp.ActualWeightKg
+						sv.Notes = comp.RunNotes
+						sv.ElapsedMinutes = comp.ElapsedSeconds / 60
+						if comp.Status != "" {
+							sv.Status = comp.Status
+						} else if comp.ActualSets > 0 || comp.ActualReps > 0 || comp.ElapsedSeconds > 0 || comp.RunNotes != "" {
+							sv.Status = "completed"
+						}
+					}
+					setLogs, _ := db.ListManualExerciseSetLogs(s.store.DB, ownerID, run.ID, ex.ID)
+					if len(setLogs) > 0 {
+						sv.PerSetMode = true
+						sv.SetLogs = make([]pages.ManualExerciseSetLogView, len(setLogs))
+						for i, sl := range setLogs {
+							sv.SetLogs[i] = pages.ManualExerciseSetLogView{
+								SetIndex: sl.SetIndex,
+								Reps:     sl.Reps,
+								WeightKg: sl.WeightKg,
+							}
+						}
+					}
+					if ex.Kind == "climbing" {
+						if meta, _ := db.GetClimbingExerciseMeta(s.store.DB, ownerID, run.ID, ex.ID); meta != nil {
+							sv.ClimbingType = meta.Type
+						}
+					}
+					params.Exercises = append(params.Exercises, sv)
+				}
+			}
+		}
+	}
+
+	s.pages.TrainingLogSummaryPage(w, params)
 }
 
 func (s *Server) updateJournal(w http.ResponseWriter, r *http.Request, ownerID uint, j *db.SessionJournal) {
@@ -592,7 +705,7 @@ func (s *Server) updateJournal(w http.ResponseWriter, r *http.Request, ownerID u
 		return
 	}
 
-	http.Redirect(w, r, "/training-log", http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/training-log/%d", j.ID), http.StatusSeeOther)
 }
 
 // handleTrainingLogDelete serves POST /training-log/{journalID}/delete.
