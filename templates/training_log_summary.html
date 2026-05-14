@@ -1,0 +1,158 @@
+{{ define "content" }}
+<div class="space-y-5">
+
+  {{/* ── Page heading ── */}}
+  <div class="flex items-center justify-between gap-3">
+    <div class="flex items-center gap-2 min-w-0">
+      <a href="/training-log" class="rounded-md btn-ghost p-1.5 shrink-0" title="Back to training log">
+        <i data-lucide="arrow-left" style="width:1rem;height:1rem" aria-hidden="true"></i>
+      </a>
+      <div class="min-w-0">
+        <p class="text-[11px] muted">{{ .DateLabel }}</p>
+        <h1 class="text-base font-bold leading-tight truncate">
+          {{ if .IsRunLinked }}{{ .RunInfo }}{{ else if .Title }}{{ .Title }}{{ else }}Session{{ end }}
+        </h1>
+      </div>
+    </div>
+    <a href="/training-log/{{ .JournalID }}/edit"
+       class="shrink-0 rounded-md btn-ghost px-3 py-1.5 text-xs font-medium flex items-center gap-1.5">
+      <i data-lucide="pencil" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+      Edit
+    </a>
+  </div>
+
+  {{/* ── Two-column body ── */}}
+  <div class="flex flex-col gap-5 md:grid md:grid-cols-[1fr_22rem] md:gap-6 md:items-start">
+
+    {{/* LEFT: exercises */}}
+    <div>
+      {{ if .Exercises }}
+      <div class="card card-pad">
+        <p class="text-[10px] font-bold uppercase tracking-widest muted mb-3">Exercises</p>
+        {{ range .Exercises }}
+        <div class="py-2.5" style="border-top: 1px solid var(--border)">
+          <div class="flex items-start gap-2">
+            {{ if .Status }}
+            <span class="mt-0.5 shrink-0" style="color:{{ if eq .Status "completed" }}var(--accent){{ else }}var(--muted){{ end }}">
+              {{ if eq .Status "completed" }}<i data-lucide="check" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+              {{ else if eq .Status "skipped" }}<i data-lucide="minus" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+              {{ else }}<i data-lucide="circle" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>{{ end }}
+            </span>
+            {{ end }}
+            <div class="flex-1 min-w-0">
+              <div class="flex items-baseline justify-between gap-2">
+                <span class="text-sm font-medium{{ if eq .Status "skipped" }} line-through muted{{ end }}">{{ .Name }}</span>
+                <span class="text-[11px] muted shrink-0">
+                  {{ if eq .Kind "climbing" }}
+                    {{ .ClimbingType }}
+                  {{ else if or (eq .Kind "session") (eq .Kind "timed_reps") }}
+                    {{ if gt .ElapsedMinutes 0 }}{{ .ElapsedMinutes }} min{{ end }}
+                  {{ else }}
+                    {{ if gt .ActualSets 0 }}{{ .ActualSets }}×{{ .ActualReps }}{{ end -}}
+                    {{- if gt .ActualWeightKg 0.0 }} · {{ printf "%.1f" .ActualWeightKg }}kg{{ end }}
+                  {{ end }}
+                </span>
+              </div>
+              {{ if .PerSetMode }}
+              <div class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                {{ range .SetLogs }}
+                <span class="text-[11px] muted">Set {{ .SetIndex }}: {{ .Reps }} reps{{ if gt .WeightKg 0.0 }} @ {{ printf "%.1f" .WeightKg }}kg{{ end }}</span>
+                {{ end }}
+              </div>
+              {{ end }}
+              {{ if .Notes }}<p class="mt-1 text-xs muted whitespace-pre-wrap">{{ .Notes }}</p>{{ end }}
+            </div>
+          </div>
+        </div>
+        {{ end }}
+      </div>
+      {{ else }}
+      <div class="card card-pad text-sm muted">No exercises logged for this session.</div>
+      {{ end }}
+    </div>
+
+    {{/* RIGHT: scores + meta + notes */}}
+    <div class="space-y-4 md:sticky md:top-6">
+
+      {{ if or (gt .SleepScore 0) (gt .Energy 0) (gt .RPE 0) .Focus .Location .VenueName }}
+      <div class="card card-pad space-y-3">
+        {{ if or (gt .SleepScore 0) (gt .Energy 0) (gt .RPE 0) }}
+        <div class="flex flex-wrap gap-x-5 gap-y-2">
+          {{ if gt .SleepScore 0 }}
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] shrink-0 muted" style="width:2.75rem">Sleep</span>
+            <div class="rounded-full overflow-hidden" style="width:4rem;height:4px;background:var(--card-muted)">
+              <div class="h-full rounded-full" style="width:{{ pct .SleepScore 5 }}%;background:var(--accent)"></div>
+            </div>
+            <span class="text-[10px] tabular-nums font-medium muted">{{ .SleepScore }}/5</span>
+          </div>
+          {{ end }}
+          {{ if gt .Energy 0 }}
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] shrink-0 muted" style="width:2.75rem">Energy</span>
+            <div class="rounded-full overflow-hidden" style="width:4rem;height:4px;background:var(--card-muted)">
+              <div class="h-full rounded-full" style="width:{{ pct .Energy 5 }}%;background:var(--accent)"></div>
+            </div>
+            <span class="text-[10px] tabular-nums font-medium muted">{{ .Energy }}/5</span>
+          </div>
+          {{ end }}
+          {{ if gt .RPE 0 }}
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] shrink-0 muted" style="width:2.75rem">RPE</span>
+            <div class="rounded-full overflow-hidden" style="width:4rem;height:4px;background:var(--card-muted)">
+              <div class="h-full rounded-full" style="width:{{ pct .RPE 10 }}%;background:var(--accent)"></div>
+            </div>
+            <span class="text-[10px] tabular-nums font-medium muted">{{ .RPE }}/10</span>
+          </div>
+          {{ end }}
+        </div>
+        {{ end }}
+        {{ if or .Focus .Location .VenueName }}
+        <div class="flex flex-wrap items-center gap-1.5">
+          {{ if .Focus }}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
+                style="background:var(--accent-bg);color:var(--accent)">{{ .Focus }}</span>
+          {{ end }}
+          {{ if .Location }}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]"
+                style="background:var(--card-muted);color:var(--muted)">
+            <i data-lucide="map-pin" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
+            {{ .Location }}
+          </span>
+          {{ end }}
+          {{ if .VenueName }}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]"
+                style="background:var(--card-muted);color:var(--muted)">
+            <i data-lucide="building-2" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
+            {{ .VenueName }}
+          </span>
+          {{ end }}
+        </div>
+        {{ end }}
+      </div>
+      {{ end }}
+
+      {{ if or .WentWell .NextFocus }}
+      <div class="card card-pad space-y-3">
+        {{ if .WentWell }}
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-widest muted mb-1">What went well</p>
+          <p class="text-sm whitespace-pre-wrap">{{ .WentWell }}</p>
+        </div>
+        {{ end }}
+        {{ if .NextFocus }}
+        <div {{ if .WentWell }}style="border-top:1px solid var(--border);padding-top:0.75rem"{{ end }}>
+          <p class="text-[10px] font-bold uppercase tracking-widest muted mb-1">Focus for next session</p>
+          <p class="text-sm whitespace-pre-wrap">{{ .NextFocus }}</p>
+        </div>
+        {{ end }}
+      </div>
+      {{ end }}
+
+    </div>
+
+  </div>
+
+</div>
+<script>if(window.__passionRenderIcons)window.__passionRenderIcons();</script>
+{{ end }}

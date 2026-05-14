@@ -1,14 +1,25 @@
 {{ define "content" }}
-<div class="{{ if or .TemplateActivities .DraftRunID }}flex flex-col-reverse gap-5 md:grid md:grid-cols-[1fr_22rem] md:gap-6 md:items-start{{ else }}max-w-2xl{{ end }}">
+<div class="{{ if .DraftRunID }}space-y-5{{ else }}max-w-2xl{{ end }}">
 
-  {{/* LEFT column: heading + form */}}
+  {{/* Page heading — full width, above both columns */}}
+  <div class="flex items-center gap-3">
+    <a href="/training-log" class="muted hover:opacity-70">
+      <i data-lucide="arrow-left" style="width:1rem;height:1rem" aria-hidden="true"></i>
+    </a>
+    <h1 class="text-xl font-bold">{{ if .JournalID }}Edit Log Entry{{ else }}New Log Entry{{ end }}</h1>
+  </div>
+
+  <div class="{{ if .DraftRunID }}flex flex-col gap-5 md:grid md:grid-cols-[1fr_22rem] md:gap-6 md:items-start{{ end }}">
+
+  {{/* LEFT column: exercise management */}}
+  {{ if .DraftRunID }}
   <div>
-    <div class="flex items-center gap-3 mb-5">
-      <a href="/training-log" class="muted hover:opacity-70">
-        <i data-lucide="arrow-left" style="width:1rem;height:1rem" aria-hidden="true"></i>
-      </a>
-      <h1 class="text-xl font-bold">{{ if .JournalID }}Edit Log Entry{{ else }}New Log Entry{{ end }}</h1>
-    </div>
+    {{ template "manual_exercises.html" . }}
+  </div>
+  {{ end }}
+
+  {{/* RIGHT column: form */}}
+  <div class="{{ if .DraftRunID }}md:sticky md:top-6{{ end }}">
 
     {{ if .FormErr }}
     <div class="mb-4 card-muted p-3 text-sm rounded-lg" style="border-left: 3px solid #dc2626; color: #dc2626;">
@@ -315,56 +326,10 @@
 })();
 </script>
 
-  {{/* RIGHT column: session exercises + manual exercises */}}
-  {{ if or .TemplateActivities .DraftRunID }}
-  <div class="space-y-4 md:sticky md:top-6">
+  </div>{{/* end right column */}}
 
-    {{/* Template exercises — read-only summary for sessions run from a template */}}
-    {{ if .TemplateActivities }}
-    <div class="card card-pad">
-      <div class="text-sm font-semibold mb-2">Session exercises</div>
-      {{ range .TemplateActivities }}
-        {{ if .Name }}
-        <div class="pt-1 pb-0.5" style="border-top: 1px solid var(--border)">
-          <p class="text-[10px] font-bold uppercase tracking-widest muted">{{ .Name }}</p>
-        </div>
-        {{ end }}
-        {{ range .Exercises }}
-        <div class="flex items-start gap-2 py-1.5" style="border-top: 1px solid var(--border)">
-          <span class="mt-0.5 shrink-0" style="color:{{ if eq .Status "completed" }}var(--accent){{ else }}var(--muted){{ end }}">
-            {{ if eq .Status "completed" }}<i data-lucide="check" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
-            {{ else if eq .Status "skipped" }}<i data-lucide="minus" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
-            {{ else }}<i data-lucide="circle" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>{{ end }}
-          </span>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-baseline justify-between gap-2">
-              <span class="text-xs{{ if eq .Status "skipped" }} line-through muted{{ end }}">{{ .Name }}</span>
-              <span class="text-[11px] muted shrink-0">
-                {{- if or (eq .Kind "session") (eq .Kind "climbing") -}}
-                  {{- if gt .ElapsedSeconds 0 }}{{ formatElapsed .ElapsedSeconds }}{{ end -}}
-                {{- else -}}
-                  {{- if gt .Sets 0 }}{{ .Sets }}×{{ .Reps }}{{ end -}}
-                  {{- if gt .WeightKg 0.0 }} · {{ printf "%.1f" .WeightKg }}kg{{ end -}}
-                  {{- if gt .ElapsedSeconds 0 }} · {{ formatElapsed .ElapsedSeconds }}{{ end -}}
-                {{- end -}}
-              </span>
-            </div>
-            {{ if .Notes }}<p class="mt-0.5 text-[11px] muted">{{ .Notes }}</p>{{ end }}
-          </div>
-        </div>
-        {{ end }}
-      {{ end }}
-    </div>
-    {{ end }}
+  </div>{{/* end columns grid */}}
 
-    {{/* Exercises section — add/manage exercises on the run */}}
-    {{ if .DraftRunID }}
-    {{ template "manual_exercises.html" . }}
-    {{ end }}
-
-  </div>
-  {{ end }}
-
-</div>
+</div>{{/* end page wrapper */}}
 <script>if(window.__passionRenderIcons)window.__passionRenderIcons();</script>
 {{ end }}

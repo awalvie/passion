@@ -1,16 +1,32 @@
 {{ define "manual_exercises.html" }}
-<div id="manual-exercises-{{ .DraftRunID }}" class="space-y-3">
+<div id="manual-exercises-{{ .DraftRunID }}" class="space-y-2">
+
+  {{/* ── Exercise list ── */}}
   {{ range .Exercises }}
-  <details class="card overflow-hidden" open>
-    <summary class="cursor-pointer list-none flex items-center gap-2 px-3 py-3">
-      <i data-lucide="chevron-right" style="width:0.875rem;height:0.875rem;transition:transform 150ms ease" class="shrink-0 muted disclosure-chevron" aria-hidden="true"></i>
-      <div class="flex-1 min-w-0">
-        <div class="text-sm font-semibold truncate">{{ .Name }}</div>
-        <div class="text-xs muted mt-0.5">{{ .Kind }}</div>
-      </div>
+  <details class="card overflow-hidden" draggable="true" data-exercise-id="{{ .ExerciseID }}"{{ if eq .ExerciseID $.OpenExerciseID }} open{{ end }}>
+    <summary class="cursor-pointer list-none flex items-center gap-2 px-3 py-2.5">
+      <span class="dnd-handle shrink-0 muted flex items-center" style="cursor:grab;touch-action:none" onclick="event.stopPropagation()" title="Drag to reorder">
+        <i data-lucide="grip-vertical" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+      </span>
+      <i data-lucide="chevron-right" style="width:0.75rem;height:0.75rem;transition:transform 150ms ease" class="shrink-0 muted disclosure-chevron" aria-hidden="true"></i>
+      <span class="flex-1 min-w-0 text-sm font-medium truncate">{{ .Name }}</span>
+      <span class="text-[11px] muted shrink-0 mr-1">
+        {{- if eq .Kind "climbing" -}}
+          Climbing
+        {{- else if or (eq .Kind "session") (eq .Kind "timed_reps") -}}
+          {{- if gt .ElapsedMinutes 0 }}{{ .ElapsedMinutes }} min{{ end -}}
+        {{- else -}}
+          {{- if .PerSetMode -}}
+            {{- len .SetLogs }} sets
+          {{- else if gt .ActualSets 0 -}}
+            {{- .ActualSets }}×{{ .ActualReps -}}
+            {{- if gt .ActualWeightKg 0.0 }} · {{ printf "%.1f" .ActualWeightKg }}kg{{ end -}}
+          {{- end -}}
+        {{- end -}}
+      </span>
       <button
         type="button"
-        class="shrink-0 rounded-md btn-ghost p-2 min-w-[2rem] min-h-[2rem] inline-flex items-center justify-center"
+        class="shrink-0 rounded-md btn-ghost p-1.5 min-w-[1.75rem] min-h-[1.75rem] inline-flex items-center justify-center"
         hx-post="/training-log/draft/{{ .RunID }}/exercises/{{ .ExerciseID }}/delete"
         hx-target="#manual-exercises-{{ .RunID }}"
         hx-swap="outerHTML"
@@ -18,10 +34,11 @@
         onclick="event.stopPropagation();"
         title="Remove exercise"
       >
-        <i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+        <i data-lucide="x" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
       </button>
     </summary>
-    <div class="px-4 pb-4 space-y-3">
+
+    <div class="px-4 pb-4 pt-1 space-y-3" style="border-top:1px solid var(--border)">
       {{ if eq .Kind "climbing" }}
         <form
           hx-post="/training-log/draft/{{ .RunID }}/exercises/{{ .ExerciseID }}/climbing-meta"
@@ -88,13 +105,12 @@
           </div>
           <div>
             <label class="text-xs font-medium" for="ex-notes-{{ .ExerciseID }}">Notes</label>
-            <input id="ex-notes-{{ .ExerciseID }}" name="notes" type="text" value="{{ .Notes }}"
-              class="mt-1 w-full input text-sm" placeholder="Optional notes" />
+            <textarea id="ex-notes-{{ .ExerciseID }}" name="notes" rows="3"
+              class="mt-1 w-full input text-sm resize-y" placeholder="Optional notes">{{ .Notes }}</textarea>
           </div>
         </form>
       {{ else }}
         {{ if .PerSetMode }}
-          {{/* Per-set mode */}}
           <div class="space-y-2">
             {{ range .SetLogs }}
             <div class="flex items-center gap-2">
@@ -118,7 +134,7 @@
               </form>
               <button
                 type="button"
-                class="shrink-0 rounded-md btn-ghost p-2 min-w-[2rem] min-h-[2rem] inline-flex items-center justify-center"
+                class="shrink-0 rounded-md btn-ghost p-1.5 min-w-[1.75rem] min-h-[1.75rem] inline-flex items-center justify-center"
                 hx-post="/training-log/draft/{{ $.RunID }}/exercises/{{ $.ExerciseID }}/sets/{{ .SetIndex }}/delete"
                 hx-target="#manual-exercises-{{ $.RunID }}"
                 hx-swap="outerHTML"
@@ -147,7 +163,6 @@
             </form>
           </div>
         {{ else }}
-          {{/* Aggregate mode */}}
           <form
             hx-post="/training-log/draft/{{ .RunID }}/exercises/{{ .ExerciseID }}/save"
             hx-swap="none"
@@ -168,7 +183,8 @@
             </div>
             <div class="sm:col-span-4">
               <label class="text-xs font-medium" for="ex-notes-{{ .ExerciseID }}">Notes</label>
-              <input id="ex-notes-{{ .ExerciseID }}" name="notes" type="text" value="{{ .Notes }}" class="mt-1 w-full input text-sm" placeholder="Optional notes" />
+              <textarea id="ex-notes-{{ .ExerciseID }}" name="notes" rows="3"
+                class="mt-1 w-full input text-sm resize-y" placeholder="Optional notes">{{ .Notes }}</textarea>
             </div>
           </form>
           <form
@@ -181,10 +197,18 @@
           </form>
         {{ end }}
       {{ end }}
+      <div class="flex justify-end pt-1">
+        <button type="button"
+          class="rounded-md btn-ghost px-3 py-1.5 text-xs font-medium"
+          onclick="this.closest('details').removeAttribute('open')">
+          Done ✓
+        </button>
+      </div>
     </div>
   </details>
   {{ end }}
 
+  {{/* ── Add exercises ── */}}
   <div class="card overflow-hidden">
     <div class="px-4 pt-3 pb-2 text-sm font-semibold">Add exercises</div>
 
@@ -431,6 +455,43 @@
       wrap.classList.toggle('hidden', sel.value !== 'board');
     });
   });
+
+  // Drag-to-reorder exercises.
+  (function () {
+    var container = document.getElementById('manual-exercises-' + draftID);
+    if (!container) return;
+    var dragging = null;
+
+    container.addEventListener('dragstart', function (e) {
+      dragging = e.target.closest('details[draggable]');
+      if (!dragging) return;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(function () { if (dragging) dragging.style.opacity = '0.4'; }, 0);
+    });
+
+    container.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      var target = e.target.closest('details[draggable]');
+      if (!target || target === dragging) return;
+      var rect = target.getBoundingClientRect();
+      var after = e.clientY > rect.top + rect.height / 2;
+      container.insertBefore(dragging, after ? target.nextSibling : target);
+    });
+
+    container.addEventListener('dragend', function () {
+      if (!dragging) return;
+      dragging.style.opacity = '';
+      var ids = Array.from(container.querySelectorAll('details[data-exercise-id]'))
+        .map(function (d) { return d.dataset.exerciseId; });
+      var body = ids.map(function (id) { return 'ids=' + encodeURIComponent(id); }).join('&');
+      fetch('/training-log/draft/' + draftID + '/exercises/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body
+      });
+      dragging = null;
+    });
+  })();
 })();
 if(window.__passionRenderIcons)window.__passionRenderIcons();
 </script>

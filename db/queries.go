@@ -749,3 +749,54 @@ func UpdateCalendarEvent(gdb *gorm.DB, ownerID, id uint, title, kind, notes stri
 func DeleteCalendarEvent(gdb *gorm.DB, ownerID, id uint) error {
 	return gdb.Where("id = ? AND owner_id = ?", id, ownerID).Delete(&CalendarEvent{}).Error
 }
+
+// MaterialiseTemplateExercises copies template exercises from a ScheduledSession into
+// RunExercise rows for the given run, carrying over any existing completion data.
+// Sets ExercisesMaterialised = true so this only runs once.
+func MaterialiseTemplateExercises(gdb *gorm.DB, ownerID, runID uint, ss ScheduledSession) error {
+	return gdb.Transaction(func(tx *gorm.DB) error {
+		var comps []RunExerciseCompletion
+		tx.Where("run_id = ? AND owner_id = ?", runID, ownerID).Find(&comps)
+		compByExID := make(map[uint]RunExerciseCompletion, len(comps))
+		for _, c := range comps {
+			compByExID[c.ExerciseID] = c
+		}
+		orderIdx := 0
+		for _, act := range ss.SessionTemplate.Activities {
+			for _, ex := range act.Exercises {
+				if ex.ParentExerciseID != nil {
+					continue
+				}
+				runEx := Exercise{
+					OwnerID:      ownerID,
+					SessionRunID: &runID,
+					Name:         ex.Name,
+					Kind:         ex.Kind,
+					OrderIndex:   orderIdx,
+				}
+				if err := tx.Create(&runEx).Error; err != nil {
+					return err
+				}
+				if comp, ok := compByExID[ex.ID]; ok {
+					newComp := RunExerciseCompletion{
+						OwnerID:        ownerID,
+						RunID:          runID,
+						ExerciseID:     runEx.ID,
+						Status:         comp.Status,
+						RunNotes:       comp.RunNotes,
+						ElapsedSeconds: comp.ElapsedSeconds,
+						CompletedAt:    comp.CompletedAt,
+						ActualSets:     comp.ActualSets,
+						ActualReps:     comp.ActualReps,
+						ActualWeightKg: comp.ActualWeightKg,
+					}
+					tx.Create(&newComp)
+				}
+				orderIdx++
+			}
+		}
+		return tx.Model(&SessionRun{}).
+			Where("id = ? AND owner_id = ?", runID, ownerID).
+			Update("exercises_materialised", true).Error
+	})
+}

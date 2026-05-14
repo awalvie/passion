@@ -226,12 +226,13 @@ func (s *Server) handleTrainingLogAddExercise(w http.ResponseWriter, r *http.Req
 		name = "Exercise"
 	}
 
-	if _, err := db.AddManualExercise(s.store.DB, ownerID, runID, name, libExerciseID, kind); err != nil {
+	newEx, err := db.AddManualExercise(s.store.DB, ownerID, runID, name, libExerciseID, kind)
+	if err != nil {
 		s.serverError(w, r, err)
 		return
 	}
 
-	s.renderManualExercises(w, r, ownerID, runID)
+	s.renderManualExercises(w, r, ownerID, runID, newEx.ID)
 }
 
 // handleTrainingLogSaveExerciseCompletion serves POST /training-log/draft/{runID}/exercises/{exerciseID}/save.
@@ -292,7 +293,8 @@ func (s *Server) handleTrainingLogDeleteExercise(w http.ResponseWriter, r *http.
 }
 
 // renderManualExercises renders the manual exercises container fragment.
-func (s *Server) renderManualExercises(w http.ResponseWriter, r *http.Request, ownerID, runID uint) {
+// Pass an optional openID to auto-open that exercise (e.g. the one just added).
+func (s *Server) renderManualExercises(w http.ResponseWriter, r *http.Request, ownerID, runID uint, openID ...uint) {
 	exs, err := db.ListExercisesForRun(s.store.DB, ownerID, runID)
 	if err != nil {
 		s.serverError(w, r, err)
@@ -348,8 +350,13 @@ func (s *Server) renderManualExercises(w http.ResponseWriter, r *http.Request, o
 	}
 	activityTemplates, _ := db.ListActivityTemplates(s.store.DB, ownerID, "")
 	_, boards, _ := s.loadVenuesAndBoards(ownerID)
+	openExerciseID := uint(0)
+	if len(openID) > 0 {
+		openExerciseID = openID[0]
+	}
 	s.pages.RenderManualExercisesContainer(w, pages.TrainingLogNewParams{
 		DraftRunID:        runID,
+		OpenExerciseID:    openExerciseID,
 		LibraryExercises:  libExercises,
 		ActivityTemplates: activityTemplates,
 		Boards:            boards,
@@ -576,4 +583,30 @@ func (s *Server) handleTrainingLogSaveClimbingMeta(w http.ResponseWriter, r *htt
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+// handleTrainingLogReorderExercises saves a new display order for manual exercises.
+// Body: repeated ids[]=<exerciseID> in desired order.
+func (s *Server) handleTrainingLogReorderExercises(w http.ResponseWriter, r *http.Request) {
+	ownerID := s.mustUserID(r)
+	runID, err := parseUintParam(r, "runID")
+	if err != nil {
+		http.Error(w, "invalid run ID", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form data", http.StatusBadRequest)
+		return
+	}
+	ids := r.Form["ids"]
+	for i, idStr := range ids {
+		id, err := strconv.ParseUint(idStr, 10, 64)
+		if err != nil {
+			continue
+		}
+		s.store.DB.Model(&db.Exercise{}).
+			Where("id = ? AND owner_id = ? AND session_run_id = ?", id, ownerID, runID).
+			Update("order_index", i)
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
