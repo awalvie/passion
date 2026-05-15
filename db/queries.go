@@ -329,18 +329,21 @@ func DeleteClimbingTick(gdb *gorm.DB, ownerID, id uint) error {
 }
 
 // UpdateClimbingTick replaces all editable fields on an existing tick.
-func UpdateClimbingTick(gdb *gorm.DB, ownerID, id uint, kind, grade, focus, thoughts, style string, attempts, stars int, sent bool) error {
+func UpdateClimbingTick(gdb *gorm.DB, ownerID, id uint, kind, setting, subtype, grade, focus, thoughts, style, ropeStyle string, attempts, stars int, sent bool) error {
 	return gdb.Model(&ClimbingTick{}).
 		Where("owner_id = ? AND id = ?", ownerID, id).
 		Updates(map[string]interface{}{
-			"kind":     kind,
-			"grade":    grade,
-			"focus":    focus,
-			"thoughts": thoughts,
-			"style":    style,
-			"attempts": attempts,
-			"stars":    stars,
-			"sent":     sent,
+			"kind":       kind,
+			"setting":    setting,
+			"subtype":    subtype,
+			"grade":      grade,
+			"focus":      focus,
+			"thoughts":   thoughts,
+			"style":      style,
+			"rope_style": ropeStyle,
+			"attempts":   attempts,
+			"stars":      stars,
+			"sent":       sent,
 		}).Error
 }
 

@@ -2098,7 +2098,7 @@ details.activity-card > summary::before {
   display: none;
 }
 
-details.activity-card[open] > summary .disclosure-chevron {
+details[open] > summary .disclosure-chevron {
   transform: rotate(90deg);
 }
 
@@ -3424,13 +3424,33 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
   font-weight: 600;
   padding: 0.1rem 0.4rem;
   border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
 }
 .tick-style--onsight  { background: #dcfce7; color: #16a34a; }
 .tick-style--flash    { background: #fef9c3; color: #a16207; }
 .tick-style--redpoint { background: #fee2e2; color: #dc2626; }
-.tick-style--project  { background: var(--card-muted); color: var(--muted); }
+.tick-style--hangdog  { background: #e0f2fe; color: #0369a1; }
 .tick-style--repeat   { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-.tick-style--top-rope { background: #dbeafe; color: #2563eb; }
+.tick-style--attempt  { background: var(--card-muted); color: var(--muted); }
+.tick-style--project  { background: var(--card-muted); color: var(--muted); } /* compat alias */
+
+.tick-rope-style {
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+.tick-rope-style--lead       { background: #ede9fe; color: #7c3aed; }
+.tick-rope-style--top-rope   { background: #dbeafe; color: #2563eb; }
+.tick-rope-style--auto-belay { background: #e0f2fe; color: #0891b2; }
+.tick-rope-style--follow     { background: #dbeafe; color: #2563eb; }
+.tick-rope-style--second     { background: var(--card-muted); color: var(--muted); } /* legacy */
+.tick-rope-style--free-solo  { background: #fee2e2; color: #dc2626; }
 
 /* Style toggle pills in tick add form */
 .tick-style-toggle {
@@ -3466,6 +3486,18 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
   line-height: 1;
 }
 .tick-stars button.active { color: #f59e0b; }
+
+/* Sent/Working toggle — colour overrides over the base .tick-style-toggle.is-selected */
+.tick-sent-toggle { flex: 1; justify-content: center; }
+.tick-sent-toggle.is-selected[data-sent="1"] { background: #16a34a; border-color: #16a34a; color: #fff; }
+.tick-sent-toggle.is-selected[data-sent="0"] { background: #d97706; border-color: #d97706; color: #fff; }
+
+/* Tick card left-border accent by send status */
+.tick-card--sent    { border-left: 3px solid #16a34a; }
+.tick-card--working { border-left: 3px solid #d97706; }
+
+/* Grade prominence in summary row */
+.tick-grade-primary { font-size: 0.9rem; font-weight: 700; color: var(--text); }
 
 /* ---------------------------------------------------------------------------
    Venue / board badges

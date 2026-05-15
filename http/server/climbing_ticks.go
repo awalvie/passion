@@ -11,48 +11,126 @@ import (
 	"passion/pages"
 )
 
-// tickStyleDisplay converts a stored style key to a display string.
-func tickStyleDisplay(s string) (display, cssClass string) {
+// tickStyleDisplay converts a stored ascent style key to display text, CSS class, and icon.
+func tickStyleDisplay(s string) (display, cssClass, icon string) {
 	switch s {
 	case "onsight":
-		return "Onsight", "onsight"
+		return "Onsight", "onsight", "eye"
 	case "flash":
-		return "Flash", "flash"
+		return "Flash", "flash", "zap"
 	case "redpoint":
-		return "Redpoint", "redpoint"
-	case "project":
-		return "Project", "project"
+		return "Redpoint", "redpoint", "check-circle"
+	case "hangdog":
+		return "Hangdog", "hangdog", "anchor"
 	case "repeat":
-		return "Repeat", "repeat"
-	case "top_rope":
-		return "Top Rope", "top-rope"
+		return "Repeat", "repeat", "repeat-2"
+	case "attempt":
+		return "Attempt", "attempt", "x-circle"
+	case "project": // backwards compat alias
+		return "Attempt", "attempt", "x-circle"
 	}
-	return "", ""
+	return "", "", ""
+}
+
+// tickRopeStyleDisplay converts a stored method key to display text, CSS class, and icon.
+func tickRopeStyleDisplay(s string) (display, cssClass, icon string) {
+	switch s {
+	case "lead":
+		return "Lead", "lead", "link-2"
+	case "top_rope":
+		return "Top Rope", "top-rope", "arrow-down-to-line"
+	case "auto_belay":
+		return "Auto-belay", "auto-belay", "rotate-ccw"
+	case "follow", "second": // "second" is legacy
+		return "Top Rope", "follow", "users"
+	}
+	return "", "", ""
+}
+
+// tickSubtypeDisplay converts a subtype key to display text (board kind for boulder+indoor).
+func tickSubtypeDisplay(s string) string {
+	switch s {
+	case "kilter":
+		return "Kilter"
+	case "moon":
+		return "Moon"
+	case "tension":
+		return "Tension"
+	case "spray":
+		return "Spray Wall"
+	case "custom", "board": // "board" is legacy
+		return "Board"
+	case "commercial": // legacy gym — no chip needed
+		return ""
+	}
+	return ""
+}
+
+func isBoardSubtype(s string) bool {
+	switch s {
+	case "kilter", "moon", "tension", "spray", "custom", "board":
+		return true
+	}
+	return false
 }
 
 func ticksToViews(ticks []db.ClimbingTick) []pages.ClimbingTickView {
 	views := make([]pages.ClimbingTickView, 0, len(ticks))
 	for _, t := range ticks {
-		kind := "Boulder"
-		if t.Kind == "route" {
-			kind = "Route"
+		// Normalise kind: "route" (legacy) → "sport".
+		kindRaw := t.Kind
+		if kindRaw == "route" {
+			kindRaw = "sport"
 		}
-		style, styleClass := tickStyleDisplay(t.Style)
+		kindDisplay := map[string]string{
+			"boulder": "Boulder",
+			"sport":   "Sport",
+			"trad":    "Trad",
+		}[kindRaw]
+		if kindDisplay == "" {
+			kindDisplay = kindRaw
+		}
+
+		settingDisplay := map[string]string{
+			"indoor":  "Indoor",
+			"outdoor": "Outdoor",
+		}[t.Setting]
+
+		styleRaw := t.Style
+		ropeStyleRaw := t.RopeStyle
+		// Backwards compat: old ticks with Style="top_rope" become rope style.
+		if t.Style == "top_rope" {
+			styleRaw = ""
+			ropeStyleRaw = "top_rope"
+		}
+
+		style, styleClass, styleIcon := tickStyleDisplay(styleRaw)
+		ropeStyle, ropeStyleClass, ropeStyleIcon := tickRopeStyleDisplay(ropeStyleRaw)
+
 		views = append(views, pages.ClimbingTickView{
-			ID:         t.ID,
-			RunID:      t.RunID,
-			ExerciseID: t.ExerciseID,
-			Kind:       kind,
-			KindRaw:    t.Kind,
-			Grade:      t.Grade,
-			Focus:      t.Focus,
-			Thoughts:   t.Thoughts,
-			Style:      style,
-			StyleClass: styleClass,
-			StyleRaw:   t.Style,
-			Attempts:   t.Attempts,
-			Sent:       t.Sent,
-			Stars:      t.Stars,
+			ID:             t.ID,
+			RunID:          t.RunID,
+			ExerciseID:     t.ExerciseID,
+			Kind:           kindDisplay,
+			KindRaw:        kindRaw,
+			Setting:        settingDisplay,
+			SettingRaw:     t.Setting,
+			Subtype:        tickSubtypeDisplay(t.Subtype),
+			SubtypeRaw:     t.Subtype,
+			IsBoard:        isBoardSubtype(t.Subtype),
+			Grade:          t.Grade,
+			Thoughts:       t.Thoughts,
+			Style:          style,
+			StyleClass:     styleClass,
+			StyleRaw:       styleRaw,
+			StyleIcon:      styleIcon,
+			RopeStyle:      ropeStyle,
+			RopeStyleClass: ropeStyleClass,
+			RopeStyleRaw:   ropeStyleRaw,
+			RopeStyleIcon:  ropeStyleIcon,
+			Attempts:       t.Attempts,
+			Sent:           t.Sent,
+			Stars:          t.Stars,
 		})
 	}
 	return views
@@ -106,10 +184,25 @@ func (s *Server) serveExerciseTicks(w http.ResponseWriter, r *http.Request, owne
 		s.serverError(w, r, err)
 		return
 	}
+	var user db.User
+	if err := s.store.DB.Where("id = ?", ownerID).First(&user).Error; err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	bgs := user.BoulderGradeSystem
+	if bgs == "" {
+		bgs = "font"
+	}
+	rgs := user.RouteGradeSystem
+	if rgs == "" {
+		rgs = "french"
+	}
 	s.pages.RenderExerciseTicks(w, pages.ExerciseTicksParams{
-		RunID:      runID,
-		ExerciseID: exerciseID,
-		Ticks:      ticksToViews(ticks),
+		RunID:              runID,
+		ExerciseID:         exerciseID,
+		Ticks:              ticksToViews(ticks),
+		BoulderGradeSystem: bgs,
+		RouteGradeSystem:   rgs,
 	})
 }
 
@@ -128,7 +221,7 @@ func (s *Server) createExerciseTick(w http.ResponseWriter, r *http.Request, owne
 	}
 
 	kind := strings.TrimSpace(r.FormValue("kind"))
-	if kind != "boulder" && kind != "route" {
+	if kind != "boulder" && kind != "sport" && kind != "trad" {
 		kind = "boulder"
 	}
 
@@ -141,15 +234,32 @@ func (s *Server) createExerciseTick(w http.ResponseWriter, r *http.Request, owne
 		stars = 0
 	}
 
+	setting := strings.TrimSpace(r.FormValue("setting"))
+	if setting != "indoor" && setting != "outdoor" {
+		setting = ""
+	}
+	subtype := ""
+	ropeStyle := ""
+	if kind == "boulder" && setting == "indoor" {
+		if r.FormValue("is_board") == "1" {
+			subtype = strings.TrimSpace(r.FormValue("board_kind"))
+		}
+	} else if kind == "sport" || kind == "trad" {
+		ropeStyle = strings.TrimSpace(r.FormValue("rope_style"))
+	}
+
 	tick := &db.ClimbingTick{
 		OwnerID:    ownerID,
 		RunID:      runID,
 		ExerciseID: exerciseID,
 		Kind:       kind,
+		Setting:    setting,
+		Subtype:    subtype,
 		Grade:      strings.TrimSpace(r.FormValue("grade")),
 		Focus:      strings.TrimSpace(r.FormValue("focus")),
 		Thoughts:   strings.TrimSpace(r.FormValue("thoughts")),
 		Style:      strings.TrimSpace(r.FormValue("style")),
+		RopeStyle:  ropeStyle,
 		Attempts:   attempts,
 		Sent:       r.FormValue("sent") == "1",
 		Stars:      stars,
@@ -232,7 +342,7 @@ func (s *Server) handleExerciseTickUpdate(w http.ResponseWriter, r *http.Request
 	}
 
 	kind := strings.TrimSpace(r.FormValue("kind"))
-	if kind != "boulder" && kind != "route" {
+	if kind != "boulder" && kind != "sport" && kind != "trad" {
 		kind = "boulder"
 	}
 	attempts := parseInt("attempts", 1)
@@ -244,12 +354,27 @@ func (s *Server) handleExerciseTickUpdate(w http.ResponseWriter, r *http.Request
 		stars = 0
 	}
 
+	setting := strings.TrimSpace(r.FormValue("setting"))
+	if setting != "indoor" && setting != "outdoor" {
+		setting = ""
+	}
+	subtype := ""
+	ropeStyle := ""
+	if kind == "boulder" && setting == "indoor" {
+		if r.FormValue("is_board") == "1" {
+			subtype = strings.TrimSpace(r.FormValue("board_kind"))
+		}
+	} else if kind == "sport" || kind == "trad" {
+		ropeStyle = strings.TrimSpace(r.FormValue("rope_style"))
+	}
+
 	if err := db.UpdateClimbingTick(s.store.DB, ownerID, tickID,
-		kind,
+		kind, setting, subtype,
 		strings.TrimSpace(r.FormValue("grade")),
 		strings.TrimSpace(r.FormValue("focus")),
 		strings.TrimSpace(r.FormValue("thoughts")),
 		strings.TrimSpace(r.FormValue("style")),
+		ropeStyle,
 		attempts, stars,
 		r.FormValue("sent") == "1",
 	); err != nil {

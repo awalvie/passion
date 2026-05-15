@@ -40,53 +40,12 @@
 
     <div class="px-4 pb-4 pt-1 space-y-3" style="border-top:1px solid var(--border)">
       {{ if eq .Kind "climbing" }}
-        <form
-          hx-post="/training-log/draft/{{ .RunID }}/exercises/{{ .ExerciseID }}/climbing-meta"
-          hx-swap="none"
-          hx-trigger="change delay:400ms"
-          class="grid gap-2 sm:grid-cols-2"
-        >
-          <div>
-            <label class="text-xs font-medium" for="ctype-{{ .ExerciseID }}">Session type</label>
-            <select id="ctype-{{ .ExerciseID }}" name="climb_type" class="mt-1 w-full input text-sm"
-                    data-board-toggle="{{ .ExerciseID }}">
-              <option value="">—</option>
-              <option value="indoor_bouldering"  {{ if eq .ClimbingMeta.Type "indoor_bouldering"  }}selected{{ end }}>Indoor Bouldering</option>
-              <option value="board"              {{ if eq .ClimbingMeta.Type "board"              }}selected{{ end }}>Board</option>
-              <option value="gym_routes"         {{ if eq .ClimbingMeta.Type "gym_routes"         }}selected{{ end }}>Gym Routes</option>
-              <option value="outdoor_bouldering" {{ if eq .ClimbingMeta.Type "outdoor_bouldering" }}selected{{ end }}>Outdoor Bouldering</option>
-              <option value="sport"              {{ if eq .ClimbingMeta.Type "sport"              }}selected{{ end }}>Sport Climbing</option>
-              <option value="trad"               {{ if eq .ClimbingMeta.Type "trad"               }}selected{{ end }}>Trad Climbing</option>
-              <option value="top_rope"           {{ if eq .ClimbingMeta.Type "top_rope"           }}selected{{ end }}>Top Rope</option>
-            </select>
-          </div>
-          <div id="board-kind-wrap-{{ .ExerciseID }}"{{ if ne .ClimbingMeta.Type "board" }} class="hidden"{{ end }}>
-            <label class="text-xs font-medium" for="bkind-{{ .ExerciseID }}">Board</label>
-            {{ if $.Boards }}
-            {{ $boardID := .ClimbingMeta.BoardID }}
-            <select id="bkind-{{ .ExerciseID }}" name="board_id" class="mt-1 w-full input text-sm">
-              <option value="">—</option>
-              {{ range $.Boards }}
-              <option value="{{ .ID }}" {{ if eq .ID $boardID }}selected{{ end }}>{{ .Label }}</option>
-              {{ end }}
-            </select>
-            {{ else }}
-            <select id="bkind-{{ .ExerciseID }}" name="board_kind" class="mt-1 w-full input text-sm">
-              <option value="">—</option>
-              <option value="kilter"  {{ if eq .ClimbingMeta.BoardKind "kilter"  }}selected{{ end }}>Kilter</option>
-              <option value="moon"    {{ if eq .ClimbingMeta.BoardKind "moon"    }}selected{{ end }}>Moon</option>
-              <option value="tension" {{ if eq .ClimbingMeta.BoardKind "tension" }}selected{{ end }}>Tension</option>
-              <option value="spray"   {{ if eq .ClimbingMeta.BoardKind "spray"   }}selected{{ end }}>Spray Wall</option>
-              <option value="custom"  {{ if eq .ClimbingMeta.BoardKind "custom"  }}selected{{ end }}>Custom / Other</option>
-            </select>
-            {{ end }}
-          </div>
-        </form>
         <section
           id="tick-list-{{ .ExerciseID }}"
           hx-get="/runs/{{ .RunID }}/exercises/{{ .ExerciseID }}/ticks"
           hx-trigger="load"
           hx-swap="outerHTML"
+          hx-target="this"
         >
           <div class="text-sm muted">Loading…</div>
         </section>
@@ -445,16 +404,6 @@
 
   makeCombo('data-at-combo',  'data-at-search',  'data-at-select',  'data-at-list');
   makeCombo('data-lib-combo', 'data-lib-search', 'data-lib-select', 'data-lib-list');
-
-  // Board-kind visibility: show the board kind select only when session type = "board".
-  document.querySelectorAll('[data-board-toggle]').forEach(function (sel) {
-    var id = sel.dataset.boardToggle;
-    var wrap = document.getElementById('board-kind-wrap-' + id);
-    if (!wrap) return;
-    sel.addEventListener('change', function () {
-      wrap.classList.toggle('hidden', sel.value !== 'board');
-    });
-  });
 
   // Drag-to-reorder exercises.
   (function () {
