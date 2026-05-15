@@ -17,8 +17,10 @@ type User struct {
 	ApeIndexCm   int
 	MaxPullUps   int
 	MaxHangKg    float64
-	BoulderGrade string `gorm:"size:32"`
-	RouteGrade   string `gorm:"size:32"`
+	BoulderGrade       string `gorm:"size:32"`
+	RouteGrade         string `gorm:"size:32"`
+	BoulderGradeSystem string `gorm:"size:32;not null;default:'font'"`
+	RouteGradeSystem   string `gorm:"size:32;not null;default:'french'"`
 }
 
 // SessionTemplate is a reusable workout plan blueprint (activities + exercises).
@@ -389,14 +391,18 @@ type ClimbingTick struct {
 	RunID      uint `gorm:"index;not null"`
 	ExerciseID uint `gorm:"index;not null"`
 
-	Kind     string `gorm:"not null"` // "boulder" | "route"
+	Kind     string `gorm:"not null"`                    // "boulder" | "sport" | "trad"
+	Setting  string `gorm:"size:32;not null;default:''"` // "indoor" | "outdoor"
+	Subtype  string `gorm:"size:32;not null;default:''"` // boulder+indoor: "commercial"|"board"; others: ""
 	Grade    string `gorm:"size:32"`
-	Focus    string `gorm:"type:text"` // pre-climb intention: "silent feet", "rhythm with breath"
+	Focus    string `gorm:"type:text"` // pre-climb intention
 	Thoughts string `gorm:"type:text"` // post-climb reflection
-	Style    string `gorm:"size:32"`   // optional: "onsight"|"flash"|"redpoint"|"project"|"repeat"|"top_rope"
-	Attempts int
-	Sent     bool
-	Stars    int `gorm:"default:0"` // 0 = unrated; 1–3 = quality rating
+	Style    string `gorm:"size:32"`   // "onsight"|"flash"|"redpoint"|"hangdog"|"repeat"|"attempt"
+	// RopeStyle is set for sport/trad ticks: "lead"|"top_rope"|"auto_belay"|"second"
+	RopeStyle string `gorm:"size:32;not null;default:''"`
+	Attempts  int
+	Sent      bool
+	Stars     int `gorm:"default:0"` // 0 = unrated; 1–3 = quality rating
 
 	OrderIndex int `gorm:"default:0"`
 }

@@ -21,6 +21,10 @@ Always set `hx-target="this"` on lazy-load divs inside forms. HTMX inherits `hx-
 - No error handling for scenarios that can't happen — trust internal guarantees.
 - Prefer editing existing files over creating new ones.
 
+## Dropdowns / selects
+
+Always use `class="input text-sm"` (or `class="input"`) on `<select>` elements. This inherits `--panel` background, `--border` border colour, and `--text` foreground from the site theme. Never leave a `<select>` with browser-default styling.
+
 ## UX / design decisions
 
 When a UX issue or design question is ambiguous, ask before implementing. Don't pick a direction and build it.

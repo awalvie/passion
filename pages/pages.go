@@ -458,23 +458,36 @@ type ClimbingTickView struct {
 	ID         uint
 	RunID      uint
 	ExerciseID uint
-	Kind       string // "Boulder" | "Route"
-	KindRaw    string // "boulder" | "route" — used in edit form select
+	Kind       string // "Boulder" | "Sport" | "Trad"
+	KindRaw    string // "boulder" | "sport" | "trad"
+	Setting    string // "Indoor" | "Outdoor"
+	SettingRaw string // "indoor" | "outdoor"
+	Subtype    string // display: board kind name or ""
+	SubtypeRaw string // "kilter"|"moon"|"tension"|"spray"|"custom"|"" (legacy: "board"|"commercial")
+	IsBoard    bool   // true when SubtypeRaw indicates a board session
 	Grade      string
-	Focus      string
 	Thoughts   string
-	Style      string    // display: "Onsight", "Flash", "Redpoint", "Project", "Repeat", "Top Rope"
-	StyleClass string    // CSS modifier, e.g. "onsight", "flash" — empty if no style
-	StyleRaw   string    // raw DB value: "onsight", "flash", etc. — used in edit form radio
-	Attempts   int
-	Sent       bool
-	Stars      int // 0–3
+	Style      string // display: "Onsight", "Flash", "Redpoint", "Hangdog", "Repeat"
+	StyleClass string // CSS modifier
+	StyleRaw   string // raw DB value — used in edit form radio
+	StyleIcon  string // Lucide icon name for summary chip
+	// Method is set for sport/trad ticks: how the route was climbed
+	RopeStyle      string // display: "Lead", "Top Rope", "Auto-belay", "Follow"
+	RopeStyleClass string // CSS modifier
+	RopeStyleRaw   string // raw DB value — used in edit form radio ("lead"|"top_rope"|"auto_belay"|"follow")
+	RopeStyleIcon  string // Lucide icon name
+	Attempts       int
+	Sent           bool
+	Stars          int // 0–3
 }
 
 type ExerciseTicksParams struct {
 	RunID      uint
 	ExerciseID uint
 	Ticks      []ClimbingTickView
+	// Grade system keys: "font"|"v_scale" for boulder; "french"|"yds" for routes.
+	BoulderGradeSystem string
+	RouteGradeSystem   string
 }
 
 type ManualExerciseSetLogView struct {
