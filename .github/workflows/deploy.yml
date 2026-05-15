@@ -52,4 +52,20 @@ jobs:
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no \
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
             "mv /opt/passion/passion.new /opt/passion/passion && \
+             sudo tee /etc/systemd/system/passion.service > /dev/null <<'UNIT'
+[Unit]
+Description=Passion training app
+After=network.target
+
+[Service]
+ExecStart=/opt/passion/passion -config /opt/passion/passion.yaml
+WorkingDirectory=/opt/passion
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+             sudo systemctl daemon-reload && \
+             sudo systemctl enable passion && \
              sudo systemctl restart passion"
