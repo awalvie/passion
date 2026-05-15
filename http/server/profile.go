@@ -61,6 +61,16 @@ func (s *Server) handleProfile(w http.ResponseWriter, r *http.Request) {
 		user.MaxHangKg = maxHangKg
 		user.BoulderGrade = strings.TrimSpace(r.FormValue("boulder_grade"))
 		user.RouteGrade = strings.TrimSpace(r.FormValue("route_grade"))
+		bgs := strings.TrimSpace(r.FormValue("boulder_grade_system"))
+		if bgs != "font" && bgs != "v_scale" {
+			bgs = "font"
+		}
+		user.BoulderGradeSystem = bgs
+		rgs := strings.TrimSpace(r.FormValue("route_grade_system"))
+		if rgs != "french" && rgs != "yds" {
+			rgs = "french"
+		}
+		user.RouteGradeSystem = rgs
 
 		if err := s.store.DB.Save(&user).Error; err != nil {
 			s.serverError(w, r, err)

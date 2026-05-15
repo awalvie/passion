@@ -37,12 +37,28 @@
       </div>
 
       <div>
-        <label class="text-sm font-medium" for="boulder_grade">Boulder Grade</label>
-        <input id="boulder_grade" name="boulder_grade" class="mt-1 w-full input" placeholder="e.g. V6 / 7A" value="{{ .UserProfile.BoulderGrade }}" />
+        <label class="text-sm font-medium" for="boulder_grade_system">Boulder grade system</label>
+        <select id="boulder_grade_system" name="boulder_grade_system" class="mt-1 w-full input text-sm">
+          <option value="font"    {{ if eq .UserProfile.BoulderGradeSystem "font"    }}selected{{ end }}>Fontainebleau (6A, 7B+…)</option>
+          <option value="v_scale" {{ if eq .UserProfile.BoulderGradeSystem "v_scale" }}selected{{ end }}>V-Scale (V0, V6…)</option>
+        </select>
       </div>
 
-      <div class="md:col-span-2">
-        <label class="text-sm font-medium" for="route_grade">Route Grade</label>
+      <div>
+        <label class="text-sm font-medium" for="boulder_grade">Max boulder grade</label>
+        <input id="boulder_grade" name="boulder_grade" class="mt-1 w-full input" placeholder="e.g. 7A / V6" value="{{ .UserProfile.BoulderGrade }}" />
+      </div>
+
+      <div>
+        <label class="text-sm font-medium" for="route_grade_system">Route grade system</label>
+        <select id="route_grade_system" name="route_grade_system" class="mt-1 w-full input text-sm">
+          <option value="french" {{ if eq .UserProfile.RouteGradeSystem "french" }}selected{{ end }}>French / Sport (6c, 7b+…)</option>
+          <option value="yds"    {{ if eq .UserProfile.RouteGradeSystem "yds"    }}selected{{ end }}>YDS (5.10a, 5.12c…)</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="text-sm font-medium" for="route_grade">Max route grade</label>
         <input id="route_grade" name="route_grade" class="mt-1 w-full input" placeholder="e.g. 7b / 5.12b" value="{{ .UserProfile.RouteGrade }}" />
       </div>
 
