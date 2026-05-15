@@ -105,8 +105,8 @@
           </div>
           <div>
             <label class="text-xs font-medium" for="ex-notes-{{ .ExerciseID }}">Notes</label>
-            <textarea id="ex-notes-{{ .ExerciseID }}" name="notes" rows="3"
-              class="mt-1 w-full input text-sm resize-y" placeholder="Optional notes">{{ .Notes }}</textarea>
+            <textarea id="ex-notes-{{ .ExerciseID }}" name="notes" data-md-editor
+              class="mt-1 w-full input text-sm">{{ .Notes }}</textarea>
           </div>
         </form>
       {{ else }}
@@ -183,8 +183,8 @@
             </div>
             <div class="sm:col-span-4">
               <label class="text-xs font-medium" for="ex-notes-{{ .ExerciseID }}">Notes</label>
-              <textarea id="ex-notes-{{ .ExerciseID }}" name="notes" rows="3"
-                class="mt-1 w-full input text-sm resize-y" placeholder="Optional notes">{{ .Notes }}</textarea>
+              <textarea id="ex-notes-{{ .ExerciseID }}" name="notes" data-md-editor
+                class="mt-1 w-full input text-sm">{{ .Notes }}</textarea>
             </div>
           </form>
           <form
