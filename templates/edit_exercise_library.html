@@ -122,15 +122,10 @@
       </div>
 
       <!-- Section: Notes -->
-      <div class="mt-5 pt-5 border-t" style="border-color: var(--border)" data-notes-editor>
+      <div class="mt-5 pt-5 border-t" style="border-color: var(--border)">
         <label class="text-sm font-medium" for="lib-notes">Notes</label>
-        <p class="text-[10px] muted mt-0.5 mb-1">Markdown supported.</p>
-        <div class="flex gap-1 border-b mb-1" style="border-color: var(--border)">
-          <button type="button" class="notes-tab notes-tab-active" data-notes-tab="write">Write</button>
-          <button type="button" class="notes-tab" data-notes-tab="preview">Preview</button>
-        </div>
-        <textarea id="lib-notes" name="notes" rows="4" class="mt-1 w-full input">{{ .Notes }}</textarea>
-        <div data-notes-preview class="notes-preview-panel hidden mt-1" aria-live="polite"></div>
+        <textarea id="lib-notes" name="notes" data-md-editor
+          class="mt-1 w-full input">{{ .Notes }}</textarea>
       </div>
 
       <!-- Section: Catalog Options -->

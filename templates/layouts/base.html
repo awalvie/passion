@@ -22,7 +22,19 @@
       })();
     </script>
     <link rel="stylesheet" href="/static/passion.css">
+    <link rel="stylesheet" href="/static/vendor/toastui-editor.min.css">
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <style>
+      /* Fit the editor chrome to the app's card style */
+      .md-editor-wrap .toastui-editor-defaultUI { border: none; border-radius: 0; }
+      .md-editor-wrap .toastui-editor-toolbar { border-bottom: 1px solid var(--border); background: var(--card-muted); }
+      .md-editor-wrap .toastui-editor-main { background: var(--card); }
+      .md-editor-wrap .toastui-editor-ww-container { background: var(--card); }
+      .md-editor-wrap .ProseMirror { color: var(--text); font-size: 0.875rem; min-height: 100px; padding: 0.625rem 0.75rem; }
+      .md-editor-wrap .toastui-editor-toolbar-icons { color: var(--muted); }
+      .md-editor-wrap .toastui-editor-toolbar-icons:hover,
+      .md-editor-wrap .toastui-editor-toolbar-icons.active { background: var(--hover); color: var(--text); }
+    </style>
 
     <script>
       document.addEventListener("DOMContentLoaded", () => {
@@ -238,6 +250,8 @@
       {{ template "layouts/fragments/footer" . }}
     </div>
     <div id="start-session-modal-host"></div>
+    <script src="/static/vendor/toastui-editor-all.min.js"></script>
+    <script src="/static/markdown-editor.js"></script>
   </body>
 </html>
 {{ end }}
