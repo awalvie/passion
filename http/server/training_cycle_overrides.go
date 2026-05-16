@@ -29,7 +29,7 @@ func (s *Server) buildCycleExerciseOverrides(cycleID uint, ownerID uint, cycleWe
 	s.store.DB.
 		Joins("JOIN activities ON activities.id = exercises.activity_id").
 		Where("activities.session_template_id IN ? AND exercises.owner_id = ? "+
-			"AND exercises.kind IN ('reps_and_sets','timed_reps','exercise_catalog') "+
+			"AND exercises.kind IN ('reps_and_sets','timed_reps') "+
 			"AND exercises.parent_exercise_id IS NULL "+
 			"AND exercises.deleted_at IS NULL AND activities.deleted_at IS NULL",
 			ids, ownerID).

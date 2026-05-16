@@ -301,7 +301,7 @@ body {
 
 /* Dashboard month grid: accent bar (positioned at bottom of cell in template via flex) */
 .calendar-session-dash {
-  height: 3px;
+  height: 4px;
   width: 100%;
   border-radius: 0 0 0.375rem 0.375rem;
 }
