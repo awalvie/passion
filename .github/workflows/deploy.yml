@@ -47,25 +47,15 @@ jobs:
           $SCP -r templates/ ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/passion/
           $SCP -r static/    ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/passion/
 
+          printf '[Unit]\nDescription=Passion training app\nAfter=network.target\n\n[Service]\nExecStart=/opt/passion/passion -config /opt/passion/passion.yaml\nWorkingDirectory=/opt/passion\nRestart=on-failure\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n' > passion.service
+          $SCP passion.service ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/passion/
+
       - name: Swap binary and restart
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no \
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
             "mv /opt/passion/passion.new /opt/passion/passion && \
-             sudo tee /etc/systemd/system/passion.service > /dev/null <<'UNIT'
-[Unit]
-Description=Passion training app
-After=network.target
-
-[Service]
-ExecStart=/opt/passion/passion -config /opt/passion/passion.yaml
-WorkingDirectory=/opt/passion
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-UNIT
+             sudo mv /opt/passion/passion.service /etc/systemd/system/passion.service && \
              sudo systemctl daemon-reload && \
              sudo systemctl enable passion && \
              sudo systemctl restart passion"
