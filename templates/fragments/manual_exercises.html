@@ -3,9 +3,9 @@
 
   {{/* ── Exercise list ── */}}
   {{ range .Exercises }}
-  <details class="card overflow-hidden" draggable="true" data-exercise-id="{{ .ExerciseID }}"{{ if eq .ExerciseID $.OpenExerciseID }} open{{ end }}>
+  <details class="card overflow-hidden" data-exercise-id="{{ .ExerciseID }}"{{ if eq .ExerciseID $.OpenExerciseID }} open{{ end }}>
     <summary class="cursor-pointer list-none flex items-center gap-2 px-3 py-2.5">
-      <span class="dnd-handle shrink-0 muted flex items-center" style="cursor:grab;touch-action:none" onclick="event.stopPropagation()" title="Drag to reorder">
+      <span class="dnd-handle shrink-0 muted flex items-center" draggable="true" style="cursor:grab;touch-action:none" onclick="event.stopPropagation()" title="Drag to reorder">
         <i data-lucide="grip-vertical" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
       </span>
       <i data-lucide="chevron-right" style="width:0.75rem;height:0.75rem;transition:transform 150ms ease" class="shrink-0 muted disclosure-chevron" aria-hidden="true"></i>
@@ -412,7 +412,8 @@
     var dragging = null;
 
     container.addEventListener('dragstart', function (e) {
-      dragging = e.target.closest('details[draggable]');
+      var handle = e.target.closest('.dnd-handle');
+      dragging = handle ? handle.closest('details') : null;
       if (!dragging) return;
       e.dataTransfer.effectAllowed = 'move';
       setTimeout(function () { if (dragging) dragging.style.opacity = '0.4'; }, 0);
@@ -420,7 +421,7 @@
 
     container.addEventListener('dragover', function (e) {
       e.preventDefault();
-      var target = e.target.closest('details[draggable]');
+      var target = e.target.closest('details[data-exercise-id]');
       if (!target || target === dragging) return;
       var rect = target.getBoundingClientRect();
       var after = e.clientY > rect.top + rect.height / 2;
