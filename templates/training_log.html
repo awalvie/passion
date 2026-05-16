@@ -28,82 +28,75 @@
             </div>
           {{ end }}
 
-          <div class="group card" style="border-left: 4px solid {{ if .Color }}{{ .Color }}{{ else }}var(--border){{ end }}; padding: 0.875rem 1rem;">
+          <div class="group card relative hover:shadow-sm transition-shadow" style="border-left: 4px solid {{ if .Color }}{{ .Color }}{{ else }}var(--border){{ end }}; {{ if .Color }}background: color-mix(in srgb, {{ .Color }} 5%, var(--panel));{{ end }} padding: 0.75rem 1rem;">
 
-            <div class="flex items-start justify-between gap-2">
+            {{/* Row 1: title + focus pill + edit/delete */}}
+            <div class="flex items-center justify-between gap-2">
               {{ if gt .JournalEntryID 0 }}
-              <a href="/training-log/{{ .JournalEntryID }}" class="text-sm font-semibold leading-snug hover:underline">{{ .TemplateName }}</a>
+              <a href="/training-log/{{ .JournalEntryID }}" class="text-sm font-semibold leading-snug hover:underline truncate after:absolute after:inset-0">{{ .TemplateName }}</a>
               {{ else }}
-              <span class="text-sm font-semibold leading-snug">{{ .TemplateName }}</span>
+              <a href="/training-log/for-run/{{ .RunID }}" class="text-sm font-semibold leading-snug truncate after:absolute after:inset-0">{{ .TemplateName }}</a>
               {{ end }}
-                <div class="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                {{ if .IsStandalone }}
-                <a href="/training-log/{{ .JournalEntryID }}/edit"
-                   class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Edit">
-                  <i data-lucide="pencil" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
-                </a>
-                <form method="post" action="/training-log/{{ .JournalEntryID }}/delete"
-                      hx-post="/training-log/{{ .JournalEntryID }}/delete"
-                      hx-confirm="Delete this journal entry? This cannot be undone."
-                      hx-target="closest .card"
-                      hx-swap="outerHTML">
-                  <button type="submit" class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Delete">
-                    <i data-lucide="trash-2" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
-                  </button>
-                </form>
-                {{ else }}
-                {{ if gt .JournalEntryID 0 }}
-                <a href="/training-log/{{ .JournalEntryID }}/edit"
-                   class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Edit">
-                  <i data-lucide="pencil" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
-                </a>
-                {{ else }}
-                <a href="/training-log/for-run/{{ .RunID }}"
-                   class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Add to training log">
-                  <i data-lucide="pencil" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
-                </a>
+              <div class="relative z-10 flex items-center gap-1.5 shrink-0">
+                {{ if .Focus }}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
+                      style="background:var(--accent-bg);color:var(--accent)">{{ .Focus }}</span>
                 {{ end }}
-                {{ end }}
+                <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {{ if .IsStandalone }}
+                  <a href="/training-log/{{ .JournalEntryID }}/edit"
+                     class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Edit">
+                    <i data-lucide="pencil" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+                  </a>
+                  <form method="post" action="/training-log/{{ .JournalEntryID }}/delete"
+                        hx-post="/training-log/{{ .JournalEntryID }}/delete"
+                        hx-confirm="Delete this journal entry? This cannot be undone."
+                        hx-target="closest .card"
+                        hx-swap="outerHTML">
+                    <button type="submit" class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Delete">
+                      <i data-lucide="trash-2" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+                    </button>
+                  </form>
+                  {{ else }}
+                  {{ if gt .JournalEntryID 0 }}
+                  <a href="/training-log/{{ .JournalEntryID }}/edit"
+                     class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Edit">
+                    <i data-lucide="pencil" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+                  </a>
+                  {{ else }}
+                  <a href="/training-log/for-run/{{ .RunID }}"
+                     class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Add to training log">
+                    <i data-lucide="pencil" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+                  </a>
+                  {{ end }}
+                  {{ end }}
+                </div>
               </div>
             </div>
 
-            <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
-              <span class="text-[11px]" style="color:var(--muted)">{{ .DateLabel }}</span>
-              {{ if .DurationLabel }}
-              <span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full"
-                    style="background:var(--card-muted);color:var(--muted)">
-                <i data-lucide="clock" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
-                {{ .DurationLabel }}
-              </span>
-              {{ end }}
-              {{ if .Focus }}
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
-                    style="background:var(--accent-bg);color:var(--accent)">{{ .Focus }}</span>
-              {{ end }}
+            {{/* Row 2: date · duration + location pill */}}
+            <div class="mt-1 flex items-center gap-1.5 flex-wrap">
+              <span class="text-[11px]" style="color:var(--muted)">{{ .DateLabel }}{{ if .DurationLabel }} · {{ .DurationLabel }}{{ end }}</span>
               {{ if .Location }}
               <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]"
                     style="background:var(--card-muted);color:var(--muted)">
-                <i data-lucide="map-pin" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
-                {{ .Location }}
+                <i data-lucide="map-pin" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>{{ .Location }}
               </span>
-              {{ end }}
-              {{ if .IsManual }}
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px]"
-                    style="background:var(--card-muted);color:var(--muted)">Manual</span>
               {{ end }}
             </div>
 
+            {{/* Row 3: session content */}}
             {{ if .TickSummaryLabel }}
-            <div class="mt-2">
-              <span class="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full"
+            <div class="mt-1.5">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
                     style="background:var(--accent-bg);color:var(--accent)">
-                <i data-lucide="mountain" style="width:0.65rem;height:0.65rem" aria-hidden="true"></i>
+                <i data-lucide="mountain" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
                 {{ .TickSummaryLabel }}
               </span>
             </div>
             {{ else if gt .ExerciseCount 0 }}
-            <div class="mt-2">
-              <span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full"
+            <div class="mt-1.5">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]"
                     style="background:var(--card-muted);color:var(--muted)">
                 <i data-lucide="dumbbell" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
                 {{ .ExerciseCount }} exercise{{ if ne .ExerciseCount 1 }}s{{ end }}
@@ -111,41 +104,34 @@
             </div>
             {{ end }}
 
-            {{ if or (gt .SleepScore 0) (gt .Energy 0) (gt .RPE 0) }}
-            <div class="mt-3 pt-2.5 flex flex-wrap gap-x-5 gap-y-1.5"
-                 style="border-top: 1px solid var(--border)">
-              {{ if gt .SleepScore 0 }}
-              <div class="flex items-center gap-2">
-                <span class="text-[10px] shrink-0" style="color:var(--muted);width:2.75rem">Sleep</span>
-                <div class="rounded-full overflow-hidden" style="width:4rem;height:4px;background:var(--card-muted)">
-                  <div class="h-full rounded-full" style="width:{{ .SleepPct }}%;background:var(--accent)"></div>
-                </div>
-                <span class="text-[10px] tabular-nums font-medium" style="color:var(--muted)">{{ .SleepScore }}/5</span>
-              </div>
-              {{ end }}
-              {{ if gt .Energy 0 }}
-              <div class="flex items-center gap-2">
-                <span class="text-[10px] shrink-0" style="color:var(--muted);width:2.75rem">Energy</span>
-                <div class="rounded-full overflow-hidden" style="width:4rem;height:4px;background:var(--card-muted)">
-                  <div class="h-full rounded-full" style="width:{{ .EnergyPct }}%;background:var(--accent)"></div>
-                </div>
-                <span class="text-[10px] tabular-nums font-medium" style="color:var(--muted)">{{ .Energy }}/5</span>
-              </div>
-              {{ end }}
-              {{ if gt .RPE 0 }}
-              <div class="flex items-center gap-2">
-                <span class="text-[10px] shrink-0" style="color:var(--muted);width:2.75rem">RPE</span>
-                <div class="rounded-full overflow-hidden" style="width:4rem;height:4px;background:var(--card-muted)">
-                  <div class="h-full rounded-full" style="width:{{ .RPEPct }}%;background:var(--accent)"></div>
-                </div>
-                <span class="text-[10px] tabular-nums font-medium" style="color:var(--muted)">{{ .RPE }}/10</span>
-              </div>
-              {{ end }}
-            </div>
+            {{/* Row 4: journal teaser */}}
+            {{ if .JournalTeaser }}
+            <p class="mt-1.5 text-[11px] truncate italic" style="color:var(--muted)">"{{ .JournalTeaser }}"</p>
             {{ end }}
 
-            {{ if .JournalTeaser }}
-            <p class="mt-2.5 text-xs truncate" style="color:var(--muted)">"{{ .JournalTeaser }}"</p>
+            {{/* Row 5: stats strip */}}
+            {{ if or (gt .RPE 0) (gt .SleepScore 0) (gt .Energy 0) }}
+            <div class="mt-2 pt-2 flex items-center gap-6 text-[11px]"
+                 style="border-top: 1px solid var(--border); color: var(--muted)">
+              {{ if gt .RPE 0 }}
+              <span class="flex items-center gap-1.5">
+                <i data-lucide="flame" style="width:0.65rem;height:0.65rem" aria-hidden="true"></i>
+                RPE <span class="font-semibold tabular-nums ml-0.5" style="color:var(--text)">{{ .RPE }}</span>
+              </span>
+              {{ end }}
+              {{ if gt .SleepScore 0 }}
+              <span class="flex items-center gap-1.5">
+                <i data-lucide="moon" style="width:0.65rem;height:0.65rem" aria-hidden="true"></i>
+                Sleep <span class="font-semibold tabular-nums ml-0.5" style="color:var(--text)">{{ .SleepScore }}</span>
+              </span>
+              {{ end }}
+              {{ if gt .Energy 0 }}
+              <span class="flex items-center gap-1.5">
+                <i data-lucide="zap" style="width:0.65rem;height:0.65rem" aria-hidden="true"></i>
+                Energy <span class="font-semibold tabular-nums ml-0.5" style="color:var(--text)">{{ .Energy }}</span>
+              </span>
+              {{ end }}
+            </div>
             {{ end }}
 
           </div>

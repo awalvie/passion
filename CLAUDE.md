@@ -28,3 +28,5 @@ Always use `class="input text-sm"` (or `class="input"`) on `<select>` elements. 
 ## UX / design decisions
 
 When a UX issue or design question is ambiguous, ask before implementing. Don't pick a direction and build it.
+
+For all design and UI work, refer to [docs/DESIGN.md](docs/DESIGN.md) first. It documents the site's design philosophy, colour tokens, typography scale, card/badge/button patterns, icon conventions, and layout rules. Follow those patterns rather than inventing new ones.
