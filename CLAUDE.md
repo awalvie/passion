@@ -15,6 +15,10 @@ Do not rewrite sections that aren't affected by the change.
 
 Always set `hx-target="this"` on lazy-load divs inside forms. HTMX inherits `hx-target` from ancestor elements, which causes requests to swap into the wrong container.
 
+## Git commits
+
+Never commit unless the user explicitly asks. Implement changes, then stop — do not run `git add` or `git commit` on your own initiative.
+
 ## Code style
 
 - No comments unless the WHY is non-obvious.
