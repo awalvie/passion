@@ -361,20 +361,26 @@ body {
 }
 
 .dnd-handle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 2.75rem;
-  min-height: 2.75rem;
-  border-radius: 0.45rem;
-  border: 1px solid var(--border);
-  background: var(--card-muted);
   user-select: none;
   cursor: grab;
+  letter-spacing: -1px;
+  line-height: 1;
+  color: var(--muted);
+  opacity: 0.5;
+  transition: opacity 150ms;
+}
+
+.dnd-handle:hover {
+  opacity: 1;
 }
 
 .dnd-handle:active {
   cursor: grabbing;
+}
+
+/* Manual exercise list: hide grip when exercise is open (avoids scroll conflicts) */
+.manual-exercises-list details[open] .dnd-handle {
+  display: none;
 }
 
 .dnd-drop-target {
