@@ -66,12 +66,15 @@
                 class="session-card dnd-item mt-1 rounded-md px-1.5 py-1 text-xs relative"
                 draggable="true"
                 data-session-id="{{ .SessionID }}"
-                style="border-color: var(--accent-border); box-shadow: none{{ if .SessionTemplateColor }}; border-left: 3px solid {{ .SessionTemplateColor }}; background: color-mix(in srgb, {{ .SessionTemplateColor }} 8%, var(--panel)){{ else }}; background: var(--accent-bg){{ end }}"
+                style="border-color: var(--border); box-shadow: none{{ if .SessionTemplateColor }}; border-left: 3px solid {{ .SessionTemplateColor }}; background: color-mix(in srgb, {{ .SessionTemplateColor }} 8%, var(--panel)){{ else }}; background: var(--card-muted){{ end }}"
                 ondragstart="event.dataTransfer.setData('text/plain', this.dataset.sessionId); this.classList.add('session-dragging','dnd-item-dragging');"
                 ondragend="this.classList.remove('session-dragging','dnd-item-dragging');"
                 title="Drag to move · {{ .SessionTemplateName }}"
               >
-                <div class="font-semibold truncate leading-snug" title="{{ .SessionTemplateName }}">{{ .SessionTemplateName }}</div>
+                <div class="flex items-center gap-0.5 min-w-0">
+                  <span style="font-size:11px;letter-spacing:-1px;line-height:1;color:var(--muted);opacity:0.5;flex-shrink:0" aria-hidden="true">⋮⋮</span>
+                  <div class="font-semibold truncate leading-snug" title="{{ .SessionTemplateName }}">{{ .SessionTemplateName }}</div>
+                </div>
                 <div class="hidden group-hover:flex absolute -top-1 -right-1 z-10">
                   <form hx-post="/training-cycles/{{ $.CycleID }}/remove" hx-swap="none" method="post">
                     <input type="hidden" name="scheduled_session_id" value="{{ .SessionID }}" />
@@ -121,14 +124,14 @@
               {{ if .HasSession }}
                 <div
                   class="session-card dnd-item flex flex-1 items-center gap-2 rounded-md border px-2 py-1.5 min-w-0"
-                  style="border-color: var(--border){{ if .SessionTemplateColor }}; border-left: 3px solid {{ .SessionTemplateColor }}; background: color-mix(in srgb, {{ .SessionTemplateColor }} 6%, var(--panel)){{ else }}; background: var(--accent-bg){{ end }}; touch-action:none"
+                  style="border-color: var(--border){{ if .SessionTemplateColor }}; border-left: 3px solid {{ .SessionTemplateColor }}; background: color-mix(in srgb, {{ .SessionTemplateColor }} 6%, var(--panel)){{ else }}; background: var(--card-muted){{ end }}; touch-action:none"
                   data-session-id="{{ .SessionID }}"
                   draggable="true"
                   ondragstart="event.dataTransfer.setData('text/plain', this.dataset.sessionId); this.classList.add('session-dragging','dnd-item-dragging');"
                   ondragend="this.classList.remove('session-dragging','dnd-item-dragging');"
                   title="Drag to move · {{ .SessionTemplateName }}"
                 >
-                  <span style="font-size:13px;letter-spacing:-1px;line-height:1;color:var(--border);flex-shrink:0" aria-hidden="true">⋮⋮</span>
+                  <span class="dnd-handle" style="font-size:13px;touch-action:none" aria-hidden="true">⋮⋮</span>
                   <div class="flex items-center gap-2 min-w-0 flex-1">
                     {{ if .SessionTemplateColor }}
                       <span class="shrink-0 rounded-full" style="width:8px;height:8px;background:{{ .SessionTemplateColor }}"></span>
@@ -512,6 +515,7 @@
       </div>
     </dialog>
   {{ end }}
+
 </div>
 
 <script>
@@ -573,6 +577,7 @@
         }).then(() => { window.location.href = '/training-cycles/' + cycleID; });
       });
     });
+
   })();
 </script>
 {{ end }}
