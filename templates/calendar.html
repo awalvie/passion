@@ -22,24 +22,18 @@
     </button>
   </div>
 
-  {{/* ── Mobile week strip (hidden on md+) ── */}}
-  <div class="md:hidden" id="mobile-week-strip">
-    <div class="flex items-center justify-between gap-2 mb-2">
+  {{/* ── Mobile week agenda (hidden on md+) ── */}}
+  <div class="md:hidden" id="mobile-week-agenda">
+    <div class="flex items-center justify-between gap-2 mb-3">
       <button type="button" id="week-prev-btn" class="rounded-md btn-ghost p-2 -ml-1" aria-label="Previous week">
         <i data-lucide="chevron-left" style="width:1rem;height:1rem" aria-hidden="true"></i>
       </button>
-      <span id="week-strip-label" class="text-xs font-semibold"></span>
+      <span id="week-agenda-label" class="text-xs font-semibold"></span>
       <button type="button" id="week-next-btn" class="rounded-md btn-ghost p-2 -mr-1" aria-label="Next week">
         <i data-lucide="chevron-right" style="width:1rem;height:1rem" aria-hidden="true"></i>
       </button>
     </div>
-    <div id="week-strip-cells" class="grid grid-cols-7 gap-1.5"></div>
-    <div id="mobile-cal-day-detail" class="mt-3 hidden">
-      <div class="rounded-lg p-3" style="background:var(--card-muted);border:1px solid var(--border)">
-        <div class="text-xs font-semibold mb-2" style="color:var(--muted)" id="mobile-cal-day-label"></div>
-        <div class="space-y-1.5" id="mobile-cal-day-sessions"></div>
-      </div>
-    </div>
+    <div id="week-agenda-rows" style="border-top:1px solid var(--border)"></div>
   </div>
 
   {{/* ── Desktop: 2-col layout (grid + sidebar) ── */}}
@@ -63,6 +57,9 @@
               <span
                 class="inline-flex items-center px-1 py-0.5 rounded text-[10px] font-medium truncate max-w-full cursor-pointer"
                 style="background:{{ .Color }}22;color:{{ .Color }};border:1px solid {{ .Color }}44"
+                data-event-id="{{ .ID }}"
+                data-event-kind="{{ .Kind }}"
+                data-event-title="{{ .Title }}"
                 onclick="event.stopPropagation(); openEditEventDialog({{ .ID }})"
                 title="{{ .Title }}"
               >{{ .Title }}</span>
@@ -72,14 +69,15 @@
                 class="cal-session-card flex items-center gap-1 rounded px-1.5 py-1 select-none cursor-grab"
                 draggable="true"
                 data-session-id="{{ .ID }}"
+                data-cycle-name="{{ .CycleName }}"
+                data-label="{{ .Label }}"
                 style="border-left:2px solid {{ .Color }};background:color-mix(in srgb,{{ .Color }} 12%,var(--panel));touch-action:none"
                 onclick="event.stopPropagation()"
               >
                 <div class="min-w-0 flex-1">
                   <div class="text-[10px] font-medium truncate" style="color:var(--text)">{{ .Name }}</div>
-                  {{ if or .Label .CycleName }}
-                  <div class="text-[9px] truncate" style="color:var(--muted)">{{ .Label }}{{ if and .Label .CycleName }} · {{ end }}{{ .CycleName }}</div>
-                  {{ end }}
+                  {{ if .Label }}<div class="text-[9px] truncate" style="color:var(--muted)">{{ .Label }}</div>{{ end }}
+                  {{ if .CycleName }}<div class="text-[9px] font-medium truncate" style="color:var(--accent)">{{ .CycleName }}</div>{{ end }}
                 </div>
                 {{ if .Done }}
                 <span class="inline-block h-1.5 w-1.5 rounded-full flex-shrink-0" style="background:#16a34a" title="Done"></span>
@@ -94,8 +92,8 @@
       </div>{{/* end cells grid */}}
     </div>{{/* end card */}}
 
-    {{/* ── Events sidebar ── */}}
-    <div class="space-y-3">
+    {{/* ── Events sidebar (desktop only — events show inline in mobile agenda) ── */}}
+    <div class="hidden md:block space-y-3">
       <h2 class="m-0 text-[11px] font-bold muted uppercase tracking-widest">Events this month</h2>
       {{ if .AllEvents }}
         <div class="space-y-2">
@@ -139,6 +137,28 @@
     </div>
 
   </div>
+
+  {{/* ── Move-session dialog (mobile) ── */}}
+  <dialog id="move-session-dialog" class="catalog-dialog">
+    <div class="catalog-dialog-panel">
+      <div class="catalog-dialog-body">
+        <div class="flex items-start justify-between gap-2 mb-1">
+          <div>
+            <h3 class="m-0 text-base font-semibold" id="move-session-name"></h3>
+            <div class="text-xs mt-0.5" style="color:var(--muted)" id="move-session-current"></div>
+          </div>
+          <form method="dialog">
+            <button type="submit" class="rounded-md btn-ghost px-3 py-1 text-sm font-medium">Cancel</button>
+          </form>
+        </div>
+        <div class="move-mini-header mt-4 mb-1" id="move-mini-weekdays"></div>
+        <div class="move-mini-grid" id="move-mini-grid"></div>
+        <button type="button" id="move-session-confirm"
+                class="w-full mt-4 rounded-md btn-primary px-4 py-2 text-sm font-medium"
+                disabled>Select a date above</button>
+      </div>
+    </div>
+  </dialog>
 
   {{/* ── Add-event dialog ── */}}
   <dialog id="add-event-dialog" class="catalog-dialog">
@@ -275,8 +295,9 @@
     d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
   });
 
-  // ── Mobile week strip ──────────────────────────────────────────────────────
+  // ── Mobile week agenda ────────────────────────────────────────────────────
   (function () {
+    // ── Build cellMap from hidden desktop grid ──
     var cellMap = {};
     var allKeys = [];
     document.querySelectorAll('.cal-cell').forEach(function (cell) {
@@ -290,20 +311,29 @@
         var m = s.match(/border-left:\s*2px solid\s*([^;]+)/);
         var color = m ? m[1].trim() : '';
         if (!firstColor && color) firstColor = color;
-        var nameEl = card.querySelector('.text-\\[10px\\]');
-        var labelEl = card.querySelector('.text-\\[9px\\]');
+        var nameEl = card.querySelector('div > div:first-child');
         sessions.push({
-          id:    card.dataset.sessionId || '',
-          name:  nameEl ? nameEl.textContent.trim() : '',
-          label: labelEl ? labelEl.textContent.trim() : '',
-          color: color,
-          done:  !!card.querySelector('span[style*="#16a34a"]')
+          id:        card.dataset.sessionId || '',
+          name:      nameEl ? nameEl.textContent.trim() : '',
+          label:     card.dataset.label || '',
+          cycleName: card.dataset.cycleName || '',
+          color:     color,
+          done:      !!card.querySelector('span[style*="#16a34a"]')
         });
       });
-      cellMap[key] = { sessions: sessions, firstColor: firstColor };
+      var events = [];
+      cell.querySelectorAll('[data-event-id]').forEach(function (sp) {
+        events.push({
+          id:    sp.dataset.eventId,
+          kind:  sp.dataset.eventKind || '',
+          title: sp.dataset.eventTitle || sp.textContent.trim()
+        });
+      });
+      cellMap[key] = { sessions: sessions, events: events, firstColor: firstColor };
     });
     allKeys.sort();
 
+    // ── Helpers ──
     function localKey(d) {
       return d.getFullYear() + '-' +
              String(d.getMonth() + 1).padStart(2, '0') + '-' +
@@ -320,6 +350,10 @@
       r.setHours(0, 0, 0, 0);
       return r;
     }
+    var dayNames  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    var dayShort  = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    var monShort  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var eventIcons = { trip: 'plane', injury: 'bandage', rest: 'moon', competition: 'trophy' };
 
     var today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -335,140 +369,132 @@
       }
     }
 
-    var selectedKey = null;
-
     function weekRangeLabel(monday) {
       var sun = new Date(monday);
       sun.setDate(monday.getDate() + 6);
-      var mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       if (monday.getMonth() === sun.getMonth()) {
-        return monday.getDate() + '–' + sun.getDate() + ' ' + mo[monday.getMonth()];
+        return monday.getDate() + '–' + sun.getDate() + ' ' + monShort[monday.getMonth()] + ' ' + monday.getFullYear();
       }
-      return monday.getDate() + ' ' + mo[monday.getMonth()] + '–' + sun.getDate() + ' ' + mo[sun.getMonth()];
+      return monday.getDate() + ' ' + monShort[monday.getMonth()] + ' – ' + sun.getDate() + ' ' + monShort[sun.getMonth()] + ' ' + sun.getFullYear();
     }
 
-    function renderStrip() {
-      var labelEl = document.getElementById('week-strip-label');
-      var cellsEl = document.getElementById('week-strip-cells');
-      if (!labelEl || !cellsEl) return;
+    // ── Render agenda ──
+    function renderAgenda() {
+      var labelEl = document.getElementById('week-agenda-label');
+      var rowsEl  = document.getElementById('week-agenda-rows');
+      if (!labelEl || !rowsEl) return;
       labelEl.textContent = weekRangeLabel(currentMonday);
+      rowsEl.innerHTML = '';
 
-      var letters = ['M','T','W','T','F','S','S'];
-      var html = '';
       for (var i = 0; i < 7; i++) {
         var d = new Date(currentMonday);
         d.setDate(currentMonday.getDate() + i);
         var key = localKey(d);
-        var data = cellMap[key] || { sessions: [], firstColor: null };
+        var data = cellMap[key] || { sessions: [], events: [], firstColor: null };
         var isToday = key === todayKey;
-        var isSel = key === selectedKey;
 
-        var bg = isSel ? 'var(--accent-bg)' : isToday ? 'var(--card-muted)' : 'var(--card)';
-        var borderColor = (isSel || isToday) ? 'var(--accent)' : 'var(--border)';
-        var numColor = (isSel || isToday) ? 'var(--accent)' : 'var(--text)';
+        var row = document.createElement('div');
+        row.className = 'mobile-agenda-row' + (isToday ? ' mobile-agenda-row--today' : '');
+        row.style.borderTop = '1px solid var(--border)';
 
-        html += '<button type="button" class="week-strip-day flex flex-col items-center justify-center gap-0.5 rounded-lg border py-3 transition-colors" data-date-key="' + key + '" style="background:' + bg + ';border-color:' + borderColor + '">';
-        html += '<span class="text-[9px] font-bold uppercase tracking-widest" style="color:var(--muted)">' + letters[i] + '</span>';
-        html += '<span class="text-sm font-semibold leading-none mt-0.5" style="color:' + numColor + '">' + d.getDate() + '</span>';
-        if (data.sessions && data.sessions.length > 0) {
-          html += '<span class="inline-block h-1.5 w-1.5 rounded-full mt-1" style="background:' + (data.firstColor || 'var(--accent)') + '"></span>';
-        } else {
-          html += '<span class="inline-block h-1.5 w-1.5 mt-1"></span>';
+        // Date column
+        var dateCol = document.createElement('div');
+        dateCol.className = 'mobile-agenda-date';
+        var abbr = document.createElement('span');
+        abbr.className = 'text-[9px] font-bold uppercase tracking-widest';
+        abbr.style.color = 'var(--muted)';
+        abbr.textContent = dayShort[d.getDay()];
+        var num = document.createElement('span');
+        num.style.fontSize = '15px';
+        num.style.fontWeight = '700';
+        num.style.lineHeight = '1';
+        num.style.color = isToday ? 'var(--accent)' : 'var(--text)';
+        num.textContent = d.getDate();
+        dateCol.appendChild(abbr);
+        dateCol.appendChild(num);
+        row.appendChild(dateCol);
+
+        // Content column
+        var content = document.createElement('div');
+        content.style.minWidth = '0';
+        content.style.paddingTop = '0.15rem';
+
+        // Events
+        (data.events || []).forEach(function (ev) {
+          var evRow = document.createElement('div');
+          evRow.className = 'mobile-agenda-event text-xs';
+          var iconName = eventIcons[ev.kind] || 'calendar';
+          evRow.innerHTML = '<i data-lucide="' + iconName + '" style="width:0.75rem;height:0.75rem;flex-shrink:0" aria-hidden="true"></i>' +
+                            '<span class="truncate">' + ev.title + '</span>';
+          evRow.style.marginBottom = '0.25rem';
+          evRow.addEventListener('click', function () { openEditEventDialog(ev.id); });
+          content.appendChild(evRow);
+        });
+
+        // Sessions
+        if (data.sessions && data.sessions.length) {
+          data.sessions.forEach(function (s) {
+            var card = document.createElement('div');
+            card.className = 'mobile-agenda-session';
+            card.style.cssText = 'border-left:3px solid ' + (s.color || 'var(--muted)') +
+                                 ';background:color-mix(in srgb,' + (s.color || 'var(--muted)') + ' 10%,var(--panel))';
+            var inner = document.createElement('div');
+            inner.style.cssText = 'display:flex;align-items:center;gap:0.5rem;min-width:0';
+            var textWrap = document.createElement('div');
+            textWrap.style.cssText = 'flex:1;min-width:0';
+            var nameEl = document.createElement('div');
+            nameEl.className = 'text-sm font-medium truncate';
+            nameEl.style.color = 'var(--text)';
+            nameEl.textContent = s.name;
+            textWrap.appendChild(nameEl);
+            if (s.label) {
+              var labelEl2 = document.createElement('div');
+              labelEl2.className = 'text-xs truncate';
+              labelEl2.style.color = 'var(--muted)';
+              labelEl2.textContent = s.label;
+              textWrap.appendChild(labelEl2);
+            }
+            if (s.cycleName) {
+              var cycleEl = document.createElement('div');
+              cycleEl.className = 'text-xs font-medium truncate';
+              cycleEl.style.color = 'var(--accent)';
+              cycleEl.textContent = s.cycleName;
+              textWrap.appendChild(cycleEl);
+            }
+            inner.appendChild(textWrap);
+            if (s.done) {
+              var dot = document.createElement('span');
+              dot.style.cssText = 'width:7px;height:7px;border-radius:50%;flex-shrink:0;background:#16a34a';
+              dot.title = 'Done';
+              inner.appendChild(dot);
+            }
+            card.appendChild(inner);
+            card.addEventListener('click', function () {
+              openMoveDialog(s.id, s.name, s.cycleName, key);
+            });
+            content.appendChild(card);
+          });
+        } else if (!data.events || !data.events.length) {
+          var empty = document.createElement('div');
+          empty.className = 'text-sm';
+          empty.style.cssText = 'color:var(--muted);padding:0.35rem 0';
+          empty.textContent = '—';
+          content.appendChild(empty);
         }
-        html += '</button>';
+
+        row.appendChild(content);
+        rowsEl.appendChild(row);
       }
-      cellsEl.innerHTML = html;
 
-      cellsEl.querySelectorAll('.week-strip-day').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          var key = btn.dataset.dateKey;
-          if (selectedKey === key) {
-            selectedKey = null;
-            hideMobileDetail();
-          } else {
-            selectedKey = key;
-            showMobileDetail(key);
-          }
-          renderStrip();
-        });
-        btn.addEventListener('dragover', function (e) {
-          e.preventDefault();
-          btn.style.background = 'var(--accent-bg)';
-          btn.style.borderColor = 'var(--accent)';
-        });
-        btn.addEventListener('dragleave', function () {
-          btn.style.background = '';
-          btn.style.borderColor = '';
-          renderStrip();
-        });
-        btn.addEventListener('drop', function (e) {
-          e.preventDefault();
-          btn.style.background = '';
-          btn.style.borderColor = '';
-          var sid = e.dataTransfer.getData('text/plain');
-          var dateKey = btn.dataset.dateKey;
-          if (!sid || !dateKey) return;
-          fetch('/scheduled-sessions/' + sid + '/move', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'scheduled_date=' + encodeURIComponent(dateKey)
-          }).then(function () { window.location.reload(); });
-        });
-      });
+      if (window.__passionRenderIcons) window.__passionRenderIcons();
     }
 
-    function showMobileDetail(key) {
-      var panel = document.getElementById('mobile-cal-day-detail');
-      var labelEl = document.getElementById('mobile-cal-day-label');
-      var sessionsEl = document.getElementById('mobile-cal-day-sessions');
-      if (!panel || !labelEl || !sessionsEl) return;
-
-      var d = fromKey(key);
-      var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-      var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-      labelEl.textContent = days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate();
-
-      var data = cellMap[key] || { sessions: [] };
-      sessionsEl.innerHTML = '';
-      if (!data.sessions || !data.sessions.length) {
-        sessionsEl.innerHTML = '<div class="text-xs" style="color:var(--muted)">No sessions planned</div>';
-      } else {
-        data.sessions.forEach(function (s) {
-          var row = document.createElement('div');
-          row.className = 'flex items-center gap-1.5 rounded px-1.5 py-1 select-none cursor-grab';
-          row.setAttribute('draggable', 'true');
-          row.dataset.sessionId = s.id;
-          row.style.cssText = 'border-left:2px solid ' + (s.color || 'var(--muted)') + ';background:color-mix(in srgb,' + (s.color || 'var(--muted)') + ' 12%,var(--panel));touch-action:none';
-          var inner = '<div class="min-w-0 flex-1">' +
-                      '<div class="text-[10px] font-medium truncate" style="color:var(--text)">' + s.name + '</div>';
-          if (s.label) inner += '<div class="text-[9px] truncate" style="color:var(--muted)">' + s.label + '</div>';
-          inner += '</div>';
-          if (s.done) inner += '<span class="inline-block h-1.5 w-1.5 rounded-full flex-shrink-0" style="background:#16a34a"></span>';
-          row.innerHTML = inner;
-          row.addEventListener('dragstart', function (e) {
-            e.dataTransfer.setData('text/plain', s.id);
-            row.style.opacity = '0.5';
-          });
-          row.addEventListener('dragend', function () {
-            row.style.opacity = '';
-          });
-          sessionsEl.appendChild(row);
-        });
-      }
-      panel.classList.remove('hidden');
-    }
-
-    function hideMobileDetail() {
-      var el = document.getElementById('mobile-cal-day-detail');
-      if (el) el.classList.add('hidden');
-    }
-
+    // ── Week navigation ──
     function navWeek(delta) {
       var newMon = new Date(currentMonday);
       newMon.setDate(currentMonday.getDate() + delta * 7);
       var newMonKey = localKey(newMon);
       var newSunKey = localKey(new Date(newMon.getTime() + 6 * 86400000));
-
       if (allKeys.length && (newMonKey < allKeys[0] || newSunKey > allKeys[allKeys.length - 1])) {
         var thu = new Date(newMon);
         thu.setDate(newMon.getDate() + 3);
@@ -477,17 +503,106 @@
         return;
       }
       currentMonday = newMon;
-      selectedKey = null;
-      hideMobileDetail();
-      renderStrip();
+      renderAgenda();
     }
 
-    var prevBtn = document.getElementById('week-prev-btn');
-    var nextBtn = document.getElementById('week-next-btn');
-    if (prevBtn) prevBtn.addEventListener('click', function () { navWeek(-1); });
-    if (nextBtn) nextBtn.addEventListener('click', function () { navWeek(1); });
+    document.getElementById('week-prev-btn').addEventListener('click', function () { navWeek(-1); });
+    document.getElementById('week-next-btn').addEventListener('click', function () { navWeek(1); });
+    renderAgenda();
 
-    renderStrip();
+    // ── Move-session dialog ──
+    var moveDialog   = document.getElementById('move-session-dialog');
+    var moveNameEl   = document.getElementById('move-session-name');
+    var moveCurrEl   = document.getElementById('move-session-current');
+    var miniGridEl   = document.getElementById('move-mini-grid');
+    var miniWdEl     = document.getElementById('move-mini-weekdays');
+    var confirmBtn   = document.getElementById('move-session-confirm');
+    var moveSessionId    = null;
+    var moveCurrentKey   = null;
+    var moveSelectedKey  = null;
+
+    moveDialog.addEventListener('click', function (e) { if (e.target === moveDialog) moveDialog.close(); });
+
+    function openMoveDialog(id, name, cycleName, currentKey) {
+      moveSessionId   = id;
+      moveCurrentKey  = currentKey;
+      moveSelectedKey = null;
+      moveNameEl.textContent = name;
+      var d = fromKey(currentKey);
+      moveCurrEl.textContent = (cycleName ? cycleName + ' · ' : '') + dayNames[d.getDay()] + ', ' + d.getDate() + ' ' + monShort[d.getMonth()];
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Select a date above';
+      renderMiniGrid(null);
+      moveDialog.showModal();
+    }
+
+    function renderMiniGrid(selectedKey) {
+      // Weekday headers
+      miniWdEl.innerHTML = '';
+      ['M','T','W','T','F','S','S'].forEach(function (l) {
+        var hd = document.createElement('div');
+        hd.style.cssText = 'text-align:center;font-size:10px;font-weight:700;color:var(--muted)';
+        hd.textContent = l;
+        miniWdEl.appendChild(hd);
+      });
+
+      miniGridEl.innerHTML = '';
+      allKeys.forEach(function (key) {
+        var d = fromKey(key);
+        var data = cellMap[key] || { sessions: [], firstColor: null };
+        var isCurrent  = key === moveCurrentKey;
+        var isSelected = key === selectedKey;
+        var isToday2   = key === todayKey;
+        var inMonth    = allKeys.length > 0 && key.slice(0, 7) === allKeys[Math.floor(allKeys.length / 2)].slice(0, 7);
+
+        var cell = document.createElement('div');
+        var cls = 'move-mini-cell';
+        if (isSelected) cls += ' move-mini-cell--selected';
+        else if (isCurrent) cls += ' move-mini-cell--current';
+        else if (isToday2) cls += ' move-mini-cell--today';
+        if (!inMonth) cls += ' move-mini-cell--dim';
+        cell.className = cls;
+
+        var numSpan = document.createElement('span');
+        numSpan.style.cssText = 'font-size:11px;font-weight:' + (isToday2 || isCurrent || isSelected ? '700' : '500') +
+                                ';color:' + (isSelected ? 'var(--accent)' : isCurrent ? 'var(--accent)' : 'var(--text)');
+        numSpan.textContent = d.getDate();
+        cell.appendChild(numSpan);
+
+        if (data.firstColor) {
+          var dot = document.createElement('span');
+          dot.className = 'move-mini-dot';
+          dot.style.background = data.firstColor;
+          cell.appendChild(dot);
+        } else {
+          var placeholder = document.createElement('span');
+          placeholder.className = 'move-mini-dot';
+          placeholder.style.background = 'transparent';
+          cell.appendChild(placeholder);
+        }
+
+        cell.addEventListener('click', function () {
+          if (key === moveCurrentKey) return;
+          moveSelectedKey = key;
+          var dd = fromKey(key);
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'Move to ' + dayNames[dd.getDay()] + ', ' + dd.getDate() + ' ' + monShort[dd.getMonth()];
+          renderMiniGrid(key);
+        });
+
+        miniGridEl.appendChild(cell);
+      });
+    }
+
+    confirmBtn.addEventListener('click', function () {
+      if (!moveSessionId || !moveSelectedKey) return;
+      fetch('/scheduled-sessions/' + moveSessionId + '/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'scheduled_date=' + encodeURIComponent(moveSelectedKey)
+      }).then(function () { window.location.reload(); });
+      moveDialog.close();
+    });
   })();
 
   (function () {
