@@ -49,10 +49,12 @@ type DashboardDayGroup struct {
 }
 
 type CalendarCellSession struct {
+	ID        uint
 	Name      string
 	Color     string
 	CycleName string
 	Done      bool
+	Label     string
 }
 
 // CalendarEventView is a user-defined calendar event (trip, injury, etc.) for template rendering.

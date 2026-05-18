@@ -110,10 +110,12 @@ func (s *Server) handleCalendar(w http.ResponseWriter, r *http.Request) {
 				cn = cycleNameMap[*ss.TrainingCycleID]
 			}
 			cell.Sessions = append(cell.Sessions, pages.CalendarCellSession{
+				ID:        ss.ID,
 				Name:      ss.SessionTemplate.Name,
 				Color:     normalizeTemplateColor(ss.SessionTemplate.Color),
 				CycleName: cn,
 				Done:      completedSSIDSet[ss.ID],
+				Label:     ss.SessionTemplate.Label,
 			})
 		}
 		cells = append(cells, cell)

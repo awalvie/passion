@@ -22,11 +22,31 @@
     </button>
   </div>
 
+  {{/* ── Mobile week strip (hidden on md+) ── */}}
+  <div class="md:hidden" id="mobile-week-strip">
+    <div class="flex items-center justify-between gap-2 mb-2">
+      <button type="button" id="week-prev-btn" class="rounded-md btn-ghost p-2 -ml-1" aria-label="Previous week">
+        <i data-lucide="chevron-left" style="width:1rem;height:1rem" aria-hidden="true"></i>
+      </button>
+      <span id="week-strip-label" class="text-xs font-semibold"></span>
+      <button type="button" id="week-next-btn" class="rounded-md btn-ghost p-2 -mr-1" aria-label="Next week">
+        <i data-lucide="chevron-right" style="width:1rem;height:1rem" aria-hidden="true"></i>
+      </button>
+    </div>
+    <div id="week-strip-cells" class="grid grid-cols-7 gap-1.5"></div>
+    <div id="mobile-cal-day-detail" class="mt-3 hidden">
+      <div class="rounded-lg p-3" style="background:var(--card-muted);border:1px solid var(--border)">
+        <div class="text-xs font-semibold mb-2" style="color:var(--muted)" id="mobile-cal-day-label"></div>
+        <div class="space-y-1.5" id="mobile-cal-day-sessions"></div>
+      </div>
+    </div>
+  </div>
+
   {{/* ── Desktop: 2-col layout (grid + sidebar) ── */}}
   <div class="grid gap-6 md:grid-cols-[1fr_260px]">
 
-    {{/* ── Calendar grid ── */}}
-    <div class="card card-pad overflow-auto">
+    {{/* ── Calendar grid (hidden on mobile) ── */}}
+    <div class="hidden md:block card card-pad overflow-auto">
       <div class="grid grid-cols-7 gap-1 text-center text-[11px] muted mb-1">
         {{ range .CalendarWeekday }}
           <div class="font-semibold uppercase tracking-widest py-1">{{ . }}</div>
@@ -48,11 +68,23 @@
               >{{ .Title }}</span>
             {{ end }}
             {{ range .Sessions }}
-              <span
-                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium truncate max-w-full {{ if .Done }}opacity-50{{ end }}"
-                style="border-left: 2px solid {{ .Color }}; background: color-mix(in srgb, {{ .Color }} 12%, var(--panel))"
-                title="{{ .Name }}{{ if .CycleName }} · {{ .CycleName }}{{ end }}"
-              >{{ .Name }}</span>
+              <div
+                class="cal-session-card flex items-center gap-1 rounded px-1.5 py-1 select-none cursor-grab"
+                draggable="true"
+                data-session-id="{{ .ID }}"
+                style="border-left:2px solid {{ .Color }};background:color-mix(in srgb,{{ .Color }} 12%,var(--panel));touch-action:none"
+                onclick="event.stopPropagation()"
+              >
+                <div class="min-w-0 flex-1">
+                  <div class="text-[10px] font-medium truncate" style="color:var(--text)">{{ .Name }}</div>
+                  {{ if or .Label .CycleName }}
+                  <div class="text-[9px] truncate" style="color:var(--muted)">{{ .Label }}{{ if and .Label .CycleName }} · {{ end }}{{ .CycleName }}</div>
+                  {{ end }}
+                </div>
+                {{ if .Done }}
+                <span class="inline-block h-1.5 w-1.5 rounded-full flex-shrink-0" style="background:#16a34a" title="Done"></span>
+                {{ end }}
+              </div>
             {{ end }}
             {{ if and (not .Events) (not .Sessions) }}
               <span class="mt-auto text-[10px] muted opacity-0 group-hover:opacity-60 transition-opacity self-center">+ event</span>
@@ -243,6 +275,221 @@
     d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
   });
 
+  // ── Mobile week strip ──────────────────────────────────────────────────────
+  (function () {
+    var cellMap = {};
+    var allKeys = [];
+    document.querySelectorAll('.cal-cell').forEach(function (cell) {
+      var key = cell.dataset.dateKey;
+      if (!key) return;
+      allKeys.push(key);
+      var sessions = [];
+      var firstColor = null;
+      cell.querySelectorAll('.cal-session-card').forEach(function (card) {
+        var s = card.getAttribute('style') || '';
+        var m = s.match(/border-left:\s*2px solid\s*([^;]+)/);
+        var color = m ? m[1].trim() : '';
+        if (!firstColor && color) firstColor = color;
+        var nameEl = card.querySelector('.text-\\[10px\\]');
+        var labelEl = card.querySelector('.text-\\[9px\\]');
+        sessions.push({
+          id:    card.dataset.sessionId || '',
+          name:  nameEl ? nameEl.textContent.trim() : '',
+          label: labelEl ? labelEl.textContent.trim() : '',
+          color: color,
+          done:  !!card.querySelector('span[style*="#16a34a"]')
+        });
+      });
+      cellMap[key] = { sessions: sessions, firstColor: firstColor };
+    });
+    allKeys.sort();
+
+    function localKey(d) {
+      return d.getFullYear() + '-' +
+             String(d.getMonth() + 1).padStart(2, '0') + '-' +
+             String(d.getDate()).padStart(2, '0');
+    }
+    function fromKey(key) {
+      var p = key.split('-');
+      return new Date(+p[0], +p[1] - 1, +p[2]);
+    }
+    function mondayOf(d) {
+      var day = d.getDay();
+      var r = new Date(d);
+      r.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+      r.setHours(0, 0, 0, 0);
+      return r;
+    }
+
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var todayKey = localKey(today);
+    var currentMonday = mondayOf(today);
+
+    var monthParam = new URLSearchParams(window.location.search).get('month');
+    if (monthParam) {
+      var todayMonthStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+      if (monthParam !== todayMonthStr) {
+        var firstInMonth = allKeys.find(function (k) { return k.startsWith(monthParam + '-'); });
+        if (firstInMonth) currentMonday = mondayOf(fromKey(firstInMonth));
+      }
+    }
+
+    var selectedKey = null;
+
+    function weekRangeLabel(monday) {
+      var sun = new Date(monday);
+      sun.setDate(monday.getDate() + 6);
+      var mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      if (monday.getMonth() === sun.getMonth()) {
+        return monday.getDate() + '–' + sun.getDate() + ' ' + mo[monday.getMonth()];
+      }
+      return monday.getDate() + ' ' + mo[monday.getMonth()] + '–' + sun.getDate() + ' ' + mo[sun.getMonth()];
+    }
+
+    function renderStrip() {
+      var labelEl = document.getElementById('week-strip-label');
+      var cellsEl = document.getElementById('week-strip-cells');
+      if (!labelEl || !cellsEl) return;
+      labelEl.textContent = weekRangeLabel(currentMonday);
+
+      var letters = ['M','T','W','T','F','S','S'];
+      var html = '';
+      for (var i = 0; i < 7; i++) {
+        var d = new Date(currentMonday);
+        d.setDate(currentMonday.getDate() + i);
+        var key = localKey(d);
+        var data = cellMap[key] || { sessions: [], firstColor: null };
+        var isToday = key === todayKey;
+        var isSel = key === selectedKey;
+
+        var bg = isSel ? 'var(--accent-bg)' : isToday ? 'var(--card-muted)' : 'var(--card)';
+        var borderColor = (isSel || isToday) ? 'var(--accent)' : 'var(--border)';
+        var numColor = (isSel || isToday) ? 'var(--accent)' : 'var(--text)';
+
+        html += '<button type="button" class="week-strip-day flex flex-col items-center justify-center gap-0.5 rounded-lg border py-3 transition-colors" data-date-key="' + key + '" style="background:' + bg + ';border-color:' + borderColor + '">';
+        html += '<span class="text-[9px] font-bold uppercase tracking-widest" style="color:var(--muted)">' + letters[i] + '</span>';
+        html += '<span class="text-sm font-semibold leading-none mt-0.5" style="color:' + numColor + '">' + d.getDate() + '</span>';
+        if (data.sessions && data.sessions.length > 0) {
+          html += '<span class="inline-block h-1.5 w-1.5 rounded-full mt-1" style="background:' + (data.firstColor || 'var(--accent)') + '"></span>';
+        } else {
+          html += '<span class="inline-block h-1.5 w-1.5 mt-1"></span>';
+        }
+        html += '</button>';
+      }
+      cellsEl.innerHTML = html;
+
+      cellsEl.querySelectorAll('.week-strip-day').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var key = btn.dataset.dateKey;
+          if (selectedKey === key) {
+            selectedKey = null;
+            hideMobileDetail();
+          } else {
+            selectedKey = key;
+            showMobileDetail(key);
+          }
+          renderStrip();
+        });
+        btn.addEventListener('dragover', function (e) {
+          e.preventDefault();
+          btn.style.background = 'var(--accent-bg)';
+          btn.style.borderColor = 'var(--accent)';
+        });
+        btn.addEventListener('dragleave', function () {
+          btn.style.background = '';
+          btn.style.borderColor = '';
+          renderStrip();
+        });
+        btn.addEventListener('drop', function (e) {
+          e.preventDefault();
+          btn.style.background = '';
+          btn.style.borderColor = '';
+          var sid = e.dataTransfer.getData('text/plain');
+          var dateKey = btn.dataset.dateKey;
+          if (!sid || !dateKey) return;
+          fetch('/scheduled-sessions/' + sid + '/move', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'scheduled_date=' + encodeURIComponent(dateKey)
+          }).then(function () { window.location.reload(); });
+        });
+      });
+    }
+
+    function showMobileDetail(key) {
+      var panel = document.getElementById('mobile-cal-day-detail');
+      var labelEl = document.getElementById('mobile-cal-day-label');
+      var sessionsEl = document.getElementById('mobile-cal-day-sessions');
+      if (!panel || !labelEl || !sessionsEl) return;
+
+      var d = fromKey(key);
+      var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      labelEl.textContent = days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate();
+
+      var data = cellMap[key] || { sessions: [] };
+      sessionsEl.innerHTML = '';
+      if (!data.sessions || !data.sessions.length) {
+        sessionsEl.innerHTML = '<div class="text-xs" style="color:var(--muted)">No sessions planned</div>';
+      } else {
+        data.sessions.forEach(function (s) {
+          var row = document.createElement('div');
+          row.className = 'flex items-center gap-1.5 rounded px-1.5 py-1 select-none cursor-grab';
+          row.setAttribute('draggable', 'true');
+          row.dataset.sessionId = s.id;
+          row.style.cssText = 'border-left:2px solid ' + (s.color || 'var(--muted)') + ';background:color-mix(in srgb,' + (s.color || 'var(--muted)') + ' 12%,var(--panel));touch-action:none';
+          var inner = '<div class="min-w-0 flex-1">' +
+                      '<div class="text-[10px] font-medium truncate" style="color:var(--text)">' + s.name + '</div>';
+          if (s.label) inner += '<div class="text-[9px] truncate" style="color:var(--muted)">' + s.label + '</div>';
+          inner += '</div>';
+          if (s.done) inner += '<span class="inline-block h-1.5 w-1.5 rounded-full flex-shrink-0" style="background:#16a34a"></span>';
+          row.innerHTML = inner;
+          row.addEventListener('dragstart', function (e) {
+            e.dataTransfer.setData('text/plain', s.id);
+            row.style.opacity = '0.5';
+          });
+          row.addEventListener('dragend', function () {
+            row.style.opacity = '';
+          });
+          sessionsEl.appendChild(row);
+        });
+      }
+      panel.classList.remove('hidden');
+    }
+
+    function hideMobileDetail() {
+      var el = document.getElementById('mobile-cal-day-detail');
+      if (el) el.classList.add('hidden');
+    }
+
+    function navWeek(delta) {
+      var newMon = new Date(currentMonday);
+      newMon.setDate(currentMonday.getDate() + delta * 7);
+      var newMonKey = localKey(newMon);
+      var newSunKey = localKey(new Date(newMon.getTime() + 6 * 86400000));
+
+      if (allKeys.length && (newMonKey < allKeys[0] || newSunKey > allKeys[allKeys.length - 1])) {
+        var thu = new Date(newMon);
+        thu.setDate(newMon.getDate() + 3);
+        var ms = thu.getFullYear() + '-' + String(thu.getMonth() + 1).padStart(2, '0');
+        window.location.href = '/calendar?month=' + ms;
+        return;
+      }
+      currentMonday = newMon;
+      selectedKey = null;
+      hideMobileDetail();
+      renderStrip();
+    }
+
+    var prevBtn = document.getElementById('week-prev-btn');
+    var nextBtn = document.getElementById('week-next-btn');
+    if (prevBtn) prevBtn.addEventListener('click', function () { navWeek(-1); });
+    if (nextBtn) nextBtn.addEventListener('click', function () { navWeek(1); });
+
+    renderStrip();
+  })();
+
   (function () {
     const addDialog = document.getElementById('add-event-dialog');
     const startInput = document.getElementById('new-event-start');
@@ -254,6 +501,59 @@
         startInput.value = key;
         endInput.value   = key;
         addDialog.showModal();
+      });
+    });
+  })();
+
+  // ── Desktop drag-and-drop ──────────────────────────────────────────────────
+  (function () {
+    var dropTarget = null;
+
+    function setDropTarget(cell) {
+      if (dropTarget === cell) return;
+      clearDropTarget();
+      dropTarget = cell;
+      cell.style.outline = '2px dashed var(--accent)';
+      cell.style.background = 'var(--accent-bg)';
+    }
+    function clearDropTarget() {
+      if (dropTarget) {
+        dropTarget.style.outline = '';
+        dropTarget.style.background = '';
+        dropTarget = null;
+      }
+    }
+
+    document.querySelectorAll('.cal-session-card').forEach(function (card) {
+      card.addEventListener('dragstart', function (e) {
+        e.dataTransfer.setData('text/plain', card.dataset.sessionId);
+        card.style.opacity = '0.5';
+      });
+      card.addEventListener('dragend', function () {
+        card.style.opacity = '';
+        clearDropTarget();
+      });
+    });
+
+    document.querySelectorAll('.cal-cell').forEach(function (cell) {
+      cell.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        setDropTarget(cell);
+      });
+      cell.addEventListener('dragleave', function (e) {
+        if (!cell.contains(e.relatedTarget)) clearDropTarget();
+      });
+      cell.addEventListener('drop', function (e) {
+        e.preventDefault();
+        clearDropTarget();
+        var sid = e.dataTransfer.getData('text/plain');
+        var dateKey = cell.dataset.dateKey;
+        if (!sid || !dateKey) return;
+        fetch('/scheduled-sessions/' + sid + '/move', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'scheduled_date=' + encodeURIComponent(dateKey)
+        }).then(function () { window.location.reload(); });
       });
     });
   })();
