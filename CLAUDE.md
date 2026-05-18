@@ -34,3 +34,7 @@ Always use `class="input text-sm"` (or `class="input"`) on `<select>` elements. 
 When a UX issue or design question is ambiguous, ask before implementing. Don't pick a direction and build it.
 
 For all design and UI work, refer to [docs/DESIGN.md](docs/DESIGN.md) first. It documents the site's design philosophy, colour tokens, typography scale, card/badge/button patterns, icon conventions, and layout rules. Follow those patterns rather than inventing new ones.
+
+## When something is unclear, research first — then ask
+
+Before making assumptions about what a user request means, read the relevant code. If the intent is still ambiguous after reading, ask a specific question. Do not guess and implement — a wrong assumption wastes the user's time and causes frustration. One targeted question is always better than a wrong implementation.
