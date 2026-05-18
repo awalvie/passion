@@ -332,9 +332,8 @@ body {
 /* Draggable session card */
 .session-card {
   background: var(--panel);
-  border: 1px solid var(--accent-border);
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
-  box-shadow: inset 3px 0 0 var(--accent-border);
   cursor: grab;
   transition: transform 0.08s ease, opacity 0.08s ease;
 }
@@ -3519,3 +3518,79 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
 .venue-badge--commercial { background: var(--accent-bg); color: var(--accent); }
 .venue-badge--outdoor    { background: #dcfce7; color: #16a34a; }
 .venue-badge--board      { background: #fef9c3; color: #a16207; }
+
+/* ---------------------------------------------------------------------------
+   Mobile calendar agenda view
+--------------------------------------------------------------------------- */
+
+.mobile-agenda-row {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr;
+  gap: 0.75rem;
+  padding: 0.625rem 0;
+  align-items: start;
+}
+.mobile-agenda-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding-top: 0.2rem;
+}
+.mobile-agenda-row--today {
+  background: var(--card-muted);
+  border-radius: 0.5rem;
+  margin: 0 -0.5rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+.mobile-agenda-session {
+  border-radius: 0.375rem;
+  padding: 0.45rem 0.625rem;
+  cursor: pointer;
+  transition: opacity 100ms;
+  margin-bottom: 0.25rem;
+}
+.mobile-agenda-session:last-child { margin-bottom: 0; }
+.mobile-agenda-session:active { opacity: 0.65; }
+.mobile-agenda-event {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3rem 0;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+/* Move-session dialog mini-grid */
+.move-mini-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.move-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.move-mini-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 2px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 100ms;
+}
+.move-mini-cell--today { background: var(--card-muted); }
+.move-mini-cell--current { border-color: var(--accent); }
+.move-mini-cell--selected { background: var(--accent-bg); border-color: var(--accent); }
+.move-mini-cell--dim { opacity: 0.3; cursor: default; }
+.move-mini-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
