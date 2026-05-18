@@ -67,6 +67,8 @@
                       Exercise catalog
                     {{ else if eq .Kind "session" }}
                       {{ if gt .SessionDurationSeconds 0 }}{{ formatSessionDuration .SessionDurationSeconds }}{{ else }}Open-ended{{ end }}
+                    {{ else if eq .Kind "climbing" }}
+                      Climbing
                     {{ else }}
                       {{ if gt .Sets 0 }}{{ .Sets }} set{{ if ne .Sets 1 }}s{{ end }}{{ else }}1 set{{ end }}
                       ·
@@ -374,6 +376,8 @@
                       {{ if gt .SessionDurationSeconds 0 }}{{ formatSessionDuration .SessionDurationSeconds }}{{ else }}Open-ended{{ end }}
                     {{ else if eq .Kind "exercise_catalog" }}
                       Exercise catalog
+                    {{ else if eq .Kind "climbing" }}
+                      Climbing
                     {{ else }}
                       {{ if gt .Sets 0 }}{{ .Sets }} set{{ if ne .Sets 1 }}s{{ end }}{{ else }}1 set{{ end }}
                       ·
@@ -514,7 +518,7 @@
           </div>
         </dialog>
         {{ end }}
-        {{ if not $isSession }}
+        {{ if not (or $isSession $isClimbing) }}
         <div class="run-up-next-row">
           <button type="button" class="run-up-next-arrow" id="btn-up-prev" aria-label="Previous rep"><i data-lucide="chevron-left" class="run-icon"></i></button>
           <div class="run-up-next" id="run-up-next">UP NEXT</div>
@@ -530,10 +534,26 @@
             <div class="run-counter-value"><span id="run-set-now">1</span> / <span id="run-set-max">{{ if gt .CurrentStep.Sets 0 }}{{ .CurrentStep.Sets }}{{ else }}1{{ end }}</span></div>
           </div>
         </div>
-        {{ else }}{{ end }}
+        {{ end }}
 
         <form hx-post="/runs/{{ .RunID }}/exercises/{{ .CurrentStep.ExerciseID }}/complete" hx-swap="none" method="post" id="complete-form">
           <input type="hidden" name="elapsed_seconds" id="elapsed-seconds" value="0"/>
+          {{ if eq .CurrentStep.Kind "climbing" }}
+          {{/* Climbing exercise: tick log above controls; no sets/reps/weight. */}}
+          <input type="hidden" name="actual_sets" value="0" />
+          <input type="hidden" name="actual_reps" value="0" />
+          <input type="hidden" name="actual_weight_kg" value="0" />
+          <div class="mb-3 mt-2 px-1">
+            <section
+              id="tick-list-{{ .CurrentStep.ExerciseID }}"
+              hx-get="/runs/{{ .RunID }}/exercises/{{ .CurrentStep.ExerciseID }}/ticks"
+              hx-trigger="load"
+              hx-swap="outerHTML"
+            >
+              <div class="text-sm muted py-2">Loading climbs…</div>
+            </section>
+          </div>
+          {{ end }}
           <div class="run-sticky-controls">
             <div class="run-transport{{ if or $isSession $isClimbing }} run-transport--session{{ end }}">
               {{ if not (or $isSession $isClimbing) }}
@@ -579,22 +599,7 @@
               </div>
             </div>
           </div>
-          {{ if eq .CurrentStep.Kind "climbing" }}
-          {{/* Climbing exercise: show tick log inline; no sets/reps/weight. */}}
-          <input type="hidden" name="actual_sets" value="0" />
-          <input type="hidden" name="actual_reps" value="0" />
-          <input type="hidden" name="actual_weight_kg" value="0" />
-          <div class="mb-3 mt-2 px-1">
-            <section
-              id="tick-list-{{ .CurrentStep.ExerciseID }}"
-              hx-get="/runs/{{ .RunID }}/exercises/{{ .CurrentStep.ExerciseID }}/ticks"
-              hx-trigger="load"
-              hx-swap="outerHTML"
-            >
-              <div class="text-sm muted py-2">Loading climbs…</div>
-            </section>
-          </div>
-          {{ else if not $isSession }}
+          {{ if not (or $isSession $isClimbing) }}
           <details class="run-notes-collapse" id="actual-values-detail">
             <summary class="run-collapse-toggle"><i data-lucide="sliders-horizontal" class="run-collapse-icon"></i><i data-lucide="chevron-right" class="run-collapse-chevron"></i>
               Logged as:
