@@ -121,16 +121,14 @@
               {{ if .HasSession }}
                 <div
                   class="session-card dnd-item flex flex-1 items-center gap-2 rounded-md border px-2 py-1.5 min-w-0"
-                  style="border-color: var(--border){{ if .SessionTemplateColor }}; border-left: 3px solid {{ .SessionTemplateColor }}; background: color-mix(in srgb, {{ .SessionTemplateColor }} 6%, var(--panel)){{ else }}; background: var(--accent-bg){{ end }}"
+                  style="border-color: var(--border){{ if .SessionTemplateColor }}; border-left: 3px solid {{ .SessionTemplateColor }}; background: color-mix(in srgb, {{ .SessionTemplateColor }} 6%, var(--panel)){{ else }}; background: var(--accent-bg){{ end }}; touch-action:none"
                   data-session-id="{{ .SessionID }}"
                   draggable="true"
                   ondragstart="event.dataTransfer.setData('text/plain', this.dataset.sessionId); this.classList.add('session-dragging','dnd-item-dragging');"
                   ondragend="this.classList.remove('session-dragging','dnd-item-dragging');"
                   title="Drag to move · {{ .SessionTemplateName }}"
                 >
-                  <span class="dnd-handle shrink-0 muted flex items-center" style="cursor:grab;touch-action:none" title="Drag to move">
-                    <i data-lucide="grip-vertical" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
-                  </span>
+                  <span style="font-size:13px;letter-spacing:-1px;line-height:1;color:var(--border);flex-shrink:0" aria-hidden="true">⋮⋮</span>
                   <div class="flex items-center gap-2 min-w-0 flex-1">
                     {{ if .SessionTemplateColor }}
                       <span class="shrink-0 rounded-full" style="width:8px;height:8px;background:{{ .SessionTemplateColor }}"></span>

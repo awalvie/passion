@@ -24,12 +24,14 @@
               <span class="text-[10px] font-medium px-1 py-0.5 rounded border" style="border-color:var(--border);color:var(--text-muted)">{{ if eq .Kind "timed_reps" }}timed{{ else if eq .Kind "session" }}session{{ else if eq .Kind "exercise_catalog" }}catalog{{ else if eq .Kind "climbing" }}climbing{{ end }}</span>
               {{ end }}
               <div
-                class="dnd-handle text-[12px] muted leading-none opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity"
+                class="dnd-handle shrink-0"
                 aria-label="Drag to reorder"
                 draggable="true"
                 data-exercise-drag-handle="1"
                 title="Drag to reorder"
-              >≡</div>
+                style="touch-action:none;font-size:17px"
+                aria-hidden="true"
+              >⋮⋮</div>
             </div>
           </summary>
 
