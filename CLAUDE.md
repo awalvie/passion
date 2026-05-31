@@ -46,6 +46,7 @@ Agents live in `.claude/agents/` and each has persistent memory in `.claude/agen
 ### When designing (before implementation)
 
 - **scout** — consult when designing a new feature or UX pattern. Ask "how do other training apps handle X?" to inform the approach before building.
+- **librarian** — consult when adding exercises, reviewing catalog gaps, or planning training content. Ask "what exercises should I add for X?" or "is the catalog missing anything for Y?"
 
 ### When implementing (during changes)
 
@@ -63,6 +64,7 @@ Dispatch these on the changed files after completing a feature:
 - **scribe** — on any structural change (sync docs with reality)
 - **copy** — on any new user-facing text
 - **schema** — on any model/query changes
+- **librarian** — on any exercise model or YAML import changes
 
 Run the relevant subset in parallel based on what changed. Not every agent applies to every change.
 
