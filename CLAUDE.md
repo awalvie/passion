@@ -38,3 +38,40 @@ For all design and UI work, refer to [docs/DESIGN.md](docs/DESIGN.md) first. It 
 ## When something is unclear, research first — then ask
 
 Before making assumptions about what a user request means, read the relevant code. If the intent is still ambiguous after reading, ask a specific question. Do not guess and implement — a wrong assumption wastes the user's time and causes frustration. One targeted question is always better than a wrong implementation.
+
+## Specialist agents
+
+Agents live in `.claude/agents/` and each has persistent memory in `.claude/agent-memory/<name>/`. Use them proactively — don't wait to be asked.
+
+### When designing (before implementation)
+
+- **scout** — consult when designing a new feature or UX pattern. Ask "how do other training apps handle X?" to inform the approach before building.
+
+### When implementing (during changes)
+
+- **pixel** — consult when proposing template or CSS changes. Before finalizing a UI change, ask pixel whether it's consistent with the design system.
+- **schema** — consult when proposing model or query changes. Before finalizing a DB change, ask schema whether it's safe and well-indexed.
+- **copy** — consult when writing new user-facing text. Before finalizing labels, errors, or empty states, ask copy whether the tone is consistent.
+
+### After implementation (post-change review)
+
+Dispatch these on the changed files after completing a feature:
+
+- **pixel** — on any template/CSS changes
+- **qa** — on any handler or logic changes
+- **simplify** — on any implementation (look for dead code, over-abstraction)
+- **scribe** — on any structural change (sync docs with reality)
+- **copy** — on any new user-facing text
+- **schema** — on any model/query changes
+
+Run the relevant subset in parallel based on what changed. Not every agent applies to every change.
+
+### Self-improvement
+
+Agents should actively look for ways to improve themselves. When an agent:
+
+- Encounters a pattern it doesn't have a rule for → it should propose adding the rule to its own definition
+- Gets corrected by the user → it should save feedback to its memory AND consider whether its checklist or workflow needs updating
+- Notices its checklist is incomplete or outdated → it should propose an update to its `.claude/agents/<name>.md` file
+
+Agents evolve with the project. Their definitions are living documents, not fixed specs.
