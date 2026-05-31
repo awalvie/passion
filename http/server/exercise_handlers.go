@@ -690,6 +690,7 @@ func (s *Server) handleExercisePlannedSets(w http.ResponseWriter, r *http.Reques
 		s.serverError(w, r, err)
 		return
 	}
+	_ = db.SyncExerciseSetsCount(s.store.DB, exerciseID)
 	s.renderPlannedSetsFragment(w, exerciseID)
 }
 
@@ -755,6 +756,7 @@ func (s *Server) handleExercisePlannedSetDelete(w http.ResponseWriter, r *http.R
 		s.serverError(w, r, err)
 		return
 	}
+	_ = db.SyncExerciseSetsCount(s.store.DB, exerciseID)
 	s.renderPlannedSetsFragment(w, exerciseID)
 }
 
@@ -778,6 +780,7 @@ func (s *Server) handleExercisePlannedSetsClear(w http.ResponseWriter, r *http.R
 		s.serverError(w, r, err)
 		return
 	}
+	_ = db.SyncExerciseSetsCount(s.store.DB, exerciseID)
 	s.renderPlannedSetsFragment(w, exerciseID)
 }
 
