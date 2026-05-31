@@ -2321,6 +2321,7 @@ html[data-theme="dark"] .catalog-dur-badge {
 
 .catalog-dialog-panel {
   background: var(--panel);
+  color: var(--text);
   border-radius: 0.75rem;
   overflow: hidden;
   border: 1px solid var(--border);
