@@ -207,6 +207,9 @@ type RunStep struct {
 
 	// CatalogOptions is set only when Kind is exercise_catalog (menu step).
 	CatalogOptions []RunStepOption
+
+	// PlannedSets is populated for reps_and_sets exercises that have per-set targets configured.
+	PlannedSets []ExercisePlannedSetView
 }
 
 func (rs RunStep) VideoURL() string {
@@ -366,6 +369,8 @@ type TemplateBreakdownItem struct {
 type ExercisesFragmentData struct {
 	Activity         db.Activity
 	LibraryExercises []db.LibraryExercise
+	// PlannedSets maps ExerciseID → planned set rows for per-set target display/editing.
+	PlannedSets map[uint][]ExercisePlannedSetView
 }
 
 // TemplateFragmentData is passed to preview_container and scheduled_session_preview fragments.
@@ -493,6 +498,12 @@ type ExerciseTicksParams struct {
 }
 
 type ManualExerciseSetLogView struct {
+	SetIndex int
+	Reps     int
+	WeightKg float64
+}
+
+type ExercisePlannedSetView struct {
 	SetIndex int
 	Reps     int
 	WeightKg float64
@@ -844,6 +855,7 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		filepath.Join("templates", "fragments", "journal_form.html"),
 		filepath.Join("templates", "fragments", "run_ticks.html"),
 		filepath.Join("templates", "fragments", "manual_exercises.html"),
+		filepath.Join("templates", "fragments", "planned_sets.html"),
 		filepath.Join("templates", "fragments", "venues_list.html"),
 		filepath.Join("templates", "fragments", "boards_list.html"),
 	}

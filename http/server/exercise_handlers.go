@@ -283,6 +283,8 @@ func (s *Server) handleDeleteExercise(w http.ResponseWriter, r *http.Request, ex
 		}
 	}
 
+	_ = db.DeleteAllExercisePlannedSets(s.store.DB, ownerID, exerciseID)
+
 	if err := s.store.DB.
 		Where("owner_id = ? AND id = ?", ownerID, exerciseID).
 		Delete(&db.Exercise{}).Error; err != nil {
@@ -635,7 +637,169 @@ func (s *Server) renderExercisesWithPreview(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	frag := pages.ExercisesFragmentData{Activity: act, LibraryExercises: lib}
+	plannedSets := make(map[uint][]pages.ExercisePlannedSetView)
+	for _, ex := range act.Exercises {
+		rows, _ := db.ListExercisePlannedSets(s.store.DB, ex.ID)
+		if len(rows) > 0 {
+			views := make([]pages.ExercisePlannedSetView, len(rows))
+			for i, r := range rows {
+				views[i] = pages.ExercisePlannedSetView{SetIndex: r.SetIndex, Reps: r.Reps, WeightKg: r.WeightKg}
+			}
+			plannedSets[ex.ID] = views
+		}
+	}
+
+	frag := pages.ExercisesFragmentData{Activity: act, LibraryExercises: lib, PlannedSets: plannedSets}
 	s.pages.RenderFragment(w, "fragments/exercises_container", frag)
 	s.pages.RenderFragment(w, "fragments/preview_container", pages.TemplateFragmentData{Template: tpl})
+}
+
+// renderPlannedSetsFragment returns the planned-sets sub-fragment for a single exercise.
+func (s *Server) renderPlannedSetsFragment(w http.ResponseWriter, exerciseID uint) {
+	rows, _ := db.ListExercisePlannedSets(s.store.DB, exerciseID)
+	views := make([]pages.ExercisePlannedSetView, len(rows))
+	for i, r := range rows {
+		views[i] = pages.ExercisePlannedSetView{SetIndex: r.SetIndex, Reps: r.Reps, WeightKg: r.WeightKg}
+	}
+	s.pages.RenderFragment(w, "fragments/planned_sets", struct {
+		ExerciseID  uint
+		PlannedSets []pages.ExercisePlannedSetView
+		RoutePrefix string // e.g. "/exercises/42" or "/runs/7/open/exercises/42"
+	}{ExerciseID: exerciseID, PlannedSets: views, RoutePrefix: fmt.Sprintf("/exercises/%d", exerciseID)})
+}
+
+// handleExercisePlannedSets handles POST /exercises/{exerciseID}/planned-sets (add row).
+func (s *Server) handleExercisePlannedSets(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+	exerciseID, err := parseUintParam(r, "exerciseID")
+	if err != nil {
+		http.Error(w, "invalid exercise id", http.StatusBadRequest)
+		return
+	}
+	if err := s.verifyExerciseOwner(exerciseID, ownerID); err != nil {
+		http.Error(w, "exercise not found", http.StatusNotFound)
+		return
+	}
+	rows, _ := db.ListExercisePlannedSets(s.store.DB, exerciseID)
+	nextIndex := len(rows) + 1
+	if err := db.UpsertExercisePlannedSet(s.store.DB, ownerID, exerciseID, nextIndex, 0, 0); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.renderPlannedSetsFragment(w, exerciseID)
+}
+
+// handleExercisePlannedSetSave handles POST /exercises/{exerciseID}/planned-sets/{setIndex}/save.
+func (s *Server) handleExercisePlannedSetSave(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+	exerciseID, err := parseUintParam(r, "exerciseID")
+	if err != nil {
+		http.Error(w, "invalid exercise id", http.StatusBadRequest)
+		return
+	}
+	setIndex, err := parseUintParam(r, "setIndex")
+	if err != nil {
+		http.Error(w, "invalid set index", http.StatusBadRequest)
+		return
+	}
+	if err := s.verifyExerciseOwner(exerciseID, ownerID); err != nil {
+		http.Error(w, "exercise not found", http.StatusNotFound)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		s.badRequest(w, "bad request")
+		return
+	}
+	if err := db.UpsertExercisePlannedSet(s.store.DB, ownerID, exerciseID, int(setIndex), formInt(r, "reps"), formFloat(r, "weight_kg")); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// handleExercisePlannedSetDelete handles POST /exercises/{exerciseID}/planned-sets/{setIndex}/delete.
+func (s *Server) handleExercisePlannedSetDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+	exerciseID, err := parseUintParam(r, "exerciseID")
+	if err != nil {
+		http.Error(w, "invalid exercise id", http.StatusBadRequest)
+		return
+	}
+	setIndex, err := parseUintParam(r, "setIndex")
+	if err != nil {
+		http.Error(w, "invalid set index", http.StatusBadRequest)
+		return
+	}
+	if err := s.verifyExerciseOwner(exerciseID, ownerID); err != nil {
+		http.Error(w, "exercise not found", http.StatusNotFound)
+		return
+	}
+	if err := db.DeleteExercisePlannedSet(s.store.DB, ownerID, exerciseID, int(setIndex)); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	// Re-index remaining sets so SetIndex stays contiguous.
+	if err := s.reindexPlannedSets(exerciseID, ownerID); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.renderPlannedSetsFragment(w, exerciseID)
+}
+
+// handleExercisePlannedSetsClear handles POST /exercises/{exerciseID}/planned-sets/clear.
+func (s *Server) handleExercisePlannedSetsClear(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+	exerciseID, err := parseUintParam(r, "exerciseID")
+	if err != nil {
+		http.Error(w, "invalid exercise id", http.StatusBadRequest)
+		return
+	}
+	if err := s.verifyExerciseOwner(exerciseID, ownerID); err != nil {
+		http.Error(w, "exercise not found", http.StatusNotFound)
+		return
+	}
+	if err := db.DeleteAllExercisePlannedSets(s.store.DB, ownerID, exerciseID); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.renderPlannedSetsFragment(w, exerciseID)
+}
+
+// verifyExerciseOwner checks that an exercise belongs to ownerID.
+func (s *Server) verifyExerciseOwner(exerciseID, ownerID uint) error {
+	var ex db.Exercise
+	return s.store.DB.Where("owner_id = ? AND id = ?", ownerID, exerciseID).First(&ex).Error
+}
+
+// reindexPlannedSets renumbers set_index values to 1..N after a delete.
+func (s *Server) reindexPlannedSets(exerciseID, ownerID uint) error {
+	rows, err := db.ListExercisePlannedSets(s.store.DB, exerciseID)
+	if err != nil {
+		return err
+	}
+	for i, row := range rows {
+		if row.SetIndex != i+1 {
+			row.SetIndex = i + 1
+			if err := s.store.DB.Save(&row).Error; err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
