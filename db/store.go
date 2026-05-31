@@ -44,6 +44,7 @@ func (s *Store) AutoMigrate() error {
 		&ClimbingBoard{},
 		&ClimbingTick{},
 		&ManualExerciseSetLog{},
+		&ExercisePlannedSet{},
 		&ClimbingExerciseMeta{},
 		&CalendarEvent{},
 	); err != nil {
