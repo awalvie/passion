@@ -43,7 +43,7 @@
                 <a class="text-sm font-medium link hover:underline" href="/activity-templates/{{.ID}}/edit">{{ .Name }}</a>
               </td>
               <td class="px-3 py-3">
-                {{ if .Label }}<span class="text-xs font-medium px-1.5 py-0.5 rounded border" style="border-color:var(--border);color:var(--text-muted)">{{ .Label }}</span>{{ end }}
+                {{ if .Label }}<span class="text-xs font-medium px-1.5 py-0.5 rounded border" style="border-color:var(--border);color:var(--muted)">{{ .Label }}</span>{{ end }}
               </td>
               <td class="px-3 py-2">
                 <div class="flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 focus-within:opacity-100 transition-opacity">
@@ -65,7 +65,7 @@
                       class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
                       title="Delete"
                       aria-label="Delete {{ .Name }}"
-                      style="color:var(--text-muted)"
+                      style="color:var(--muted)"
                     ><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
                   </form>
                 </div>

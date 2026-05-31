@@ -1254,7 +1254,7 @@
           rows.forEach(function(r) {
             var idx = parseInt(r.dataset.setIndex, 10);
             if (idx === setNow) {
-              r.style.background = 'var(--hover)';
+              r.style.background = 'var(--card-muted)';
               r.querySelector('input')?.focus();
             } else {
               r.style.background = '';
