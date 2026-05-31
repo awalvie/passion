@@ -65,7 +65,73 @@ Maintain consistent naming for domain concepts:
 | A climbing attempt | tick | send, log, ascent |
 | Perceived effort | RPE | effort, intensity |
 
-Flag any terminology drift.
+### Climbing-specific terminology
+
+Climbing has precise vocabulary. Ensure correct usage:
+
+| Term | Meaning | Common misuse |
+|------|---------|---------------|
+| Flash | Sent first try with beta | "First try" (too vague) |
+| Onsight | Sent first try, no beta | Often confused with flash |
+| Redpoint | Sent after previous attempts | "Completed" (too generic) |
+| Project | Route being worked over multiple sessions | "Goal" |
+| Boulder grade (V-scale) | V0–V17 | Missing "V" prefix |
+| Font grade | 6a, 7a+, 8b, etc. | Inconsistent plus/minus notation |
+| Sport grade (YDS) | 5.10a, 5.12d, etc. | Missing "5." prefix |
+| Crimp / half-crimp / open hand | Specific grip positions | Using interchangeably |
+| TUT | Time under tension (for hangs) | Spelling out inconsistently |
+
+Flag any climbing term used incorrectly or inconsistently.
+
+## Data formatting conventions
+
+How to display data types consistently across the app:
+
+| Data type | Format | Examples |
+|-----------|--------|----------|
+| Weight | number + unit, no space | `70kg`, `155lbs` |
+| Duration (short) | m:ss or just seconds | `1:30`, `7s` |
+| Duration (long) | Xh Ym or just minutes | `1h 30m`, `45m` |
+| Sets × reps | number × number | `3×10`, `5×5` |
+| Sets × reps × weight | condensed | `3×10 @ 70kg` |
+| Climbing grade | as-is, no conversion | `V5`, `7a+`, `5.12a` |
+| Dates (recent) | relative | `Today`, `Yesterday`, `3 days ago` |
+| Dates (older) | short absolute | `Mon 5 Jan`, `12 Mar 2026` |
+| Percentages | number + % | `70%`, `85%` |
+| Counts | number + noun | `5 exercises`, `3 sets` |
+
+### Pluralization rules
+
+- Singular when 1: "1 session", "1 exercise"
+- Plural otherwise: "0 sessions", "2 sessions", "15 exercises"
+- Zero state uses prose, not "0 items": "No sessions yet." not "0 sessions"
+- Compound counts: "3 activities, 12 exercises" (comma-separated)
+
+### Compound labels
+
+For dense data, prefer the condensed format:
+
+- `3×10 @ 70kg` over "3 sets of 10 reps at 70 kilograms"
+- `V5 · Flash` over "Grade: V5, Style: Flash"
+- `45m · 8 exercises` over "Duration: 45 minutes, Exercises: 8"
+
+The `·` (middle dot) separates related inline metrics. Use it consistently.
+
+## Scanning hierarchy
+
+A well-written page can be understood in 2 seconds:
+
+1. **Title** tells you where you are
+2. **Primary number/stat** tells you the key fact
+3. **Supporting detail** fills in context
+
+If the most important information isn't the most visually prominent, that's a copy problem even if it's technically a visual design issue. Flag it and coordinate with pixel.
+
+## Collaboration
+
+- **Consult pixel** when a copy issue is really a visual hierarchy issue (right words, wrong emphasis)
+- **Consult scout** when you're unsure whether a climbing term is standard or niche
+- **Inform scribe** when you establish a new formatting convention (so docs stay in sync)
 
 ## Workflow
 

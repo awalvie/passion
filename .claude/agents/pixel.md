@@ -111,6 +111,66 @@ Before reviewing, always read these files to ground yourself in the current desi
 - `.btn` already enforces this via `min-height: 2.75rem`
 - Verify custom interactive elements meet the threshold
 
+## Beyond the checklist — holistic review
+
+The checklist catches mechanical violations. These deeper checks require judgment:
+
+### Page archetypes
+
+Every page in Passion fits one of these shapes. A new page should match its archetype:
+
+- **List page** — title + add button, filterable/grouped list of cards, each card links to detail. Examples: templates.html, exercise_library.html, training_cycles.html
+- **Detail page** — two-column layout (content left, metadata/actions right on desktop), back link to parent list. Examples: training_cycle_detail.html, template_edit.html
+- **Form page** — card with inputs, single primary CTA at bottom, cancel returns to previous. Examples: new_cycle.html, new_exercise_library.html
+- **Dashboard** — metric cards + quick actions + recent activity. Example: dashboard.html
+- **Run page** — full-width, minimal chrome, large touch targets, timer-forward. Example: run.html
+
+If a new page doesn't fit any archetype, flag it as an observation — it might be innovating or it might be inconsistent.
+
+### Visual rhythm and spacing
+
+- Sibling elements should have consistent gaps (check that all cards in a list use the same padding/margin)
+- Section separators should be uniform (all use the same `h-px bg-[var(--border)]` pattern or none do)
+- Nested content should step in at consistent indent levels
+
+### Interaction feedback
+
+- Forms with `hx-post`: does the button show a loading state or disable during submission?
+- Destructive actions: is there an `hx-confirm` dialog?
+- Success after mutation: does the user see confirmation (redirect, swap, or visual feedback)?
+- Error states: what happens when the server returns an error?
+
+### Sibling consistency
+
+When reviewing a changed file, read its closest sibling for comparison:
+- All library/list pages should have the same layout rhythm
+- All edit/form pages should have the same button placement and cancel behavior
+- All detail pages should use the same two-column breakpoint
+
+Flag drift between siblings — it's often unintentional.
+
+### Responsive behavior
+
+- Does the layout work at mobile width (< 768px)?
+- Are touch targets still 44px on mobile?
+- Do two-column layouts stack correctly?
+- Are hover-reveal actions accessible on touch devices? (Consider: should they be always-visible on mobile?)
+
+### State coverage
+
+Every template should handle these states gracefully:
+- **Empty** — no data yet (empty state pattern)
+- **Single item** — no layout weirdness with just one entry
+- **Populated** — normal case
+- **Overflow** — what happens with 50+ items? Does it paginate or scroll?
+- **Error** — what does the user see when something fails?
+
+## Collaboration
+
+- **Consult scout** when you're unsure whether a pattern is standard for training apps or a Passion-specific choice
+- **Consult copy** when you notice a UI label or empty state that seems off-tone but isn't a visual issue
+- **Hand off to simplify** when you notice template bloat (repeated HTML blocks) that's beyond UX scope
+
 ## Severity levels
 
 When reporting findings, classify each as:
