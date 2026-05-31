@@ -111,28 +111,43 @@
                   <input id="open-ex-sess-min-{{ .ExerciseID }}" name="session_duration_minutes" type="number" min="0" step="0.5" class="mt-1 w-full input text-xs" value="{{ durationMinutes .SessionDurationSeconds }}" />
                 </div>
               </div>
+              {{ $exID := .ExerciseID }}
+              {{ $runID := $.RunID }}
+              {{ $prefix := printf "/runs/%d/open/exercises/%d" $runID $exID }}
+              {{ $isPerSet := gt (len .PlannedSets) 0 }}
               <div data-exercise-reps-fields="1" {{ if ne .Kind "reps_and_sets" }}hidden{{ end }}>
-                <div class="grid grid-cols-3 gap-2">
-                  <div>
-                    <label class="text-xs font-medium" for="open-ex-sets-{{ .ExerciseID }}">Sets</label>
-                    <input id="open-ex-sets-{{ .ExerciseID }}" name="sets" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Sets }}" />
-                  </div>
-                  <div>
-                    <label class="text-xs font-medium" for="open-ex-reps-{{ .ExerciseID }}">Reps</label>
-                    <input id="open-ex-reps-{{ .ExerciseID }}" name="reps" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Reps }}" />
-                  </div>
-                  <div>
-                    <label class="text-xs font-medium" for="open-ex-weight-{{ .ExerciseID }}">Weight (kg)</label>
-                    <input id="open-ex-weight-{{ .ExerciseID }}" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input text-xs" value="{{ .WeightKg }}" />
+                {{/* Mode toggle */}}
+                <div class="flex rounded-md overflow-hidden border mb-3" style="border-color:var(--border)">
+                  <button type="button"
+                    class="flex-1 px-3 py-1.5 text-xs font-medium {{ if $isPerSet }}btn-ghost{{ else }}btn-primary{{ end }}"
+                    data-reps-mode-btn="uniform"
+                    onclick="openExSetMode(this,'uniform','{{ $prefix }}','{{ $exID }}')">Same for all</button>
+                  <button type="button"
+                    class="flex-1 px-3 py-1.5 text-xs font-medium {{ if $isPerSet }}btn-primary{{ else }}btn-ghost{{ end }}"
+                    data-reps-mode-btn="perset"
+                    onclick="openExSetMode(this,'perset','{{ $prefix }}','{{ $exID }}')">Per set</button>
+                </div>
+
+                {{/* Uniform panel */}}
+                <div data-reps-uniform {{ if $isPerSet }}hidden{{ end }}>
+                  <div class="grid grid-cols-3 gap-2">
+                    <div>
+                      <label class="text-xs font-medium" for="open-ex-sets-{{ $exID }}">Sets</label>
+                      <input id="open-ex-sets-{{ $exID }}" name="sets" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Sets }}" {{ if $isPerSet }}disabled{{ end }} />
+                    </div>
+                    <div>
+                      <label class="text-xs font-medium" for="open-ex-reps-{{ $exID }}">Reps</label>
+                      <input id="open-ex-reps-{{ $exID }}" name="reps" type="number" min="0" class="mt-1 w-full input text-xs" value="{{ .Reps }}" {{ if $isPerSet }}disabled{{ end }} />
+                    </div>
+                    <div>
+                      <label class="text-xs font-medium" for="open-ex-weight-{{ $exID }}">Weight (kg)</label>
+                      <input id="open-ex-weight-{{ $exID }}" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input text-xs" value="{{ .WeightKg }}" {{ if $isPerSet }}disabled{{ end }} />
+                    </div>
                   </div>
                 </div>
 
-                {{/* Per-set targets */}}
-                {{ $exID := .ExerciseID }}
-                {{ $runID := $.RunID }}
-                {{ $prefix := printf "/runs/%d/open/exercises/%d" $runID $exID }}
-                <div class="mt-3 border-t pt-3" style="border-color:var(--border)">
-                  <div class="text-[11px] font-semibold muted uppercase tracking-widest mb-2">Per-set targets</div>
+                {{/* Per-set panel */}}
+                <div data-reps-perset {{ if not $isPerSet }}hidden{{ end }}>
                   <div
                     hx-get="/exercises/{{ $exID }}/history-hint"
                     hx-trigger="load"
@@ -143,7 +158,7 @@
                   <div id="planned-sets-{{ $exID }}" hx-target="this" class="space-y-2">
                     {{ range .PlannedSets }}
                     <div class="flex items-center gap-2">
-                      <span class="text-xs muted w-10 shrink-0">Set {{ .SetIndex }}</span>
+                      <span class="text-xs muted w-5 shrink-0 text-center">{{ .SetIndex }}</span>
                       <form
                         hx-post="{{ $prefix }}/planned-sets/{{ .SetIndex }}/save"
                         hx-swap="none"
@@ -162,23 +177,17 @@
                       ><i data-lucide="x" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i></button>
                     </div>
                     {{ end }}
-                    <div class="flex items-center gap-2 mt-1">
-                      <button type="button"
-                        class="rounded-md btn-ghost px-3 py-1.5 text-xs font-medium"
-                        hx-post="{{ $prefix }}/planned-sets"
-                        hx-target="#planned-sets-{{ $exID }}"
-                        hx-swap="outerHTML"
-                      >+ Add set</button>
-                      {{ if .PlannedSets }}
-                      <button type="button"
-                        class="rounded-md btn-ghost px-3 py-1.5 text-xs muted"
-                        hx-post="{{ $prefix }}/planned-sets/clear"
-                        hx-target="#planned-sets-{{ $exID }}"
-                        hx-swap="outerHTML"
-                      >Remove plan</button>
-                      {{ end }}
-                    </div>
+                    <button type="button"
+                      class="mt-1 rounded-md btn-ghost px-3 py-1.5 text-xs font-medium"
+                      hx-post="{{ $prefix }}/planned-sets"
+                      hx-target="#planned-sets-{{ $exID }}"
+                      hx-swap="outerHTML"
+                    >+ Add set</button>
                   </div>
+                  {{/* Hidden uniform fields so the save form submits consistent zeroes */}}
+                  <input type="hidden" name="sets" value="{{ .Sets }}" />
+                  <input type="hidden" name="reps" value="{{ .Reps }}" />
+                  <input type="hidden" name="weight_kg" value="{{ .WeightKg }}" />
                 </div>
               </div>
               <div data-exercise-timed-fields="1" {{ if ne .Kind "timed_reps" }}hidden{{ end }}>
@@ -298,5 +307,59 @@
 
     if (typeof window.__passionRenderIcons === 'function') window.__passionRenderIcons();
   })();
+
+  // Toggle between uniform and per-set mode on an existing open-session exercise.
+  // prefix = e.g. "/runs/7/open/exercises/42", exID = "42"
+  function openExSetMode(btn, mode, prefix, exID) {
+    var repsFields = btn.closest('[data-exercise-reps-fields]');
+    if (!repsFields) return;
+    var uniformPanel = repsFields.querySelector('[data-reps-uniform]');
+    var persetPanel  = repsFields.querySelector('[data-reps-perset]');
+    var uniformBtn   = repsFields.querySelector('[data-reps-mode-btn="uniform"]');
+    var persetBtn    = repsFields.querySelector('[data-reps-mode-btn="perset"]');
+
+    if (mode === 'perset') {
+      uniformPanel.hidden = true;
+      persetPanel.hidden = false;
+      uniformPanel.querySelectorAll('input').forEach(function(el) { el.disabled = true; });
+      uniformBtn.className = uniformBtn.className.replace('btn-primary', 'btn-ghost');
+      persetBtn.className  = persetBtn.className.replace('btn-ghost', 'btn-primary');
+    } else {
+      // Switching to uniform. Check if there are per-set rows to clear.
+      var rowContainer = repsFields.querySelector('#planned-sets-' + exID);
+      var hasRows = rowContainer && rowContainer.querySelectorAll('.flex.items-center').length > 0;
+
+      if (hasRows && !uniformBtn.dataset.confirmPending) {
+        // First tap: show inline warning.
+        uniformBtn.dataset.confirmPending = '1';
+        var warning = document.createElement('p');
+        warning.className = 'text-[10px] muted mt-1';
+        warning.id = 'reps-mode-warning-' + exID;
+        warning.textContent = 'Will remove per-set plan. Tap again to confirm.';
+        uniformBtn.parentNode.insertAdjacentElement('afterend', warning);
+        return;
+      }
+
+      // Second tap (or no rows): proceed.
+      var warningEl = document.getElementById('reps-mode-warning-' + exID);
+      if (warningEl) warningEl.remove();
+      delete uniformBtn.dataset.confirmPending;
+
+      if (hasRows) {
+        // Pre-fill Sets from row count before clearing.
+        var rowCount = rowContainer.querySelectorAll('.flex.items-center').length;
+        var setsInput = uniformPanel.querySelector('input[name="sets"]');
+        if (setsInput && rowCount > 0) setsInput.value = rowCount;
+        // Fire the clear request.
+        htmx.ajax('POST', prefix + '/planned-sets/clear', { target: '#planned-sets-' + exID, swap: 'outerHTML' });
+      }
+
+      uniformPanel.hidden = false;
+      persetPanel.hidden = true;
+      uniformPanel.querySelectorAll('input').forEach(function(el) { el.disabled = false; });
+      uniformBtn.className = uniformBtn.className.replace('btn-ghost', 'btn-primary');
+      persetBtn.className  = persetBtn.className.replace('btn-primary', 'btn-ghost');
+    }
+  }
 </script>
 {{ end }}
