@@ -20,7 +20,7 @@
             </div>
             <div class="flex items-center gap-2 shrink-0">
               {{ if ne .Kind "reps_and_sets" }}
-              <span class="text-[10px] font-medium px-1 py-0.5 rounded border" style="border-color:var(--border);color:var(--text-muted)">{{ if eq .Kind "timed_reps" }}timed{{ else if eq .Kind "session" }}session{{ else if eq .Kind "exercise_catalog" }}catalog{{ else if eq .Kind "climbing" }}climbing{{ end }}</span>
+              <span class="text-[10px] font-medium px-1 py-0.5 rounded border" style="border-color:var(--border);color:var(--muted)">{{ if eq .Kind "timed_reps" }}timed{{ else if eq .Kind "session" }}session{{ else if eq .Kind "exercise_catalog" }}catalog{{ else if eq .Kind "climbing" }}climbing{{ end }}</span>
               {{ end }}
               <div
                 class="dnd-handle shrink-0"
@@ -312,7 +312,7 @@
               {{ range .LibraryExercises }}
                 <li role="option" aria-selected="false" data-value="{{ .ID }}" data-label="{{ .Name }}"
                   class="px-3 py-2 cursor-pointer select-none"
-                  onmouseover="this.style.background='var(--hover)'"
+                  onmouseover="this.style.background='var(--card-muted)'"
                   onmouseout="this.style.background=''"
                 >{{ .Name }}</li>
               {{ end }}
