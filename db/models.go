@@ -310,6 +310,17 @@ type ClimbingExerciseMeta struct {
 	BoardID    *uint  `gorm:"index"` // optional reference to a configured ClimbingBoard
 }
 
+// ExercisePlannedSet records a per-set target (reps + weight) on an exercise.
+// Used for pre-planned progressive loading (e.g. set 1: 5×60kg, set 2: 3×80kg).
+type ExercisePlannedSet struct {
+	gorm.Model
+	OwnerID    uint    `gorm:"index;not null"`
+	ExerciseID uint    `gorm:"index:idx_exercise_planned_set,unique,not null"`
+	SetIndex   int     `gorm:"index:idx_exercise_planned_set,unique,not null"` // 1-based
+	Reps       int
+	WeightKg   float64
+}
+
 // ManualExerciseSetLog records per-set reps and weight for a manual exercise.
 type ManualExerciseSetLog struct {
 	gorm.Model

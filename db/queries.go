@@ -720,6 +720,43 @@ func DeleteAllManualExerciseSetLogs(gdb *gorm.DB, ownerID, runID, exerciseID uin
 		Delete(&ManualExerciseSetLog{}).Error
 }
 
+// ListExercisePlannedSets returns all planned sets for an exercise ordered by set_index.
+func ListExercisePlannedSets(gdb *gorm.DB, exerciseID uint) ([]ExercisePlannedSet, error) {
+	var rows []ExercisePlannedSet
+	err := gdb.Where("exercise_id = ?", exerciseID).Order("set_index asc").Find(&rows).Error
+	return rows, err
+}
+
+// UpsertExercisePlannedSet creates or updates a planned set for an exercise.
+func UpsertExercisePlannedSet(gdb *gorm.DB, ownerID, exerciseID uint, setIndex, reps int, weightKg float64) error {
+	var existing ExercisePlannedSet
+	err := gdb.Where("exercise_id = ? AND set_index = ?", exerciseID, setIndex).First(&existing).Error
+	if err != nil {
+		return gdb.Create(&ExercisePlannedSet{
+			OwnerID:    ownerID,
+			ExerciseID: exerciseID,
+			SetIndex:   setIndex,
+			Reps:       reps,
+			WeightKg:   weightKg,
+		}).Error
+	}
+	existing.Reps = reps
+	existing.WeightKg = weightKg
+	return gdb.Save(&existing).Error
+}
+
+// DeleteExercisePlannedSet removes a single planned set entry.
+func DeleteExercisePlannedSet(gdb *gorm.DB, ownerID, exerciseID uint, setIndex int) error {
+	return gdb.Where("owner_id = ? AND exercise_id = ? AND set_index = ?", ownerID, exerciseID, setIndex).
+		Delete(&ExercisePlannedSet{}).Error
+}
+
+// DeleteAllExercisePlannedSets removes all planned sets for an exercise.
+func DeleteAllExercisePlannedSets(gdb *gorm.DB, ownerID, exerciseID uint) error {
+	return gdb.Where("owner_id = ? AND exercise_id = ?", ownerID, exerciseID).
+		Delete(&ExercisePlannedSet{}).Error
+}
+
 // ListCalendarEventsInRange returns all calendar events that overlap [start, end] (inclusive),
 // ordered by start_date ascending.
 func ListCalendarEventsInRange(gdb *gorm.DB, ownerID uint, start, end time.Time) ([]CalendarEvent, error) {
