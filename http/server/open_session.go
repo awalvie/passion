@@ -186,6 +186,20 @@ func (s *Server) handleOpenAddExercise(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Save any per-set targets submitted with the form (planned_set_reps_N / planned_set_weight_kg_N).
+	for i := 1; ; i++ {
+		repsKey := "planned_set_reps_" + strconv.Itoa(i)
+		weightKey := "planned_set_weight_kg_" + strconv.Itoa(i)
+		repsVal := strings.TrimSpace(r.FormValue(repsKey))
+		weightVal := strings.TrimSpace(r.FormValue(weightKey))
+		if repsVal == "" && weightVal == "" {
+			break
+		}
+		reps, _ := strconv.Atoi(repsVal)
+		weight, _ := strconv.ParseFloat(weightVal, 64)
+		_ = db.UpsertExercisePlannedSet(s.store.DB, ownerID, ex.ID, i, reps, weight)
+	}
+
 	w.Header().Set("HX-Redirect", "/runs/"+strconv.FormatUint(uint64(runID), 10))
 	w.WriteHeader(http.StatusOK)
 }
