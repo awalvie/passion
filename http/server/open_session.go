@@ -304,7 +304,17 @@ func (s *Server) handleOpenStartSession(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	w.Header().Set("HX-Redirect", "/runs/"+strconv.FormatUint(uint64(runID), 10))
+	// Redirect to the first exercise in the guided playlist view.
+	var firstEx db.Exercise
+	dest := "/runs/" + strconv.FormatUint(uint64(runID), 10)
+	if err := s.store.DB.
+		Where("session_run_id = ? AND parent_exercise_id IS NULL", runID).
+		Order("order_index ASC").
+		First(&firstEx).Error; err == nil {
+		dest += "?exercise=" + strconv.FormatUint(uint64(firstEx.ID), 10)
+	}
+
+	w.Header().Set("HX-Redirect", dest)
 	w.WriteHeader(http.StatusOK)
 }
 
