@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"passion/db"
+	"passion/pages"
 )
 
 // sliceStr returns the trimmed string at index i of sl, or def if out of range or blank.
@@ -437,6 +438,8 @@ func (s *Server) handleOpenDeleteExercise(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	_ = db.DeleteAllExercisePlannedSets(s.store.DB, ownerID, exID)
+
 	if err := s.store.DB.Unscoped().Delete(&ex).Error; err != nil {
 		s.serverError(w, r, err)
 		return
@@ -444,4 +447,139 @@ func (s *Server) handleOpenDeleteExercise(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("HX-Redirect", "/runs/"+strconv.FormatUint(uint64(runID), 10))
 	w.WriteHeader(http.StatusOK)
+}
+
+// handleOpenPlannedSets handles POST /runs/{runID}/open/exercises/{exerciseID}/planned-sets.
+func (s *Server) handleOpenPlannedSets(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+	runID, exerciseID, ok := s.resolveOpenExercise(w, r, ownerID)
+	if !ok {
+		return
+	}
+	rows, _ := db.ListExercisePlannedSets(s.store.DB, exerciseID)
+	nextIndex := len(rows) + 1
+	if err := db.UpsertExercisePlannedSet(s.store.DB, ownerID, exerciseID, nextIndex, 0, 0); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.renderOpenPlannedSetsFragment(w, runID, exerciseID)
+}
+
+// handleOpenPlannedSetSave handles POST /runs/{runID}/open/exercises/{exerciseID}/planned-sets/{setIndex}/save.
+func (s *Server) handleOpenPlannedSetSave(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+	_, exerciseID, ok := s.resolveOpenExercise(w, r, ownerID)
+	if !ok {
+		return
+	}
+	setIndex, err := parseUintParam(r, "setIndex")
+	if err != nil {
+		http.Error(w, "invalid set index", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		s.badRequest(w, "bad request")
+		return
+	}
+	if err := db.UpsertExercisePlannedSet(s.store.DB, ownerID, exerciseID, int(setIndex), formInt(r, "reps"), formFloat(r, "weight_kg")); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// handleOpenPlannedSetDelete handles POST /runs/{runID}/open/exercises/{exerciseID}/planned-sets/{setIndex}/delete.
+func (s *Server) handleOpenPlannedSetDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+	runID, exerciseID, ok := s.resolveOpenExercise(w, r, ownerID)
+	if !ok {
+		return
+	}
+	setIndex, err := parseUintParam(r, "setIndex")
+	if err != nil {
+		http.Error(w, "invalid set index", http.StatusBadRequest)
+		return
+	}
+	if err := db.DeleteExercisePlannedSet(s.store.DB, ownerID, exerciseID, int(setIndex)); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	if err := s.reindexPlannedSets(exerciseID, ownerID); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.renderOpenPlannedSetsFragment(w, runID, exerciseID)
+}
+
+// handleOpenPlannedSetsClear handles POST /runs/{runID}/open/exercises/{exerciseID}/planned-sets/clear.
+func (s *Server) handleOpenPlannedSetsClear(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+	runID, exerciseID, ok := s.resolveOpenExercise(w, r, ownerID)
+	if !ok {
+		return
+	}
+	if err := db.DeleteAllExercisePlannedSets(s.store.DB, ownerID, exerciseID); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.renderOpenPlannedSetsFragment(w, runID, exerciseID)
+}
+
+// resolveOpenExercise validates runID + exerciseID ownership for open session planned-set routes.
+// Returns (runID, exerciseID, ok). Writes the error response if !ok.
+func (s *Server) resolveOpenExercise(w http.ResponseWriter, r *http.Request, ownerID uint) (uint, uint, bool) {
+	runID, err := parseUintParam(r, "runID")
+	if err != nil {
+		http.Error(w, "invalid run id", http.StatusBadRequest)
+		return 0, 0, false
+	}
+	exerciseID, err := parseUintParam(r, "exerciseID")
+	if err != nil {
+		http.Error(w, "invalid exercise id", http.StatusBadRequest)
+		return 0, 0, false
+	}
+	var run db.SessionRun
+	if err := s.store.DB.Where("owner_id = ? AND id = ? AND is_open = ?", ownerID, runID, true).First(&run).Error; err != nil {
+		http.Error(w, "run not found", http.StatusNotFound)
+		return 0, 0, false
+	}
+	var ex db.Exercise
+	if err := s.store.DB.Where("owner_id = ? AND id = ? AND session_run_id = ?", ownerID, exerciseID, runID).First(&ex).Error; err != nil {
+		http.Error(w, "exercise not found", http.StatusNotFound)
+		return 0, 0, false
+	}
+	return runID, exerciseID, true
+}
+
+func (s *Server) renderOpenPlannedSetsFragment(w http.ResponseWriter, runID, exerciseID uint) {
+	rows, _ := db.ListExercisePlannedSets(s.store.DB, exerciseID)
+	views := make([]pages.ExercisePlannedSetView, len(rows))
+	for i, r := range rows {
+		views[i] = pages.ExercisePlannedSetView{SetIndex: r.SetIndex, Reps: r.Reps, WeightKg: r.WeightKg}
+	}
+	s.pages.RenderFragment(w, "fragments/planned_sets", struct {
+		ExerciseID  uint
+		PlannedSets []pages.ExercisePlannedSetView
+		RoutePrefix string
+	}{
+		ExerciseID:  exerciseID,
+		PlannedSets: views,
+		RoutePrefix: "/runs/" + strconv.FormatUint(uint64(runID), 10) + "/open/exercises/" + strconv.FormatUint(uint64(exerciseID), 10),
+	})
 }

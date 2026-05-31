@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"gorm.io/gorm"
 
 	"passion/db"
 	"passion/pages"
@@ -306,6 +307,50 @@ func (s *Server) completeRunExercise(w http.ResponseWriter, r *http.Request, run
 	if action == "skip" {
 		status = db.RunStatusSkipped
 	}
+
+	// Parse per-set actuals (set_reps_1, set_weight_kg_1, …) when present.
+	// These are submitted when the exercise has planned sets configured.
+	actualSets := formInt(r, "actual_sets")
+	actualReps := formInt(r, "actual_reps")
+	actualWeightKg := formFloat(r, "actual_weight_kg")
+
+	if status == db.RunStatusCompleted {
+		var perSetReps []int
+		var perSetWeights []float64
+		for i := 1; ; i++ {
+			repsKey := "set_reps_" + strconv.Itoa(i)
+			weightKey := "set_weight_kg_" + strconv.Itoa(i)
+			repsVal := strings.TrimSpace(r.FormValue(repsKey))
+			weightVal := strings.TrimSpace(r.FormValue(weightKey))
+			if repsVal == "" && weightVal == "" {
+				break
+			}
+			reps, _ := strconv.Atoi(repsVal)
+			weight, _ := strconv.ParseFloat(weightVal, 64)
+			perSetReps = append(perSetReps, reps)
+			perSetWeights = append(perSetWeights, weight)
+		}
+		if len(perSetReps) > 0 {
+			for i, reps := range perSetReps {
+				_ = db.UpsertManualExerciseSetLog(s.store.DB, ownerID, runID, exerciseID, i+1, reps, perSetWeights[i])
+			}
+			// Aggregate: total sets, avg reps, max weight.
+			actualSets = len(perSetReps)
+			totalReps := 0
+			maxWeight := 0.0
+			for i, reps := range perSetReps {
+				totalReps += reps
+				if perSetWeights[i] > maxWeight {
+					maxWeight = perSetWeights[i]
+				}
+			}
+			if actualSets > 0 {
+				actualReps = totalReps / actualSets
+			}
+			actualWeightKg = maxWeight
+		}
+	}
+
 	comp := &db.RunExerciseCompletion{
 		OwnerID:        ownerID,
 		RunID:          runID,
@@ -314,9 +359,9 @@ func (s *Server) completeRunExercise(w http.ResponseWriter, r *http.Request, run
 		CompletedAt:    time.Now(),
 		ElapsedSeconds: elapsedSeconds,
 		RunNotes:       runNotes,
-		ActualSets:     formInt(r, "actual_sets"),
-		ActualReps:     formInt(r, "actual_reps"),
-		ActualWeightKg: formFloat(r, "actual_weight_kg"),
+		ActualSets:     actualSets,
+		ActualReps:     actualReps,
+		ActualWeightKg: actualWeightKg,
 	}
 	if err := s.store.DB.Create(comp).Error; err != nil {
 		return err
@@ -493,6 +538,7 @@ func (s *Server) loadOpenSteps(runID uint) []pages.RunStep {
 	for _, ex := range exercises {
 		st := exerciseToRunStep(ex)
 		st.ActivityName = "Exercises"
+		st.PlannedSets = loadPlannedSetViews(s.store.DB, ex.ID)
 		steps = append(steps, st)
 	}
 	return steps
@@ -516,6 +562,18 @@ func exerciseToRunStep(ex db.Exercise) pages.RunStep {
 		TemplateNotes:          ex.Notes,
 		Status:                 "pending",
 	}
+}
+
+func loadPlannedSetViews(gdb *gorm.DB, exerciseID uint) []pages.ExercisePlannedSetView {
+	rows, _ := db.ListExercisePlannedSets(gdb, exerciseID)
+	if len(rows) == 0 {
+		return nil
+	}
+	views := make([]pages.ExercisePlannedSetView, len(rows))
+	for i, r := range rows {
+		views[i] = pages.ExercisePlannedSetView{SetIndex: r.SetIndex, Reps: r.Reps, WeightKg: r.WeightKg}
+	}
+	return views
 }
 
 func catalogChildren(all []db.Exercise, parentID uint) []db.Exercise {
@@ -651,6 +709,7 @@ func (s *Server) buildRunSteps(ss db.ScheduledSession, runID uint, ownerID uint)
 							st := applyOverride(exerciseToRunStep(*chosen), *chosen)
 							st.ActivityID = act.ID
 							st.ActivityName = actName
+							st.PlannedSets = loadPlannedSetViews(s.store.DB, chosen.ID)
 							steps = append(steps, st)
 						}
 					}
@@ -668,6 +727,7 @@ func (s *Server) buildRunSteps(ss db.ScheduledSession, runID uint, ownerID uint)
 			st := applyOverride(exerciseToRunStep(ex), ex)
 			st.ActivityID = act.ID
 			st.ActivityName = actName
+			st.PlannedSets = loadPlannedSetViews(s.store.DB, ex.ID)
 			steps = append(steps, st)
 		}
 	}
