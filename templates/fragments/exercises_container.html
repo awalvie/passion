@@ -146,6 +146,59 @@
                     <input id="ex-weight-{{ .ID }}-edit" name="weight_kg" type="number" step="0.5" class="mt-1 w-full input text-xs" value="{{ .WeightKg }}" />
                   </div>
                 </div>
+
+                {{/* Per-set targets */}}
+                {{ $exID := .ID }}
+                {{ $ps := index $.PlannedSets $exID }}
+                <div class="mt-3 border-t pt-3" style="border-color:var(--border)">
+                  <div class="text-[11px] font-semibold muted uppercase tracking-widest mb-2">Per-set targets</div>
+                  <div
+                    hx-get="/exercises/{{ $exID }}/history-hint"
+                    hx-trigger="load"
+                    hx-target="this"
+                    hx-swap="outerHTML"
+                    class="mb-2">
+                  </div>
+                  <div id="planned-sets-{{ $exID }}" hx-target="this" class="space-y-2">
+                    {{ range $ps }}
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs muted w-10 shrink-0">Set {{ .SetIndex }}</span>
+                      <form
+                        hx-post="/exercises/{{ $exID }}/planned-sets/{{ .SetIndex }}/save"
+                        hx-swap="none"
+                        hx-trigger="change delay:600ms"
+                        class="flex-1 grid grid-cols-2 gap-2"
+                      >
+                        <input name="reps" type="number" min="0" value="{{ if .Reps }}{{ .Reps }}{{ end }}" placeholder="Reps" class="w-full input text-xs" />
+                        <input name="weight_kg" type="number" min="0" step="0.5" value="{{ if .WeightKg }}{{ .WeightKg }}{{ end }}" placeholder="kg" class="w-full input text-xs" />
+                      </form>
+                      <button type="button"
+                        class="shrink-0 rounded-md btn-ghost p-1.5 min-w-[1.75rem] min-h-[1.75rem] inline-flex items-center justify-center"
+                        hx-post="/exercises/{{ $exID }}/planned-sets/{{ .SetIndex }}/delete"
+                        hx-target="#planned-sets-{{ $exID }}"
+                        hx-swap="outerHTML"
+                        title="Remove set"
+                      ><i data-lucide="x" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i></button>
+                    </div>
+                    {{ end }}
+                    <div class="flex items-center gap-2 mt-1">
+                      <button type="button"
+                        class="rounded-md btn-ghost px-3 py-1.5 text-xs font-medium"
+                        hx-post="/exercises/{{ $exID }}/planned-sets"
+                        hx-target="#planned-sets-{{ $exID }}"
+                        hx-swap="outerHTML"
+                      >+ Add set</button>
+                      {{ if $ps }}
+                      <button type="button"
+                        class="rounded-md btn-ghost px-3 py-1.5 text-xs muted"
+                        hx-post="/exercises/{{ $exID }}/planned-sets/clear"
+                        hx-target="#planned-sets-{{ $exID }}"
+                        hx-swap="outerHTML"
+                      >Remove plan</button>
+                      {{ end }}
+                    </div>
+                  </div>
+                </div>
               </div>
               <div data-exercise-timed-fields="1" {{ if ne .Kind "timed_reps" }}hidden{{ end }}>
                 <div class="grid grid-cols-3 gap-2">
