@@ -156,6 +156,13 @@
           <div><label class="text-xs font-medium">Reps</label><input name="reps" type="number" min="0" class="mt-1 w-full input text-xs" /></div>
           <div><label class="text-xs font-medium">Weight (kg)</label><input name="weight_kg" type="number" step="0.5" class="mt-1 w-full input text-xs" /></div>
         </div>
+        <div class="mt-3 border-t pt-3" style="border-color:var(--border)">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] font-semibold muted uppercase tracking-widest">Per-set targets</span>
+            <button type="button" class="rounded btn-ghost px-2 py-1 text-xs" onclick="newExAddSetRow(this)">+ Add set</button>
+          </div>
+          <div class="new-ex-set-rows space-y-1.5"></div>
+        </div>
       </div>
       <div data-exercise-timed-fields="1" hidden>
         <div class="grid grid-cols-3 gap-2">
@@ -269,5 +276,40 @@
     window.__passionSyncExerciseKindGroups(newKindSel);
   }
 })();
+
+// Add a per-set target row to the new-exercise form.
+function newExAddSetRow(btn) {
+  var container = btn.closest('[data-exercise-reps-fields]').querySelector('.new-ex-set-rows');
+  if (!container) return;
+  var idx = container.querySelectorAll('.new-ex-set-row').length + 1;
+  var lastWeight = '';
+  var prev = container.querySelector('.new-ex-set-row:last-child input[name^="planned_set_weight_kg_"]');
+  if (prev) lastWeight = prev.value;
+  var row = document.createElement('div');
+  row.className = 'new-ex-set-row flex items-center gap-2';
+  row.innerHTML =
+    '<span class="text-xs muted w-5 shrink-0 text-center">' + idx + '</span>' +
+    '<input type="number" name="planned_set_reps_' + idx + '" min="0" placeholder="Reps" class="flex-1 input text-xs" />' +
+    '<input type="number" name="planned_set_weight_kg_' + idx + '" min="0" step="0.5" value="' + lastWeight + '" placeholder="kg" class="flex-1 input text-xs" />' +
+    '<button type="button" class="shrink-0 rounded btn-ghost p-1 inline-flex opacity-40 hover:opacity-100" onclick="newExRemoveSetRow(this)" aria-label="Remove">' +
+    '<i data-lucide="x" style="width:0.75rem;height:0.75rem"></i></button>';
+  container.appendChild(row);
+  if (window.__passionRenderIcons) window.__passionRenderIcons();
+  row.querySelector('input').focus();
+}
+
+function newExRemoveSetRow(btn) {
+  var container = btn.closest('.new-ex-set-rows');
+  var row = btn.closest('.new-ex-set-row');
+  if (!row || !container) return;
+  row.remove();
+  // Renumber
+  container.querySelectorAll('.new-ex-set-row').forEach(function(r, i) {
+    var idx = i + 1;
+    r.querySelector('span').textContent = idx;
+    r.querySelector('input[name^="planned_set_reps_"]').name = 'planned_set_reps_' + idx;
+    r.querySelector('input[name^="planned_set_weight_kg_"]').name = 'planned_set_weight_kg_' + idx;
+  });
+}
 </script>
 {{ end }}
