@@ -599,7 +599,49 @@
               </div>
             </div>
           </div>
-          {{ if not (or $isSession $isClimbing) }}
+          {{ if eq .CurrentStep.Kind "reps_and_sets" }}
+          {{/* Per-set log: one row per set, add/remove client-side. Pre-filled from planned sets if configured. */}}
+          <div class="run-notes-collapse" id="set-log-area">
+            <div class="text-xs font-semibold mb-2" style="color:var(--muted)">Sets</div>
+            <div id="set-log-rows" class="space-y-2">
+              {{ if .CurrentStep.PlannedSets }}
+                {{ range .CurrentStep.PlannedSets }}
+                <div class="set-log-row flex items-center gap-2" data-set-index="{{ .SetIndex }}">
+                  <span class="text-xs muted w-6 shrink-0 text-center">{{ .SetIndex }}</span>
+                  <input type="number" name="set_reps_{{ .SetIndex }}" min="0"
+                    value="{{ if .Reps }}{{ .Reps }}{{ end }}" placeholder="Reps"
+                    class="flex-1 input text-sm" />
+                  <input type="number" name="set_weight_kg_{{ .SetIndex }}" min="0" step="0.5"
+                    value="{{ if .WeightKg }}{{ .WeightKg }}{{ end }}" placeholder="kg"
+                    class="flex-1 input text-sm" />
+                  <button type="button" class="shrink-0 rounded btn-ghost p-1 inline-flex" onclick="removeSetRow(this)" aria-label="Remove set">
+                    <i data-lucide="x" style="width:0.75rem;height:0.75rem"></i>
+                  </button>
+                </div>
+                {{ end }}
+              {{ else }}
+                <div class="set-log-row flex items-center gap-2" data-set-index="1">
+                  <span class="text-xs muted w-6 shrink-0 text-center">1</span>
+                  <input type="number" name="set_reps_1" min="0"
+                    value="{{ if gt .CurrentStep.Reps 0 }}{{ .CurrentStep.Reps }}{{ end }}" placeholder="Reps"
+                    class="flex-1 input text-sm" />
+                  <input type="number" name="set_weight_kg_1" min="0" step="0.5"
+                    value="{{ if gt .CurrentStep.WeightKg 0.0 }}{{ .CurrentStep.WeightKg }}{{ end }}" placeholder="kg"
+                    class="flex-1 input text-sm" />
+                  <button type="button" class="shrink-0 rounded btn-ghost p-1 inline-flex" onclick="removeSetRow(this)" aria-label="Remove set">
+                    <i data-lucide="x" style="width:0.75rem;height:0.75rem"></i>
+                  </button>
+                </div>
+              {{ end }}
+            </div>
+            <button type="button" class="mt-2 rounded-md btn-ghost px-3 py-1.5 text-xs font-medium" onclick="addSetRow()">+ Add set</button>
+            {{/* Hidden aggregates computed from set rows on submit */}}
+            <input type="hidden" name="actual_sets" id="actual-sets-agg" value="0" />
+            <input type="hidden" name="actual_reps" id="actual-reps-agg" value="0" />
+            <input type="hidden" name="actual_weight_kg" id="actual-weight-agg" value="0" />
+          </div>
+          {{ else if not (or $isSession $isClimbing) }}
+          {{/* Timed reps and other non-session kinds: summary log (existing behaviour) */}}
           <details class="run-notes-collapse" id="actual-values-detail">
             <summary class="run-collapse-toggle"><i data-lucide="sliders-horizontal" class="run-collapse-icon"></i><i data-lucide="chevron-right" class="run-collapse-chevron"></i>
               Logged as:
@@ -706,6 +748,79 @@
         if (s > 0 || r > 0) parts.push(s + '×' + r);
         if (w > 0) parts.push(w.toFixed(1) + 'kg');
         lbl.textContent = parts.length ? parts.join(' · ') : 'tap to log';
+      }
+
+      // Per-set log: add a new set row.
+      function addSetRow() {
+        var container = document.getElementById('set-log-rows');
+        if (!container) return;
+        var rows = container.querySelectorAll('.set-log-row');
+        var nextIdx = rows.length + 1;
+        // Use the last row's weight as default for the new set.
+        var lastWeight = '';
+        if (rows.length > 0) {
+          var lastWInput = rows[rows.length - 1].querySelector('input[name^="set_weight_kg_"]');
+          if (lastWInput) lastWeight = lastWInput.value;
+        }
+        var row = document.createElement('div');
+        row.className = 'set-log-row flex items-center gap-2';
+        row.dataset.setIndex = nextIdx;
+        row.innerHTML =
+          '<span class="text-xs muted w-6 shrink-0 text-center">' + nextIdx + '</span>' +
+          '<input type="number" name="set_reps_' + nextIdx + '" min="0" placeholder="Reps" class="flex-1 input text-sm" />' +
+          '<input type="number" name="set_weight_kg_' + nextIdx + '" min="0" step="0.5" value="' + lastWeight + '" placeholder="kg" class="flex-1 input text-sm" />' +
+          '<button type="button" class="shrink-0 rounded btn-ghost p-1 inline-flex" onclick="removeSetRow(this)" aria-label="Remove set">' +
+          '<i data-lucide="x" style="width:0.75rem;height:0.75rem"></i></button>';
+        container.appendChild(row);
+        if (window.__passionRenderIcons) window.__passionRenderIcons();
+        row.querySelector('input').focus();
+        // Update set counter max.
+        var setMax = document.getElementById('run-set-max');
+        if (setMax) setMax.textContent = nextIdx;
+      }
+
+      // Per-set log: remove a set row and renumber.
+      function removeSetRow(btn) {
+        var container = document.getElementById('set-log-rows');
+        if (!container) return;
+        var row = btn.closest('.set-log-row');
+        if (!row) return;
+        // Always keep at least one row.
+        if (container.querySelectorAll('.set-log-row').length <= 1) return;
+        row.remove();
+        // Renumber remaining rows.
+        var rows = container.querySelectorAll('.set-log-row');
+        rows.forEach(function(r, i) {
+          var idx = i + 1;
+          r.dataset.setIndex = idx;
+          r.querySelector('span').textContent = idx;
+          var repsInput = r.querySelector('input[name^="set_reps_"]');
+          var wInput = r.querySelector('input[name^="set_weight_kg_"]');
+          if (repsInput) repsInput.name = 'set_reps_' + idx;
+          if (wInput) wInput.name = 'set_weight_kg_' + idx;
+        });
+        var setMax = document.getElementById('run-set-max');
+        if (setMax) setMax.textContent = rows.length;
+      }
+
+      // Compute aggregate hidden fields from set rows before form submit.
+      function computeSetAggregates() {
+        var rows = document.querySelectorAll('#set-log-rows .set-log-row');
+        if (!rows.length) return;
+        var totalReps = 0, maxWeight = 0;
+        rows.forEach(function(r) {
+          var repsInput = r.querySelector('input[name^="set_reps_"]');
+          var wInput = r.querySelector('input[name^="set_weight_kg_"]');
+          totalReps += parseInt(repsInput?.value || 0);
+          var w = parseFloat(wInput?.value || 0);
+          if (w > maxWeight) maxWeight = w;
+        });
+        var setsEl = document.getElementById('actual-sets-agg');
+        var repsEl = document.getElementById('actual-reps-agg');
+        var weightEl = document.getElementById('actual-weight-agg');
+        if (setsEl) setsEl.value = rows.length;
+        if (repsEl) repsEl.value = rows.length > 0 ? Math.round(totalReps / rows.length) : 0;
+        if (weightEl) weightEl.value = maxWeight;
       }
     </script>
     <script>
@@ -1217,6 +1332,7 @@
             feedbackText.textContent = "Completing step...";
           }
           elapsedInput.value = String(Math.floor(currentPhaseElapsed()));
+          if (typeof computeSetAggregates === 'function') computeSetAggregates();
           stopSessionInterval();
           completeBtn.disabled = true;
           return true;
