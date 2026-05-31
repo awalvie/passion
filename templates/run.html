@@ -554,6 +554,51 @@
             </section>
           </div>
           {{ end }}
+          {{ if eq .CurrentStep.Kind "reps_and_sets" }}
+          {{/* Per-set log: rows above the transport controls. Highlighted row = current set.
+               Pre-filled from planned sets if configured, otherwise 1 empty row. */}}
+          <div class="run-notes-collapse" id="set-log-area">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold" style="color:var(--muted)">Sets</span>
+              <button type="button" class="rounded-md btn-ghost px-2 py-1 text-xs font-medium" onclick="addSetRow()">+ Add set</button>
+            </div>
+            <div id="set-log-rows" class="space-y-1.5">
+              {{ if .CurrentStep.PlannedSets }}
+                {{ range .CurrentStep.PlannedSets }}
+                <div class="set-log-row flex items-center gap-2 rounded-md px-2 py-1.5" data-set-index="{{ .SetIndex }}">
+                  <span class="set-log-num text-xs font-semibold w-5 shrink-0 text-center">{{ .SetIndex }}</span>
+                  <input type="number" name="set_reps_{{ .SetIndex }}" min="0"
+                    value="{{ if .Reps }}{{ .Reps }}{{ end }}" placeholder="Reps"
+                    class="flex-1 input text-sm" />
+                  <input type="number" name="set_weight_kg_{{ .SetIndex }}" min="0" step="0.5"
+                    value="{{ if .WeightKg }}{{ .WeightKg }}{{ end }}" placeholder="kg"
+                    class="flex-1 input text-sm" />
+                  <button type="button" class="shrink-0 rounded btn-ghost p-1 inline-flex opacity-40 hover:opacity-100" onclick="removeSetRow(this)" aria-label="Remove set">
+                    <i data-lucide="x" style="width:0.75rem;height:0.75rem"></i>
+                  </button>
+                </div>
+                {{ end }}
+              {{ else }}
+                <div class="set-log-row flex items-center gap-2 rounded-md px-2 py-1.5" data-set-index="1">
+                  <span class="set-log-num text-xs font-semibold w-5 shrink-0 text-center">1</span>
+                  <input type="number" name="set_reps_1" min="0"
+                    value="{{ if gt .CurrentStep.Reps 0 }}{{ .CurrentStep.Reps }}{{ end }}" placeholder="Reps"
+                    class="flex-1 input text-sm" />
+                  <input type="number" name="set_weight_kg_1" min="0" step="0.5"
+                    value="{{ if gt .CurrentStep.WeightKg 0.0 }}{{ .CurrentStep.WeightKg }}{{ end }}" placeholder="kg"
+                    class="flex-1 input text-sm" />
+                  <button type="button" class="shrink-0 rounded btn-ghost p-1 inline-flex opacity-40 hover:opacity-100" onclick="removeSetRow(this)" aria-label="Remove set">
+                    <i data-lucide="x" style="width:0.75rem;height:0.75rem"></i>
+                  </button>
+                </div>
+              {{ end }}
+            </div>
+            {{/* Hidden aggregates computed from set rows on submit */}}
+            <input type="hidden" name="actual_sets" id="actual-sets-agg" value="0" />
+            <input type="hidden" name="actual_reps" id="actual-reps-agg" value="0" />
+            <input type="hidden" name="actual_weight_kg" id="actual-weight-agg" value="0" />
+          </div>
+          {{ end }}
           <div class="run-sticky-controls">
             <div class="run-transport{{ if or $isSession $isClimbing }} run-transport--session{{ end }}">
               {{ if not (or $isSession $isClimbing) }}
@@ -599,48 +644,7 @@
               </div>
             </div>
           </div>
-          {{ if eq .CurrentStep.Kind "reps_and_sets" }}
-          {{/* Per-set log: one row per set, add/remove client-side. Pre-filled from planned sets if configured. */}}
-          <div class="run-notes-collapse" id="set-log-area">
-            <div class="text-xs font-semibold mb-2" style="color:var(--muted)">Sets</div>
-            <div id="set-log-rows" class="space-y-2">
-              {{ if .CurrentStep.PlannedSets }}
-                {{ range .CurrentStep.PlannedSets }}
-                <div class="set-log-row flex items-center gap-2" data-set-index="{{ .SetIndex }}">
-                  <span class="text-xs muted w-6 shrink-0 text-center">{{ .SetIndex }}</span>
-                  <input type="number" name="set_reps_{{ .SetIndex }}" min="0"
-                    value="{{ if .Reps }}{{ .Reps }}{{ end }}" placeholder="Reps"
-                    class="flex-1 input text-sm" />
-                  <input type="number" name="set_weight_kg_{{ .SetIndex }}" min="0" step="0.5"
-                    value="{{ if .WeightKg }}{{ .WeightKg }}{{ end }}" placeholder="kg"
-                    class="flex-1 input text-sm" />
-                  <button type="button" class="shrink-0 rounded btn-ghost p-1 inline-flex" onclick="removeSetRow(this)" aria-label="Remove set">
-                    <i data-lucide="x" style="width:0.75rem;height:0.75rem"></i>
-                  </button>
-                </div>
-                {{ end }}
-              {{ else }}
-                <div class="set-log-row flex items-center gap-2" data-set-index="1">
-                  <span class="text-xs muted w-6 shrink-0 text-center">1</span>
-                  <input type="number" name="set_reps_1" min="0"
-                    value="{{ if gt .CurrentStep.Reps 0 }}{{ .CurrentStep.Reps }}{{ end }}" placeholder="Reps"
-                    class="flex-1 input text-sm" />
-                  <input type="number" name="set_weight_kg_1" min="0" step="0.5"
-                    value="{{ if gt .CurrentStep.WeightKg 0.0 }}{{ .CurrentStep.WeightKg }}{{ end }}" placeholder="kg"
-                    class="flex-1 input text-sm" />
-                  <button type="button" class="shrink-0 rounded btn-ghost p-1 inline-flex" onclick="removeSetRow(this)" aria-label="Remove set">
-                    <i data-lucide="x" style="width:0.75rem;height:0.75rem"></i>
-                  </button>
-                </div>
-              {{ end }}
-            </div>
-            <button type="button" class="mt-2 rounded-md btn-ghost px-3 py-1.5 text-xs font-medium" onclick="addSetRow()">+ Add set</button>
-            {{/* Hidden aggregates computed from set rows on submit */}}
-            <input type="hidden" name="actual_sets" id="actual-sets-agg" value="0" />
-            <input type="hidden" name="actual_reps" id="actual-reps-agg" value="0" />
-            <input type="hidden" name="actual_weight_kg" id="actual-weight-agg" value="0" />
-          </div>
-          {{ else if not (or $isSession $isClimbing) }}
+          {{ if not (or $isSession $isClimbing (eq .CurrentStep.Kind "reps_and_sets")) }}
           {{/* Timed reps and other non-session kinds: summary log (existing behaviour) */}}
           <details class="run-notes-collapse" id="actual-values-detail">
             <summary class="run-collapse-toggle"><i data-lucide="sliders-horizontal" class="run-collapse-icon"></i><i data-lucide="chevron-right" class="run-collapse-chevron"></i>
@@ -662,7 +666,7 @@
               </div>
             </div>
           </details>
-          {{ else }}
+          {{ else if or $isSession $isClimbing }}
           <input type="hidden" name="actual_sets" value="0" />
           <input type="hidden" name="actual_reps" value="0" />
           <input type="hidden" name="actual_weight_kg" value="0" />
@@ -763,20 +767,22 @@
           if (lastWInput) lastWeight = lastWInput.value;
         }
         var row = document.createElement('div');
-        row.className = 'set-log-row flex items-center gap-2';
+        row.className = 'set-log-row flex items-center gap-2 rounded-md px-2 py-1.5';
         row.dataset.setIndex = nextIdx;
         row.innerHTML =
-          '<span class="text-xs muted w-6 shrink-0 text-center">' + nextIdx + '</span>' +
+          '<span class="set-log-num text-xs font-semibold w-5 shrink-0 text-center">' + nextIdx + '</span>' +
           '<input type="number" name="set_reps_' + nextIdx + '" min="0" placeholder="Reps" class="flex-1 input text-sm" />' +
           '<input type="number" name="set_weight_kg_' + nextIdx + '" min="0" step="0.5" value="' + lastWeight + '" placeholder="kg" class="flex-1 input text-sm" />' +
-          '<button type="button" class="shrink-0 rounded btn-ghost p-1 inline-flex" onclick="removeSetRow(this)" aria-label="Remove set">' +
+          '<button type="button" class="shrink-0 rounded btn-ghost p-1 inline-flex opacity-40 hover:opacity-100" onclick="removeSetRow(this)" aria-label="Remove set">' +
           '<i data-lucide="x" style="width:0.75rem;height:0.75rem"></i></button>';
         container.appendChild(row);
         if (window.__passionRenderIcons) window.__passionRenderIcons();
         row.querySelector('input').focus();
-        // Update set counter max.
-        var setMax = document.getElementById('run-set-max');
-        if (setMax) setMax.textContent = nextIdx;
+        // Keep setMax in sync.
+        setMax = nextIdx;
+        var setMaxEl = document.getElementById('run-set-max');
+        if (setMaxEl) setMaxEl.textContent = nextIdx;
+        if (typeof renderCounters === 'function') renderCounters();
       }
 
       // Per-set log: remove a set row and renumber.
@@ -793,14 +799,19 @@
         rows.forEach(function(r, i) {
           var idx = i + 1;
           r.dataset.setIndex = idx;
-          r.querySelector('span').textContent = idx;
+          r.querySelector('.set-log-num').textContent = idx;
           var repsInput = r.querySelector('input[name^="set_reps_"]');
           var wInput = r.querySelector('input[name^="set_weight_kg_"]');
           if (repsInput) repsInput.name = 'set_reps_' + idx;
           if (wInput) wInput.name = 'set_weight_kg_' + idx;
         });
-        var setMax = document.getElementById('run-set-max');
-        if (setMax) setMax.textContent = rows.length;
+        // Keep setMax in sync.
+        setMax = rows.length;
+        var setMaxEl = document.getElementById('run-set-max');
+        if (setMaxEl) setMaxEl.textContent = rows.length;
+        if (setNow > rows.length) setNow = rows.length;
+        if (typeof renderCounters === 'function') renderCounters();
+        highlightActiveSetRow();
       }
 
       // Compute aggregate hidden fields from set rows before form submit.
@@ -841,10 +852,15 @@
         let repNow = 1;
         let setNow = 1;
         const isSessionExercise = {{ if or $isSession $isClimbing }}true{{ else }}false{{ end }};
+        const isRepsAndSets = {{ if eq .CurrentStep.Kind "reps_and_sets" }}true{{ else }}false{{ end }};
         const sessionDurationSeconds = {{ if or $isSession $isClimbing }}{{ .CurrentStep.SessionDurationSeconds }}{{ else }}0{{ end }};
         const isTimedReps = {{ if eq .CurrentStep.Kind "timed_reps" }}true{{ else }}false{{ end }};
         const repMax = Math.max(1, {{ .CurrentStep.Reps }});
-        const setMax = Math.max(1, {{ .CurrentStep.Sets }});
+        // For reps_and_sets, setMax is driven by the number of set-log rows (can be added/removed).
+        // For other kinds it's fixed from the template.
+        let setMax = isRepsAndSets
+          ? Math.max(1, (document.getElementById('set-log-rows')?.querySelectorAll('.set-log-row').length || {{ if gt .CurrentStep.Sets 0 }}{{ .CurrentStep.Sets }}{{ else }}1{{ end }}))
+          : Math.max(1, {{ .CurrentStep.Sets }});
         const repSeconds = Math.max(0, {{ .CurrentStep.RepSeconds }});
         const repRestSeconds = Math.max(0, {{ .CurrentStep.RepRestSeconds }});
         const setRestSeconds = Math.max(0, {{ .CurrentStep.SetRestSeconds }});
@@ -1231,6 +1247,21 @@
           rafHandle = null;
         }
 
+        // Highlight the active set-log row (reps_and_sets only).
+        function highlightActiveSetRow() {
+          if (!isRepsAndSets) return;
+          var rows = document.querySelectorAll('#set-log-rows .set-log-row');
+          rows.forEach(function(r) {
+            var idx = parseInt(r.dataset.setIndex, 10);
+            if (idx === setNow) {
+              r.style.background = 'var(--hover)';
+              r.querySelector('input')?.focus();
+            } else {
+              r.style.background = '';
+            }
+          });
+        }
+
         // --- Skip back / forward ---
         function doSkipBack() {
           cancelAutoAdvance();
@@ -1242,6 +1273,7 @@
           }
           setPhase("work");
           renderCounters();
+          highlightActiveSetRow();
         }
         function doSkipForward() {
           cancelAutoAdvance();
@@ -1253,6 +1285,7 @@
           }
           setPhase("work");
           renderCounters();
+          highlightActiveSetRow();
         }
 
         if (!isSessionExercise) {
@@ -1319,6 +1352,7 @@
         tickSession();
         tickExercise();
         renderCounters();
+        highlightActiveSetRow();
         startSessionInterval();
         setPlayIcon(false);
         updateUpNextAndButtons();
