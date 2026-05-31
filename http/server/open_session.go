@@ -480,6 +480,7 @@ func (s *Server) handleOpenPlannedSets(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	_ = db.SyncExerciseSetsCount(s.store.DB, exerciseID)
 	s.renderOpenPlannedSetsFragment(w, runID, exerciseID)
 }
 
@@ -534,6 +535,7 @@ func (s *Server) handleOpenPlannedSetDelete(w http.ResponseWriter, r *http.Reque
 		s.serverError(w, r, err)
 		return
 	}
+	_ = db.SyncExerciseSetsCount(s.store.DB, exerciseID)
 	s.renderOpenPlannedSetsFragment(w, runID, exerciseID)
 }
 
@@ -552,6 +554,7 @@ func (s *Server) handleOpenPlannedSetsClear(w http.ResponseWriter, r *http.Reque
 		s.serverError(w, r, err)
 		return
 	}
+	_ = db.SyncExerciseSetsCount(s.store.DB, exerciseID)
 	s.renderOpenPlannedSetsFragment(w, runID, exerciseID)
 }
 

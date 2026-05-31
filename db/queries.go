@@ -757,6 +757,16 @@ func DeleteAllExercisePlannedSets(gdb *gorm.DB, ownerID, exerciseID uint) error 
 		Delete(&ExercisePlannedSet{}).Error
 }
 
+// SyncExerciseSetsCount updates Exercise.Sets to match the number of planned sets.
+// Call after every add/delete/clear on ExercisePlannedSet so the playlist sidebar stays accurate.
+func SyncExerciseSetsCount(gdb *gorm.DB, exerciseID uint) error {
+	rows, err := ListExercisePlannedSets(gdb, exerciseID)
+	if err != nil {
+		return err
+	}
+	return gdb.Model(&Exercise{}).Where("id = ?", exerciseID).Update("sets", len(rows)).Error
+}
+
 // ListCalendarEventsInRange returns all calendar events that overlap [start, end] (inclusive),
 // ordered by start_date ascending.
 func ListCalendarEventsInRange(gdb *gorm.DB, ownerID uint, start, end time.Time) ([]CalendarEvent, error) {
