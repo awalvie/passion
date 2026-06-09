@@ -436,6 +436,10 @@ type RunParams struct {
 	CurrentStep       RunStep
 	RunSteps          []RunStep
 	RunActivityGroups []RunActivityGroup
+
+	// Open-session overview progress (running, non-draft).
+	RunDoneCount         int
+	RunCurrentExerciseID uint
 }
 
 type WeeklyColorSegment struct {
@@ -1293,6 +1297,7 @@ func youtubeEmbedURL(raw string) string {
 func buildFuncMap() template.FuncMap {
 	return template.FuncMap{
 		"add": func(a, b int) int { return a + b },
+		"sub": func(a, b int) int { return a - b },
 		"pct": func(part, total int) int {
 			if total == 0 {
 				return 0
