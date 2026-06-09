@@ -31,6 +31,21 @@ All colors come from CSS variables. Never hardcode hex values. Use semantic toke
 
 **Dynamic template colours** (e.g. `{{ .Color }}`): use for left-border accents on list cards. For subtle background tints use `color-mix(in srgb, {{ .Color }} 4%, var(--panel))`.
 
+**Climbing tick palette** (`--tick-*`): a family of hue-specific bg/fg pairs for grade and outcome badges. Never hardcode the hex values — always use the token pair so dark mode inverts correctly.
+
+| Token pair | Use |
+|---|---|
+| `--tick-green-bg` / `--tick-green-fg` | Onsight, sent, outdoor venue |
+| `--tick-amber-bg` / `--tick-amber-fg` | Flash, board venue |
+| `--tick-red-bg` / `--tick-red-fg` | Redpoint, free solo rope style |
+| `--tick-sky-bg` / `--tick-sky-fg` | Hangdog |
+| `--tick-violet-bg` / `--tick-violet-fg` | Lead rope style |
+| `--tick-blue-bg` / `--tick-blue-fg` | Top-rope / follow rope style |
+| `--tick-cyan-bg` / `--tick-cyan-fg` | Auto-belay rope style |
+| `--tick-star` | Star rating active state |
+| `--tick-sent-accent` | Sent tick left-border accent |
+| `--tick-working-accent` | Working/attempt tick left-border accent |
+
 ---
 
 ## Typography
@@ -114,8 +129,9 @@ Always `aria-hidden="true"` on decorative icons. Add `aria-label` on icon-only b
 
 **Semantic icon conventions**:
 - `moon` → sleep score
-- `zap` → energy
-- `flame` → RPE / effort
+- `zap` → energy / Flash outcome
+- `flame` → RPE / effort / Attempt outcome
+- `check-circle` → sent / confirmed completion
 - `dumbbell` → exercise count
 - `mountain` → climbing ticks
 - `map-pin` → location
@@ -123,6 +139,8 @@ Always `aria-hidden="true"` on decorative icons. Add `aria-label` on icon-only b
 - `pencil` → edit
 - `trash-2` → delete
 - `plus` → add action
+- `copy-plus` → log again / duplicate a prior entry
+- `sliders-horizontal` → refine / advanced options
 
 ---
 
