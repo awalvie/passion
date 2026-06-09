@@ -1392,6 +1392,13 @@ details[open] > .run-collapse-toggle .run-collapse-chevron {
 .run-player {
   display: grid;
   gap: 0.5rem;
+  min-width: 0;
+}
+/* Grid/flex children must be allowed to shrink below content width so an
+   overflow-x child (e.g. the grade chip strip) scrolls instead of widening
+   the whole player column. */
+.run-player > * {
+  min-width: 0;
 }
 
 .run-hero {
