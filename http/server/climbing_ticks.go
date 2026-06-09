@@ -74,6 +74,34 @@ func isBoardSubtype(s string) bool {
 	return false
 }
 
+// isUngradedClimb reports whether a grade label is one of the ungraded drill
+// options (Rainbow/Traverse), for which no send/outcome applies.
+func isUngradedClimb(grade string) bool {
+	return grade == "Rainbow" || grade == "Traverse"
+}
+
+// styleImpliesSent reports whether an ascent-style key means the climb was sent.
+// A send is a clean ascent: onsight (first go, no beta), flash (first go, with
+// beta), or redpoint (later go, no falls). Hangdog (fell/hung) and working (not
+// topped) are not sends.
+func styleImpliesSent(style string) bool {
+	switch style {
+	case "onsight", "flash", "redpoint":
+		return true
+	}
+	return false
+}
+
+// resolveResult takes the posted ascent-style and grade and returns the stored
+// (sent, style). Ungraded drill climbs (Rainbow/Traverse) never count as a send
+// and carry no style.
+func resolveResult(style, grade string) (sentOut bool, styleOut string) {
+	if isUngradedClimb(grade) {
+		return false, ""
+	}
+	return styleImpliesSent(style), style
+}
+
 func ticksToViews(ticks []db.ClimbingTick) []pages.ClimbingTickView {
 	views := make([]pages.ClimbingTickView, 0, len(ticks))
 	for _, t := range ticks {
@@ -119,6 +147,7 @@ func ticksToViews(ticks []db.ClimbingTick) []pages.ClimbingTickView {
 			SubtypeRaw:     t.Subtype,
 			IsBoard:        isBoardSubtype(t.Subtype),
 			Grade:          t.Grade,
+			Focus:          t.Focus,
 			Thoughts:       t.Thoughts,
 			Style:          style,
 			StyleClass:     styleClass,
@@ -179,6 +208,13 @@ func (s *Server) handleExerciseTicks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) serveExerciseTicks(w http.ResponseWriter, r *http.Request, ownerID, runID, exerciseID uint) {
+	s.serveExerciseTicksSeeded(w, r, ownerID, runID, exerciseID, 0)
+}
+
+// serveExerciseTicksSeeded renders the tick list. The new-tick form is seeded
+// from a specific tick (seedTickID > 0, used by "Log again") or, failing that,
+// from the latest tick in the run (inheritance), or user defaults.
+func (s *Server) serveExerciseTicksSeeded(w http.ResponseWriter, r *http.Request, ownerID, runID, exerciseID, seedTickID uint) {
 	ticks, err := db.ListClimbingTicksByExercise(s.store.DB, ownerID, runID, exerciseID)
 	if err != nil {
 		s.serverError(w, r, err)
@@ -197,12 +233,38 @@ func (s *Server) serveExerciseTicks(w http.ResponseWriter, r *http.Request, owne
 	if rgs == "" {
 		rgs = "french"
 	}
+
+	// Seed the new-tick form: explicit tick (Log again) > latest in run > defaults.
+	seed := db.ClimbingTick{Kind: "boulder"}
+	if seedTickID > 0 {
+		if t, err := db.GetClimbingTick(s.store.DB, ownerID, runID, seedTickID); err == nil {
+			seed = t
+		}
+	} else if t, ok := db.GetLatestClimbingTickInRun(s.store.DB, ownerID, runID); ok {
+		seed = t
+	}
+
+	header, err := db.GetClimbingSessionHeader(s.store.DB, ownerID, runID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+
 	s.pages.RenderExerciseTicks(w, pages.ExerciseTicksParams{
 		RunID:              runID,
 		ExerciseID:         exerciseID,
 		Ticks:              ticksToViews(ticks),
 		BoulderGradeSystem: bgs,
 		RouteGradeSystem:   rgs,
+		SeedKind:           seed.Kind,
+		SeedSetting:        seed.Setting,
+		SeedSubtype:        seed.Subtype,
+		SeedIsBoard:        isBoardSubtype(seed.Subtype),
+		SeedRopeStyle:      seed.RopeStyle,
+		SeedGrade:          seed.Grade,
+		HeaderClimbs:       header.TotalClimbs,
+		HeaderSends:        header.TotalSends,
+		HeaderHardest:      header.HardestGrade,
 	})
 }
 
@@ -225,10 +287,6 @@ func (s *Server) createExerciseTick(w http.ResponseWriter, r *http.Request, owne
 		kind = "boulder"
 	}
 
-	attempts := parseInt("attempts", 1)
-	if attempts < 1 {
-		attempts = 1
-	}
 	stars := parseInt("stars", 0)
 	if stars < 0 || stars > 3 {
 		stars = 0
@@ -248,6 +306,13 @@ func (s *Server) createExerciseTick(w http.ResponseWriter, r *http.Request, owne
 		ropeStyle = strings.TrimSpace(r.FormValue("rope_style"))
 	}
 
+	grade := strings.TrimSpace(r.FormValue("grade"))
+	sent, style := resolveResult(strings.TrimSpace(r.FormValue("style")), grade)
+	attempts := parseInt("attempts", 1)
+	if attempts < 1 {
+		attempts = 1
+	}
+
 	tick := &db.ClimbingTick{
 		OwnerID:    ownerID,
 		RunID:      runID,
@@ -255,13 +320,13 @@ func (s *Server) createExerciseTick(w http.ResponseWriter, r *http.Request, owne
 		Kind:       kind,
 		Setting:    setting,
 		Subtype:    subtype,
-		Grade:      strings.TrimSpace(r.FormValue("grade")),
+		Grade:      grade,
 		Focus:      strings.TrimSpace(r.FormValue("focus")),
 		Thoughts:   strings.TrimSpace(r.FormValue("thoughts")),
-		Style:      strings.TrimSpace(r.FormValue("style")),
+		Style:      style,
 		RopeStyle:  ropeStyle,
 		Attempts:   attempts,
-		Sent:       r.FormValue("sent") == "1",
+		Sent:       sent,
 		Stars:      stars,
 	}
 
@@ -345,10 +410,6 @@ func (s *Server) handleExerciseTickUpdate(w http.ResponseWriter, r *http.Request
 	if kind != "boulder" && kind != "sport" && kind != "trad" {
 		kind = "boulder"
 	}
-	attempts := parseInt("attempts", 1)
-	if attempts < 1 {
-		attempts = 1
-	}
 	stars := parseInt("stars", 0)
 	if stars < 0 || stars > 3 {
 		stars = 0
@@ -368,21 +429,58 @@ func (s *Server) handleExerciseTickUpdate(w http.ResponseWriter, r *http.Request
 		ropeStyle = strings.TrimSpace(r.FormValue("rope_style"))
 	}
 
+	grade := strings.TrimSpace(r.FormValue("grade"))
+	sent, style := resolveResult(strings.TrimSpace(r.FormValue("style")), grade)
+	attempts := parseInt("attempts", 1)
+	if attempts < 1 {
+		attempts = 1
+	}
+
 	if err := db.UpdateClimbingTick(s.store.DB, ownerID, tickID,
 		kind, setting, subtype,
-		strings.TrimSpace(r.FormValue("grade")),
+		grade,
 		strings.TrimSpace(r.FormValue("focus")),
 		strings.TrimSpace(r.FormValue("thoughts")),
-		strings.TrimSpace(r.FormValue("style")),
+		style,
 		ropeStyle,
 		attempts, stars,
-		r.FormValue("sent") == "1",
+		sent,
 	); err != nil {
 		s.serverError(w, r, err)
 		return
 	}
 
 	s.serveExerciseTicks(w, r, ownerID, runID, exerciseID)
+}
+
+// handleExerciseTickLogAgain serves POST /runs/{runID}/exercises/{exerciseID}/ticks/{tickID}/again.
+// Re-renders the tick list with the single new-tick form pre-seeded from the
+// given tick's constants + grade (outcome and notes blank), so a repeat needs
+// no re-entry. No new tick is created here.
+func (s *Server) handleExerciseTickLogAgain(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+
+	runID, err := parseUintParam(r, "runID")
+	if err != nil {
+		http.Error(w, "invalid run ID", http.StatusBadRequest)
+		return
+	}
+	exerciseID, err := parseUintParam(r, "exerciseID")
+	if err != nil {
+		http.Error(w, "invalid exercise ID", http.StatusBadRequest)
+		return
+	}
+	tickID, err := parseUintParam(r, "tickID")
+	if err != nil {
+		http.Error(w, "invalid tick ID", http.StatusBadRequest)
+		return
+	}
+
+	s.serveExerciseTicksSeeded(w, r, ownerID, runID, exerciseID, uint(tickID))
 }
 
 // ---------------------------------------------------------------------------

@@ -328,6 +328,30 @@ func DeleteClimbingTick(gdb *gorm.DB, ownerID, id uint) error {
 	return gdb.Where("owner_id = ? AND id = ?", ownerID, id).Delete(&ClimbingTick{}).Error
 }
 
+// GetClimbingTick fetches a single tick, scoped to owner and run (prevents IDOR
+// and cross-run seeding via an attacker-controllable id). Used by "Log again".
+func GetClimbingTick(gdb *gorm.DB, ownerID, runID, id uint) (ClimbingTick, error) {
+	var t ClimbingTick
+	err := gdb.Where("owner_id = ? AND run_id = ? AND id = ?", ownerID, runID, id).First(&t).Error
+	return t, err
+}
+
+// GetLatestClimbingTickInRun returns the most recently created tick across all
+// drills in a run, for inheriting constants into a new-tick form. Ordered by
+// created_at then id (NOT order_index, which is assigned per-exercise and
+// collides across drills). Returns (zero, false) when the run has no ticks.
+func GetLatestClimbingTickInRun(gdb *gorm.DB, ownerID, runID uint) (ClimbingTick, bool) {
+	var t ClimbingTick
+	err := gdb.
+		Where("owner_id = ? AND run_id = ?", ownerID, runID).
+		Order("created_at desc, id desc").
+		First(&t).Error
+	if err != nil {
+		return ClimbingTick{}, false
+	}
+	return t, true
+}
+
 // UpdateClimbingTick replaces all editable fields on an existing tick.
 func UpdateClimbingTick(gdb *gorm.DB, ownerID, id uint, kind, setting, subtype, grade, focus, thoughts, style, ropeStyle string, attempts, stars int, sent bool) error {
 	return gdb.Model(&ClimbingTick{}).
@@ -390,6 +414,61 @@ func GetClimbingTickSummaryForRun(gdb *gorm.DB, ownerID, runID uint) (ClimbingTi
 		}
 	}
 	return s, nil
+}
+
+// gradeRanks maps every grade across all systems to a comparable ordinal.
+// Built from the canonical scales (mirrors GRADE_LISTS in run_ticks.html).
+// Ungraded labels (Rainbow/Traverse) are deliberately absent — they don't rank.
+var gradeRanks = buildGradeRanks()
+
+// Each list must mirror the corresponding GRADE_LISTS entry in run_ticks.html
+// (same order, same ceiling) so a grade the chip strip offers always ranks and
+// no out-of-range grade can be stored. font stops at 9a (boulder ceiling);
+// french continues to 9c (route ceiling).
+func buildGradeRanks() map[string]int {
+	lists := [][]string{
+		{"3", "3+", "4", "4+", "5", "5+", "6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a", "8a+", "8b", "8b+", "8c", "8c+", "9a"},
+		{"3", "3+", "4", "4+", "5", "5+", "6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a", "8a+", "8b", "8b+", "8c", "8c+", "9a", "9a+", "9b", "9b+", "9c"},
+		{"VB", "V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11", "V12", "V13", "V14", "V15", "V16"},
+		{"5.0", "5.1", "5.2", "5.3", "5.4", "5.5", "5.6", "5.7", "5.8", "5.9", "5.10a", "5.10b", "5.10c", "5.10d", "5.11a", "5.11b", "5.11c", "5.11d", "5.12a", "5.12b", "5.12c", "5.12d", "5.13a", "5.13b", "5.13c", "5.13d", "5.14a", "5.14b", "5.14c", "5.14d", "5.15a", "5.15b", "5.15c", "5.15d"},
+	}
+	ranks := make(map[string]int)
+	for _, list := range lists {
+		for i, g := range list {
+			ranks[g] = i
+		}
+	}
+	return ranks
+}
+
+// ClimbingSessionHeader is the live one-liner shown above the tick list:
+// total climbs, sends, and the hardest graded climb in the run.
+type ClimbingSessionHeader struct {
+	TotalClimbs int
+	TotalSends  int
+	HardestGrade string
+}
+
+// GetClimbingSessionHeader aggregates the run's ticks for the in-session header.
+// "Hardest" uses gradeRanks (not lexicographic) and ignores ungraded climbs.
+func GetClimbingSessionHeader(gdb *gorm.DB, ownerID, runID uint) (ClimbingSessionHeader, error) {
+	var ticks []ClimbingTick
+	if err := gdb.Where("owner_id = ? AND run_id = ?", ownerID, runID).Find(&ticks).Error; err != nil {
+		return ClimbingSessionHeader{}, err
+	}
+	var h ClimbingSessionHeader
+	bestRank := -1
+	for _, t := range ticks {
+		h.TotalClimbs++
+		if t.Sent {
+			h.TotalSends++
+		}
+		if r, ok := gradeRanks[t.Grade]; ok && r > bestRank {
+			bestRank = r
+			h.HardestGrade = t.Grade
+		}
+	}
+	return h, nil
 }
 
 // ---------------------------------------------------------------------------

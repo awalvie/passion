@@ -1,19 +1,31 @@
 {{ define "run_ticks.html" }}
-<div id="tick-list-{{ .ExerciseID }}" class="space-y-3">
+<div id="tick-list-{{ .ExerciseID }}" class="space-y-3" data-exercise-id="{{ .ExerciseID }}">
+
+  {{/* Live session header — inside the fragment so it re-renders on every swap */}}
+  {{ if .HeaderClimbs }}
+  <div class="tick-session-header text-xs muted flex flex-wrap items-center gap-x-2 gap-y-0.5">
+    <span><span class="font-semibold" style="color:var(--text)">{{ .HeaderClimbs }}</span> climb{{ if ne .HeaderClimbs 1 }}s{{ end }}</span>
+    <span aria-hidden="true">·</span>
+    <span><span class="font-semibold" style="color:var(--text)">{{ .HeaderSends }}</span> sent</span>
+    {{ if .HeaderHardest }}
+    <span aria-hidden="true">·</span>
+    <span>hardest <span class="font-semibold" style="color:var(--text)">{{ .HeaderHardest }}</span></span>
+    {{ end }}
+  </div>
+  {{ end }}
+
   {{ if .Ticks }}
   <div class="space-y-2">
     {{ range .Ticks }}
-    <details class="card overflow-hidden {{ if .Sent }}tick-card--sent{{ else }}tick-card--working{{ end }}">
-      <summary class="cursor-pointer list-none px-3 py-2.5 flex gap-2 items-start">
+    <details id="tick-details-{{ .ID }}" class="card overflow-hidden tick-card {{ if .Sent }}tick-card--sent{{ else }}tick-card--working{{ end }}">
+      <summary class="cursor-pointer list-none px-3 py-2.5 flex gap-2 items-start group">
         <i data-lucide="chevron-right" style="width:0.75rem;height:0.75rem;transition:transform 150ms ease;margin-top:0.25rem" class="shrink-0 muted disclosure-chevron" aria-hidden="true"></i>
         <div class="flex-1 min-w-0">
           <div class="flex flex-wrap items-center gap-1.5 mb-0.5">
+            {{ if .Grade }}<span class="tick-grade-primary">{{ .Grade }}</span>{{ end }}
             <span class="tick-kind">{{ .Kind }}</span>
             {{ if .Setting }}<span class="tick-kind">{{ .Setting }}</span>{{ end }}
             {{ if .Subtype }}<span class="tick-kind">{{ .Subtype }}</span>{{ end }}
-            {{ if .Grade }}
-            <span class="tick-grade-primary">{{ .Grade }}</span>
-            {{ end }}
             {{ if .Sent }}
               <span class="tick-sent-badge flex items-center gap-0.5">
                 <i data-lucide="check-circle" style="width:0.65rem;height:0.65rem" aria-hidden="true"></i> Sent
@@ -32,286 +44,79 @@
             </span>
             {{ end }}
             {{ if gt .Stars 0 }}
-              <span class="text-xs flex items-center gap-0.5" style="color:#f59e0b">
+              <span class="text-xs flex items-center gap-0.5" style="color:var(--tick-star)">
                 <i data-lucide="star" style="width:0.65rem;height:0.65rem;fill:currentColor" aria-hidden="true"></i>
                 {{ .Stars }}
               </span>
             {{ end }}
-            {{ if gt .Attempts 1 }}
-              <span class="text-xs muted">{{ .Attempts }}×</span>
-            {{ end }}
           </div>
-          {{ if .Thoughts }}<div class="text-xs mt-0.5" style="color:var(--text)">{{ .Thoughts }}</div>{{ end }}
+          {{ if .Focus }}<div class="text-xs muted mt-0.5"><span class="font-semibold">Focus:</span> {{ .Focus }}</div>{{ end }}
+          {{ if .Thoughts }}<div class="text-xs muted mt-0.5">{{ .Thoughts }}</div>{{ end }}
         </div>
         <button
           type="button"
-          class="shrink-0 rounded btn-ghost p-1 inline-flex items-center justify-center mt-0.5"
+          class="shrink-0 rounded btn-ghost tick-icon-btn inline-flex items-center justify-center"
+          hx-post="/runs/{{ .RunID }}/exercises/{{ .ExerciseID }}/ticks/{{ .ID }}/again"
+          hx-target="#tick-list-{{ .ExerciseID }}"
+          hx-swap="outerHTML"
+          onclick="event.stopPropagation();"
+          title="Log again"
+          aria-label="Log again"
+        >
+          <i data-lucide="copy-plus" style="width:0.85rem;height:0.85rem" aria-hidden="true"></i>
+        </button>
+        <button
+          type="button"
+          class="shrink-0 rounded btn-ghost tick-icon-btn inline-flex items-center justify-center"
           hx-post="/runs/{{ .RunID }}/exercises/{{ .ExerciseID }}/ticks/{{ .ID }}/delete"
           hx-target="#tick-list-{{ .ExerciseID }}"
           hx-swap="outerHTML"
-          hx-confirm="Remove this climb?"
+          hx-confirm="Remove this climb? This cannot be undone."
           onclick="event.stopPropagation();"
-          title="Remove tick"
+          title="Remove"
+          aria-label="Remove"
         >
-          <i data-lucide="x" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+          <i data-lucide="trash-2" style="width:0.85rem;height:0.85rem" aria-hidden="true"></i>
         </button>
       </summary>
 
       <div class="px-3 pb-3 pt-1 border-t" style="border-color:var(--border)">
-        <form
-          hx-post="/runs/{{ .RunID }}/exercises/{{ .ExerciseID }}/ticks/{{ .ID }}/update"
-          hx-target="#tick-list-{{ .ExerciseID }}"
-          hx-swap="outerHTML"
-          class="space-y-3"
-          data-tick-kind-form
-        >
-          {{/* Kind */}}
-          <div>
-            <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Type</label>
-            <div class="flex flex-wrap gap-1.5">
-              <label class="tick-style-toggle {{ if eq .KindRaw "boulder" }}is-selected{{ end }}"><input type="radio" name="kind" value="boulder" class="sr-only tick-kind-radio" {{ if eq .KindRaw "boulder" }}checked{{ end }} /><span>Boulder</span></label>
-              <label class="tick-style-toggle {{ if eq .KindRaw "sport" }}is-selected{{ end }}"><input type="radio" name="kind" value="sport" class="sr-only tick-kind-radio" {{ if eq .KindRaw "sport" }}checked{{ end }} /><span>Sport</span></label>
-              <label class="tick-style-toggle {{ if eq .KindRaw "trad" }}is-selected{{ end }}"><input type="radio" name="kind" value="trad" class="sr-only tick-kind-radio" {{ if eq .KindRaw "trad" }}checked{{ end }} /><span>Trad</span></label>
-            </div>
-          </div>
-
-          {{/* Setting */}}
-          <div>
-            <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Setting</label>
-            <div class="flex flex-wrap gap-1.5">
-              <label class="tick-style-toggle {{ if eq .SettingRaw "indoor" }}is-selected{{ end }}"><input type="radio" name="setting" value="indoor" class="sr-only tick-setting-radio" {{ if eq .SettingRaw "indoor" }}checked{{ end }} /><span>Indoor</span></label>
-              <label class="tick-style-toggle {{ if eq .SettingRaw "outdoor" }}is-selected{{ end }}"><input type="radio" name="setting" value="outdoor" class="sr-only tick-setting-radio" {{ if eq .SettingRaw "outdoor" }}checked{{ end }} /><span>Outdoor</span></label>
-            </div>
-          </div>
-
-          {{/* Venue — boulder + indoor only */}}
-          <div class="tick-venue-type-row">
-            <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Venue</label>
-            <div class="flex flex-wrap gap-1.5">
-              <label class="tick-style-toggle {{ if .IsBoard }}is-selected{{ end }}">
-                <input type="checkbox" name="is_board" value="1" class="sr-only tick-board-toggle" {{ if .IsBoard }}checked{{ end }} /><span>Board</span>
-              </label>
-            </div>
-            <div class="tick-board-kind-row mt-2"{{ if not .IsBoard }} style="display:none"{{ end }}>
-              <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Board type</label>
-              <div class="flex flex-wrap gap-1.5">
-                <label class="tick-style-toggle {{ if eq .SubtypeRaw "kilter" }}is-selected{{ end }}"><input type="radio" name="board_kind" value="kilter" class="sr-only tick-style-radio" {{ if eq .SubtypeRaw "kilter" }}checked{{ end }}/><span>Kilter</span></label>
-                <label class="tick-style-toggle {{ if eq .SubtypeRaw "moon" }}is-selected{{ end }}"><input type="radio" name="board_kind" value="moon" class="sr-only tick-style-radio" {{ if eq .SubtypeRaw "moon" }}checked{{ end }}/><span>Moon</span></label>
-                <label class="tick-style-toggle {{ if eq .SubtypeRaw "tension" }}is-selected{{ end }}"><input type="radio" name="board_kind" value="tension" class="sr-only tick-style-radio" {{ if eq .SubtypeRaw "tension" }}checked{{ end }}/><span>Tension</span></label>
-                <label class="tick-style-toggle {{ if eq .SubtypeRaw "spray" }}is-selected{{ end }}"><input type="radio" name="board_kind" value="spray" class="sr-only tick-style-radio" {{ if eq .SubtypeRaw "spray" }}checked{{ end }}/><span>Spray Wall</span></label>
-                <label class="tick-style-toggle {{ if eq .SubtypeRaw "custom" }}is-selected{{ end }}"><input type="radio" name="board_kind" value="custom" class="sr-only tick-style-radio" {{ if eq .SubtypeRaw "custom" }}checked{{ end }}/><span>Custom</span></label>
-              </div>
-            </div>
-          </div>
-
-          {{/* Method — sport/trad only, options filtered by JS */}}
-          <div class="tick-rope-style-row">
-            <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Method</label>
-            <div class="flex flex-wrap gap-1.5">
-              <label class="tick-style-toggle {{ if eq .RopeStyleRaw "lead" }}is-selected{{ end }}" data-rope-contexts="sport:indoor,sport:outdoor,trad:indoor,trad:outdoor"><input type="radio" name="rope_style" value="lead" class="sr-only tick-style-radio" {{ if eq .RopeStyleRaw "lead" }}checked{{ end }} /><span>Lead</span></label>
-              <label class="tick-style-toggle {{ if eq .RopeStyleRaw "top_rope" }}is-selected{{ end }}" data-rope-contexts="sport:indoor"><input type="radio" name="rope_style" value="top_rope" class="sr-only tick-style-radio" {{ if eq .RopeStyleRaw "top_rope" }}checked{{ end }} /><span>Top Rope</span></label>
-              <label class="tick-style-toggle {{ if eq .RopeStyleRaw "auto_belay" }}is-selected{{ end }}" data-rope-contexts="sport:indoor"><input type="radio" name="rope_style" value="auto_belay" class="sr-only tick-style-radio" {{ if eq .RopeStyleRaw "auto_belay" }}checked{{ end }} /><span>Auto-belay</span></label>
-              <label class="tick-style-toggle {{ if or (eq .RopeStyleRaw "follow") (eq .RopeStyleRaw "second") }}is-selected{{ end }}" data-rope-contexts="sport:outdoor,trad:indoor,trad:outdoor"><input type="radio" name="rope_style" value="follow" class="sr-only tick-style-radio" {{ if or (eq .RopeStyleRaw "follow") (eq .RopeStyleRaw "second") }}checked{{ end }} /><span>Top Rope</span></label>
-            </div>
-          </div>
-
-          {{/* Grade */}}
-          <div>
-            <label class="text-xs font-medium" for="edit-grade-{{ .ID }}">Grade</label>
-            <select id="edit-grade-{{ .ID }}" name="grade" class="mt-1 w-full input text-sm" data-grade-select data-current-grade="{{ .Grade }}">
-              <option value="">— Grade —</option>
-            </select>
-          </div>
-
-          {{/* Sent / Working toggle */}}
-          <div>
-            <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Status</label>
-            <div class="flex gap-1.5">
-              <label class="tick-style-toggle tick-sent-toggle {{ if .Sent }}is-selected{{ end }}" data-sent="1">
-                <input type="radio" name="sent_toggle" value="1" class="sr-only tick-sent-radio" {{ if .Sent }}checked{{ end }} /><span>Sent</span>
-              </label>
-              <label class="tick-style-toggle tick-sent-toggle {{ if not .Sent }}is-selected{{ end }}" data-sent="0">
-                <input type="radio" name="sent_toggle" value="0" class="sr-only tick-sent-radio" {{ if not .Sent }}checked{{ end }} /><span>Working</span>
-              </label>
-            </div>
-            <input type="hidden" name="sent" id="edit-sent-val-{{ .ID }}" value="{{ if .Sent }}1{{ else }}0{{ end }}" />
-          </div>
-
-          {{/* Ascent style — only shown when Sent */}}
-          <div class="tick-style-row"{{ if not .Sent }} style="display:none"{{ end }}>
-            <label class="text-xs font-medium">Ascent style</label>
-            <div class="mt-1 flex flex-wrap gap-1.5">
-              <label class="tick-style-toggle {{ if eq .StyleRaw "onsight" }}is-selected{{ end }}"><input type="radio" name="style" value="onsight" class="sr-only tick-style-radio" {{ if eq .StyleRaw "onsight" }}checked{{ end }} /><span>Onsight</span></label>
-              <label class="tick-style-toggle {{ if eq .StyleRaw "flash" }}is-selected{{ end }}"><input type="radio" name="style" value="flash" class="sr-only tick-style-radio" {{ if eq .StyleRaw "flash" }}checked{{ end }} /><span>Flash</span></label>
-              <label class="tick-style-toggle {{ if eq .StyleRaw "redpoint" }}is-selected{{ end }}"><input type="radio" name="style" value="redpoint" class="sr-only tick-style-radio" {{ if eq .StyleRaw "redpoint" }}checked{{ end }} /><span>Redpoint</span></label>
-              <label class="tick-style-toggle tick-hangdog-only {{ if eq .StyleRaw "hangdog" }}is-selected{{ end }}"><input type="radio" name="style" value="hangdog" class="sr-only tick-style-radio" {{ if eq .StyleRaw "hangdog" }}checked{{ end }} /><span>Hangdog</span></label>
-              <label class="tick-style-toggle {{ if eq .StyleRaw "repeat" }}is-selected{{ end }}"><input type="radio" name="style" value="repeat" class="sr-only tick-style-radio" {{ if eq .StyleRaw "repeat" }}checked{{ end }} /><span>Repeat</span></label>
-            </div>
-          </div>
-
-          {{/* Attempts */}}
-          <div>
-            <label class="text-xs font-medium">Attempts</label>
-            <div class="stepper mt-1">
-              <button type="button" class="stepper-btn" data-stepper-dec="edit-attempts-{{ .ID }}" aria-label="Fewer">−</button>
-              <input id="edit-attempts-{{ .ID }}" name="attempts" type="number" min="1" value="{{ .Attempts }}" class="stepper-input" style="width:3rem" />
-              <button type="button" class="stepper-btn" data-stepper-inc="edit-attempts-{{ .ID }}" aria-label="More">+</button>
-            </div>
-          </div>
-
-          {{/* Thoughts */}}
-          <div>
-            <label class="text-xs font-medium" for="edit-thoughts-{{ .ID }}">Thoughts</label>
-            <textarea id="edit-thoughts-{{ .ID }}" name="thoughts" rows="2" class="mt-1 w-full input text-sm resize-none" placeholder="What did you notice? What to try next?">{{ .Thoughts }}</textarea>
-          </div>
-
-          {{/* Stars */}}
-          <div>
-            <label class="text-xs font-medium">Stars</label>
-            <div class="tick-stars mt-1" data-stars-target="edit-stars-val-{{ .ID }}">
-              <button type="button" data-star="1" aria-label="1 star" {{ if ge .Stars 1 }}class="active"{{ end }}>★</button>
-              <button type="button" data-star="2" aria-label="2 stars" {{ if ge .Stars 2 }}class="active"{{ end }}>★</button>
-              <button type="button" data-star="3" aria-label="3 stars" {{ if ge .Stars 3 }}class="active"{{ end }}>★</button>
-            </div>
-            <input type="hidden" name="stars" id="edit-stars-val-{{ .ID }}" value="{{ .Stars }}" />
-          </div>
-
-          <button type="submit" class="rounded-md btn-primary px-3 py-2 text-sm font-medium w-full">Save changes</button>
-        </form>
+        {{ template "tick_form" (dict
+          "Mode" "edit"
+          "RunID" .RunID "ExerciseID" .ExerciseID "ID" .ID
+          "KindRaw" .KindRaw "SettingRaw" .SettingRaw "SubtypeRaw" .SubtypeRaw
+          "IsBoard" .IsBoard "RopeStyleRaw" .RopeStyleRaw
+          "Grade" .Grade "Focus" .Focus "Thoughts" .Thoughts
+          "StyleRaw" .StyleRaw "Sent" .Sent "Stars" .Stars "Attempts" .Attempts) }}
       </div>
     </details>
     {{ end }}
   </div>
+  {{ else }}
+  <div class="text-center py-6">
+    <i data-lucide="mountain" style="width:1.25rem;height:1.25rem;opacity:0.3;margin:0 auto 0.5rem" aria-hidden="true"></i>
+    <p class="text-sm font-semibold">No climbs yet</p>
+    <p class="mt-0.5 text-xs muted">Log your first climb below</p>
+  </div>
   {{ end }}
 
-  {{/* New tick form */}}
-  <form
-    hx-post="/runs/{{ .RunID }}/exercises/{{ .ExerciseID }}/ticks"
-    hx-target="#tick-list-{{ .ExerciseID }}"
-    hx-swap="outerHTML"
-    class="card card-pad space-y-3"
-    data-tick-kind-form
-    data-tick-new-form
-  >
-    {{/* Kind */}}
-    <div>
-      <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Type</label>
-      <div class="flex flex-wrap gap-1.5">
-        <label class="tick-style-toggle is-selected"><input type="radio" name="kind" value="boulder" class="sr-only tick-kind-radio" checked /><span>Boulder</span></label>
-        <label class="tick-style-toggle"><input type="radio" name="kind" value="sport" class="sr-only tick-kind-radio" /><span>Sport</span></label>
-        <label class="tick-style-toggle"><input type="radio" name="kind" value="trad" class="sr-only tick-kind-radio" /><span>Trad</span></label>
-      </div>
-    </div>
-
-    {{/* Setting */}}
-    <div>
-      <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Setting</label>
-      <div class="flex flex-wrap gap-1.5">
-        <label class="tick-style-toggle"><input type="radio" name="setting" value="indoor" class="sr-only tick-setting-radio" /><span>Indoor</span></label>
-        <label class="tick-style-toggle"><input type="radio" name="setting" value="outdoor" class="sr-only tick-setting-radio" /><span>Outdoor</span></label>
-      </div>
-    </div>
-
-    {{/* Venue — boulder + indoor only */}}
-    <div class="tick-venue-type-row">
-      <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Venue</label>
-      <div class="flex flex-wrap gap-1.5">
-        <label class="tick-style-toggle">
-          <input type="checkbox" name="is_board" value="1" class="sr-only tick-board-toggle" /><span>Board</span>
-        </label>
-      </div>
-      <div class="tick-board-kind-row mt-2" style="display:none">
-        <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Board type</label>
-        <div class="flex flex-wrap gap-1.5">
-          <label class="tick-style-toggle"><input type="radio" name="board_kind" value="kilter" class="sr-only tick-style-radio"/><span>Kilter</span></label>
-          <label class="tick-style-toggle"><input type="radio" name="board_kind" value="moon" class="sr-only tick-style-radio"/><span>Moon</span></label>
-          <label class="tick-style-toggle"><input type="radio" name="board_kind" value="tension" class="sr-only tick-style-radio"/><span>Tension</span></label>
-          <label class="tick-style-toggle"><input type="radio" name="board_kind" value="spray" class="sr-only tick-style-radio"/><span>Spray Wall</span></label>
-          <label class="tick-style-toggle"><input type="radio" name="board_kind" value="custom" class="sr-only tick-style-radio"/><span>Custom</span></label>
-        </div>
-      </div>
-    </div>
-
-    {{/* Method — sport/trad only */}}
-    <div class="tick-rope-style-row">
-      <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Method</label>
-      <div class="flex flex-wrap gap-1.5">
-        <label class="tick-style-toggle" data-rope-contexts="sport:indoor,sport:outdoor,trad:indoor,trad:outdoor"><input type="radio" name="rope_style" value="lead" class="sr-only tick-style-radio" /><span>Lead</span></label>
-        <label class="tick-style-toggle" data-rope-contexts="sport:indoor"><input type="radio" name="rope_style" value="top_rope" class="sr-only tick-style-radio" /><span>Top Rope</span></label>
-        <label class="tick-style-toggle" data-rope-contexts="sport:indoor"><input type="radio" name="rope_style" value="auto_belay" class="sr-only tick-style-radio" /><span>Auto-belay</span></label>
-        <label class="tick-style-toggle" data-rope-contexts="sport:outdoor,trad:indoor,trad:outdoor"><input type="radio" name="rope_style" value="follow" class="sr-only tick-style-radio" /><span>Top Rope</span></label>
-      </div>
-    </div>
-
-    {{/* Grade */}}
-    <div>
-      <label class="text-xs font-medium" for="tick-grade-{{ .ExerciseID }}">Grade</label>
-      <select id="tick-grade-{{ .ExerciseID }}" name="grade" class="mt-1 w-full input text-sm" data-grade-select data-current-grade="">
-        <option value="">— Grade —</option>
-      </select>
-    </div>
-
-    {{/* Sent / Working toggle */}}
-    <div>
-      <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Status</label>
-      <div class="flex gap-1.5">
-        <label class="tick-style-toggle tick-sent-toggle" data-sent="1">
-          <input type="radio" name="sent_toggle" value="1" class="sr-only tick-sent-radio" /><span>Sent</span>
-        </label>
-        <label class="tick-style-toggle tick-sent-toggle" data-sent="0">
-          <input type="radio" name="sent_toggle" value="0" class="sr-only tick-sent-radio" /><span>Working</span>
-        </label>
-      </div>
-      <input type="hidden" name="sent" id="tick-sent-val-{{ .ExerciseID }}" value="" />
-    </div>
-
-    {{/* Ascent style — only shown when Sent */}}
-    <div class="tick-style-row" style="display:none">
-      <label class="text-xs font-medium">Ascent style</label>
-      <div class="mt-1 flex flex-wrap gap-1.5">
-        <label class="tick-style-toggle"><input type="radio" name="style" value="onsight" class="sr-only tick-style-radio" /><span>Onsight</span></label>
-        <label class="tick-style-toggle"><input type="radio" name="style" value="flash" class="sr-only tick-style-radio" /><span>Flash</span></label>
-        <label class="tick-style-toggle"><input type="radio" name="style" value="redpoint" class="sr-only tick-style-radio" /><span>Redpoint</span></label>
-        <label class="tick-style-toggle tick-hangdog-only"><input type="radio" name="style" value="hangdog" class="sr-only tick-style-radio" /><span>Hangdog</span></label>
-        <label class="tick-style-toggle"><input type="radio" name="style" value="repeat" class="sr-only tick-style-radio" /><span>Repeat</span></label>
-      </div>
-    </div>
-
-    {{/* Attempts */}}
-    <div>
-      <label class="text-xs font-medium">Attempts</label>
-      <div class="stepper mt-1">
-        <button type="button" class="stepper-btn" data-stepper-dec="tick-attempts-{{ .ExerciseID }}" aria-label="Fewer attempts">−</button>
-        <input id="tick-attempts-{{ .ExerciseID }}" name="attempts" type="number" min="1" value="1" class="stepper-input" style="width:3rem" />
-        <button type="button" class="stepper-btn" data-stepper-inc="tick-attempts-{{ .ExerciseID }}" aria-label="More attempts">+</button>
-      </div>
-    </div>
-
-    {{/* Thoughts */}}
-    <div>
-      <label class="text-xs font-medium" for="tick-thoughts-{{ .ExerciseID }}">Thoughts</label>
-      <textarea id="tick-thoughts-{{ .ExerciseID }}" name="thoughts" rows="2" class="mt-1 w-full input text-sm resize-none" placeholder="What did you notice? What to try next?"></textarea>
-    </div>
-
-    {{/* Stars */}}
-    <div>
-      <label class="text-xs font-medium">Stars</label>
-      <div class="tick-stars mt-1" data-stars-target="tick-stars-val-{{ .ExerciseID }}">
-        <button type="button" data-star="1" aria-label="1 star">★</button>
-        <button type="button" data-star="2" aria-label="2 stars">★</button>
-        <button type="button" data-star="3" aria-label="3 stars">★</button>
-      </div>
-      <input type="hidden" name="stars" id="tick-stars-val-{{ .ExerciseID }}" value="0" />
-    </div>
-
-    <button type="submit" class="rounded-md btn-primary px-3 py-2 text-sm font-medium w-full">Log climb</button>
-  </form>
+  {{/* New tick form — seeded from the latest tick in the run (or Log again) */}}
+  {{ template "tick_form" (dict
+    "Mode" "new"
+    "RunID" .RunID "ExerciseID" .ExerciseID
+    "KindRaw" .SeedKind "SettingRaw" .SeedSetting "SubtypeRaw" .SeedSubtype
+    "IsBoard" .SeedIsBoard "RopeStyleRaw" .SeedRopeStyle
+    "Grade" .SeedGrade "Focus" "" "Thoughts" ""
+    "StyleRaw" "" "Sent" false "Stars" 0 "Attempts" 1) }}
 </div>
+
+{{/* Grade systems + handlers — re-run on every swap (htmx executes inline scripts) */}}
 <script>
 (function () {
   var boulderSystem = "{{ .BoulderGradeSystem }}";
   var routeSystem   = "{{ .RouteGradeSystem }}";
 
+  var UNGRADED = ['Rainbow', 'Traverse'];
   var GRADE_LISTS = {
     font: ['3','3+','4','4+','5','5+',
            '6a','6a+','6b','6b+','6c','6c+',
@@ -333,64 +138,70 @@
           '5.15a','5.15b','5.15c','5.15d']
   };
 
-  function populateGradeSelect(form, kind) {
-    form.querySelectorAll('[data-grade-select]').forEach(function (sel) {
-      var current = sel.dataset.currentGrade || sel.value;
+  var GRADE_WINDOW = 2; // show anchor ±2 graded chips before falling back to "more"
+
+  // Rebuild the grade chip strip for the form's current kind. Keeps the selected
+  // grade if still valid; clears it otherwise (matching the old <select>).
+  // By default shows only the grades near the anchor (inherited/selected) plus a
+  // "more" chip; the full scale renders when expanded or when there's no anchor.
+  function populateGradeStrip(form, kind) {
+    form.querySelectorAll('[data-grade-strip]').forEach(function (strip) {
+      var hidden = form.querySelector('[data-grade-input]');
+      var current = hidden ? hidden.value : '';
       var system = kind === 'boulder' ? boulderSystem : routeSystem;
-      var grades = GRADE_LISTS[system] || [];
-      sel.innerHTML = '<option value="">— Grade —</option>';
-      grades.forEach(function (g) {
-        var opt = document.createElement('option');
-        opt.value = g;
-        opt.textContent = g;
-        if (g === current) opt.selected = true;
-        sel.appendChild(opt);
+      var scale = GRADE_LISTS[system] || [];
+      var stillValid = current === '' || UNGRADED.indexOf(current) !== -1 || scale.indexOf(current) !== -1;
+      if (!stillValid && hidden) { hidden.value = ''; current = ''; }
+
+      // Anchor on the current graded value (not Rainbow/Traverse).
+      var anchorIdx = scale.indexOf(current);
+      var expanded = strip.dataset.expanded === '1';
+      var windowed = !expanded && anchorIdx !== -1;
+
+      var shown;
+      if (windowed) {
+        var lo = Math.max(0, anchorIdx - GRADE_WINDOW);
+        var hi = Math.min(scale.length - 1, anchorIdx + GRADE_WINDOW);
+        shown = scale.slice(lo, hi + 1);
+      } else {
+        shown = scale;
+      }
+
+      strip.innerHTML = '';
+      UNGRADED.concat(shown).forEach(function (g) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tick-grade-chip' + (g === current ? ' is-selected' : '');
+        btn.dataset.grade = g;
+        btn.textContent = g;
+        strip.appendChild(btn);
       });
-      // Restore value (handles case where current grade is in the new list).
-      if (current) sel.value = current;
+      if (windowed && shown.length < scale.length) {
+        var more = document.createElement('button');
+        more.type = 'button';
+        more.className = 'tick-grade-chip tick-grade-more';
+        more.dataset.gradeMore = '1';
+        more.textContent = '…';
+        more.setAttribute('aria-label', 'Show all grades');
+        strip.appendChild(more);
+      }
+
+      var sel = strip.querySelector('.tick-grade-chip.is-selected');
+      if (sel) sel.scrollIntoView({ inline: 'center', block: 'nearest' });
+      syncUngraded(form);
     });
   }
 
-  function syncSentToggle(form) {
-    if (!form) return;
-    var kindInput = form.querySelector('[name="kind"]:checked');
-    var kind = kindInput ? kindInput.value : 'boulder';
-
-    var sentChecked = form.querySelector('[name="sent_toggle"]:checked');
-    var sentVal = sentChecked ? sentChecked.value : null;
-
-    // Sync hidden sent field.
-    var hiddenSent = form.querySelector('[name="sent"]');
-    if (hiddenSent) hiddenSent.value = sentVal !== null ? sentVal : '';
-
-    // Show ascent style only when sent.
-    form.querySelectorAll('.tick-style-row').forEach(function (el) {
-      var show = sentVal === '1';
-      el.style.display = show ? '' : 'none';
-      if (!show) {
-        el.querySelectorAll('input[name="style"]').forEach(function (r) {
-          if (r.checked) { r.checked = false; r.closest('.tick-style-toggle').classList.remove('is-selected'); }
-        });
-      }
-    });
-
-    // Hangdog: sport/trad only AND sent.
-    form.querySelectorAll('.tick-hangdog-only').forEach(function (el) {
-      var show = kind !== 'boulder' && sentVal === '1';
-      el.style.display = show ? '' : 'none';
-      if (!show) {
-        var r = el.querySelector('input[type="radio"]');
-        if (r && r.checked) { r.checked = false; el.classList.remove('is-selected'); }
-      }
-    });
-
-    // Sync sent-toggle visual state.
-    form.querySelectorAll('.tick-sent-toggle').forEach(function (lbl) {
-      var radio = lbl.querySelector('input[type="radio"]');
-      lbl.classList.toggle('is-selected', !!(radio && radio.checked));
+  // Ungraded climbs (Rainbow/Traverse): the whole point isn't sending, so hide
+  // the result + attempts rows entirely.
+  function syncUngraded(form) {
+    var hidden = form.querySelector('[data-grade-input]');
+    var grade = hidden ? hidden.value : '';
+    var ungraded = UNGRADED.indexOf(grade) !== -1;
+    form.querySelectorAll('[data-result-row]').forEach(function (row) {
+      row.style.display = ungraded ? 'none' : '';
     });
   }
-  window.syncSentToggle = syncSentToggle;
 
   function syncTickKind(form) {
     if (!form) return;
@@ -402,7 +213,6 @@
     var isBoulder = kind === 'boulder';
     var ctx = kind + ':' + setting;
 
-    // Venue: only boulder + indoor. Also reset board when hiding.
     form.querySelectorAll('.tick-venue-type-row').forEach(function (el) {
       var show = isBoulder && setting === 'indoor';
       el.style.display = show ? '' : 'none';
@@ -414,12 +224,10 @@
       }
     });
 
-    // Method: sport or trad, once setting is chosen.
     form.querySelectorAll('.tick-rope-style-row').forEach(function (el) {
       el.style.display = (!isBoulder && setting !== '') ? '' : 'none';
     });
 
-    // Individual method options filtered by kind+setting context.
     form.querySelectorAll('[data-rope-contexts]').forEach(function (el) {
       var contexts = el.dataset.ropeContexts.split(',');
       el.style.display = contexts.indexOf(ctx) !== -1 ? '' : 'none';
@@ -429,8 +237,7 @@
       }
     });
 
-    populateGradeSelect(form, kind);
-    syncSentToggle(form);
+    populateGradeStrip(form, kind);
   }
   window.syncTickKind = syncTickKind;
 
@@ -438,42 +245,75 @@
   var root = document.getElementById('tick-list-' + exID);
   if (!root) return;
 
-  // Init all forms on load.
+  // Restore open <details> from the set recorded before the last swap.
+  try {
+    var openKey = 'tickOpen-' + exID;
+    var openIds = JSON.parse(sessionStorage.getItem(openKey) || '[]');
+    openIds.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.open = true;
+    });
+    function recordOpen() {
+      var ids = [];
+      root.querySelectorAll('details[id^="tick-details-"]').forEach(function (d) {
+        if (d.open) ids.push(d.id);
+      });
+      sessionStorage.setItem(openKey, JSON.stringify(ids));
+    }
+    root.querySelectorAll('details[id^="tick-details-"]').forEach(function (d) {
+      d.addEventListener('toggle', recordOpen);
+    });
+  } catch (e) { /* sessionStorage unavailable — open state just won't persist */ }
+
+  // Init all forms.
   root.querySelectorAll('[data-tick-kind-form]').forEach(function (form) {
     syncTickKind(form);
   });
 
-  // Re-sync when kind or setting radios change.
+  // Kind / setting changes → re-sync (grade strip rebuilds).
   root.addEventListener('change', function (e) {
     if (e.target.classList.contains('tick-kind-radio') ||
         e.target.classList.contains('tick-setting-radio')) {
-      var form = e.target.closest('[data-tick-kind-form]');
-      syncTickKind(form);
-    }
-    if (e.target.classList.contains('tick-sent-radio')) {
-      var form = e.target.closest('[data-tick-kind-form]');
-      syncSentToggle(form);
+      syncTickKind(e.target.closest('[data-tick-kind-form]'));
     }
   });
 
-  // Deselect sent radio on re-click (new-tick form only, allows going back to blank).
-  root.querySelectorAll('[data-tick-new-form] .tick-sent-radio').forEach(function (radio) {
-    radio.addEventListener('click', function () {
-      var form = radio.closest('[data-tick-kind-form]');
-      if (!form) return;
-      var prev = form.dataset.prevSent;
-      if (prev === radio.value && radio.checked) {
-        radio.checked = false;
-        radio.closest('.tick-style-toggle').classList.remove('is-selected');
-        form.dataset.prevSent = '';
-        syncSentToggle(form);
-      } else {
-        form.dataset.prevSent = radio.value;
-      }
-    });
+  // Grade chip taps.
+  root.addEventListener('click', function (e) {
+    var moreChip = e.target.closest('[data-grade-more]');
+    if (moreChip) {
+      var mForm = moreChip.closest('[data-tick-kind-form]');
+      var strip = moreChip.closest('[data-grade-strip]');
+      strip.dataset.expanded = '1';
+      var kInput = mForm.querySelector('[name="kind"]:checked');
+      populateGradeStrip(mForm, kInput ? kInput.value : 'boulder');
+      return;
+    }
+    var chip = e.target.closest('.tick-grade-chip');
+    if (chip) {
+      var form = chip.closest('[data-tick-kind-form]');
+      var hidden = form.querySelector('[data-grade-input]');
+      var cStrip = chip.closest('[data-grade-strip]');
+      var val = chip.dataset.grade;
+      var next = (hidden.value === val) ? '' : val;
+      hidden.value = next;
+      // Re-collapse to the window around the new pick (graded picks only).
+      cStrip.dataset.expanded = '';
+      var ck = form.querySelector('[name="kind"]:checked');
+      populateGradeStrip(form, ck ? ck.value : 'boulder');
+      return;
+    }
+    var step = e.target.closest('[data-step]');
+    if (step) {
+      var sForm = step.closest('[data-tick-kind-form]');
+      var input = sForm.querySelector('[data-attempts-input]');
+      var n = (parseInt(input.value, 10) || 1) + parseInt(step.dataset.step, 10);
+      input.value = Math.max(1, n);
+      return;
+    }
   });
 
-  // Board toggle: show/hide board kind row.
+  // Board toggle.
   root.querySelectorAll('.tick-board-toggle').forEach(function (cb) {
     cb.addEventListener('change', function () {
       var kindRow = cb.closest('.tick-venue-type-row');
@@ -492,21 +332,8 @@
     });
   });
 
-  // Stepper buttons.
-  root.querySelectorAll('[data-stepper-inc],[data-stepper-dec]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var targetID = btn.dataset.stepperInc || btn.dataset.stepperDec;
-      var input = document.getElementById(targetID);
-      if (!input) return;
-      var val = parseInt(input.value, 10) || 1;
-      if (btn.dataset.stepperInc !== undefined) val++;
-      else val = Math.max(1, val - 1);
-      input.value = val;
-    });
-  });
-
-  // Style toggles (all tick-style-radio inputs).
-  root.querySelectorAll('.tick-style-radio').forEach(function (radio) {
+  // Generic radio pill toggles (kind, setting, board kind, refine style, rope).
+  root.querySelectorAll('.tick-style-radio, .tick-kind-radio, .tick-setting-radio').forEach(function (radio) {
     radio.addEventListener('change', function () {
       var form = radio.closest('form');
       if (form) {
@@ -518,20 +345,7 @@
     });
   });
 
-  // Kind/setting radios visual toggle.
-  root.querySelectorAll('.tick-kind-radio,.tick-setting-radio').forEach(function (radio) {
-    radio.addEventListener('change', function () {
-      var form = radio.closest('form');
-      if (form) {
-        form.querySelectorAll('input[name="' + radio.name + '"]').forEach(function (r) {
-          r.closest('.tick-style-toggle').classList.remove('is-selected');
-        });
-      }
-      if (radio.checked) radio.closest('.tick-style-toggle').classList.add('is-selected');
-    });
-  });
-
-  // Stars widgets.
+  // Stars.
   root.querySelectorAll('.tick-stars').forEach(function (starsContainer) {
     var starsHidden = document.getElementById(starsContainer.dataset.starsTarget);
     starsContainer.querySelectorAll('[data-star]').forEach(function (btn) {
@@ -546,7 +360,149 @@
       });
     });
   });
+
+  // After a swap, scroll the new-tick form into view — but not on the first
+  // (empty) load, and not when there are no ticks yet.
+  if (root.dataset.swapped === '1' && root.querySelector('details')) {
+    var newForm = root.querySelector('[data-tick-new-form]');
+    if (newForm) {
+      newForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (navigator.vibrate) navigator.vibrate(10);
+    }
+  }
+  root.dataset.swapped = '1';
 })();
 if(window.__passionRenderIcons)window.__passionRenderIcons();
 </script>
+{{ end }}
+
+{{/* ------------------------------------------------------------------ */}}
+{{/* Shared tick form — Mode is "new" or "edit". */}}
+{{ define "tick_form" }}
+<form
+  {{ if eq .Mode "edit" }}
+  hx-post="/runs/{{ .RunID }}/exercises/{{ .ExerciseID }}/ticks/{{ .ID }}/update"
+  {{ else }}
+  hx-post="/runs/{{ .RunID }}/exercises/{{ .ExerciseID }}/ticks"
+  {{ end }}
+  hx-target="#tick-list-{{ .ExerciseID }}"
+  hx-swap="outerHTML"
+  class="{{ if eq .Mode "new" }}card card-pad {{ end }}space-y-3"
+  data-tick-kind-form
+  {{ if eq .Mode "new" }}data-tick-new-form{{ end }}
+>
+  {{/* Constants summary (collapsible, stays visible) */}}
+  <details class="tick-constants passion-disclosure">
+    <summary class="tick-constants-summary text-xs muted flex items-center gap-1">
+      <i data-lucide="sliders-horizontal" style="width:0.8rem;height:0.8rem" aria-hidden="true"></i>
+      <span data-constants-label>Type &amp; setting</span>
+    </summary>
+    <div class="space-y-3 mt-2">
+      {{/* Kind */}}
+      <div>
+        <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Type</label>
+        <div class="flex flex-wrap gap-1.5">
+          <label class="tick-style-toggle {{ if eq .KindRaw "boulder" }}is-selected{{ end }}"><input type="radio" name="kind" value="boulder" class="sr-only tick-kind-radio" {{ if or (eq .KindRaw "boulder") (eq .KindRaw "") }}checked{{ end }} /><span>Boulder</span></label>
+          <label class="tick-style-toggle {{ if eq .KindRaw "sport" }}is-selected{{ end }}"><input type="radio" name="kind" value="sport" class="sr-only tick-kind-radio" {{ if eq .KindRaw "sport" }}checked{{ end }} /><span>Sport</span></label>
+          <label class="tick-style-toggle {{ if eq .KindRaw "trad" }}is-selected{{ end }}"><input type="radio" name="kind" value="trad" class="sr-only tick-kind-radio" {{ if eq .KindRaw "trad" }}checked{{ end }} /><span>Trad</span></label>
+        </div>
+      </div>
+
+      {{/* Setting */}}
+      <div>
+        <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Setting</label>
+        <div class="flex flex-wrap gap-1.5">
+          <label class="tick-style-toggle {{ if eq .SettingRaw "indoor" }}is-selected{{ end }}"><input type="radio" name="setting" value="indoor" class="sr-only tick-setting-radio" {{ if eq .SettingRaw "indoor" }}checked{{ end }} /><span>Indoor</span></label>
+          <label class="tick-style-toggle {{ if eq .SettingRaw "outdoor" }}is-selected{{ end }}"><input type="radio" name="setting" value="outdoor" class="sr-only tick-setting-radio" {{ if eq .SettingRaw "outdoor" }}checked{{ end }} /><span>Outdoor</span></label>
+        </div>
+      </div>
+
+      {{/* Venue — boulder + indoor only */}}
+      <div class="tick-venue-type-row">
+        <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Venue</label>
+        <div class="flex flex-wrap gap-1.5">
+          <label class="tick-style-toggle {{ if .IsBoard }}is-selected{{ end }}">
+            <input type="checkbox" name="is_board" value="1" class="sr-only tick-board-toggle" {{ if .IsBoard }}checked{{ end }} /><span>Board</span>
+          </label>
+        </div>
+        <div class="tick-board-kind-row mt-2"{{ if not .IsBoard }} style="display:none"{{ end }}>
+          <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Board</label>
+          <div class="flex flex-wrap gap-1.5">
+            <label class="tick-style-toggle {{ if eq .SubtypeRaw "kilter" }}is-selected{{ end }}"><input type="radio" name="board_kind" value="kilter" class="sr-only tick-style-radio" {{ if eq .SubtypeRaw "kilter" }}checked{{ end }}/><span>Kilter</span></label>
+            <label class="tick-style-toggle {{ if eq .SubtypeRaw "moon" }}is-selected{{ end }}"><input type="radio" name="board_kind" value="moon" class="sr-only tick-style-radio" {{ if eq .SubtypeRaw "moon" }}checked{{ end }}/><span>Moon</span></label>
+            <label class="tick-style-toggle {{ if eq .SubtypeRaw "tension" }}is-selected{{ end }}"><input type="radio" name="board_kind" value="tension" class="sr-only tick-style-radio" {{ if eq .SubtypeRaw "tension" }}checked{{ end }}/><span>Tension</span></label>
+            <label class="tick-style-toggle {{ if eq .SubtypeRaw "spray" }}is-selected{{ end }}"><input type="radio" name="board_kind" value="spray" class="sr-only tick-style-radio" {{ if eq .SubtypeRaw "spray" }}checked{{ end }}/><span>Spray Wall</span></label>
+            <label class="tick-style-toggle {{ if eq .SubtypeRaw "custom" }}is-selected{{ end }}"><input type="radio" name="board_kind" value="custom" class="sr-only tick-style-radio" {{ if eq .SubtypeRaw "custom" }}checked{{ end }}/><span>Custom</span></label>
+          </div>
+        </div>
+      </div>
+
+      {{/* Method — sport/trad only */}}
+      <div class="tick-rope-style-row">
+        <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Method</label>
+        <div class="flex flex-wrap gap-1.5">
+          <label class="tick-style-toggle {{ if eq .RopeStyleRaw "lead" }}is-selected{{ end }}" data-rope-contexts="sport:indoor,sport:outdoor,trad:indoor,trad:outdoor"><input type="radio" name="rope_style" value="lead" class="sr-only tick-style-radio" {{ if eq .RopeStyleRaw "lead" }}checked{{ end }} /><span>Lead</span></label>
+          <label class="tick-style-toggle {{ if eq .RopeStyleRaw "top_rope" }}is-selected{{ end }}" data-rope-contexts="sport:indoor"><input type="radio" name="rope_style" value="top_rope" class="sr-only tick-style-radio" {{ if eq .RopeStyleRaw "top_rope" }}checked{{ end }} /><span>Top Rope</span></label>
+          <label class="tick-style-toggle {{ if eq .RopeStyleRaw "auto_belay" }}is-selected{{ end }}" data-rope-contexts="sport:indoor"><input type="radio" name="rope_style" value="auto_belay" class="sr-only tick-style-radio" {{ if eq .RopeStyleRaw "auto_belay" }}checked{{ end }} /><span>Auto-belay</span></label>
+          <label class="tick-style-toggle {{ if or (eq .RopeStyleRaw "follow") (eq .RopeStyleRaw "second") }}is-selected{{ end }}" data-rope-contexts="sport:outdoor,trad:indoor,trad:outdoor"><input type="radio" name="rope_style" value="follow" class="sr-only tick-style-radio" {{ if or (eq .RopeStyleRaw "follow") (eq .RopeStyleRaw "second") }}checked{{ end }} /><span>Top Rope</span></label>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  {{/* Grade chip strip */}}
+  <div>
+    <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Grade</label>
+    <div class="tick-grade-strip" data-grade-strip></div>
+    <input type="hidden" name="grade" value="{{ .Grade }}" data-grade-input />
+  </div>
+
+  {{/* Result (ascent style) — hidden for ungraded climbs.
+       sent = onsight|flash|redpoint; hangdog/working are not sends. */}}
+  <div data-result-row>
+    <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Result</label>
+    <div class="flex flex-wrap gap-1.5">
+      <label class="tick-style-toggle {{ if eq .StyleRaw "onsight" }}is-selected{{ end }}"><input type="radio" name="style" value="onsight" class="sr-only tick-style-radio" {{ if eq .StyleRaw "onsight" }}checked{{ end }} /><span>Onsight</span></label>
+      <label class="tick-style-toggle {{ if eq .StyleRaw "flash" }}is-selected{{ end }}"><input type="radio" name="style" value="flash" class="sr-only tick-style-radio" {{ if eq .StyleRaw "flash" }}checked{{ end }} /><span>Flash</span></label>
+      <label class="tick-style-toggle {{ if eq .StyleRaw "redpoint" }}is-selected{{ end }}"><input type="radio" name="style" value="redpoint" class="sr-only tick-style-radio" {{ if eq .StyleRaw "redpoint" }}checked{{ end }} /><span>Redpoint</span></label>
+      <label class="tick-style-toggle {{ if eq .StyleRaw "hangdog" }}is-selected{{ end }}"><input type="radio" name="style" value="hangdog" class="sr-only tick-style-radio" {{ if eq .StyleRaw "hangdog" }}checked{{ end }} /><span>Hangdog</span></label>
+      <label class="tick-style-toggle {{ if eq .StyleRaw "working" }}is-selected{{ end }}"><input type="radio" name="style" value="working" class="sr-only tick-style-radio" {{ if eq .StyleRaw "working" }}checked{{ end }} /><span>Working</span></label>
+    </div>
+  </div>
+
+  {{/* Attempts — this tick is one climb worked over N goes */}}
+  <div data-result-row>
+    <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Attempts</label>
+    <div class="tick-stepper">
+      <button type="button" class="tick-stepper-btn" data-step="-1" aria-label="Fewer attempts">−</button>
+      <input type="number" name="attempts" min="1" value="{{ if gt .Attempts 0 }}{{ .Attempts }}{{ else }}1{{ end }}" class="tick-stepper-input" data-attempts-input />
+      <button type="button" class="tick-stepper-btn" data-step="1" aria-label="More attempts">+</button>
+    </div>
+  </div>
+
+  <div class="tick-form-sep"></div>
+
+  {{/* Focus + Thoughts — always visible */}}
+  <div>
+    <label class="text-xs font-medium" for="tick-focus-{{ if eq .Mode "edit" }}{{ .ID }}{{ else }}{{ .ExerciseID }}{{ end }}">Focus</label>
+    <textarea id="tick-focus-{{ if eq .Mode "edit" }}{{ .ID }}{{ else }}{{ .ExerciseID }}{{ end }}" name="focus" rows="1" class="mt-1 w-full input text-sm resize-none" placeholder="e.g., Open hand, stay low">{{ .Focus }}</textarea>
+  </div>
+  <div>
+    <label class="text-xs font-medium" for="tick-thoughts-{{ if eq .Mode "edit" }}{{ .ID }}{{ else }}{{ .ExerciseID }}{{ end }}">Thoughts</label>
+    <textarea id="tick-thoughts-{{ if eq .Mode "edit" }}{{ .ID }}{{ else }}{{ .ExerciseID }}{{ end }}" name="thoughts" rows="2" class="mt-1 w-full input text-sm resize-none" placeholder="e.g., Feet cut on the crux, try heel-toe">{{ .Thoughts }}</textarea>
+  </div>
+
+  {{/* Stars */}}
+  <div>
+    <label class="text-xs font-medium">Stars</label>
+    <div class="tick-stars mt-1" data-stars-target="tick-stars-val-{{ if eq .Mode "edit" }}{{ .ID }}{{ else }}{{ .ExerciseID }}{{ end }}">
+      <button type="button" data-star="1" aria-label="1 star" {{ if ge .Stars 1 }}class="active"{{ end }}>★</button>
+      <button type="button" data-star="2" aria-label="2 stars" {{ if ge .Stars 2 }}class="active"{{ end }}>★</button>
+      <button type="button" data-star="3" aria-label="3 stars" {{ if ge .Stars 3 }}class="active"{{ end }}>★</button>
+    </div>
+    <input type="hidden" name="stars" id="tick-stars-val-{{ if eq .Mode "edit" }}{{ .ID }}{{ else }}{{ .ExerciseID }}{{ end }}" value="{{ .Stars }}" />
+  </div>
+
+  <button type="submit" class="btn btn-primary w-full text-sm">{{ if eq .Mode "edit" }}Save changes{{ else }}Log climb{{ end }}</button>
+</form>
 {{ end }}

@@ -3465,17 +3465,8 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
   font-weight: 600;
   padding: 0.1rem 0.4rem;
   border-radius: 9999px;
-  background: #dcfce7;
-  color: #16a34a;
-}
-
-.tick-unsent-badge {
-  font-size: 0.65rem;
-  font-weight: 600;
-  padding: 0.1rem 0.4rem;
-  border-radius: 9999px;
-  background: var(--card-muted);
-  color: var(--muted);
+  background: var(--tick-green-bg);
+  color: var(--tick-green-fg);
 }
 
 .tick-style {
@@ -3487,10 +3478,10 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
   align-items: center;
   gap: 0.2rem;
 }
-.tick-style--onsight  { background: #dcfce7; color: #16a34a; }
-.tick-style--flash    { background: #fef9c3; color: #a16207; }
-.tick-style--redpoint { background: #fee2e2; color: #dc2626; }
-.tick-style--hangdog  { background: #e0f2fe; color: #0369a1; }
+.tick-style--onsight  { background: var(--tick-green-bg); color: var(--tick-green-fg); }
+.tick-style--flash    { background: var(--tick-amber-bg); color: var(--tick-amber-fg); }
+.tick-style--redpoint { background: var(--tick-red-bg); color: var(--tick-red-fg); }
+.tick-style--hangdog  { background: var(--tick-sky-bg); color: var(--tick-sky-fg); }
 .tick-style--repeat   { background: transparent; color: var(--muted); border: 1px solid var(--border); }
 .tick-style--attempt  { background: var(--card-muted); color: var(--muted); }
 .tick-style--project  { background: var(--card-muted); color: var(--muted); } /* compat alias */
@@ -3504,28 +3495,32 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
   align-items: center;
   gap: 0.2rem;
 }
-.tick-rope-style--lead       { background: #ede9fe; color: #7c3aed; }
-.tick-rope-style--top-rope   { background: #dbeafe; color: #2563eb; }
-.tick-rope-style--auto-belay { background: #e0f2fe; color: #0891b2; }
-.tick-rope-style--follow     { background: #dbeafe; color: #2563eb; }
+.tick-rope-style--lead       { background: var(--tick-violet-bg); color: var(--tick-violet-fg); }
+.tick-rope-style--top-rope   { background: var(--tick-blue-bg); color: var(--tick-blue-fg); }
+.tick-rope-style--auto-belay { background: var(--tick-cyan-bg); color: var(--tick-cyan-fg); }
+.tick-rope-style--follow     { background: var(--tick-blue-bg); color: var(--tick-blue-fg); }
 .tick-rope-style--second     { background: var(--card-muted); color: var(--muted); } /* legacy */
-.tick-rope-style--free-solo  { background: #fee2e2; color: #dc2626; }
+.tick-rope-style--free-solo  { background: var(--tick-red-bg); color: var(--tick-red-fg); }
 
 /* Style toggle pills in tick add form */
 .tick-style-toggle {
   display: inline-flex;
   align-items: center;
+  gap: 0.25rem;
   cursor: pointer;
   border-radius: 9999px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  padding: 0.2rem 0.55rem;
+  padding: 0.45rem 0.7rem;
+  min-height: 2.75rem;
   border: 1.5px solid var(--border);
   color: var(--muted);
   background: var(--panel);
   transition: background 0.1s, color 0.1s, border-color 0.1s;
   user-select: none;
 }
+/* Outcome row uses <button>, not <label>+radio — same look, no input */
+button.tick-style-toggle { font-family: inherit; }
 .tick-style-toggle.is-selected,
 .tick-style-toggle:has(input:checked) {
   background: var(--accent);
@@ -3541,22 +3536,109 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
   cursor: pointer;
   font-size: 1.1rem;
   color: var(--border);
-  padding: 0;
+  padding: 0.6rem 0.4rem;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
   line-height: 1;
 }
-.tick-stars button.active { color: #f59e0b; }
-
-/* Sent/Working toggle — colour overrides over the base .tick-style-toggle.is-selected */
-.tick-sent-toggle { flex: 1; justify-content: center; }
-.tick-sent-toggle.is-selected[data-sent="1"] { background: #16a34a; border-color: #16a34a; color: #fff; }
-.tick-sent-toggle.is-selected[data-sent="0"] { background: #d97706; border-color: #d97706; color: #fff; }
+.tick-stars button.active { color: var(--tick-star); }
 
 /* Tick card left-border accent by send status */
-.tick-card--sent    { border-left: 3px solid #16a34a; }
-.tick-card--working { border-left: 3px solid #d97706; }
+.tick-card--sent    { border-left: 3px solid var(--tick-sent-accent); }
+.tick-card--working { border-left: 3px solid var(--tick-working-accent); }
 
 /* Grade prominence in summary row */
 .tick-grade-primary { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+
+/* Live session header above the tick list */
+.tick-session-header { padding: 0 0.15rem 0.25rem; }
+
+/* Tick summary icon buttons (log-again, delete) — 44px tap target,
+   hover-revealed on desktop, always shown for keyboard focus */
+.tick-icon-btn {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  margin-top: -0.15rem;
+}
+.tick-icon-btn:focus-visible { opacity: 1 !important; }
+
+/* Constants disclosure (collapsed type/setting/venue/method) */
+.tick-constants-summary { padding: 0.15rem 0; }
+
+/* Grade chip strip — horizontal scroll, selected chip centred via JS */
+.tick-grade-strip {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  max-width: 100%;
+  min-width: 0;
+  padding-bottom: 0.25rem;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.tick-grade-chip {
+  flex: 0 0 auto;
+  cursor: pointer;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 0.4rem 0.7rem;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  border: 1.5px solid var(--border);
+  color: var(--muted);
+  background: var(--panel);
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.tick-grade-chip.is-selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.tick-grade-more {
+  border-style: dashed;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* Attempts stepper */
+.tick-stepper { display: inline-flex; align-items: center; gap: 0.4rem; }
+.tick-stepper-btn {
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1.5px solid var(--border);
+  border-radius: 9999px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.tick-stepper-btn:hover { border-color: var(--accent); }
+.tick-stepper-input {
+  width: 3rem;
+  height: 2.75rem;
+  text-align: center;
+  border: 1.5px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.9rem;
+  -moz-appearance: textfield;
+}
+.tick-stepper-input::-webkit-outer-spin-button,
+.tick-stepper-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Divider between the "climb" fields and the "reflection" fields in the tick form */
+.tick-form-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 0.25rem -0.25rem;
+}
+
+/* iOS: kill native select chrome on .input selects */
+select.input { -webkit-appearance: none; appearance: none; }
 
 /* ---------------------------------------------------------------------------
    Venue / board badges
@@ -3570,8 +3652,8 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
   white-space: nowrap;
 }
 .venue-badge--commercial { background: var(--accent-bg); color: var(--accent); }
-.venue-badge--outdoor    { background: #dcfce7; color: #16a34a; }
-.venue-badge--board      { background: #fef9c3; color: #a16207; }
+.venue-badge--outdoor    { background: var(--tick-green-bg); color: var(--tick-green-fg); }
+.venue-badge--board      { background: var(--tick-amber-bg); color: var(--tick-amber-fg); }
 
 /* ---------------------------------------------------------------------------
    Mobile calendar agenda view

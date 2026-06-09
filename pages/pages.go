@@ -473,6 +473,7 @@ type ClimbingTickView struct {
 	SubtypeRaw string // "kilter"|"moon"|"tension"|"spray"|"custom"|"" (legacy: "board"|"commercial")
 	IsBoard    bool   // true when SubtypeRaw indicates a board session
 	Grade      string
+	Focus      string // pre-climb intention
 	Thoughts   string
 	Style      string // display: "Onsight", "Flash", "Redpoint", "Hangdog", "Repeat"
 	StyleClass string // CSS modifier
@@ -495,6 +496,21 @@ type ExerciseTicksParams struct {
 	// Grade system keys: "font"|"v_scale" for boulder; "french"|"yds" for routes.
 	BoulderGradeSystem string
 	RouteGradeSystem   string
+
+	// Seed values for the new-tick form, inherited from the latest tick in the
+	// run (or user defaults for the first tick). "Log again" overrides these
+	// from a specific tick.
+	SeedKind      string
+	SeedSetting   string
+	SeedSubtype   string
+	SeedIsBoard   bool
+	SeedRopeStyle string
+	SeedGrade     string
+
+	// Live session header totals (computed over the run's ticks).
+	HeaderClimbs  int
+	HeaderSends   int
+	HeaderHardest string
 }
 
 type ManualExerciseSetLogView struct {
@@ -1454,6 +1470,20 @@ func buildFuncMap() template.FuncMap {
 				return string(runes[:180]) + "…"
 			}
 			return out
+		},
+		"dict": func(values ...interface{}) (map[string]interface{}, error) {
+			if len(values)%2 != 0 {
+				return nil, fmt.Errorf("dict: odd number of args")
+			}
+			m := make(map[string]interface{}, len(values)/2)
+			for i := 0; i < len(values); i += 2 {
+				key, ok := values[i].(string)
+				if !ok {
+					return nil, fmt.Errorf("dict: key %d is not a string", i)
+				}
+				m[key] = values[i+1]
+			}
+			return m, nil
 		},
 	}
 }
