@@ -414,6 +414,7 @@ type ClimbingTick struct {
 	Attempts  int
 	Sent      bool
 	Stars     int `gorm:"default:0"` // 0 = unrated; 1–3 = quality rating
+	RPE       int `gorm:"default:0"` // 1–10 perceived exertion; 0 = not recorded. No input UI yet — reserves the slot for future metrics.
 
 	OrderIndex int `gorm:"default:0"`
 }
