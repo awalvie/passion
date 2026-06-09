@@ -33,6 +33,18 @@
   --destructive-hover: #b91c1c;
 
   --logo-filter: none;
+
+  /* Climbing tick badge palette (light) — pale tint bg + saturated fg */
+  --tick-green-bg: #dcfce7;   --tick-green-fg: #16a34a;
+  --tick-amber-bg: #fef9c3;   --tick-amber-fg: #a16207;
+  --tick-red-bg: #fee2e2;     --tick-red-fg: #dc2626;
+  --tick-sky-bg: #e0f2fe;     --tick-sky-fg: #0369a1;
+  --tick-violet-bg: #ede9fe;  --tick-violet-fg: #7c3aed;
+  --tick-blue-bg: #dbeafe;    --tick-blue-fg: #2563eb;
+  --tick-cyan-bg: #e0f2fe;    --tick-cyan-fg: #0891b2;
+  --tick-star: #f59e0b;
+  --tick-sent-accent: #16a34a;
+  --tick-working-accent: #d97706;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -61,6 +73,18 @@
     --destructive-hover: #ef4444;
 
     --logo-filter: invert(1);
+
+    /* Climbing tick badge palette (dark) — low-alpha hue bg + bright fg */
+    --tick-green-bg: rgba(34, 197, 94, 0.18);   --tick-green-fg: #4ade80;
+    --tick-amber-bg: rgba(245, 158, 11, 0.18);  --tick-amber-fg: #fbbf24;
+    --tick-red-bg: rgba(248, 113, 113, 0.18);   --tick-red-fg: #f87171;
+    --tick-sky-bg: rgba(56, 189, 248, 0.24);    --tick-sky-fg: #7dd3fc;
+    --tick-violet-bg: rgba(167, 139, 250, 0.22);--tick-violet-fg: #c4b5fd;
+    --tick-blue-bg: rgba(96, 165, 250, 0.24);   --tick-blue-fg: #93c5fd;
+    --tick-cyan-bg: rgba(34, 211, 238, 0.24);   --tick-cyan-fg: #67e8f9;
+    --tick-star: #fbbf24;
+    --tick-sent-accent: #22c55e;
+    --tick-working-accent: #f59e0b;
   }
 }
 
@@ -89,6 +113,17 @@ html[data-theme="light"] {
   --destructive-hover: #b91c1c;
 
   --logo-filter: none;
+
+  --tick-green-bg: #dcfce7;   --tick-green-fg: #16a34a;
+  --tick-amber-bg: #fef9c3;   --tick-amber-fg: #a16207;
+  --tick-red-bg: #fee2e2;     --tick-red-fg: #dc2626;
+  --tick-sky-bg: #e0f2fe;     --tick-sky-fg: #0369a1;
+  --tick-violet-bg: #ede9fe;  --tick-violet-fg: #7c3aed;
+  --tick-blue-bg: #dbeafe;    --tick-blue-fg: #2563eb;
+  --tick-cyan-bg: #e0f2fe;    --tick-cyan-fg: #0891b2;
+  --tick-star: #f59e0b;
+  --tick-sent-accent: #16a34a;
+  --tick-working-accent: #d97706;
 }
 
 html[data-theme="dark"] {
@@ -116,6 +151,17 @@ html[data-theme="dark"] {
   --destructive-hover: #ef4444;
 
   --logo-filter: invert(1);
+
+  --tick-green-bg: rgba(34, 197, 94, 0.18);   --tick-green-fg: #4ade80;
+  --tick-amber-bg: rgba(245, 158, 11, 0.18);  --tick-amber-fg: #fbbf24;
+  --tick-red-bg: rgba(248, 113, 113, 0.18);   --tick-red-fg: #f87171;
+  --tick-sky-bg: rgba(56, 189, 248, 0.18);    --tick-sky-fg: #7dd3fc;
+  --tick-violet-bg: rgba(167, 139, 250, 0.18);--tick-violet-fg: #c4b5fd;
+  --tick-blue-bg: rgba(96, 165, 250, 0.18);   --tick-blue-fg: #93c5fd;
+  --tick-cyan-bg: rgba(34, 211, 238, 0.18);   --tick-cyan-fg: #67e8f9;
+  --tick-star: #fbbf24;
+  --tick-sent-accent: #22c55e;
+  --tick-working-accent: #f59e0b;
 }
 
 html {
