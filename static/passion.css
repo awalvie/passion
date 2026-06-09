@@ -958,22 +958,27 @@ details > summary::-webkit-details-marker {
 }
 
 .run-playlist-toggle {
-  justify-self: stretch;
-  justify-content: center;
   width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   min-height: 2.75rem;
+  padding: 0 0.9rem;
+  font-size: 0.78rem;
   font-weight: 500;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  transition: color 0.12s, border-color 0.12s;
 }
+.run-playlist-toggle .run-icon { width: 1rem; height: 1rem; }
 
 .run-playlist-toggle:hover {
-  background: color-mix(in srgb, var(--accent-bg) 180%, transparent);
-  border-color: var(--accent);
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--muted) 50%, var(--border));
 }
 
 .run-playlist-panel {
@@ -1203,6 +1208,54 @@ details > summary::-webkit-details-marker {
 .run-submit-row {
   padding-top: 0.25rem;
 }
+
+/* Merged drill nav: ‹ Done  Skip › on one row, centred */
+/* Drill nav — [‹] [ Done ] [ Skip ] [›] fill the row evenly, equal gaps.
+   Arrows fixed-width; Done + Skip grow to share the remaining space. */
+.run-nav-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  width: 100%;
+}
+.run-nav-row .run-nav-arrow {
+  flex: 0 0 auto;
+}
+.run-nav-row .run-complete-btn,
+.run-nav-row .run-skip-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+/* Consistent tier rhythm + hairline separators in the control zone */
+.run-tier {
+  padding: 0.6rem 0 0;
+  margin-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+.run-nav-arrow {
+  flex: 0 0 auto;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+.run-nav-arrow:not(:disabled):hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--muted) 50%, var(--border));
+}
+.run-nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+.run-nav-arrow .run-icon { width: 1.1rem; height: 1.1rem; }
+
 
 .run-exercise-nav {
   display: grid;
@@ -1602,6 +1655,19 @@ button.run-hero-icon:hover {
   padding: 0.05rem 0.2rem 0;
 }
 
+.run-session-back {
+  color: var(--accent);
+  text-decoration: none;
+}
+.run-session-back:hover { text-decoration: underline; }
+
+.run-session-label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  font-size: 0.65rem;
+}
+
 .run-main-timer {
   margin-top: 0.22rem;
   text-align: center;
@@ -1698,7 +1764,7 @@ button.run-hero-icon:hover {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.5rem;
 }
 
 /* Only play/pause (session exercise): already centered via flex */
@@ -2441,89 +2507,6 @@ html[data-theme="dark"] .catalog-dialog-actions form[method="dialog"] button {
 }
 
 /* ─── Run player: kebab overflow menu ─── */
-.run-overflow {
-  position: relative;
-}
-
-.run-overflow-trigger {
-  border: 1px solid var(--border);
-  border-radius: 9999px;
-  background: transparent;
-  color: var(--muted);
-  width: 1.6rem;
-  height: 1.6rem;
-  padding: 0;
-  display: inline-grid;
-  place-items: center;
-  cursor: pointer;
-  font-size: 0;
-  transition: background 0.12s, color 0.12s;
-}
-.run-overflow-trigger:hover {
-  background: var(--card-muted);
-  color: var(--text);
-}
-.run-overflow-trigger .run-icon {
-  width: 0.85rem;
-  height: 0.85rem;
-}
-
-.run-overflow-menu {
-  display: none;
-  position: absolute;
-  top: calc(100% + 0.35rem);
-  right: 0;
-  z-index: 40;
-  min-width: 11rem;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  padding: 0.3rem 0;
-  list-style: none;
-}
-
-.run-overflow[data-open] .run-overflow-menu {
-  display: block;
-}
-
-.run-overflow-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--text);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: background 0.1s;
-  text-align: left;
-}
-.run-overflow-item:hover {
-  background: var(--card-muted);
-}
-.run-overflow-item .run-icon {
-  width: 0.85rem;
-  height: 0.85rem;
-  flex-shrink: 0;
-}
-
-.run-overflow-sep {
-  height: 1px;
-  background: var(--border);
-  margin: 0.25rem 0;
-}
-
-.run-overflow-item--destructive {
-  color: var(--destructive);
-}
-.run-overflow-item--destructive:hover {
-  background: color-mix(in srgb, var(--destructive) 8%, var(--panel));
-  color: var(--destructive-hover);
-}
 
 /* ─── Run player: full-width Complete button ─── */
 .run-complete-btn {
@@ -2616,6 +2599,50 @@ html[data-theme="dark"] .catalog-dialog-actions form[method="dialog"] button {
 .run-finish-btn:hover {
   border-color: var(--fg);
   color: var(--fg);
+}
+
+/* Session lifecycle — [Finish (accent, flex-1)] [Steps] [Discard (text)] */
+.run-session-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+/* Finish / Steps / Discard share the row width evenly */
+.run-session-actions > .run-playlist-toggle,
+.run-session-actions > form { flex: 1 1 0; min-height: 2.75rem; display: flex; }
+.run-session-actions > .run-playlist-toggle { min-width: 0; }
+.run-session-actions .run-finish-btn {
+  width: 100%;
+  min-height: 2.75rem;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.run-session-actions .run-discard-link { min-height: 2.75rem; }
+.run-session-actions .run-finish-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.run-discard-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background: none;
+  border: 1px solid var(--destructive);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--destructive);
+  padding: 0.5rem 0.9rem;
+  white-space: nowrap;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.run-discard-link:hover {
+  color: var(--destructive-hover);
+  border-color: var(--destructive-hover);
+  background: color-mix(in srgb, var(--destructive) 12%, transparent);
 }
 
 /* ─── Run player: notes icon differentiation ─── */
