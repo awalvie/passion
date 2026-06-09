@@ -140,6 +140,7 @@ func (s *Server) Routes() http.Handler {
 		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/ticks", s.handleExerciseTicks)
 		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/ticks/{tickID}/delete", s.handleExerciseTickDelete)
 		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/ticks/{tickID}/update", s.handleExerciseTickUpdate)
+		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/ticks/{tickID}/again", s.handleExerciseTickLogAgain)
 
 		// Venue and board management (profile sub-routes)
 		pr.HandleFunc("/profile/venues", s.handleProfileVenues)
