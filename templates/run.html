@@ -94,18 +94,6 @@
             {{ if and .RunIsTrial (eq .RunIsOpen false) }}
             <a class="text-xs link" href="/templates/{{ .RunTemplateID }}/edit">Edit template</a>
             {{ end }}
-            <div class="run-overflow" id="run-overflow-catalog">
-              <button type="button" class="run-overflow-trigger" id="run-overflow-trigger-catalog" aria-label="Session options"><i data-lucide="more-vertical" class="run-icon"></i></button>
-              <div class="run-overflow-menu" role="menu">
-                <form hx-post="/runs/{{ .RunID }}/stop" hx-swap="none" hx-confirm="End this session? Progress will be saved." method="post">
-                  <button type="submit" class="run-overflow-item" role="menuitem"><i data-lucide="square" class="run-icon"></i> End session</button>
-                </form>
-                <div class="run-overflow-sep"></div>
-                <form hx-post="/runs/{{ .RunID }}/delete" hx-swap="none" hx-confirm="Discard this session? This cannot be undone." method="post">
-                  <button type="submit" class="run-overflow-item run-overflow-item--destructive" role="menuitem"><i data-lucide="trash-2" class="run-icon"></i> Discard session</button>
-                </form>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -210,6 +198,11 @@
           <input type="hidden" name="run_notes" value="" />
           <button type="submit" class="run-skip-link">Skip this block</button>
         </form>
+        <div class="run-session-actions mt-4">
+          <form hx-post="/runs/{{ .RunID }}/delete" hx-swap="none" hx-confirm="Discard this session? This cannot be undone." method="post">
+            <button type="submit" class="run-discard-link">Discard session</button>
+          </form>
+        </div>
       </div>
       <button type="button" id="run-playlist-toggle" class="run-playlist-toggle rounded-md px-3 py-2 text-sm inline-flex items-center gap-2">
         <i data-lucide="list" style="width:1rem;height:1rem;flex-shrink:0" aria-hidden="true"></i>
@@ -307,33 +300,6 @@
             var group = hdr.closest(".run-playlist-group");
             if (group) group.classList.toggle("run-playlist-group--collapsed");
           });
-        });
-
-        // Overflow (kebab) menu toggle
-        document.querySelectorAll(".run-overflow").forEach(function (container) {
-          var trigger = container.querySelector(".run-overflow-trigger");
-          if (!trigger) return;
-          trigger.addEventListener("click", function (e) {
-            e.stopPropagation();
-            var isOpen = container.hasAttribute("data-open");
-            // Close all others first
-            document.querySelectorAll(".run-overflow[data-open]").forEach(function (el) {
-              el.removeAttribute("data-open");
-            });
-            if (!isOpen) container.setAttribute("data-open", "");
-          });
-        });
-        document.addEventListener("click", function () {
-          document.querySelectorAll(".run-overflow[data-open]").forEach(function (el) {
-            el.removeAttribute("data-open");
-          });
-        });
-        document.addEventListener("keydown", function (e) {
-          if (e.key === "Escape") {
-            document.querySelectorAll(".run-overflow[data-open]").forEach(function (el) {
-              el.removeAttribute("data-open");
-            });
-          }
         });
 
         if (window.__passionRenderIcons) window.__passionRenderIcons();
@@ -478,21 +444,15 @@
           {{ end }}
         </div>
         <div class="run-session-strip">
-          <span class="text-xs muted">{{ .RunTemplateName }}</span>
+          {{ if .RunIsOpen }}
+          <a href="/runs/{{ .RunID }}" class="run-session-back inline-flex items-center gap-1 text-xs font-medium">
+            <i data-lucide="arrow-left" style="width:0.85rem;height:0.85rem" aria-hidden="true"></i> Back to session
+          </a>
+          {{ else }}
+          <span class="run-session-label text-xs muted">{{ .RunTemplateName }}</span>
+          {{ end }}
           <div class="run-session-strip-right">
             <button type="button" class="run-mute-btn" id="btn-mute" aria-label="Toggle sound"><i data-lucide="volume-2" class="run-icon"></i></button>
-            <div class="run-overflow" id="run-overflow">
-              <button type="button" class="run-overflow-trigger" id="run-overflow-trigger" aria-label="Session options"><i data-lucide="more-vertical" class="run-icon"></i></button>
-              <div class="run-overflow-menu" role="menu">
-                <form hx-post="/runs/{{ .RunID }}/stop" hx-swap="none" hx-confirm="End this session? Progress will be saved." method="post">
-                  <button type="submit" class="run-overflow-item" role="menuitem"><i data-lucide="square" class="run-icon"></i> End session</button>
-                </form>
-                <div class="run-overflow-sep"></div>
-                <form hx-post="/runs/{{ .RunID }}/delete" hx-swap="none" hx-confirm="Discard this session? This cannot be undone." method="post">
-                  <button type="submit" class="run-overflow-item run-overflow-item--destructive" role="menuitem"><i data-lucide="trash-2" class="run-icon"></i> Discard session</button>
-                </form>
-              </div>
-            </div>
           </div>
         </div>
         <div class="run-main-timer" id="exercise-timer-display">
@@ -600,6 +560,10 @@
           </div>
           {{ end }}
           <div class="run-sticky-controls">
+            <div id="run-auto-advance" class="run-auto-advance" hidden>
+              <span id="run-auto-advance-text">Completing in 2s...</span>
+              <button type="button" id="btn-cancel-auto" class="run-auto-advance-cancel">Cancel</button>
+            </div>
             <div class="run-transport{{ if or $isSession $isClimbing }} run-transport--session{{ end }}">
               {{ if not (or $isSession $isClimbing) }}
               <button type="button" class="run-transport-btn" id="btn-skip-back" aria-label="Skip back"><i data-lucide="chevron-left" class="run-icon"></i></button>
@@ -609,38 +573,12 @@
               <button type="button" class="run-transport-btn" id="btn-skip-fwd" aria-label="Skip forward"><i data-lucide="chevron-right" class="run-icon"></i></button>
               {{ end }}
             </div>
-            <div id="run-auto-advance" class="run-auto-advance" hidden>
-              <span id="run-auto-advance-text">Completing in 2s...</span>
-              <button type="button" id="btn-cancel-auto" class="run-auto-advance-cancel">Cancel</button>
-            </div>
             <div class="run-submit-row">
-              <div class="run-submit-buttons">
-                <button
-                  type="button"
-                  id="btn-complete-step"
-                  class="run-complete-btn"
-                  onclick="(function(){ if (!window.__passion_startSubmit || window.__passion_startSubmit()) { document.getElementById('complete-form').requestSubmit(); }})();"
-                >
-                  <i data-lucide="check" class="run-icon"></i> Complete
-                </button>
-                <button
-                  type="button"
-                  id="btn-skip-step"
-                  class="run-skip-btn"
-                  onclick="(function(){window.__passion_skipSubmit && window.__passion_skipSubmit();})();"
-                >
-                  Skip
-                </button>
-              </div>
-              <div class="run-exercise-nav">
-                <button type="button" id="btn-prev-exercise" class="run-exercise-nav-btn" disabled>
-                  <i data-lucide="chevron-left" class="run-icon"></i>
-                  <span class="run-exercise-nav-label">Prev</span>
-                </button>
-                <button type="button" id="btn-next-exercise" class="run-exercise-nav-btn" disabled>
-                  <span class="run-exercise-nav-label">Next</span>
-                  <i data-lucide="chevron-right" class="run-icon"></i>
-                </button>
+              <div class="run-nav-row">
+                <button type="button" id="btn-prev-exercise" class="run-nav-arrow" aria-label="Previous drill" disabled><i data-lucide="chevron-left" class="run-icon"></i></button>
+                <button type="button" id="btn-complete-step" class="run-complete-btn" onclick="(function(){ if (!window.__passion_startSubmit || window.__passion_startSubmit()) { document.getElementById('complete-form').requestSubmit(); }})();"><i data-lucide="check" class="run-icon"></i> Done</button>
+                <button type="button" id="btn-skip-step" class="run-skip-btn" onclick="(function(){window.__passion_skipSubmit && window.__passion_skipSubmit();})();">Skip</button>
+                <button type="button" id="btn-next-exercise" class="run-nav-arrow" aria-label="Next drill" disabled><i data-lucide="chevron-right" class="run-icon"></i></button>
               </div>
             </div>
           </div>
@@ -671,15 +609,19 @@
           <input type="hidden" name="actual_reps" value="0" />
           <input type="hidden" name="actual_weight_kg" value="0" />
           {{ end }}
-          <details class="run-notes-collapse" id="run-notes-details">
-            <summary class="run-collapse-toggle"><i data-lucide="pencil" class="run-collapse-icon"></i><i data-lucide="chevron-right" class="run-collapse-chevron"></i> Add notes</summary>
-            <textarea id="run-notes" name="run_notes" rows="2" class="w-full input text-sm mt-1" placeholder="e.g., felt heavy, changed grip, RPE..." oninput="runNotesPreview(this)"></textarea>
-            <div id="run-notes-preview" class="prose prose-sm mt-2 px-1 hidden"></div>
-          </details>
+          {{/* Tier 2 — drill notes */}}
+          <div class="run-tier">
+            <details class="run-notes-collapse" id="run-notes-details">
+              <summary class="run-collapse-toggle"><i data-lucide="pencil" class="run-collapse-icon"></i><i data-lucide="chevron-right" class="run-collapse-chevron"></i> Add notes</summary>
+              <textarea id="run-notes" name="run_notes" rows="2" class="w-full input text-sm mt-1" placeholder="e.g., felt heavy, changed grip, RPE..." oninput="runNotesPreview(this)"></textarea>
+              <div id="run-notes-preview" class="prose prose-sm mt-2 px-1 hidden"></div>
+            </details>
+          </div>
         </form>
 
+        {{/* Tier 3 — session build (open sessions only) */}}
         {{ if .RunIsOpen }}
-        <div class="flex gap-2 mt-3">
+        <div class="run-tier flex gap-2">
           <button type="button" class="run-open-add-btn flex-1" onclick="openExercisePanel()">
             <i data-lucide="plus" class="run-icon"></i> Add exercise
           </button>
@@ -689,12 +631,22 @@
           </button>
           {{ end }}
         </div>
-        <form hx-post="/runs/{{ .RunID }}/stop" hx-swap="none" hx-confirm="Finish this session? Progress will be saved." method="post" class="mt-2">
-          <button type="submit" class="run-finish-btn">
-            <i data-lucide="circle-check" class="run-icon"></i> Finish session
-          </button>
-        </form>
         {{ end }}
+
+        {{/* Tier 4 — session lifecycle */}}
+        <div class="run-tier run-session-actions">
+          <form hx-post="/runs/{{ .RunID }}/stop" hx-swap="none" hx-confirm="Finish this session? Progress will be saved." method="post" class="run-session-actions-finish">
+            <button type="submit" class="run-finish-btn">
+              <i data-lucide="circle-check" class="run-icon"></i> Finish session
+            </button>
+          </form>
+          <button type="button" id="run-playlist-toggle" class="run-playlist-toggle">
+            <i data-lucide="list" class="run-icon"></i> Steps
+          </button>
+          <form hx-post="/runs/{{ .RunID }}/delete" hx-swap="none" hx-confirm="Discard this session? This cannot be undone." method="post">
+            <button type="submit" class="run-discard-link">Discard</button>
+          </form>
+        </div>
 
         <form
           hx-post="/runs/{{ .RunID }}/exercises/{{ .CurrentStep.ExerciseID }}/skip"
@@ -709,10 +661,6 @@
           <span id="run-feedback-text">Saving...</span>
         </div>
       </div>
-      <button type="button" id="run-playlist-toggle" class="run-playlist-toggle rounded-md px-3 py-2 text-sm inline-flex items-center gap-2">
-        <i data-lucide="list" style="width:1rem;height:1rem;flex-shrink:0" aria-hidden="true"></i>
-        Session steps
-      </button>
     </div>
 
     {{ if .RunIsOpen }}
@@ -1439,10 +1387,15 @@
             return el ? el.textContent.trim() : "";
           }
 
+          function setNavLabel(btn, name, fallback) {
+            var lbl = btn.querySelector(".run-exercise-nav-label");
+            if (lbl) lbl.textContent = name;          // legacy text layout
+            else btn.title = name || fallback;        // icon-only arrow
+          }
           if (prevBtn) {
             if (currentIdx > 0) {
               var prevRow = allRows[currentIdx - 1];
-              prevBtn.querySelector(".run-exercise-nav-label").textContent = exerciseName(prevRow);
+              setNavLabel(prevBtn, exerciseName(prevRow), "Previous drill");
               prevBtn.disabled = false;
               prevBtn.addEventListener("click", function () {
                 window.location.href = "/runs/" + runID + "?exercise=" + prevRow.dataset.exerciseId;
@@ -1452,7 +1405,7 @@
           if (nextBtn) {
             if (currentIdx >= 0 && currentIdx < allRows.length - 1) {
               var nextRow = allRows[currentIdx + 1];
-              nextBtn.querySelector(".run-exercise-nav-label").textContent = exerciseName(nextRow);
+              setNavLabel(nextBtn, exerciseName(nextRow), "Next drill");
               nextBtn.disabled = false;
               nextBtn.addEventListener("click", function () {
                 window.location.href = "/runs/" + runID + "?exercise=" + nextRow.dataset.exerciseId;
@@ -1500,32 +1453,6 @@
             if (window.__passion_startSubmit()) {
               document.getElementById("complete-form").requestSubmit();
             }
-          }
-        });
-
-        // Overflow (kebab) menu toggle
-        document.querySelectorAll(".run-overflow").forEach(function (container) {
-          var trigger = container.querySelector(".run-overflow-trigger");
-          if (!trigger) return;
-          trigger.addEventListener("click", function (e) {
-            e.stopPropagation();
-            var isOpen = container.hasAttribute("data-open");
-            document.querySelectorAll(".run-overflow[data-open]").forEach(function (el) {
-              el.removeAttribute("data-open");
-            });
-            if (!isOpen) container.setAttribute("data-open", "");
-          });
-        });
-        document.addEventListener("click", function () {
-          document.querySelectorAll(".run-overflow[data-open]").forEach(function (el) {
-            el.removeAttribute("data-open");
-          });
-        });
-        document.addEventListener("keydown", function (e) {
-          if (e.key === "Escape") {
-            document.querySelectorAll(".run-overflow[data-open]").forEach(function (el) {
-              el.removeAttribute("data-open");
-            });
           }
         });
       })();
