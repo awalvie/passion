@@ -3385,6 +3385,38 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
   margin-top: 0.125rem;
 }
 
+/* Open-session overview: run progress bar */
+.run-overview-progress { margin-bottom: 0.25rem; }
+.run-overview-progress-track {
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: var(--card-muted);
+  overflow: hidden;
+}
+.run-overview-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+/* Current drill highlight in the overview list */
+.ex-card--current {
+  border: 1px solid var(--accent);
+  background: var(--accent-bg);
+}
+.ex-card-current-tag {
+  flex-shrink: 0;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+  border-radius: 9999px;
+  padding: 0.05rem 0.4rem;
+}
+
 /* Drag handle dots */
 .dnd-handle-dots {
   display: inline-grid;

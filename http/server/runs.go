@@ -198,14 +198,21 @@ func (s *Server) renderOpenSession(w http.ResponseWriter, r *http.Request, run d
 	for _, c := range completions {
 		compByID[c.ExerciseID] = compInfo{status: c.Status, elapsed: c.ElapsedSeconds, notes: c.RunNotes}
 	}
+	doneCount := 0
+	var currentExerciseID uint
 	for i := range steps {
 		st := &steps[i]
 		if info, ok := compByID[st.ExerciseID]; ok {
 			st.Status = info.status
 			st.ElapsedSeconds = info.elapsed
 			st.RunNotes = info.notes
+			doneCount++
 		} else {
 			st.Status = "pending"
+			// First pending step is the current position in the run.
+			if currentExerciseID == 0 {
+				currentExerciseID = st.ExerciseID
+			}
 		}
 	}
 
@@ -242,6 +249,8 @@ func (s *Server) renderOpenSession(w http.ResponseWriter, r *http.Request, run d
 		RunLibraryExercises:  libExercises,
 		RunActivityTemplates: activityTemplates,
 		RunSteps:             steps,
+		RunDoneCount:         doneCount,
+		RunCurrentExerciseID: currentExerciseID,
 	})
 }
 

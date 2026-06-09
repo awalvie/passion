@@ -25,10 +25,24 @@
     </div>
   </div>
 
+  {{/* ── Progress (running sessions only) ── */}}
+  {{ if and (not .RunIsDraft) .RunSteps }}
+  <div class="run-overview-progress">
+    <div class="flex items-center justify-between text-xs muted mb-1">
+      <span>{{ .RunDoneCount }} of {{ .RunTotalSteps }} done</span>
+      {{ if lt .RunDoneCount .RunTotalSteps }}<span>{{ sub .RunTotalSteps .RunDoneCount }} to go</span>{{ end }}
+    </div>
+    <div class="run-overview-progress-track">
+      <div class="run-overview-progress-fill" style="width: {{ pct .RunDoneCount .RunTotalSteps }}%"></div>
+    </div>
+  </div>
+  {{ end }}
+
   {{/* ── Exercise list ── */}}
   <div class="space-y-2">
     {{ if .RunSteps }}
       {{ range .RunSteps }}
+        {{ $isCurrent := and (not $.RunIsDraft) (eq .ExerciseID $.RunCurrentExerciseID) }}
         {{ $isCompleted := eq .Status "completed" }}
         {{ $isSkipped   := eq .Status "skipped" }}
         {{ $isDone      := or $isCompleted $isSkipped }}
@@ -49,21 +63,22 @@
           </div>
         </div>
         {{ else }}
-        {{/* Pending exercise — collapsible edit card */}}
-        <details class="card-muted overflow-hidden rounded-lg passion-disclosure">
+        {{/* Pending exercise — collapsible edit card; current one is highlighted */}}
+        <details class="card-muted overflow-hidden rounded-lg passion-disclosure{{ if $isCurrent }} ex-card--current{{ end }}">
           <summary class="cursor-pointer list-none flex items-center gap-3 px-3 py-2.5">
-            <span class="shrink-0 text-sm muted" aria-hidden="true">○</span>
             <div class="min-w-0 flex-1 flex items-baseline gap-3">
-              <div class="text-sm font-medium truncate shrink-0 max-w-[55%]">{{ .Name }}</div>
+              <div class="text-sm font-medium truncate {{ if $isCurrent }}min-w-0{{ else }}shrink-0 max-w-[55%]{{ end }}">{{ .Name }}</div>
+              {{ if $isCurrent }}<span class="ex-card-current-tag">Current</span>{{ else }}
               {{ $summary := runStepSummary . }}
               {{ if $summary }}<div class="ex-card-summary flex-1 min-w-0 truncate">{{ $summary }}</div>{{ end }}
+              {{ end }}
             </div>
             {{ if not $.RunIsDraft }}
             <a
               href="/runs/{{ $.RunID }}?exercise={{ .ExerciseID }}"
-              class="shrink-0 rounded-md btn-accent px-3 py-1 text-xs font-medium inline-flex items-center gap-1"
+              class="shrink-0 rounded-md {{ if $isCurrent }}btn-accent{{ else }}btn-ghost{{ end }} px-3 py-1 text-xs font-medium inline-flex items-center gap-1"
               onclick="event.stopPropagation()"
-            >Start <i data-lucide="arrow-right" style="width:12px;height:12px"></i></a>
+            >{{ if $isCurrent }}Resume{{ else }}Go{{ end }} <i data-lucide="arrow-right" style="width:12px;height:12px"></i></a>
             {{ end }}
           </summary>
 
