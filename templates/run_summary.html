@@ -17,6 +17,12 @@
       <div class="min-w-0 flex-1">
         <h1 class="run-summary-title">{{ .Summary.TemplateName }}</h1>
         <p class="run-summary-meta">{{ .Summary.DateLabel }}{{ if .Summary.DurationLabel }} · {{ .Summary.DurationLabel }}{{ end }}</p>
+        {{ if .Summary.Completed }}
+        <p class="mt-1 inline-flex items-center gap-1 text-xs font-medium" style="color:var(--tick-sent-accent)">
+          <i data-lucide="check-circle" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+          Session complete
+        </p>
+        {{ end }}
       </div>
     </div>
     <div class="run-summary-chips">
@@ -86,6 +92,7 @@
   <div id="journal-section"
        hx-get="/runs/{{ .Summary.RunID }}/journal"
        hx-trigger="load"
+       hx-target="this"
        hx-swap="outerHTML">
   </div>
 </div>

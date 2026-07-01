@@ -23,7 +23,8 @@
         <div class="text-base font-semibold">Workout complete</div>
         <p class="mt-2 text-sm muted">Nice work. All exercises in this run are completed or skipped.</p>
         <div class="mt-4 flex flex-wrap gap-3">
-          <a class="rounded-md btn-primary px-4 py-2 text-sm font-medium inline-flex" href="/dashboard">Return to dashboard</a>
+          <a class="rounded-md btn-primary px-4 py-2 text-sm font-medium inline-flex" href="/runs/{{ .RunID }}/summary">Review &amp; journal</a>
+          <a class="rounded-md btn-ghost px-4 py-2 text-sm font-medium inline-flex" href="/dashboard">Return to dashboard</a>
         </div>
       </div>
   {{ else }}

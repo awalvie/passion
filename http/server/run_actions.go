@@ -50,11 +50,7 @@ func (s *Server) handleRunStop(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	redirect := "/dashboard"
-	if run.IsOpen {
-		redirect = "/runs/" + chi.URLParam(r, "runID") + "/summary"
-	}
-	w.Header().Set("HX-Redirect", redirect)
+	w.Header().Set("HX-Redirect", "/runs/"+chi.URLParam(r, "runID")+"/summary")
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -142,6 +138,7 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 		DateLabel:     run.StartedAt.Format("Mon, Jan 2, 2006"),
 		DurationLabel: durationLabel,
 		IsOpen:        run.IsOpen,
+		Completed:     run.Status == db.RunStatusCompleted,
 	}
 
 	if run.IsOpen {
