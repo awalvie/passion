@@ -6,6 +6,9 @@ sets: 4
 reps: 1
 rep_seconds: 120
 set_rest_seconds: 90
+media:
+  - video_url: "https://www.youtube.com/watch?v=_Yob5_mWC7I"
+    thumbnail_url: "https://i.ytimg.com/vi/_Yob5_mWC7I/hqdefault.jpg"
 notes: |
   Each hand and foot touches each hold exactly once. No readjusting.
   Bad placement? Live with it and keep climbing.
@@ -15,3 +18,7 @@ notes: |
 
   Exception: deep pockets where repositioning is sometimes legitimate.
   Source: Power Company Climbing, Catalyst Climbing
+
+  Every foot placement gets exactly one touch — no readjusting, no smearing and repositioning, no second chances. Place your foot on the hold and commit to that placement entirely. If you tap a foot down and lift it to retry, that counts as a failed rep — start the problem over.
+
+  This drill builds decisive footwork. The mental pressure of a single-touch rule forces you to visualize and confirm the target before committing, then trust the placement when it lands. As the drill becomes natural, try it on problems with smaller or more technical footholds.

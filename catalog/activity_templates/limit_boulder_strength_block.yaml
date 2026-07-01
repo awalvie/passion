@@ -1,0 +1,10 @@
+name: "Limit Boulder + Strength Block"
+source: "Paradigm Climbing"
+label: "boulder, power, strength"
+exercises:
+  - ref: "Honest Project"
+  - ref: "Ideal Circuit (boulders)"
+  - ref: "One-Arm Lock-Off 90°"
+  - ref: "One-Arm Lock-Off 120°"
+  - ref: "Wide-Grip Pull-Ups"
+  - ref: "Dumbbell Row"

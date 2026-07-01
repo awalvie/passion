@@ -21,12 +21,4 @@ activities:
         notes: |
           Climb 2 routes deliberately choosing the dynamic solution
           where you'd normally lock off statically.
-      - name: "Journal"
-        sets: 1
-        reps: 1
-        rep_seconds: 180
-        set_rest_seconds: 0
-        notes: |
-          Where did I hesitate?
-          Which moves were easier dynamic?
-          Did my breathing stop on hard moves?
+  - ref: "Journal"
