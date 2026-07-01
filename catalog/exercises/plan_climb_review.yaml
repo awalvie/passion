@@ -1,0 +1,16 @@
+name: "Plan-Climb-Review"
+kind: "reps_and_sets"
+sets: 3
+reps: 1
+rep_seconds: 300
+set_rest_seconds: 120
+notes: |
+  For each route (3 unfamiliar routes at flash level):
+  1. PLAN: Read from multiple angles. Find the crux first.
+     Mime the hand sequence. Work backward from the crux to
+     ensure you arrive correctly. Note predicted rests.
+  2. CLIMB: Execute your planned beta.
+  3. REVIEW: Compare plan to reality. Where did you diverge? Why?
+
+  Research shows pre-planned holds get used 2x as often.
+  Source: Self-Coached Climber, Ondra method, Climbing.com
