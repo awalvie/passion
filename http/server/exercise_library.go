@@ -3,6 +3,7 @@ package web
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -22,6 +23,8 @@ func (s *Server) handleExerciseLibraryIndex(w http.ResponseWriter, r *http.Reque
 
 	// Search, filter, sort params
 	searchQ := strings.TrimSpace(r.URL.Query().Get("q"))
+	sourceFilter := strings.TrimSpace(r.URL.Query().Get("source"))
+	tagFilter := strings.TrimSpace(r.URL.Query().Get("tag"))
 	kindFilter := r.URL.Query().Get("kind")
 	validKinds := map[string]bool{"reps_and_sets": true, "timed_reps": true, "session": true, "exercise_catalog": true}
 	if !validKinds[kindFilter] {
@@ -46,6 +49,12 @@ func (s *Server) handleExerciseLibraryIndex(w http.ResponseWriter, r *http.Reque
 	}
 	if kindFilter != "" {
 		base = base.Where("kind = ?", kindFilter)
+	}
+	if sourceFilter != "" {
+		base = base.Where("source = ?", sourceFilter)
+	}
+	if tagFilter != "" {
+		base = base.Where("label LIKE ?", "%"+tagFilter+"%")
 	}
 
 	var total int64
@@ -90,6 +99,12 @@ func (s *Server) handleExerciseLibraryIndex(w http.ResponseWriter, r *http.Reque
 		if kindFilter != "" {
 			params += "&kind=" + kindFilter
 		}
+		if sourceFilter != "" {
+			params += "&source=" + url.QueryEscape(sourceFilter)
+		}
+		if tagFilter != "" {
+			params += "&tag=" + url.QueryEscape(tagFilter)
+		}
 		if sortParam != "name" {
 			params += "&sort=" + sortParam
 		}
@@ -113,6 +128,17 @@ func (s *Server) handleExerciseLibraryIndex(w http.ResponseWriter, r *http.Reque
 		pagination = &pv
 	}
 
+	distinctSources, err := db.DistinctLibrarySources(s.store.DB, ownerID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	distinctTags, err := db.DistinctLibraryTags(s.store.DB, ownerID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+
 	s.pages.LibraryList(w, pages.LibraryListParams{
 		Base:             pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
 		LibraryExercises: rows,
@@ -120,6 +146,10 @@ func (s *Server) handleExerciseLibraryIndex(w http.ResponseWriter, r *http.Reque
 		LibrarySearch:    searchQ,
 		LibraryKind:      kindFilter,
 		LibrarySort:      sortParam,
+		LibrarySource:    sourceFilter,
+		LibraryTag:       tagFilter,
+		DistinctSources:  distinctSources,
+		DistinctTags:     distinctTags,
 	})
 }
 

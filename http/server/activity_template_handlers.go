@@ -17,14 +17,20 @@ func (s *Server) handleActivityTemplatesIndex(w http.ResponseWriter, r *http.Req
 		return
 	}
 	ownerID := s.mustUserID(r)
-	labelFilter := strings.TrimSpace(r.URL.Query().Get("label"))
+	sourceFilter := strings.TrimSpace(r.URL.Query().Get("source"))
+	tagFilter := strings.TrimSpace(r.URL.Query().Get("tag"))
 
-	templates, err := db.ListActivityTemplates(s.store.DB, ownerID, labelFilter)
+	templates, err := db.ListActivityTemplates(s.store.DB, ownerID, sourceFilter, tagFilter)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
 	}
-	distinctLabels, err := db.DistinctActivityTemplateLabels(s.store.DB, ownerID)
+	distinctSources, err := db.DistinctActivityTemplateSources(s.store.DB, ownerID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	distinctTags, err := db.DistinctActivityTemplateTags(s.store.DB, ownerID)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
@@ -32,8 +38,10 @@ func (s *Server) handleActivityTemplatesIndex(w http.ResponseWriter, r *http.Req
 	s.pages.ActivityTemplateList(w, pages.ActivityTemplateListParams{
 		Base:              pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
 		ActivityTemplates: templates,
-		LabelFilter:       labelFilter,
-		DistinctLabels:    distinctLabels,
+		SourceFilter:      sourceFilter,
+		TagFilter:         tagFilter,
+		DistinctSources:   distinctSources,
+		DistinctTags:      distinctTags,
 	})
 }
 

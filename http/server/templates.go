@@ -131,24 +131,32 @@ func (s *Server) handleTemplatesIndex(w http.ResponseWriter, r *http.Request) {
 
 	ownerID := s.mustUserID(r)
 
-	labelFilter := strings.TrimSpace(r.URL.Query().Get("label"))
+	sourceFilter := strings.TrimSpace(r.URL.Query().Get("source"))
+	tagFilter := strings.TrimSpace(r.URL.Query().Get("tag"))
 
-	templates, err := db.ListTemplates(s.store.DB, ownerID, labelFilter)
+	templates, err := db.ListTemplates(s.store.DB, ownerID, sourceFilter, tagFilter)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
 	}
-	distinctLabels, err := db.DistinctTemplateLabels(s.store.DB, ownerID)
+	distinctSources, err := db.DistinctTemplateSources(s.store.DB, ownerID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	distinctTags, err := db.DistinctTemplateTags(s.store.DB, ownerID)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
 	}
 
 	s.pages.TemplateList(w, pages.TemplateListParams{
-		Base:           pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
-		Templates:      templates,
-		LabelFilter:    labelFilter,
-		DistinctLabels: distinctLabels,
+		Base:            pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
+		Templates:       templates,
+		SourceFilter:    sourceFilter,
+		TagFilter:       tagFilter,
+		DistinctSources: distinctSources,
+		DistinctTags:    distinctTags,
 	})
 }
 
@@ -390,7 +398,7 @@ func (s *Server) listLibraryExercises(ownerID uint) ([]db.LibraryExercise, error
 }
 
 func (s *Server) listTemplates(ownerID uint) ([]db.SessionTemplate, error) {
-	return db.ListTemplates(s.store.DB, ownerID, "")
+	return db.ListTemplates(s.store.DB, ownerID, "", "")
 }
 
 func (s *Server) renderTemplateEdit(w http.ResponseWriter, r *http.Request, templateID uint, ownerID uint) {
@@ -406,7 +414,7 @@ func (s *Server) renderTemplateEdit(w http.ResponseWriter, r *http.Request, temp
 		return
 	}
 
-	ats, err := db.ListActivityTemplates(s.store.DB, ownerID, "")
+	ats, err := db.ListActivityTemplates(s.store.DB, ownerID, "", "")
 	if err != nil {
 		s.serverError(w, r, err)
 		return
