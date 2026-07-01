@@ -129,6 +129,18 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Climbing analytics over ticks in the selected range.
+	climbing, err := db.ClimbingAnalytics(s.store.DB, ownerID, runIDs)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	everClimbed, err := db.UserHasClimbingTicks(s.store.DB, ownerID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+
 	// Build views and compute stats
 	weekStart := mondayOfLocalDate(now)
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
@@ -365,6 +377,7 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 		HistoryRuns:  views,
 		HistoryRange: rangeParam,
 		WeeklyTrend:  weeklyTrend,
+		Climbing:     buildClimbingView(climbing, everClimbed),
 		HistoryStats: pages.HistoryStatsView{
 			TotalRuns:         completedCount,
 			TotalTimeLabel:    totalTimeLabel,
@@ -381,6 +394,45 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 			HeatmapJSON:       template.JS(heatmapJSON),
 		},
 	})
+}
+
+func buildClimbingView(a db.ClimbingAnalyticsResult, everClimbed bool) pages.ClimbingAnalyticsView {
+	v := pages.ClimbingAnalyticsView{HasEverClimbed: everClimbed}
+	if !a.HasData {
+		return v
+	}
+	v.HasData = true
+	v.TotalClimbs = a.TotalClimbs
+	v.SessionCount = a.SessionCount
+	v.SendRate = a.SendRate
+	v.HardestBoulder = a.Boulder.HardestSent
+	v.HardestRoute = a.Route.HardestSent
+	if a.Boulder.Ticks > 0 {
+		v.Disciplines = append(v.Disciplines, climbingDisciplineView("Boulder", a.Boulder))
+	}
+	if a.Route.Ticks > 0 {
+		v.Disciplines = append(v.Disciplines, climbingDisciplineView("Routes", a.Route))
+	}
+	v.HasSplits = a.HasIndoorOutdoor
+	v.IndoorPct = a.IndoorPct
+	v.OutdoorPct = a.OutdoorPct
+	v.HasBoardSplit = a.HasBoardSplit
+	v.CommercialPct = a.CommercialPct
+	v.BoardPct = a.BoardPct
+	return v
+}
+
+func climbingDisciplineView(label string, d db.ClimbingDisciplineStats) pages.ClimbingDisciplineView {
+	dv := pages.ClimbingDisciplineView{Label: label, MoreGrades: d.MoreGrades}
+	for _, row := range d.Pyramid {
+		r := pages.ClimbingGradeRow{Grade: row.Grade, Sent: row.Sent, Total: row.Total}
+		if d.MaxTotal > 0 {
+			r.SentPct = row.Sent * 100 / d.MaxTotal
+			r.AttemptPct = (row.Total - row.Sent) * 100 / d.MaxTotal
+		}
+		dv.Rows = append(dv.Rows, r)
+	}
+	return dv
 }
 
 func computeStreaks(completedDays map[string]bool, now time.Time) (current int, longest int) {

@@ -286,6 +286,7 @@ type RunSummaryView struct {
 	DateLabel      string
 	DurationLabel  string
 	IsOpen         bool
+	Completed      bool
 	CompletedCount int
 	SkippedCount   int
 	TotalCount     int
@@ -463,6 +464,40 @@ type HistoryParams struct {
 	HistoryStats HistoryStatsView
 	HistoryRange string
 	WeeklyTrend  []WeeklyTrendItem
+	Climbing     ClimbingAnalyticsView
+}
+
+// ClimbingGradeRow is one grade bar in a discipline pyramid; SentPct/AttemptPct
+// are bar widths relative to the busiest grade in that discipline.
+type ClimbingGradeRow struct {
+	Grade      string
+	Sent       int
+	Total      int
+	SentPct    int
+	AttemptPct int
+}
+
+type ClimbingDisciplineView struct {
+	Label      string
+	Rows       []ClimbingGradeRow
+	MoreGrades int
+}
+
+type ClimbingAnalyticsView struct {
+	HasData        bool
+	HasEverClimbed bool
+	TotalClimbs    int
+	SessionCount   int
+	SendRate       int
+	HardestBoulder string
+	HardestRoute   string
+	Disciplines    []ClimbingDisciplineView
+	HasSplits      bool
+	IndoorPct      int
+	OutdoorPct     int
+	HasBoardSplit  bool
+	CommercialPct  int
+	BoardPct       int
 }
 
 type ClimbingTickView struct {

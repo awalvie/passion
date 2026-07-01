@@ -28,7 +28,7 @@ Passion helps you plan, schedule, and track climbing training sessions. Build se
 - Exercise library with Markdown notes, sets/reps/timers, and embedded video
 - Training cycles that auto-generate weekly schedules
 - Guided run player with countdown timers, rep tracking, completion logging, and climbing tick logging (grade chip strip, outcome quick-actions, live session header)
-- Training history with heatmaps, streak tracking, and per-template breakdowns
+- Training history with heatmaps, streak tracking, per-template breakdowns, and climbing analytics (grade pyramids, hardest-sent, send rate)
 - Weekly + monthly calendar dashboard
 - YAML-driven exercise and template catalog for version-controlled training plans
 - Multi-user auth (JWT), dark/light theme, fully server-rendered with HTMX
