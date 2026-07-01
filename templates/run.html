@@ -585,8 +585,8 @@
           </div>
           {{ if not (or $isSession $isClimbing (eq .CurrentStep.Kind "reps_and_sets")) }}
           {{/* Timed reps and other non-session kinds: summary log (existing behaviour) */}}
-          <details class="run-notes-collapse" id="actual-values-detail">
-            <summary class="run-collapse-toggle"><i data-lucide="sliders-horizontal" class="run-collapse-icon"></i><i data-lucide="chevron-right" class="run-collapse-chevron"></i>
+          <details class="run-notes-collapse passion-disclosure" id="actual-values-detail">
+            <summary class="run-collapse-toggle"><i data-lucide="sliders-horizontal" class="run-collapse-icon"></i>
               Logged as:
               <span id="actual-summary-label">{{ if gt .CurrentStep.Sets 0 }}{{ .CurrentStep.Sets }}×{{ .CurrentStep.Reps }}{{ if gt .CurrentStep.WeightKg 0.0 }} · {{ printf "%.1f" .CurrentStep.WeightKg }}kg{{ end }}{{ else }}tap to log{{ end }}</span>
             </summary>
@@ -612,8 +612,8 @@
           {{ end }}
           {{/* Tier 2 — drill notes */}}
           <div class="run-tier">
-            <details class="run-notes-collapse" id="run-notes-details">
-              <summary class="run-collapse-toggle"><i data-lucide="pencil" class="run-collapse-icon"></i><i data-lucide="chevron-right" class="run-collapse-chevron"></i> Add notes</summary>
+            <details class="run-notes-collapse passion-disclosure" id="run-notes-details">
+              <summary class="run-collapse-toggle"><i data-lucide="pencil" class="run-collapse-icon"></i> Add notes</summary>
               <textarea id="run-notes" name="run_notes" rows="2" class="w-full input text-sm mt-1" placeholder="e.g., felt heavy, changed grip, RPE..." oninput="runNotesPreview(this)"></textarea>
               <div id="run-notes-preview" class="prose prose-sm mt-2 px-1 hidden"></div>
             </details>
