@@ -74,7 +74,7 @@ func GetTemplateWithGraph(gdb *gorm.DB, ownerID, templateID uint) (*SessionTempl
 // If labelFilter is non-empty, only templates with that label are returned.
 func ListTemplates(gdb *gorm.DB, ownerID uint, labelFilter string) ([]SessionTemplate, error) {
 	var templates []SessionTemplate
-	q := gdb.Where("owner_id = ? AND is_system = ?", ownerID, false)
+	q := gdb.Preload("Activities").Where("owner_id = ? AND is_system = ?", ownerID, false)
 	if labelFilter != "" {
 		q = q.Where("label = ?", labelFilter)
 	}
