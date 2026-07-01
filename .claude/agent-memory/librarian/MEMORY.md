@@ -1,4 +1,4 @@
 # Memory Index
 
 - [Catalog tag & source vocabulary](tag-vocabulary.md) — controlled label tags + normalized source names to reuse when classifying
-- [Known duplicate / near-duplicate pairs](dedup-map.md) — Power Company climbing-kind vs plain reps_and_sets drill overlaps, pending user decision
+- [Duplicate pairs RESOLVED + naming conventions](dedup-map.md) — 2026-07-01 dedup/rename cleanup outcome, new activity templates, and open follow-ups
