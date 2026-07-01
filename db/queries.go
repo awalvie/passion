@@ -2,6 +2,7 @@ package db
 
 import (
 	"errors"
+	"sort"
 	"time"
 
 	"gorm.io/gorm"
@@ -469,6 +470,178 @@ func GetClimbingSessionHeader(gdb *gorm.DB, ownerID, runID uint) (ClimbingSessio
 		}
 	}
 	return h, nil
+}
+
+// ---------------------------------------------------------------------------
+// Climbing analytics (History page)
+// ---------------------------------------------------------------------------
+
+type gradeTally struct{ total, sent int }
+
+// ClimbingGradeTally is one grade row in a discipline's pyramid.
+type ClimbingGradeTally struct {
+	Grade string
+	Total int
+	Sent  int
+	Rank  int
+}
+
+// ClimbingDisciplineStats aggregates one discipline (boulder or route).
+type ClimbingDisciplineStats struct {
+	Ticks       int
+	Sends       int
+	SendRate    int // percent
+	HardestSent string
+	Pyramid     []ClimbingGradeTally // hardest -> easiest, capped at 10
+	MoreGrades  int
+	MaxTotal    int // busiest grade's tick count, for bar scaling
+}
+
+// ClimbingAnalyticsResult aggregates climbing ticks across a set of runs.
+type ClimbingAnalyticsResult struct {
+	HasData      bool
+	TotalClimbs  int
+	TotalSends   int
+	SessionCount int
+	SendRate     int
+	Boulder      ClimbingDisciplineStats
+	Route        ClimbingDisciplineStats
+
+	HasIndoorOutdoor bool
+	IndoorPct        int
+	OutdoorPct       int
+	HasBoardSplit    bool
+	CommercialPct    int
+	BoardPct         int
+}
+
+func percentOf(n, d int) int {
+	if d <= 0 {
+		return 0
+	}
+	return n * 100 / d
+}
+
+// ClimbingAnalytics aggregates every climbing tick belonging to the given runs
+// into per-discipline grade pyramids, send rates, hardest sends, and setting
+// splits. Boulder and route grades are ranked within their own scales via
+// gradeRanks; grades absent from the canonical scales (e.g. Rainbow) are
+// excluded from pyramids but still counted toward volume and send rate.
+func ClimbingAnalytics(gdb *gorm.DB, ownerID uint, runIDs []uint) (ClimbingAnalyticsResult, error) {
+	var a ClimbingAnalyticsResult
+	if len(runIDs) == 0 {
+		return a, nil
+	}
+	var ticks []ClimbingTick
+	if err := gdb.Where("owner_id = ? AND run_id IN ?", ownerID, runIDs).Find(&ticks).Error; err != nil {
+		return a, err
+	}
+	if len(ticks) == 0 {
+		return a, nil
+	}
+	a.HasData = true
+
+	boulderGrades := map[string]*gradeTally{}
+	routeGrades := map[string]*gradeTally{}
+	sessions := map[uint]bool{}
+	var indoor, outdoor, commercial, board int
+	bestBoulder, bestRoute := -1, -1
+
+	for _, t := range ticks {
+		sessions[t.RunID] = true
+		a.TotalClimbs++
+		if t.Sent {
+			a.TotalSends++
+		}
+		isBoulder := t.Kind == "boulder"
+		disc, grades := &a.Route, routeGrades
+		if isBoulder {
+			disc, grades = &a.Boulder, boulderGrades
+		}
+		disc.Ticks++
+		if t.Sent {
+			disc.Sends++
+		}
+		if rank, ok := gradeRanks[t.Grade]; ok {
+			if grades[t.Grade] == nil {
+				grades[t.Grade] = &gradeTally{}
+			}
+			grades[t.Grade].total++
+			if t.Sent {
+				grades[t.Grade].sent++
+				if isBoulder && rank > bestBoulder {
+					bestBoulder, a.Boulder.HardestSent = rank, t.Grade
+				} else if !isBoulder && rank > bestRoute {
+					bestRoute, a.Route.HardestSent = rank, t.Grade
+				}
+			}
+		}
+		switch t.Setting {
+		case "indoor":
+			indoor++
+		case "outdoor":
+			outdoor++
+		}
+		if isBoulder && t.Setting == "indoor" {
+			switch t.Subtype {
+			case "commercial":
+				commercial++
+			case "board":
+				board++
+			}
+		}
+	}
+
+	a.SessionCount = len(sessions)
+	a.SendRate = percentOf(a.TotalSends, a.TotalClimbs)
+	a.Boulder.SendRate = percentOf(a.Boulder.Sends, a.Boulder.Ticks)
+	a.Route.SendRate = percentOf(a.Route.Sends, a.Route.Ticks)
+	a.Boulder.Pyramid, a.Boulder.MoreGrades, a.Boulder.MaxTotal = buildClimbingPyramid(boulderGrades)
+	a.Route.Pyramid, a.Route.MoreGrades, a.Route.MaxTotal = buildClimbingPyramid(routeGrades)
+
+	if indoor+outdoor > 0 {
+		a.HasIndoorOutdoor = true
+		a.IndoorPct = percentOf(indoor, a.TotalClimbs)
+		a.OutdoorPct = percentOf(outdoor, a.TotalClimbs)
+	}
+	if commercial+board > 0 {
+		a.HasBoardSplit = true
+		a.CommercialPct = percentOf(commercial, a.TotalClimbs)
+		a.BoardPct = percentOf(board, a.TotalClimbs)
+	}
+	return a, nil
+}
+
+// buildClimbingPyramid sorts grade tallies hardest-first and caps at 10 rows.
+func buildClimbingPyramid(m map[string]*gradeTally) ([]ClimbingGradeTally, int, int) {
+	rows := make([]ClimbingGradeTally, 0, len(m))
+	for g, t := range m {
+		rows = append(rows, ClimbingGradeTally{Grade: g, Total: t.total, Sent: t.sent, Rank: gradeRanks[g]})
+	}
+	sort.Slice(rows, func(i, j int) bool { return rows[i].Rank > rows[j].Rank })
+	more := 0
+	if len(rows) > 10 {
+		more = len(rows) - 10
+		rows = rows[:10]
+	}
+	maxTotal := 0
+	for _, r := range rows {
+		if r.Total > maxTotal {
+			maxTotal = r.Total
+		}
+	}
+	return rows, more, maxTotal
+}
+
+// UserHasClimbingTicks reports whether the user has ever logged any climbing
+// tick, used to distinguish "no climbs in this range" from "never climbed".
+func UserHasClimbingTicks(gdb *gorm.DB, ownerID uint) (bool, error) {
+	var tick ClimbingTick
+	err := gdb.Select("id").Where("owner_id = ?", ownerID).First(&tick).Error
+	if isNotFound(err) {
+		return false, nil
+	}
+	return err == nil, err
 }
 
 // ---------------------------------------------------------------------------
