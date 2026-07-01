@@ -269,7 +269,13 @@
         {{ with index .Media 0 }}
         <div class="lib-edit-media-preview">
           {{ if .ThumbnailURL }}
+          {{ if .VideoURL }}
+          <a href="{{ .VideoURL }}" target="_blank" rel="noopener" title="Open video">
+            <img src="{{ .ThumbnailURL }}" alt="Exercise thumbnail" />
+          </a>
+          {{ else }}
           <img src="{{ .ThumbnailURL }}" alt="Exercise thumbnail" />
+          {{ end }}
           {{ else }}
           <div class="lib-edit-media-placeholder">
             <i data-lucide="image" style="width:2rem;height:2rem"></i>
@@ -292,7 +298,7 @@
         {{ if and (ne .Kind "session") (ne .Kind "exercise_catalog") }}
           {{ if or (gt .Sets 0) (gt .Reps 0) }}
           <div class="text-xs muted">
-            {{ if and (gt .Sets 0) (gt .Reps 0) }}{{ .Sets }}×{{ .Reps }}{{ else if gt .Sets 0 }}{{ .Sets }} sets{{ else }}{{ .Reps }} reps{{ end }}{{ if gt .WeightKg 0 }} · {{ .WeightKg }}kg{{ end }}
+            {{ if and (gt .Sets 0) (gt .Reps 0) }}{{ .Sets }}×{{ .Reps }}{{ else if gt .Sets 0 }}{{ .Sets }} sets{{ else }}{{ .Reps }} reps{{ end }}{{ if gt .WeightKg 0.0 }} · {{ .WeightKg }}kg{{ end }}
           </div>
           {{ end }}
         {{ end }}
