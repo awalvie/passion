@@ -29,6 +29,22 @@
       <option value="session"{{ if eq .LibraryKind "session" }} selected{{ end }}>Session</option>
       <option value="exercise_catalog"{{ if eq .LibraryKind "exercise_catalog" }} selected{{ end }}>Catalog</option>
     </select>
+    {{ if .DistinctSources }}
+    <select name="source" class="input text-sm" style="width:auto;min-width:9rem" onchange="this.form.submit()">
+      <option value="">All sources</option>
+      {{ range .DistinctSources }}
+      <option value="{{ . }}"{{ if eq . $.LibrarySource }} selected{{ end }}>{{ . }}</option>
+      {{ end }}
+    </select>
+    {{ end }}
+    {{ if .DistinctTags }}
+    <select name="tag" class="input text-sm" style="width:auto;min-width:8rem" onchange="this.form.submit()">
+      <option value="">All labels</option>
+      {{ range .DistinctTags }}
+      <option value="{{ . }}"{{ if eq . $.LibraryTag }} selected{{ end }}>{{ . }}</option>
+      {{ end }}
+    </select>
+    {{ end }}
     <select name="sort" class="input text-sm" style="width:auto;min-width:8rem">
       <option value="name"{{ if eq .LibrarySort "name" }} selected{{ end }}>Name A-Z</option>
       <option value="name_desc"{{ if eq .LibrarySort "name_desc" }} selected{{ end }}>Name Z-A</option>
@@ -36,7 +52,7 @@
       <option value="oldest"{{ if eq .LibrarySort "oldest" }} selected{{ end }}>Oldest first</option>
     </select>
     <noscript><button type="submit" class="rounded-md btn-ghost px-3 py-2 text-sm font-medium">Apply</button></noscript>
-    {{ if or .LibrarySearch (ne .LibraryKind "") (ne .LibrarySort "name") }}
+    {{ if or .LibrarySearch (ne .LibraryKind "") (ne .LibrarySort "name") .LibrarySource .LibraryTag }}
       <a href="/exercise-library" class="rounded-md px-3 py-2 text-xs muted hover:underline">Clear</a>
     {{ end }}
   </form>

@@ -4,16 +4,26 @@
   <p class="mt-1 text-sm muted">Create an activity plan (warmup, exercises, cooldown) and reuse it for schedules.</p>
 
   <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <div class="flex items-center gap-2">
-      {{ if .DistinctLabels }}
-      <form method="get" action="/templates" class="flex items-center gap-2">
-        <select name="label" class="input text-sm" style="width:auto;min-width:8rem" onchange="this.form.submit()">
-          <option value=""{{ if eq .LabelFilter "" }} selected{{ end }}>All labels</option>
-          {{ range .DistinctLabels }}
-          <option value="{{ . }}"{{ if eq . $.LabelFilter }} selected{{ end }}>{{ . }}</option>
+    <div class="flex flex-wrap items-center gap-2">
+      {{ if or .DistinctSources .DistinctTags }}
+      <form method="get" action="/templates" class="flex flex-wrap items-center gap-2">
+        {{ if .DistinctSources }}
+        <select name="source" class="input text-sm" style="width:auto;min-width:9rem" onchange="this.form.submit()">
+          <option value="">All sources</option>
+          {{ range .DistinctSources }}
+          <option value="{{ . }}"{{ if eq . $.SourceFilter }} selected{{ end }}>{{ . }}</option>
           {{ end }}
         </select>
-        {{ if .LabelFilter }}<a href="/templates" class="text-xs muted hover:underline">Clear</a>{{ end }}
+        {{ end }}
+        {{ if .DistinctTags }}
+        <select name="tag" class="input text-sm" style="width:auto;min-width:8rem" onchange="this.form.submit()">
+          <option value="">All labels</option>
+          {{ range .DistinctTags }}
+          <option value="{{ . }}"{{ if eq . $.TagFilter }} selected{{ end }}>{{ . }}</option>
+          {{ end }}
+        </select>
+        {{ end }}
+        {{ if or .SourceFilter .TagFilter }}<a href="/templates" class="text-xs muted hover:underline">Clear</a>{{ end }}
       </form>
       {{ end }}
       <span class="text-sm muted">{{ if .Templates }}{{ len .Templates }} template(s){{ else }}No templates yet.{{ end }}</span>

@@ -3,6 +3,7 @@ package db
 import (
 	"errors"
 	"sort"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -72,25 +73,72 @@ func GetTemplateWithGraph(gdb *gorm.DB, ownerID, templateID uint) (*SessionTempl
 
 // ListTemplates returns all non-system session templates for a user, ordered by id descending.
 // If labelFilter is non-empty, only templates with that label are returned.
-func ListTemplates(gdb *gorm.DB, ownerID uint, labelFilter string) ([]SessionTemplate, error) {
+func ListTemplates(gdb *gorm.DB, ownerID uint, sourceFilter, tagFilter string) ([]SessionTemplate, error) {
 	var templates []SessionTemplate
 	q := gdb.Preload("Activities").Where("owner_id = ? AND is_system = ?", ownerID, false)
-	if labelFilter != "" {
-		q = q.Where("label = ?", labelFilter)
+	if sourceFilter != "" {
+		q = q.Where("source = ?", sourceFilter)
+	}
+	if tagFilter != "" {
+		q = q.Where("label LIKE ?", "%"+tagFilter+"%")
 	}
 	err := q.Order("id desc").Find(&templates).Error
 	return templates, err
 }
 
 // DistinctTemplateLabels returns the sorted distinct non-empty labels across all session templates for a user.
-func DistinctTemplateLabels(gdb *gorm.DB, ownerID uint) ([]string, error) {
-	var labels []string
+func DistinctTemplateSources(gdb *gorm.DB, ownerID uint) ([]string, error) {
+	var sources []string
 	err := gdb.Model(&SessionTemplate{}).
+		Where("owner_id = ? AND is_system = ? AND source != ''", ownerID, false).
+		Distinct("source").Order("source asc").Pluck("source", &sources).Error
+	return sources, err
+}
+
+// DistinctTemplateTags returns the sorted distinct individual tags across all
+// session-template labels (which are comma-separated).
+func DistinctTemplateTags(gdb *gorm.DB, ownerID uint) ([]string, error) {
+	var labels []string
+	if err := gdb.Model(&SessionTemplate{}).
 		Where("owner_id = ? AND is_system = ? AND label != ''", ownerID, false).
-		Distinct("label").
-		Order("label asc").
-		Pluck("label", &labels).Error
-	return labels, err
+		Pluck("label", &labels).Error; err != nil {
+		return nil, err
+	}
+	return distinctTagsFromLabels(labels), nil
+}
+
+// distinctTagsFromLabels splits comma-separated label strings into a sorted, de-duplicated tag list.
+func distinctTagsFromLabels(labels []string) []string {
+	seen := map[string]bool{}
+	var tags []string
+	for _, l := range labels {
+		for _, t := range strings.Split(l, ",") {
+			if t = strings.TrimSpace(t); t != "" && !seen[t] {
+				seen[t] = true
+				tags = append(tags, t)
+			}
+		}
+	}
+	sort.Strings(tags)
+	return tags
+}
+
+func DistinctLibrarySources(gdb *gorm.DB, ownerID uint) ([]string, error) {
+	var sources []string
+	err := gdb.Model(&LibraryExercise{}).
+		Where("owner_id = ? AND parent_library_exercise_id IS NULL AND source != ''", ownerID).
+		Distinct("source").Order("source asc").Pluck("source", &sources).Error
+	return sources, err
+}
+
+func DistinctLibraryTags(gdb *gorm.DB, ownerID uint) ([]string, error) {
+	var labels []string
+	if err := gdb.Model(&LibraryExercise{}).
+		Where("owner_id = ? AND parent_library_exercise_id IS NULL AND label != ''", ownerID).
+		Pluck("label", &labels).Error; err != nil {
+		return nil, err
+	}
+	return distinctTagsFromLabels(labels), nil
 }
 
 // ListLibraryExercises returns all root (no parent) library exercises for a user,
@@ -106,25 +154,36 @@ func ListLibraryExercises(gdb *gorm.DB, ownerID uint) ([]LibraryExercise, error)
 
 // ListActivityTemplates returns all activity templates for a user, ordered by name ascending.
 // If labelFilter is non-empty, only templates with that label are returned.
-func ListActivityTemplates(gdb *gorm.DB, ownerID uint, labelFilter string) ([]ActivityTemplate, error) {
+func ListActivityTemplates(gdb *gorm.DB, ownerID uint, sourceFilter, tagFilter string) ([]ActivityTemplate, error) {
 	var rows []ActivityTemplate
 	q := gdb.Where("owner_id = ?", ownerID)
-	if labelFilter != "" {
-		q = q.Where("label = ?", labelFilter)
+	if sourceFilter != "" {
+		q = q.Where("source = ?", sourceFilter)
+	}
+	if tagFilter != "" {
+		q = q.Where("label LIKE ?", "%"+tagFilter+"%")
 	}
 	err := q.Order("name asc").Find(&rows).Error
 	return rows, err
 }
 
 // DistinctActivityTemplateLabels returns the sorted distinct non-empty labels across all activity templates for a user.
-func DistinctActivityTemplateLabels(gdb *gorm.DB, ownerID uint) ([]string, error) {
-	var labels []string
+func DistinctActivityTemplateSources(gdb *gorm.DB, ownerID uint) ([]string, error) {
+	var sources []string
 	err := gdb.Model(&ActivityTemplate{}).
+		Where("owner_id = ? AND source != ''", ownerID).
+		Distinct("source").Order("source asc").Pluck("source", &sources).Error
+	return sources, err
+}
+
+func DistinctActivityTemplateTags(gdb *gorm.DB, ownerID uint) ([]string, error) {
+	var labels []string
+	if err := gdb.Model(&ActivityTemplate{}).
 		Where("owner_id = ? AND label != ''", ownerID).
-		Distinct("label").
-		Order("label asc").
-		Pluck("label", &labels).Error
-	return labels, err
+		Pluck("label", &labels).Error; err != nil {
+		return nil, err
+	}
+	return distinctTagsFromLabels(labels), nil
 }
 
 // GetActivityTemplateWithExercises loads an ActivityTemplate with its root exercises and their

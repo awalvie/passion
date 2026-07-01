@@ -439,7 +439,7 @@ func (s *Server) handleTrainingLogEdit(w http.ResponseWriter, r *http.Request) {
 				s.serverError(w, r, err)
 				return
 			}
-			activityTemplates, err := db.ListActivityTemplates(s.store.DB, ownerID, "")
+			activityTemplates, err := db.ListActivityTemplates(s.store.DB, ownerID, "", "")
 			if err != nil {
 				s.serverError(w, r, err)
 				return

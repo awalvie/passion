@@ -609,9 +609,11 @@ type ProfileParams struct {
 
 type TemplateListParams struct {
 	Base
-	Templates      []db.SessionTemplate
-	LabelFilter    string
-	DistinctLabels []string
+	Templates       []db.SessionTemplate
+	SourceFilter    string
+	TagFilter       string
+	DistinctSources []string
+	DistinctTags    []string
 }
 
 type NewTemplateParams struct {
@@ -696,8 +698,10 @@ type CalendarPageParams struct {
 type ActivityTemplateListParams struct {
 	Base
 	ActivityTemplates []db.ActivityTemplate
-	LabelFilter       string
-	DistinctLabels    []string
+	SourceFilter      string
+	TagFilter         string
+	DistinctSources   []string
+	DistinctTags      []string
 }
 
 type NewActivityTemplateParams struct {
@@ -717,6 +721,10 @@ type LibraryListParams struct {
 	LibrarySearch    string
 	LibraryKind      string
 	LibrarySort      string
+	LibrarySource    string
+	LibraryTag       string
+	DistinctSources  []string
+	DistinctTags     []string
 }
 
 type NewLibraryExerciseParams struct {
