@@ -1,11 +1,12 @@
 {{ define "content" }}
 <div class="max-w-2xl space-y-4">
+  <h1 class="text-xl font-bold">Profile</h1>
   <div class="card card-pad">
     <h2 class="text-sm font-semibold">Your statistics</h2>
     <p class="mt-1 text-sm muted">Store a few personal metrics you may want to track alongside your training.</p>
 
     {{ if .ProfileFormError }}
-      <div class="mt-4 card-muted p-3 text-sm" style="border-left: 3px solid #dc2626;">
+      <div class="mt-4 card-muted p-3 text-sm" style="border-left: 3px solid var(--destructive);">
         {{ .ProfileFormError }}
       </div>
     {{ end }}

@@ -396,11 +396,11 @@
         aria-expanded="false"
         aria-controls="add-exercise-panel-{{ .Activity.ID }}"
         title="Show the new exercise form"
-      ><i data-lucide="plus" style="width:14px;height:14px"></i> Add Exercise</button>
+      ><i data-lucide="plus" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i> Add Exercise</button>
     </div>
     <div id="save-to-library-panel-{{ .Activity.ID }}" class="hidden mt-3 card-muted rounded-lg overflow-hidden" data-save-to-library-panel="{{ .Activity.ID }}">
       <div class="flex items-center justify-between px-4 py-3 border-b text-sm font-semibold" style="border-color:var(--border)">Save to library
-        <button type="button" class="rounded btn-ghost p-1 inline-flex" data-save-to-library-close="{{ .Activity.ID }}"><i data-lucide="x" style="width:14px;height:14px"></i></button>
+        <button type="button" class="rounded btn-ghost p-1 inline-flex" data-save-to-library-close="{{ .Activity.ID }}"><i data-lucide="x" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></button>
       </div>
       <form
         class="px-4 py-4 grid gap-3 sm:grid-cols-2"
@@ -422,7 +422,7 @@
         </div>
         <div class="sm:col-span-2">
           <label class="text-xs font-medium" for="stl-kind-{{ .Activity.ID }}">Type</label>
-          <select id="stl-kind-{{ .Activity.ID }}" name="kind" class="mt-1 w-full input">
+          <select id="stl-kind-{{ .Activity.ID }}" name="kind" class="mt-1 w-full input text-sm">
             <option value="reps_and_sets">Reps and sets</option>
             <option value="session">Session</option>
           </select>
@@ -445,7 +445,7 @@
             data-add-exercise-close="1"
             aria-label="Close add exercise panel"
             title="Close"
-          ><i data-lucide="x" style="width:14px;height:14px"></i></button>
+          ><i data-lucide="x" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></button>
         </div>
         <p class="text-xs muted mt-1 mb-0 hidden" data-add-panel-context></p>
       </div>
@@ -571,7 +571,7 @@
             <select
               id="ex-kind-{{ .Activity.ID }}"
               name="kind"
-              class="mt-1 w-full input"
+              class="mt-1 w-full input text-sm"
               onchange="window.__passionSyncExerciseKindGroups(this)"
             >
               <option value="reps_and_sets" selected>Reps and sets</option>
@@ -778,7 +778,7 @@
               class="w-full rounded-md btn-ghost px-3 py-2 text-sm font-medium inline-flex items-center justify-center gap-1.5"
               data-save-to-library-toggle="{{ .Activity.ID }}"
               title="Save a new exercise to your library"
-            ><i data-lucide="bookmark-plus" style="width:14px;height:14px"></i> Save to library</button>
+            ><i data-lucide="bookmark-plus" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i> Save to library</button>
           </div>
         </form>
       </div>

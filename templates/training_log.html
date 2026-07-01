@@ -42,10 +42,10 @@
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
                       style="background:var(--accent-bg);color:var(--accent)">{{ .Focus }}</span>
                 {{ end }}
-                <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="flex items-center gap-0.5 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                   {{ if .IsStandalone }}
                   <a href="/training-log/{{ .JournalEntryID }}/edit"
-                     class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Edit">
+                     class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Edit" aria-label="Edit {{ .TemplateName }}">
                     <i data-lucide="pencil" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
                   </a>
                   <form method="post" action="/training-log/{{ .JournalEntryID }}/delete"
@@ -53,19 +53,19 @@
                         hx-confirm="Delete this journal entry? This cannot be undone."
                         hx-target="closest .card"
                         hx-swap="outerHTML">
-                    <button type="submit" class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Delete">
+                    <button type="submit" class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Delete" aria-label="Delete {{ .TemplateName }}">
                       <i data-lucide="trash-2" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
                     </button>
                   </form>
                   {{ else }}
                   {{ if gt .JournalEntryID 0 }}
                   <a href="/training-log/{{ .JournalEntryID }}/edit"
-                     class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Edit">
+                     class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Edit" aria-label="Edit {{ .TemplateName }}">
                     <i data-lucide="pencil" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
                   </a>
                   {{ else }}
                   <a href="/training-log/for-run/{{ .RunID }}"
-                     class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Add to training log">
+                     class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Add to training log" aria-label="Add {{ .TemplateName }} to training log">
                     <i data-lucide="pencil" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
                   </a>
                   {{ end }}
@@ -115,19 +115,19 @@
                  style="border-top: 1px solid var(--border); color: var(--muted)">
               {{ if gt .RPE 0 }}
               <span class="flex items-center gap-1.5">
-                <i data-lucide="flame" style="width:0.65rem;height:0.65rem" aria-hidden="true"></i>
+                <i data-lucide="flame" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
                 RPE <span class="font-semibold tabular-nums ml-0.5" style="color:var(--text)">{{ .RPE }}</span>
               </span>
               {{ end }}
               {{ if gt .SleepScore 0 }}
               <span class="flex items-center gap-1.5">
-                <i data-lucide="moon" style="width:0.65rem;height:0.65rem" aria-hidden="true"></i>
+                <i data-lucide="moon" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
                 Sleep <span class="font-semibold tabular-nums ml-0.5" style="color:var(--text)">{{ .SleepScore }}</span>
               </span>
               {{ end }}
               {{ if gt .Energy 0 }}
               <span class="flex items-center gap-1.5">
-                <i data-lucide="zap" style="width:0.65rem;height:0.65rem" aria-hidden="true"></i>
+                <i data-lucide="zap" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
                 Energy <span class="font-semibold tabular-nums ml-0.5" style="color:var(--text)">{{ .Energy }}</span>
               </span>
               {{ end }}

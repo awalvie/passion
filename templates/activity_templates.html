@@ -1,6 +1,6 @@
 {{ define "content" }}
 <div class="card card-pad">
-  <h2 class="text-sm font-semibold">Your activity templates</h2>
+  <h1 class="text-xl font-bold">Your activity templates</h1>
   <p class="mt-1 text-sm muted">Reusable activity blueprints you can import into session templates.</p>
 
   <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -52,7 +52,7 @@
                     class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
                     title="Edit"
                     aria-label="Edit {{ .Name }}"
-                  ><i data-lucide="pencil" style="width:14px;height:14px"></i></a>
+                  ><i data-lucide="pencil" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></a>
                   <form
                     hx-post="/activity-templates/{{.ID}}/delete"
                     hx-swap="none"
@@ -66,7 +66,7 @@
                       title="Delete"
                       aria-label="Delete {{ .Name }}"
                       style="color:var(--muted)"
-                    ><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
+                    ><i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></button>
                   </form>
                 </div>
               </td>

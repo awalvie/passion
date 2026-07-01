@@ -1,10 +1,10 @@
 {{ define "content" }}
 <section class="card card-pad max-w-md mx-auto">
-  <h2 class="text-base font-semibold">Sign up</h2>
+  <h1 class="text-xl font-bold">Sign up</h1>
   <p class="text-sm muted mt-1">Create your account to save personal workouts.</p>
 
   {{ if .AuthFormError }}
-    <div class="mt-3 rounded-md border px-3 py-2 text-sm" style="border-color: var(--danger); color: var(--danger)">
+    <div class="mt-3 rounded-md border px-3 py-2 text-sm" style="border-color: var(--destructive); color: var(--destructive)">
       {{ .AuthFormError }}
     </div>
   {{ end }}

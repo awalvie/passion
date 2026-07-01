@@ -6,10 +6,10 @@
   <div class="card card-pad">
     <div class="flex items-center justify-between gap-3">
       <div>
-        <h2 class="text-sm font-semibold">Edit saved exercise</h2>
+        <h1 class="text-xl font-bold">Edit saved exercise</h1>
         <p class="mt-1 text-xs muted">Changes here do not affect exercises already placed in templates.</p>
       </div>
-      <a class="rounded-md btn-ghost px-3 py-2 text-sm shrink-0" href="/exercise-library">
+      <a class="rounded-md btn-ghost px-3 py-2 text-sm shrink-0" href="/exercise-library" aria-label="Back to exercise library">
         <i data-lucide="arrow-left" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
       </a>
     </div>
@@ -31,7 +31,7 @@
           <select
             id="lib-kind"
             name="kind"
-            class="mt-1 w-full input"
+            class="mt-1 w-full input text-sm"
             onchange="window.__passionSyncExerciseKindGroups(this)"
           >
             <option value="reps_and_sets" {{ if eq .Kind "reps_and_sets" }}selected{{ end }}>Reps and sets</option>

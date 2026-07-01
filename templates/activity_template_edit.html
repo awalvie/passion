@@ -9,7 +9,7 @@
     >
       <div class="at-edit-header">
         <div class="flex items-center gap-2 min-w-0">
-          <div class="at-edit-title" id="at-title-display-{{ .Template.ID }}">{{ .Template.Name }}</div>
+          <h1 class="at-edit-title m-0" id="at-title-display-{{ .Template.ID }}">{{ .Template.Name }}</h1>
           {{ if .Template.Label }}<span class="text-xs font-medium px-1.5 py-0.5 rounded border" style="border-color:var(--border);color:var(--muted)">{{ .Template.Label }}</span>{{ end }}
           <button
             type="button"

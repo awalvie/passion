@@ -28,24 +28,24 @@
             {{ if .Subtype }}<span class="tick-kind">{{ .Subtype }}</span>{{ end }}
             {{ if .Sent }}
               <span class="tick-sent-badge flex items-center gap-0.5">
-                <i data-lucide="check-circle" style="width:0.65rem;height:0.65rem" aria-hidden="true"></i> Sent
+                <i data-lucide="check-circle" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i> Sent
               </span>
             {{ end }}
             {{ if .RopeStyle }}
             <span class="tick-rope-style tick-rope-style--{{ .RopeStyleClass }}">
-              <i data-lucide="{{ .RopeStyleIcon }}" style="width:0.65rem;height:0.65rem" aria-hidden="true"></i>
+              <i data-lucide="{{ .RopeStyleIcon }}" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
               {{ .RopeStyle }}
             </span>
             {{ end }}
             {{ if .Style }}
             <span class="tick-style tick-style--{{ .StyleClass }}">
-              <i data-lucide="{{ .StyleIcon }}" style="width:0.65rem;height:0.65rem" aria-hidden="true"></i>
+              <i data-lucide="{{ .StyleIcon }}" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
               {{ .Style }}
             </span>
             {{ end }}
             {{ if gt .Stars 0 }}
               <span class="text-xs flex items-center gap-0.5" style="color:var(--tick-star)">
-                <i data-lucide="star" style="width:0.65rem;height:0.65rem;fill:currentColor" aria-hidden="true"></i>
+                <i data-lucide="star" style="width:0.6rem;height:0.6rem;fill:currentColor" aria-hidden="true"></i>
                 {{ .Stars }}
               </span>
             {{ end }}
@@ -63,7 +63,7 @@
           title="Log again"
           aria-label="Log again"
         >
-          <i data-lucide="copy-plus" style="width:0.85rem;height:0.85rem" aria-hidden="true"></i>
+          <i data-lucide="copy-plus" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
         </button>
         <button
           type="button"
@@ -76,7 +76,7 @@
           title="Remove"
           aria-label="Remove"
         >
-          <i data-lucide="trash-2" style="width:0.85rem;height:0.85rem" aria-hidden="true"></i>
+          <i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
         </button>
       </summary>
 
@@ -394,7 +394,7 @@ if(window.__passionRenderIcons)window.__passionRenderIcons();
   {{/* Constants summary (collapsible, stays visible) */}}
   <details class="tick-constants passion-disclosure">
     <summary class="tick-constants-summary text-xs muted flex items-center gap-1">
-      <i data-lucide="sliders-horizontal" style="width:0.8rem;height:0.8rem" aria-hidden="true"></i>
+      <i data-lucide="sliders-horizontal" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
       <span data-constants-label>Type &amp; setting</span>
     </summary>
     <div class="space-y-3 mt-2">

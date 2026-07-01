@@ -12,7 +12,7 @@
         {{ if .Template.Color }}
         <span class="inline-block w-3 h-3 rounded-full shrink-0" style="background:{{ .Template.Color }}"></span>
         {{ end }}
-        <div class="text-lg font-semibold" id="tpl-title-display-{{ .Template.ID }}">{{ .Template.Name }}</div>
+        <h1 class="text-xl font-bold m-0" id="tpl-title-display-{{ .Template.ID }}">{{ .Template.Name }}</h1>
         {{ if .Template.Label }}<span class="text-xs font-medium px-1.5 py-0.5 rounded border" style="border-color:var(--border);color:var(--muted)">{{ .Template.Label }}</span>{{ end }}
         <button
           type="button"
@@ -98,10 +98,10 @@
             <span class="hidden sm:inline">Trial Run</span>
           </button>
         </form>
-        <a class="rounded-md btn-ghost p-2 inline-flex items-center justify-center" href="/templates/{{ .Template.ID }}/export" title="Download YAML">
+        <a class="rounded-md btn-ghost p-2 inline-flex items-center justify-center" href="/templates/{{ .Template.ID }}/export" title="Download YAML" aria-label="Download YAML for {{ .Template.Name }}">
           <i data-lucide="download" style="width:1rem;height:1rem" aria-hidden="true"></i>
         </a>
-        <a class="rounded-md btn-ghost p-2 inline-flex items-center justify-center" href="/templates" title="Back to templates">
+        <a class="rounded-md btn-ghost p-2 inline-flex items-center justify-center" href="/templates" title="Back to templates" aria-label="Back to templates">
           <i data-lucide="arrow-left" style="width:1rem;height:1rem" aria-hidden="true"></i>
         </a>
       </div>
