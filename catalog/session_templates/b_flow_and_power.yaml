@@ -1,0 +1,31 @@
+name: "B: Flow & Power (Rhythm + Hips + Dynamic)"
+color: "#ef4444"
+activities:
+  - type: "warmup"
+    exercises:
+      - ref: "General Warmup"
+      - ref: "Perfect Repeats"
+  - type: "activity"
+    exercises:
+      - ref: "Sloth-Monkey"
+      - ref: "Hip Shapes"
+      - ref: "Deadpoint / Clap Drill"
+  - type: "cooldown"
+    exercises:
+      - name: "Apply: Dynamic Choice"
+        sets: 2
+        reps: 1
+        rep_seconds: 180
+        set_rest_seconds: 90
+        notes: |
+          Climb 2 routes deliberately choosing the dynamic solution
+          where you'd normally lock off statically.
+      - name: "Journal"
+        sets: 1
+        reps: 1
+        rep_seconds: 180
+        set_rest_seconds: 0
+        notes: |
+          Where did I hesitate?
+          Which moves were easier dynamic?
+          Did my breathing stop on hard moves?

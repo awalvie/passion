@@ -1,0 +1,14 @@
+name: "Fast-Slow-Perfect"
+kind: "reps_and_sets"
+sets: 1
+reps: 3
+rep_seconds: 180
+set_rest_seconds: 60
+notes: |
+  On a 5.8 sport route, three laps:
+  - Lap 1: intentionally TOO FAST (rush it)
+  - Lap 2: intentionally TOO SLOW (over-analyze)
+  - Lap 3: the RIGHT pace
+
+  Teaches pacing by contrast. You learn what "too fast" and
+  "too slow" feel like so you can find the sweet spot.
