@@ -408,6 +408,8 @@ func (s *Server) completeRunExercise(w http.ResponseWriter, r *http.Request, run
 	redirect := "/runs/" + runIDStr + "?t=" + strconv.FormatInt(time.Now().UnixNano(), 10) + "#run-current-step"
 	if run.IsOpen {
 		redirect = "/runs/" + runIDStr
+	} else if !anyIncomplete {
+		redirect = "/runs/" + runIDStr + "/summary"
 	}
 	w.Header().Set("HX-Redirect", redirect)
 	w.WriteHeader(http.StatusOK)
