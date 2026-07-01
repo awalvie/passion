@@ -26,12 +26,4 @@ activities:
           Climb 2-3 routes ONE grade harder than drill terrain.
           Mantra on loop: "precise feet, straight arms, relaxed grip"
           Accept imperfect form — the point is to try.
-      - name: "Journal"
-        sets: 1
-        reps: 1
-        rep_seconds: 180
-        set_rest_seconds: 0
-        notes: |
-          Where did feet get loud?
-          When did I regrip?
-          Could I hold the 3-sec hover or did I collapse?
+  - ref: "Journal"

@@ -1,0 +1,7 @@
+name: "Antagonist & Prehab"
+label: "antagonist, strength"
+exercises:
+  - ref: "External Rotations"
+  - ref: "Lateral Raise"
+  - ref: "Tricep Extensions"
+  - ref: "Overhead Press"

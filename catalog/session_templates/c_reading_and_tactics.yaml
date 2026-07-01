@@ -2,27 +2,10 @@ name: "C: Reading & Sport Tactics"
 color: "#10b981"
 label: "tactics, technique, route"
 activities:
-  - type: "warmup"
-    exercises:
-      - ref: "General Warmup"
-      - ref: "Silent Feet"
-        sets: 2
-        reps: 1
-        rep_seconds: 120
-        set_rest_seconds: 60
+  - ref: "Light Climbing Warmup"
   - type: "activity"
     exercises:
       - ref: "Plan-Climb-Review"
       - ref: "Fast-Slow-Perfect"
       - ref: "Technique Under Fatigue"
-  - type: "cooldown"
-    exercises:
-      - name: "Journal"
-        sets: 1
-        reps: 1
-        rep_seconds: 180
-        set_rest_seconds: 0
-        notes: |
-          Did my read match reality?
-          What breaks first when pumped — feet, grip, or commitment?
-          Which move surprised me most vs my plan?
+  - ref: "Journal"
