@@ -59,6 +59,7 @@ func (s *Server) handleActivityTemplatesNew(w http.ResponseWriter, r *http.Reque
 			OwnerID: ownerID,
 			Name:    name,
 			Label:   strings.TrimSpace(r.FormValue("label")),
+			Source:  strings.TrimSpace(r.FormValue("source")),
 		}
 		if err := s.store.DB.Create(tpl).Error; err != nil {
 			s.serverError(w, r, err)
@@ -164,6 +165,7 @@ func (s *Server) handleUpdateActivityTemplate(w http.ResponseWriter, r *http.Req
 	}
 	tpl.Name = name
 	tpl.Label = label
+	tpl.Source = strings.TrimSpace(r.FormValue("source"))
 	if err := s.store.DB.Save(&tpl).Error; err != nil {
 		s.serverError(w, r, err)
 		return

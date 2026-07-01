@@ -30,6 +30,8 @@ type yamlMediaItem struct {
 
 type yamlExercise struct {
 	Name                   string          `yaml:"name"`
+	Label                  string          `yaml:"label"`
+	Source                 string          `yaml:"source"`
 	Kind                   string          `yaml:"kind"`
 	SessionDurationSeconds int             `yaml:"session_duration_seconds"`
 	Media                  []yamlMediaItem `yaml:"media"`
@@ -52,6 +54,7 @@ type yamlSessionTemplate struct {
 	Name       string                `yaml:"name"`
 	Color      string                `yaml:"color"`
 	Label      string                `yaml:"label"`
+	Source     string                `yaml:"source"`
 	Activities []yamlSessionActivity `yaml:"activities"`
 }
 
@@ -69,6 +72,7 @@ type yamlActivityTemplateDoc struct {
 type yamlActivityTemplate struct {
 	Name      string                `yaml:"name"`
 	Label     string                `yaml:"label"`
+	Source    string                `yaml:"source"`
 	Exercises []yamlSessionExercise `yaml:"exercises"`
 }
 
@@ -439,6 +443,7 @@ func upsertActivityTemplate(tx *gorm.DB, ownerID uint, at yamlActivityTemplate, 
 		row = ActivityTemplate{OwnerID: ownerID, Name: at.Name}
 	}
 	row.Label = strings.TrimSpace(at.Label)
+	row.Source = strings.TrimSpace(at.Source)
 	if err := tx.Save(&row).Error; err != nil {
 		return err
 	}
@@ -558,6 +563,8 @@ func upsertLibraryExercise(tx *gorm.DB, ownerID uint, ex yamlExercise) error {
 			Name:    ex.Name,
 		}
 	}
+	row.Label = strings.TrimSpace(ex.Label)
+	row.Source = strings.TrimSpace(ex.Source)
 	row.Kind = ex.Kind
 	row.SessionDurationSeconds = ex.SessionDurationSeconds
 	row.Notes = ex.Notes
@@ -594,6 +601,7 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 	}
 	template.Color = strings.TrimSpace(tpl.Color)
 	template.Label = strings.TrimSpace(tpl.Label)
+	template.Source = strings.TrimSpace(tpl.Source)
 	if err := tx.Save(&template).Error; err != nil {
 		return err
 	}

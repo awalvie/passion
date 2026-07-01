@@ -31,8 +31,10 @@ type SessionTemplate struct {
 	Name    string `gorm:"not null"`
 	// Color is an optional hex accent (#rrggbb) for dashboard cards; empty = no accent.
 	Color string `gorm:"size:16;not null;default:''"`
-	// Label is a short freeform tag shown next to the template name (e.g. "hangboard", "strength").
-	Label string `gorm:"size:64;not null;default:''"`
+	// Label holds comma-separated freeform tags shown as chips (e.g. "technique, indoor").
+	Label string `gorm:"size:128;not null;default:''"`
+	// Source is the program or coach the template comes from (e.g. "Power Company Climbing").
+	Source string `gorm:"size:64;not null;default:''"`
 	// IsSystem marks the hidden per-user anchor template used for open sessions.
 	IsSystem bool `gorm:"not null;default:false"`
 
@@ -130,8 +132,10 @@ type ActivityTemplate struct {
 
 	OwnerID uint   `gorm:"index;not null"`
 	Name    string `gorm:"not null"`
-	// Label is a short freeform tag shown next to the template name (e.g. "warmup", "technique").
-	Label string `gorm:"size:64;not null;default:''"`
+	// Label holds comma-separated freeform tags shown as chips (e.g. "warmup, technique").
+	Label string `gorm:"size:128;not null;default:''"`
+	// Source is the program or coach the template comes from (e.g. "Power Company Climbing").
+	Source string `gorm:"size:64;not null;default:''"`
 
 	Exercises []Exercise `gorm:"foreignKey:ActivityTemplateID;constraint:OnDelete:CASCADE;"`
 }
@@ -144,6 +148,10 @@ type LibraryExercise struct {
 	OwnerID uint `gorm:"index;not null"`
 
 	Name string `gorm:"not null"`
+	// Label holds comma-separated freeform tags shown as chips (e.g. "technique, fingers").
+	Label string `gorm:"size:128;not null;default:''"`
+	// Source is the program or coach the exercise comes from (e.g. "Power Company Climbing").
+	Source string `gorm:"size:64;not null;default:''"`
 
 	Notes string `gorm:"type:text"`
 

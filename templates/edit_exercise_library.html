@@ -42,6 +42,14 @@
           </select>
           <p class="text-[10px] muted mt-0.5 mb-0" data-kind-hint></p>
         </div>
+        <div>
+          <label class="text-sm font-medium" for="lib-source">Source</label>
+          <input id="lib-source" name="source" list="catalog-source-options" class="mt-1 w-full input" value="{{ .Source }}" placeholder="e.g. Power Company Climbing" autocomplete="off" />
+        </div>
+        <div>
+          <label class="text-sm font-medium" for="lib-label">Labels</label>
+          <input id="lib-label" name="label" class="mt-1 w-full input" value="{{ .Label }}" placeholder="comma-separated, e.g. technique, fingers" autocomplete="off" />
+        </div>
       </div>
 
       <!-- Section: Configuration (reps_and_sets) -->

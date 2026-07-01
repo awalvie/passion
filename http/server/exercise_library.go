@@ -245,6 +245,8 @@ func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		existing.Name = row.Name
+		existing.Label = row.Label
+		existing.Source = row.Source
 		existing.Notes = row.Notes
 		existing.Kind = row.Kind
 		existing.SessionDurationSeconds = row.SessionDurationSeconds
@@ -350,8 +352,10 @@ func (s *Server) libraryExerciseFromForm(r *http.Request, base *db.LibraryExerci
 	}
 
 	row := &db.LibraryExercise{
-		Name:  name,
-		Notes: strings.TrimSpace(r.FormValue("notes")),
+		Name:   name,
+		Label:  strings.TrimSpace(r.FormValue("label")),
+		Source: strings.TrimSpace(r.FormValue("source")),
+		Notes:  strings.TrimSpace(r.FormValue("notes")),
 	}
 
 	kind := db.NormalizeKind(r.FormValue("kind"))

@@ -79,6 +79,12 @@
               </td>
               <td class="px-3 py-2.5">
                 <a class="text-sm font-medium link hover:underline" href="/exercise-library/{{ .ID }}/edit">{{ .Name }}</a>
+                {{ if or .Source (splitTags .Label) }}
+                <div class="mt-1 flex flex-wrap gap-1">
+                  {{ if .Source }}<span class="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded" style="background:var(--accent-bg);color:var(--accent)"><i data-lucide="book-marked" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>{{ .Source }}</span>{{ end }}
+                  {{ range splitTags .Label }}<span class="text-xs font-medium px-1.5 py-0.5 rounded border" style="border-color:var(--border);color:var(--muted)">{{ . }}</span>{{ end }}
+                </div>
+                {{ end }}
               </td>
               <td class="px-3 py-2.5">
                 {{ if eq .Kind "session" }}

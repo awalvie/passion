@@ -1450,6 +1450,15 @@ func buildFuncMap() template.FuncMap {
 		"markdownHTML": func(s string) template.HTML {
 			return markdownToHTML(s)
 		},
+		"splitTags": func(s string) []string {
+			var out []string
+			for _, part := range strings.Split(s, ",") {
+				if t := strings.TrimSpace(part); t != "" {
+					out = append(out, t)
+				}
+			}
+			return out
+		},
 		"youtubeEmbedURL": youtubeEmbedURL,
 		"libExJSON": func(ex db.LibraryExercise) string {
 			b, _ := json.Marshal(struct {

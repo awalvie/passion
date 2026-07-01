@@ -33,13 +33,25 @@
         />
       </div>
       <div>
-        <label class="text-xs font-medium" for="tpl-label-{{ .Template.ID }}">Label</label>
+        <label class="text-xs font-medium" for="tpl-source-{{ .Template.ID }}">Source</label>
+        <input
+          id="tpl-source-{{ .Template.ID }}"
+          name="source"
+          list="catalog-source-options"
+          class="mt-1 w-full input text-sm"
+          value="{{ .Template.Source }}"
+          placeholder="e.g. Power Company Climbing"
+          autocomplete="off"
+        />
+      </div>
+      <div>
+        <label class="text-xs font-medium" for="tpl-label-{{ .Template.ID }}">Labels</label>
         <input
           id="tpl-label-{{ .Template.ID }}"
           name="label"
           class="mt-1 w-full input text-sm"
           value="{{ .Template.Label }}"
-          placeholder="e.g. hangboard, strength, bouldering"
+          placeholder="comma-separated, e.g. technique, indoor"
           autocomplete="off"
         />
       </div>
