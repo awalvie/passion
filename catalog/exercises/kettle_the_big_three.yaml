@@ -1,0 +1,10 @@
+name: "The Big Three"
+source: "John Kettle"
+label: "technique, footwork, tension"
+kind: "session"
+session_duration_seconds: 720
+media:
+  - video_url: "https://www.youtube.com/watch?v=7PH6HJ9q4jk"
+    thumbnail_url: "https://i.ytimg.com/vi/7PH6HJ9q4jk/hqdefault.jpg"
+notes: |
+  Combine three constraints at once: Hip and Hand + Two Feet On + Straight Arm, Bendy Body. Same hip to the wall as the moving hand, both feet stay on, holding arm stays straight. The core efficiency package.

@@ -1,0 +1,10 @@
+name: "The Can-Can"
+source: "John Kettle"
+label: "footwork, balance, technique"
+kind: "session"
+session_duration_seconds: 600
+media:
+  - video_url: "https://www.youtube.com/watch?v=suunPFxFuoo"
+    thumbnail_url: "https://i.ytimg.com/vi/suunPFxFuoo/hqdefault.jpg"
+notes: |
+  Only one foot may be on a hold for the entire duration of every hand move — the other flags. Deliberate flagging: teaches you to steer with the free leg instead of always matching feet.

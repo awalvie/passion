@@ -1,0 +1,10 @@
+name: "The Corkscrew"
+source: "John Kettle"
+label: "core, power, tension"
+kind: "session"
+session_duration_seconds: 480
+media:
+  - video_url: "https://www.youtube.com/watch?v=1p0yTrIyOPw"
+    thumbnail_url: "https://i.ytimg.com/vi/1p0yTrIyOPw/hqdefault.jpg"
+notes: |
+  Side-on upward move: corkscrew your hips powerfully into the wall as you reach (Egyptian / backstep). The rotation drives the hand up — a twist, not a bicep pull.

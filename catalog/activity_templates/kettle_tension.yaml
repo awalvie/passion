@@ -1,0 +1,14 @@
+name: "Kettle: Tension"
+source: "John Kettle"
+label: "tension, tactics"
+exercises:
+  - name: "Tension Drill"
+    kind: "exercise_catalog"
+    notes: |
+      Pick ONE tension drill per session and layer its constraint onto a route or pumpy problem you're already climbing. These are in-climb regulation habits — breathing and relaxation you apply move to move, not standalone workouts.
+    children:
+      - ref: "The Tension Tester"
+      - ref: "The Breath Sink"
+      - ref: "Sink to Zero Progression"
+      - ref: "Core Pressure"
+      - ref: "Slackjaw"

@@ -1,0 +1,10 @@
+name: "Platform Builder"
+source: "John Kettle"
+label: "footwork, balance, technique"
+kind: "session"
+session_duration_seconds: 600
+media:
+  - video_url: "https://www.youtube.com/watch?v=wFFTpqGGzMg"
+    thumbnail_url: "https://i.ytimg.com/vi/wFFTpqGGzMg/hqdefault.jpg"
+notes: |
+  Build an imaginary platform between your feet and keep your hips vertically above it for every hand move. Only rebuild the platform once both hands are on holds. Trains centred, weighted feet.

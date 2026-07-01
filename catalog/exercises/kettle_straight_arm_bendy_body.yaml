@@ -1,0 +1,10 @@
+name: "Straight Arm, Bendy Body"
+source: "John Kettle"
+label: "technique, tension, balance"
+kind: "session"
+session_duration_seconds: 600
+media:
+  - video_url: "https://www.youtube.com/watch?v=yG2fvVrhc_c"
+    thumbnail_url: "https://i.ytimg.com/vi/yG2fvVrhc_c/hqdefault.jpg"
+notes: |
+  The holding (non-moving) arm stays straight for the full duration of every hand move. Bend at the body, not the arm — teaches you to hang off skeleton, not biceps.

@@ -1,0 +1,7 @@
+name: "Chunking"
+source: "John Kettle"
+label: "tactics, route"
+kind: "session"
+session_duration_seconds: 900
+notes: |
+  Split the pitch into sections. At each rest, stop and read the next chunk in detail before you commit to it. Trades one big overwhelming read for several small, accurate ones.
