@@ -1,11 +1,8 @@
 name: "Sloth-Monkey"
 source: "Power Company Climbing"
 label: "technique, dynamic, tension"
-kind: "reps_and_sets"
-sets: 3
-reps: 2
-rep_seconds: 120
-set_rest_seconds: 120
+kind: "session"
+session_duration_seconds: 720
 media:
   - video_url: "https://www.youtube.com/watch?v=rYmiMqj4TqM"
     thumbnail_url: "https://i.ytimg.com/vi/rYmiMqj4TqM/hqdefault.jpg"

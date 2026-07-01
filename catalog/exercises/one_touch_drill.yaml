@@ -1,11 +1,8 @@
 name: "One-Touch"
 source: "Power Company Climbing"
 label: "footwork, technique"
-kind: "reps_and_sets"
-sets: 4
-reps: 1
-rep_seconds: 120
-set_rest_seconds: 90
+kind: "session"
+session_duration_seconds: 480
 media:
   - video_url: "https://www.youtube.com/watch?v=_Yob5_mWC7I"
     thumbnail_url: "https://i.ytimg.com/vi/_Yob5_mWC7I/hqdefault.jpg"

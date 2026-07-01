@@ -1,10 +1,7 @@
 name: "General Warmup"
 label: "warmup, mobility"
-kind: "reps_and_sets"
-sets: 1
-reps: 1
-rep_seconds: 600
-set_rest_seconds: 0
+kind: "session"
+session_duration_seconds: 600
 notes: |
   5 min pulse-raiser (light jog, skipping, jump rope).
   5 min dynamic mobility (shoulder circles, hip rotations,
