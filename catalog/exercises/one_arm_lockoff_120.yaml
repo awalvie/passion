@@ -1,4 +1,5 @@
 name: "1-arm lock-off 120 degrees"
+label: "strength, tension"
 kind: "timed_reps"
 sets: 2
 reps: 1

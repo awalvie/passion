@@ -1,7 +1,7 @@
 name: "Go Hard"
 source: "Power Company Climbing"
 color: "#ef4444"
-label: "bouldering"
+label: "boulder, power, tactics"
 activities:
   - ref: "Warm Up"
   - ref: "Drills"

@@ -1,4 +1,6 @@
 name: "Hard Flash/Onsight Attempts"
+source: "Power Company Climbing"
+label: "tactics, power, boulder"
 kind: "climbing"
 media:
   - video_url: "https://www.youtube.com/watch?v=RQtii8MxjkQ"

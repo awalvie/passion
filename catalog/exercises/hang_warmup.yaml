@@ -1,4 +1,5 @@
 name: "Hang Warm-Up"
+label: "warmup, fingers, hangboard"
 kind: "session"
 media:
   - video_url: "https://www.youtube.com/watch?v=yYA3kXgzMPM"

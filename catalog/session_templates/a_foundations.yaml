@@ -1,5 +1,6 @@
 name: "A: Foundations (Feet + Grip + Balance)"
 color: "#3b82f6"
+label: "technique, footwork, balance"
 activities:
   - type: "warmup"
     exercises:

@@ -1,4 +1,5 @@
 name: "Middle Splits Hold"
+label: "mobility"
 kind: "timed_reps"
 sets: 3
 reps: 1

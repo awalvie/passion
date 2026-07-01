@@ -1,4 +1,6 @@
 name: "Movement Exploration"
+source: "Power Company Climbing"
+label: "technique, tactics, boulder"
 kind: "climbing"
 media:
   - video_url: "https://www.youtube.com/watch?v=r47a58bIoxc"

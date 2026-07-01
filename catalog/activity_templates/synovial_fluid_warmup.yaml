@@ -1,5 +1,5 @@
 name: "Synovial Fluid Warm-Up"
-label: "warmup"
+label: "warmup, mobility"
 exercises:
   - name: "Thumbs Up / Down"
     kind: "reps_and_sets"
