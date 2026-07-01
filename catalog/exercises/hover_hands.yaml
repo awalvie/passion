@@ -1,11 +1,8 @@
 name: "Hover Hands"
 source: "Self-Coached Climber"
 label: "balance, technique, footwork"
-kind: "reps_and_sets"
-sets: 4
-reps: 1
-rep_seconds: 120
-set_rest_seconds: 90
+kind: "session"
+session_duration_seconds: 480
 notes: |
   Reach for the next hold but hover your hand 2 inches above it
   for 3 full seconds before grabbing.

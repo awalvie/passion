@@ -1,11 +1,8 @@
 name: "Silent Feet"
 source: "Neil Gresham"
 label: "footwork, technique"
-kind: "reps_and_sets"
-sets: 4
-reps: 1
-rep_seconds: 120
-set_rest_seconds: 120
+kind: "session"
+session_duration_seconds: 480
 notes: |
   Climb easy terrain (V1-V2 / 5.8-5.9) placing every foot with zero sound.
   Five cues to cycle through:
