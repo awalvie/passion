@@ -52,13 +52,25 @@
           />
         </div>
         <div>
-          <label class="text-xs font-medium" for="at-label-{{ .Template.ID }}">Label</label>
+          <label class="text-xs font-medium" for="at-source-{{ .Template.ID }}">Source</label>
+          <input
+            id="at-source-{{ .Template.ID }}"
+            name="source"
+            list="catalog-source-options"
+            class="mt-1 w-full input text-sm"
+            value="{{ .Template.Source }}"
+            placeholder="e.g. Power Company Climbing"
+            autocomplete="off"
+          />
+        </div>
+        <div>
+          <label class="text-xs font-medium" for="at-label-{{ .Template.ID }}">Labels</label>
           <input
             id="at-label-{{ .Template.ID }}"
             name="label"
             class="mt-1 w-full input text-sm"
             value="{{ .Template.Label }}"
-            placeholder="e.g. warmup, technique, bouldering"
+            placeholder="comma-separated, e.g. warmup, technique"
             autocomplete="off"
           />
         </div>

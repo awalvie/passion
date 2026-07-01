@@ -120,6 +120,8 @@ Training plans live in version-controlled YAML files under `catalog/`. On startu
 ```yaml
 # catalog/exercises/pullups.yaml
 name: "Weighted Pull-ups"
+source: "Power Company Climbing"   # optional: program or coach it comes from
+label: "strength, pulling"          # optional: comma-separated tags shown as chips
 kind: "reps_and_sets"
 sets: 5
 reps: 5
@@ -137,6 +139,8 @@ notes: "Controlled tempo"
 ```yaml
 # catalog/session_templates/strength_base.yaml
 name: "Strength Base Session"
+source: "Power Company Climbing"   # optional: program or coach it comes from
+label: "strength, bouldering"       # optional: comma-separated tags shown as chips
 color: "#ef4444"
 activities:
   - type: "warmup"

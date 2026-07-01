@@ -447,6 +447,7 @@ func (s *Server) handleUpdateSessionTemplate(w http.ResponseWriter, r *http.Requ
 	tpl.Name = name
 	tpl.Color = color
 	tpl.Label = label
+	tpl.Source = strings.TrimSpace(r.FormValue("source"))
 	if err := s.store.DB.Save(&tpl).Error; err != nil {
 		s.serverError(w, r, err)
 		return
