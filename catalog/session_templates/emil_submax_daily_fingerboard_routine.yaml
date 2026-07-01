@@ -1,7 +1,7 @@
 name: "Emil's Sub-max Daily Fingerboard Routine"
 source: "Emil Abrahamsson"
 color: "#f97316"
-label: "hangboard"
+label: "hangboard, fingers, strength"
 activities:
   - type: "activity"
     exercises:

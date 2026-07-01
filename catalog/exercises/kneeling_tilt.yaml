@@ -1,4 +1,5 @@
 name: "Kneeling Tilt"
+label: "mobility, strength"
 kind: "timed_reps"
 sets: 2
 reps: 6

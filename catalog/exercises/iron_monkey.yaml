@@ -1,5 +1,6 @@
 name: "Power Company: Iron Monkey"
 source: "Power Company Climbing"
+label: "tension, power, boulder"
 kind: "climbing"
 media:
   - video_url: "https://www.youtube.com/watch?v=nYA5xie-bNk"

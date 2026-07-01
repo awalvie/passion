@@ -1,5 +1,5 @@
 name: "Drills"
-label: "technique"
+label: "technique, footwork, boulder, warmup"
 exercises:
   - name: "Drills"
     kind: "exercise_catalog"

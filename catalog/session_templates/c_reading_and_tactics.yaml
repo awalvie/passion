@@ -1,5 +1,6 @@
 name: "C: Reading & Sport Tactics"
 color: "#10b981"
+label: "tactics, technique, route"
 activities:
   - type: "warmup"
     exercises:

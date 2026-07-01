@@ -1,6 +1,6 @@
 name: "Strength Project Day"
 color: "#f59e0b"
-label: "strength"
+label: "strength, boulder, power"
 activities:
   - ref: "Warm Up"
   - ref: "Drills"

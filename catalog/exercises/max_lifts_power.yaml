@@ -1,4 +1,6 @@
 name: "Max Lifts (power)"
+source: "Tension Climbing"
+label: "fingers, strength, power, hangboard"
 kind: "reps_and_sets"
 media:
   - video_url: "https://www.youtube.com/watch?v=JTkuzCx51eA"

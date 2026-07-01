@@ -1,5 +1,6 @@
 name: "B: Flow & Power (Rhythm + Hips + Dynamic)"
 color: "#ef4444"
+label: "technique, dynamic, power"
 activities:
   - type: "warmup"
     exercises:

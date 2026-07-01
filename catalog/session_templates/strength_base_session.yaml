@@ -1,6 +1,6 @@
 name: "Strength Base Session"
 color: "#ef4444"
-label: "strength"
+label: "strength, power"
 activities:
   - type: "warmup"
     exercises:

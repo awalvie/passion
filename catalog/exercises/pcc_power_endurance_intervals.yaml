@@ -1,4 +1,6 @@
 name: "Power Endurance Intervals"
+source: "Power Company Climbing"
+label: "endurance, power, boulder"
 kind: "climbing"
 media:
   - video_url: "https://www.youtube.com/watch?v=KZemKtWu1Sc"

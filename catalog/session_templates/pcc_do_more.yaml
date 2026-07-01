@@ -1,7 +1,7 @@
 name: "Do More"
 source: "Power Company Climbing"
 color: "#3b82f6"
-label: "endurance"
+label: "endurance, boulder"
 activities:
   - ref: "Warm Up"
   - type: "activity"
