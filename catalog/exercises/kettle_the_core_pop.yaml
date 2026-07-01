@@ -1,0 +1,10 @@
+name: "The Core Pop"
+source: "John Kettle"
+label: "core, dynamic, tension"
+kind: "session"
+session_duration_seconds: 480
+media:
+  - video_url: "https://www.youtube.com/watch?v=OkQnXAgcfrs"
+    thumbnail_url: "https://i.ytimg.com/vi/OkQnXAgcfrs/hqdefault.jpg"
+notes: |
+  On poor holds within reach: draw your hips and torso out from the wall, then spring them back in to power a short move. The pop comes from the core, not a lunge.

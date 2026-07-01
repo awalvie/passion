@@ -1,0 +1,10 @@
+name: "Two Feet On"
+source: "John Kettle"
+label: "footwork, technique, tension"
+kind: "session"
+session_duration_seconds: 600
+media:
+  - video_url: "https://www.youtube.com/watch?v=aPmPFPk_2kc"
+    thumbnail_url: "https://i.ytimg.com/vi/aPmPFPk_2kc/hqdefault.jpg"
+notes: |
+  Both feet must stay on holds for the entire duration of every hand move. Kills the habit of reflexively flagging — forces you to find real footholds and drive from two feet.

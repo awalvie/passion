@@ -1,0 +1,10 @@
+name: "The Butt Squeeze"
+source: "John Kettle"
+label: "core, tension, technique"
+kind: "session"
+session_duration_seconds: 600
+media:
+  - video_url: "https://www.youtube.com/watch?v=5vatkX_-KCg"
+    thumbnail_url: "https://i.ytimg.com/vi/5vatkX_-KCg/hqdefault.jpg"
+notes: |
+  Squeeze your glutes hard for the full duration of every hand move; relax them only once both hands are on holds. Locks the hips to the wall and stops the legs cutting loose.

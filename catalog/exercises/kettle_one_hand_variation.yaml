@@ -1,0 +1,10 @@
+name: "One-Hand Variation"
+source: "John Kettle"
+label: "core, power, dynamic"
+kind: "session"
+session_duration_seconds: 480
+media:
+  - video_url: "https://www.youtube.com/watch?v=2o1KRrzkg2k"
+    thumbnail_url: "https://i.ytimg.com/vi/2o1KRrzkg2k/hqdefault.jpg"
+notes: |
+  A Leg Thrust where you release the lower hand just before catching the target. Trains hand accuracy and the core tension to stay on the wall through a one-hand moment.

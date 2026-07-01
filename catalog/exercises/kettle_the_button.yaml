@@ -1,0 +1,10 @@
+name: "The Button"
+source: "John Kettle"
+label: "footwork, tension, balance"
+kind: "session"
+session_duration_seconds: 600
+media:
+  - video_url: "https://www.youtube.com/watch?v=DW6x42_yEu4"
+    thumbnail_url: "https://i.ytimg.com/vi/DW6x42_yEu4/hqdefault.jpg"
+notes: |
+  In a same-side flag, press the flagging big toe hard into the wall (active flag) and move from that pressure. The flag is a working foot, not a dead leg — push through it to lock your hips.

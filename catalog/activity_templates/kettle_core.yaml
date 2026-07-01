@@ -1,0 +1,20 @@
+name: "Kettle: Core"
+source: "John Kettle"
+label: "core, dynamic, tension"
+exercises:
+  - name: "Core Drill"
+    kind: "exercise_catalog"
+    notes: |
+      Pick ONE core drill per session and hold its constraint across a boulder ladder. Learn the base moves first; the variations lower down are progressions and pop-family variants, so build to them once the base pattern is solid. The explosive ones need a proper warm-up.
+    children:
+      - ref: "The Butt Squeeze"
+      - ref: "The Pendulum"
+      - ref: "The Corkscrew"
+      - ref: "The Leg Thrust"
+      - ref: "The Core Pop"
+      - ref: "Hip and Hand Progression"
+      - ref: "Knee-Throw Variation"
+      - ref: "One-Hand Variation"
+      - ref: "Shoulder Pop Variation"
+      - ref: "Hip Pop Variation"
+      - ref: "Head Fling Variation"

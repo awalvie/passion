@@ -1,0 +1,23 @@
+name: "Kettle: Feet"
+source: "John Kettle"
+label: "footwork, technique, balance"
+exercises:
+  - name: "Feet Drill"
+    kind: "exercise_catalog"
+    notes: |
+      Pick ONE footwork drill per session and hold its constraint across an easy-to-moderate boulder ladder. Work the base drills first; the combos lower down stack several constraints at once, so save them until each one feels natural on its own.
+    children:
+      - ref: "Seriously Silent Ninja Feet"
+      - ref: "Two Feet On"
+      - ref: "Platform Builder"
+      - ref: "Straight Arm, Bendy Body"
+      - ref: "Hip and Hand"
+      - ref: "The Leg Spring"
+      - ref: "The Can-Can"
+      - ref: "The Button"
+      - ref: "The Big Three"
+      - ref: "Button and Can-Can"
+      - ref: "Can-Can and Hip and Hand"
+      - ref: "The Inside-Outside Can-Can"
+      - ref: "Final Exam I"
+      - ref: "Final Exam II"
