@@ -376,7 +376,7 @@
                   <video class="run-hero-media" src="{{ $m.VideoURL }}" poster="{{ $m.ThumbnailURL }}" preload="metadata" controls playsinline></video>
                 {{ end }}
               {{ else if $m.ThumbnailURL }}
-                <img class="run-hero-media" src="{{ $m.ThumbnailURL }}" alt="" />
+                <img class="run-hero-media" src="{{ $m.ThumbnailURL }}" alt="{{ $.CurrentStep.Name }}" />
               {{ end }}
             </div>
             {{ end }}
@@ -404,7 +404,7 @@
               <video class="run-hero-media" id="run-hero-video" src="{{ .CurrentStep.VideoURL }}" poster="{{ .CurrentStep.ThumbnailURL }}" preload="metadata" controls playsinline></video>
             {{ end }}
           {{ else if .CurrentStep.ThumbnailURL }}
-            <img class="run-hero-media" id="run-hero-image" src="{{ .CurrentStep.ThumbnailURL }}" alt="" />
+            <img class="run-hero-media" id="run-hero-image" src="{{ .CurrentStep.ThumbnailURL }}" alt="{{ .CurrentStep.Name }}" />
           {{ else }}
             <div
               class="run-hero-media run-hero-accent"
@@ -446,7 +446,7 @@
         <div class="run-session-strip">
           {{ if .RunIsOpen }}
           <a href="/runs/{{ .RunID }}" class="run-session-back inline-flex items-center gap-1 text-xs font-medium">
-            <i data-lucide="arrow-left" style="width:0.85rem;height:0.85rem" aria-hidden="true"></i> Back to session
+            <i data-lucide="arrow-left" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i> Back to session
           </a>
           {{ else }}
           <span class="run-session-label text-xs muted">{{ .RunTemplateName }}</span>

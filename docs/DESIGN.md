@@ -46,6 +46,24 @@ All colors come from CSS variables. Never hardcode hex values. Use semantic toke
 | `--tick-sent-accent` | Sent tick left-border accent |
 | `--tick-working-accent` | Working/attempt tick left-border accent |
 
+**Warning / amber tokens** (`--warn-*`): semantic amber for conflict alerts and inline warnings.
+
+| Token pair | Use |
+|---|---|
+| `--warn-bg` | Warning panel background |
+| `--warn-fg` | Warning text / icon color |
+| `--warn-border` | Warning border / accent line |
+
+**Heatmap tokens** (`--heatmap-*`): activity heatmap cell tiers (history page). Reference these in both the legend HTML and the JS tier arrays — never hardcode the rgba values.
+
+| Token | Use |
+|---|---|
+| `--heatmap-empty` | Zero-activity cell (alias of `--border`) |
+| `--heatmap-1` | Tier 1 — lightest activity |
+| `--heatmap-2` | Tier 2 |
+| `--heatmap-3` | Tier 3 |
+| `--heatmap-4` | Tier 4 — highest activity |
+
 ---
 
 ## Typography

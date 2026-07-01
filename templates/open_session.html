@@ -18,7 +18,7 @@
         {{ end }}
       {{ else }}
         <span class="text-xs muted whitespace-nowrap"><span data-session-elapsed="{{ .StartedAtUnix }}">–</span></span>
-        <form hx-post="/runs/{{ .RunID }}/stop" hx-swap="none" method="post" onsubmit="return confirm('Finish this session?');">
+        <form hx-post="/runs/{{ .RunID }}/stop" hx-swap="none" hx-confirm="Finish this session?" method="post">
           <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium whitespace-nowrap">Finish session</button>
         </form>
       {{ end }}
@@ -263,13 +263,13 @@
       type="button"
       class="rounded-md btn-accent px-3 py-1.5 text-sm font-medium inline-flex items-center gap-1"
       onclick="openExercisePanel()"
-    ><i data-lucide="plus" style="width:14px;height:14px"></i> Add exercise</button>
+    ><i data-lucide="plus" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i> Add exercise</button>
     {{ if .RunActivityTemplates }}
     <button
       type="button"
       class="rounded-md btn-ghost px-3 py-1.5 text-sm font-medium inline-flex items-center gap-1"
       onclick="openTemplatePanel()"
-    ><i data-lucide="layout-list" style="width:14px;height:14px"></i> Add from template</button>
+    ><i data-lucide="layout-list" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i> Add from template</button>
     {{ end }}
   </div>
 

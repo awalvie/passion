@@ -1,6 +1,6 @@
 {{ define "content" }}
 <div class="card card-pad">
-  <h2 class="text-sm font-semibold">Your session templates</h2>
+  <h1 class="text-xl font-bold">Your session templates</h1>
   <p class="mt-1 text-sm muted">Create an activity plan (warmup, exercises, cooldown) and reuse it for schedules.</p>
 
   <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -23,6 +23,7 @@
     </a>
   </div>
 
+  {{ if .Templates }}
   <div class="mt-6 overflow-auto">
     <table class="min-w-full text-sm">
       <thead>
@@ -34,7 +35,6 @@
         </tr>
       </thead>
       <tbody>
-        {{ if .Templates }}
           {{ range .Templates }}
             <tr class="divider group/row">
               <td class="px-3 py-3">
@@ -53,13 +53,13 @@
                     class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
                     title="Edit"
                     aria-label="Edit {{ .Name }}"
-                  ><i data-lucide="pencil" style="width:14px;height:14px"></i></a>
+                  ><i data-lucide="pencil" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></a>
                   <a
                     href="/templates/{{.ID}}/export"
                     class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
                     title="Download YAML"
                     aria-label="Download YAML for {{ .Name }}"
-                  ><i data-lucide="download" style="width:14px;height:14px"></i></a>
+                  ><i data-lucide="download" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></a>
                   <form
                     hx-post="/templates/{{.ID}}/delete"
                     hx-swap="none"
@@ -73,20 +73,22 @@
                       title="Delete"
                       aria-label="Delete {{ .Name }}"
                       style="color:var(--muted)"
-                    ><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
+                    ><i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></button>
                   </form>
                 </div>
               </td>
             </tr>
           {{ end }}
-        {{ else }}
-          <tr class="divider">
-            <td class="px-3 py-3 muted" colspan="4">Templates will show up here.</td>
-          </tr>
-        {{ end }}
       </tbody>
     </table>
   </div>
+  {{ else }}
+  <div class="mt-6 card card-pad text-center py-12">
+    <i data-lucide="layout-template" style="width:2rem;height:2rem;opacity:0.3;margin:0 auto 0.75rem" aria-hidden="true"></i>
+    <p class="text-sm font-semibold">No session templates yet</p>
+    <p class="mt-1 text-xs muted">Create a template to build a repeatable workout plan.</p>
+  </div>
+  {{ end }}
 </div>
 {{ end }}
 

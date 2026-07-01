@@ -15,13 +15,13 @@
   <div class="run-summary-chips">
     {{ if gt .CompletedCount 0 }}
     <span class="run-summary-chip run-summary-chip--done">
-      <i data-lucide="check" style="width:0.7rem;height:0.7rem" aria-hidden="true"></i>
+      <i data-lucide="check" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
       {{ .CompletedCount }} done
     </span>
     {{ end }}
     {{ if gt .SkippedCount 0 }}
     <span class="run-summary-chip run-summary-chip--skipped">
-      <i data-lucide="minus" style="width:0.7rem;height:0.7rem" aria-hidden="true"></i>
+      <i data-lucide="minus" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
       {{ .SkippedCount }} skipped
     </span>
     {{ end }}

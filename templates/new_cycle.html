@@ -1,7 +1,7 @@
 {{ define "content" }}
 <div class="w-full space-y-4">
   <div class="card card-pad">
-    <h2 class="text-sm font-semibold">Create a training cycle</h2>
+    <h1 class="text-xl font-bold">Create a training cycle</h1>
     <p class="mt-1 text-sm muted">
       Choose a start date and assign a session template to weekdays (Mon..Sun). The app will generate scheduled sessions across the cycle.
     </p>
@@ -9,9 +9,9 @@
 
   {{ if .Conflicts }}
   {{/* ── Conflict review step ─────────────────────────────────────────── */}}
-  <div class="card card-pad space-y-3" style="border-left:3px solid #f59e0b">
+  <div class="card card-pad space-y-3" style="border-left:3px solid var(--warn-border)">
     <div class="flex items-start gap-2">
-      <span class="text-base leading-none mt-px" style="color:#f59e0b">⚠</span>
+      <span class="text-base leading-none mt-px" style="color:var(--warn-border)">⚠</span>
       <p class="text-sm font-semibold">This cycle overlaps with events that block training</p>
     </div>
     {{ range .Conflicts }}
@@ -50,7 +50,7 @@
   <form class="space-y-4" method="post" action="/training-cycles/new">
     <div class="grid gap-4 sm:grid-cols-2">
       <div>
-        <label class="text-sm font-medium" for="name">Cycle name</label>
+        <label class="text-xs font-semibold muted uppercase tracking-widest" for="name">Cycle name</label>
         <input
           id="name"
           name="name"
@@ -60,7 +60,7 @@
         />
       </div>
       <div>
-        <label class="text-sm font-medium" for="weeks">Weeks</label>
+        <label class="text-xs font-semibold muted uppercase tracking-widest" for="weeks">Weeks</label>
         <input
           id="weeks"
           name="weeks"
@@ -72,7 +72,7 @@
         />
       </div>
       <div class="sm:col-span-2">
-        <label class="text-sm font-medium" for="start_date">Start date</label>
+        <label class="text-xs font-semibold muted uppercase tracking-widest" for="start_date">Start date</label>
         <input
           id="start_date"
           name="start_date"

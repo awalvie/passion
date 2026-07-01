@@ -1,4 +1,5 @@
 {{ define "content" }}
+<h1 class="sr-only">Dashboard</h1>
 
 {{ if .ActiveRuns }}
 <!-- Active runs banner -->
@@ -25,7 +26,7 @@
             onclick="event.preventDefault(); event.stopPropagation();"
           >
             <input type="hidden" name="return_to" value="/dashboard" />
-            <button type="submit" class="inline-flex items-center justify-center rounded-full p-2 transition-colors" style="color:var(--muted)" onmouseover="this.style.color='var(--destructive)';this.style.background='var(--card-muted)'" onmouseout="this.style.color='var(--muted)';this.style.background='transparent'" title="Discard session" onclick="event.stopPropagation();">
+            <button type="submit" class="inline-flex items-center justify-center rounded-full p-2 transition-colors" style="color:var(--muted)" onmouseover="this.style.color='var(--destructive)';this.style.background='var(--card-muted)'" onmouseout="this.style.color='var(--muted)';this.style.background='transparent'" title="Discard session" onclick="event.stopPropagation();" aria-label="Discard session">
               <i data-lucide="trash-2" style="width:1rem;height:1rem" aria-hidden="true"></i>
             </button>
           </form>
@@ -36,13 +37,13 @@
             method="post"
             onclick="event.preventDefault(); event.stopPropagation();"
           >
-            <button type="submit" class="inline-flex items-center justify-center rounded-full p-2 transition-colors" style="color:var(--muted)" onmouseover="this.style.background='var(--card-muted)'" onmouseout="this.style.background='transparent'" title="Stop session" onclick="event.stopPropagation();">
+            <button type="submit" class="inline-flex items-center justify-center rounded-full p-2 transition-colors" style="color:var(--muted)" onmouseover="this.style.background='var(--card-muted)'" onmouseout="this.style.background='transparent'" title="Stop session" onclick="event.stopPropagation();" aria-label="Stop session">
               <i data-lucide="square" style="width:1rem;height:1rem" aria-hidden="true"></i>
             </button>
           </form>
-          <span class="inline-flex items-center justify-center rounded-full p-2 transition-colors" style="color:var(--muted)" onmouseover="this.style.background='var(--card-muted)'" onmouseout="this.style.background='transparent'" title="Resume session">
+          <a href="/runs/{{ .RunID }}" class="inline-flex items-center justify-center rounded-full p-2 transition-colors" style="color:var(--muted)" onmouseover="this.style.background='var(--card-muted)'" onmouseout="this.style.background='transparent'" title="Resume session" aria-label="Resume session">
             <i data-lucide="play" style="width:1rem;height:1rem" aria-hidden="true"></i>
-          </span>
+          </a>
         </div>
       </div>
     </a>
@@ -63,7 +64,7 @@
     </div>
     <div class="flex items-center gap-2 shrink-0">
       <a href="/training-log/new?resume={{ .RunID }}"
-         class="rounded-md btn-primary px-3 py-1 text-xs font-medium">Continue →</a>
+         class="btn rounded-md btn-primary px-3 py-1 text-xs font-medium">Continue →</a>
       <form method="post" action="/training-log/draft/{{ .RunID }}/discard" hx-post="/training-log/draft/{{ .RunID }}/discard" hx-swap="none" hx-on:htmx:after-request="window.location.reload()">
         <button type="submit" class="rounded-md btn-ghost px-2 py-1 text-xs muted" title="Discard draft">Discard</button>
       </form>
@@ -74,15 +75,15 @@
 {{ end }}
 
 {{ if .ConflictWarnings }}
-<div class="mb-4 rounded-lg px-4 py-3 space-y-2" style="background:#fef3c7;border:1px solid #f59e0b">
-  <p class="text-xs font-semibold" style="color:#92400e">Upcoming scheduling conflicts</p>
+<div class="mb-4 rounded-lg px-4 py-3 space-y-2" style="background:var(--warn-bg);border:1px solid var(--warn-border)">
+  <p class="text-xs font-semibold" style="color:var(--warn-fg)">Upcoming scheduling conflicts</p>
   {{ range .ConflictWarnings }}
   <div class="flex items-center justify-between text-xs">
     <span class="flex items-center gap-1.5">
       <span class="w-2 h-2 rounded-full shrink-0" style="background:{{ .EventColor }}"></span>
-      <span style="color:#78350f">{{ .EventTitle }} ({{ .StartLabel }}–{{ .EndLabel }})</span>
+      <span style="color:var(--warn-fg)">{{ .EventTitle }} ({{ .StartLabel }}–{{ .EndLabel }})</span>
     </span>
-    <a href="/training-cycles/{{ .CycleID }}" class="font-medium underline underline-offset-2" style="color:#b45309">
+    <a href="/training-cycles/{{ .CycleID }}" class="font-medium underline underline-offset-2" style="color:var(--warn-fg)">
       {{ .SessionCount }} session{{ if ne .SessionCount 1 }}s{{ end }} →
     </a>
   </div>
@@ -127,7 +128,7 @@
                       <div class="text-sm font-semibold truncate">{{ .TemplateName }}</div>
                       <div class="mt-0.5 flex items-center gap-2 text-xs muted">
                         {{ if .Done }}
-                          <span class="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-medium" style="border-color:#16a34a;background:#f0fdf4;color:#16a34a">
+                          <span class="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-medium" style="border-color:var(--tick-green-fg);background:var(--tick-green-bg);color:var(--tick-green-fg)">
                             <i data-lucide="check" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
                             Done
                           </span>
@@ -163,8 +164,10 @@
           </div>
         {{ end }}
       {{ else }}
-        <div class="card-muted p-3 text-sm muted">
-          No scheduled sessions for this week yet.
+        <div class="card card-pad text-center py-12">
+          <i data-lucide="calendar-x" style="width:2rem;height:2rem;opacity:0.3;margin:0 auto 0.75rem" aria-hidden="true"></i>
+          <p class="text-sm font-semibold">No sessions this week</p>
+          <p class="mt-1 text-xs muted">Schedule a session or start one from a template.</p>
         </div>
       {{ end }}
     </div>
@@ -188,7 +191,10 @@
           class="calendar-cell-day flex min-h-[56px] cursor-pointer flex-col px-1 pb-1.5 pt-1 text-xs cell-base {{ if .InMonth }}cell-in{{ else }}cell-dim{{ end }}"
           data-date-key="{{ .DateKey }}"
           {{ if .Sessions }}data-has-sessions="true"{{ end }}
+          role="button"
+          tabindex="0"
           onclick="window.__passionSelectCalendarDay(this)"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.__passionSelectCalendarDay(this);}"
         >
           <div class="flex items-start justify-between">
             <span class="text-xs font-medium {{ if .InMonth }}{{ else }}muted{{ end }}">{{ .Day }}</span>
@@ -249,7 +255,7 @@
       if (!panel || !dateEl || !sessionsEl) return;
 
       // Deselect previous
-      if (selectedCell) selectedCell.classList.remove("ring-2", "ring-ring");
+      if (selectedCell) selectedCell.classList.remove("calendar-cell-selected");
 
       // Toggle off if same cell clicked
       if (selectedCell === cell) {
@@ -259,7 +265,7 @@
       }
 
       selectedCell = cell;
-      cell.classList.add("ring-2", "ring-ring");
+      cell.classList.add("calendar-cell-selected");
 
       var dateKey = cell.getAttribute("data-date-key");
       var parts = dateKey.split("-");
@@ -289,7 +295,7 @@
             html += '<span class="text-xs muted">· ' + cycle + '</span>';
           }
           if (done) {
-            html += '<span class="text-xs font-medium" style="color:#16a34a">· Done</span>';
+            html += '<span class="text-xs font-medium" style="color:var(--tick-sent-accent)">· Done</span>';
           }
           row.innerHTML = html;
           sessionsEl.appendChild(row);

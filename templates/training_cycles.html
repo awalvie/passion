@@ -1,6 +1,6 @@
 {{ define "content" }}
 <div class="card card-pad">
-  <h2 class="text-sm font-semibold">Your training cycles</h2>
+  <h1 class="text-xl font-bold">Your training cycles</h1>
   <p class="mt-1 text-sm muted">Cycles expand week templates into scheduled sessions across multiple weeks.</p>
 
   <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -54,8 +54,10 @@
       </table>
     </div>
   {{ else }}
-    <div class="mt-6 card-muted p-4 text-sm muted">
-      MVP next: create your first cycle, then we’ll show scheduled sessions on the dashboard.
+    <div class="mt-6 card card-pad text-center py-12">
+      <i data-lucide="repeat" style="width:2rem;height:2rem;opacity:0.3;margin:0 auto 0.75rem" aria-hidden="true"></i>
+      <p class="text-sm font-semibold">No training cycles yet</p>
+      <p class="mt-1 text-xs muted">Create a cycle to generate a weekly schedule of sessions.</p>
     </div>
   {{ end }}
 </div>

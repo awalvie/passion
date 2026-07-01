@@ -256,13 +256,13 @@
         class="rounded-md btn-accent px-3 py-1.5 text-sm font-medium inline-flex items-center gap-1"
         data-add-at-exercise-toggle="1"
         aria-expanded="false"
-      ><i data-lucide="plus" style="width:14px;height:14px"></i> Add Exercise</button>
+      ><i data-lucide="plus" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i> Add Exercise</button>
     </div>
 
     <div id="add-at-exercise-panel-{{ .Template.ID }}" class="hidden mt-3 card-muted rounded-lg overflow-hidden" data-add-at-exercise-panel="1">
       <div class="px-4 py-3 border-b flex items-center justify-between" style="border-color:var(--border)">
         <span class="text-sm font-semibold">Add exercise</span>
-        <button type="button" class="rounded btn-ghost p-1 inline-flex" data-add-at-exercise-close="1"><i data-lucide="x" style="width:14px;height:14px"></i></button>
+        <button type="button" class="rounded btn-ghost p-1 inline-flex" data-add-at-exercise-close="1"><i data-lucide="x" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></button>
       </div>
 
       {{ if .LibraryExercises }}
@@ -344,7 +344,7 @@
           </div>
           <div class="sm:col-span-2">
             <label class="text-xs font-medium" for="at-ex-kind-{{ .Template.ID }}">Type</label>
-            <select id="at-ex-kind-{{ .Template.ID }}" name="kind" class="mt-1 w-full input" onchange="window.__passionSyncExerciseKindGroups(this)">
+            <select id="at-ex-kind-{{ .Template.ID }}" name="kind" class="mt-1 w-full input text-sm" onchange="window.__passionSyncExerciseKindGroups(this)">
               <option value="reps_and_sets" selected>Reps and sets</option>
               <option value="timed_reps">Timed reps</option>
               <option value="session">Session</option>

@@ -22,7 +22,7 @@
   <div class="{{ if .DraftRunID }}md:sticky md:top-6{{ end }}">
 
     {{ if .FormErr }}
-    <div class="mb-4 card-muted p-3 text-sm rounded-lg" style="border-left: 3px solid #dc2626; color: #dc2626;">
+    <div class="mb-4 card-muted p-3 text-sm rounded-lg" style="border-left: 3px solid var(--destructive); color: var(--destructive);">
       {{ .FormErr }}
     </div>
     {{ end }}
@@ -38,7 +38,7 @@
       {{/* Title + Date (hidden for run-linked entries) */}}
       {{ if .IsRunLinked }}
       <div class="flex items-center gap-2 text-sm muted">
-        <i data-lucide="link" style="width:0.85rem;height:0.85rem" aria-hidden="true"></i>
+        <i data-lucide="link" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
         {{ .RunInfo }}
       </div>
       {{ else }}

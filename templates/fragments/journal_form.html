@@ -10,31 +10,31 @@
     <div class="flex flex-wrap gap-3 text-sm">
       {{ if gt .SleepScore 0 }}
       <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style="background:var(--card-muted);font-size:0.78rem;">
-        <i data-lucide="moon" style="width:0.8rem;height:0.8rem;opacity:0.6" aria-hidden="true"></i>
+        <i data-lucide="moon" style="width:0.75rem;height:0.75rem;opacity:0.6" aria-hidden="true"></i>
         Sleep {{ .SleepScore }}/5
       </span>
       {{ end }}
       {{ if gt .Energy 0 }}
       <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style="background:var(--card-muted);font-size:0.78rem;">
-        <i data-lucide="zap" style="width:0.8rem;height:0.8rem;opacity:0.6" aria-hidden="true"></i>
+        <i data-lucide="zap" style="width:0.75rem;height:0.75rem;opacity:0.6" aria-hidden="true"></i>
         Energy {{ .Energy }}/5
       </span>
       {{ end }}
       {{ if gt .RPE 0 }}
       <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style="background:var(--card-muted);font-size:0.78rem;">
-        <i data-lucide="flame" style="width:0.8rem;height:0.8rem;opacity:0.6" aria-hidden="true"></i>
+        <i data-lucide="flame" style="width:0.75rem;height:0.75rem;opacity:0.6" aria-hidden="true"></i>
         RPE {{ .RPE }}/10
       </span>
       {{ end }}
       {{ if .Focus }}
       <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style="background:var(--card-muted);font-size:0.78rem;">
-        <i data-lucide="target" style="width:0.8rem;height:0.8rem;opacity:0.6" aria-hidden="true"></i>
+        <i data-lucide="target" style="width:0.75rem;height:0.75rem;opacity:0.6" aria-hidden="true"></i>
         {{ .Focus }}
       </span>
       {{ end }}
       {{ if .Location }}
       <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style="background:var(--card-muted);font-size:0.78rem;">
-        <i data-lucide="map-pin" style="width:0.8rem;height:0.8rem;opacity:0.6" aria-hidden="true"></i>
+        <i data-lucide="map-pin" style="width:0.75rem;height:0.75rem;opacity:0.6" aria-hidden="true"></i>
         {{ if eq .Location "indoor" }}Indoor{{ else }}Outdoor{{ end }}
       </span>
       {{ end }}

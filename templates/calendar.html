@@ -4,11 +4,11 @@
   {{/* ── Header ── */}}
   <div class="flex items-center justify-between gap-3">
     <div class="flex items-center gap-2">
-      <a href="{{ .MonthPrevURL }}" class="rounded-md btn-ghost p-1.5" title="Previous month">
+      <a href="{{ .MonthPrevURL }}" class="rounded-md btn-ghost p-1.5" title="Previous month" aria-label="Previous month">
         <i data-lucide="chevron-left" style="width:1rem;height:1rem" aria-hidden="true"></i>
       </a>
       <h1 class="m-0 text-sm font-semibold">{{ .CalendarMonth }} {{ .CalendarYear }}</h1>
-      <a href="{{ .MonthNextURL }}" class="rounded-md btn-ghost p-1.5" title="Next month">
+      <a href="{{ .MonthNextURL }}" class="rounded-md btn-ghost p-1.5" title="Next month" aria-label="Next month">
         <i data-lucide="chevron-right" style="width:1rem;height:1rem" aria-hidden="true"></i>
       </a>
     </div>
@@ -80,7 +80,7 @@
                   {{ if .CycleName }}<div class="text-[9px] font-medium truncate" style="color:var(--accent)">{{ .CycleName }}</div>{{ end }}
                 </div>
                 {{ if .Done }}
-                <span class="inline-block h-1.5 w-1.5 rounded-full flex-shrink-0" style="background:#16a34a" title="Done"></span>
+                <span class="inline-block h-1.5 w-1.5 rounded-full flex-shrink-0" style="background:var(--tick-sent-accent)" data-done="true" title="Done"></span>
                 {{ end }}
               </div>
             {{ end }}
@@ -99,8 +99,8 @@
         <div class="space-y-2">
           {{ range .AllEvents }}
             <div
-              class="rounded-md p-3 cursor-pointer"
-              style="background: var(--card); border: 1px solid var(--border); border-left: 3px solid {{ .Color }}"
+              class="card cursor-pointer"
+              style="padding: 0.625rem 0.875rem; border-left: 4px solid {{ .Color }}"
               onclick="openEditEventDialog({{ .ID }})"
             >
               <div class="flex items-start justify-between gap-2">
@@ -320,7 +320,7 @@
           label:     card.dataset.label || '',
           cycleName: card.dataset.cycleName || '',
           color:     color,
-          done:      !!card.querySelector('span[style*="#16a34a"]')
+          done:      !!card.querySelector('span[data-done="true"]')
         });
       });
       var events = [];
@@ -466,7 +466,7 @@
             inner.appendChild(textWrap);
             if (s.done) {
               var dot = document.createElement('span');
-              dot.style.cssText = 'width:7px;height:7px;border-radius:50%;flex-shrink:0;background:#16a34a';
+              dot.style.cssText = 'width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--tick-sent-accent)';
               dot.title = 'Done';
               inner.appendChild(dot);
             }

@@ -2,7 +2,7 @@
 <div class="card card-pad">
   <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
     <div>
-      <h2 class="text-sm font-semibold">Exercise library</h2>
+      <h1 class="text-xl font-bold">Exercise library</h1>
       <p class="mt-1 text-sm muted">Saved exercises you can add into any activity while editing a session template.</p>
     </div>
     <a class="inline-flex items-center justify-center rounded-md btn-primary px-4 py-2 text-sm font-medium" href="/exercise-library/new">
@@ -18,18 +18,18 @@
         name="q"
         value="{{ .LibrarySearch }}"
         placeholder="Search exercises..."
-        class="input"
+        class="input text-sm"
         autocomplete="off"
       />
     </div>
-    <select name="kind" class="input" style="width:auto;min-width:8rem">
+    <select name="kind" class="input text-sm" style="width:auto;min-width:8rem">
       <option value=""{{ if eq .LibraryKind "" }} selected{{ end }}>All types</option>
       <option value="reps_and_sets"{{ if eq .LibraryKind "reps_and_sets" }} selected{{ end }}>Reps &amp; sets</option>
       <option value="timed_reps"{{ if eq .LibraryKind "timed_reps" }} selected{{ end }}>Timed reps</option>
       <option value="session"{{ if eq .LibraryKind "session" }} selected{{ end }}>Session</option>
       <option value="exercise_catalog"{{ if eq .LibraryKind "exercise_catalog" }} selected{{ end }}>Catalog</option>
     </select>
-    <select name="sort" class="input" style="width:auto;min-width:8rem">
+    <select name="sort" class="input text-sm" style="width:auto;min-width:8rem">
       <option value="name"{{ if eq .LibrarySort "name" }} selected{{ end }}>Name A-Z</option>
       <option value="name_desc"{{ if eq .LibrarySort "name_desc" }} selected{{ end }}>Name Z-A</option>
       <option value="newest"{{ if eq .LibrarySort "newest" }} selected{{ end }}>Newest first</option>
@@ -110,19 +110,19 @@
                     class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
                     title="History"
                     aria-label="View history for {{ .Name }}"
-                  ><i data-lucide="history" style="width:14px;height:14px"></i></a>
+                  ><i data-lucide="history" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></a>
                   <a
                     href="/exercise-library/{{ .ID }}/edit"
                     class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
                     title="Edit"
                     aria-label="Edit {{ .Name }}"
-                  ><i data-lucide="pencil" style="width:14px;height:14px"></i></a>
+                  ><i data-lucide="pencil" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></a>
                   <a
                     href="/exercise-library/{{ .ID }}/export"
                     class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
                     title="Download YAML"
                     aria-label="Download YAML for {{ .Name }}"
-                  ><i data-lucide="download" style="width:14px;height:14px"></i></a>
+                  ><i data-lucide="download" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></a>
                   <form
                     hx-post="/exercise-library/{{ .ID }}/delete"
                     hx-swap="none"
@@ -136,7 +136,7 @@
                       title="Delete"
                       aria-label="Delete {{ .Name }}"
                       style="color:var(--muted)"
-                    ><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
+                    ><i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></button>
                   </form>
                 </div>
               </td>
