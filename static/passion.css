@@ -2332,23 +2332,27 @@ details.passion-disclosure--compact > summary::before {
 
 /* Run player: extra padding so disclosure hit area is obvious */
 details.run-template-notes > summary,
-details.run-collapse > summary {
+details.run-collapse > summary,
+details.run-notes-collapse > summary {
   padding: 0.35rem 0.5rem;
 }
 
 details.run-template-notes > summary,
-details.run-collapse > summary {
-  align-items: flex-start;
+details.run-collapse > summary,
+details.run-notes-collapse > summary {
+  align-items: center;
 }
 
 details.run-template-notes > summary::before,
-details.run-collapse > summary::before {
-  margin-top: 0.35em;
+details.run-collapse > summary::before,
+details.run-notes-collapse > summary::before {
+  margin-top: 0;
 }
 
 details.run-template-notes[open] > summary::before,
-details.run-collapse[open] > summary::before {
-  margin-top: 0.45em;
+details.run-collapse[open] > summary::before,
+details.run-notes-collapse[open] > summary::before {
+  margin-top: 0;
 }
 
 /* Catalog menu (run) */
