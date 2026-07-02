@@ -1,7 +1,8 @@
 name: "Hover"
 source: "Power Company Climbing"
 label: "footwork, technique, boulder"
-kind: "climbing"
+kind: "session"
+session_duration_seconds: 480
 media:
   - video_url: "https://www.youtube.com/watch?v=L47iCXllk7c"
     thumbnail_url: "https://i.ytimg.com/vi/L47iCXllk7c/hqdefault.jpg"
