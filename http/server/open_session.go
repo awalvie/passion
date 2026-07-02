@@ -442,19 +442,10 @@ func (s *Server) handleOpenDeleteExercise(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Only allow deleting exercises with no completion record.
-	var compCount int64
-	s.store.DB.Model(&db.RunExerciseCompletion{}).
-		Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exID).
-		Count(&compCount)
-	if compCount > 0 {
-		http.Error(w, "cannot delete a completed or skipped exercise", http.StatusBadRequest)
-		return
-	}
-
+	// Removing an exercise drops all of its logged data too: any completion or
+	// skip record, climbing ticks, set logs, and planned-set targets.
 	_ = db.DeleteAllExercisePlannedSets(s.store.DB, ownerID, exID)
-
-	if err := s.store.DB.Unscoped().Delete(&ex).Error; err != nil {
+	if err := db.DeleteManualExercise(s.store.DB, ownerID, runID, exID); err != nil {
 		s.serverError(w, r, err)
 		return
 	}
