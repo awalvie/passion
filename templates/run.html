@@ -1,23 +1,5 @@
 {{ define "content" }}
 <div class="max-w-6xl w-full run-shell">
-  <script>
-    function openExercisePanel() {
-      var ep = document.getElementById('open-exercise-panel');
-      var tp = document.getElementById('open-template-panel');
-      if (!ep) return;
-      var opening = ep.classList.contains('hidden');
-      ep.classList.toggle('hidden', !opening);
-      if (tp) tp.classList.add('hidden');
-    }
-    function openTemplatePanel() {
-      var tp = document.getElementById('open-template-panel');
-      var ep = document.getElementById('open-exercise-panel');
-      if (!tp) return;
-      var opening = tp.classList.contains('hidden');
-      tp.classList.toggle('hidden', !opening);
-      if (ep) ep.classList.add('hidden');
-    }
-  </script>
   {{ if .RunCompleted }}
       <div class="card card-pad run-complete">
         <div class="text-base font-semibold">Workout complete</div>
@@ -610,31 +592,13 @@
           <input type="hidden" name="actual_reps" value="0" />
           <input type="hidden" name="actual_weight_kg" value="0" />
           {{ end }}
-          {{/* Tier 2 — drill notes */}}
-          <div class="run-tier">
-            <details class="run-notes-collapse passion-disclosure" id="run-notes-details">
-              <summary class="run-collapse-toggle"><i data-lucide="pencil" class="run-collapse-icon"></i> Add notes</summary>
-              <textarea id="run-notes" name="run_notes" rows="2" class="w-full input text-sm mt-1" placeholder="e.g., felt heavy, changed grip, RPE..." oninput="runNotesPreview(this)"></textarea>
-              <div id="run-notes-preview" class="prose prose-sm mt-2 px-1 hidden"></div>
-            </details>
+          {{/* Notes: always-visible, auto-growing, label-free (placeholder carries it) */}}
+          <div class="run-tier run-notes-field">
+            <textarea id="run-notes" name="run_notes" rows="3" class="w-full run-notes-textarea" placeholder="Notes — how did it feel? Changed grip, felt heavy, RPE…" oninput="runNotesAutogrow(this)" aria-label="Session notes"></textarea>
           </div>
         </form>
 
-        {{/* Tier 3 — session build (open sessions only) */}}
-        {{ if .RunIsOpen }}
-        <div class="run-tier flex gap-2">
-          <button type="button" class="run-open-add-btn flex-1" onclick="openExercisePanel()">
-            <i data-lucide="plus" class="run-icon"></i> Add exercise
-          </button>
-          {{ if .RunActivityTemplates }}
-          <button type="button" class="run-open-add-btn flex-1" onclick="openTemplatePanel()">
-            <i data-lucide="layout-list" class="run-icon"></i> From template
-          </button>
-          {{ end }}
-        </div>
-        {{ end }}
-
-        {{/* Tier 4 — session lifecycle */}}
+        {{/* Session lifecycle */}}
         <div class="run-tier run-session-actions">
           <form hx-post="/runs/{{ .RunID }}/stop" hx-swap="none" hx-confirm="Finish this session? Progress will be saved." method="post" class="run-session-actions-finish">
             <button type="submit" class="run-finish-btn">
@@ -664,31 +628,16 @@
       </div>
     </div>
 
-    {{ if .RunIsOpen }}
-      {{ template "open-exercise-panel" . }}
-      {{ if .RunActivityTemplates }}{{ template "open-template-panel" . }}{{ end }}
-    {{ end }}
-
     <script>
-      var _runNotesPreviewTimer = null;
-      function runNotesPreview(ta) {
-        var preview = document.getElementById('run-notes-preview');
-        if (!preview) return;
-        clearTimeout(_runNotesPreviewTimer);
-        var text = ta.value;
-        if (!text.trim()) { preview.innerHTML = ''; preview.classList.add('hidden'); return; }
-        _runNotesPreviewTimer = setTimeout(function() {
-          fetch('/preview/markdown', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: 'content=' + encodeURIComponent(text)
-          }).then(function(r) { return r.text(); }).then(function(html) {
-            preview.innerHTML = html;
-            preview.classList.remove('hidden');
-            if (window.__passionRenderIcons) window.__passionRenderIcons();
-          });
-        }, 300);
+      function runNotesAutogrow(ta) {
+        if (!ta) return;
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 'px';
       }
+      (function () {
+        var ta = document.getElementById('run-notes');
+        if (ta) runNotesAutogrow(ta);
+      })();
     </script>
     <script>
       function updateActualLabel() {
