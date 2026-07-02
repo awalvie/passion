@@ -556,14 +556,6 @@
               <button type="button" class="run-transport-btn" id="btn-skip-fwd" aria-label="Skip forward"><i data-lucide="chevron-right" class="run-icon"></i></button>
               {{ end }}
             </div>
-            <div class="run-submit-row">
-              <div class="run-nav-row">
-                <button type="button" id="btn-prev-exercise" class="run-nav-arrow" aria-label="Previous drill" disabled><i data-lucide="chevron-left" class="run-icon"></i></button>
-                <button type="button" id="btn-complete-step" class="run-complete-btn" onclick="(function(){ if (!window.__passion_startSubmit || window.__passion_startSubmit()) { document.getElementById('complete-form').requestSubmit(); }})();"><i data-lucide="check" class="run-icon"></i> Done</button>
-                <button type="button" id="btn-skip-step" class="run-skip-btn" onclick="(function(){window.__passion_skipSubmit && window.__passion_skipSubmit();})();">Skip</button>
-                <button type="button" id="btn-next-exercise" class="run-nav-arrow" aria-label="Next drill" disabled><i data-lucide="chevron-right" class="run-icon"></i></button>
-              </div>
-            </div>
           </div>
           {{ if not (or $isSession $isClimbing (eq .CurrentStep.Kind "reps_and_sets")) }}
           {{/* Timed reps and other non-session kinds: summary log (existing behaviour) */}}
@@ -595,6 +587,15 @@
           {{/* Notes: always-visible, auto-growing, label-free (placeholder carries it) */}}
           <div class="run-tier run-notes-field">
             <textarea id="run-notes" name="run_notes" rows="3" class="w-full run-notes-textarea" placeholder="Notes — how did it feel? Changed grip, felt heavy, RPE…" oninput="runNotesAutogrow(this)" aria-label="Session notes"></textarea>
+          </div>
+          {{/* Done/Skip sit below the notes so you finish writing before advancing. */}}
+          <div class="run-tier run-submit-row">
+            <div class="run-nav-row">
+              <button type="button" id="btn-prev-exercise" class="run-nav-arrow" aria-label="Previous drill" disabled><i data-lucide="chevron-left" class="run-icon"></i></button>
+              <button type="button" id="btn-complete-step" class="run-complete-btn" onclick="(function(){ if (!window.__passion_startSubmit || window.__passion_startSubmit()) { document.getElementById('complete-form').requestSubmit(); }})();"><i data-lucide="check" class="run-icon"></i> Done</button>
+              <button type="button" id="btn-skip-step" class="run-skip-btn" onclick="(function(){window.__passion_skipSubmit && window.__passion_skipSubmit();})();">Skip</button>
+              <button type="button" id="btn-next-exercise" class="run-nav-arrow" aria-label="Next drill" disabled><i data-lucide="chevron-right" class="run-icon"></i></button>
+            </div>
           </div>
         </form>
 
@@ -631,12 +632,31 @@
     <script>
       function runNotesAutogrow(ta) {
         if (!ta) return;
+        // Preserve scroll position: resetting height to 'auto' can collapse the
+        // field for a frame and yank the page (esp. on mobile when accepting a
+        // keyboard suggestion, which fires 'input').
+        var sx = window.scrollX, sy = window.scrollY;
         ta.style.height = 'auto';
         ta.style.height = ta.scrollHeight + 'px';
+        if (window.scrollX !== sx || window.scrollY !== sy) {
+          window.scrollTo(sx, sy);
+        }
       }
       (function () {
         var ta = document.getElementById('run-notes');
-        if (ta) runNotesAutogrow(ta);
+        if (!ta) return;
+        // Persist in-progress notes locally so a mid-exercise reload doesn't lose
+        // them (they're only saved server-side on complete/skip). Keyed per run+exercise.
+        var key = 'passion-notes-{{ .RunID }}-{{ .CurrentStep.ExerciseID }}';
+        window.__passion_notesKey = key;
+        try {
+          var saved = localStorage.getItem(key);
+          if (saved && !ta.value) ta.value = saved;
+        } catch (e) { /* storage unavailable */ }
+        ta.addEventListener('input', function () {
+          try { localStorage.setItem(key, ta.value); } catch (e) { /* ignore */ }
+        });
+        runNotesAutogrow(ta);
       })();
     </script>
     <script>
@@ -1256,7 +1276,17 @@
         updateUpNextAndButtons();
         refreshIcons();
 
+        // Climbing/session exercises auto-start their timer on open — no manual play
+        // tap needed. Reuse the play handler rather than duplicating start logic.
+        if (isSessionExercise && !hasStartedPlayback) {
+          playPause.click();
+        }
+
         // --- Submit handlers ---
+        function clearNotesKey() {
+          if (!window.__passion_notesKey) return;
+          try { localStorage.removeItem(window.__passion_notesKey); } catch (e) { /* ignore */ }
+        }
         window.__passion_startSubmit = function () {
           cancelAutoAdvance();
           if (feedback) {
@@ -1265,6 +1295,7 @@
           }
           elapsedInput.value = String(Math.floor(currentPhaseElapsed()));
           if (typeof computeSetAggregates === 'function') computeSetAggregates();
+          clearNotesKey();
           stopSessionInterval();
           completeBtn.disabled = true;
           return true;
@@ -1273,6 +1304,7 @@
           cancelAutoAdvance();
           skipElapsedInput.value = String(Math.floor(currentPhaseElapsed()));
           skipNotesInput.value = (notesInput && notesInput.value) ? notesInput.value : "";
+          clearNotesKey();
           if (feedback) {
             feedback.hidden = false;
             feedbackText.textContent = "Skipping...";
