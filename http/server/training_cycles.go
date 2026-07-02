@@ -101,8 +101,8 @@ func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request)
 		}
 
 		type pendingMapping struct {
-			weekday   int
-			key       string
+			weekday    int
+			key        string
 			templateID uint
 		}
 		var pendingMappings []pendingMapping

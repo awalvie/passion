@@ -13,7 +13,6 @@ import (
 	"passion/pages"
 )
 
-
 // newExerciseFromLibraryExercise copies a library preset into a template Exercise (optional parent for catalog children).
 func newExerciseFromLibraryExercise(lib db.LibraryExercise, ownerID, activityID uint, orderIndex int, parentID *uint) *db.Exercise {
 	aid := activityID

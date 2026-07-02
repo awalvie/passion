@@ -276,7 +276,6 @@ func defaultSeedTemplates() []seedTemplate {
 	}
 }
 
-
 type seedExerciseInfo struct {
 	ID   uint
 	Kind string
@@ -320,27 +319,27 @@ func seedHistoricalRuns(tx *gorm.DB, ownerID uint, templateIDs []uint) error {
 		startHour int
 	}
 	slots := []sessionSlot{
-		{-97, 7}, {-95, 18}, {-93, 7},             // week 14
-		{-90, 17}, {-88, 7},                        // week 13 (rest-ish)
-		{-84, 8}, {-82, 18}, {-80, 7}, {-78, 17},  // week 12
-		{-77, 7}, {-75, 18}, {-73, 8},              // week 11
-		{-70, 7}, {-67, 18},                        // week 10 (lighter)
-		{-63, 8}, {-61, 7}, {-59, 18}, {-57, 7},   // week 9
-		{-55, 18}, {-53, 7}, {-51, 8},              // week 8
-		{-49, 7}, {-47, 17}, {-45, 7},              // week 7
-		{-42, 8}, {-39, 18},                        // week 6 (lighter — travel)
-		{-35, 7}, {-33, 18}, {-31, 7}, {-29, 8},   // week 5
-		{-28, 17}, {-26, 7}, {-24, 18},             // week 4
-		{-21, 8}, {-19, 7}, {-17, 18}, {-15, 7},   // week 3
-		{-14, 17}, {-12, 7}, {-10, 18}, {-9, 8},   // week 2
-		{-7, 7}, {-5, 18}, {-3, 7}, {-1, 17},      // last week
-		{0, 8},                                     // today (RunStatusRunning)
+		{-97, 7}, {-95, 18}, {-93, 7}, // week 14
+		{-90, 17}, {-88, 7}, // week 13 (rest-ish)
+		{-84, 8}, {-82, 18}, {-80, 7}, {-78, 17}, // week 12
+		{-77, 7}, {-75, 18}, {-73, 8}, // week 11
+		{-70, 7}, {-67, 18}, // week 10 (lighter)
+		{-63, 8}, {-61, 7}, {-59, 18}, {-57, 7}, // week 9
+		{-55, 18}, {-53, 7}, {-51, 8}, // week 8
+		{-49, 7}, {-47, 17}, {-45, 7}, // week 7
+		{-42, 8}, {-39, 18}, // week 6 (lighter — travel)
+		{-35, 7}, {-33, 18}, {-31, 7}, {-29, 8}, // week 5
+		{-28, 17}, {-26, 7}, {-24, 18}, // week 4
+		{-21, 8}, {-19, 7}, {-17, 18}, {-15, 7}, // week 3
+		{-14, 17}, {-12, 7}, {-10, 18}, {-9, 8}, // week 2
+		{-7, 7}, {-5, 18}, {-3, 7}, {-1, 17}, // last week
+		{0, 8}, // today (RunStatusRunning)
 	}
 
 	// Realistic session durations in minutes, by template index.
 	durationRanges := [][2]int{
-		{60, 90}, // bouldering power — longer
-		{50, 75}, // strength base
+		{60, 90},  // bouldering power — longer
+		{50, 75},  // strength base
 		{70, 100}, // technique + volume — longest
 	}
 
@@ -486,16 +485,16 @@ func seedHistoricalRuns(tx *gorm.DB, ownerID uint, templateIDs []uint) error {
 				}
 				focusPool := focusByTemplate[tplIdx]
 				journal := SessionJournal{
-					OwnerID:   ownerID,
-					RunID:     &run.ID,
-					Date:      startedAt,
+					OwnerID:    ownerID,
+					RunID:      &run.ID,
+					Date:       startedAt,
 					SleepScore: sleep,
-					Energy:    energy,
-					RPE:       rpe,
-					Focus:     pick(focusPool),
-					Location:  location,
-					WentWell:  pick(wentWellPool),
-					NextFocus: pick(nextFocusPool),
+					Energy:     energy,
+					RPE:        rpe,
+					Focus:      pick(focusPool),
+					Location:   location,
+					WentWell:   pick(wentWellPool),
+					NextFocus:  pick(nextFocusPool),
 				}
 				if err := tx.Create(&journal).Error; err != nil {
 					return err

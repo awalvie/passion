@@ -9,6 +9,7 @@ import (
 	"passion/db"
 	"passion/pages"
 )
+
 // handleTrainingLogNew serves GET|POST /training-log/new.
 // GET: creates a draft SessionRun so exercise/tick HTMX routes are live from page load.
 // POST: finalises the draft run, creates a SessionJournal, redirects to /training-log.
@@ -145,7 +146,7 @@ func (s *Server) finaliseManualEntry(w http.ResponseWriter, r *http.Request, own
 		RPE:        formInt(r, "rpe"),
 		Focus:      strings.TrimSpace(r.FormValue("focus")),
 		Location:   location,
-		VenueID: venueID,
+		VenueID:    venueID,
 		WentWell:   strings.TrimSpace(r.FormValue("went_well")),
 		NextFocus:  strings.TrimSpace(r.FormValue("next_focus")),
 	}

@@ -168,7 +168,10 @@ func (s *Server) handleExerciseDivergenceHint(w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	type hintData struct{ Show bool; Message string }
+	type hintData struct {
+		Show    bool
+		Message string
+	}
 
 	if len(diverged) < 2 {
 		s.pages.RenderFragment(w, "fragments/exercise_divergence_hint", hintData{})
@@ -176,7 +179,10 @@ func (s *Server) handleExerciseDivergenceHint(w http.ResponseWriter, r *http.Req
 	}
 
 	// Check if the last 2 completed sessions both differ from planned on the same variable.
-	planned := struct{ sets, reps int; weight float64 }{ex.Sets, ex.Reps, ex.WeightKg}
+	planned := struct {
+		sets, reps int
+		weight     float64
+	}{ex.Sets, ex.Reps, ex.WeightKg}
 
 	setsChanged := diverged[0].ActualSets != planned.sets && diverged[1].ActualSets != planned.sets &&
 		diverged[0].ActualSets == diverged[1].ActualSets
