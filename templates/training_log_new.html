@@ -98,7 +98,11 @@
 
       {{/* RPE */}}
       <div>
-        <p class="text-xs font-semibold muted mb-2" style="text-transform:uppercase;letter-spacing:0.06em;">Session RPE (effort)</p>
+        <p class="text-xs font-semibold muted mb-1 inline-flex items-center gap-1" style="text-transform:uppercase;letter-spacing:0.06em;">
+          Session RPE (effort)
+          <i data-lucide="info" style="width:0.75rem;height:0.75rem;opacity:0.6" title="Rate of Perceived Exertion, 1–10. How hard the whole session felt: 1 = very easy, 5 = moderate, 8–9 = near maximal, 10 = all-out."></i>
+        </p>
+        <p class="text-[10px] muted mb-2">1 = very easy · 5 = moderate · 10 = all-out</p>
         <div class="flex flex-wrap gap-2">
           {{ range seq 1 10 }}
           <label class="journal-dot-label">
@@ -213,18 +217,24 @@
 
       {{/* What went well */}}
       <div>
-        <label class="text-xs font-semibold muted block mb-1" for="went_well"
-          style="text-transform:uppercase;letter-spacing:0.06em;">What went well</label>
+        <label class="text-xs font-semibold muted mb-1 inline-flex items-center gap-1" for="went_well"
+          style="text-transform:uppercase;letter-spacing:0.06em;">
+          What went well
+          <i data-lucide="info" style="width:0.75rem;height:0.75rem;opacity:0.6" title="Wins from this session — sends, PBs, movement that clicked, how conditions/energy felt. Markdown supported."></i>
+        </label>
         <textarea id="went_well" name="went_well" data-md-editor
-          class="w-full input text-sm" placeholder="Highlights, sends, good movement…">{{ .WentWell }}</textarea>
+          class="w-full input text-sm" placeholder="e.g. Sent the V5 project. Felt strong on overhangs, RPE ~7. Good tension off small feet.">{{ .WentWell }}</textarea>
       </div>
 
       {{/* Next focus */}}
       <div>
-        <label class="text-xs font-semibold muted block mb-1" for="next_focus"
-          style="text-transform:uppercase;letter-spacing:0.06em;">Focus for next session</label>
+        <label class="text-xs font-semibold muted mb-1 inline-flex items-center gap-1" for="next_focus"
+          style="text-transform:uppercase;letter-spacing:0.06em;">
+          Focus for next session
+          <i data-lucide="info" style="width:0.75rem;height:0.75rem;opacity:0.6" title="One or two things to work on next time — a weakness, a technique cue, or a target. Markdown supported."></i>
+        </label>
         <textarea id="next_focus" name="next_focus" data-md-editor
-          class="w-full input text-sm" placeholder="What to work on, technique cues…">{{ .NextFocus }}</textarea>
+          class="w-full input text-sm" placeholder="e.g. Work heel hooks on steep terrain. Warm up fingers longer before max hangs.">{{ .NextFocus }}</textarea>
       </div>
 
       <div class="flex items-center gap-3">

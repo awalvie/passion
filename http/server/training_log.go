@@ -361,7 +361,6 @@ func (s *Server) buildAdherenceView(ownerID uint) ([]pages.AdherenceWeekView, st
 	return weeks, cycle.Name
 }
 
-
 // handleTrainingLogEdit serves GET|POST /training-log/{journalID}/edit.
 func (s *Server) handleTrainingLogEdit(w http.ResponseWriter, r *http.Request) {
 	ownerID := s.mustUserID(r)
@@ -548,17 +547,18 @@ func (s *Server) handleTrainingLogView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := pages.TrainingLogSummaryParams{
-		JournalID:   uint(journalID),
-		Title:       titleVal,
-		DateLabel:   dateLabel,
-		IsRunLinked: j.RunID != nil,
-		SleepScore:  j.SleepScore,
-		Energy:      j.Energy,
-		RPE:         j.RPE,
-		Focus:       focusDisplayName(j.Focus),
-		Location:    locationDisplayName(j.Location),
-		WentWell:    j.WentWell,
-		NextFocus:   j.NextFocus,
+		JournalID:    uint(journalID),
+		Title:        titleVal,
+		DateLabel:    dateLabel,
+		IsRunLinked:  j.RunID != nil,
+		SleepScore:   j.SleepScore,
+		Energy:       j.Energy,
+		RPE:          j.RPE,
+		Focus:        focusDisplayName(j.Focus),
+		Location:     locationDisplayName(j.Location),
+		WentWell:     j.WentWell,
+		NextFocus:    j.NextFocus,
+		SessionNotes: j.SessionNotes,
 	}
 
 	if j.VenueID != nil {
@@ -802,7 +802,7 @@ func buildTrainingLogStats(entries []pages.TrainingLogEntryView, now time.Time) 
 			return "—"
 		}
 		whole := sum / n
-		frac := (sum*10/n) % 10
+		frac := (sum * 10 / n) % 10
 		if frac == 0 {
 			return fmt.Sprintf("%d / %s", whole, denom)
 		}

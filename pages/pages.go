@@ -36,11 +36,11 @@ type DashboardSession struct {
 }
 
 type ActiveRunView struct {
-	RunID          uint
-	TemplateName   string
-	Color          string
-	StartedLabel   string
-	StartedAtUnix  int64
+	RunID         uint
+	TemplateName  string
+	Color         string
+	StartedLabel  string
+	StartedAtUnix int64
 }
 
 type DashboardDayGroup struct {
@@ -310,16 +310,16 @@ func (e ExerciseHistoryItem) HasActuals() bool {
 }
 
 type ExerciseHistoryHintView struct {
-	ExerciseID uint
+	ExerciseID   uint
 	ExerciseName string
-	Items      []ExerciseHistoryItem // last 3
+	Items        []ExerciseHistoryItem // last 3
 }
 
 type ExerciseHistoryPopupView struct {
-	ExerciseID       uint
-	ExerciseName     string
-	LibraryExerciseID uint // 0 if not linked
-	Items            []ExerciseHistoryItem // last 10
+	ExerciseID        uint
+	ExerciseName      string
+	LibraryExerciseID uint                  // 0 if not linked
+	Items             []ExerciseHistoryItem // last 10
 }
 
 type ExerciseHistoryPageParams struct {
@@ -420,27 +420,28 @@ type DashboardParams struct {
 
 type RunParams struct {
 	Base
-	RunID             uint
-	RunTemplateName   string
-	RunTotalSteps     int
-	RunCompleted      bool
-	RunCurrentStepNum int
-	RunSessionSeconds int
-	RunIsTrial        bool
-	RunTemplateID     uint
-	RunIsOpen         bool
-	RunIsDraft        bool
-	RunCustomName     string
-	StartedAtUnix     int64
-	RunLibraryExercises   []db.LibraryExercise
-	RunActivityTemplates  []db.ActivityTemplate
-	CurrentStep       RunStep
-	RunSteps          []RunStep
-	RunActivityGroups []RunActivityGroup
+	RunID                uint
+	RunTemplateName      string
+	RunTotalSteps        int
+	RunCompleted         bool
+	RunCurrentStepNum    int
+	RunSessionSeconds    int
+	RunIsTrial           bool
+	RunTemplateID        uint
+	RunIsOpen            bool
+	RunIsDraft           bool
+	RunCustomName        string
+	StartedAtUnix        int64
+	RunLibraryExercises  []db.LibraryExercise
+	RunActivityTemplates []db.ActivityTemplate
+	CurrentStep          RunStep
+	RunSteps             []RunStep
+	RunActivityGroups    []RunActivityGroup
 
 	// Open-session overview progress (running, non-draft).
 	RunDoneCount         int
 	RunCurrentExerciseID uint
+	RunSessionNotes      string
 }
 
 type WeeklyColorSegment struct {
@@ -603,6 +604,8 @@ type ProfileParams struct {
 	Base
 	UserProfile      *db.User
 	ProfileFormError string
+	PasswordError    string
+	PasswordSuccess  bool
 	Venues           []ClimbingVenueView
 	Boards           []ClimbingBoardView
 }
@@ -667,7 +670,7 @@ type CycleExerciseOverrideView struct {
 	OverrideRepSecs  int
 	HasOverride      bool
 	// per-week variation
-	VariesByWeek bool
+	VariesByWeek  bool
 	WeekOverrides []CycleWeekTargetView // len == CycleWeeks, indexed by week-1
 }
 
@@ -759,20 +762,21 @@ type SessionExerciseSummaryView struct {
 
 type TrainingLogSummaryParams struct {
 	Base
-	JournalID   uint
-	Title       string
-	DateLabel   string // e.g. "Mon, 13 Jan 2026"
-	IsRunLinked bool
-	RunInfo     string // e.g. "Strength Base · Jan 5th"
-	SleepScore  int
-	Energy      int
-	RPE         int
-	Focus       string
-	Location    string
-	VenueName   string
-	WentWell    string
-	NextFocus   string
-	Exercises   []SessionExerciseSummaryView
+	JournalID    uint
+	Title        string
+	DateLabel    string // e.g. "Mon, 13 Jan 2026"
+	IsRunLinked  bool
+	RunInfo      string // e.g. "Strength Base · Jan 5th"
+	SleepScore   int
+	Energy       int
+	RPE          int
+	Focus        string
+	Location     string
+	VenueName    string
+	WentWell     string
+	NextFocus    string
+	SessionNotes string
+	Exercises    []SessionExerciseSummaryView
 }
 
 type TrainingLogNewParams struct {
@@ -792,14 +796,14 @@ type TrainingLogNewParams struct {
 	FormErr     string
 
 	// Draft run fields (set when creating a new manual entry with exercises)
-	DraftRunID         uint
-	OpenExerciseID     uint // exercise ID to auto-open in the list (newly added)
-	LibraryExercises   []db.LibraryExercise
-	ActivityTemplates  []db.ActivityTemplate
-	Exercises          []ManualExerciseView
-	Venues    []ClimbingVenueView
-	Boards    []ClimbingBoardView
-	VenueName string
+	DraftRunID        uint
+	OpenExerciseID    uint // exercise ID to auto-open in the list (newly added)
+	LibraryExercises  []db.LibraryExercise
+	ActivityTemplates []db.ActivityTemplate
+	Exercises         []ManualExerciseView
+	Venues            []ClimbingVenueView
+	Boards            []ClimbingBoardView
+	VenueName         string
 	// TemplateActivities holds read-only exercise data from the session template
 	// for non-manual runs shown on the edit page.
 	TemplateActivities []RunSummaryActivity
@@ -818,12 +822,12 @@ type TrainingLogEntryView struct {
 	IsStandalone   bool   // true for entries created directly on /training-log/new
 	IsManual       bool   // true for runs created via manual log entry
 	HasJournal     bool
-	SleepScore     int // 0 = not recorded
-	Energy         int // 0 = not recorded
-	RPE            int // 0 = not recorded
-	SleepPct       int // SleepScore * 20, for CSS progress bar width
-	EnergyPct      int // Energy * 20
-	RPEPct         int // RPE * 10
+	SleepScore     int    // 0 = not recorded
+	Energy         int    // 0 = not recorded
+	RPE            int    // 0 = not recorded
+	SleepPct       int    // SleepScore * 20, for CSS progress bar width
+	EnergyPct      int    // Energy * 20
+	RPEPct         int    // RPE * 10
 	Focus          string // capitalised display value, e.g. "Strength"
 	Location       string // "Indoor" | "Outdoor"
 	WentWellHTML   template.HTML
@@ -864,15 +868,16 @@ type TrainingLogPageParams struct {
 }
 
 type JournalFormParams struct {
-	RunID      uint
-	SleepScore int
-	Energy     int
-	RPE        int
-	Focus      string
-	Location   string
-	WentWell   string
-	NextFocus  string
-	Saved      bool // true → render read-only view; false → render editable form
+	RunID        uint
+	SleepScore   int
+	Energy       int
+	RPE          int
+	Focus        string
+	Location     string
+	WentWell     string
+	NextFocus    string
+	SessionNotes string
+	Saved        bool // true → render read-only view; false → render editable form
 }
 
 // ---------------------------------------------------------------------------
@@ -1470,17 +1475,17 @@ func buildFuncMap() template.FuncMap {
 		"youtubeEmbedURL": youtubeEmbedURL,
 		"libExJSON": func(ex db.LibraryExercise) string {
 			b, _ := json.Marshal(struct {
-				Name string  `json:"name"`
-				Kind string  `json:"kind"`
-				Sets int     `json:"sets"`
-				Reps int     `json:"reps"`
-				Wkg  float64 `json:"wkg"`
-				Rs   int     `json:"rs"`
-				Rrs  int     `json:"rrs"`
-				Srs  int     `json:"srs"`
-				Ps   int     `json:"ps"`
-				Sds  int     `json:"sds"`
-				Notes string `json:"notes"`
+				Name  string  `json:"name"`
+				Kind  string  `json:"kind"`
+				Sets  int     `json:"sets"`
+				Reps  int     `json:"reps"`
+				Wkg   float64 `json:"wkg"`
+				Rs    int     `json:"rs"`
+				Rrs   int     `json:"rrs"`
+				Srs   int     `json:"srs"`
+				Ps    int     `json:"ps"`
+				Sds   int     `json:"sds"`
+				Notes string  `json:"notes"`
 			}{ex.Name, ex.Kind, ex.Sets, ex.Reps, ex.WeightKg,
 				ex.RepSeconds, ex.RepRestSeconds, ex.SetRestSeconds,
 				ex.PrepSeconds, ex.SessionDurationSeconds, ex.Notes})
@@ -1488,17 +1493,17 @@ func buildFuncMap() template.FuncMap {
 		},
 		"activityTemplateExJSON": func(tpl db.ActivityTemplate) string {
 			type row struct {
-				Name string  `json:"name"`
-				Kind string  `json:"kind"`
-				Sets int     `json:"sets"`
-				Reps int     `json:"reps"`
-				Wkg  float64 `json:"wkg"`
-				Rs   int     `json:"rs"`
-				Rrs  int     `json:"rrs"`
-				Srs  int     `json:"srs"`
-				Ps   int     `json:"ps"`
-				Sds  int     `json:"sds"`
-				Notes string `json:"notes"`
+				Name  string  `json:"name"`
+				Kind  string  `json:"kind"`
+				Sets  int     `json:"sets"`
+				Reps  int     `json:"reps"`
+				Wkg   float64 `json:"wkg"`
+				Rs    int     `json:"rs"`
+				Rrs   int     `json:"rrs"`
+				Srs   int     `json:"srs"`
+				Ps    int     `json:"ps"`
+				Sds   int     `json:"sds"`
+				Notes string  `json:"notes"`
 			}
 			var out []row
 			for _, e := range tpl.Exercises {

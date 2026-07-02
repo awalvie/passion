@@ -9,6 +9,7 @@ import (
 	"passion/db"
 	"passion/pages"
 )
+
 // handleRunJournal serves GET|POST /runs/{runID}/journal.
 func (s *Server) handleRunJournal(w http.ResponseWriter, r *http.Request) {
 	ownerID := s.mustUserID(r)
@@ -59,6 +60,7 @@ func (s *Server) serveJournalForm(w http.ResponseWriter, r *http.Request, ownerI
 		params.Location = j.Location
 		params.WentWell = j.WentWell
 		params.NextFocus = j.NextFocus
+		params.SessionNotes = j.SessionNotes
 	}
 
 	s.pages.RenderJournalForm(w, params)
@@ -90,6 +92,13 @@ func (s *Server) saveJournal(w http.ResponseWriter, r *http.Request, ownerID, ru
 	}
 	if existing != nil {
 		j.Model = existing.Model // preserve ID + timestamps for update
+		// Preserve fields this structured form doesn't submit so a save here
+		// doesn't clobber them (SessionNotes is edited via its own endpoint).
+		j.SessionNotes = existing.SessionNotes
+		j.Title = existing.Title
+		j.Date = existing.Date
+		j.VenueID = existing.VenueID
+		j.BoardID = existing.BoardID
 	}
 
 	if err := db.UpsertSessionJournal(s.store.DB, &j); err != nil {
@@ -99,4 +108,44 @@ func (s *Server) saveJournal(w http.ResponseWriter, r *http.Request, ownerID, ru
 
 	// Return the saved (read-only) fragment so HTMX can swap it in.
 	s.serveJournalForm(w, r, ownerID, runID, true)
+}
+
+// handleRunSessionNotes serves POST /runs/{runID}/session-notes — a live autosave
+// of the free-form session notes from the open-session overview. It writes only the
+// SessionNotes column (creating the journal row if needed) so it never disturbs the
+// structured reflection fields.
+func (s *Server) handleRunSessionNotes(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+
+	runID, err := parseUintParam(r, "runID")
+	if err != nil {
+		http.Error(w, "invalid run ID", http.StatusBadRequest)
+		return
+	}
+
+	var run db.SessionRun
+	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, runID).First(&run).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		s.serverError(w, r, err)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form data", http.StatusBadRequest)
+		return
+	}
+
+	notes := strings.TrimSpace(r.FormValue("session_notes"))
+	if err := db.UpdateSessionNotes(s.store.DB, ownerID, runID, notes); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
