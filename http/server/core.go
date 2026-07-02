@@ -117,6 +117,7 @@ func (s *Server) Routes() http.Handler {
 		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/complete", s.handleRunsByID)
 		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/skip", s.handleRunsByID)
 		pr.HandleFunc("/runs/{runID}/journal", s.handleRunJournal)
+		pr.HandleFunc("/runs/{runID}/session-notes", s.handleRunSessionNotes)
 
 		pr.HandleFunc("/training-log", s.handleTrainingLog)
 		pr.HandleFunc("/training-log/new", s.handleTrainingLogNew)
@@ -141,6 +142,8 @@ func (s *Server) Routes() http.Handler {
 		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/ticks/{tickID}/delete", s.handleExerciseTickDelete)
 		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/ticks/{tickID}/update", s.handleExerciseTickUpdate)
 		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/ticks/{tickID}/again", s.handleExerciseTickLogAgain)
+
+		pr.HandleFunc("/profile/password", s.handleProfilePassword)
 
 		// Venue and board management (profile sub-routes)
 		pr.HandleFunc("/profile/venues", s.handleProfileVenues)

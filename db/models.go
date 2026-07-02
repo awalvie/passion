@@ -10,13 +10,13 @@ import (
 type User struct {
 	gorm.Model
 
-	Email        string `gorm:"uniqueIndex;not null"`
-	PasswordHash string `gorm:"not null"`
-	HeightCm     int
-	WeightKg     float64
-	ApeIndexCm   int
-	MaxPullUps   int
-	MaxHangKg    float64
+	Email              string `gorm:"uniqueIndex;not null"`
+	PasswordHash       string `gorm:"not null"`
+	HeightCm           int
+	WeightKg           float64
+	ApeIndexCm         int
+	MaxPullUps         int
+	MaxHangKg          float64
 	BoulderGrade       string `gorm:"size:32"`
 	RouteGrade         string `gorm:"size:32"`
 	BoulderGradeSystem string `gorm:"size:32;not null;default:'font'"`
@@ -208,9 +208,9 @@ type TrainingCycleWeekdayMapping struct {
 type CycleExerciseOverride struct {
 	gorm.Model
 
-	OwnerID           uint  `gorm:"index;not null"`
-	TrainingCycleID   uint  `gorm:"index;not null"`
-	LibraryExerciseID *uint `gorm:"index"` // preferred match key
+	OwnerID           uint   `gorm:"index;not null"`
+	TrainingCycleID   uint   `gorm:"index;not null"`
+	LibraryExerciseID *uint  `gorm:"index"`    // preferred match key
 	ExerciseName      string `gorm:"not null"` // display + fallback match key
 
 	Sets         int
@@ -322,9 +322,9 @@ type ClimbingExerciseMeta struct {
 // Used for pre-planned progressive loading (e.g. set 1: 5×60kg, set 2: 3×80kg).
 type ExercisePlannedSet struct {
 	gorm.Model
-	OwnerID    uint    `gorm:"index;not null"`
-	ExerciseID uint    `gorm:"index:idx_exercise_planned_set,unique,not null"`
-	SetIndex   int     `gorm:"index:idx_exercise_planned_set,unique,not null"` // 1-based
+	OwnerID    uint `gorm:"index;not null"`
+	ExerciseID uint `gorm:"index:idx_exercise_planned_set,unique,not null"`
+	SetIndex   int  `gorm:"index:idx_exercise_planned_set,unique,not null"` // 1-based
 	Reps       int
 	WeightKg   float64
 }
@@ -332,10 +332,10 @@ type ExercisePlannedSet struct {
 // ManualExerciseSetLog records per-set reps and weight for a manual exercise.
 type ManualExerciseSetLog struct {
 	gorm.Model
-	OwnerID    uint    `gorm:"index;not null"`
-	RunID      uint    `gorm:"index;not null"`
-	ExerciseID uint    `gorm:"index;not null"`
-	SetIndex   int     `gorm:"not null"` // 1-based
+	OwnerID    uint `gorm:"index;not null"`
+	RunID      uint `gorm:"index;not null"`
+	ExerciseID uint `gorm:"index;not null"`
+	SetIndex   int  `gorm:"not null"` // 1-based
 	Reps       int
 	WeightKg   float64
 }
@@ -379,6 +379,11 @@ type SessionJournal struct {
 	// Reflection text (markdown)
 	WentWell  string
 	NextFocus string
+
+	// SessionNotes holds free-form, general notes for the whole session (markdown),
+	// captured live from the open-session overview — distinct from the structured
+	// WentWell/NextFocus reflection prompts.
+	SessionNotes string `gorm:"type:text"`
 }
 
 // ClimbingVenue is a named climbing location (gym or outdoor crag) belonging to a user.
@@ -434,8 +439,8 @@ type CalendarEvent struct {
 	OwnerID   uint      `gorm:"index;not null"`
 	Title     string    `gorm:"size:128;not null"`
 	Kind      string    `gorm:"size:32;not null"` // "trip"|"injury"|"rest"|"competition"|"other"
-	StartDate time.Time `gorm:"not null"`          // local midnight, inclusive
-	EndDate   time.Time `gorm:"not null"`          // local midnight, inclusive
+	StartDate time.Time `gorm:"not null"`         // local midnight, inclusive
+	EndDate   time.Time `gorm:"not null"`         // local midnight, inclusive
 	Notes     string    `gorm:"type:text"`
 	Blocks    bool      `gorm:"default:true"`
 }

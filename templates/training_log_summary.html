@@ -132,18 +132,24 @@
       </div>
       {{ end }}
 
-      {{ if or .WentWell .NextFocus }}
+      {{ if or .WentWell .NextFocus .SessionNotes }}
       <div class="card card-pad space-y-3">
         {{ if .WentWell }}
         <div>
           <p class="text-[10px] font-bold uppercase tracking-widest muted mb-1">What went well</p>
-          <p class="text-sm whitespace-pre-wrap">{{ .WentWell }}</p>
+          <div class="markdown-body text-sm">{{ markdownHTML .WentWell }}</div>
         </div>
         {{ end }}
         {{ if .NextFocus }}
         <div {{ if .WentWell }}style="border-top:1px solid var(--border);padding-top:0.75rem"{{ end }}>
           <p class="text-[10px] font-bold uppercase tracking-widest muted mb-1">Focus for next session</p>
-          <p class="text-sm whitespace-pre-wrap">{{ .NextFocus }}</p>
+          <div class="markdown-body text-sm">{{ markdownHTML .NextFocus }}</div>
+        </div>
+        {{ end }}
+        {{ if .SessionNotes }}
+        <div {{ if or .WentWell .NextFocus }}style="border-top:1px solid var(--border);padding-top:0.75rem"{{ end }}>
+          <p class="text-[10px] font-bold uppercase tracking-widest muted mb-1">Session notes</p>
+          <div class="markdown-body text-sm">{{ markdownHTML .SessionNotes }}</div>
         </div>
         {{ end }}
       </div>

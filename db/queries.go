@@ -270,6 +270,30 @@ func UpsertSessionJournal(gdb *gorm.DB, j *SessionJournal) error {
 	return gdb.Save(j).Error
 }
 
+// UpdateSessionNotes sets only the SessionNotes column on a run's journal,
+// creating the journal row if it doesn't exist yet. Unlike UpsertSessionJournal
+// (a full-row Save), this never touches the structured reflection fields, so a
+// live session-notes autosave can't clobber WentWell/RPE/etc.
+//
+// It looks up the row Unscoped so a previously soft-deleted journal (e.g. the
+// user deleted the training-log entry then reopened the run) is reused and
+// undeleted rather than triggering a UNIQUE(run_id) violation on insert.
+func UpdateSessionNotes(gdb *gorm.DB, ownerID, runID uint, notes string) error {
+	var j SessionJournal
+	res := gdb.Unscoped().Where("owner_id = ? AND run_id = ?", ownerID, runID).Limit(1).Find(&j)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		rid := runID
+		return gdb.Create(&SessionJournal{OwnerID: ownerID, RunID: &rid, SessionNotes: notes}).Error
+	}
+	// Update notes and clear any soft-delete in one scoped write (Unscoped so a
+	// soft-deleted row is actually reachable for update).
+	return gdb.Unscoped().Model(&SessionJournal{}).Where("id = ?", j.ID).
+		Updates(map[string]any{"session_notes": notes, "deleted_at": nil}).Error
+}
+
 // ListSessionJournals returns all journals for a user, newest first.
 func ListSessionJournals(gdb *gorm.DB, ownerID uint) ([]SessionJournal, error) {
 	var journals []SessionJournal
@@ -504,8 +528,8 @@ func buildGradeRanks() map[string]int {
 // ClimbingSessionHeader is the live one-liner shown above the tick list:
 // total climbs, sends, and the hardest graded climb in the run.
 type ClimbingSessionHeader struct {
-	TotalClimbs int
-	TotalSends  int
+	TotalClimbs  int
+	TotalSends   int
 	HardestGrade string
 }
 
