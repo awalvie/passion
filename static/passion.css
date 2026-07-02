@@ -2912,7 +2912,7 @@ html[data-theme="dark"] .catalog-dialog-back {
   margin: 0.2rem 0 0;
   font-size: 0.72rem;
   color: var(--muted);
-  font-style: italic;
+  white-space: pre-wrap;
 }
 
 /* Dialog footer link */

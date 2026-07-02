@@ -58,8 +58,8 @@
                 {{ if $summary }}{{ $summary }}{{ end }}
                 {{ if gt .ElapsedSeconds 0 }} · {{ formatElapsed .ElapsedSeconds }}{{ end }}
               {{ end }}
-              {{ if .RunNotes }}<span class="ml-1 italic">{{ .RunNotes }}</span>{{ end }}
             </div>
+            {{ if .RunNotes }}<p class="run-summary-row-notes">{{ .RunNotes }}</p>{{ end }}
           </div>
         </div>
         {{ else }}
