@@ -61,6 +61,15 @@
             </div>
             {{ if .RunNotes }}<p class="run-summary-row-notes">{{ .RunNotes }}</p>{{ end }}
           </div>
+          <button
+            type="button"
+            class="ex-row-delete shrink-0 rounded-md btn-ghost p-1.5 inline-flex items-center justify-center"
+            hx-post="/runs/{{ $.RunID }}/open/exercises/{{ .ExerciseID }}/delete"
+            hx-swap="none"
+            hx-confirm="Remove this exercise and its logged data?"
+            aria-label="Remove exercise"
+            title="Remove exercise"
+          ><i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></button>
         </div>
         {{ else }}
         {{/* Pending exercise — collapsible edit card; current one is highlighted */}}
@@ -80,6 +89,16 @@
               onclick="event.stopPropagation()"
             >{{ if $isCurrent }}Resume{{ else }}Go{{ end }} <i data-lucide="arrow-right" style="width:12px;height:12px"></i></a>
             {{ end }}
+            <button
+              type="button"
+              class="ex-row-delete shrink-0 rounded-md btn-ghost p-1.5 inline-flex items-center justify-center"
+              hx-post="/runs/{{ $.RunID }}/open/exercises/{{ .ExerciseID }}/delete"
+              hx-swap="none"
+              hx-confirm="Remove this exercise?"
+              onclick="event.stopPropagation()"
+              aria-label="Remove exercise"
+              title="Remove exercise"
+            ><i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></button>
           </summary>
 
           <div class="px-3 pb-3 mt-0 space-y-3">

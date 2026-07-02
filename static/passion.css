@@ -3437,6 +3437,18 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
   margin-top: 0.125rem;
 }
 
+/* Row-level remove button in the open-session overview list */
+.ex-row-delete {
+  color: var(--muted);
+  min-width: 2rem;
+  min-height: 2rem;
+}
+.ex-row-delete:hover,
+.ex-row-delete:focus-visible {
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 12%, transparent);
+}
+
 /* Open-session overview: run progress bar */
 .run-overview-progress { margin-bottom: 0.25rem; }
 .run-overview-progress-track {
