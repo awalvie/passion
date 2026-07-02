@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"passion/db"
 )
 
@@ -134,5 +136,108 @@ func TestHandleProfilePostBadNumberShowsError(t *testing.T) {
 	}
 	if !strings.Contains(rr.Body.String(), "Weight must be a number.") {
 		t.Fatalf("expected validation error, got %q", rr.Body.String())
+	}
+}
+
+// seedUserWithPassword creates a user with a real bcrypt hash of the given password.
+func seedUserWithPassword(t *testing.T, store *db.Store, email, password string) *db.User {
+	t.Helper()
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		t.Fatal(err)
+	}
+	user := &db.User{Email: email, PasswordHash: string(hash)}
+	if err := store.DB.Create(user).Error; err != nil {
+		t.Fatal(err)
+	}
+	return user
+}
+
+func postPassword(t *testing.T, srv *Server, userID uint, current, next, confirm string) *httptest.ResponseRecorder {
+	t.Helper()
+	form := url.Values{
+		"current_password":     {current},
+		"new_password":         {next},
+		"new_password_confirm": {confirm},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/profile/password", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = req.WithContext(context.WithValue(req.Context(), authUserIDKey, userID))
+	rr := httptest.NewRecorder()
+	srv.handleProfilePassword(rr, req)
+	return rr
+}
+
+func TestHandleProfilePassword_Success(t *testing.T) {
+	withRepoRoot(t)
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "pw-ok.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	user := seedUserWithPassword(t, store, "climber@example.com", "oldpassword")
+	srv, err := NewServer(store, "secret", 24, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := postPassword(t, srv, user.ID, "oldpassword", "newpassword1", "newpassword1")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusOK, rr.Body.String())
+	}
+	if !strings.Contains(rr.Body.String(), "Password updated.") {
+		t.Fatalf("expected success message, got %q", rr.Body.String())
+	}
+
+	var updated db.User
+	if err := store.DB.First(&updated, user.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if bcrypt.CompareHashAndPassword([]byte(updated.PasswordHash), []byte("newpassword1")) != nil {
+		t.Fatal("new password does not verify against stored hash")
+	}
+}
+
+func TestHandleProfilePassword_WrongCurrentRejected(t *testing.T) {
+	withRepoRoot(t)
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "pw-wrong.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	user := seedUserWithPassword(t, store, "climber@example.com", "oldpassword")
+	srv, err := NewServer(store, "secret", 24, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := postPassword(t, srv, user.ID, "wrongcurrent", "newpassword1", "newpassword1")
+	if !strings.Contains(rr.Body.String(), "Current password is incorrect.") {
+		t.Fatalf("expected wrong-current error, got %q", rr.Body.String())
+	}
+	var unchanged db.User
+	if err := store.DB.First(&unchanged, user.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if bcrypt.CompareHashAndPassword([]byte(unchanged.PasswordHash), []byte("oldpassword")) != nil {
+		t.Fatal("password should be unchanged after failed verify")
+	}
+}
+
+func TestHandleProfilePassword_MismatchAndTooShortRejected(t *testing.T) {
+	withRepoRoot(t)
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "pw-bad.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	user := seedUserWithPassword(t, store, "climber@example.com", "oldpassword")
+	srv, err := NewServer(store, "secret", 24, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if rr := postPassword(t, srv, user.ID, "oldpassword", "newpassword1", "different1"); !strings.Contains(rr.Body.String(), "New passwords do not match.") {
+		t.Fatalf("expected mismatch error, got %q", rr.Body.String())
+	}
+	if rr := postPassword(t, srv, user.ID, "oldpassword", "short", "short"); !strings.Contains(rr.Body.String(), "at least 8 characters") {
+		t.Fatalf("expected too-short error, got %q", rr.Body.String())
 	}
 }

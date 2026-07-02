@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"passion/db"
 	"passion/pages"
 )
@@ -85,6 +87,10 @@ func (s *Server) handleProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) renderProfilePage(w http.ResponseWriter, r *http.Request, ownerID uint, formError string) {
+	s.renderProfilePageWith(w, r, ownerID, formError, "", false)
+}
+
+func (s *Server) renderProfilePageWith(w http.ResponseWriter, r *http.Request, ownerID uint, formError, passwordError string, passwordSuccess bool) {
 	var user db.User
 	if err := s.store.DB.Where("id = ?", ownerID).First(&user).Error; err != nil {
 		s.notFound(w)
@@ -101,9 +107,61 @@ func (s *Server) renderProfilePage(w http.ResponseWriter, r *http.Request, owner
 		Base:             pages.Base{CurrentUserEmail: user.Email},
 		UserProfile:      &user,
 		ProfileFormError: formError,
+		PasswordError:    passwordError,
+		PasswordSuccess:  passwordSuccess,
 		Venues:           venues,
 		Boards:           boards,
 	})
+}
+
+// handleProfilePassword serves POST /profile/password — an in-app password change
+// for the logged-in user (verify current, set new). There is no email-based reset flow.
+func (s *Server) handleProfilePassword(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	ownerID := s.mustUserID(r)
+	if err := r.ParseForm(); err != nil {
+		s.badRequest(w, "bad request")
+		return
+	}
+
+	var user db.User
+	if err := s.store.DB.Where("id = ?", ownerID).First(&user).Error; err != nil {
+		s.notFound(w)
+		return
+	}
+
+	current := r.FormValue("current_password")
+	next := r.FormValue("new_password")
+	confirm := r.FormValue("new_password_confirm")
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(current)); err != nil {
+		s.renderProfilePageWith(w, r, ownerID, "", "Current password is incorrect.", false)
+		return
+	}
+	if next != confirm {
+		s.renderProfilePageWith(w, r, ownerID, "", "New passwords do not match.", false)
+		return
+	}
+	if len(next) < 8 {
+		s.renderProfilePageWith(w, r, ownerID, "", "New password must be at least 8 characters.", false)
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(next), bcrypt.DefaultCost)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	user.PasswordHash = string(hash)
+	if err := s.store.DB.Save(&user).Error; err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+
+	s.renderProfilePageWith(w, r, ownerID, "", "", true)
 }
 
 func parseOptionalInt(raw string) (int, error) {
