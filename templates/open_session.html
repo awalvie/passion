@@ -46,34 +46,36 @@
         {{ $isCompleted := eq .Status "completed" }}
         {{ $isSkipped   := eq .Status "skipped" }}
         {{ $isDone      := or $isCompleted $isSkipped }}
-        {{ if $isDone }}
-        {{/* Completed or skipped — read-only row */}}
-        <div class="card-muted rounded-lg px-3 py-2.5 flex items-center gap-3">
-          <span class="shrink-0 text-sm" aria-hidden="true">{{ if $isCompleted }}✓{{ else }}⊘{{ end }}</span>
-          <div class="flex-1 min-w-0">
-            <div class="text-sm font-medium truncate">{{ .Name }}</div>
-            <div class="text-xs muted">
-              {{ if $isSkipped }}skipped{{ else }}
-                {{ $summary := runStepSummary . }}
-                {{ if $summary }}{{ $summary }}{{ end }}
-                {{ if gt .ElapsedSeconds 0 }} · {{ formatElapsed .ElapsedSeconds }}{{ end }}
-              {{ end }}
+        {{/* Every exercise is a collapsible edit card. Done exercises show a status
+             marker + logged summary in the header; editing updates the plan (name,
+             type, sets/reps/notes), not the already-logged completion data. */}}
+        <details class="card-muted overflow-hidden rounded-lg passion-disclosure{{ if $isCurrent }} ex-card--current{{ end }}{{ if $isDone }} ex-card--done{{ end }}">
+          {{ if $isDone }}
+          <summary class="cursor-pointer list-none flex items-center gap-3 px-3 py-2.5">
+            <span class="shrink-0 text-sm" aria-hidden="true">{{ if $isCompleted }}✓{{ else }}⊘{{ end }}</span>
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-medium truncate">{{ .Name }}</div>
+              <div class="text-xs muted">
+                {{ if $isSkipped }}skipped{{ else }}
+                  {{ $summary := runStepSummary . }}
+                  {{ if $summary }}{{ $summary }}{{ end }}
+                  {{ if gt .ElapsedSeconds 0 }} · {{ formatElapsed .ElapsedSeconds }}{{ end }}
+                {{ end }}
+              </div>
+              {{ if .RunNotes }}<p class="run-summary-row-notes">{{ .RunNotes }}</p>{{ end }}
             </div>
-            {{ if .RunNotes }}<p class="run-summary-row-notes">{{ .RunNotes }}</p>{{ end }}
-          </div>
-          <button
-            type="button"
-            class="ex-row-delete shrink-0 rounded-md btn-ghost p-1.5 inline-flex items-center justify-center"
-            hx-post="/runs/{{ $.RunID }}/open/exercises/{{ .ExerciseID }}/delete"
-            hx-swap="none"
-            hx-confirm="Remove this exercise and its logged data?"
-            aria-label="Remove exercise"
-            title="Remove exercise"
-          ><i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></button>
-        </div>
-        {{ else }}
-        {{/* Pending exercise — collapsible edit card; current one is highlighted */}}
-        <details class="card-muted overflow-hidden rounded-lg passion-disclosure{{ if $isCurrent }} ex-card--current{{ end }}">
+            <button
+              type="button"
+              class="ex-row-delete shrink-0 rounded-md btn-ghost p-1.5 inline-flex items-center justify-center"
+              hx-post="/runs/{{ $.RunID }}/open/exercises/{{ .ExerciseID }}/delete"
+              hx-swap="none"
+              hx-confirm="Remove this exercise and its logged data?"
+              onclick="event.stopPropagation()"
+              aria-label="Remove exercise"
+              title="Remove exercise"
+            ><i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></button>
+          </summary>
+          {{ else }}
           <summary class="cursor-pointer list-none flex items-center gap-3 px-3 py-2.5">
             <div class="min-w-0 flex-1 flex items-baseline gap-3">
               <div class="text-sm font-medium truncate {{ if $isCurrent }}min-w-0{{ else }}shrink-0 max-w-[55%]{{ end }}">{{ .Name }}</div>
@@ -100,8 +102,12 @@
               title="Remove exercise"
             ><i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></button>
           </summary>
+          {{ end }}
 
           <div class="px-3 pb-3 mt-0 space-y-3">
+            {{ if $isDone }}
+            <p class="text-xs muted mt-2 mb-0">Editing updates the plan — your logged result above stays as recorded.</p>
+            {{ end }}
             <form
               class="space-y-2"
               hx-post="/runs/{{ $.RunID }}/open/exercises/{{ .ExerciseID }}/update"
@@ -269,7 +275,6 @@
             </form>
           </div>
         </details>
-        {{ end }}
       {{ end }}
     {{ else }}
       <div class="card-muted rounded-lg p-4 text-sm muted text-center">No exercises yet. Add one below to get started.</div>
@@ -294,6 +299,25 @@
 
   {{ template "open-exercise-panel" . }}
   {{ if .RunActivityTemplates }}{{ template "open-template-panel" . }}{{ end }}
+
+  {{/* ── Session notes ── */}}
+  <div class="card card-pad mt-4">
+    <div class="flex items-center justify-between gap-2">
+      <h2 class="text-sm font-semibold">Session notes</h2>
+      <span class="text-[10px] muted" id="session-notes-status" aria-live="polite"></span>
+    </div>
+    <p class="text-xs muted mt-0.5 mb-2">General notes for the whole session. Markdown supported.</p>
+    <textarea
+      id="session-notes"
+      name="session_notes"
+      rows="4"
+      class="w-full input text-sm"
+      placeholder="e.g. Conditions, how you felt, things to remember…"
+      hx-post="/runs/{{ .RunID }}/session-notes"
+      hx-trigger="input changed delay:800ms, blur"
+      hx-swap="none"
+    >{{ .RunSessionNotes }}</textarea>
+  </div>
 
 </div>
 
@@ -338,6 +362,16 @@
         window.__passionSyncExerciseKindGroups(sel);
       }
     });
+
+    // Session-notes autosave feedback.
+    var notesEl = document.getElementById('session-notes');
+    var notesStatus = document.getElementById('session-notes-status');
+    if (notesEl && notesStatus) {
+      notesEl.addEventListener('htmx:beforeRequest', function () { notesStatus.textContent = 'Saving…'; });
+      notesEl.addEventListener('htmx:afterRequest', function (e) {
+        notesStatus.textContent = e.detail && e.detail.successful ? 'Saved' : 'Save failed';
+      });
+    }
 
     if (typeof window.__passionRenderIcons === 'function') window.__passionRenderIcons();
   })();

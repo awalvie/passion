@@ -11,6 +11,39 @@ import (
 	"passion/pages"
 )
 
+// dedupeLibraryByName collapses library exercises that share a name (case-insensitive),
+// keeping the "richest" entry — preferring one that has a Source, then one with Notes.
+// Used only for the open-session add-exercise picker so pre-existing duplicates (e.g. a
+// bare "Hover" alongside the catalog's sourced "Hover") show up once. The full library
+// management page still lists every row.
+func dedupeLibraryByName(rows []db.LibraryExercise) []db.LibraryExercise {
+	best := map[string]int{} // lowercased name → index into out
+	out := make([]db.LibraryExercise, 0, len(rows))
+	for _, row := range rows {
+		key := strings.ToLower(strings.TrimSpace(row.Name))
+		if idx, ok := best[key]; ok {
+			if libRichness(row) > libRichness(out[idx]) {
+				out[idx] = row
+			}
+			continue
+		}
+		best[key] = len(out)
+		out = append(out, row)
+	}
+	return out
+}
+
+func libRichness(ex db.LibraryExercise) int {
+	n := 0
+	if strings.TrimSpace(ex.Source) != "" {
+		n += 2
+	}
+	if strings.TrimSpace(ex.Notes) != "" {
+		n++
+	}
+	return n
+}
+
 // sliceStr returns the trimmed string at index i of sl, or def if out of range or blank.
 func sliceStr(sl []string, i int, def string) string {
 	if i < len(sl) && strings.TrimSpace(sl[i]) != "" {
@@ -173,12 +206,21 @@ func (s *Server) handleOpenAddExercise(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if saveToLibrary {
-		libEx := db.LibraryExercise{
-			OwnerID: ownerID,
-			Name:    name,
-			Kind:    kind,
+		// Upsert by name so re-saving the same exercise doesn't create duplicate
+		// library rows (e.g. a bare "Hover" alongside the catalog's "Hover").
+		// Match case-insensitively on trimmed name, mirroring dedupeLibraryByName.
+		var existing db.LibraryExercise
+		res := s.store.DB.
+			Where("owner_id = ? AND LOWER(TRIM(name)) = ? AND parent_library_exercise_id IS NULL",
+				ownerID, strings.ToLower(name)).
+			Limit(1).Find(&existing)
+		if res.Error == nil && res.RowsAffected == 0 {
+			s.store.DB.Create(&db.LibraryExercise{
+				OwnerID: ownerID,
+				Name:    name,
+				Kind:    kind,
+			}) // best-effort
 		}
-		s.store.DB.Create(&libEx) // best-effort
 	}
 
 	if err := s.store.DB.Create(&ex).Error; err != nil {
@@ -239,16 +281,16 @@ func (s *Server) handleOpenAddTemplate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	kinds       := r.Form["ex_kind"]
-	setsList    := r.Form["ex_sets"]
-	repsList    := r.Form["ex_reps"]
-	weights     := r.Form["ex_weight_kg"]
-	repSecs     := r.Form["ex_rep_seconds"]
+	kinds := r.Form["ex_kind"]
+	setsList := r.Form["ex_sets"]
+	repsList := r.Form["ex_reps"]
+	weights := r.Form["ex_weight_kg"]
+	repSecs := r.Form["ex_rep_seconds"]
 	repRestSecs := r.Form["ex_rep_rest_seconds"]
 	setRestSecs := r.Form["ex_set_rest_seconds"]
-	prepSecs    := r.Form["ex_prep_seconds"]
-	durMins     := r.Form["ex_session_duration_minutes"]
-	notesList   := r.Form["ex_notes"]
+	prepSecs := r.Form["ex_prep_seconds"]
+	durMins := r.Form["ex_session_duration_minutes"]
+	notesList := r.Form["ex_notes"]
 
 	var count int64
 	s.store.DB.Model(&db.Exercise{}).

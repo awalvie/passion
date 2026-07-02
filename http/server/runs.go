@@ -126,6 +126,16 @@ func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, o
 	}
 
 	runCompleted := nextIdx == -1
+
+	// An open session is only "done" when the user explicitly finishes it, not when
+	// every exercise happens to be logged. Reloading the player URL (?exercise=…) with
+	// all steps complete would otherwise show the guided "Workout complete" screen, so
+	// send the user back to the open-session overview (which still has Finish + Add).
+	if run.IsOpen && runCompleted {
+		http.Redirect(w, r, "/runs/"+strconv.FormatUint(uint64(runID), 10), http.StatusSeeOther)
+		return
+	}
+
 	currentStepNum := 0
 	var currentStep pages.RunStep
 	if !runCompleted {
@@ -150,6 +160,7 @@ func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, o
 			s.serverError(w, r, err)
 			return
 		}
+		libExercises = dedupeLibraryByName(libExercises)
 		activityTemplates, err = db.ListActivityTemplatesWithExercises(s.store.DB, ownerID)
 		if err != nil {
 			s.serverError(w, r, err)
@@ -221,6 +232,7 @@ func (s *Server) renderOpenSession(w http.ResponseWriter, r *http.Request, run d
 		s.serverError(w, r, err)
 		return
 	}
+	libExercises = dedupeLibraryByName(libExercises)
 	activityTemplates, err := db.ListActivityTemplatesWithExercises(s.store.DB, ownerID)
 	if err != nil {
 		s.serverError(w, r, err)
@@ -237,6 +249,11 @@ func (s *Server) renderOpenSession(w http.ResponseWriter, r *http.Request, run d
 		startedAtUnix = run.StartedAt.Unix()
 	}
 
+	var sessionNotes string
+	if j, _ := db.GetSessionJournalByRunID(s.store.DB, ownerID, runID); j != nil {
+		sessionNotes = j.SessionNotes
+	}
+
 	s.pages.OpenSession(w, pages.RunParams{
 		Base:                 pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
 		RunID:                runID,
@@ -251,6 +268,7 @@ func (s *Server) renderOpenSession(w http.ResponseWriter, r *http.Request, run d
 		RunSteps:             steps,
 		RunDoneCount:         doneCount,
 		RunCurrentExerciseID: currentExerciseID,
+		RunSessionNotes:      sessionNotes,
 	})
 }
 
@@ -779,4 +797,3 @@ func sumElapsedSeconds(completions []db.RunExerciseCompletion) int {
 	}
 	return total
 }
-
