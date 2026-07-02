@@ -304,7 +304,10 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 		var segments []pages.WeeklyColorSegment
 		if votes := weeklyColorVotes[weekKey]; len(votes) > 0 && wp.Count > 0 {
 			// Collect and sort colors by count descending
-			type colorCount struct{ color string; n int }
+			type colorCount struct {
+				color string
+				n     int
+			}
 			cc := make([]colorCount, 0, len(votes))
 			for c, n := range votes {
 				cc = append(cc, colorCount{c, n})
@@ -358,9 +361,9 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 		Count int    `json:"count"`
 	}
 	type weeklyItemJSON struct {
-		Label    string           `json:"label"`
-		Count    int              `json:"count"`
-		Segments []weeklySegJSON  `json:"segments"`
+		Label    string          `json:"label"`
+		Count    int             `json:"count"`
+		Segments []weeklySegJSON `json:"segments"`
 	}
 	weeklyItems := make([]weeklyItemJSON, len(weeklyTrend))
 	for i, wt := range weeklyTrend {

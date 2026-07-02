@@ -62,9 +62,9 @@ func (s *Store) AutoMigrate() error {
 // nullability, so we drop-and-recreate while the table is still empty in dev.
 func (s *Store) migrateSessionJournals() error {
 	type colInfo struct {
-		CID       int    `gorm:"column:cid"`
-		Name      string `gorm:"column:name"`
-		NotNull   int    `gorm:"column:notnull"`
+		CID     int    `gorm:"column:cid"`
+		Name    string `gorm:"column:name"`
+		NotNull int    `gorm:"column:notnull"`
 	}
 	var cols []colInfo
 	if err := s.DB.Raw("PRAGMA table_info(session_journals)").Scan(&cols).Error; err != nil {
@@ -88,7 +88,7 @@ func (s *Store) migrateTimedReps() error {
 	tables := []string{"exercises", "library_exercises"}
 	for _, t := range tables {
 		if err := s.DB.Exec(`
-			UPDATE `+t+`
+			UPDATE ` + t + `
 			SET kind = 'timed_reps'
 			WHERE kind = 'reps_and_sets'
 			  AND (rep_seconds > 0 OR prep_seconds > 0 OR rep_rest_seconds > 0)
@@ -96,7 +96,7 @@ func (s *Store) migrateTimedReps() error {
 			return err
 		}
 		if err := s.DB.Exec(`
-			UPDATE `+t+`
+			UPDATE ` + t + `
 			SET rep_seconds = 0, rep_rest_seconds = 0, set_rest_seconds = 0, prep_seconds = 0
 			WHERE kind = 'reps_and_sets'
 		`).Error; err != nil {

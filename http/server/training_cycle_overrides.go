@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"strings"
 
-
 	"passion/db"
 	"passion/pages"
 )
+
 func (s *Server) buildCycleExerciseOverrides(cycleID uint, ownerID uint, cycleWeeks int) []pages.CycleExerciseOverrideView {
 	var mappings []db.TrainingCycleWeekdayMapping
 	s.store.DB.Where("training_cycle_id = ? AND owner_id = ?", cycleID, ownerID).Find(&mappings)
@@ -132,10 +132,10 @@ func (s *Server) buildCycleExerciseOverrides(cycleID uint, ownerID uint, cycleWe
 		v.WeekOverrides = make([]pages.CycleWeekTargetView, cycleWeeks)
 		for i := 0; i < cycleWeeks; i++ {
 			wv := pages.CycleWeekTargetView{
-				Week:     i + 1,
-				Sets:     fbSets,
-				Reps:     fbReps,
-				WeightKg: fbWeight,
+				Week:       i + 1,
+				Sets:       fbSets,
+				Reps:       fbReps,
+				WeightKg:   fbWeight,
 				RepSeconds: fbSecs,
 			}
 			if wo := weekMap[i+1]; wo != nil {

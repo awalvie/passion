@@ -341,7 +341,6 @@ func NormalizeKind(raw string) string {
 	}
 }
 
-
 func createExerciseMedia(tx *gorm.DB, ownerID uint, exerciseID *uint, libraryExerciseID *uint, items []yamlMediaItem) error {
 	for i, m := range items {
 		v := strings.TrimSpace(m.VideoURL)
