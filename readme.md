@@ -31,7 +31,7 @@ Passion helps you plan, schedule, and track climbing training sessions. Build se
 - Training history with heatmaps, streak tracking, per-template breakdowns, and climbing analytics (grade pyramids, hardest-sent, send rate)
 - Weekly + monthly calendar dashboard
 - YAML-driven exercise and template catalog for version-controlled training plans
-- Multi-user auth (JWT), dark/light theme, fully server-rendered with HTMX
+- Multi-user auth (JWT) with in-app password change, dark/light theme, fully server-rendered with HTMX
 
 ---
 
