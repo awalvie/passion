@@ -1,5 +1,5 @@
 {{ define "open-exercise-panel" }}
-<div id="open-exercise-panel" class="hidden mt-4 card overflow-hidden">
+<div id="open-exercise-panel" class="hidden mt-4 card">
   <div class="px-4 py-3 flex items-center justify-between border-b" style="border-color:var(--border)">
     <span class="text-sm font-semibold">Add exercise</span>
     <button type="button" class="rounded btn-ghost p-1 inline-flex" onclick="document.getElementById('open-exercise-panel').classList.add('hidden')" aria-label="Close add exercise panel">
@@ -8,9 +8,21 @@
   </div>
 
   {{ if .RunLibraryExercises }}
-  <div class="px-4 py-4 border-b" style="border-color:var(--border)">
-    <div class="text-[11px] font-semibold muted uppercase tracking-widest mb-3">From library</div>
+  {{/* Mode toggle — pick reuse-from-library vs create-from-scratch */}}
+  <div class="px-4 pt-4">
+    <div class="flex rounded-md overflow-hidden border" style="border-color:var(--border)">
+      <button type="button"
+        class="flex-1 px-3 py-1.5 text-xs font-medium btn-primary"
+        data-add-mode-btn="library"
+        onclick="openExPanelMode(this,'library')">From library</button>
+      <button type="button"
+        class="flex-1 px-3 py-1.5 text-xs font-medium btn-ghost"
+        data-add-mode-btn="new"
+        onclick="openExPanelMode(this,'new')">New exercise</button>
+    </div>
+  </div>
 
+  <div data-add-section="library" class="px-4 py-4">
     {{/* Combobox — no submit; selecting populates the edit form below */}}
     <div class="relative" data-lib-combo="open-{{ .RunID }}">
       <input
@@ -114,8 +126,7 @@
   </div>
   {{ end }}
 
-  <div class="px-4 py-4">
-    <div class="text-[11px] font-semibold muted uppercase tracking-widest mb-3">New exercise</div>
+  <div data-add-section="new" class="px-4 py-4"{{ if .RunLibraryExercises }} hidden{{ end }}>
     <form
       hx-post="/runs/{{ .RunID }}/open/add"
       hx-swap="none"
@@ -292,6 +303,20 @@
     window.__passionSyncExerciseKindGroups(newKindSel);
   }
 })();
+
+// Switch the add-exercise panel between "From library" and "New exercise" modes.
+function openExPanelMode(btn, mode) {
+  var panel = btn.closest('#open-exercise-panel');
+  if (!panel) return;
+  panel.querySelectorAll('[data-add-section]').forEach(function (sec) {
+    sec.hidden = sec.getAttribute('data-add-section') !== mode;
+  });
+  panel.querySelectorAll('[data-add-mode-btn]').forEach(function (b) {
+    var active = b.getAttribute('data-add-mode-btn') === mode;
+    b.classList.toggle('btn-primary', active);
+    b.classList.toggle('btn-ghost', !active);
+  });
+}
 
 // Switch between uniform and per-set modes in the new-exercise form.
 function newExSetMode(btn, mode) {
