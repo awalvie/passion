@@ -147,7 +147,9 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 			Where("session_run_id = ? AND owner_id = ? AND parent_exercise_id IS NULL", run.ID, ownerID).
 			Order("order_index asc").
 			Find(&openExercises)
-		sa := pages.RunSummaryActivity{Name: "Exercises"}
+		// Unnamed: the summary page already renders an "Exercises" section heading,
+		// so a group label here would duplicate it.
+		sa := pages.RunSummaryActivity{Name: ""}
 		for _, ex := range openExercises {
 			se := pages.RunSummaryExercise{
 				Name:            ex.Name,
