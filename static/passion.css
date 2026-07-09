@@ -2302,6 +2302,7 @@ details.passion-disclosure > summary::before {
   flex-shrink: 0;
   width: 0.45rem;
   height: 0.45rem;
+  margin-right: 0.3rem;
   border-right: 2px solid var(--muted);
   border-bottom: 2px solid var(--muted);
   transform: rotate(-45deg);
@@ -3477,6 +3478,29 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
 .ex-card--current {
   border: 1px solid var(--accent);
   background: var(--accent-bg);
+}
+/* Completed drills get a green left accent */
+.ex-card--completed {
+  border-left: 3px solid var(--tick-sent-accent);
+}
+/* Done/skipped status badge next to the delete button in the open-session list */
+.ex-card-badge {
+  flex-shrink: 0;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.3rem;
+  line-height: 1.5;
+}
+.ex-card-badge--done {
+  color: var(--tick-sent-accent);
+  background: color-mix(in srgb, var(--tick-sent-accent) 14%, transparent);
+}
+.ex-card-badge--skipped {
+  color: var(--muted);
+  background: var(--card-muted);
 }
 .ex-card-current-tag {
   flex-shrink: 0;

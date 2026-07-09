@@ -49,10 +49,9 @@
         {{/* Every exercise is a collapsible edit card. Done exercises show a status
              marker + logged summary in the header; editing updates the plan (name,
              type, sets/reps/notes), not the already-logged completion data. */}}
-        <details class="card-muted overflow-hidden rounded-lg passion-disclosure{{ if $isCurrent }} ex-card--current{{ end }}{{ if $isDone }} ex-card--done{{ end }}">
+        <details class="card-muted overflow-hidden rounded-lg passion-disclosure{{ if $isCurrent }} ex-card--current{{ end }}{{ if $isDone }} ex-card--done{{ end }}{{ if $isCompleted }} ex-card--completed{{ end }}">
           {{ if $isDone }}
           <summary class="cursor-pointer list-none flex items-center gap-3 px-3 py-2.5">
-            <span class="shrink-0 text-sm" aria-hidden="true">{{ if $isCompleted }}✓{{ else }}⊘{{ end }}</span>
             <div class="min-w-0 flex-1">
               <div class="text-sm font-medium truncate">{{ .Name }}</div>
               <div class="text-xs muted">
@@ -64,6 +63,7 @@
               </div>
               {{ if .RunNotes }}<p class="run-summary-row-notes">{{ .RunNotes }}</p>{{ end }}
             </div>
+            <span class="ex-card-badge {{ if $isCompleted }}ex-card-badge--done{{ else }}ex-card-badge--skipped{{ end }}">{{ if $isCompleted }}Done{{ else }}Skipped{{ end }}</span>
             <button
               type="button"
               class="ex-row-delete shrink-0 rounded-md btn-ghost p-1.5 inline-flex items-center justify-center"
