@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestImportYAMLUpsertByName(t *testing.T) {
@@ -170,5 +171,149 @@ activities:
 	})
 	if err == nil {
 		t.Fatal("expected unknown reference import error")
+	}
+}
+
+// TestImportYAMLPrunesRenameOrphansButProtectsInUseAndUIRows covers pruneCatalogOrphans,
+// the cleanup pass at the end of ImportYAML that removes catalog-managed rows whose names
+// disappeared from the YAML (e.g. an exercise or template that was renamed). It asserts the
+// four guard rails: the orphan is actually deleted, a UI-created row (managed_by_catalog =
+// false) with a name absent from the YAML is never touched, a session template still
+// referenced by a ScheduledSession survives even though it dropped out of the YAML, and an
+// import with zero session templates (an empty directory) does not wipe existing managed
+// session templates.
+func TestImportYAMLPrunesRenameOrphansButProtectsInUseAndUIRows(t *testing.T) {
+	tmp := t.TempDir()
+	store, err := NewSqlite(filepath.Join(tmp, "test.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	exercisesDir := filepath.Join(tmp, "exercises")
+	templatesDir := filepath.Join(tmp, "templates")
+	if err := os.MkdirAll(exercisesDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(templatesDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	writeFile := func(path, content string) {
+		t.Helper()
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	writeFile(filepath.Join(exercisesDir, "pullups.yaml"), `
+name: "Pull Ups"
+kind: "reps_and_sets"
+sets: 3
+reps: 10
+`)
+	writeFile(filepath.Join(exercisesDir, "pushups.yaml"), `
+name: "Push Ups"
+kind: "reps_and_sets"
+sets: 3
+reps: 15
+`)
+	writeFile(filepath.Join(templatesDir, "strength.yaml"), `
+name: "Strength Session"
+activities:
+  - type: "activity"
+    exercises:
+      - ref: "Pull Ups"
+`)
+	writeFile(filepath.Join(templatesDir, "old.yaml"), `
+name: "Old Session"
+activities:
+  - type: "activity"
+    exercises:
+      - ref: "Push Ups"
+`)
+
+	const ownerID uint = 1
+	opts := YAMLImportOptions{OwnerID: ownerID, ExercisesDir: exercisesDir, SessionTemplatesDir: templatesDir}
+	if err := store.ImportYAML(opts); err != nil {
+		t.Fatalf("initial import: %v", err)
+	}
+
+	// A UI-created library exercise: managed_by_catalog stays false and its name is
+	// never in the YAML, so it must survive every future prune.
+	uiExercise := LibraryExercise{OwnerID: ownerID, Name: "Custom Stretch", Kind: "reps_and_sets"}
+	if err := store.DB.Create(&uiExercise).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	var oldSession SessionTemplate
+	if err := store.DB.Where("owner_id = ? AND name = ?", ownerID, "Old Session").First(&oldSession).Error; err != nil {
+		t.Fatalf("lookup Old Session: %v", err)
+	}
+	// A scheduled session pins "Old Session" in place even after it drops out of the YAML.
+	scheduled := ScheduledSession{OwnerID: ownerID, ScheduledDate: time.Now(), SessionTemplateID: oldSession.ID}
+	if err := store.DB.Create(&scheduled).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	// Simulate renames: "Push Ups" and "Old Session" drop out of the YAML entirely.
+	if err := os.Remove(filepath.Join(exercisesDir, "pushups.yaml")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(filepath.Join(templatesDir, "old.yaml")); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := store.ImportYAML(opts); err != nil {
+		t.Fatalf("re-import after rename: %v", err)
+	}
+
+	var pushUpsCount int64
+	if err := store.DB.Model(&LibraryExercise{}).
+		Where("owner_id = ? AND name = ?", ownerID, "Push Ups").Count(&pushUpsCount).Error; err != nil {
+		t.Fatal(err)
+	}
+	if pushUpsCount != 0 {
+		t.Errorf("expected renamed-away 'Push Ups' to be pruned, but %d row(s) remain", pushUpsCount)
+	}
+
+	var uiCount int64
+	if err := store.DB.Model(&LibraryExercise{}).
+		Where("owner_id = ? AND name = ? AND managed_by_catalog = ?", ownerID, "Custom Stretch", false).
+		Count(&uiCount).Error; err != nil {
+		t.Fatal(err)
+	}
+	if uiCount != 1 {
+		t.Errorf("expected UI-created 'Custom Stretch' to survive the prune, got count %d", uiCount)
+	}
+
+	var oldSessionCount int64
+	if err := store.DB.Model(&SessionTemplate{}).
+		Where("owner_id = ? AND name = ?", ownerID, "Old Session").Count(&oldSessionCount).Error; err != nil {
+		t.Fatal(err)
+	}
+	if oldSessionCount != 1 {
+		t.Errorf("expected 'Old Session' to survive because it has a scheduled session, got count %d", oldSessionCount)
+	}
+
+	// Empty-category guard: an import whose session-templates directory has zero YAML
+	// files must not wipe the managed session templates that already exist.
+	emptyTemplatesDir := filepath.Join(tmp, "templates_empty")
+	if err := os.MkdirAll(emptyTemplatesDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.ImportYAML(YAMLImportOptions{
+		OwnerID:             ownerID,
+		ExercisesDir:        exercisesDir,
+		SessionTemplatesDir: emptyTemplatesDir,
+	}); err != nil {
+		t.Fatalf("import with empty session-templates dir: %v", err)
+	}
+
+	var tplCount int64
+	if err := store.DB.Model(&SessionTemplate{}).Where("owner_id = ?", ownerID).Count(&tplCount).Error; err != nil {
+		t.Fatal(err)
+	}
+	if tplCount != 2 {
+		t.Errorf("expected both session templates to survive an empty-category import, got count %d", tplCount)
 	}
 }
