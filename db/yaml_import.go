@@ -208,6 +208,15 @@ func pruneCatalogOrphans(tx *gorm.DB, ownerID uint, exs []yamlExercise, ats []ya
 				}
 				used += wov
 			}
+			if used == 0 {
+				// A catalog parent may own UI-created child options; keep it so they
+				// aren't left with a dangling parent_library_exercise_id.
+				var kids int64
+				if err := tx.Model(&LibraryExercise{}).Where("parent_library_exercise_id = ?", le.ID).Count(&kids).Error; err != nil {
+					return err
+				}
+				used += kids
+			}
 			if used > 0 {
 				continue
 			}
@@ -252,13 +261,16 @@ func pruneCatalogOrphans(tx *gorm.DB, ownerID uint, exs []yamlExercise, ats []ya
 			if st.IsSystem {
 				continue
 			}
+			// Unscoped: a soft-deleted scheduled session can still have a live run
+			// whose completions reference this template's exercises, so it must count
+			// as in-use and block the delete.
 			var refs int64
-			if err := tx.Model(&ScheduledSession{}).Where("session_template_id = ?", st.ID).Count(&refs).Error; err != nil {
+			if err := tx.Unscoped().Model(&ScheduledSession{}).Where("session_template_id = ?", st.ID).Count(&refs).Error; err != nil {
 				return err
 			}
 			if refs == 0 {
 				var cyc int64
-				if err := tx.Model(&TrainingCycleWeekdayMapping{}).Where("session_template_id = ?", st.ID).Count(&cyc).Error; err != nil {
+				if err := tx.Unscoped().Model(&TrainingCycleWeekdayMapping{}).Where("session_template_id = ?", st.ID).Count(&cyc).Error; err != nil {
 					return err
 				}
 				refs += cyc
@@ -287,7 +299,9 @@ func pruneCatalogOrphans(tx *gorm.DB, ownerID uint, exs []yamlExercise, ats []ya
 }
 
 // deleteExercisesAndMedia hard-deletes the exercises matched by cond (plus their
-// media) so pruned templates leave no orphaned child rows behind.
+// media) so pruned templates leave no orphaned child rows behind. The step-by-step
+// child deletion is required, not redundant: SQLite foreign keys are not enabled on
+// this connection, so the OnDelete:CASCADE tags in the models never fire.
 func deleteExercisesAndMedia(tx *gorm.DB, cond string, arg any) error {
 	var exs []Exercise
 	if err := tx.Where(cond, arg).Find(&exs).Error; err != nil {
