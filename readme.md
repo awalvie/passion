@@ -168,6 +168,10 @@ Import behavior:
 - Runs on startup only when `PASSION_YAML_IMPORT_ENABLED` is set
 - Upserts by `owner_id + name` — safe to re-run
 - Template updates replace activities/exercises to preserve ordering
+- Prunes catalog rows that dropped out of the YAML (e.g. after a rename): only rows the
+  importer created are removed, the system open-session template is left alone, and a
+  session template is never deleted while it still has scheduled sessions or cycle
+  mappings (so logged runs are never orphaned)
 - Unknown `ref` or invalid YAML fails startup fast
 
 ---

@@ -23,6 +23,10 @@ func NewSqlite(path string) (*Store, error) {
 }
 
 func (s *Store) AutoMigrate() error {
+	// Detect the first migration that introduces the catalog-managed flag, before
+	// AutoMigrate adds the column, so the backfill runs exactly once.
+	catalogManagedNew := !s.DB.Migrator().HasColumn(&LibraryExercise{}, "ManagedByCatalog")
+
 	if err := s.DB.AutoMigrate(
 		&User{},
 		&SessionTemplate{},
@@ -54,7 +58,28 @@ func (s *Store) AutoMigrate() error {
 	if err := s.migrateTimedReps(); err != nil {
 		return err
 	}
-	return s.migrateSessionJournals()
+	if err := s.migrateSessionJournals(); err != nil {
+		return err
+	}
+	return s.backfillCatalogManaged(catalogManagedNew)
+}
+
+// backfillCatalogManaged marks every pre-existing catalog row as catalog-managed,
+// but only on the migration that first adds the column. At that moment every
+// library exercise / activity template / session template in the DB was created by
+// the YAML importer, so marking them all is correct — and it lets prune-on-import
+// clean up historical rename orphans. Rows created afterwards via the UI default to
+// false and are never touched by the prune.
+func (s *Store) backfillCatalogManaged(firstRun bool) error {
+	if !firstRun {
+		return nil
+	}
+	for _, t := range []string{"library_exercises", "activity_templates", "session_templates"} {
+		if err := s.DB.Exec("UPDATE " + t + " SET managed_by_catalog = 1").Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // migrateSessionJournals recreates the session_journals table if it was created
