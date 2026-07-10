@@ -158,8 +158,147 @@ func (s *Store) ImportYAML(opts YAMLImportOptions) error {
 				return err
 			}
 		}
-		return nil
+		return pruneCatalogOrphans(tx, opts.OwnerID, libraryExercises, activityTemplates, sessionTemplates)
 	})
+}
+
+func nameSet[T any](items []T, name func(T) string) map[string]struct{} {
+	out := make(map[string]struct{}, len(items))
+	for _, it := range items {
+		out[name(it)] = struct{}{}
+	}
+	return out
+}
+
+// pruneCatalogOrphans removes catalog-managed rows for the owner whose names are no
+// longer present in the YAML — the stale rows left behind when a catalog entry is
+// renamed or dropped. It only touches rows flagged ManagedByCatalog (never UI-created
+// data), skips the system open-session template, and never deletes a session template
+// that has scheduled sessions or cycle mappings (which would orphan logged runs) or a
+// library exercise still referenced by an exercise copy or cycle override.
+//
+// As a safety guard against a misconfigured/empty import directory wiping a whole
+// category, a category is only pruned when the YAML actually defined entries for it.
+func pruneCatalogOrphans(tx *gorm.DB, ownerID uint, exs []yamlExercise, ats []yamlActivityTemplate, sts []yamlSessionTemplate) error {
+	if len(exs) > 0 {
+		keep := nameSet(exs, func(e yamlExercise) string { return e.Name })
+		var rows []LibraryExercise
+		if err := tx.Where("owner_id = ? AND managed_by_catalog = ?", ownerID, true).Find(&rows).Error; err != nil {
+			return err
+		}
+		for _, le := range rows {
+			if _, ok := keep[le.Name]; ok {
+				continue
+			}
+			var used int64
+			if err := tx.Model(&Exercise{}).Where("library_exercise_id = ?", le.ID).Count(&used).Error; err != nil {
+				return err
+			}
+			if used == 0 {
+				var ov int64
+				if err := tx.Model(&CycleExerciseOverride{}).Where("library_exercise_id = ?", le.ID).Count(&ov).Error; err != nil {
+					return err
+				}
+				used += ov
+			}
+			if used == 0 {
+				var wov int64
+				if err := tx.Model(&CycleExerciseWeekOverride{}).Where("library_exercise_id = ?", le.ID).Count(&wov).Error; err != nil {
+					return err
+				}
+				used += wov
+			}
+			if used > 0 {
+				continue
+			}
+			if err := tx.Unscoped().Where("library_exercise_id = ?", le.ID).Delete(&ExerciseMedia{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Unscoped().Delete(&LibraryExercise{}, le.ID).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(ats) > 0 {
+		keep := nameSet(ats, func(a yamlActivityTemplate) string { return a.Name })
+		var rows []ActivityTemplate
+		if err := tx.Where("owner_id = ? AND managed_by_catalog = ?", ownerID, true).Find(&rows).Error; err != nil {
+			return err
+		}
+		for _, at := range rows {
+			if _, ok := keep[at.Name]; ok {
+				continue
+			}
+			if err := deleteExercisesAndMedia(tx, "activity_template_id = ?", at.ID); err != nil {
+				return err
+			}
+			if err := tx.Unscoped().Delete(&ActivityTemplate{}, at.ID).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(sts) > 0 {
+		keep := nameSet(sts, func(t yamlSessionTemplate) string { return t.Name })
+		var rows []SessionTemplate
+		if err := tx.Where("owner_id = ? AND managed_by_catalog = ?", ownerID, true).Find(&rows).Error; err != nil {
+			return err
+		}
+		for _, st := range rows {
+			if _, ok := keep[st.Name]; ok {
+				continue
+			}
+			if st.IsSystem {
+				continue
+			}
+			var refs int64
+			if err := tx.Model(&ScheduledSession{}).Where("session_template_id = ?", st.ID).Count(&refs).Error; err != nil {
+				return err
+			}
+			if refs == 0 {
+				var cyc int64
+				if err := tx.Model(&TrainingCycleWeekdayMapping{}).Where("session_template_id = ?", st.ID).Count(&cyc).Error; err != nil {
+					return err
+				}
+				refs += cyc
+			}
+			if refs > 0 {
+				continue
+			}
+			var acts []Activity
+			if err := tx.Where("session_template_id = ?", st.ID).Find(&acts).Error; err != nil {
+				return err
+			}
+			for _, a := range acts {
+				if err := deleteExercisesAndMedia(tx, "activity_id = ?", a.ID); err != nil {
+					return err
+				}
+			}
+			if err := tx.Unscoped().Where("session_template_id = ?", st.ID).Delete(&Activity{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Unscoped().Delete(&SessionTemplate{}, st.ID).Error; err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// deleteExercisesAndMedia hard-deletes the exercises matched by cond (plus their
+// media) so pruned templates leave no orphaned child rows behind.
+func deleteExercisesAndMedia(tx *gorm.DB, cond string, arg any) error {
+	var exs []Exercise
+	if err := tx.Where(cond, arg).Find(&exs).Error; err != nil {
+		return err
+	}
+	for _, e := range exs {
+		if err := tx.Unscoped().Where("exercise_id = ?", e.ID).Delete(&ExerciseMedia{}).Error; err != nil {
+			return err
+		}
+	}
+	return tx.Unscoped().Where(cond, arg).Delete(&Exercise{}).Error
 }
 
 func loadExerciseYAML(dir string) ([]yamlExercise, error) {
@@ -443,6 +582,7 @@ func upsertActivityTemplate(tx *gorm.DB, ownerID uint, at yamlActivityTemplate, 
 	}
 	row.Label = strings.TrimSpace(at.Label)
 	row.Source = strings.TrimSpace(at.Source)
+	row.ManagedByCatalog = true
 	if err := tx.Save(&row).Error; err != nil {
 		return err
 	}
@@ -564,6 +704,7 @@ func upsertLibraryExercise(tx *gorm.DB, ownerID uint, ex yamlExercise) error {
 	}
 	row.Label = strings.TrimSpace(ex.Label)
 	row.Source = strings.TrimSpace(ex.Source)
+	row.ManagedByCatalog = true
 	row.Kind = ex.Kind
 	row.SessionDurationSeconds = ex.SessionDurationSeconds
 	row.Notes = ex.Notes
@@ -601,6 +742,7 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 	template.Color = strings.TrimSpace(tpl.Color)
 	template.Label = strings.TrimSpace(tpl.Label)
 	template.Source = strings.TrimSpace(tpl.Source)
+	template.ManagedByCatalog = true
 	if err := tx.Save(&template).Error; err != nil {
 		return err
 	}

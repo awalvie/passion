@@ -37,6 +37,9 @@ type SessionTemplate struct {
 	Source string `gorm:"size:64;not null;default:''"`
 	// IsSystem marks the hidden per-user anchor template used for open sessions.
 	IsSystem bool `gorm:"not null;default:false"`
+	// ManagedByCatalog is true for rows created by the YAML importer. Only these are
+	// eligible for prune-on-import; UI-created templates stay false and are never removed.
+	ManagedByCatalog bool `gorm:"not null;default:false"`
 
 	Activities []Activity `gorm:"constraint:OnDelete:CASCADE;"`
 }
@@ -136,6 +139,9 @@ type ActivityTemplate struct {
 	Label string `gorm:"size:128;not null;default:''"`
 	// Source is the program or coach the template comes from (e.g. "Power Company Climbing").
 	Source string `gorm:"size:64;not null;default:''"`
+	// ManagedByCatalog is true for rows created by the YAML importer. Only these are
+	// eligible for prune-on-import; UI-created templates stay false and are never removed.
+	ManagedByCatalog bool `gorm:"not null;default:false"`
 
 	Exercises []Exercise `gorm:"foreignKey:ActivityTemplateID;constraint:OnDelete:CASCADE;"`
 }
@@ -152,6 +158,9 @@ type LibraryExercise struct {
 	Label string `gorm:"size:128;not null;default:''"`
 	// Source is the program or coach the exercise comes from (e.g. "Power Company Climbing").
 	Source string `gorm:"size:64;not null;default:''"`
+	// ManagedByCatalog is true for rows created by the YAML importer. Only these are
+	// eligible for prune-on-import; UI-created exercises stay false and are never removed.
+	ManagedByCatalog bool `gorm:"not null;default:false"`
 
 	Notes string `gorm:"type:text"`
 
