@@ -274,24 +274,16 @@ func UpsertSessionJournal(gdb *gorm.DB, j *SessionJournal) error {
 // creating the journal row if it doesn't exist yet. Unlike UpsertSessionJournal
 // (a full-row Save), this never touches the structured reflection fields, so a
 // live session-notes autosave can't clobber WentWell/RPE/etc.
-//
-// It looks up the row Unscoped so a previously soft-deleted journal (e.g. the
-// user deleted the training-log entry then reopened the run) is reused and
-// undeleted rather than triggering a UNIQUE(run_id) violation on insert.
 func UpdateSessionNotes(gdb *gorm.DB, ownerID, runID uint, notes string) error {
-	var j SessionJournal
-	res := gdb.Unscoped().Where("owner_id = ? AND run_id = ?", ownerID, runID).Limit(1).Find(&j)
-	if res.Error != nil {
-		return res.Error
+	j, err := GetSessionJournalByRunID(gdb, ownerID, runID)
+	if err != nil {
+		return err
 	}
-	if res.RowsAffected == 0 {
+	if j == nil {
 		rid := runID
 		return gdb.Create(&SessionJournal{OwnerID: ownerID, RunID: &rid, SessionNotes: notes}).Error
 	}
-	// Update notes and clear any soft-delete in one scoped write (Unscoped so a
-	// soft-deleted row is actually reachable for update).
-	return gdb.Unscoped().Model(&SessionJournal{}).Where("id = ?", j.ID).
-		Updates(map[string]any{"session_notes": notes, "deleted_at": nil}).Error
+	return gdb.Model(&SessionJournal{}).Where("id = ?", j.ID).Update("session_notes", notes).Error
 }
 
 // ListSessionJournals returns all journals for a user, newest first.
@@ -336,8 +328,11 @@ func GetSessionJournalByID(gdb *gorm.DB, ownerID, id uint) (*SessionJournal, err
 }
 
 // DeleteSessionJournal hard-deletes a journal entry owned by the given user.
+// The delete is Unscoped (a true row removal, not a soft-delete) so the row's
+// UNIQUE(run_id) slot is freed — otherwise re-creating a journal for the same
+// run would collide with the lingering soft-deleted row.
 func DeleteSessionJournal(gdb *gorm.DB, ownerID, id uint) error {
-	return gdb.Where("owner_id = ? AND id = ?", ownerID, id).Delete(&SessionJournal{}).Error
+	return gdb.Unscoped().Where("owner_id = ? AND id = ?", ownerID, id).Delete(&SessionJournal{}).Error
 }
 
 // ListCycleExerciseWeekOverrides returns all week overrides for a cycle, ordered by week asc.
@@ -360,7 +355,10 @@ func UpsertCycleExerciseWeekOverride(gdb *gorm.DB, o *CycleExerciseWeekOverride)
 		q = q.Where("library_exercise_id IS NULL AND exercise_name = ?", o.ExerciseName)
 	}
 	if err := q.First(&existing).Error; err != nil {
-		return gdb.Create(o).Error
+		if err == gorm.ErrRecordNotFound {
+			return gdb.Create(o).Error
+		}
+		return err
 	}
 	existing.Sets = o.Sets
 	existing.Reps = o.Reps
@@ -407,7 +405,7 @@ func CreateClimbingTick(gdb *gorm.DB, t *ClimbingTick) error {
 	return gdb.Create(t).Error
 }
 
-// DeleteClimbingTick hard-deletes a tick (validates ownerID).
+// DeleteClimbingTick soft-deletes a tick (validates ownerID).
 func DeleteClimbingTick(gdb *gorm.DB, ownerID, id uint) error {
 	return gdb.Where("owner_id = ? AND id = ?", ownerID, id).Delete(&ClimbingTick{}).Error
 }
@@ -462,42 +460,6 @@ type ClimbingTickSummary struct {
 	TotalSends    int
 	MinGrade      string
 	MaxGrade      string
-}
-
-// GetClimbingTickSummaryForRun builds a summary of all ticks in a run.
-func GetClimbingTickSummaryForRun(gdb *gorm.DB, ownerID, runID uint) (ClimbingTickSummary, error) {
-	var ticks []ClimbingTick
-	if err := gdb.Where("owner_id = ? AND run_id = ?", ownerID, runID).Find(&ticks).Error; err != nil {
-		return ClimbingTickSummary{}, err
-	}
-	var s ClimbingTickSummary
-	grades := make([]string, 0)
-	for _, t := range ticks {
-		if t.Kind == "boulder" {
-			s.TotalBoulders++
-		} else {
-			s.TotalRoutes++
-		}
-		if t.Sent {
-			s.TotalSends++
-		}
-		if t.Grade != "" {
-			grades = append(grades, t.Grade)
-		}
-	}
-	if len(grades) > 0 {
-		s.MinGrade = grades[0]
-		s.MaxGrade = grades[len(grades)-1]
-		for _, g := range grades {
-			if g < s.MinGrade {
-				s.MinGrade = g
-			}
-			if g > s.MaxGrade {
-				s.MaxGrade = g
-			}
-		}
-	}
-	return s, nil
 }
 
 // gradeRanks maps every grade across all systems to a comparable ordinal.
@@ -750,7 +712,7 @@ func UpdateClimbingVenue(gdb *gorm.DB, ownerID, id uint, name, kind, location st
 		Updates(map[string]any{"name": name, "kind": kind, "location": location}).Error
 }
 
-// DeleteClimbingVenue hard-deletes a venue and nulls SessionJournal.VenueID for affected entries.
+// DeleteClimbingVenue soft-deletes a venue and nulls SessionJournal.VenueID for affected entries.
 func DeleteClimbingVenue(gdb *gorm.DB, ownerID, id uint) error {
 	if err := gdb.Model(&SessionJournal{}).
 		Where("owner_id = ? AND venue_id = ?", ownerID, id).
@@ -772,7 +734,7 @@ func CreateClimbingBoard(gdb *gorm.DB, b *ClimbingBoard) error {
 	return gdb.Create(b).Error
 }
 
-// DeleteClimbingBoard hard-deletes a board and nulls SessionJournal.BoardID for affected entries.
+// DeleteClimbingBoard soft-deletes a board and nulls SessionJournal.BoardID for affected entries.
 func DeleteClimbingBoard(gdb *gorm.DB, ownerID, id uint) error {
 	if err := gdb.Model(&SessionJournal{}).
 		Where("owner_id = ? AND board_id = ?", ownerID, id).
@@ -814,7 +776,7 @@ func FinaliseDraftRun(gdb *gorm.DB, ownerID, runID uint, customName string, date
 		}).Error
 }
 
-// DeleteDraftRun hard-deletes a draft run and all its exercises, completions, and ticks.
+// DeleteDraftRun soft-deletes a draft run and all its exercises, completions, and ticks.
 func DeleteDraftRun(gdb *gorm.DB, ownerID, runID uint) error {
 	return gdb.Transaction(func(tx *gorm.DB) error {
 		var exerciseIDs []uint
@@ -1065,8 +1027,9 @@ func ListExercisePlannedSets(gdb *gorm.DB, exerciseID uint) ([]ExercisePlannedSe
 // UpsertExercisePlannedSet creates or updates a planned set for an exercise.
 func UpsertExercisePlannedSet(gdb *gorm.DB, ownerID, exerciseID uint, setIndex, reps int, weightKg float64) error {
 	var existing ExercisePlannedSet
-	err := gdb.Where("exercise_id = ? AND set_index = ?", exerciseID, setIndex).First(&existing).Error
-	if err != nil {
+	err := gdb.Where("owner_id = ? AND exercise_id = ? AND set_index = ?", ownerID, exerciseID, setIndex).
+		First(&existing).Error
+	if err == gorm.ErrRecordNotFound {
 		return gdb.Create(&ExercisePlannedSet{
 			OwnerID:    ownerID,
 			ExerciseID: exerciseID,
@@ -1074,6 +1037,9 @@ func UpsertExercisePlannedSet(gdb *gorm.DB, ownerID, exerciseID uint, setIndex, 
 			Reps:       reps,
 			WeightKg:   weightKg,
 		}).Error
+	}
+	if err != nil {
+		return err
 	}
 	existing.Reps = reps
 	existing.WeightKg = weightKg
