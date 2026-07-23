@@ -341,9 +341,6 @@ func (s *Server) renderManualExercises(w http.ResponseWriter, r *http.Request, o
 					Type:      meta.Type,
 					BoardKind: meta.BoardKind,
 				}
-				if meta.BoardID != nil {
-					mv.BoardID = *meta.BoardID
-				}
 				mev.ClimbingMeta = mv
 			}
 		}
