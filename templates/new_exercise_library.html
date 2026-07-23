@@ -5,7 +5,7 @@
     <p class="mt-1 text-sm muted">These presets can be inserted into activities when you edit a session template.</p>
 
     {{ if .LibraryExerciseFormErr }}
-      <div class="mt-4 rounded-md card-muted p-3 text-sm text-red-600 dark:text-red-400">{{ .LibraryExerciseFormErr }}</div>
+      <div class="mt-4 rounded-md card-muted p-3 text-sm" style="color:var(--destructive)">{{ .LibraryExerciseFormErr }}</div>
     {{ end }}
 
     <form class="mt-6 space-y-3" hx-post="/exercise-library/new" hx-swap="none" method="post">

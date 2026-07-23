@@ -76,7 +76,7 @@
                   <div class="font-semibold truncate leading-snug" title="{{ .SessionTemplateName }}">{{ .SessionTemplateName }}</div>
                 </div>
                 <div class="hidden group-hover:flex absolute -top-1 -right-1 z-10">
-                  <form hx-post="/training-cycles/{{ $.CycleID }}/remove" hx-swap="none" method="post">
+                  <form hx-post="/training-cycles/{{ $.CycleID }}/remove" hx-swap="none" hx-confirm="Remove this session from the plan?" method="post">
                     <input type="hidden" name="scheduled_session_id" value="{{ .SessionID }}" />
                     <button type="submit" class="rounded-full p-0.5" style="background:var(--panel);border:1px solid var(--border)" title="Remove">
                       <i data-lucide="x" style="width:0.625rem;height:0.625rem" aria-hidden="true"></i>
@@ -138,7 +138,7 @@
                     {{ end }}
                     <div class="text-sm font-semibold truncate">{{ .SessionTemplateName }}</div>
                   </div>
-                  <form hx-post="/training-cycles/{{ $.CycleID }}/remove" hx-swap="none" method="post" class="shrink-0">
+                  <form hx-post="/training-cycles/{{ $.CycleID }}/remove" hx-swap="none" hx-confirm="Remove this session from the plan?" method="post" class="shrink-0">
                     <input type="hidden" name="scheduled_session_id" value="{{ .SessionID }}" />
                     <button type="submit" class="rounded-md btn-ghost p-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity" style="position:relative;z-index:1" title="Remove">
                       <i data-lucide="trash-2" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>

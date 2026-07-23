@@ -15,7 +15,7 @@
     </div>
 
     {{ if $.LibraryExerciseFormErr }}
-      <div class="mt-4 rounded-md card-muted p-3 text-sm text-red-600 dark:text-red-400">{{ $.LibraryExerciseFormErr }}</div>
+      <div class="mt-4 rounded-md card-muted p-3 text-sm" style="color:var(--destructive)">{{ $.LibraryExerciseFormErr }}</div>
     {{ end }}
 
     <form class="mt-5" hx-post="/exercise-library/{{ .ID }}/update" hx-swap="none" method="post">
