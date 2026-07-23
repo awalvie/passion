@@ -15,6 +15,10 @@ import (
 	"passion/pages"
 )
 
+// errAlreadyCompleted signals, inside the completion transaction, that a row for
+// this run+exercise already exists (a concurrent double-submit).
+var errAlreadyCompleted = errors.New("exercise already completed")
+
 // RunStep, RunStepOption, and RunActivityGroup are defined in passion/pages.
 
 func (s *Server) handleRunsByID(w http.ResponseWriter, r *http.Request) {
@@ -136,10 +140,8 @@ func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, o
 		return
 	}
 
-	currentStepNum := 0
 	var currentStep pages.RunStep
 	if !runCompleted {
-		currentStepNum = nextIdx + 1 // 1-indexed
 		currentStep = steps[nextIdx]
 	}
 
@@ -174,7 +176,6 @@ func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, o
 		RunTemplateName:      displayName,
 		RunTotalSteps:        len(steps),
 		RunCompleted:         runCompleted,
-		RunCurrentStepNum:    currentStepNum,
 		RunSessionSeconds:    sumElapsedSeconds(completions),
 		RunIsTrial:           run.IsTrial,
 		RunTemplateID:        ss.SessionTemplate.ID,
@@ -390,7 +391,24 @@ func (s *Server) completeRunExercise(w http.ResponseWriter, r *http.Request, run
 		ActualReps:     actualReps,
 		ActualWeightKg: actualWeightKg,
 	}
-	if err := s.store.DB.Create(comp).Error; err != nil {
+	// Guard against a double-submit race (there is no DB unique constraint on
+	// (run_id, exercise_id)): re-check for an existing row inside a transaction so
+	// two concurrent completions can't both insert and inflate history counts.
+	if err := s.store.DB.Transaction(func(tx *gorm.DB) error {
+		var n int64
+		if err := tx.Model(&db.RunExerciseCompletion{}).
+			Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).
+			Count(&n).Error; err != nil {
+			return err
+		}
+		if n > 0 {
+			return errAlreadyCompleted
+		}
+		return tx.Create(comp).Error
+	}); err != nil {
+		if err == errAlreadyCompleted {
+			return nil // already recorded by a concurrent request — treat as success
+		}
 		return err
 	}
 
