@@ -12,7 +12,6 @@ import (
 
 func calendarEventToView(e db.CalendarEvent) pages.CalendarEventView {
 	color := pages.CalendarEventColor(e.Kind)
-	spanDays := int(e.EndDate.Sub(e.StartDate).Hours()/24) + 1
 	return pages.CalendarEventView{
 		ID:         e.ID,
 		Title:      e.Title,
@@ -24,7 +23,6 @@ func calendarEventToView(e db.CalendarEvent) pages.CalendarEventView {
 		EndLabel:   e.EndDate.Format("Jan 2"),
 		Notes:      e.Notes,
 		Blocks:     e.Blocks,
-		SpanDays:   spanDays,
 	}
 }
 

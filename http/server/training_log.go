@@ -124,7 +124,6 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 
 		t := run.StartedAt
 		dateLabel := fmt.Sprintf("%s, %s %d%s %d", t.Format("Mon"), t.Format("Jan"), t.Day(), daySuffix(t.Day()), t.Year())
-		monthGroup := t.Format("January 2006")
 		monday := mondayOfLocalDate(t)
 		sunday := monday.AddDate(0, 0, 6)
 		weekGroup := fmt.Sprintf("%s %d – %s %d", monday.Format("Jan"), monday.Day(), sunday.Format("Jan"), sunday.Day())
@@ -167,7 +166,6 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 			TemplateName:     templateName,
 			Color:            ss.SessionTemplate.Color,
 			DurationLabel:    dur,
-			MonthGroup:       monthGroup,
 			WeekGroup:        weekGroup,
 			IsManual:         run.IsManual,
 			TickSummaryLabel: tickSummaryLabel,
@@ -212,7 +210,6 @@ func (s *Server) handleTrainingLog(w http.ResponseWriter, r *http.Request) {
 			SortTime:       t,
 			DateLabel:      dateLabel,
 			TemplateName:   title,
-			MonthGroup:     t.Format("January 2006"),
 			WeekGroup:      weekGroup,
 			IsStandalone:   true,
 			HasJournal:     true,
@@ -483,9 +480,6 @@ func (s *Server) handleTrainingLogEdit(w http.ResponseWriter, r *http.Request) {
 						mv := pages.ClimbingExerciseMetaView{
 							Type:      meta.Type,
 							BoardKind: meta.BoardKind,
-						}
-						if meta.BoardID != nil {
-							mv.BoardID = *meta.BoardID
 						}
 						mev.ClimbingMeta = mv
 					}

@@ -69,7 +69,6 @@ type CalendarEventView struct {
 	EndLabel   string
 	Notes      string
 	Blocks     bool
-	SpanDays   int
 }
 
 // CalendarEventColor returns the accent hex color for a given event kind.
@@ -424,7 +423,6 @@ type RunParams struct {
 	RunTemplateName      string
 	RunTotalSteps        int
 	RunCompleted         bool
-	RunCurrentStepNum    int
 	RunSessionSeconds    int
 	RunIsTrial           bool
 	RunTemplateID        uint
@@ -568,7 +566,6 @@ type ExercisePlannedSetView struct {
 type ClimbingExerciseMetaView struct {
 	Type      string // "indoor_bouldering" | "board" | "gym_routes" | "outdoor_bouldering" | "sport" | "trad" | "top_rope"
 	BoardKind string // "kilter" | "moon" | "tension" | "spray" | "custom"
-	BoardID   uint   // 0 = unset; non-zero = configured ClimbingBoard ID
 }
 
 type ManualExerciseView struct {
@@ -817,7 +814,6 @@ type TrainingLogEntryView struct {
 	TemplateName   string
 	Color          string
 	DurationLabel  string
-	MonthGroup     string // e.g. "May 2026" — used for grouping in template
 	WeekGroup      string // e.g. "May 12 – 18" — used for week-based grouping
 	IsStandalone   bool   // true for entries created directly on /training-log/new
 	IsManual       bool   // true for runs created via manual log entry
