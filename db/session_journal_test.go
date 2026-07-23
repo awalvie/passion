@@ -56,17 +56,12 @@ func TestUpdateSessionNotes_UpdatesOnlyNotesColumn(t *testing.T) {
 	}
 }
 
-// TestUpdateSessionNotes_AfterJournalSoftDeleted is a regression test for a real gap:
-// SessionJournal.RunID has a uniqueIndex, and DeleteSessionJournal only soft-deletes
-// (gorm.Model's default Delete behavior), leaving the deleted row occupying that unique
-// slot. GetSessionJournalByRunID correctly reports "no journal" after a soft-delete
-// (gorm's default scope excludes deleted_at rows), so UpdateSessionNotes falls into its
-// create branch — which then hits "UNIQUE constraint failed: session_journals.run_id"
-// because the old soft-deleted row is still there.
-//
-// This currently FAILS, documenting the bug: a user who deletes a training-log entry
-// and then reopens the same run and types in the session-notes box gets a 500.
-func TestUpdateSessionNotes_AfterJournalSoftDeleted(t *testing.T) {
+// TestUpdateSessionNotes_AfterJournalDeleted guards a real regression: SessionJournal.RunID
+// has a uniqueIndex, so if DeleteSessionJournal left a soft-deleted row occupying that slot,
+// re-creating a journal for the same run (a user who deletes a training-log entry, reopens the
+// run, and types in the session-notes box) would hit "UNIQUE constraint failed: run_id" → 500.
+// DeleteSessionJournal hard-deletes (Unscoped) precisely to free the slot, so this must succeed.
+func TestUpdateSessionNotes_AfterJournalDeleted(t *testing.T) {
 	store, err := NewSqlite(filepath.Join(t.TempDir(), "notes-softdeleted.db"))
 	if err != nil {
 		t.Fatal(err)
