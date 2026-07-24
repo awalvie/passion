@@ -26,8 +26,9 @@ func (s *Server) handleExerciseLibraryIndex(w http.ResponseWriter, r *http.Reque
 	sourceFilter := strings.TrimSpace(r.URL.Query().Get("source"))
 	tagFilter := strings.TrimSpace(r.URL.Query().Get("tag"))
 	kindFilter := r.URL.Query().Get("kind")
-	validKinds := map[string]bool{"reps_and_sets": true, "timed_reps": true, "session": true, "exercise_catalog": true}
-	if !validKinds[kindFilter] {
+	// Validate against NormalizeKind (the single source of truth for the kind set)
+	// rather than a hand-maintained map that drifts — it previously omitted "climbing".
+	if kindFilter == "" || db.NormalizeKind(kindFilter) != kindFilter {
 		kindFilter = ""
 	}
 	sortParam := r.URL.Query().Get("sort")
