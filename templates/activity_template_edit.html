@@ -26,7 +26,7 @@
             hx-post="/activity-templates/{{ .Template.ID }}/delete"
             hx-swap="none"
             method="post"
-            onsubmit="return confirm('Delete this activity template and all its exercises?');"
+            hx-confirm="Delete this activity template and all its exercises?"
             class="inline"
           >
             <button

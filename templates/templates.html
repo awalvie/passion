@@ -77,7 +77,7 @@
                     hx-post="/templates/{{.ID}}/delete"
                     hx-swap="none"
                     method="post"
-                    onsubmit="return confirm('Delete this template?');"
+                    hx-confirm="Delete this template?"
                     class="inline"
                   >
                     <button

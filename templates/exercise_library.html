@@ -149,7 +149,7 @@
                     hx-post="/exercise-library/{{ .ID }}/delete"
                     hx-swap="none"
                     method="post"
-                    onsubmit="return confirm('Remove this saved exercise from the library?');"
+                    hx-confirm="Remove this saved exercise from the library?"
                     class="inline"
                   >
                     <button
