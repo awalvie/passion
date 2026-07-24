@@ -214,6 +214,28 @@
           }
         });
 
+        // Global failure notifier: most mutating forms use hx-swap="none", so a
+        // 4xx/5xx would otherwise be invisible. Show a brief toast on any htmx error.
+        function passionToast(message) {
+          var t = document.createElement("div");
+          t.className = "passion-toast";
+          t.setAttribute("role", "alert");
+          t.textContent = message;
+          document.body.appendChild(t);
+          // Force reflow so the enter transition runs, then schedule removal.
+          requestAnimationFrame(function () { t.classList.add("passion-toast--show"); });
+          setTimeout(function () {
+            t.classList.remove("passion-toast--show");
+            setTimeout(function () { t.remove(); }, 300);
+          }, 4000);
+        }
+        document.body.addEventListener("htmx:responseError", function () {
+          passionToast("Something went wrong. Please try again.");
+        });
+        document.body.addEventListener("htmx:sendError", function () {
+          passionToast("Couldn’t reach the server. Check your connection.");
+        });
+
         const toggle = document.getElementById("theme-toggle");
         if (toggle) {
           toggle.checked = document.documentElement.getAttribute("data-theme") === "dark";
