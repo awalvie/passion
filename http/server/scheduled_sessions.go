@@ -50,6 +50,19 @@ func (s *Server) handleScheduledSessionsByID(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
+		// Resume an already-running run for this session rather than starting a
+		// duplicate (double-tap, or hitting Start again from another tab).
+		var existing db.SessionRun
+		if err := s.store.DB.
+			Where("owner_id = ? AND scheduled_session_id = ? AND status = ? AND is_draft = ?",
+				ownerID, ss.ID, db.RunStatusRunning, false).
+			Order("started_at desc").
+			First(&existing).Error; err == nil {
+			w.Header().Set("HX-Redirect", "/runs/"+strconv.FormatUint(uint64(existing.ID), 10))
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
 		run := &db.SessionRun{
 			OwnerID:            ownerID,
 			ScheduledSessionID: uint(ss.ID),
