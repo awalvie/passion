@@ -867,11 +867,24 @@
           gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
           osc.stop(ctx.currentTime + duration);
         }
-        function playCountdownBeep() { playTone(440, 0.1, 0.25); }
-        function playPhaseEndTone() { playTone(880, 0.3, 0.35); }
+        // Haptics are independent of the audio mute, so a silenced phone still buzzes
+        // (a silent cue for a shared gym). No-op where unsupported (e.g. iOS Safari).
+        function buzz(pattern) {
+          try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) { /* unsupported */ }
+        }
+        function playCountdownBeep() { playTone(440, 0.1, 0.25); buzz(8); }
+        function playPhaseEndTone() { playTone(880, 0.3, 0.35); buzz(30); }
+        // Rest ending ("pull on") is the highest-value cue — a distinct rising
+        // two-tone plus a double buzz so it's unmistakable without looking.
+        function playRestEndTone() {
+          playTone(784, 0.12, 0.4);
+          setTimeout(function () { playTone(1046, 0.2, 0.4); }, 130);
+          buzz([0, 60, 50, 90]);
+        }
         function playCompleteTone() {
           playTone(660, 0.15, 0.3);
           setTimeout(function () { playTone(880, 0.25, 0.3); }, 180);
+          buzz([0, 40, 40, 120]);
         }
         function updateMuteIcon() {
           if (!muteBtn) return;
@@ -1127,11 +1140,11 @@
                   startAutoAdvance();
                 }
               } else if (phase === "rep_rest") {
-                playPhaseEndTone();
+                playRestEndTone();
                 repNow = Math.min(repMax, repNow + 1);
                 setPhase("work");
               } else if (phase === "set_rest") {
-                playPhaseEndTone();
+                playRestEndTone();
                 setNow = Math.min(setMax, setNow + 1);
                 repNow = 1;
                 setPhase("work");
