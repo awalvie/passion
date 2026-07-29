@@ -356,35 +356,45 @@ func (s *Server) handleReorderActivities(w http.ResponseWriter, r *http.Request,
 }
 
 func (s *Server) deleteTemplate(templateID uint, ownerID uint) error {
-	tx := s.store.DB.Unscoped()
+	// Each statement gets a fresh Unscoped() session: reusing one accumulates WHERE
+	// clauses across deletes and leaks columns/tables between them.
 
 	// Remove scheduled sessions that reference this template.
-	if err := tx.Where("owner_id = ? AND session_template_id = ?", ownerID, templateID).
+	if err := s.store.DB.Unscoped().Where("owner_id = ? AND session_template_id = ?", ownerID, templateID).
 		Delete(&db.ScheduledSession{}).Error; err != nil {
 		return err
 	}
 
 	// Remove weekday mappings that reference this template.
-	if err := tx.Where("owner_id = ? AND session_template_id = ?", ownerID, templateID).
+	if err := s.store.DB.Unscoped().Where("owner_id = ? AND session_template_id = ?", ownerID, templateID).
 		Delete(&db.TrainingCycleWeekdayMapping{}).Error; err != nil {
 		return err
 	}
 
+	// Remove media attached to this template's exercises first — foreign keys are not
+	// enforced, so this must be explicit or the media rows are orphaned.
+	if err := s.store.DB.Unscoped().Where(
+		"exercise_id IN (SELECT id FROM exercises WHERE owner_id = ? AND activity_id IN (SELECT id FROM activities WHERE owner_id = ? AND session_template_id = ?))",
+		ownerID, ownerID, templateID,
+	).Delete(&db.ExerciseMedia{}).Error; err != nil {
+		return err
+	}
+
 	// Remove exercises and activities belonging to this template.
-	if err := tx.Where(
+	if err := s.store.DB.Unscoped().Where(
 		"owner_id = ? AND activity_id IN (SELECT id FROM activities WHERE owner_id = ? AND session_template_id = ?)",
 		ownerID, ownerID, templateID,
 	).Delete(&db.Exercise{}).Error; err != nil {
 		return err
 	}
 
-	if err := tx.Where("owner_id = ? AND session_template_id = ?", ownerID, templateID).
+	if err := s.store.DB.Unscoped().Where("owner_id = ? AND session_template_id = ?", ownerID, templateID).
 		Delete(&db.Activity{}).Error; err != nil {
 		return err
 	}
 
 	// Finally remove the template itself.
-	return tx.Where("owner_id = ? AND id = ?", ownerID, templateID).
+	return s.store.DB.Unscoped().Where("owner_id = ? AND id = ?", ownerID, templateID).
 		Delete(&db.SessionTemplate{}).Error
 }
 
