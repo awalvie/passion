@@ -183,12 +183,22 @@ func (s *Server) handleUpdateActivityTemplate(w http.ResponseWriter, r *http.Req
 }
 
 func (s *Server) deleteActivityTemplate(tplID, ownerID uint) error {
-	tx := s.store.DB.Unscoped()
-	if err := tx.Where("owner_id = ? AND activity_template_id = ?", ownerID, tplID).
+	// Fresh Unscoped() session per statement (see deleteTemplate) so the media
+	// subquery's columns don't leak onto the other deletes.
+
+	// Remove media attached to this template's exercises first — foreign keys are not
+	// enforced, so this must be explicit or the media rows are orphaned.
+	if err := s.store.DB.Unscoped().Where(
+		"exercise_id IN (SELECT id FROM exercises WHERE owner_id = ? AND activity_template_id = ?)",
+		ownerID, tplID,
+	).Delete(&db.ExerciseMedia{}).Error; err != nil {
+		return err
+	}
+	if err := s.store.DB.Unscoped().Where("owner_id = ? AND activity_template_id = ?", ownerID, tplID).
 		Delete(&db.Exercise{}).Error; err != nil {
 		return err
 	}
-	return tx.Where("owner_id = ? AND id = ?", ownerID, tplID).
+	return s.store.DB.Unscoped().Where("owner_id = ? AND id = ?", ownerID, tplID).
 		Delete(&db.ActivityTemplate{}).Error
 }
 
