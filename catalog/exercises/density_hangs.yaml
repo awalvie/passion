@@ -1,0 +1,22 @@
+name: "Density Hangs (20 mm Edge)"
+label: "hangboard, fingers, strength"
+kind: "timed_reps"
+sets: 4
+reps: 1
+rep_seconds: 30
+set_rest_seconds: 60
+prep_seconds: 10
+notes: |
+  Density / time-under-tension protocol: 4 long hangs of ~30s on a 20mm edge with
+  short (~60s) rest, to accumulate submaximal load on the fingers.
+
+  **Prerequisite — warm up first** ("Finger Base Warm-Up" + a few easy hangs).
+
+  **Intensity:** deliberately submaximal (~RPE 6-7). The short rest is the point —
+  keep the load light enough that you can hold a clean position for the full 30s
+  every set without grip failure.
+
+  **Scaling:** if you can't stay submaximal for 30s, shorten the hold to 20s
+  before reducing rest. Bodyweight on a friendly edge is a fine starting point.
+
+  **Stop** on any sharp pain; ease off if the position degrades late in a hang.

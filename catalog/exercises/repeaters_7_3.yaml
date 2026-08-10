@@ -1,0 +1,24 @@
+name: "Repeaters 7:3 (20 mm Edge)"
+label: "hangboard, fingers, endurance"
+kind: "timed_reps"
+sets: 4
+reps: 6
+rep_seconds: 7
+rep_rest_seconds: 3
+set_rest_seconds: 180
+prep_seconds: 10
+notes: |
+  Strength-endurance protocol: 6 reps of 7s-on / 3s-off per set, 4 sets, 3 min
+  rest between sets. Classic "repeater" timing.
+
+  **Prerequisite — warm up first** ("Finger Base Warm-Up" + a few easy hangs).
+
+  **Intensity:** submaximal. Pick a load/edge you can complete all 6 reps of the
+  set with 1-2 reps still in reserve on the final set (~RPE 7). Repeaters are
+  about accumulating quality time on the edge, not maxing out — if you're failing
+  reps, it's too hard.
+
+  **Scaling:** start at bodyweight on a comfortable edge before adding weight.
+  Drop to 3 sets if grip quality falls off.
+
+  **Stop** on sharp pain or if you can't keep the grip position clean.

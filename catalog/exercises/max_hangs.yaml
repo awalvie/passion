@@ -1,0 +1,25 @@
+name: "Max Hangs (20 mm Edge)"
+label: "hangboard, fingers, strength"
+kind: "timed_reps"
+sets: 5
+reps: 1
+rep_seconds: 10
+set_rest_seconds: 180
+prep_seconds: 10
+notes: |
+  Maximal-strength protocol: 5 hangs of ~10s on a 20mm edge, 3 min rest between.
+
+  **Prerequisite — warm up first.** Never start cold. Run "Finger Base Warm-Up"
+  and a few progressively harder sub-max hangs before your first work set.
+
+  **Intensity:** half-crimp or open-hand (pick one and stay consistent). Add or
+  remove weight so each hang is ~RPE 8 — hard but you could hold ~2 more seconds.
+  Never hang to failure, and never let the edge get smaller AND heavier in the
+  same session.
+
+  **Who this is for:** climbers with a base of finger strength (rough rule: 6+
+  months of consistent climbing, no current finger pain). If you're newer, use
+  the "Emil Sub-max" isometric hangs or Repeaters instead.
+
+  **Stop immediately** on any sharp finger, pulley, or joint pain. Skip if
+  fingers are still sore from a previous session.
