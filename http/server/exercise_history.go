@@ -37,6 +37,8 @@ func (s *Server) exerciseHistoryItems(ex db.Exercise, ownerID uint, limit int) [
 		ActualSets     int
 		ActualReps     int
 		ActualWeightKg float64
+		Kind           string
+		RepSeconds     int
 		TemplateName   string
 	}
 	var rows []row
@@ -47,10 +49,12 @@ func (s *Server) exerciseHistoryItems(ex db.Exercise, ownerID uint, limit int) [
 			"run_exercise_completions.elapsed_seconds, run_exercise_completions.run_notes, "+
 			"run_exercise_completions.actual_sets, run_exercise_completions.actual_reps, "+
 			"run_exercise_completions.actual_weight_kg, "+
+			"exercises.kind as kind, exercises.rep_seconds as rep_seconds, "+
 			"COALESCE(NULLIF(session_runs.custom_name,''), session_templates.name, 'Session') as template_name").
 		Joins("JOIN session_runs ON session_runs.id = run_exercise_completions.run_id").
 		Joins("JOIN scheduled_sessions ON scheduled_sessions.id = session_runs.scheduled_session_id").
 		Joins("LEFT JOIN session_templates ON session_templates.id = scheduled_sessions.session_template_id").
+		Joins("LEFT JOIN exercises ON exercises.id = run_exercise_completions.exercise_id").
 		Where("run_exercise_completions.owner_id = ? AND run_exercise_completions.exercise_id IN ? "+
 			"AND run_exercise_completions.deleted_at IS NULL AND session_runs.status = 'completed'",
 			ownerID, exerciseIDs).
@@ -63,9 +67,11 @@ func (s *Server) exerciseHistoryItems(ex db.Exercise, ownerID uint, limit int) [
 		items = append(items, pages.ExerciseHistoryItem{
 			Date:           formatHistoryDate(r.CompletedAt),
 			TemplateName:   r.TemplateName,
+			Kind:           r.Kind,
 			ActualSets:     r.ActualSets,
 			ActualReps:     r.ActualReps,
 			ActualWeightKg: r.ActualWeightKg,
+			RepSeconds:     r.RepSeconds,
 			ElapsedSeconds: r.ElapsedSeconds,
 			Notes:          r.RunNotes,
 			Status:         r.Status,
