@@ -1168,14 +1168,34 @@
           tickExercise();
           rafHandle = requestAnimationFrame(rafLoop);
         }
+        // --- Screen Wake Lock: keep the display awake while the timer runs so audio/
+        // haptic cues still fire with the phone face-down. The browser auto-releases the
+        // lock when the tab hides, so re-acquire on return. No-op where unsupported
+        // (e.g. older iOS). ---
+        var wakeLock = null;
+        function requestWakeLock() {
+          if (!("wakeLock" in navigator)) return;
+          navigator.wakeLock.request("screen").then(function (wl) {
+            wakeLock = wl;
+            wakeLock.addEventListener("release", function () { wakeLock = null; });
+          }).catch(function () { /* denied or page not visible — ignore */ });
+        }
+        function releaseWakeLock() {
+          if (wakeLock) { wakeLock.release().catch(function () {}); wakeLock = null; }
+        }
+        document.addEventListener("visibilitychange", function () {
+          if (document.visibilityState === "visible" && rafHandle) requestWakeLock();
+        });
         function startSessionInterval() {
           if (rafHandle) return;
           lastSessionTickMs = 0;
           rafHandle = requestAnimationFrame(rafLoop);
+          requestWakeLock();
         }
         function stopSessionInterval() {
           if (rafHandle) cancelAnimationFrame(rafHandle);
           rafHandle = null;
+          releaseWakeLock();
         }
 
         // Highlight the active set-log row (reps_and_sets only).
