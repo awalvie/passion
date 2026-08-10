@@ -1,6 +1,8 @@
 package db
 
 import (
+	"strings"
+
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -10,7 +12,13 @@ type Store struct {
 }
 
 func NewSqlite(path string) (*Store, error) {
-	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
+	// Enable SQLite foreign-key enforcement (off by default). The DSN param applies to
+	// every pooled connection, unlike a one-off PRAGMA that only affects one connection.
+	sep := "?"
+	if strings.Contains(path, "?") {
+		sep = "&"
+	}
+	db, err := gorm.Open(sqlite.Open(path+sep+"_foreign_keys=on"), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
