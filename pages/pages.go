@@ -296,9 +296,11 @@ type RunSummaryView struct {
 type ExerciseHistoryItem struct {
 	Date           string
 	TemplateName   string
+	Kind           string
 	ActualSets     int
 	ActualReps     int
 	ActualWeightKg float64
+	RepSeconds     int
 	ElapsedSeconds int
 	Notes          string
 	Status         string // completed | skipped
@@ -306,6 +308,15 @@ type ExerciseHistoryItem struct {
 
 func (e ExerciseHistoryItem) HasActuals() bool {
 	return e.ActualSets > 0 || e.ActualReps > 0 || e.ActualWeightKg > 0
+}
+
+// HoldLabel returns the per-rep hold time for timed exercises (e.g. "7s"), else "".
+// Lets the history hint show the hang duration that matters for weighted hangboard work.
+func (e ExerciseHistoryItem) HoldLabel() string {
+	if e.Kind == "timed_reps" && e.RepSeconds > 0 {
+		return fmt.Sprintf("%ds", e.RepSeconds)
+	}
+	return ""
 }
 
 type ExerciseHistoryHintView struct {
