@@ -53,6 +53,7 @@
           {{ end }}
         </span>
         {{ if .Notes }}<p class="run-summary-row-notes">{{ .Notes }}</p>{{ end }}
+        {{ if .Ticks }}{{ template "run_ticks_readonly" .Ticks }}{{ end }}
       </div>
     </div>
     {{ end }}

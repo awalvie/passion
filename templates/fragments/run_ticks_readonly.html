@@ -1,0 +1,40 @@
+{{/* Read-only list of logged climbs for a climbing exercise in the run summary. */}}
+{{ define "run_ticks_readonly" }}
+<div class="run-summary-ticks space-y-1.5">
+  {{ range . }}
+  <div class="run-summary-tick px-2.5 py-2 {{ if .Sent }}tick-card--sent{{ else }}tick-card--working{{ end }}">
+    <div class="flex flex-wrap items-center gap-1.5">
+      {{ if .Grade }}<span class="tick-grade-primary">{{ .Grade }}</span>{{ end }}
+      <span class="tick-kind">{{ .Kind }}</span>
+      {{ if .Setting }}<span class="tick-kind">{{ .Setting }}</span>{{ end }}
+      {{ if .Subtype }}<span class="tick-kind">{{ .Subtype }}</span>{{ end }}
+      {{ if .Sent }}
+        <span class="tick-sent-badge flex items-center gap-0.5">
+          <i data-lucide="check-circle" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i> Sent
+        </span>
+      {{ end }}
+      {{ if .RopeStyle }}
+      <span class="tick-rope-style tick-rope-style--{{ .RopeStyleClass }}">
+        <i data-lucide="{{ .RopeStyleIcon }}" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
+        {{ .RopeStyle }}
+      </span>
+      {{ end }}
+      {{ if .Style }}
+      <span class="tick-style tick-style--{{ .StyleClass }}">
+        <i data-lucide="{{ .StyleIcon }}" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
+        {{ .Style }}
+      </span>
+      {{ end }}
+      {{ if gt .Stars 0 }}
+        <span class="text-xs flex items-center gap-0.5" style="color:var(--tick-star)">
+          <i data-lucide="star" style="width:0.6rem;height:0.6rem;fill:currentColor" aria-hidden="true"></i>
+          {{ .Stars }}
+        </span>
+      {{ end }}
+    </div>
+    {{ if .Focus }}<div class="text-xs muted mt-0.5"><span class="font-semibold">Focus:</span> {{ .Focus }}</div>{{ end }}
+    {{ if .Thoughts }}<div class="text-xs muted mt-0.5">{{ .Thoughts }}</div>{{ end }}
+  </div>
+  {{ end }}
+</div>
+{{ end }}

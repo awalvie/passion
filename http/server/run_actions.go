@@ -94,6 +94,17 @@ func (s *Server) handleRunDelete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// summaryTickViews loads the logged climbs for one climbing exercise in a run,
+// as read-only views for the run summary. Returns nil if none or on error —
+// the summary degrades gracefully rather than failing.
+func (s *Server) summaryTickViews(ownerID, runID, exerciseID uint) []pages.ClimbingTickView {
+	ticks, err := db.ListClimbingTicksByExercise(s.store.DB, ownerID, runID, exerciseID)
+	if err != nil || len(ticks) == 0 {
+		return nil
+	}
+	return ticksToViews(ticks)
+}
+
 func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 	ownerID := s.mustUserID(r)
 	runID, err := parseUintParam(r, "runID")
@@ -166,6 +177,9 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 				se.ElapsedSeconds = c.ElapsedSeconds
 				se.Notes = c.RunNotes
 			}
+			if ex.Kind == "climbing" {
+				se.Ticks = s.summaryTickViews(ownerID, run.ID, ex.ID)
+			}
 			switch se.Status {
 			case db.RunStatusCompleted:
 				view.CompletedCount++
@@ -199,6 +213,9 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 					se.Status = c.Status
 					se.ElapsedSeconds = c.ElapsedSeconds
 					se.Notes = c.RunNotes
+				}
+				if ex.Kind == "climbing" {
+					se.Ticks = s.summaryTickViews(ownerID, run.ID, ex.ID)
 				}
 				switch se.Status {
 				case db.RunStatusCompleted:

@@ -2925,6 +2925,18 @@ html[data-theme="dark"] .catalog-dialog-back {
   white-space: pre-wrap;
 }
 
+/* Read-only logged climbs under a climbing exercise in the run summary.
+   A light "list entry inside a list entry" — subtle fill + the sent/working
+   left accent, NOT a full nested card (avoids bordered-box-in-bordered-box). */
+.run-summary-ticks {
+  margin-top: 0.2rem;
+}
+.run-summary-tick {
+  background: var(--card-muted);
+  border-radius: 0.375rem;
+  border-left: 3px solid var(--border);
+}
+
 /* Dialog footer link */
 .run-summary-footer {
   padding: 0.65rem 1rem 0.85rem;
