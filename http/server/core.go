@@ -83,6 +83,7 @@ func (s *Server) Routes() http.Handler {
 
 		pr.HandleFunc("/training-cycles", s.handleTrainingCycles)
 		pr.HandleFunc("/training-cycles/new", s.handleTrainingCyclesNew)
+		pr.HandleFunc("/training-cycles/new/guided", s.handleTrainingCyclesGuided)
 		pr.HandleFunc("/training-cycles/{cycleID}", s.handleTrainingCyclesByID)
 		pr.HandleFunc("/training-cycles/{cycleID}/{action}", s.handleTrainingCyclesByID)
 		pr.HandleFunc("/training-cycles/{cycleID}/week-override-save", s.handleCycleWeekOverrideSave)

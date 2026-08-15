@@ -656,6 +656,11 @@ type NewTrainingCycleParams struct {
 	FormValues map[string]string
 }
 
+type NewTrainingCycleGuidedParams struct {
+	Base
+	Templates []db.SessionTemplate
+}
+
 // CycleWeekTargetView holds resolved targets for one week of a per-week override.
 type CycleWeekTargetView struct {
 	Week        int
@@ -984,6 +989,7 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		{"pages/template_edit_content", "template_edit.html"},
 		{"pages/training_cycles_content", "training_cycles.html"},
 		{"pages/new_cycle_content", "new_cycle.html"},
+		{"pages/new_cycle_guided_content", "new_cycle_guided.html"},
 		{"pages/training_cycle_detail_content", "training_cycle_detail.html"},
 		{"pages/run_content", "run.html"},
 		{"pages/open_session_content", "open_session.html"},
@@ -1153,6 +1159,12 @@ func (p *Pages) NewTrainingCycle(w http.ResponseWriter, params NewTrainingCycleP
 	params.Title = "New Training Cycle"
 	params.Authenticated = true
 	p.renderPage(w, "pages/new_cycle_content", params)
+}
+
+func (p *Pages) NewTrainingCycleGuided(w http.ResponseWriter, params NewTrainingCycleGuidedParams) {
+	params.Title = "Build a Training Cycle"
+	params.Authenticated = true
+	p.renderPage(w, "pages/new_cycle_guided_content", params)
 }
 
 func (p *Pages) TrainingCycleDetail(w http.ResponseWriter, params TrainingCycleDetailParams) {

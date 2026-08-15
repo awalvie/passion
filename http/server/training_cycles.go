@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -271,6 +272,143 @@ func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request)
 	default:
 		s.methodNotAllowed(w)
 	}
+}
+
+// handleTrainingCyclesGuided renders and processes the guided cycle builder — a short
+// smart form that asks a few questions (focus, timeframe, days, sessions) and drafts a
+// cycle by round-robining the chosen sessions across the chosen days. Output is a normal,
+// fully-editable cycle: it redirects into the standard detail-page editor.
+func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Request) {
+	ownerID := s.mustUserID(r)
+	templates, err := s.listTemplates(ownerID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+
+	if r.Method == http.MethodGet {
+		s.pages.NewTrainingCycleGuided(w, pages.NewTrainingCycleGuidedParams{
+			Base:      pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
+			Templates: templates,
+		})
+		return
+	}
+	if r.Method != http.MethodPost {
+		s.methodNotAllowed(w)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		s.badRequest(w, "bad request")
+		return
+	}
+
+	focus := strings.TrimSpace(r.FormValue("focus"))
+	switch focus {
+	case "", "strength", "endurance", "technique", "projects", "general":
+	default:
+		focus = ""
+	}
+	goal := strings.TrimSpace(r.FormValue("goal"))
+
+	// Weeks: an explicit count, or counted back from a target date.
+	weeks := 0
+	if td := strings.TrimSpace(r.FormValue("target_date")); r.FormValue("time_mode") == "date" && td != "" {
+		if parsed, perr := time.ParseInLocation("2006-01-02", td, time.Now().Location()); perr == nil {
+			days := int(localDate(parsed).Sub(localDate(time.Now())).Hours() / 24)
+			weeks = (days + 6) / 7
+		}
+	} else {
+		weeks, _ = strconv.Atoi(strings.TrimSpace(r.FormValue("weeks")))
+	}
+	if weeks <= 0 {
+		weeks = 4
+	}
+
+	allowed := map[uint]bool{}
+	for _, t := range templates {
+		allowed[t.ID] = true
+	}
+	var days []int
+	for _, d := range r.Form["day"] {
+		if n, derr := strconv.Atoi(d); derr == nil && n >= 1 && n <= 7 {
+			days = append(days, n)
+		}
+	}
+	sort.Ints(days)
+	var sessionIDs []uint
+	for _, sv := range r.Form["session"] {
+		if id, ierr := strconv.ParseUint(sv, 10, 64); ierr == nil && allowed[uint(id)] {
+			sessionIDs = append(sessionIDs, uint(id))
+		}
+	}
+	if len(days) == 0 || len(sessionIDs) == 0 {
+		http.Error(w, "pick at least one training day and one session", http.StatusBadRequest)
+		return
+	}
+
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" {
+		name = strconv.Itoa(weeks) + "-week block"
+	}
+
+	startDate := localDate(time.Now())
+	week1Monday := mondayOfLocalDate(startDate)
+
+	cycle := &db.TrainingCycle{
+		OwnerID: ownerID, Name: name, StartDate: startDate, Weeks: weeks,
+		Focus: focus, Goal: goal,
+	}
+	if err := s.store.DB.Create(cycle).Error; err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	cycleID := cycle.ID
+
+	// Round-robin the chosen sessions across the chosen days.
+	var mappingRows []db.TrainingCycleWeekdayMapping
+	for i, dw := range days {
+		mappingRows = append(mappingRows, db.TrainingCycleWeekdayMapping{
+			OwnerID: ownerID, TrainingCycleID: cycleID,
+			Weekday: dw, SessionTemplateID: sessionIDs[i%len(sessionIDs)],
+		})
+	}
+	if err := s.store.DB.Create(&mappingRows).Error; err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+
+	for weekIdx := 0; weekIdx < weeks; weekIdx++ {
+		for _, mr := range mappingRows {
+			scheduled := localDate(week1Monday.AddDate(0, 0, weekIdx*7+(mr.Weekday-1)))
+			if scheduled.Before(startDate) {
+				continue
+			}
+			ss := &db.ScheduledSession{
+				OwnerID: ownerID, TrainingCycleID: &cycleID,
+				ScheduledDate: scheduled, SessionTemplateID: mr.SessionTemplateID,
+			}
+			if err := s.store.DB.Create(ss).Error; err != nil {
+				s.serverError(w, r, err)
+				return
+			}
+		}
+	}
+
+	// Optional deload: a non-blocking rest event over the final week.
+	if r.FormValue("deload") == "1" && weeks >= 2 {
+		ds := localDate(week1Monday.AddDate(0, 0, (weeks-1)*7))
+		ev := &db.CalendarEvent{
+			OwnerID: ownerID, Title: "Deload week", Kind: "rest",
+			StartDate: ds, EndDate: localDate(ds.AddDate(0, 0, 6)),
+		}
+		if s.store.DB.Create(ev).Error == nil {
+			// Blocks has a DB default of true and GORM omits the false zero-value on
+			// insert; force it off so the deload week is informational, not blocking.
+			s.store.DB.Model(ev).Update("blocks", false)
+		}
+	}
+
+	http.Redirect(w, r, "/training-cycles/"+strconv.FormatUint(uint64(cycleID), 10), http.StatusSeeOther)
 }
 
 func (s *Server) handleTrainingCyclesByID(w http.ResponseWriter, r *http.Request) {
