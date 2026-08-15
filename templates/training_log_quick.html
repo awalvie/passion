@@ -1,0 +1,55 @@
+{{ define "content" }}
+<div class="max-w-2xl">
+
+  {{/* Page heading */}}
+  <div class="flex items-center gap-3">
+    <a href="/training-log" class="muted hover:opacity-70" aria-label="Back to training log">
+      <i data-lucide="arrow-left" style="width:1rem;height:1rem" aria-hidden="true"></i>
+    </a>
+    <h1 class="text-xl font-bold">Quick Note</h1>
+  </div>
+  <p class="mt-1 text-xs muted">Jot down thoughts about climbing you did — no session needed.</p>
+
+  <div class="mt-5">
+    {{ if .FormErr }}
+    <div class="mb-4 card-muted p-3 text-sm rounded-lg" style="border-left: 3px solid var(--destructive); color: var(--destructive);">
+      {{ .FormErr }}
+    </div>
+    {{ end }}
+
+    <form action="/training-log/quick" method="post" class="card card-pad flex flex-col gap-5">
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label class="text-xs font-semibold muted block mb-1" for="title"
+            style="text-transform:uppercase;letter-spacing:0.06em;">Title <span class="font-normal">(optional)</span></label>
+          <input id="title" name="title" type="text" class="w-full input text-sm"
+            placeholder="e.g. Outdoor bouldering" value="{{ .NoteTitle }}" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold muted block mb-1" for="date"
+            style="text-transform:uppercase;letter-spacing:0.06em;">Date</label>
+          <input id="date" name="date" type="date" class="w-full input text-sm"
+            value="{{ .DateValue }}" required />
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold muted mb-1 inline-flex items-center gap-1" for="notes"
+          style="text-transform:uppercase;letter-spacing:0.06em;">
+          Notes
+          <i data-lucide="info" style="width:0.75rem;height:0.75rem;opacity:0.6" title="Anything you want to remember — how it felt, what you climbed, conditions, ideas for next time. Markdown supported."></i>
+        </label>
+        <textarea id="notes" name="notes" data-md-editor rows="8"
+          class="w-full input text-sm" placeholder="e.g. Went to the crag with friends. Warm and dry. Tried the slab project again — got past the crux move but pumped out at the top. Beta: match on the sidepull, then high step left.">{{ .Notes }}</textarea>
+      </div>
+
+      <div>
+        <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium">
+          Save note
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{{ end }}

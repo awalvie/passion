@@ -121,6 +121,7 @@ func (s *Server) Routes() http.Handler {
 
 		pr.HandleFunc("/training-log", s.handleTrainingLog)
 		pr.HandleFunc("/training-log/new", s.handleTrainingLogNew)
+		pr.HandleFunc("/training-log/quick", s.handleTrainingLogQuick)
 		pr.HandleFunc("/training-log/for-run/{runID}", s.handleTrainingLogForRun)
 		pr.HandleFunc("GET /training-log/{journalID}", s.handleTrainingLogView)
 		pr.HandleFunc("/training-log/{journalID}/edit", s.handleTrainingLogEdit)
