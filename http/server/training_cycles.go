@@ -323,6 +323,9 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 	if weeks <= 0 {
 		weeks = 4
 	}
+	if weeks > 52 {
+		weeks = 52
+	}
 
 	allowed := map[uint]bool{}
 	for _, t := range templates {
@@ -335,6 +338,15 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 		}
 	}
 	sort.Ints(days)
+	// Dedupe: a repeated weekday would create two mappings (and two scheduled sessions
+	// on the same date), unlike the manual form's one-field-per-weekday layout.
+	var uniqDays []int
+	for i, d := range days {
+		if i == 0 || d != days[i-1] {
+			uniqDays = append(uniqDays, d)
+		}
+	}
+	days = uniqDays
 	var sessionIDs []uint
 	for _, sv := range r.Form["session"] {
 		if id, ierr := strconv.ParseUint(sv, 10, 64); ierr == nil && allowed[uint(id)] {
