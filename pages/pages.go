@@ -821,6 +821,17 @@ type TrainingLogNewParams struct {
 	TemplateActivities []RunSummaryActivity
 }
 
+// TrainingLogQuickParams drives the lightweight standalone-note form
+// (/training-log/quick): date, optional title, and free-text notes only.
+// NoteTitle is the journal's own title, kept distinct from Base.Title (the page title).
+type TrainingLogQuickParams struct {
+	Base
+	DateValue string // pre-filled date in "2006-01-02" format
+	NoteTitle string
+	Notes     string
+	FormErr   string
+}
+
 type TrainingLogEntryView struct {
 	RunID          uint
 	JournalEntryID uint      // ID of the SessionJournal row; 0 if no journal yet
@@ -984,6 +995,7 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		{"pages/exercise_history_content", "exercise_history.html"},
 		{"pages/training_log_content", "training_log.html"},
 		{"pages/training_log_new_content", "training_log_new.html"},
+		{"pages/training_log_quick_content", "training_log_quick.html"},
 		{"pages/training_log_summary_content", "training_log_summary.html"},
 		{"pages/calendar_content", "calendar.html"},
 	}
@@ -1195,6 +1207,12 @@ func (p *Pages) TrainingLogNewPage(w http.ResponseWriter, params TrainingLogNewP
 	}
 	params.Authenticated = true
 	p.renderPage(w, "pages/training_log_new_content", params)
+}
+
+func (p *Pages) TrainingLogQuickPage(w http.ResponseWriter, params TrainingLogQuickParams) {
+	params.Title = "Quick Note"
+	params.Authenticated = true
+	p.renderPage(w, "pages/training_log_quick_content", params)
 }
 
 func (p *Pages) CalendarPage(w http.ResponseWriter, params CalendarPageParams) {

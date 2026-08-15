@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -160,6 +161,56 @@ func (s *Server) finaliseManualEntry(w http.ResponseWriter, r *http.Request, own
 	}
 
 	http.Redirect(w, r, "/training-log", http.StatusSeeOther)
+}
+
+// handleTrainingLogQuick serves GET|POST /training-log/quick — a lightweight
+// standalone journal entry (no session/run attached): just a date, an optional
+// title, and free-text notes. For jotting thoughts about climbing you did
+// without logging a full session.
+func (s *Server) handleTrainingLogQuick(w http.ResponseWriter, r *http.Request) {
+	ownerID := s.mustUserID(r)
+
+	if r.Method == http.MethodPost {
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "bad form data", http.StatusBadRequest)
+			return
+		}
+
+		notes := strings.TrimSpace(r.FormValue("notes"))
+		if notes == "" {
+			s.pages.TrainingLogQuickPage(w, pages.TrainingLogQuickParams{
+				DateValue: strings.TrimSpace(r.FormValue("date")),
+				NoteTitle: strings.TrimSpace(r.FormValue("title")),
+				Notes:     notes,
+				FormErr:   "Write a note before saving.",
+			})
+			return
+		}
+
+		dateStr := strings.TrimSpace(r.FormValue("date"))
+		date, err := time.ParseInLocation("2006-01-02", dateStr, time.Local)
+		if err != nil {
+			date = time.Now()
+		}
+
+		j := db.SessionJournal{
+			OwnerID:  ownerID,
+			Title:    strings.TrimSpace(r.FormValue("title")),
+			Date:     date,
+			WentWell: notes,
+		}
+		if err := db.UpsertSessionJournal(s.store.DB, &j); err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("/training-log/%d", j.ID), http.StatusSeeOther)
+		return
+	}
+
+	s.pages.TrainingLogQuickPage(w, pages.TrainingLogQuickParams{
+		DateValue: time.Now().Format("2006-01-02"),
+	})
 }
 
 // handleTrainingLogDraftDiscard serves POST /training-log/draft/{runID}/discard.
