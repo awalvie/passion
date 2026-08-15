@@ -1,11 +1,11 @@
 {{ define "content" }}
 <style>
   /* Chip toggles: native checkbox/radio hidden, label styled as a Passion chip. */
-  .gc-chip { position: relative; }
+  .gc-chip { position: relative; display: inline-flex; }
   .gc-chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
   .gc-chip span {
     display: flex; align-items: center; justify-content: center; min-height: 2.75rem;
-    text-align: center; cursor: pointer; font-size: 0.82rem;
+    text-align: center; cursor: pointer; font-size: 0.875rem;
     border: 1px solid var(--border); background: var(--card-muted); color: var(--text);
     border-radius: 0.5rem; padding: 0.4rem 0.75rem; transition: all 0.12s ease; user-select: none;
   }
@@ -19,8 +19,9 @@
   @media (max-width: 480px) { .gc-week { grid-template-columns: repeat(4, 1fr); } }
   .gc-cell { border: 1px solid var(--border); border-radius: 0.5rem; min-height: 4rem; padding: 0.4rem; background: var(--card-muted); display: flex; flex-direction: column; gap: 0.25rem; }
   .gc-cell.rest { opacity: 0.5; }
-  .gc-dow { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
-  .gc-tag { font-size: 0.72rem; font-weight: 600; border-radius: 0.35rem; padding: 0.2rem 0.35rem; background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); line-height: 1.25; word-break: break-word; }
+  .gc-dow { font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .gc-tag { font-size: 0.6875rem; font-weight: 600; border-radius: 0.35rem; padding: 0.2rem 0.35rem; background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); line-height: 1.25; word-break: break-word; }
+  #gc-generate:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>
 
 <div class="w-full space-y-4">
@@ -35,8 +36,10 @@
   </div>
 
   {{ if not .Templates }}
-  <div class="card card-pad">
-    <p class="text-sm">You need at least one <strong>session template</strong> before the builder can plan a cycle.</p>
+  <div class="card card-pad text-center py-12">
+    <i data-lucide="layout-template" style="width:2rem;height:2rem;opacity:0.3;margin:0 auto 0.75rem" aria-hidden="true"></i>
+    <p class="text-sm font-semibold">No session templates yet</p>
+    <p class="mt-1 text-xs muted">Create one before the builder can plan a cycle.</p>
     <a href="/templates/new" class="mt-3 inline-block rounded-md btn-primary px-4 py-2 text-sm font-medium">Create a session template →</a>
   </div>
   {{ else }}
@@ -198,7 +201,6 @@
       }
       var ok = days.length > 0 && sessions.length > 0;
       gen.disabled = !ok;
-      gen.style.opacity = ok ? '' : '0.45';
       if (!ok) {
         body.innerHTML = '<div class="text-xs muted" style="border:1px dashed var(--border);border-radius:0.5rem;padding:0.75rem;text-align:center">Pick at least one training day and one session to preview your week.</div>';
         meta.textContent = '';
