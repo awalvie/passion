@@ -434,6 +434,12 @@
           {{ else }}
           <span class="run-session-label text-xs muted">{{ .RunTemplateName }}</span>
           {{ end }}
+          {{ if .RunNeeds }}
+          <span class="text-xs muted inline-flex items-center gap-1 min-w-0" title="Equipment this session assumes">
+            <i data-lucide="wrench" style="width:0.75rem;height:0.75rem;flex-shrink:0" aria-hidden="true"></i>
+            <span class="truncate">{{ .RunNeeds }}</span>
+          </span>
+          {{ end }}
           <div class="run-session-strip-right">
             <button type="button" class="run-mute-btn" id="btn-mute" aria-label="Toggle sound"><i data-lucide="volume-2" class="run-icon"></i></button>
           </div>

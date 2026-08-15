@@ -150,6 +150,12 @@
                             {{ .CycleName }}
                           </span>
                         {{ end }}
+                        {{ if .Needs }}
+                          <span class="inline-flex items-center gap-1 rounded border px-1.5 py-0.5" style="border-color:var(--border);background:var(--card-muted)">
+                            <i data-lucide="wrench" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+                            {{ .Needs }}
+                          </span>
+                        {{ end }}
                       </div>
                     </div>
                     {{ if .Done }}

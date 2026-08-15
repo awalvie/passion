@@ -293,6 +293,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 			TemplateName:   ss.SessionTemplate.Name,
 			ExerciseCount:  exerciseCountByTemplate[ss.SessionTemplateID],
 			CycleName:      cycleName,
+			Needs:          ss.SessionTemplate.Needs,
 			Color:          normalizeTemplateColor(ss.SessionTemplate.Color),
 			Done:           completedWeekRunID[ss.ID] != 0,
 			CompletedRunID: completedWeekRunID[ss.ID],

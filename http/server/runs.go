@@ -174,6 +174,7 @@ func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, o
 		Base:                 pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
 		RunID:                runID,
 		RunTemplateName:      displayName,
+		RunNeeds:             ss.SessionTemplate.Needs,
 		RunTotalSteps:        len(steps),
 		RunCompleted:         runCompleted,
 		RunSessionSeconds:    sumElapsedSeconds(completions),
