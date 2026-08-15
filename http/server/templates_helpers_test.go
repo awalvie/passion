@@ -40,6 +40,10 @@ func TestParseSessionDurationSeconds(t *testing.T) {
 		{"session_duration_minutes=-5", 0},
 		{"session_duration_minutes=oops", 0},
 		{"", 0},
+		{"session_duration_hours=1&session_duration_minutes=30&session_duration_seconds=0", 5400},
+		{"session_duration_hours=0&session_duration_minutes=0&session_duration_seconds=45", 45},
+		{"session_duration_hours=2", 7200},
+		{"session_duration_hours=1&session_duration_minutes=30&session_duration_seconds=15", 5415},
 	}
 	for _, tc := range cases {
 		r := httptest.NewRequest("POST", "/", strings.NewReader(tc.body))
