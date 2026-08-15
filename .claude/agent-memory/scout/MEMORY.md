@@ -1,5 +1,6 @@
 # Memory Index
 
+- [project_guided_cycle_creator.md](project_guided_cycle_creator.md) — Optional RP/Boostcamp front-door helper: 4 required Qs (emphasis/timeframe/days/sessions), single smart form, generates editable draft → existing detail editor; climbing intensity spacing in template assignment
 - [project_cycle_metadata_and_equipment.md](project_cycle_metadata_and_equipment.md) — Mesocycle fields: add Notes/Focus(reuse journal enum)/Label-tag/Goal; calendar already owns events+deload; equipment = informational "needs" chips over a Fitbod matrix
 - [project_route_logging.md](project_route_logging.md) — Fast in-session route logging: inherit-from-previous-tick, outcome quick-actions, Focus(pre)/Thoughts(post) two-phase fork
 - [feedback_audit_2026-06.md](feedback_audit_2026-06.md) — Confirmed guided-run gaps: journal dead-end (summary already has it for open/manual), Working-badge missing mapping, duplicate-run Start, no climbing analytics in History
