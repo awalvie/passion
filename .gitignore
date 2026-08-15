@@ -16,6 +16,9 @@ passion.yaml
 .vscode/
 .idea/
 
+# Claude Code local settings
+.claude/settings.local.json
+
 # Go build outputs
 *.exe
 *.out
