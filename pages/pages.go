@@ -33,6 +33,8 @@ type DashboardSession struct {
 	// Color is validated hex (#rrggbb) or empty.
 	Color string
 	Done  bool
+	// CompletedRunID is the run to link "View" to when Done; 0 otherwise.
+	CompletedRunID uint
 }
 
 type ActiveRunView struct {
@@ -387,6 +389,8 @@ type ExercisesFragmentData struct {
 // TemplateFragmentData is passed to preview_container and scheduled_session_preview fragments.
 type TemplateFragmentData struct {
 	Template *db.SessionTemplate
+	// ScheduledSessionID lets the preview offer a Start action; 0 when absent.
+	ScheduledSessionID uint
 }
 
 // ---------------------------------------------------------------------------
@@ -908,6 +912,7 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		filepath.Join("templates", "fragments", "exercises_container.html"),
 		filepath.Join("templates", "fragments", "preview_container.html"),
 		filepath.Join("templates", "fragments", "scheduled_session_preview.html"),
+		filepath.Join("templates", "fragments", "schedule_session_picker.html"),
 		filepath.Join("templates", "fragments", "activity_template_exercises_container.html"),
 		filepath.Join("templates", "fragments", "venues_list.html"),
 		filepath.Join("templates", "fragments", "boards_list.html"),

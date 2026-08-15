@@ -52,5 +52,15 @@
       <div class="text-sm muted">No activities yet.</div>
     {{ end }}
   </div>
+
+  {{ if .ScheduledSessionID }}
+    <div class="mt-4 flex justify-end">
+      <form hx-post="/scheduled-sessions/{{ .ScheduledSessionID }}/start" hx-swap="none" method="post">
+        <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium">
+          Start session
+        </button>
+      </form>
+    </div>
+  {{ end }}
 </div>
 {{ end }}

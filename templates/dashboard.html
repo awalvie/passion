@@ -104,6 +104,11 @@
       <div class="flex items-center gap-2 shrink-0">
         {{ if not .Templates }}
           <a href="/templates/new" class="rounded-md btn-primary px-4 py-2 text-sm font-medium">Create template</a>
+        {{ else }}
+          <button type="button" class="inline-flex items-center gap-1 rounded-md btn-ghost border px-3 py-1.5 text-sm font-medium" style="border-color:var(--border)" onclick="document.getElementById('schedule-session-picker-dialog').showModal()">
+            <i data-lucide="plus" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+            Schedule
+          </button>
         {{ end }}
       </div>
     </div>
@@ -116,7 +121,7 @@
             <div class="space-y-1.5">
               {{ range .Sessions }}
                 <div
-                  class="group relative flex cursor-pointer items-stretch overflow-hidden rounded-lg border transition-all hover:shadow-md"
+                  class="relative flex cursor-pointer items-stretch overflow-hidden rounded-lg border transition-all hover:shadow-md"
                   style="border-color: var(--border){{ if .Color }}; border-left: 4px solid {{ .Color }}{{ end }}"
                   hx-get="/scheduled-sessions/{{ .ID }}/preview"
                   hx-target="#scheduled-session-preview-body"
@@ -147,16 +152,27 @@
                         {{ end }}
                       </div>
                     </div>
-                    <form
-                      hx-post="/scheduled-sessions/{{ .ID }}/start"
-                      hx-swap="none"
-                      method="post"
-                      onclick="event.stopPropagation()"
-                    >
-                      <button type="submit" class="shrink-0 rounded-md btn-primary px-3 py-1.5 text-xs font-medium md:opacity-0 transition-opacity md:group-hover:opacity-100">
-                        Start
-                      </button>
-                    </form>
+                    {{ if .Done }}
+                      <a
+                        href="/runs/{{ .CompletedRunID }}/summary"
+                        class="shrink-0 rounded-md btn-ghost border px-3 py-1.5 text-xs font-medium"
+                        style="border-color:var(--border)"
+                        onclick="event.stopPropagation()"
+                      >
+                        View
+                      </a>
+                    {{ else }}
+                      <form
+                        hx-post="/scheduled-sessions/{{ .ID }}/start"
+                        hx-swap="none"
+                        method="post"
+                        onclick="event.stopPropagation()"
+                      >
+                        <button type="submit" class="shrink-0 rounded-md btn-primary px-3 py-1.5 text-xs font-medium">
+                          Start
+                        </button>
+                      </form>
+                    {{ end }}
                   </div>
                 </div>
               {{ end }}
@@ -168,6 +184,14 @@
           <i data-lucide="calendar-x" style="width:2rem;height:2rem;opacity:0.3;margin:0 auto 0.75rem" aria-hidden="true"></i>
           <p class="text-sm font-semibold">No sessions this week</p>
           <p class="mt-1 text-xs muted">Schedule a session or start one from a template.</p>
+          {{ if .Templates }}
+            <div class="mt-3 flex items-center justify-center">
+              <button type="button" class="inline-flex items-center gap-1 rounded-md btn-ghost border px-3 py-1.5 text-sm font-medium" style="border-color:var(--border)" onclick="document.getElementById('schedule-session-picker-dialog').showModal()">
+                <i data-lucide="plus" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+                Schedule a session
+              </button>
+            </div>
+          {{ end }}
         </div>
       {{ end }}
     </div>
@@ -243,6 +267,9 @@
     </div>
   </div>
 </dialog>
+
+<!-- Schedule a session dialog -->
+{{ template "schedule_session_picker.html" . }}
 
 
 <script>

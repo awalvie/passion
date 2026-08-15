@@ -35,7 +35,7 @@ func (s *Server) handleScheduledSessionsByID(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		s.pages.RenderFragment(w, "fragments/scheduled_session_preview", pages.TemplateFragmentData{Template: tpl})
+		s.pages.RenderFragment(w, "fragments/scheduled_session_preview", pages.TemplateFragmentData{Template: tpl, ScheduledSessionID: uint(ss.ID)})
 		return
 	case "start":
 		if r.Method != http.MethodPost {
@@ -50,15 +50,20 @@ func (s *Server) handleScheduledSessionsByID(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
-		// Resume an already-running run for this session rather than starting a
-		// duplicate (double-tap, or hitting Start again from another tab).
+		// Guard against duplicate runs: a scheduled session already started
+		// should resume its existing run rather than spawn a second one. A
+		// completed run goes to its summary; a running one back into the player.
+		// Drafts are ignored so a manual-log draft can't hijack the Start.
 		var existing db.SessionRun
 		if err := s.store.DB.
-			Where("owner_id = ? AND scheduled_session_id = ? AND status = ? AND is_draft = ?",
-				ownerID, ss.ID, db.RunStatusRunning, false).
-			Order("started_at desc").
+			Where("owner_id = ? AND scheduled_session_id = ? AND is_draft = ?", ownerID, ss.ID, false).
+			Order("started_at DESC").
 			First(&existing).Error; err == nil {
-			w.Header().Set("HX-Redirect", "/runs/"+strconv.FormatUint(uint64(existing.ID), 10))
+			dest := "/runs/" + strconv.FormatUint(uint64(existing.ID), 10)
+			if existing.Status == db.RunStatusCompleted {
+				dest += "/summary"
+			}
+			w.Header().Set("HX-Redirect", dest)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
