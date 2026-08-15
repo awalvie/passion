@@ -273,6 +273,8 @@ type RunSummaryExercise struct {
 	Status          string // "completed" | "skipped" | "pending"
 	ElapsedSeconds  int
 	Notes           string
+	// Ticks holds logged climbs for a climbing-kind exercise (read-only in the summary).
+	Ticks []ClimbingTickView
 }
 
 type RunSummaryActivity struct {
@@ -919,6 +921,7 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		filepath.Join("templates", "fragments", "manual_exercises.html"),
 		filepath.Join("templates", "fragments", "open_exercise_panel.html"),
 		filepath.Join("templates", "fragments", "open_template_panel.html"),
+		filepath.Join("templates", "fragments", "run_ticks_readonly.html"),
 	}
 
 	fragmentFiles := []string{
@@ -929,6 +932,7 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		filepath.Join("templates", "fragments", "activity_template_exercises_container.html"),
 		filepath.Join("templates", "fragments", "start_session_picker.html"),
 		filepath.Join("templates", "fragments", "run_summary.html"),
+		filepath.Join("templates", "fragments", "run_ticks_readonly.html"),
 		filepath.Join("templates", "fragments", "exercise_history_hint.html"),
 		filepath.Join("templates", "fragments", "exercise_history_popup.html"),
 		filepath.Join("templates", "fragments", "exercise_divergence_hint.html"),
