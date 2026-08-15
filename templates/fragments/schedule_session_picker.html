@@ -1,0 +1,59 @@
+{{ define "schedule_session_picker.html" }}
+<dialog id="schedule-session-picker-dialog" class="catalog-dialog">
+  <div class="catalog-dialog-panel">
+    <div class="catalog-dialog-body">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h3 class="m-0 text-base font-semibold">Schedule a session</h3>
+        </div>
+        <form method="dialog">
+          <button type="submit" class="rounded-md btn-ghost px-3 py-1 text-sm font-medium">Close</button>
+        </form>
+      </div>
+
+      {{ if .Templates }}
+        <form
+          hx-post="/scheduled-sessions/add"
+          hx-swap="none"
+          method="post"
+          class="mt-4 flex flex-col gap-3"
+        >
+          <div>
+            <label for="schedule-session-date" class="mb-1 block text-xs font-medium muted">Date</label>
+            <input
+              id="schedule-session-date"
+              name="scheduled_date"
+              type="date"
+              class="w-full input text-sm"
+              required
+            />
+          </div>
+          <div>
+            <label for="schedule-session-template-id" class="mb-1 block text-xs font-medium muted">Template</label>
+            <select
+              id="schedule-session-template-id"
+              name="session_template_id"
+              class="w-full input text-sm"
+              aria-label="Choose template to schedule"
+              required
+            >
+              <option value="" disabled selected>Choose a template...</option>
+              {{ range .Templates }}
+                <option value="{{ .ID }}">{{ .Name }}</option>
+              {{ end }}
+            </select>
+          </div>
+          <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium">
+            Schedule
+          </button>
+        </form>
+      {{ else }}
+        <p class="mt-4 mb-4 text-sm muted">
+          No templates yet.
+          <a href="/templates/new" class="underline">Create one first.</a>
+        </p>
+      {{ end }}
+    </div>
+  </div>
+</dialog>
+{{ end }}

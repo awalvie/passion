@@ -236,8 +236,8 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// --- Completed runs for the week (to mark Done on session cards) ---
-	completedWeekSSIDs := map[uint]bool{}
+	// --- Completed runs for the week (to mark Done + link View on session cards) ---
+	completedWeekRunID := map[uint]uint{} // scheduled_session_id -> completed run id
 	if len(weekSessions) > 0 {
 		ssIDs := make([]uint, 0, len(weekSessions))
 		for _, ss := range weekSessions {
@@ -251,7 +251,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for _, r := range completedWeekRuns {
-			completedWeekSSIDs[r.ScheduledSessionID] = true
+			completedWeekRunID[r.ScheduledSessionID] = r.ID
 		}
 	}
 
@@ -288,13 +288,14 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		}
 
 		view := pages.DashboardSession{
-			ID:            ss.ID,
-			DateLabel:     dayLabel,
-			TemplateName:  ss.SessionTemplate.Name,
-			ExerciseCount: exerciseCountByTemplate[ss.SessionTemplateID],
-			CycleName:     cycleName,
-			Color:         normalizeTemplateColor(ss.SessionTemplate.Color),
-			Done:          completedWeekSSIDs[ss.ID],
+			ID:             ss.ID,
+			DateLabel:      dayLabel,
+			TemplateName:   ss.SessionTemplate.Name,
+			ExerciseCount:  exerciseCountByTemplate[ss.SessionTemplateID],
+			CycleName:      cycleName,
+			Color:          normalizeTemplateColor(ss.SessionTemplate.Color),
+			Done:           completedWeekRunID[ss.ID] != 0,
+			CompletedRunID: completedWeekRunID[ss.ID],
 		}
 		weekSessionViews = append(weekSessionViews, view)
 
