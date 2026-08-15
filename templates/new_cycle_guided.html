@@ -1,0 +1,224 @@
+{{ define "content" }}
+<style>
+  /* Chip toggles: native checkbox/radio hidden, label styled as a Passion chip. */
+  .gc-chip { position: relative; }
+  .gc-chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .gc-chip span {
+    display: flex; align-items: center; justify-content: center; min-height: 2.75rem;
+    text-align: center; cursor: pointer; font-size: 0.82rem;
+    border: 1px solid var(--border); background: var(--card-muted); color: var(--text);
+    border-radius: 0.5rem; padding: 0.4rem 0.75rem; transition: all 0.12s ease; user-select: none;
+  }
+  .gc-chip input:hover + span { border-color: var(--accent-border); }
+  .gc-chip input:checked + span { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .gc-chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .gc-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.35rem; }
+  @media (max-width: 480px) { .gc-days { grid-template-columns: repeat(4, 1fr); } }
+  .gc-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .gc-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.35rem; }
+  @media (max-width: 480px) { .gc-week { grid-template-columns: repeat(4, 1fr); } }
+  .gc-cell { border: 1px solid var(--border); border-radius: 0.5rem; min-height: 4rem; padding: 0.4rem; background: var(--card-muted); display: flex; flex-direction: column; gap: 0.25rem; }
+  .gc-cell.rest { opacity: 0.5; }
+  .gc-dow { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .gc-tag { font-size: 0.72rem; font-weight: 600; border-radius: 0.35rem; padding: 0.2rem 0.35rem; background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); line-height: 1.25; word-break: break-word; }
+</style>
+
+<div class="w-full space-y-4">
+  <div class="card card-pad">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <h1 class="text-xl font-bold">Build a training cycle</h1>
+        <p class="mt-1 text-sm muted">Answer a few questions and Passion drafts a cycle you can edit.</p>
+      </div>
+      <a href="/training-cycles/new" class="rounded-md btn-ghost px-3 py-1.5 text-sm shrink-0">Build it manually →</a>
+    </div>
+  </div>
+
+  {{ if not .Templates }}
+  <div class="card card-pad">
+    <p class="text-sm">You need at least one <strong>session template</strong> before the builder can plan a cycle.</p>
+    <a href="/templates/new" class="mt-3 inline-block rounded-md btn-primary px-4 py-2 text-sm font-medium">Create a session template →</a>
+  </div>
+  {{ else }}
+
+  <form method="post" action="/training-cycles/new/guided" class="space-y-4" id="gc-form">
+    <div class="card card-pad space-y-5">
+      <div>
+        <label class="text-xs font-semibold muted uppercase tracking-widest" for="gc-name">Cycle name</label>
+        <input id="gc-name" name="name" class="mt-1 w-full input" value="4-week Strength block" autocomplete="off" />
+        <p class="mt-1 text-xs muted">Suggested from your focus — edit anytime.</p>
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold muted uppercase tracking-widest">What's the focus of this block? <span style="color:var(--accent)">*</span></label>
+        <div class="gc-chips mt-2" id="gc-focus">
+          <label class="gc-chip"><input type="radio" name="focus" value="strength" checked /><span>Strength</span></label>
+          <label class="gc-chip"><input type="radio" name="focus" value="endurance" /><span>Endurance</span></label>
+          <label class="gc-chip"><input type="radio" name="focus" value="technique" /><span>Technique</span></label>
+          <label class="gc-chip"><input type="radio" name="focus" value="projects" /><span>Projects</span></label>
+          <label class="gc-chip"><input type="radio" name="focus" value="general" /><span>General</span></label>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold muted uppercase tracking-widest">How long? <span style="color:var(--accent)">*</span></label>
+        <div class="mt-2 flex flex-wrap items-center gap-3">
+          <div class="gc-chips" id="gc-timemode">
+            <label class="gc-chip"><input type="radio" name="time_mode" value="weeks" checked /><span>Set weeks</span></label>
+            <label class="gc-chip"><input type="radio" name="time_mode" value="date" /><span>Count back from a date</span></label>
+          </div>
+          <span class="flex items-center gap-2" id="gc-weeks-wrap">
+            <input id="gc-weeks" name="weeks" type="number" min="1" value="4" class="input text-sm" style="width:4.5rem" />
+            <span class="text-xs muted">weeks</span>
+          </span>
+          <span class="flex items-center gap-2" id="gc-date-wrap" hidden>
+            <input id="gc-date" name="target_date" type="date" class="input text-sm" style="width:11rem" />
+            <span class="text-xs muted" id="gc-date-weeks"></span>
+          </span>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold muted uppercase tracking-widest">Which days can you train? <span style="color:var(--accent)">*</span></label>
+        <div class="gc-days mt-2" id="gc-days">
+          <label class="gc-chip"><input type="checkbox" name="day" value="1" checked /><span>Mon</span></label>
+          <label class="gc-chip"><input type="checkbox" name="day" value="2" /><span>Tue</span></label>
+          <label class="gc-chip"><input type="checkbox" name="day" value="3" checked /><span>Wed</span></label>
+          <label class="gc-chip"><input type="checkbox" name="day" value="4" /><span>Thu</span></label>
+          <label class="gc-chip"><input type="checkbox" name="day" value="5" checked /><span>Fri</span></label>
+          <label class="gc-chip"><input type="checkbox" name="day" value="6" /><span>Sat</span></label>
+          <label class="gc-chip"><input type="checkbox" name="day" value="7" /><span>Sun</span></label>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold muted uppercase tracking-widest">What sessions will you run? <span style="color:var(--accent)">*</span></label>
+        <div class="gc-chips mt-2" id="gc-sessions">
+          {{ range .Templates }}
+          <label class="gc-chip"><input type="checkbox" name="session" value="{{ .ID }}" data-name="{{ .Name }}" /><span>{{ .Name }}</span></label>
+          {{ end }}
+        </div>
+        <p class="mt-1 text-xs muted">Chosen sessions are spread across your training days, round-robin.</p>
+      </div>
+
+      <details class="passion-disclosure">
+        <summary class="cursor-pointer list-none flex items-center gap-3 py-1 text-sm font-semibold">
+          Add detail
+          <span class="ml-auto text-xs font-normal muted">goal · venue · injuries — optional</span>
+        </summary>
+        <div class="mt-3 space-y-3">
+          <div>
+            <label class="text-xs font-semibold muted uppercase tracking-widest" for="gc-goal">Goal</label>
+            <input id="gc-goal" name="goal" class="mt-1 w-full input text-sm" placeholder="e.g. Send my project by the trip" autocomplete="off" />
+          </div>
+          <div>
+            <label class="text-xs font-semibold muted uppercase tracking-widest" for="gc-venue">Where / equipment</label>
+            <input id="gc-venue" name="venue" class="mt-1 w-full input text-sm" placeholder="e.g. Home board + gym, 20mm edge" autocomplete="off" />
+            <p class="mt-1 text-xs muted">Captured in the cycle notes for reference.</p>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="card card-pad">
+      <div class="flex items-baseline justify-between">
+        <h2 class="text-sm font-semibold m-0">Your week</h2>
+        <span class="text-xs muted" id="gc-meta"></span>
+      </div>
+      <div class="mt-3" id="gc-preview"></div>
+      <label class="mt-3 flex items-center gap-2 text-sm muted cursor-pointer">
+        <input type="checkbox" name="deload" value="1" id="gc-deload" checked /> Make the final week lighter (adds a rest event)
+      </label>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button type="submit" class="rounded-md btn-primary px-4 py-2 text-sm font-medium" id="gc-generate">Generate cycle →</button>
+      <span class="text-xs muted">You'll land in the cycle editor to tweak anything.</span>
+    </div>
+  </form>
+  {{ end }}
+</div>
+
+<script>
+  (function () {
+    var form = document.getElementById('gc-form');
+    if (!form) return;
+    var DOW = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    var FOCUS_NAME = { strength: 'Strength', endurance: 'Endurance', technique: 'Technique', projects: 'Projects', general: 'General' };
+
+    function checkedVals(name) {
+      return Array.prototype.map.call(form.querySelectorAll('input[name="' + name + '"]:checked'), function (i) { return i; });
+    }
+    function weeksVal() {
+      var mode = (form.querySelector('input[name="time_mode"]:checked') || {}).value;
+      if (mode === 'date') {
+        var d = document.getElementById('gc-date').value;
+        if (!d) return 4;
+        var days = Math.ceil((new Date(d) - new Date()) / 86400000);
+        return Math.max(1, Math.round(days / 7));
+      }
+      return Math.max(1, parseInt(document.getElementById('gc-weeks').value || '4', 10));
+    }
+
+    // timeframe mode show/hide
+    form.querySelectorAll('input[name="time_mode"]').forEach(function (r) {
+      r.addEventListener('change', function () {
+        var date = form.querySelector('input[name="time_mode"]:checked').value === 'date';
+        document.getElementById('gc-weeks-wrap').hidden = date;
+        document.getElementById('gc-date-wrap').hidden = !date;
+        render();
+      });
+    });
+    // auto-name from focus + weeks
+    function refreshName() {
+      var f = (form.querySelector('input[name="focus"]:checked') || {}).value;
+      var nameEl = document.getElementById('gc-name');
+      if (f && !nameEl.dataset.edited) nameEl.value = weeksVal() + '-week ' + FOCUS_NAME[f] + ' block';
+    }
+    document.getElementById('gc-name').addEventListener('input', function () { this.dataset.edited = '1'; });
+    form.querySelectorAll('input[name="focus"]').forEach(function (r) { r.addEventListener('change', function () { refreshName(); render(); }); });
+    ['gc-weeks', 'gc-date', 'gc-deload'].forEach(function (id) {
+      var el = document.getElementById(id); if (el) el.addEventListener('input', function () { refreshName(); render(); });
+    });
+    form.querySelectorAll('input[name="day"], input[name="session"]').forEach(function (c) { c.addEventListener('change', render); });
+
+    function render() {
+      var days = checkedVals('day').map(function (i) { return parseInt(i.value, 10); }).sort(function (a, b) { return a - b; });
+      var sessions = checkedVals('session').map(function (i) { return i.dataset.name; });
+      var weeks = weeksVal();
+      var deload = document.getElementById('gc-deload').checked;
+      var meta = document.getElementById('gc-meta');
+      var body = document.getElementById('gc-preview');
+      var gen = document.getElementById('gc-generate');
+
+      var dm = form.querySelector('input[name="time_mode"]:checked').value;
+      if (dm === 'date') {
+        var dv = document.getElementById('gc-date').value;
+        document.getElementById('gc-date-weeks').textContent = dv ? ('→ ' + weeks + ' weeks') : 'pick a date';
+      }
+      var ok = days.length > 0 && sessions.length > 0;
+      gen.disabled = !ok;
+      gen.style.opacity = ok ? '' : '0.45';
+      if (!ok) {
+        body.innerHTML = '<div class="text-xs muted" style="border:1px dashed var(--border);border-radius:0.5rem;padding:0.75rem;text-align:center">Pick at least one training day and one session to preview your week.</div>';
+        meta.textContent = '';
+        return;
+      }
+      meta.textContent = days.length + ' session' + (days.length > 1 ? 's' : '') + '/week · × ' + weeks + ' weeks';
+      var cells = '';
+      for (var dw = 1; dw <= 7; dw++) {
+        var idx = days.indexOf(dw);
+        if (idx === -1) {
+          cells += '<div class="gc-cell rest"><span class="gc-dow">' + DOW[dw] + '</span><span class="text-xs muted">rest</span></div>';
+        } else {
+          var name = sessions[idx % sessions.length].replace(/</g, '&lt;');
+          cells += '<div class="gc-cell"><span class="gc-dow">' + DOW[dw] + '</span><span class="gc-tag">' + name + '</span></div>';
+        }
+      }
+      body.innerHTML = '<div class="gc-week">' + cells + '</div>' +
+        '<p class="mt-2 text-xs muted">This week repeats for all ' + weeks + ' weeks' + (deload ? '; the final week gets a rest event' : '') + '. Everything is editable next.</p>';
+    }
+    render();
+  })();
+</script>
+{{ end }}
