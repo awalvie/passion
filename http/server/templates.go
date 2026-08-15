@@ -39,16 +39,25 @@ func newExerciseFromLibraryExercise(lib db.LibraryExercise, ownerID, activityID 
 }
 
 func parseSessionDurationSeconds(r *http.Request) int {
-	// "session_duration_minutes" as a float (e.g. "12.5" → 750s). Empty/zero → 0 (count-up).
-	v := strings.TrimSpace(r.FormValue("session_duration_minutes"))
-	if v == "" {
-		return 0
+	// Minutes as a float (e.g. "12.5" → 750s). The library editor also posts
+	// separate hours/seconds fields; sum all three when present. Empty/zero → 0 (count-up).
+	var total float64
+	if v := strings.TrimSpace(r.FormValue("session_duration_hours")); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil && f > 0 {
+			total += f * 3600
+		}
 	}
-	f, err := strconv.ParseFloat(v, 64)
-	if err != nil || f <= 0 {
-		return 0
+	if v := strings.TrimSpace(r.FormValue("session_duration_minutes")); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil && f > 0 {
+			total += f * 60
+		}
 	}
-	return int(math.Round(f * 60))
+	if v := strings.TrimSpace(r.FormValue("session_duration_seconds")); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil && f > 0 {
+			total += f
+		}
+	}
+	return int(math.Round(total))
 }
 
 func (s *Server) syncMediaFromForm(r *http.Request, ownerID uint, exerciseID *uint, libraryExerciseID *uint) error {
