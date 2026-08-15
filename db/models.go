@@ -35,6 +35,9 @@ type SessionTemplate struct {
 	Label string `gorm:"size:128;not null;default:''"`
 	// Source is the program or coach the template comes from (e.g. "Power Company Climbing").
 	Source string `gorm:"size:64;not null;default:''"`
+	// Needs lists the equipment/gear this session assumes, comma-separated, shown as an
+	// informational chip line (e.g. "hangboard, kilter board, 20mm edge").
+	Needs string `gorm:"size:128;not null;default:''"`
 	// IsSystem marks the hidden per-user anchor template used for open sessions.
 	IsSystem bool `gorm:"not null;default:false"`
 	// ManagedByCatalog is true for rows created by the YAML importer. Only these are
@@ -195,6 +198,15 @@ type TrainingCycle struct {
 	// StartDate is the date the user chose in the UI (used as the lower bound when generating sessions).
 	StartDate time.Time `gorm:"index;not null"`
 	Weeks     int       `gorm:"not null"`
+
+	// Optional cycle metadata (all default-empty; edited on the detail page).
+	// Notes: free-form markdown. Focus: mirrors SessionJournal.Focus
+	// (strength|endurance|technique|projects|general). Label: comma-separated tag
+	// chips (same pattern as templates/exercises). Goal: one-line aspiration.
+	Notes string `gorm:"type:text"`
+	Focus string `gorm:"size:32;not null;default:''"`
+	Label string `gorm:"size:128;not null;default:''"`
+	Goal  string `gorm:"size:255;not null;default:''"`
 
 	WeekdayMappings []TrainingCycleWeekdayMapping `gorm:"constraint:OnDelete:CASCADE;"`
 }
