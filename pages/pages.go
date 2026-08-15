@@ -30,6 +30,7 @@ type DashboardSession struct {
 	TemplateName  string
 	ExerciseCount int
 	CycleName     string
+	Needs         string
 	// Color is validated hex (#rrggbb) or empty.
 	Color string
 	Done  bool
@@ -436,6 +437,7 @@ type RunParams struct {
 	Base
 	RunID                uint
 	RunTemplateName      string
+	RunNeeds             string
 	RunTotalSteps        int
 	RunCompleted         bool
 	RunSessionSeconds    int
@@ -691,6 +693,10 @@ type TrainingCycleDetailParams struct {
 	CycleID            uint
 	CycleName          string
 	CycleWeeks         int
+	CycleNotes         string
+	CycleFocus         string
+	CycleLabel         string
+	CycleGoal          string
 	CycleWeekdayLabels []string
 	CycleTemplates     []db.SessionTemplate
 	CycleRows          []CycleWeekRowView

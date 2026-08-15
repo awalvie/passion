@@ -27,6 +27,69 @@
     </button>
   </div>
 
+  {{/* ── Cycle details (optional metadata, autosaved) ── */}}
+  <details class="card passion-disclosure">
+    <summary class="cursor-pointer list-none flex items-center gap-3 px-3 py-3 sm:px-4 text-sm font-semibold">
+      Cycle details
+      <span class="ml-auto text-xs font-normal muted">focus · goal · tags · notes</span>
+    </summary>
+    <form
+      hx-post="/training-cycles/{{ .CycleID }}/details-save"
+      hx-swap="none"
+      hx-trigger="change, keyup changed delay:800ms"
+      hx-on::before-request="const s=this.querySelector('[data-saved]'); if(s){s.textContent='Saving…';s.style.opacity=1}"
+      hx-on::after-request="const s=this.querySelector('[data-saved]'); if(s){const ok=event.detail&&event.detail.successful; s.textContent=ok?'Saved':'Save failed'; s.style.opacity=1; if(ok)setTimeout(function(){s.style.opacity=0},1200)}"
+      class="border-t px-4 py-4 space-y-3"
+      style="border-color:var(--border)"
+    >
+      <div>
+        <label for="cycle-name" class="text-xs font-semibold muted uppercase tracking-widest">Cycle name</label>
+        <input id="cycle-name" name="name" class="mt-1 w-full input text-sm" value="{{ .CycleName }}" autocomplete="off" />
+      </div>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label for="cycle-focus" class="text-xs font-semibold muted uppercase tracking-widest">Focus</label>
+          <select id="cycle-focus" name="focus" class="mt-1 w-full input text-sm">
+            <option value="">—</option>
+            <option value="strength" {{ if eq .CycleFocus "strength" }}selected{{ end }}>Strength</option>
+            <option value="endurance" {{ if eq .CycleFocus "endurance" }}selected{{ end }}>Endurance</option>
+            <option value="technique" {{ if eq .CycleFocus "technique" }}selected{{ end }}>Technique</option>
+            <option value="projects" {{ if eq .CycleFocus "projects" }}selected{{ end }}>Projects</option>
+            <option value="general" {{ if eq .CycleFocus "general" }}selected{{ end }}>General</option>
+          </select>
+        </div>
+        <div>
+          <label for="cycle-goal" class="text-xs font-semibold muted uppercase tracking-widest">Goal</label>
+          <input id="cycle-goal" name="goal" class="mt-1 w-full input text-sm" value="{{ .CycleGoal }}" placeholder="e.g. Send Biographie" autocomplete="off" />
+        </div>
+      </div>
+      <div>
+        <label for="cycle-label" class="text-xs font-semibold muted uppercase tracking-widest">Tags</label>
+        <input id="cycle-label" name="label" class="mt-1 w-full input text-sm" value="{{ .CycleLabel }}" placeholder="e.g. power block, trip prep" autocomplete="off" />
+        <p class="mt-1 text-xs muted">Comma-separated.</p>
+      </div>
+      <div>
+        <label for="cycle-notes" class="text-xs font-semibold muted uppercase tracking-widest">Notes</label>
+        <textarea id="cycle-notes" name="notes" rows="3" class="mt-1 w-full input text-sm" placeholder="Anything about this block…">{{ .CycleNotes }}</textarea>
+      </div>
+      <div class="text-right">
+        <span data-saved class="text-xs muted" style="opacity:0;transition:opacity .2s" aria-live="polite">Saved</span>
+      </div>
+    </form>
+    <div class="border-t px-4 py-3 flex justify-end" style="border-color:var(--border)">
+      <form
+        hx-post="/training-cycles/{{ .CycleID }}/delete"
+        hx-swap="none"
+        hx-confirm="Delete this cycle? Sessions you've already run stay in your history; unrun sessions are removed."
+      >
+        <button type="submit" class="rounded-md btn-ghost px-3 py-1.5 text-xs font-medium inline-flex items-center gap-1.5" style="color:var(--destructive)">
+          <i data-lucide="trash-2" style="width:0.8rem;height:0.8rem" aria-hidden="true"></i>
+          Delete cycle
+        </button>
+      </form>
+    </div>
+  </details>
+
   {{/* ── Desktop: calendar grid ── */}}
   <div class="card card-pad overflow-auto hidden md:block">
     <div

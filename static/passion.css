@@ -385,6 +385,25 @@ body {
   font-size: 0.875rem;
 }
 
+/* Native date input: theme the calendar-picker glyph to match the site. It's a
+   dark icon by default, so it disappears on the dark theme's input background. */
+input[type="date"].input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.12s ease;
+}
+input[type="date"].input:hover::-webkit-calendar-picker-indicator {
+  opacity: 1;
+}
+:root[data-theme="dark"] input[type="date"].input::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(0.9);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) input[type="date"].input::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(0.9);
+  }
+}
+
 .divider {
   border-top: 1px solid var(--border);
 }

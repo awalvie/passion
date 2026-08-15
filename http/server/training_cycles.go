@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"gorm.io/gorm"
 	"passion/db"
 	"passion/pages"
 )
@@ -312,10 +313,98 @@ func (s *Server) handleTrainingCyclesByID(w http.ResponseWriter, r *http.Request
 		case "override-clear":
 			s.handleCycleOverrideClear(w, r, cycleID, ownerID)
 			return
+		case "details-save":
+			s.handleCycleDetailsSave(w, r, cycleID, ownerID)
+			return
+		case "delete":
+			s.handleTrainingCycleDelete(w, r, cycleID, ownerID)
+			return
 		}
 	}
 
 	http.NotFound(w, r)
+}
+
+// handleTrainingCycleDelete removes a cycle while preserving logged history: scheduled
+// sessions that already have runs are detached (kept in history, unlinked from the
+// cycle); unrun sessions, the weekday map, and the exercise overrides are removed.
+func (s *Server) handleTrainingCycleDelete(w http.ResponseWriter, r *http.Request, cycleID uint, ownerID uint) {
+	var cycle db.TrainingCycle
+	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, cycleID).First(&cycle).Error; err != nil {
+		s.notFound(w)
+		return
+	}
+	err := s.store.DB.Transaction(func(tx *gorm.DB) error {
+		var scheduled []db.ScheduledSession
+		if err := tx.Where("owner_id = ? AND training_cycle_id = ?", ownerID, cycleID).Find(&scheduled).Error; err != nil {
+			return err
+		}
+		for _, ss := range scheduled {
+			var runCount int64
+			if err := tx.Model(&db.SessionRun{}).Where("scheduled_session_id = ?", ss.ID).Count(&runCount).Error; err != nil {
+				return err
+			}
+			if runCount > 0 {
+				// Keep the session and its runs; just unlink from the cycle.
+				if err := tx.Model(&db.ScheduledSession{}).Where("id = ?", ss.ID).
+					Update("training_cycle_id", nil).Error; err != nil {
+					return err
+				}
+			} else if err := tx.Unscoped().Delete(&db.ScheduledSession{}, ss.ID).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Unscoped().Where("owner_id = ? AND training_cycle_id = ?", ownerID, cycleID).
+			Delete(&db.CycleExerciseOverride{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Where("owner_id = ? AND training_cycle_id = ?", ownerID, cycleID).
+			Delete(&db.CycleExerciseWeekOverride{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Where("owner_id = ? AND training_cycle_id = ?", ownerID, cycleID).
+			Delete(&db.TrainingCycleWeekdayMapping{}).Error; err != nil {
+			return err
+		}
+		return tx.Unscoped().Delete(&db.TrainingCycle{}, cycleID).Error
+	})
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	w.Header().Set("HX-Redirect", "/training-cycles")
+	w.WriteHeader(http.StatusOK)
+}
+
+// handleCycleDetailsSave autosaves the optional cycle metadata (notes / focus / tag / goal).
+func (s *Server) handleCycleDetailsSave(w http.ResponseWriter, r *http.Request, cycleID uint, ownerID uint) {
+	if err := r.ParseForm(); err != nil {
+		s.badRequest(w, "bad request")
+		return
+	}
+	var cycle db.TrainingCycle
+	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, cycleID).First(&cycle).Error; err != nil {
+		s.notFound(w)
+		return
+	}
+	focus := strings.TrimSpace(r.FormValue("focus"))
+	switch focus {
+	case "", "strength", "endurance", "technique", "projects", "general":
+	default:
+		focus = ""
+	}
+	if name := strings.TrimSpace(r.FormValue("name")); name != "" {
+		cycle.Name = name
+	}
+	cycle.Notes = strings.TrimSpace(r.FormValue("notes"))
+	cycle.Focus = focus
+	cycle.Label = strings.TrimSpace(r.FormValue("label"))
+	cycle.Goal = strings.TrimSpace(r.FormValue("goal"))
+	if err := s.store.DB.Save(&cycle).Error; err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Request, cycleID uint, ownerID uint) {
@@ -411,6 +500,10 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 		CycleID:            cycleID,
 		CycleName:          cycle.Name,
 		CycleWeeks:         cycle.Weeks,
+		CycleNotes:         cycle.Notes,
+		CycleFocus:         cycle.Focus,
+		CycleLabel:         cycle.Label,
+		CycleGoal:          cycle.Goal,
 		CycleWeekdayLabels: weekdayLabels,
 		CycleTemplates:     templates,
 		CycleRows:          rows,
