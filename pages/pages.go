@@ -365,8 +365,6 @@ type HistoryStatsView struct {
 	ThisMonthCount    int
 	CurrentStreak     int
 	LongestStreak     int
-	MostUsedTemplate  string
-	MostUsedColor     string
 	WeeklyChartJSON   template.JS
 	WeeklyTrendJSON   template.JS
 	TemplateBreakdown []TemplateBreakdownItem

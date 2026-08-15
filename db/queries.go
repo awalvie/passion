@@ -458,8 +458,6 @@ type ClimbingTickSummary struct {
 	TotalBoulders int
 	TotalRoutes   int
 	TotalSends    int
-	MinGrade      string
-	MaxGrade      string
 }
 
 // gradeRanks maps every grade across all systems to a comparable ordinal.
@@ -895,14 +893,6 @@ func ListTickSummariesByRun(gdb *gorm.DB, ownerID uint, runIDs []uint) (map[uint
 		}
 		if t.Sent {
 			s.TotalSends++
-		}
-		if t.Grade != "" {
-			if s.MinGrade == "" || t.Grade < s.MinGrade {
-				s.MinGrade = t.Grade
-			}
-			if t.Grade > s.MaxGrade {
-				s.MaxGrade = t.Grade
-			}
 		}
 		m[t.RunID] = s
 	}
