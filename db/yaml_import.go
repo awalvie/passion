@@ -55,6 +55,7 @@ type yamlSessionTemplate struct {
 	Color      string                `yaml:"color"`
 	Label      string                `yaml:"label"`
 	Source     string                `yaml:"source"`
+	Needs      string                `yaml:"needs"`
 	Activities []yamlSessionActivity `yaml:"activities"`
 }
 
@@ -756,6 +757,7 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 	template.Color = strings.TrimSpace(tpl.Color)
 	template.Label = strings.TrimSpace(tpl.Label)
 	template.Source = strings.TrimSpace(tpl.Source)
+	template.Needs = strings.TrimSpace(tpl.Needs)
 	template.ManagedByCatalog = true
 	if err := tx.Save(&template).Error; err != nil {
 		return err

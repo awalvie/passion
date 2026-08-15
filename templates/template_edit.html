@@ -56,6 +56,17 @@
         />
       </div>
       <div>
+        <label class="text-xs font-medium" for="tpl-needs-{{ .Template.ID }}">Needs</label>
+        <input
+          id="tpl-needs-{{ .Template.ID }}"
+          name="needs"
+          class="mt-1 w-full input text-sm"
+          value="{{ .Template.Needs }}"
+          placeholder="equipment, comma-separated, e.g. hangboard, kilter, 20mm edge"
+          autocomplete="off"
+        />
+      </div>
+      <div>
         <label class="text-xs font-medium">Dashboard color</label>
         <input
           type="color"
