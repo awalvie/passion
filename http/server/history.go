@@ -238,17 +238,6 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 	currentStreak, longestStreak := computeStreaks(completedDays, now)
 
 	// Most used template
-	mostUsedTemplate := ""
-	mostUsedColor := ""
-	mostUsedCount := 0
-	for name, count := range templateCounts {
-		if count > mostUsedCount {
-			mostUsedCount = count
-			mostUsedTemplate = name
-			mostUsedColor = templateColors[name]
-		}
-	}
-
 	// Build template breakdown sorted by count desc
 	breakdown := make([]pages.TemplateBreakdownItem, 0, len(templateCounts))
 	for name, count := range templateCounts {
@@ -389,8 +378,6 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 			ThisMonthCount:    thisMonthCount,
 			CurrentStreak:     currentStreak,
 			LongestStreak:     longestStreak,
-			MostUsedTemplate:  mostUsedTemplate,
-			MostUsedColor:     mostUsedColor,
 			WeeklyChartJSON:   template.JS(chartJSON),
 			WeeklyTrendJSON:   template.JS(weeklyTrendJSON),
 			TemplateBreakdown: breakdown,
