@@ -18,10 +18,7 @@ activities:
   - type: "cooldown"
     exercises:
       - name: "Apply: Mantra Routes"
-        sets: 3
-        reps: 1
-        rep_seconds: 180
-        set_rest_seconds: 90
+        kind: "climbing"
         notes: |
           Climb 2-3 routes ONE grade harder than drill terrain.
           Mantra on loop: "precise feet, straight arms, relaxed grip"
