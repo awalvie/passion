@@ -34,17 +34,25 @@
             </div>
           {{ end }}
 
-          <div class="group card relative hover:shadow-sm transition-shadow" style="border-left: 4px solid {{ if .Color }}{{ .Color }}{{ else }}var(--border){{ end }}; {{ if .Color }}background: color-mix(in srgb, {{ .Color }} 5%, var(--panel));{{ end }} padding: 0.75rem 1rem;">
+          <div class="group card relative hover:shadow-sm transition-shadow" style="border-left: 4px solid {{ if .Color }}{{ .Color }}{{ else }}var(--border){{ end }}; {{ if .Color }}background: color-mix(in srgb, {{ .Color }} 5%, var(--panel));{{ else if .IsStandalone }}background: var(--card-muted);{{ end }} padding: 0.75rem 1rem;">
 
             {{/* Row 1: title + focus pill + edit/delete */}}
             <div class="flex items-center justify-between gap-2">
-              {{ if gt .JournalEntryID 0 }}
+              {{ if .IsStandalone }}
+              <a href="/training-log/{{ .JournalEntryID }}" class="flex items-center gap-1.5 min-w-0 text-sm font-semibold leading-snug hover:underline after:absolute after:inset-0">
+                <i data-lucide="notebook-pen" style="width:0.8rem;height:0.8rem;color:var(--muted)" aria-hidden="true"></i>
+                <span class="truncate">{{ .TemplateName }}</span>
+              </a>
+              {{ else if gt .JournalEntryID 0 }}
               <a href="/training-log/{{ .JournalEntryID }}" class="text-sm font-semibold leading-snug hover:underline truncate after:absolute after:inset-0">{{ .TemplateName }}</a>
               {{ else }}
               <a href="/training-log/for-run/{{ .RunID }}" class="text-sm font-semibold leading-snug truncate after:absolute after:inset-0">{{ .TemplateName }}</a>
               {{ end }}
               <div class="relative z-10 flex items-center gap-1.5 shrink-0">
-                {{ if .Focus }}
+                {{ if .IsStandalone }}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border"
+                      style="border-color:var(--border);background:var(--panel);color:var(--muted)">Note</span>
+                {{ else if .Focus }}
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
                       style="background:var(--accent-bg);color:var(--accent)">{{ .Focus }}</span>
                 {{ end }}
