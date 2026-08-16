@@ -754,13 +754,19 @@ func (s *Server) handleTrainingLogForRun(w http.ResponseWriter, r *http.Request)
 func buildTrainingLogStats(entries []pages.TrainingLogEntryView, now time.Time) pages.TrainingLogStatsView {
 	var sleepSum, sleepN, energySum, energyN, rpeSum, rpeN int
 	focusCounts := map[string]int{}
-	var indoorCount, outdoorCount, thisMonth, thisWeek int
+	var indoorCount, outdoorCount, thisMonth, thisWeek, sessionCount int
 	activeDays := map[string]bool{}
 
 	weekStart := mondayOfLocalDate(now)
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 
 	for _, e := range entries {
+		// Standalone quick notes are jottings, not sessions — excluded from every
+		// stat bucket (volume, this-week/month, streak, and the wellness averages).
+		if e.IsStandalone {
+			continue
+		}
+		sessionCount++
 		if e.SleepScore > 0 {
 			sleepSum += e.SleepScore
 			sleepN++
@@ -815,7 +821,7 @@ func buildTrainingLogStats(entries []pages.TrainingLogEntryView, now time.Time) 
 	currentStreak, _ := computeStreaks(activeDays, now)
 
 	return pages.TrainingLogStatsView{
-		TotalSessions: len(entries),
+		TotalSessions: sessionCount,
 		ThisMonth:     thisMonth,
 		ThisWeek:      thisWeek,
 		CurrentStreak: currentStreak,
