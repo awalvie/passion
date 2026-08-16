@@ -209,6 +209,21 @@ type TrainingCycle struct {
 	Goal  string `gorm:"size:255;not null;default:''"`
 
 	WeekdayMappings []TrainingCycleWeekdayMapping `gorm:"constraint:OnDelete:CASCADE;"`
+	CycleGoals      []CycleGoal                   `gorm:"constraint:OnDelete:CASCADE;"`
+}
+
+// CycleGoal is one free-text "before → after" goal for a training cycle. A cycle
+// can have several (the plan's engine). Hard-deleted with the cycle in
+// handleTrainingCycleDelete — the CASCADE tag alone isn't relied on (soft-deletes
+// don't trigger FK cascade in this codebase).
+type CycleGoal struct {
+	gorm.Model
+
+	OwnerID         uint   `gorm:"index;not null"`
+	TrainingCycleID uint   `gorm:"index;not null"`
+	Before          string `gorm:"size:255;not null;default:''"`
+	After           string `gorm:"size:255;not null;default:''"`
+	OrderIndex      int    `gorm:"not null;default:0"`
 }
 
 // TrainingCycleWeekdayMapping maps a weekday (Mon=1..Sun=7) to a session_template.

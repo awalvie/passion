@@ -3372,45 +3372,48 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
 }
 
 /* Stepper */
+/* Connected number stepper: − [ input ] + as one bordered control. */
 .stepper {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: var(--panel);
 }
 .stepper-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.3rem;
-  height: 1.3rem;
-  border-radius: 50%;
-  border: 1px solid var(--accent-border, var(--accent));
-  background: var(--accent-bg);
-  color: var(--accent);
-  font-size: 0.8rem;
+  width: 1.9rem;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1rem;
   line-height: 1;
   cursor: pointer;
   user-select: none;
   transition: background 0.1s, color 0.1s;
 }
-.stepper-btn:hover { background: var(--accent); color: #fff; }
-.stepper-btn:active { opacity: 0.8; }
+.stepper-btn:hover { background: var(--card-muted); color: var(--accent); }
+.stepper-btn:active { background: var(--accent-bg); }
 .stepper-input {
-  width: 2.2rem;
-  height: 1.6rem;
+  width: 2.6rem;
+  height: 1.9rem;
   padding: 0 0.2rem;
-  font-size: 0.8rem;
-  border: 1px solid var(--border);
-  border-radius: 0.25rem;
-  background: var(--bg);
+  font-size: 0.8125rem;
+  border: none;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  background: transparent;
   color: var(--text);
   text-align: center;
   -moz-appearance: textfield;
 }
 .stepper-input::-webkit-inner-spin-button,
 .stepper-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.stepper-input:focus { outline: none; border-color: var(--accent); z-index: 1; position: relative; }
-.stepper-input--modified { border-color: var(--accent); background: var(--accent-bg); }
+.stepper-input:focus { outline: none; background: var(--card-muted); }
+.stepper-input--modified { background: var(--accent-bg); color: var(--accent); font-weight: 600; }
 
 /* Target field group (label + stepper) */
 .cycle-target-field {
@@ -4010,3 +4013,101 @@ select.input { -webkit-appearance: none; appearance: none; }
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ── Guided cycle builder (/training-cycles/new/guided) ──────────────────── */
+/* Chip toggles: native checkbox/radio hidden, label styled as a Passion chip. */
+.gc-chip { position: relative; display: inline-flex; }
+.gc-chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.gc-chip span {
+  display: flex; align-items: center; justify-content: center; width: 100%; min-height: 2.25rem;
+  text-align: center; cursor: pointer; font-size: 0.8125rem;
+  border: 1px solid var(--border); background: var(--card-muted); color: var(--text);
+  border-radius: 0.5rem; padding: 0.3rem 0.6rem; transition: all 0.12s ease; user-select: none;
+}
+.gc-chip input:hover + span { border-color: var(--accent-border); }
+/* Selected = quiet accent tint (not a solid billboard) so many selected chips
+   don't overwhelm the page. */
+.gc-chip input:checked + span { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.gc-chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Ensure [hidden] wins over Tailwind display utilities (flex) on toggled wrappers. */
+#gc-weeks-wrap[hidden], #gc-date-wrap[hidden], #gc-rest-range[hidden] { display: none !important; }
+.gc-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.35rem; }
+@media (max-width: 480px) { .gc-days { grid-template-columns: repeat(4, 1fr); } }
+.gc-days .gc-chip { display: flex; }
+.gc-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.gc-help { font-size: 0.75rem; color: var(--muted); margin-top: 0.15rem; }
+.gc-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.35rem; }
+@media (max-width: 480px) { .gc-week { grid-template-columns: repeat(4, 1fr); } }
+.gc-cell { border: 1px solid var(--border); border-radius: 0.5rem; min-height: 4rem; padding: 0.4rem; background: var(--card-muted); display: flex; flex-direction: column; gap: 0.25rem; }
+.gc-cell.rest { opacity: 0.5; }
+.gc-dow { font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.gc-tag { font-size: 0.6875rem; font-weight: 600; border-radius: 0.35rem; padding: 0.2rem 0.35rem; background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); line-height: 1.25; word-break: break-word; }
+/* Per-day session assignment: one row per chosen training day. */
+.gc-day-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.gc-day-row .gc-day-name { flex: 0 0 3rem; font-size: 0.8125rem; font-weight: 600; color: var(--muted); }
+.gc-day-row select { flex: 1 1 12rem; min-width: 10rem; }
+/* Energy as a connected segmented control (one control, not 3 loose buttons). */
+.gc-energy { display: inline-flex; flex: 0 0 auto; border: 1px solid var(--border); border-radius: 0.4rem; overflow: hidden; }
+.gc-energy .gc-chip span {
+  border: none; border-left: 1px solid var(--border); border-radius: 0;
+  background: var(--panel); color: var(--muted); min-height: 1.9rem; padding: 0.2rem 0.55rem; font-size: 0.7rem; font-weight: 500;
+}
+.gc-energy .gc-chip:first-child span { border-left: none; }
+.gc-energy .gc-chip input:hover + span { background: var(--card-muted); }
+/* Hide the selected segment's own divider so its tint reads as a clean block
+   (no stray grey edge on the left when Moderate/Hard are active). */
+.gc-energy .gc-chip input:checked + span { background: var(--accent-bg); color: var(--accent); font-weight: 600; border-left-color: transparent; }
+
+/* De-clutter helpers: section card titles, heading info-hover tooltip. */
+.gc-card-title { margin: 0; font-size: 0.9375rem; font-weight: 700; letter-spacing: -0.01em; }
+.gc-field-head { display: flex; align-items: center; gap: 0.35rem; }
+.gc-info { position: relative; display: inline-flex; align-items: center; color: var(--muted); cursor: help; }
+.gc-info:hover, .gc-info:focus-visible { color: var(--accent); }
+.gc-tip {
+  position: absolute; left: 0; top: calc(100% + 0.4rem); z-index: 40;
+  width: max-content; max-width: 15rem; padding: 0.4rem 0.6rem;
+  font-size: 0.75rem; font-weight: 400; text-transform: none; letter-spacing: normal; line-height: 1.35;
+  color: var(--text); background: var(--panel); border: 1px solid var(--border);
+  border-radius: 0.375rem; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  opacity: 0; visibility: hidden; transition: opacity 0.12s ease;
+}
+.gc-info:hover .gc-tip, .gc-info:focus .gc-tip, .gc-info:focus-within .gc-tip { opacity: 1; visibility: visible; }
+/* Compact chip variant for the advisory per-day energy selector. */
+.gc-chip-sm span { min-height: 2rem; padding: 0.2rem 0.5rem; font-size: 0.75rem; }
+
+/* Goal rows: before → target pairs (builder + detail page). */
+.gc-goal-row { display: flex; align-items: center; gap: 0.4rem; }
+.gc-goal-row input { flex: 1 1 0; min-width: 0; }
+.gc-goal-arrow { flex: 0 0 auto; color: var(--muted); }
+.gc-goal-remove {
+  flex: 0 0 auto; align-self: stretch; width: 2.75rem; min-height: 2.75rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); background: var(--panel); color: var(--muted); border-radius: 0.375rem;
+  cursor: pointer; font-size: 1rem; line-height: 1;
+}
+.gc-goal-remove:hover { color: var(--text); border-color: var(--accent-border); }
+/* Stack before/after on narrow screens so placeholders don't truncate. */
+@media (max-width: 480px) {
+  .gc-goal-row {
+    display: grid;
+    grid-template-columns: 1fr 2.75rem;
+    grid-template-areas: "before remove" "after remove";
+    column-gap: 0.4rem;
+    row-gap: 0.35rem;
+  }
+  .gc-goal-row input[name="goal_before"] { grid-area: before; }
+  .gc-goal-row input[name="goal_after"] { grid-area: after; }
+  .gc-goal-arrow { display: none; }
+  .gc-goal-remove { grid-area: remove; }
+}
+.gc-goal-add { margin-top: 0.5rem; font-size: 0.8125rem; font-weight: 600; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0.25rem 0; }
+.gc-goal-add:disabled { opacity: 0.4; cursor: not-allowed; }
+/* Equipment tag input */
+.gc-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; padding: 0.35rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--panel); }
+.gc-tags:focus-within { border-color: var(--accent); }
+.gc-tag-chip { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.8125rem; padding: 0.25rem 0.35rem 0.25rem 0.6rem; border-radius: 9999px; background: var(--card-muted); border: 1px solid var(--border); color: var(--text); }
+.gc-tag-chip button { display: inline-flex; align-items: center; justify-content: center; width: 1.1rem; height: 1.1rem; border: none; background: none; color: var(--muted); cursor: pointer; border-radius: 9999px; font-size: 0.9rem; line-height: 1; }
+.gc-tag-chip button:hover { color: var(--text); background: var(--border); }
+.gc-tag-field { flex: 1 1 8rem; min-width: 8rem; border: none; background: none; color: var(--text); font-size: 0.875rem; padding: 0.35rem 0.25rem; outline: none; }
+#gc-generate:disabled { opacity: 0.4; cursor: not-allowed; }

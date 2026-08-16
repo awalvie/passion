@@ -647,6 +647,8 @@ type TemplateEditParams struct {
 type TrainingCycleListParams struct {
 	Base
 	TrainingCycles []db.TrainingCycle
+	// ScheduledCounts maps a cycle ID to its number of scheduled sessions.
+	ScheduledCounts map[uint]int
 }
 
 type NewTrainingCycleParams struct {
@@ -693,6 +695,12 @@ type CycleExerciseOverrideView struct {
 	WeekOverrides []CycleWeekTargetView // len == CycleWeeks, indexed by week-1
 }
 
+// CycleGoalView is one before→after goal for the detail-page editor.
+type CycleGoalView struct {
+	Before string
+	After  string
+}
+
 type TrainingCycleDetailParams struct {
 	Base
 	CycleID            uint
@@ -701,7 +709,7 @@ type TrainingCycleDetailParams struct {
 	CycleNotes         string
 	CycleFocus         string
 	CycleLabel         string
-	CycleGoal          string
+	CycleGoals         []CycleGoalView
 	CycleWeekdayLabels []string
 	CycleTemplates     []db.SessionTemplate
 	CycleRows          []CycleWeekRowView

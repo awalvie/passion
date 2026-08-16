@@ -16,13 +16,20 @@
     {{/* Mobile card list */}}
     <div class="mt-6 md:hidden space-y-2">
       {{ range .TrainingCycles }}
-      <a href="/training-cycles/{{ .ID }}" class="flex items-center justify-between gap-3 rounded-lg border px-4 py-3 no-underline" style="border-color:var(--border);background:var(--panel)">
-        <div class="min-w-0">
+      <div class="group relative flex items-center gap-2 rounded-lg border px-4 py-3" style="border-color:var(--border);background:var(--panel)">
+        <a href="/training-cycles/{{ .ID }}" class="min-w-0 flex-1 no-underline after:absolute after:inset-0">
           <div class="text-sm font-medium truncate">{{ .Name }}</div>
-          <div class="text-xs muted mt-0.5">Starting {{ .StartDate.Format "Jan 2, 2006" }} · {{ .Weeks }} weeks</div>
-        </div>
-        <i data-lucide="chevron-right" class="shrink-0 muted" style="width:1rem;height:1rem" aria-hidden="true"></i>
-      </a>
+          <div class="text-xs muted mt-0.5">Starting {{ .StartDate.Format "Jan 2, 2006" }} · {{ .Weeks }} weeks · {{ index $.ScheduledCounts .ID }} session{{ if ne (index $.ScheduledCounts .ID) 1 }}s{{ end }}</div>
+        </a>
+        <form class="relative z-10 shrink-0"
+              hx-post="/training-cycles/{{ .ID }}/delete"
+              hx-confirm="Delete “{{ .Name }}”? Sessions you've already run stay in your history; unrun sessions are removed.">
+          <button type="submit" class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Delete cycle" aria-label="Delete {{ .Name }}">
+            <i data-lucide="trash-2" style="width:0.9rem;height:0.9rem" aria-hidden="true"></i>
+          </button>
+        </form>
+        <i data-lucide="chevron-right" class="relative z-10 shrink-0 muted" style="width:1rem;height:1rem" aria-hidden="true"></i>
+      </div>
       {{ end }}
     </div>
 
@@ -35,6 +42,7 @@
             <th class="px-3 py-2">Start</th>
             <th class="px-3 py-2">Weeks</th>
             <th class="px-3 py-2">Scheduled sessions</th>
+            <th class="px-3 py-2 text-right">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -47,7 +55,16 @@
               </td>
               <td class="px-3 py-3 muted">{{ .StartDate.Format "2006-01-02" }}</td>
               <td class="px-3 py-3 muted">{{ .Weeks }}</td>
-              <td class="px-3 py-3 muted">{{ .Weeks }}</td>
+              <td class="px-3 py-3 muted">{{ index $.ScheduledCounts .ID }}</td>
+              <td class="px-3 py-3 text-right">
+                <form class="inline"
+                      hx-post="/training-cycles/{{ .ID }}/delete"
+                      hx-confirm="Delete “{{ .Name }}”? Sessions you've already run stay in your history; unrun sessions are removed.">
+                  <button type="submit" class="rounded p-1.5 hover:opacity-70" style="color:var(--muted)" title="Delete cycle" aria-label="Delete {{ .Name }}">
+                    <i data-lucide="trash-2" style="width:0.9rem;height:0.9rem" aria-hidden="true"></i>
+                  </button>
+                </form>
+              </td>
             </tr>
           {{ end }}
         </tbody>

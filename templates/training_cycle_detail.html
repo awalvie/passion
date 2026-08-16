@@ -17,14 +17,33 @@
         </span>
       </div>
     </div>
-    <button
-      type="button"
-      onclick="document.getElementById('add-event-dialog').showModal()"
-      class="rounded-md btn-ghost px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 shrink-0"
-    >
-      <i data-lucide="calendar-plus" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
-      Add event
-    </button>
+    <div class="flex items-center gap-2 shrink-0">
+      <button
+        type="button"
+        onclick="document.getElementById('add-event-dialog').showModal()"
+        class="rounded-md btn-ghost px-3 py-1.5 text-xs font-medium flex items-center gap-1.5"
+      >
+        <i data-lucide="calendar-plus" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+        Add event
+      </button>
+      <details class="cycle-actions">
+        <summary class="rounded-md btn-ghost px-2 py-1.5 flex items-center cursor-pointer list-none" title="More actions" aria-label="More actions">
+          <i data-lucide="ellipsis-vertical" style="width:1rem;height:1rem" aria-hidden="true"></i>
+        </summary>
+        <div class="cycle-actions-menu">
+          <form
+            hx-post="/training-cycles/{{ .CycleID }}/delete"
+            hx-swap="none"
+            hx-confirm="Delete “{{ .CycleName }}”? Sessions you've already run stay in your history; unrun sessions are removed."
+          >
+            <button type="submit" class="site-nav-dropdown-item" style="color:var(--destructive)">
+              <i data-lucide="trash-2" style="width:0.85rem;height:0.85rem;margin-right:0.4rem" aria-hidden="true"></i>
+              Delete cycle
+            </button>
+          </form>
+        </div>
+      </details>
+    </div>
   </div>
 
   {{/* ── Cycle details (optional metadata, autosaved) ── */}}
@@ -46,22 +65,37 @@
         <label for="cycle-name" class="text-xs font-semibold muted uppercase tracking-widest">Cycle name</label>
         <input id="cycle-name" name="name" class="mt-1 w-full input text-sm" value="{{ .CycleName }}" autocomplete="off" />
       </div>
-      <div class="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label for="cycle-focus" class="text-xs font-semibold muted uppercase tracking-widest">Focus</label>
-          <select id="cycle-focus" name="focus" class="mt-1 w-full input text-sm">
-            <option value="">—</option>
-            <option value="strength" {{ if eq .CycleFocus "strength" }}selected{{ end }}>Strength</option>
-            <option value="endurance" {{ if eq .CycleFocus "endurance" }}selected{{ end }}>Endurance</option>
-            <option value="technique" {{ if eq .CycleFocus "technique" }}selected{{ end }}>Technique</option>
-            <option value="projects" {{ if eq .CycleFocus "projects" }}selected{{ end }}>Projects</option>
-            <option value="general" {{ if eq .CycleFocus "general" }}selected{{ end }}>General</option>
-          </select>
+      <div>
+        <label for="cycle-focus" class="text-xs font-semibold muted uppercase tracking-widest">Focus</label>
+        <select id="cycle-focus" name="focus" class="mt-1 w-full input text-sm">
+          <option value="">—</option>
+          <option value="strength" {{ if eq .CycleFocus "strength" }}selected{{ end }}>Strength</option>
+          <option value="endurance" {{ if eq .CycleFocus "endurance" }}selected{{ end }}>Endurance</option>
+          <option value="technique" {{ if eq .CycleFocus "technique" }}selected{{ end }}>Technique</option>
+          <option value="projects" {{ if eq .CycleFocus "projects" }}selected{{ end }}>Projects</option>
+          <option value="general" {{ if eq .CycleFocus "general" }}selected{{ end }}>General</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs font-semibold muted uppercase tracking-widest">Goals — before → after</label>
+        <div class="mt-1 space-y-2" id="cycle-goals">
+          {{ range .CycleGoals }}
+          <div class="gc-goal-row">
+            <input name="goal_before" class="input text-sm" value="{{ .Before }}" placeholder="Now" autocomplete="off" />
+            <span class="gc-goal-arrow" aria-hidden="true">→</span>
+            <input name="goal_after" class="input text-sm" value="{{ .After }}" placeholder="Goal" autocomplete="off" />
+            <button type="button" class="gc-goal-remove" aria-label="Remove goal" title="Remove goal">×</button>
+          </div>
+          {{ else }}
+          <div class="gc-goal-row">
+            <input name="goal_before" class="input text-sm" placeholder="Now — e.g. Scared leading" autocomplete="off" />
+            <span class="gc-goal-arrow" aria-hidden="true">→</span>
+            <input name="goal_after" class="input text-sm" placeholder="Goal — e.g. Confident leading" autocomplete="off" />
+            <button type="button" class="gc-goal-remove" aria-label="Remove goal" title="Remove goal">×</button>
+          </div>
+          {{ end }}
         </div>
-        <div>
-          <label for="cycle-goal" class="text-xs font-semibold muted uppercase tracking-widest">Goal</label>
-          <input id="cycle-goal" name="goal" class="mt-1 w-full input text-sm" value="{{ .CycleGoal }}" placeholder="e.g. Send Biographie" autocomplete="off" />
-        </div>
+        <button type="button" class="gc-goal-add" id="cycle-goal-add">+ Add goal</button>
       </div>
       <div>
         <label for="cycle-label" class="text-xs font-semibold muted uppercase tracking-widest">Tags</label>
@@ -76,19 +110,35 @@
         <span data-saved class="text-xs muted" style="opacity:0;transition:opacity .2s" aria-live="polite">Saved</span>
       </div>
     </form>
-    <div class="border-t px-4 py-3 flex justify-end" style="border-color:var(--border)">
-      <form
-        hx-post="/training-cycles/{{ .CycleID }}/delete"
-        hx-swap="none"
-        hx-confirm="Delete this cycle? Sessions you've already run stay in your history; unrun sessions are removed."
-      >
-        <button type="submit" class="rounded-md btn-ghost px-3 py-1.5 text-xs font-medium inline-flex items-center gap-1.5" style="color:var(--destructive)">
-          <i data-lucide="trash-2" style="width:0.8rem;height:0.8rem" aria-hidden="true"></i>
-          Delete cycle
-        </button>
-      </form>
-    </div>
   </details>
+  <script>
+    (function () {
+      var wrap = document.getElementById('cycle-goals');
+      var add = document.getElementById('cycle-goal-add');
+      if (!wrap || !add) return;
+      var form = wrap.closest('form');
+      function count() { return wrap.querySelectorAll('.gc-goal-row').length; }
+      function updateAdd() { add.disabled = count() >= 5; }
+      function save() { if (form) form.dispatchEvent(new Event('change', { bubbles: true })); }
+      function wireRemove(row) {
+        var b = row.querySelector('.gc-goal-remove');
+        if (b) b.addEventListener('click', function () {
+          if (count() > 1) { row.remove(); }
+          else { Array.prototype.forEach.call(row.querySelectorAll('input'), function (i) { i.value = ''; }); }
+          updateAdd(); save();
+        });
+      }
+      Array.prototype.forEach.call(wrap.querySelectorAll('.gc-goal-row'), wireRemove);
+      add.addEventListener('click', function () {
+        if (count() >= 5) return;
+        var clone = wrap.querySelector('.gc-goal-row').cloneNode(true);
+        Array.prototype.forEach.call(clone.querySelectorAll('input'), function (i) { i.value = ''; });
+        wrap.appendChild(clone); wireRemove(clone); updateAdd();
+        clone.querySelector('input').focus();
+      });
+      updateAdd();
+    })();
+  </script>
 
   {{/* ── Desktop: calendar grid ── */}}
   <div class="card card-pad overflow-auto hidden md:block">
@@ -519,13 +569,15 @@
           </div>
           <div class="flex gap-2">
             <button type="submit" class="flex-1 rounded-md btn-primary px-4 py-2 text-sm font-medium">Save</button>
-            <form method="post" action="/calendar-events/{{ .ID }}/delete">
-              <button type="submit" class="rounded-md btn-ghost px-3 py-2 text-sm font-medium"
-                      onclick="return confirm('Delete this event?')"
-                      style="color:var(--muted)">
-                <i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
-              </button>
-            </form>
+            <button type="button" class="rounded-md btn-ghost px-3 py-2 text-sm font-medium"
+                    style="color:var(--muted)"
+                    hx-post="/calendar-events/{{ .ID }}/delete"
+                    hx-confirm="Delete this event?"
+                    hx-target="body"
+                    hx-swap="outerHTML"
+                    title="Delete event" aria-label="Delete event">
+              <i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+            </button>
           </div>
         </form>
       </div>
