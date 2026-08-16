@@ -4090,18 +4090,33 @@ select.input {
 /* Compact chip variant for the advisory per-day energy selector. */
 .gc-chip-sm span { min-height: 2rem; padding: 0.2rem 0.5rem; font-size: 0.75rem; }
 
-/* Goal rows: before → after on top, an optional "how" line below (builder + detail). */
+/* Goal rows: each goal is a small card — before → after on top, an optional
+   "how" line below — so the three fields read as one unit (builder + detail). */
 .gc-goal-row {
   display: grid;
   grid-template-columns: 1fr auto 1fr 2.75rem;
   grid-template-areas: "before arrow after remove" "how how how how";
   align-items: center;
   column-gap: 0.4rem;
-  row-gap: 0.35rem;
+  row-gap: 0.4rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--card-muted);
 }
 .gc-goal-row input[name="goal_before"] { grid-area: before; min-width: 0; }
 .gc-goal-arrow { grid-area: arrow; color: var(--muted); }
 .gc-goal-row input[name="goal_after"] { grid-area: after; min-width: 0; }
+/* Set the "how" apart as the goal's strategy line: labelled + divided. */
+.gc-goal-how {
+  grid-area: how; min-width: 0;
+  border-top: 1px dashed var(--border);
+  border-radius: 0;
+  border-left: 0; border-right: 0; border-bottom: 0;
+  background: transparent;
+  padding-top: 0.5rem;
+}
+.gc-goal-how::placeholder { color: var(--muted); }
 .gc-goal-remove {
   grid-area: remove; align-self: stretch; width: 2.75rem; min-height: 2.75rem;
   display: inline-flex; align-items: center; justify-content: center;
@@ -4109,7 +4124,6 @@ select.input {
   cursor: pointer; font-size: 1rem; line-height: 1;
 }
 .gc-goal-remove:hover { color: var(--text); border-color: var(--accent-border); }
-.gc-goal-how { grid-area: how; min-width: 0; }
 /* Stack before/after on narrow screens so placeholders don't truncate. */
 @media (max-width: 480px) {
   .gc-goal-row {
