@@ -2660,16 +2660,11 @@ iframe.catalog-dialog-media {
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.92);
+  /* Floats over hero media, so keep it translucent — but theme it via tokens. */
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
   color: var(--text);
   cursor: pointer;
-}
-
-html[data-theme="dark"] .catalog-dialog-back {
-  background: rgba(15, 23, 42, 0.85);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: var(--text);
 }
 
 .catalog-dialog-body {
@@ -3894,8 +3889,25 @@ button.tick-style-toggle { font-family: inherit; }
   margin: 0.25rem -0.25rem;
 }
 
-/* iOS: kill native select chrome on .input selects */
-select.input { -webkit-appearance: none; appearance: none; }
+/* Theme native selects: strip OS chrome and supply a consistent caret so every
+   .input select matches the design system (not browser-default). */
+select.input {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%236b7280' stroke-width='1.5'%3E%3Cpath d='M5 7l5 5 5-5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  background-size: 0.9rem;
+}
+:root[data-theme="dark"] select.input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%238d96a6' stroke-width='1.5'%3E%3Cpath d='M5 7l5 5 5-5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) select.input {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%238d96a6' stroke-width='1.5'%3E%3Cpath d='M5 7l5 5 5-5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+}
 
 /* ---------------------------------------------------------------------------
    Venue / board badges
