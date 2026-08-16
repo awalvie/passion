@@ -1,6 +1,7 @@
 [build]
-  # Build the server binary and restart it on changes.
-  cmd = "go test ./... && go build -o ./tmp/passion ./cmd/passion"
+  # Build the server binary and restart it on changes. Build-only for a fast
+  # hot-reload loop; run the test suite separately with `make test` / in CI.
+  cmd = "go build -o ./tmp/passion ./cmd/passion"
   bin = "./tmp/passion"
 
 [tmp]
@@ -8,7 +9,7 @@
 
 [watch]
   # Watch Go code and templates.
-  include = ["cmd", "config", "http", "db", "appview", "static", "templates"]
+  include = ["cmd", "config", "http", "db", "pages", "static", "templates"]
   exclude = [".git", "tmp"]
 
 [run]
