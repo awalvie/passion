@@ -21,6 +21,16 @@
         <i data-lucide="play" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
         Start
       </button>
+      {{ else }}
+      {{/* Authenticated users get the theme toggle inside the account menu; keep it here for logged-out / auth pages */}}
+      <div class="theme-toggle">
+        <span class="theme-toggle-label muted hidden sm:inline">Light</span>
+        <label class="theme-switch" title="Toggle light/dark theme">
+          <input id="theme-toggle" type="checkbox" />
+          <span class="theme-slider"></span>
+        </label>
+        <span class="theme-toggle-label muted hidden sm:inline">Dark</span>
+      </div>
       {{ end }}
 
       <label
@@ -31,15 +41,6 @@
         <span class="sr-only">Menu</span>
         <i data-lucide="menu" class="site-header-menu-icon" aria-hidden="true"></i>
       </label>
-
-      <div class="theme-toggle">
-        <span class="theme-toggle-label muted hidden sm:inline">Light</span>
-        <label class="theme-switch" title="Toggle light/dark theme">
-          <input id="theme-toggle" type="checkbox" />
-          <span class="theme-slider"></span>
-        </label>
-        <span class="theme-toggle-label muted hidden sm:inline">Dark</span>
-      </div>
     </div>
   </div>
 
@@ -81,6 +82,13 @@
             <form method="post" action="/logout" class="site-nav-dropdown-item-form">
               <button type="submit" class="site-nav-dropdown-item">Log out</button>
             </form>
+            <div class="site-nav-theme-row">
+              <span>Theme</span>
+              <label class="theme-switch" title="Toggle light/dark theme">
+                <input id="theme-toggle" type="checkbox" />
+                <span class="theme-slider"></span>
+              </label>
+            </div>
           </div>
         </div>
         <span class="site-nav-separator hidden md:block" aria-hidden="true"></span>
