@@ -4107,16 +4107,18 @@ select.input {
 .gc-goal-row input[name="goal_before"] { grid-area: before; min-width: 0; }
 .gc-goal-arrow { grid-area: arrow; color: var(--muted); }
 .gc-goal-row input[name="goal_after"] { grid-area: after; min-width: 0; }
-/* Set the "how" apart as the goal's strategy line: labelled + divided. */
-.gc-goal-how {
-  grid-area: how; min-width: 0;
+/* The goal's strategy line: a labelled, real (but demoted) input, divided from
+   the pair above. The dashed rule is a divider — not the field's own border. */
+.gc-goal-how-row {
+  grid-area: how;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   border-top: 1px dashed var(--border);
-  border-radius: 0;
-  border-left: 0; border-right: 0; border-bottom: 0;
-  background: transparent;
   padding-top: 0.5rem;
 }
-.gc-goal-how::placeholder { color: var(--muted); }
+.gc-goal-how-label { flex: 0 0 auto; color: var(--muted); font-size: 0.75rem; font-weight: 600; }
+.gc-goal-how { flex: 1 1 0; min-width: 0; font-size: 0.8125rem; }
 .gc-goal-remove {
   grid-area: remove; align-self: stretch; width: 2.75rem; min-height: 2.75rem;
   display: inline-flex; align-items: center; justify-content: center;
