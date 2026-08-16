@@ -201,6 +201,14 @@ Always `aria-hidden="true"` on decorative icons. Add `aria-label` on icon-only b
 - Small icon buttons: `rounded p-1.5 hover:opacity-70` with `color: var(--muted)`.
 - Destructive actions: inline `style="color:var(--destructive)"`, not a full red button unless it's a standalone destructive page.
 
+### Page-level actions kebab
+
+For secondary/destructive page actions that shouldn't sit inline in the main flow (e.g. "Delete cycle" on the cycle detail header), use a self-contained `<details class="cycle-actions">` kebab menu:
+
+- Summary is an `ellipsis-vertical` icon styled as a `.btn-ghost`.
+- Menu items reuse `.site-nav-dropdown-item`; destructive ones keep the inline `--destructive` colour.
+- Deliberately **not** built on `.site-nav-dropdown` — the mobile nav rules force those menus open inline, which would break a floating page menu. `.cycle-actions` / `.cycle-actions-menu` are their own small pattern for this reason.
+
 ---
 
 ## Forms
