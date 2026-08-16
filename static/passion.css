@@ -4061,6 +4061,9 @@ select.input {
 .gc-day-view:hover { color: var(--accent); }
 .gc-day-row select { flex: 1 1 12rem; min-width: 10rem; }
 /* Energy as a connected segmented control (one control, not 3 loose buttons). */
+/* Effort selector: a small "Effort" label + the energy segmented control. */
+.gc-effort { display: flex; align-items: center; gap: 0.4rem; flex: 0 0 auto; }
+.gc-effort-label { flex: 0 0 auto; font-size: 0.7rem; font-weight: 600; color: var(--muted); }
 .gc-energy { display: inline-flex; flex: 0 0 auto; border: 1px solid var(--border); border-radius: 0.4rem; overflow: hidden; }
 .gc-energy .gc-chip span {
   border: none; border-left: 1px solid var(--border); border-radius: 0;
@@ -4157,19 +4160,22 @@ select.input {
 /* ── Guided builder: mobile (≤480px) overrides, consolidated after all base
       rules so they win by source order (earlier attempts lost to later bases). ── */
 @media (max-width: 480px) {
-  /* Per-day session row: [day · energy] on top, full-width select, then View. */
+  /* Per-day session card: [day · View] header, full-width select, full-width
+     energy — every row fills its width, so all days read consistently. */
   .gc-day-row {
     display: grid;
     grid-template-columns: 1fr auto;
-    grid-template-areas: "name energy" "select select" "view view";
+    grid-template-areas: "name view" "select select" "energy energy";
     column-gap: 0.5rem;
     row-gap: 0.4rem;
     align-items: center;
   }
   .gc-day-row .gc-day-name { grid-area: name; }
-  .gc-day-row .gc-energy { grid-area: energy; justify-self: end; }
-  .gc-day-row select { grid-area: select; width: 100%; min-width: 0; }
   .gc-day-view { grid-area: view; justify-self: end; }
+  .gc-day-row select { grid-area: select; width: 100%; min-width: 0; }
+  .gc-day-row .gc-effort { grid-area: energy; width: 100%; }
+  .gc-day-row .gc-effort .gc-energy { flex: 1 1 auto; }
+  .gc-day-row .gc-effort .gc-energy .gc-chip { flex: 1; }
 
   /* Your-week preview: a readable vertical day list, not a cramped 4-col grid. */
   .gc-week { display: flex; flex-direction: column; }
