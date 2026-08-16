@@ -333,6 +333,7 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 	// up to 5). Kept as first-class CycleGoal rows, created after the cycle exists.
 	goalBefores := r.Form["goal_before"]
 	goalAfters := r.Form["goal_after"]
+	goalHows := r.Form["goal_how"]
 
 	// Equipment: multiple tag values, captured into the cycle notes for reference
 	// (no dedicated column). The old free-text "venue" field was never persisted.
@@ -445,17 +446,20 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 	// First-class goals (before → after pairs, up to 5). Skip fully-empty rows.
 	var goalRows []db.CycleGoal
 	for i := range goalBefores {
-		var after string
+		var after, how string
 		if i < len(goalAfters) {
 			after = strings.TrimSpace(goalAfters[i])
 		}
+		if i < len(goalHows) {
+			how = strings.TrimSpace(goalHows[i])
+		}
 		before := strings.TrimSpace(goalBefores[i])
-		if before == "" && after == "" {
+		if before == "" && after == "" && how == "" {
 			continue
 		}
 		goalRows = append(goalRows, db.CycleGoal{
 			OwnerID: ownerID, TrainingCycleID: cycleID,
-			Before: before, After: after, OrderIndex: len(goalRows),
+			Before: before, After: after, How: how, OrderIndex: len(goalRows),
 		})
 		if len(goalRows) >= 5 {
 			break
@@ -683,19 +687,23 @@ func (s *Server) handleCycleDetailsSave(w http.ResponseWriter, r *http.Request, 
 	}
 	befores := r.Form["goal_before"]
 	afters := r.Form["goal_after"]
+	hows := r.Form["goal_how"]
 	var goalRows []db.CycleGoal
 	for i := range befores {
-		var after string
+		var after, how string
 		if i < len(afters) {
 			after = strings.TrimSpace(afters[i])
 		}
+		if i < len(hows) {
+			how = strings.TrimSpace(hows[i])
+		}
 		before := strings.TrimSpace(befores[i])
-		if before == "" && after == "" {
+		if before == "" && after == "" && how == "" {
 			continue
 		}
 		goalRows = append(goalRows, db.CycleGoal{
 			OwnerID: ownerID, TrainingCycleID: cycleID,
-			Before: before, After: after, OrderIndex: len(goalRows),
+			Before: before, After: after, How: how, OrderIndex: len(goalRows),
 		})
 		if len(goalRows) >= 5 {
 			break
@@ -805,7 +813,7 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 		Order("order_index asc, id asc").Find(&goals)
 	goalViews := make([]pages.CycleGoalView, 0, len(goals))
 	for _, g := range goals {
-		goalViews = append(goalViews, pages.CycleGoalView{Before: g.Before, After: g.After})
+		goalViews = append(goalViews, pages.CycleGoalView{Before: g.Before, After: g.After, How: g.How})
 	}
 	if len(goalViews) == 0 && strings.TrimSpace(cycle.Goal) != "" {
 		goalViews = append(goalViews, pages.CycleGoalView{After: cycle.Goal})

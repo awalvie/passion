@@ -42,6 +42,7 @@
             <span class="gc-goal-arrow" aria-hidden="true">→</span>
             <input name="goal_after" class="input text-sm" placeholder="Goal — e.g. Confident leading" autocomplete="off" />
             <button type="button" class="gc-goal-remove" aria-label="Remove goal" title="Remove goal">×</button>
+            <input name="goal_how" class="input text-sm gc-goal-how" placeholder="How — e.g. one lead session a week" autocomplete="off" />
           </div>
         </div>
         <button type="button" class="gc-goal-add" id="gc-goal-add">+ Add goal</button>
@@ -309,7 +310,16 @@
         var p = prev[dw];
         if (p && p.edited && p.value) { sel.value = p.value; sel.dataset.edited = '1'; }
         else if (ordered.length) { sel.value = ordered[i % ordered.length].id; }
-        sel.addEventListener('change', function () { sel.dataset.edited = '1'; render(); });
+        // "View" link — opens the chosen session in a new tab; href tracks the select.
+        var view = document.createElement('a');
+        view.className = 'gc-day-view';
+        view.target = '_blank';
+        view.rel = 'noopener';
+        view.textContent = 'View ↗';
+        view.title = 'View this session in a new tab';
+        function syncView() { view.href = '/templates/' + sel.value + '/edit'; }
+        syncView();
+        sel.addEventListener('change', function () { sel.dataset.edited = '1'; syncView(); render(); });
         // Advisory per-day energy (days are not equal) — informational, folded into notes.
         var energy = document.createElement('div');
         energy.className = 'gc-energy';
@@ -326,6 +336,7 @@
         });
         row.appendChild(name);
         row.appendChild(sel);
+        row.appendChild(view);
         row.appendChild(energy);
         dayWrap.appendChild(row);
       });
