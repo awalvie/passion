@@ -25,9 +25,30 @@ func (s *Server) handleTrainingCycles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Count scheduled sessions per cycle for the index (the column previously
+	// mislabeled the week count as a session count).
+	scheduledCounts := map[uint]int{}
+	type cycleCount struct {
+		TrainingCycleID uint
+		N               int
+	}
+	var counts []cycleCount
+	if err := s.store.DB.Model(&db.ScheduledSession{}).
+		Select("training_cycle_id, count(*) as n").
+		Where("owner_id = ? AND training_cycle_id IS NOT NULL", ownerID).
+		Group("training_cycle_id").
+		Scan(&counts).Error; err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	for _, c := range counts {
+		scheduledCounts[c.TrainingCycleID] = c.N
+	}
+
 	s.pages.TrainingCycleList(w, pages.TrainingCycleListParams{
-		Base:           pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
-		TrainingCycles: cycles,
+		Base:            pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
+		TrainingCycles:  cycles,
+		ScheduledCounts: scheduledCounts,
 	})
 }
 
@@ -308,7 +329,23 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 	default:
 		focus = ""
 	}
-	goal := strings.TrimSpace(r.FormValue("goal"))
+	// Goals: parallel goal_before[]/goal_after[] arrays (a before→after pair per row,
+	// up to 5). Kept as first-class CycleGoal rows, created after the cycle exists.
+	goalBefores := r.Form["goal_before"]
+	goalAfters := r.Form["goal_after"]
+
+	// Equipment: multiple tag values, captured into the cycle notes for reference
+	// (no dedicated column). The old free-text "venue" field was never persisted.
+	var equipment []string
+	for _, e := range r.Form["equipment"] {
+		if e = strings.TrimSpace(e); e != "" {
+			equipment = append(equipment, e)
+		}
+	}
+	notes := ""
+	if len(equipment) > 0 {
+		notes = "Equipment: " + strings.Join(equipment, ", ")
+	}
 
 	// Weeks: an explicit count, or counted back from a target date.
 	weeks := 0
@@ -347,20 +384,49 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 		}
 	}
 	days = uniqDays
-	var sessionIDs []uint
-	for _, sv := range r.Form["session"] {
+	if len(days) == 0 {
+		http.Error(w, "pick at least one training day", http.StatusBadRequest)
+		return
+	}
+
+	// Per-day session assignment: each chosen day carries its own session_day_<weekday>
+	// select. Build the weekday→template mappings directly (no round-robin here — the
+	// form's defaults already rotated the sessions across days client-side).
+	dayTemplate := map[int]uint{}
+	for _, dw := range days {
+		sv := strings.TrimSpace(r.FormValue("session_day_" + strconv.Itoa(dw)))
 		if id, ierr := strconv.ParseUint(sv, 10, 64); ierr == nil && allowed[uint(id)] {
-			sessionIDs = append(sessionIDs, uint(id))
+			dayTemplate[dw] = uint(id)
 		}
 	}
-	if len(days) == 0 || len(sessionIDs) == 0 {
-		http.Error(w, "pick at least one training day and one session", http.StatusBadRequest)
+	if len(dayTemplate) == 0 {
+		http.Error(w, "pick a session for at least one training day", http.StatusBadRequest)
 		return
+	}
+
+	// Advisory per-day energy ("days are not equal") — informational only, folded
+	// into the cycle notes. Only non-default (non-moderate) days are recorded to
+	// keep the note concise; moderate is the neutral baseline.
+	dowNames := []string{"", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}
+	var energyParts []string
+	for _, dw := range days {
+		e := strings.TrimSpace(r.FormValue("energy_day_" + strconv.Itoa(dw)))
+		if e != "" && e != "moderate" {
+			energyParts = append(energyParts, dowNames[dw]+" "+e)
+		}
+	}
+	if len(energyParts) > 0 {
+		line := "Energy: " + strings.Join(energyParts, " · ")
+		if notes != "" {
+			notes += "\n" + line
+		} else {
+			notes = line
+		}
 	}
 
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" {
-		name = strconv.Itoa(weeks) + "-week block"
+		name = strconv.Itoa(weeks) + "-week cycle"
 	}
 
 	startDate := localDate(time.Now())
@@ -368,7 +434,7 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 
 	cycle := &db.TrainingCycle{
 		OwnerID: ownerID, Name: name, StartDate: startDate, Weeks: weeks,
-		Focus: focus, Goal: goal,
+		Focus: focus, Notes: notes,
 	}
 	if err := s.store.DB.Create(cycle).Error; err != nil {
 		s.serverError(w, r, err)
@@ -376,13 +442,40 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 	}
 	cycleID := cycle.ID
 
-	// Round-robin the chosen sessions across the chosen days.
-	var mappingRows []db.TrainingCycleWeekdayMapping
-	for i, dw := range days {
-		mappingRows = append(mappingRows, db.TrainingCycleWeekdayMapping{
+	// First-class goals (before → after pairs, up to 5). Skip fully-empty rows.
+	var goalRows []db.CycleGoal
+	for i := range goalBefores {
+		var after string
+		if i < len(goalAfters) {
+			after = strings.TrimSpace(goalAfters[i])
+		}
+		before := strings.TrimSpace(goalBefores[i])
+		if before == "" && after == "" {
+			continue
+		}
+		goalRows = append(goalRows, db.CycleGoal{
 			OwnerID: ownerID, TrainingCycleID: cycleID,
-			Weekday: dw, SessionTemplateID: sessionIDs[i%len(sessionIDs)],
+			Before: before, After: after, OrderIndex: len(goalRows),
 		})
+		if len(goalRows) >= 5 {
+			break
+		}
+	}
+	if len(goalRows) > 0 {
+		if err := s.store.DB.Create(&goalRows).Error; err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+	}
+
+	var mappingRows []db.TrainingCycleWeekdayMapping
+	for _, dw := range days {
+		if id, ok := dayTemplate[dw]; ok {
+			mappingRows = append(mappingRows, db.TrainingCycleWeekdayMapping{
+				OwnerID: ownerID, TrainingCycleID: cycleID,
+				Weekday: dw, SessionTemplateID: id,
+			})
+		}
 	}
 	if err := s.store.DB.Create(&mappingRows).Error; err != nil {
 		s.serverError(w, r, err)
@@ -417,6 +510,25 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 			// Blocks has a DB default of true and GORM omits the false zero-value on
 			// insert; force it off so the deload week is informational, not blocking.
 			s.store.DB.Model(ev).Update("blocks", false)
+		}
+	}
+
+	// Optional rest period: an informational (non-blocking) rest event over a
+	// user-chosen date range (trip, injury, time off). Silently skipped if the
+	// range is missing or invalid — it's an optional field, not a hard error.
+	if r.FormValue("rest_enabled") == "1" {
+		rs := strings.TrimSpace(r.FormValue("rest_start"))
+		re := strings.TrimSpace(r.FormValue("rest_end"))
+		start, serr := time.ParseInLocation("2006-01-02", rs, time.Now().Location())
+		end, eerr := time.ParseInLocation("2006-01-02", re, time.Now().Location())
+		if serr == nil && eerr == nil && !end.Before(start) {
+			ev := &db.CalendarEvent{
+				OwnerID: ownerID, Title: "Rest period", Kind: "rest",
+				StartDate: localDate(start), EndDate: localDate(end),
+			}
+			if s.store.DB.Create(ev).Error == nil {
+				s.store.DB.Model(ev).Update("blocks", false)
+			}
 		}
 	}
 
@@ -516,6 +628,12 @@ func (s *Server) handleTrainingCycleDelete(w http.ResponseWriter, r *http.Reques
 			Delete(&db.TrainingCycleWeekdayMapping{}).Error; err != nil {
 			return err
 		}
+		// Goals are plan metadata (no history to preserve) — hard-delete with the
+		// cycle. The CASCADE tag isn't relied on: soft-deletes don't trigger it.
+		if err := tx.Unscoped().Where("owner_id = ? AND training_cycle_id = ?", ownerID, cycleID).
+			Delete(&db.CycleGoal{}).Error; err != nil {
+			return err
+		}
 		return tx.Unscoped().Delete(&db.TrainingCycle{}, cycleID).Error
 	})
 	if err != nil {
@@ -549,10 +667,45 @@ func (s *Server) handleCycleDetailsSave(w http.ResponseWriter, r *http.Request, 
 	cycle.Notes = strings.TrimSpace(r.FormValue("notes"))
 	cycle.Focus = focus
 	cycle.Label = strings.TrimSpace(r.FormValue("label"))
-	cycle.Goal = strings.TrimSpace(r.FormValue("goal"))
+	// Goals moved to first-class CycleGoal rows; clear the legacy column so it
+	// can't shadow the new list on the detail page.
+	cycle.Goal = ""
 	if err := s.store.DB.Save(&cycle).Error; err != nil {
 		s.serverError(w, r, err)
 		return
+	}
+
+	// Replace the cycle's goals with the submitted before→after pairs (up to 5).
+	if err := s.store.DB.Unscoped().Where("owner_id = ? AND training_cycle_id = ?", ownerID, cycleID).
+		Delete(&db.CycleGoal{}).Error; err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	befores := r.Form["goal_before"]
+	afters := r.Form["goal_after"]
+	var goalRows []db.CycleGoal
+	for i := range befores {
+		var after string
+		if i < len(afters) {
+			after = strings.TrimSpace(afters[i])
+		}
+		before := strings.TrimSpace(befores[i])
+		if before == "" && after == "" {
+			continue
+		}
+		goalRows = append(goalRows, db.CycleGoal{
+			OwnerID: ownerID, TrainingCycleID: cycleID,
+			Before: before, After: after, OrderIndex: len(goalRows),
+		})
+		if len(goalRows) >= 5 {
+			break
+		}
+	}
+	if len(goalRows) > 0 {
+		if err := s.store.DB.Create(&goalRows).Error; err != nil {
+			s.serverError(w, r, err)
+			return
+		}
 	}
 	w.WriteHeader(http.StatusOK)
 }
@@ -645,6 +798,19 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 	// Load exercise targets for this cycle.
 	exerciseOverrides := s.buildCycleExerciseOverrides(cycleID, ownerID, cycle.Weeks)
 
+	// Load goals; fall back to the legacy single Goal column for cycles created
+	// before multi-goals shipped (shown as one target, no "before").
+	var goals []db.CycleGoal
+	s.store.DB.Where("owner_id = ? AND training_cycle_id = ?", ownerID, cycleID).
+		Order("order_index asc, id asc").Find(&goals)
+	goalViews := make([]pages.CycleGoalView, 0, len(goals))
+	for _, g := range goals {
+		goalViews = append(goalViews, pages.CycleGoalView{Before: g.Before, After: g.After})
+	}
+	if len(goalViews) == 0 && strings.TrimSpace(cycle.Goal) != "" {
+		goalViews = append(goalViews, pages.CycleGoalView{After: cycle.Goal})
+	}
+
 	s.pages.TrainingCycleDetail(w, pages.TrainingCycleDetailParams{
 		Base:               pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
 		CycleID:            cycleID,
@@ -653,7 +819,7 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 		CycleNotes:         cycle.Notes,
 		CycleFocus:         cycle.Focus,
 		CycleLabel:         cycle.Label,
-		CycleGoal:          cycle.Goal,
+		CycleGoals:         goalViews,
 		CycleWeekdayLabels: weekdayLabels,
 		CycleTemplates:     templates,
 		CycleRows:          rows,

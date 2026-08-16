@@ -50,11 +50,18 @@ func cycleIDFromRedirect(t *testing.T, rr *httptest.ResponseRecorder) uint {
 	return uint(id)
 }
 
-// TestHandleTrainingCyclesGuided_RoundRobinAssignsSessionsAcrossDays guards the
-// round-robin assignment: sorted days are paired with the chosen sessions in
-// order, wrapping around when there are more days than sessions.
-func TestHandleTrainingCyclesGuided_RoundRobinAssignsSessionsAcrossDays(t *testing.T) {
-	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-roundrobin.db"))
+// sessionDayKey builds the per-day session select field name for a weekday
+// (Mon=1..Sun=7), matching the guided builder's session_day_<weekday> contract.
+func sessionDayKey(weekday int) string {
+	return "session_day_" + strconv.Itoa(weekday)
+}
+
+// TestHandleTrainingCyclesGuided_MapsEachDayToItsOwnSession guards the
+// per-day contract: there is no round-robin in the handler anymore — each
+// chosen day carries its own session_day_<weekday> select, and the handler
+// must map each day to exactly the session submitted for it.
+func TestHandleTrainingCyclesGuided_MapsEachDayToItsOwnSession(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-perday.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,8 +75,12 @@ func TestHandleTrainingCyclesGuided_RoundRobinAssignsSessionsAcrossDays(t *testi
 	form.Add("day", "1")
 	form.Add("day", "3")
 	form.Add("day", "7")
-	form.Add("session", strconv.FormatUint(uint64(tplA.ID), 10))
-	form.Add("session", strconv.FormatUint(uint64(tplB.ID), 10))
+	// Each day gets its own explicit session assignment (no rotation logic
+	// to verify here — just that the handler respects the per-day value).
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tplA.ID), 10))
+	form.Set(sessionDayKey(3), strconv.FormatUint(uint64(tplB.ID), 10))
+	form.Set(sessionDayKey(5), strconv.FormatUint(uint64(tplA.ID), 10))
+	form.Set(sessionDayKey(7), strconv.FormatUint(uint64(tplB.ID), 10))
 	form.Add("weeks", "1")
 
 	srv := &Server{store: store}
@@ -92,8 +103,43 @@ func TestHandleTrainingCyclesGuided_RoundRobinAssignsSessionsAcrossDays(t *testi
 	}
 	for _, m := range mappings {
 		if got, wantTpl := m.SessionTemplateID, want[m.Weekday]; got != wantTpl {
-			t.Errorf("weekday %d mapped to template %d, want %d (round-robin mismatch)", m.Weekday, got, wantTpl)
+			t.Errorf("weekday %d mapped to template %d, want %d (per-day mismatch)", m.Weekday, got, wantTpl)
 		}
+	}
+}
+
+// TestHandleTrainingCyclesGuided_SkipsDaysWithoutASession guards that a day
+// present in `day` but missing (or invalid) session_day_<weekday> is simply
+// left unmapped rather than falling back to some other day's session.
+func TestHandleTrainingCyclesGuided_SkipsDaysWithoutASession(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-partial-day.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tplA := seedGuidedTemplate(t, store, ownerID, "A")
+
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Add("day", "3")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tplA.ID), 10))
+	// day 3 deliberately has no session_day_3 value.
+	form.Add("weeks", "1")
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
+	}
+	cycleID := cycleIDFromRedirect(t, rr)
+
+	var mappings []db.TrainingCycleWeekdayMapping
+	if err := store.DB.Where("training_cycle_id = ?", cycleID).Find(&mappings).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(mappings) != 1 || mappings[0].Weekday != 1 {
+		t.Errorf("mappings = %+v, want exactly one mapping for weekday 1", mappings)
 	}
 }
 
@@ -112,8 +158,8 @@ func TestHandleTrainingCyclesGuided_SkipsPastDatesInFirstWeekOnly(t *testing.T) 
 	form := url.Values{}
 	for wd := 1; wd <= 7; wd++ {
 		form.Add("day", strconv.Itoa(wd))
+		form.Set(sessionDayKey(wd), strconv.FormatUint(uint64(tpl.ID), 10))
 	}
-	form.Add("session", strconv.FormatUint(uint64(tpl.ID), 10))
 	form.Add("weeks", "2")
 
 	srv := &Server{store: store}
@@ -158,7 +204,7 @@ func TestHandleTrainingCyclesGuided_DeloadCreatesNonBlockingRestEvent(t *testing
 
 	form := url.Values{}
 	form.Add("day", "1")
-	form.Add("session", strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
 	form.Add("weeks", "3")
 	form.Add("deload", "1")
 
@@ -209,7 +255,7 @@ func TestHandleTrainingCyclesGuided_DeloadSkippedUnderTwoWeeks(t *testing.T) {
 
 	form := url.Values{}
 	form.Add("day", "1")
-	form.Add("session", strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
 	form.Add("weeks", "1")
 	form.Add("deload", "1")
 
@@ -228,8 +274,8 @@ func TestHandleTrainingCyclesGuided_DeloadSkippedUnderTwoWeeks(t *testing.T) {
 }
 
 // TestHandleTrainingCyclesGuided_RejectsMissingDaysOrSessions guards the
-// required-field validation: submitting with no chosen day, no chosen
-// session, or neither must reject with 400 and create nothing.
+// required-field validation: submitting with no chosen day, no valid
+// session_day_<weekday>, or neither must reject with 400 and create nothing.
 func TestHandleTrainingCyclesGuided_RejectsMissingDaysOrSessions(t *testing.T) {
 	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-missing.db"))
 	if err != nil {
@@ -242,7 +288,7 @@ func TestHandleTrainingCyclesGuided_RejectsMissingDaysOrSessions(t *testing.T) {
 		name string
 		form url.Values
 	}{
-		{"no day", url.Values{"session": {strconv.FormatUint(uint64(tpl.ID), 10)}}},
+		{"no day", url.Values{sessionDayKey(1): {strconv.FormatUint(uint64(tpl.ID), 10)}}},
 		{"no session", url.Values{"day": {"1"}}},
 		{"neither", url.Values{}},
 	}
@@ -265,6 +311,77 @@ func TestHandleTrainingCyclesGuided_RejectsMissingDaysOrSessions(t *testing.T) {
 	}
 }
 
+// TestHandleTrainingCyclesGuided_EquipmentJoinedIntoNotes guards the
+// equipment-to-notes persistence: multiple "equipment" form values must be
+// trimmed, joined with ", ", and stored as "Equipment: a, b, c" in cycle.Notes
+// — the only place this data is persisted (there is no dedicated column).
+func TestHandleTrainingCyclesGuided_EquipmentJoinedIntoNotes(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-equipment.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "Equipment Test")
+
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Add("weeks", "1")
+	form.Add("equipment", "  hangboard  ")
+	form.Add("equipment", "rings")
+	form.Add("equipment", "") // blank values must be dropped, not joined as ""
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
+	}
+	cycleID := cycleIDFromRedirect(t, rr)
+
+	var cycle db.TrainingCycle
+	if err := store.DB.First(&cycle, cycleID).Error; err != nil {
+		t.Fatal(err)
+	}
+	want := "Equipment: hangboard, rings"
+	if cycle.Notes != want {
+		t.Errorf("Notes = %q, want %q", cycle.Notes, want)
+	}
+}
+
+// TestHandleTrainingCyclesGuided_NoEquipmentLeavesNotesEmpty guards the other
+// side of the branch: when no equipment tags are submitted, Notes must stay
+// empty rather than storing a stray "Equipment: " prefix.
+func TestHandleTrainingCyclesGuided_NoEquipmentLeavesNotesEmpty(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-no-equipment.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "No Equipment Test")
+
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Add("weeks", "1")
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
+	}
+	cycleID := cycleIDFromRedirect(t, rr)
+
+	var cycle db.TrainingCycle
+	if err := store.DB.First(&cycle, cycleID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if cycle.Notes != "" {
+		t.Errorf("Notes = %q, want empty when no equipment submitted", cycle.Notes)
+	}
+}
+
 // TestHandleTrainingCyclesGuided_RejectsUnownedSessionTemplate guards owner
 // scoping: a session template ID belonging to another user must be filtered
 // out, not silently attached to the requesting owner's cycle.
@@ -279,7 +396,7 @@ func TestHandleTrainingCyclesGuided_RejectsUnownedSessionTemplate(t *testing.T) 
 
 	form := url.Values{}
 	form.Add("day", "1")
-	form.Add("session", strconv.FormatUint(uint64(tplB.ID), 10))
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tplB.ID), 10))
 	form.Add("weeks", "2")
 
 	srv := &Server{store: store}
@@ -300,5 +417,373 @@ func TestHandleTrainingCyclesGuided_RejectsUnownedSessionTemplate(t *testing.T) 
 	store.DB.Model(&db.TrainingCycleWeekdayMapping{}).Where("session_template_id = ?", tplB.ID).Count(&mappingCount)
 	if mappingCount != 0 {
 		t.Errorf("mapping count referencing owner B's template = %d, want 0", mappingCount)
+	}
+}
+
+// TestHandleTrainingCyclesGuided_CreatesGoalRows guards first-class goal
+// persistence: parallel goal_before[]/goal_after[] arrays become CycleGoal
+// rows in order, a fully-empty pair is skipped (not stored as a blank row),
+// and the count is capped at 5 even when more pairs are submitted.
+func TestHandleTrainingCyclesGuided_CreatesGoalRows(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-goals.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "Goals Test")
+
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Add("weeks", "1")
+	// 7 pairs submitted: one fully-empty (must be skipped) plus 6 real ones
+	// (must be capped at 5).
+	befores := []string{"V4", "", "5.10a", "20kg", "10s", "3", "2"}
+	afters := []string{"V5", "", "5.10c", "25kg", "15s", "5", "4"}
+	for i := range befores {
+		form.Add("goal_before", befores[i])
+		form.Add("goal_after", afters[i])
+	}
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
+	}
+	cycleID := cycleIDFromRedirect(t, rr)
+
+	var goals []db.CycleGoal
+	if err := store.DB.Where("owner_id = ? AND training_cycle_id = ?", ownerID, cycleID).
+		Order("order_index asc").Find(&goals).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(goals) != 5 {
+		t.Fatalf("goal count = %d, want 5 (capped, empty pair skipped); got %+v", len(goals), goals)
+	}
+	if goals[0].Before != "V4" || goals[0].After != "V5" {
+		t.Errorf("goals[0] = %+v, want Before=V4 After=V5", goals[0])
+	}
+	// The empty pair ("", "") must not appear anywhere in the surviving rows.
+	for _, g := range goals {
+		if g.Before == "" && g.After == "" {
+			t.Errorf("found a fully-empty goal row %+v, want it skipped", g)
+		}
+	}
+}
+
+// TestHandleTrainingCyclesGuided_SkipsEmptyGoalPair guards the other side of
+// the goals branch: when both before and after are blank for every
+// submitted row, no CycleGoal rows should be created at all.
+func TestHandleTrainingCyclesGuided_SkipsEmptyGoalPair(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-goals-empty.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "Empty Goals Test")
+
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Add("weeks", "1")
+	form.Add("goal_before", "  ")
+	form.Add("goal_after", "")
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
+	}
+	cycleID := cycleIDFromRedirect(t, rr)
+
+	var count int64
+	store.DB.Model(&db.CycleGoal{}).Where("training_cycle_id = ?", cycleID).Count(&count)
+	if count != 0 {
+		t.Errorf("goal count = %d, want 0 when only a blank pair is submitted", count)
+	}
+}
+
+// TestHandleTrainingCyclesGuided_EnergyFoldedIntoNotes guards the per-day
+// energy annotation: non-moderate days must appear in Notes as
+// "Energy: Mon hard · Fri easy" (day-order, using the 3-letter weekday
+// label), while "moderate" (the neutral baseline) is omitted entirely. It
+// must also coexist with an equipment line, newline-separated.
+func TestHandleTrainingCyclesGuided_EnergyFoldedIntoNotes(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-energy.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "Energy Test")
+
+	form := url.Values{}
+	for _, wd := range []int{1, 3, 5} {
+		form.Add("day", strconv.Itoa(wd))
+		form.Set(sessionDayKey(wd), strconv.FormatUint(uint64(tpl.ID), 10))
+	}
+	form.Set("energy_day_1", "hard")
+	form.Set("energy_day_3", "moderate") // neutral baseline, must be omitted
+	form.Set("energy_day_5", "easy")
+	form.Add("equipment", "hangboard")
+	form.Add("weeks", "1")
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
+	}
+	cycleID := cycleIDFromRedirect(t, rr)
+
+	var cycle db.TrainingCycle
+	if err := store.DB.First(&cycle, cycleID).Error; err != nil {
+		t.Fatal(err)
+	}
+	want := "Equipment: hangboard\nEnergy: Mon hard · Fri easy"
+	if cycle.Notes != want {
+		t.Errorf("Notes = %q, want %q", cycle.Notes, want)
+	}
+}
+
+// TestHandleTrainingCyclesGuided_AllModerateEnergyOmitsEnergyLine guards that
+// when every chosen day is left at the "moderate" baseline (or unset), no
+// "Energy:" line is added to Notes at all.
+func TestHandleTrainingCyclesGuided_AllModerateEnergyOmitsEnergyLine(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-energy-moderate.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "Moderate Test")
+
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Set("energy_day_1", "moderate")
+	form.Add("weeks", "1")
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
+	}
+	cycleID := cycleIDFromRedirect(t, rr)
+
+	var cycle db.TrainingCycle
+	if err := store.DB.First(&cycle, cycleID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if cycle.Notes != "" {
+		t.Errorf("Notes = %q, want empty when all days are moderate", cycle.Notes)
+	}
+}
+
+// TestHandleTrainingCyclesGuided_RestPeriodCreatesNonBlockingEvent guards
+// the optional rest-period range: a valid rest_start/rest_end produces
+// exactly one non-blocking CalendarEvent titled "Rest period" spanning that
+// range, in addition to any deload event.
+func TestHandleTrainingCyclesGuided_RestPeriodCreatesNonBlockingEvent(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-rest.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "Rest Test")
+
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Add("weeks", "2")
+	form.Set("rest_enabled", "1")
+	form.Set("rest_start", "2026-09-01")
+	form.Set("rest_end", "2026-09-05")
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
+	}
+
+	var events []db.CalendarEvent
+	if err := store.DB.Where("owner_id = ? AND title = ?", ownerID, "Rest period").Find(&events).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("rest period event count = %d, want 1", len(events))
+	}
+	ev := events[0]
+	if ev.Blocks {
+		t.Errorf("rest period event Blocks = true, want false (must not block the calendar)")
+	}
+	if ev.Kind != "rest" {
+		t.Errorf("rest period event Kind = %q, want %q", ev.Kind, "rest")
+	}
+	loc := time.Now().Location()
+	wantStart, _ := time.ParseInLocation("2006-01-02", "2026-09-01", loc)
+	wantEnd, _ := time.ParseInLocation("2006-01-02", "2026-09-05", loc)
+	if !ev.StartDate.Equal(localDate(wantStart)) {
+		t.Errorf("rest period StartDate = %s, want %s", ev.StartDate.Format("2006-01-02"), wantStart.Format("2006-01-02"))
+	}
+	if !ev.EndDate.Equal(localDate(wantEnd)) {
+		t.Errorf("rest period EndDate = %s, want %s", ev.EndDate.Format("2006-01-02"), wantEnd.Format("2006-01-02"))
+	}
+}
+
+// TestHandleTrainingCyclesGuided_InvalidOrMissingRestRangeSkipsEvent guards
+// that a missing or invalid rest range is silently skipped — it's an
+// optional field, not a hard validation error — and the request still
+// succeeds with a redirect.
+func TestHandleTrainingCyclesGuided_InvalidOrMissingRestRangeSkipsEvent(t *testing.T) {
+	cases := []struct {
+		name  string
+		start string
+		end   string
+	}{
+		{"missing both", "", ""},
+		{"invalid dates", "not-a-date", "also-not-a-date"},
+		{"end before start", "2026-09-05", "2026-09-01"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-rest-invalid.db"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			const ownerID uint = 1
+			tpl := seedGuidedTemplate(t, store, ownerID, "Invalid Rest Test")
+
+			form := url.Values{}
+			form.Add("day", "1")
+			form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+			form.Add("weeks", "1")
+			form.Set("rest_enabled", "1")
+			form.Set("rest_start", tc.start)
+			form.Set("rest_end", tc.end)
+
+			srv := &Server{store: store}
+			rr := httptest.NewRecorder()
+			srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+			if rr.Code != http.StatusSeeOther {
+				t.Fatalf("status = %d, want %d (invalid rest range must not hard-fail); body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
+			}
+
+			var count int64
+			store.DB.Model(&db.CalendarEvent{}).Where("owner_id = ? AND title = ?", ownerID, "Rest period").Count(&count)
+			if count != 0 {
+				t.Errorf("rest period event count = %d, want 0 for %s", count, tc.name)
+			}
+		})
+	}
+}
+
+// TestHandleCycleDetailsSave_ReplacesGoalsAndClearsLegacyColumn guards the
+// autosave replace semantics: saving details deletes the cycle's existing
+// CycleGoal rows and recreates them from the submitted goal_before[]/
+// goal_after[] arrays (2 existing → 1 submitted must leave exactly 1), and
+// clears the legacy TrainingCycle.Goal column so it can't shadow the new list.
+func TestHandleCycleDetailsSave_ReplacesGoalsAndClearsLegacyColumn(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "details-save-goals.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 7
+
+	cycle := &db.TrainingCycle{
+		OwnerID: ownerID, Name: "Cycle", StartDate: localDate(time.Now()), Weeks: 4,
+		Goal: "legacy goal text",
+	}
+	if err := store.DB.Create(cycle).Error; err != nil {
+		t.Fatal(err)
+	}
+	existingGoals := []db.CycleGoal{
+		{OwnerID: ownerID, TrainingCycleID: cycle.ID, Before: "V3", After: "V4", OrderIndex: 0},
+		{OwnerID: ownerID, TrainingCycleID: cycle.ID, Before: "5.9", After: "5.10a", OrderIndex: 1},
+	}
+	if err := store.DB.Create(&existingGoals).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	form := url.Values{}
+	form.Set("name", "Cycle")
+	form.Set("notes", "")
+	form.Add("goal_before", "V5")
+	form.Add("goal_after", "V6")
+
+	req := httptest.NewRequest(http.MethodPost, "/training-cycles/1/details-save", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	ctx := context.WithValue(req.Context(), authUserIDKey, ownerID)
+	req = req.WithContext(ctx)
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleCycleDetailsSave(rr, req, cycle.ID, ownerID)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusOK, rr.Body.String())
+	}
+
+	var goals []db.CycleGoal
+	if err := store.DB.Where("owner_id = ? AND training_cycle_id = ?", ownerID, cycle.ID).Find(&goals).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(goals) != 1 {
+		t.Fatalf("goal count = %d, want 1 after replace; got %+v", len(goals), goals)
+	}
+	if goals[0].Before != "V5" || goals[0].After != "V6" {
+		t.Errorf("goals[0] = %+v, want Before=V5 After=V6", goals[0])
+	}
+
+	var saved db.TrainingCycle
+	if err := store.DB.First(&saved, cycle.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if saved.Goal != "" {
+		t.Errorf("legacy Goal column = %q, want cleared to empty", saved.Goal)
+	}
+}
+
+// TestHandleTrainingCycleDelete_RemovesCycleGoalRows guards that deleting a
+// cycle hard-deletes its CycleGoal rows — they're plan metadata with no
+// history to preserve, unlike scheduled sessions with runs.
+func TestHandleTrainingCycleDelete_RemovesCycleGoalRows(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "delete-goals.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 7
+
+	cycle := &db.TrainingCycle{OwnerID: ownerID, Name: "Cycle", StartDate: localDate(time.Now()), Weeks: 4}
+	if err := store.DB.Create(cycle).Error; err != nil {
+		t.Fatal(err)
+	}
+	goal := &db.CycleGoal{OwnerID: ownerID, TrainingCycleID: cycle.ID, Before: "V3", After: "V4"}
+	if err := store.DB.Create(goal).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/training-cycles/1/delete", nil)
+	ctx := context.WithValue(req.Context(), authUserIDKey, ownerID)
+	req = req.WithContext(ctx)
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCycleDelete(rr, req, cycle.ID, ownerID)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusOK, rr.Body.String())
+	}
+	if got := rr.Header().Get("HX-Redirect"); got != "/training-cycles" {
+		t.Errorf("HX-Redirect = %q, want %q", got, "/training-cycles")
+	}
+
+	var count int64
+	store.DB.Unscoped().Model(&db.CycleGoal{}).Where("training_cycle_id = ?", cycle.ID).Count(&count)
+	if count != 0 {
+		t.Errorf("CycleGoal count = %d after delete, want 0 (hard-deleted with the cycle)", count)
 	}
 }

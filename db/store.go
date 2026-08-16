@@ -45,6 +45,7 @@ func (s *Store) AutoMigrate() error {
 		&ExerciseMedia{},
 		&TrainingCycle{},
 		&TrainingCycleWeekdayMapping{},
+		&CycleGoal{},
 		&ScheduledSession{},
 		&SessionRun{},
 		&RunExerciseCompletion{},
