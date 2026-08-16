@@ -695,10 +695,11 @@ type CycleExerciseOverrideView struct {
 	WeekOverrides []CycleWeekTargetView // len == CycleWeeks, indexed by week-1
 }
 
-// CycleGoalView is one before→after goal for the detail-page editor.
+// CycleGoalView is one before→after goal (with an optional "how") for the detail-page editor.
 type CycleGoalView struct {
 	Before string
 	After  string
+	How    string
 }
 
 type TrainingCycleDetailParams struct {

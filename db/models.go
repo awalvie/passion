@@ -223,7 +223,9 @@ type CycleGoal struct {
 	TrainingCycleID uint   `gorm:"index;not null"`
 	Before          string `gorm:"size:255;not null;default:''"`
 	After           string `gorm:"size:255;not null;default:''"`
-	OrderIndex      int    `gorm:"not null;default:0"`
+	// How is the strategy to close the before→after gap (e.g. "one lead session a week").
+	How        string `gorm:"size:255;not null;default:''"`
+	OrderIndex int    `gorm:"not null;default:0"`
 }
 
 // TrainingCycleWeekdayMapping maps a weekday (Mon=1..Sun=7) to a session_template.

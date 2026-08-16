@@ -85,6 +85,7 @@
             <span class="gc-goal-arrow" aria-hidden="true">→</span>
             <input name="goal_after" class="input text-sm" value="{{ .After }}" placeholder="Goal" autocomplete="off" />
             <button type="button" class="gc-goal-remove" aria-label="Remove goal" title="Remove goal">×</button>
+            <input name="goal_how" class="input text-sm gc-goal-how" value="{{ .How }}" placeholder="How" autocomplete="off" />
           </div>
           {{ else }}
           <div class="gc-goal-row">
@@ -92,6 +93,7 @@
             <span class="gc-goal-arrow" aria-hidden="true">→</span>
             <input name="goal_after" class="input text-sm" placeholder="Goal — e.g. Confident leading" autocomplete="off" />
             <button type="button" class="gc-goal-remove" aria-label="Remove goal" title="Remove goal">×</button>
+            <input name="goal_how" class="input text-sm gc-goal-how" placeholder="How — e.g. one lead session a week" autocomplete="off" />
           </div>
           {{ end }}
         </div>

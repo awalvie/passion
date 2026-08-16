@@ -440,9 +440,11 @@ func TestHandleTrainingCyclesGuided_CreatesGoalRows(t *testing.T) {
 	// (must be capped at 5).
 	befores := []string{"V4", "", "5.10a", "20kg", "10s", "3", "2"}
 	afters := []string{"V5", "", "5.10c", "25kg", "15s", "5", "4"}
+	hows := []string{"one lead session a week", "", "", "", "", "", ""}
 	for i := range befores {
 		form.Add("goal_before", befores[i])
 		form.Add("goal_after", afters[i])
+		form.Add("goal_how", hows[i])
 	}
 
 	srv := &Server{store: store}
@@ -463,6 +465,9 @@ func TestHandleTrainingCyclesGuided_CreatesGoalRows(t *testing.T) {
 	}
 	if goals[0].Before != "V4" || goals[0].After != "V5" {
 		t.Errorf("goals[0] = %+v, want Before=V4 After=V5", goals[0])
+	}
+	if goals[0].How != "one lead session a week" {
+		t.Errorf("goals[0].How = %q, want %q", goals[0].How, "one lead session a week")
 	}
 	// The empty pair ("", "") must not appear anywhere in the surviving rows.
 	for _, g := range goals {
