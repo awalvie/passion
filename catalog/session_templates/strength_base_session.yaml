@@ -8,7 +8,6 @@ activities:
         kind: "reps_and_sets"
         sets: 2
         reps: 12
-        rep_rest_seconds: 30
         set_rest_seconds: 30
   - type: "activity"
     exercises:

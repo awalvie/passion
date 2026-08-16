@@ -14,10 +14,7 @@ activities:
   - type: "cooldown"
     exercises:
       - name: "Apply: Dynamic Choice"
-        sets: 2
-        reps: 1
-        rep_seconds: 180
-        set_rest_seconds: 90
+        kind: "climbing"
         notes: |
           Climb 2 routes deliberately choosing the dynamic solution
           where you'd normally lock off statically.
