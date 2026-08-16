@@ -4107,18 +4107,28 @@ select.input {
 .gc-goal-row input[name="goal_before"] { grid-area: before; min-width: 0; }
 .gc-goal-arrow { grid-area: arrow; color: var(--muted); }
 .gc-goal-row input[name="goal_after"] { grid-area: after; min-width: 0; }
-/* The goal's strategy line: a labelled, real (but demoted) input, divided from
-   the pair above. The dashed rule is a divider — not the field's own border. */
+/* The goal's strategy line: an input GROUP — a "How" prefix inside the field's
+   own box, so it reads as one editable control (no label floating in a gutter). */
 .gc-goal-how-row {
   grid-area: how;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  border-top: 1px dashed var(--border);
-  padding-top: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--panel);
 }
-.gc-goal-how-label { flex: 0 0 auto; color: var(--muted); font-size: 0.75rem; font-weight: 600; }
-.gc-goal-how { flex: 1 1 0; min-width: 0; font-size: 0.8125rem; }
+.gc-goal-how-row:focus-within { border-color: var(--accent); }
+.gc-goal-how-label {
+  flex: 0 0 auto; color: var(--muted); font-size: 0.75rem; font-weight: 600;
+  padding-right: 0.5rem; border-right: 1px solid var(--border);
+}
+.gc-goal-how {
+  flex: 1 1 0; min-width: 0; font-size: 0.8125rem;
+  border: none; background: transparent; padding: 0; border-radius: 0;
+}
+.gc-goal-how:focus { outline: none; }
 .gc-goal-remove {
   grid-area: remove; align-self: stretch; width: 2.75rem; min-height: 2.75rem;
   display: inline-flex; align-items: center; justify-content: center;
