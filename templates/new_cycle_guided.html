@@ -323,7 +323,12 @@
         function syncView() { view.href = '/templates/' + sel.value + '/edit'; }
         syncView();
         sel.addEventListener('change', function () { sel.dataset.edited = '1'; syncView(); render(); });
-        // Advisory per-day energy (days are not equal) — informational, folded into notes.
+        // Advisory per-day energy/effort (days are not equal) — informational, folded into notes.
+        var effort = document.createElement('div');
+        effort.className = 'gc-effort';
+        var effortLabel = document.createElement('span');
+        effortLabel.className = 'gc-effort-label';
+        effortLabel.textContent = 'Effort';
         var energy = document.createElement('div');
         energy.className = 'gc-energy';
         var cur = prevE[dw] || 'moderate';
@@ -337,10 +342,12 @@
           lab.appendChild(inp); lab.appendChild(sp);
           energy.appendChild(lab);
         });
+        effort.appendChild(effortLabel);
+        effort.appendChild(energy);
         row.appendChild(name);
         row.appendChild(sel);
         row.appendChild(view);
-        row.appendChild(energy);
+        row.appendChild(effort);
         dayWrap.appendChild(row);
       });
       if (dayEmpty) dayEmpty.hidden = days.length > 0;
