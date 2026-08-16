@@ -136,6 +136,13 @@
         wrap.appendChild(clone); wireRemove(clone); updateAdd();
         clone.querySelector('input').focus();
       });
+      // Enter in a goal field adds another goal instead of submitting.
+      wrap.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+          e.preventDefault();
+          if (count() < 5) add.click();
+        }
+      });
       updateAdd();
     })();
   </script>

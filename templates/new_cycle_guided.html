@@ -252,6 +252,13 @@
       updateGoalAdd();
       clone.querySelector('input').focus();
     });
+    // Enter in a goal field should add another goal, not submit the whole cycle.
+    goalsWrap.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+        e.preventDefault();
+        if (goalRowCount() < 5) goalAdd.click();
+      }
+    });
     updateGoalAdd();
 
     // ── Per-day session assignment ─────────────────────────────────────────
