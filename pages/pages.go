@@ -36,6 +36,9 @@ type DashboardSession struct {
 	Done  bool
 	// CompletedRunID is the run to link "View" to when Done; 0 otherwise.
 	CompletedRunID uint
+	// Unplanned marks a completed session that was never scheduled (trial or open
+	// session). These have no ScheduledSession to preview or start — only a summary.
+	Unplanned bool
 }
 
 type ActiveRunView struct {
@@ -58,6 +61,11 @@ type CalendarCellSession struct {
 	CycleName string
 	Done      bool
 	Label     string
+	// Unplanned marks a completed session that wasn't on the schedule (a trial or
+	// open session), so history shows what was actually done, not just the plan.
+	Unplanned bool
+	// RunID links a completed session to its run summary; 0 when not completed.
+	RunID uint
 }
 
 // CalendarEventView is a user-defined calendar event (trip, injury, etc.) for template rendering.

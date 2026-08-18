@@ -121,12 +121,14 @@
             <div class="space-y-1.5">
               {{ range .Sessions }}
                 <div
-                  class="relative flex cursor-pointer items-stretch overflow-hidden rounded-lg border transition-all hover:shadow-md"
-                  style="border-color: var(--border){{ if .Color }}; border-left: 4px solid {{ .Color }}{{ end }}"
+                  class="relative flex items-stretch overflow-hidden rounded-lg border transition-all {{ if not .Unplanned }}cursor-pointer hover:shadow-md{{ end }}"
+                  style="border-color: var(--border){{ if .Unplanned }}; border-left: 4px solid var(--muted){{ else if .Color }}; border-left: 4px solid {{ .Color }}{{ end }}"
+                  {{ if not .Unplanned }}
                   hx-get="/scheduled-sessions/{{ .ID }}/preview"
                   hx-target="#scheduled-session-preview-body"
                   hx-swap="innerHTML"
                   onclick="document.getElementById('scheduled-session-preview-dialog').showModal()"
+                  {{ end }}
                 >
                   <div class="flex flex-1 items-center justify-between gap-3 px-3 py-2.5">
                     <div class="min-w-0">
@@ -136,6 +138,12 @@
                           <span class="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-medium" style="border-color:var(--tick-green-fg);background:var(--tick-green-bg);color:var(--tick-green-fg)">
                             <i data-lucide="check" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
                             Done
+                          </span>
+                        {{ end }}
+                        {{ if .Unplanned }}
+                          <span class="inline-flex items-center gap-1 rounded border px-1.5 py-0.5" style="border-color:var(--border);background:var(--card-muted)" title="Not on the schedule">
+                            <i data-lucide="calendar-off" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+                            Unplanned
                           </span>
                         {{ end }}
                         {{ if gt .ExerciseCount 0 }}
@@ -159,6 +167,7 @@
                       </div>
                     </div>
                     {{ if .Done }}
+                      {{ if .CompletedRunID }}
                       <a
                         href="/runs/{{ .CompletedRunID }}/summary"
                         class="shrink-0 rounded-md btn-ghost border px-3 py-1.5 text-xs font-medium"
@@ -167,6 +176,7 @@
                       >
                         View
                       </a>
+                      {{ end }}
                     {{ else }}
                       <form
                         hx-post="/scheduled-sessions/{{ .ID }}/start"
@@ -234,20 +244,30 @@
               <span class="inline-block h-2 w-2 rounded-full shrink-0 mt-0.5" style="background:var(--muted)" aria-label="open session done"></span>
             {{ end }}
           </div>
-          {{ if .FirstSessionColor }}
-            <div class="mt-auto">
-              <div class="calendar-session-dash" style="background-color: {{ .FirstSessionColor }}"></div>
-            </div>
-          {{ else if gt .UnscheduledCount 0 }}
-            <div class="mt-auto">
-              <div class="calendar-session-dash" style="background-color:var(--muted)"></div>
+          {{ if .Sessions }}
+            {{/* One bar per session: full strength when it was actually done, faded
+                 when it was only planned, muted when it happened off-plan. Capped at
+                 three so a busy day can't stretch every other cell in its grid row. */}}
+            <div class="mt-auto flex flex-col gap-0.5">
+              {{ range $i, $s := .Sessions }}
+                {{ if lt $i 3 }}
+                  <div
+                    class="calendar-session-dash"
+                    style="background-color:{{ if $s.Unplanned }}var(--muted){{ else if $s.Color }}{{ $s.Color }}{{ else }}var(--accent){{ end }}{{ if not $s.Done }};opacity:0.3{{ end }}"
+                    title="{{ $s.Name }}{{ if $s.Unplanned }} · unplanned{{ end }}{{ if $s.Done }} · done{{ else }} · planned{{ end }}"
+                  ></div>
+                {{ end }}
+              {{ end }}
+              {{ if gt (len .Sessions) 3 }}
+                <div class="text-[0.625rem] leading-none muted">+{{ sub (len .Sessions) 3 }}</div>
+              {{ end }}
             </div>
           {{ end }}
           {{ range .Events }}
             <div class="h-0.5 rounded-full mt-0.5" style="background:{{ .Color }}" title="{{ .Title }}"></div>
           {{ end }}
           {{ range .Sessions }}
-            <span class="hidden" data-session-name="{{ .Name }}" data-session-color="{{ .Color }}" data-session-cycle="{{ .CycleName }}" data-session-done="{{ .Done }}"></span>
+            <span class="hidden" data-session-name="{{ .Name }}" data-session-color="{{ .Color }}" data-session-cycle="{{ .CycleName }}" data-session-done="{{ .Done }}" data-session-unplanned="{{ .Unplanned }}" data-session-run="{{ .RunID }}"></span>
           {{ end }}
         </div>
       {{ end }}
@@ -310,27 +330,42 @@
       var spans = cell.querySelectorAll("span[data-session-name]");
       sessionsEl.innerHTML = "";
       if (spans.length === 0) {
-        sessionsEl.innerHTML = '<div class="text-xs muted">No sessions planned</div>';
+        sessionsEl.innerHTML = '<div class="text-xs muted">Nothing planned or logged</div>';
       } else {
         for (var i = 0; i < spans.length; i++) {
           var name = spans[i].getAttribute("data-session-name");
           var color = spans[i].getAttribute("data-session-color");
           var cycle = spans[i].getAttribute("data-session-cycle");
           var done = spans[i].getAttribute("data-session-done") === "true";
+          var unplanned = spans[i].getAttribute("data-session-unplanned") === "true";
+          var runID = spans[i].getAttribute("data-session-run");
           var row = document.createElement("div");
           row.className = "flex items-center gap-2 text-sm";
-          var html =
-            '<span class="inline-block h-2.5 w-2.5 rounded-full shrink-0" style="background-color:' +
-            (color || "var(--muted)") +
-            '"></span>' +
-            '<span>' + name + '</span>';
-          if (cycle) {
-            html += '<span class="text-xs muted">· ' + cycle + '</span>';
+          // Built with textContent rather than innerHTML: session names are user-supplied.
+          function part(cls, text, style) {
+            var el = document.createElement("span");
+            el.className = cls;
+            if (style) el.setAttribute("style", style);
+            if (text) el.textContent = text;
+            return el;
           }
-          if (done) {
-            html += '<span class="text-xs font-medium" style="color:var(--tick-sent-accent)">· Done</span>';
+          // Unplanned sessions get a hollow marker; scheduled ones keep the template colour.
+          var marker = part("inline-block h-2.5 w-2.5 rounded-full shrink-0", "",
+            unplanned ? "border:1.5px dashed var(--muted)" : "background-color:" + (color || "var(--muted)"));
+          if (unplanned) marker.title = "Not on the schedule";
+          row.appendChild(marker);
+          row.appendChild(part("", name));
+          if (cycle) row.appendChild(part("text-xs muted", "· " + cycle));
+          if (unplanned) row.appendChild(part("text-xs muted", "· unplanned"));
+          if (done) row.appendChild(part("text-xs font-medium", "· Done", "color:var(--tick-sent-accent)"));
+          if (done && runID && runID !== "0") {
+            var view = document.createElement("a");
+            view.href = "/runs/" + encodeURIComponent(runID) + "/summary";
+            view.className = "ml-auto shrink-0 rounded-md btn-ghost border px-3 py-1.5 text-xs font-medium";
+            view.setAttribute("style", "border-color:var(--border)");
+            view.textContent = "View";
+            row.appendChild(view);
           }
-          row.innerHTML = html;
           sessionsEl.appendChild(row);
         }
       }

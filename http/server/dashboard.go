@@ -3,6 +3,7 @@ package web
 import (
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -259,6 +260,10 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	completedByDate := map[string]int{}   // dateKey -> completed scheduled count
 	unscheduledByDate := map[string]int{} // dateKey -> trial run count
 	completedSSIDSet := map[uint]bool{}   // scheduled_session_id -> completed
+	completedRunIDBySSID := map[uint]uint{}
+	// Unplanned sessions that were done, per date — surfaced in the day detail so the
+	// calendar shows history, not just what was planned.
+	unplannedByDate := map[string][]pages.CalendarCellSession{}
 	completedMonthRuns, err := db.ListCompletedRunDatesInRange(s.store.DB, ownerID, monthCalendarStart, monthCalendarEnd)
 	if err != nil {
 		s.serverError(w, r, err)
@@ -268,9 +273,16 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		key := localDateKey(r.ScheduledDate)
 		if r.IsTrial {
 			unscheduledByDate[key]++
+			unplannedByDate[key] = append(unplannedByDate[key], pages.CalendarCellSession{
+				Name:      r.Name,
+				Done:      true,
+				Unplanned: true,
+				RunID:     r.RunID,
+			})
 		} else {
 			completedByDate[key]++
 			completedSSIDSet[r.ScheduledSessionID] = true
+			completedRunIDBySSID[r.ScheduledSessionID] = r.RunID
 		}
 	}
 
@@ -306,6 +318,37 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		}
 		dayGroupMap[dayKey].Sessions = append(dayGroupMap[dayKey].Sessions, view)
 	}
+
+	// Sessions done this week that were never scheduled (trial / open sessions) still
+	// belong in the week view — otherwise training you actually did goes unrecorded here.
+	weekCompletedRuns, err := db.ListCompletedRunDatesInRange(s.store.DB, ownerID, weekStart, weekEnd)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	for _, cr := range weekCompletedRuns {
+		if !cr.IsTrial {
+			continue
+		}
+		d := cr.ScheduledDate.Day()
+		dayLabel := cr.ScheduledDate.Format("Mon") + " " + fmt.Sprintf("%d%s", d, daySuffix(d))
+		dayKey := localDateKey(cr.ScheduledDate)
+		view := pages.DashboardSession{
+			DateLabel:      dayLabel,
+			TemplateName:   cr.Name,
+			Done:           true,
+			Unplanned:      true,
+			CompletedRunID: cr.RunID,
+		}
+		weekSessionViews = append(weekSessionViews, view)
+		if _, ok := dayGroupMap[dayKey]; !ok {
+			dayGroupMap[dayKey] = &pages.DashboardDayGroup{DayLabel: dayLabel}
+			dayGroupOrder = append(dayGroupOrder, dayKey)
+		}
+		dayGroupMap[dayKey].Sessions = append(dayGroupMap[dayKey].Sessions, view)
+	}
+	sort.Strings(dayGroupOrder) // date keys sort chronologically
+
 	weekDayGroups := make([]pages.DashboardDayGroup, 0, len(dayGroupOrder))
 	for _, key := range dayGroupOrder {
 		weekDayGroups = append(weekDayGroups, *dayGroupMap[key])
@@ -351,8 +394,11 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 				Color:     normalizeTemplateColor(ss.SessionTemplate.Color),
 				CycleName: cn,
 				Done:      completedSSIDSet[ss.ID],
+				RunID:     completedRunIDBySSID[ss.ID],
 			})
 		}
+		// Sessions done off-plan appear after the scheduled ones.
+		cell.Sessions = append(cell.Sessions, unplannedByDate[key]...)
 		cells = append(cells, cell)
 	}
 
