@@ -93,7 +93,8 @@
           "KindRaw" .KindRaw "SettingRaw" .SettingRaw "SubtypeRaw" .SubtypeRaw
           "IsBoard" .IsBoard "RopeStyleRaw" .RopeStyleRaw
           "Grade" .Grade "Focus" .Focus "Thoughts" .Thoughts
-          "StyleRaw" .StyleRaw "Sent" .Sent "Stars" .Stars "Attempts" .Attempts) }}
+          "StyleRaw" .StyleRaw "Sent" .Sent "Stars" .Stars "Attempts" .Attempts
+          "DurationMinutesPart" .DurationMinutesPart "DurationSecondsPart" .DurationSecondsPart) }}
       </div>
     </details>
     {{ end }}
@@ -113,7 +114,8 @@
     "KindRaw" .SeedKind "SettingRaw" .SeedSetting "SubtypeRaw" .SeedSubtype
     "IsBoard" .SeedIsBoard "RopeStyleRaw" .SeedRopeStyle
     "Grade" .SeedGrade "Focus" "" "Thoughts" ""
-    "StyleRaw" "" "Sent" false "Stars" 0 "Attempts" 1) }}
+    "StyleRaw" "" "Sent" false "Stars" 0 "Attempts" 1
+    "DurationMinutesPart" 0 "DurationSecondsPart" 0) }}
 </div>
 
 {{/* Grade systems + handlers — re-run on every swap (htmx executes inline scripts) */}}
