@@ -931,6 +931,12 @@ details > summary::-webkit-details-marker {
     padding-top: 0;
     border-top: 0;
   }
+  /* Auth pages (login/signup) render no nav, so let the top row span the header
+     width — its own space-between then keeps the theme toggle right-aligned
+     instead of collapsing it next to the logo. */
+  .site-header:not(:has(.site-header-nav)) .site-header-top {
+    flex: 1 1 auto;
+  }
 }
 
 /* Page-level actions kebab (e.g. cycle detail header). Self-contained <details>
