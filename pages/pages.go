@@ -3,6 +3,8 @@ package pages
 import (
 	"bytes"
 	"cmp"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"html"
@@ -10,9 +12,11 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/yuin/goldmark"
@@ -1287,6 +1291,31 @@ func (p *Pages) RenderBoardsList(w http.ResponseWriter, params ProfileParams) {
 // Template FuncMap
 // ---------------------------------------------------------------------------
 
+// assetVersions caches a content fingerprint per static path so the query string only
+// changes when the file does.
+var (
+	assetVersions   = map[string]string{}
+	assetVersionsMu sync.Mutex
+)
+
+// assetURL appends a content-hash query string to a static asset path so a CDN or
+// browser cache can't serve a stale file after a deploy (Cloudflare caches
+// /static/* for hours, which otherwise masks CSS/JS changes entirely).
+func assetURL(path string) string {
+	assetVersionsMu.Lock()
+	defer assetVersionsMu.Unlock()
+	if v, ok := assetVersions[path]; ok {
+		return path + "?v=" + v
+	}
+	v := "0"
+	if data, err := os.ReadFile(strings.TrimPrefix(path, "/")); err == nil {
+		sum := sha256.Sum256(data)
+		v = hex.EncodeToString(sum[:4])
+	}
+	assetVersions[path] = v
+	return path + "?v=" + v
+}
+
 // formatExerciseSummary formats an exercise's parameters into a compact human-readable string.
 // sessionSuffix appends " session" to duration strings (used for session-template exercises).
 // catalogLabel is returned for exercise_catalog kind (e.g. "Exercise catalog" or "menu").
@@ -1411,8 +1440,9 @@ func youtubeEmbedURL(raw string) string {
 
 func buildFuncMap() template.FuncMap {
 	return template.FuncMap{
-		"add": func(a, b int) int { return a + b },
-		"sub": func(a, b int) int { return a - b },
+		"asset": assetURL,
+		"add":   func(a, b int) int { return a + b },
+		"sub":   func(a, b int) int { return a - b },
 		"pct": func(part, total int) int {
 			if total == 0 {
 				return 0
