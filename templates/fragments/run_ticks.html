@@ -27,8 +27,8 @@
             {{ if .Setting }}<span class="tick-kind">{{ .Setting }}</span>{{ end }}
             {{ if .Subtype }}<span class="tick-kind">{{ .Subtype }}</span>{{ end }}
             {{ if .DurationLabel }}
-              <span class="tick-kind tabular-nums" title="Time on the wall">
-                <i data-lucide="timer" style="width:0.6rem;height:0.6rem;vertical-align:-1px" aria-hidden="true"></i>
+              <span class="tick-kind tabular-nums inline-flex items-center gap-0.5" title="Time on the wall">
+                <i data-lucide="timer" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
                 {{ .DurationLabel }}
               </span>
             {{ end }}
@@ -94,7 +94,7 @@
           "IsBoard" .IsBoard "RopeStyleRaw" .RopeStyleRaw
           "Grade" .Grade "Focus" .Focus "Thoughts" .Thoughts
           "StyleRaw" .StyleRaw "Sent" .Sent "Stars" .Stars "Attempts" .Attempts
-          "DurationMinutesPart" .DurationMinutesPart "DurationSecondsPart" .DurationSecondsPart) }}
+          "DurationLabel" .DurationLabel) }}
       </div>
     </details>
     {{ end }}
@@ -115,7 +115,7 @@
     "IsBoard" .SeedIsBoard "RopeStyleRaw" .SeedRopeStyle
     "Grade" .SeedGrade "Focus" "" "Thoughts" ""
     "StyleRaw" "" "Sent" false "Stars" 0 "Attempts" 1
-    "DurationMinutesPart" 0 "DurationSecondsPart" 0) }}
+    "DurationLabel" "") }}
 </div>
 
 {{/* Grade systems + handlers — re-run on every swap (htmx executes inline scripts) */}}
@@ -495,21 +495,15 @@ if(window.__passionRenderIcons)window.__passionRenderIcons();
        you stayed on is the point rather than whether you sent. Optional. */}}
   <div data-duration-row hidden>
     <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Time on the wall <span class="font-normal">(optional)</span></label>
-    <div class="flex items-center gap-2">
-      <input
-        type="number" name="duration_minutes" min="0" max="359" placeholder="min"
-        class="input text-sm" style="width:4.5rem"
-        value="{{ if gt .DurationMinutesPart 0 }}{{ .DurationMinutesPart }}{{ end }}"
-        aria-label="Minutes on the wall"
-      />
-      <span class="text-xs muted">:</span>
-      <input
-        type="number" name="duration_seconds" min="0" max="59" placeholder="sec"
-        class="input text-sm" style="width:4.5rem"
-        value="{{ if gt .DurationSecondsPart 0 }}{{ .DurationSecondsPart }}{{ end }}"
-        aria-label="Seconds on the wall"
-      />
-    </div>
+    <input
+      type="text" name="duration" inputmode="numeric" placeholder="4:12"
+      class="input text-sm" style="width:7rem"
+      value="{{ .DurationLabel }}"
+      aria-describedby="tick-duration-hint-{{ if eq .Mode "edit" }}{{ .ID }}{{ else }}{{ .ExerciseID }}{{ end }}"
+    />
+    <p id="tick-duration-hint-{{ if eq .Mode "edit" }}{{ .ID }}{{ else }}{{ .ExerciseID }}{{ end }}" class="mt-1 text-xs muted">
+      Minutes:seconds — a plain number counts as minutes.
+    </p>
   </div>
 
   <div class="tick-form-sep"></div>

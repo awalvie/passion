@@ -75,19 +75,45 @@ func isBoardSubtype(s string) bool {
 	return false
 }
 
-// parseTickDuration reads the optional time-on-the-wall inputs (minutes + seconds)
-// and returns the total in seconds, or 0 when left blank. Capped at six hours so a
-// stray keystroke can't record a nonsense lap.
+// parseTickDuration reads the optional time-on-the-wall field and returns seconds,
+// or 0 when blank or unparseable. Accepts "4:12" (m:ss), "1:02:30" (h:mm:ss), an
+// explicit "45s" / "4m", or a bare number — read as minutes, since that's what a
+// whole number in a time field usually means. Capped at six hours so a stray
+// keystroke can't record a nonsense lap.
 func parseTickDuration(r *http.Request) int {
-	mins, _ := strconv.Atoi(strings.TrimSpace(r.FormValue("duration_minutes")))
-	secs, _ := strconv.Atoi(strings.TrimSpace(r.FormValue("duration_seconds")))
-	if mins < 0 {
-		mins = 0
+	raw := strings.ToLower(strings.TrimSpace(r.FormValue("duration")))
+	if raw == "" {
+		return 0
 	}
-	if secs < 0 {
-		secs = 0
+
+	total := 0
+	switch {
+	case strings.Contains(raw, ":"):
+		parts := strings.Split(raw, ":")
+		if len(parts) > 3 {
+			return 0
+		}
+		for _, p := range parts {
+			v, err := strconv.Atoi(strings.TrimSpace(p))
+			if err != nil || v < 0 {
+				return 0
+			}
+			total = total*60 + v
+		}
+	case strings.HasSuffix(raw, "s"):
+		v, err := strconv.Atoi(strings.TrimSpace(strings.TrimSuffix(raw, "s")))
+		if err != nil || v < 0 {
+			return 0
+		}
+		total = v
+	default:
+		v, err := strconv.Atoi(strings.TrimSpace(strings.TrimSuffix(raw, "m")))
+		if err != nil || v < 0 {
+			return 0
+		}
+		total = v * 60
 	}
-	total := mins*60 + secs
+
 	if total > 6*60*60 {
 		total = 6 * 60 * 60
 	}
@@ -169,34 +195,32 @@ func ticksToViews(ticks []db.ClimbingTick) []pages.ClimbingTickView {
 		ropeStyle, ropeStyleClass, ropeStyleIcon := tickRopeStyleDisplay(ropeStyleRaw)
 
 		views = append(views, pages.ClimbingTickView{
-			ID:                  t.ID,
-			RunID:               t.RunID,
-			ExerciseID:          t.ExerciseID,
-			Kind:                kindDisplay,
-			KindRaw:             kindRaw,
-			Setting:             settingDisplay,
-			SettingRaw:          t.Setting,
-			Subtype:             tickSubtypeDisplay(t.Subtype),
-			SubtypeRaw:          t.Subtype,
-			IsBoard:             isBoardSubtype(t.Subtype),
-			Grade:               t.Grade,
-			Focus:               t.Focus,
-			Thoughts:            t.Thoughts,
-			Style:               style,
-			StyleClass:          styleClass,
-			StyleRaw:            styleRaw,
-			StyleIcon:           styleIcon,
-			RopeStyle:           ropeStyle,
-			RopeStyleClass:      ropeStyleClass,
-			RopeStyleRaw:        ropeStyleRaw,
-			RopeStyleIcon:       ropeStyleIcon,
-			Attempts:            t.Attempts,
-			DurationSeconds:     t.DurationSeconds,
-			DurationLabel:       formatTickDuration(t.DurationSeconds),
-			DurationMinutesPart: t.DurationSeconds / 60,
-			DurationSecondsPart: t.DurationSeconds % 60,
-			Sent:                t.Sent,
-			Stars:               t.Stars,
+			ID:              t.ID,
+			RunID:           t.RunID,
+			ExerciseID:      t.ExerciseID,
+			Kind:            kindDisplay,
+			KindRaw:         kindRaw,
+			Setting:         settingDisplay,
+			SettingRaw:      t.Setting,
+			Subtype:         tickSubtypeDisplay(t.Subtype),
+			SubtypeRaw:      t.Subtype,
+			IsBoard:         isBoardSubtype(t.Subtype),
+			Grade:           t.Grade,
+			Focus:           t.Focus,
+			Thoughts:        t.Thoughts,
+			Style:           style,
+			StyleClass:      styleClass,
+			StyleRaw:        styleRaw,
+			StyleIcon:       styleIcon,
+			RopeStyle:       ropeStyle,
+			RopeStyleClass:  ropeStyleClass,
+			RopeStyleRaw:    ropeStyleRaw,
+			RopeStyleIcon:   ropeStyleIcon,
+			Attempts:        t.Attempts,
+			DurationSeconds: t.DurationSeconds,
+			DurationLabel:   formatTickDuration(t.DurationSeconds),
+			Sent:            t.Sent,
+			Stars:           t.Stars,
 		})
 	}
 	return views

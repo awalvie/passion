@@ -555,12 +555,10 @@ type ClimbingTickView struct {
 	Sent           bool
 	Stars          int // 0–3
 	// DurationSeconds / DurationLabel carry optional time on the wall for this climb
-	// (traverse laps); DurationLabel is "" when none was recorded.
+	// (traverse laps); DurationLabel is "" when none was recorded and doubles as the
+	// prefilled value of the edit form's single m:ss field.
 	DurationSeconds int
 	DurationLabel   string
-	// DurationMinutesPart / DurationSecondsPart split the duration for the edit form.
-	DurationMinutesPart int
-	DurationSecondsPart int
 }
 
 type ExerciseTicksParams struct {

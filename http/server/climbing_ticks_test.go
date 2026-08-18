@@ -870,11 +870,10 @@ func TestCreateExerciseTick_TraverseDurationPersistedFromForm(t *testing.T) {
 	}
 
 	form := url.Values{
-		"kind":             {"boulder"},
-		"setting":          {"indoor"},
-		"grade":            {"Traverse"},
-		"duration_minutes": {"4"},
-		"duration_seconds": {"12"},
+		"kind":     {"boulder"},
+		"setting":  {"indoor"},
+		"grade":    {"Traverse"},
+		"duration": {"4:12"},
 	}
 	req := tickChiRequest(t, http.MethodPost, "/runs/11/exercises/6/ticks", form.Encode(),
 		map[string]string{"runID": fmt.Sprintf("%d", runID), "exerciseID": fmt.Sprintf("%d", exerciseID)})
@@ -933,25 +932,30 @@ func TestCreateExerciseTick_DurationOmittedStaysZero(t *testing.T) {
 func TestParseTickDuration(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name    string
-		minutes string
-		seconds string
-		want    int
+		name  string
+		input string
+		want  int
 	}{
-		{"minutes and seconds", "4", "12", 252},
-		{"seconds only", "", "45", 45},
-		{"minutes only", "3", "", 180},
-		{"blank", "", "", 0},
-		{"negatives floored", "-2", "-5", 0},
-		{"capped at six hours", "600", "0", 6 * 60 * 60},
+		{"m:ss", "4:12", 252},
+		{"h:mm:ss", "1:02:30", 3750},
+		{"bare number is minutes", "4", 240},
+		{"explicit minutes suffix", "4m", 240},
+		{"explicit seconds suffix", "45s", 45},
+		{"zero padded seconds", "0:45", 45},
+		{"whitespace tolerated", "  3:05 ", 185},
+		{"blank", "", 0},
+		{"garbage ignored", "abc", 0},
+		{"negative ignored", "-3", 0},
+		{"too many parts ignored", "1:2:3:4", 0},
+		{"capped at six hours", "600", 6 * 60 * 60},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			form := url.Values{"duration_minutes": {tc.minutes}, "duration_seconds": {tc.seconds}}
+			form := url.Values{"duration": {tc.input}}
 			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(form.Encode()))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			if got := parseTickDuration(req); got != tc.want {
-				t.Errorf("parseTickDuration() = %d, want %d", got, tc.want)
+				t.Errorf("parseTickDuration(%q) = %d, want %d", tc.input, got, tc.want)
 			}
 		})
 	}

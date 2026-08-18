@@ -9,8 +9,8 @@
       {{ if .Setting }}<span class="tick-kind">{{ .Setting }}</span>{{ end }}
       {{ if .Subtype }}<span class="tick-kind">{{ .Subtype }}</span>{{ end }}
       {{ if .DurationLabel }}
-        <span class="tick-kind tabular-nums" title="Time on the wall">
-          <i data-lucide="timer" style="width:0.6rem;height:0.6rem;vertical-align:-1px" aria-hidden="true"></i>
+        <span class="tick-kind tabular-nums inline-flex items-center gap-0.5" title="Time on the wall">
+          <i data-lucide="timer" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>
           {{ .DurationLabel }}
         </span>
       {{ end }}
