@@ -22,7 +22,10 @@
   </div>
 
   {{/* ── Two-column body ── */}}
-  <div class="flex flex-col gap-5 md:grid md:grid-cols-[1fr_22rem] md:gap-6 md:items-start">
+  {{/* minmax(0,1fr): a bare 1fr track has min-width:auto, so wide content (the
+       climbing tick form) stretches the column past the viewport instead of
+       scrolling inside it. */}}
+  <div class="flex flex-col gap-5 md:grid md:grid-cols-[minmax(0,1fr)_22rem] md:gap-6 md:items-start">
 
     {{/* LEFT: exercises */}}
     <div>
