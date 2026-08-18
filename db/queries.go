@@ -238,6 +238,10 @@ type CompletedRunDate struct {
 	ScheduledDate      time.Time
 	IsTrial            bool
 	ScheduledSessionID uint
+	// RunID and Name identify the run behind the date so the dashboard can show what
+	// was actually done (and link to its summary), not just that something happened.
+	RunID uint
+	Name  string
 }
 
 // ListCompletedRunDatesInRange returns one row per completed SessionRun whose
@@ -246,10 +250,18 @@ func ListCompletedRunDatesInRange(gdb *gorm.DB, ownerID uint, start, end time.Ti
 	var rows []CompletedRunDate
 	err := gdb.
 		Table("session_runs").
-		Select("scheduled_sessions.scheduled_date, session_runs.is_trial, session_runs.scheduled_session_id").
+		// is_trial comes from the ScheduledSession, not the run: ad-hoc sessions (open
+		// sessions and start-from-template) get a throwaway trial ScheduledSession, but
+		// open-session runs leave SessionRun.IsTrial false — so the run's flag would
+		// misreport them as planned.
+		Select("scheduled_sessions.scheduled_date, scheduled_sessions.is_trial as is_trial, " +
+			"session_runs.scheduled_session_id, session_runs.id as run_id, " +
+			"COALESCE(NULLIF(session_runs.custom_name,''), session_templates.name, 'Session') as name").
 		Joins("JOIN scheduled_sessions ON scheduled_sessions.id = session_runs.scheduled_session_id").
-		Where("session_runs.owner_id = ? AND session_runs.status = ? AND session_runs.deleted_at IS NULL AND scheduled_sessions.scheduled_date >= ? AND scheduled_sessions.scheduled_date <= ?",
-			ownerID, RunStatusCompleted, start, end).
+		Joins("LEFT JOIN session_templates ON session_templates.id = scheduled_sessions.session_template_id").
+		Where("session_runs.owner_id = ? AND session_runs.status = ? AND session_runs.is_draft = ? AND session_runs.deleted_at IS NULL AND scheduled_sessions.scheduled_date >= ? AND scheduled_sessions.scheduled_date <= ?",
+			ownerID, RunStatusCompleted, false, start, end).
+		Order("scheduled_sessions.scheduled_date asc, session_runs.id asc").
 		Scan(&rows).Error
 	return rows, err
 }
