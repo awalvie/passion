@@ -654,7 +654,7 @@ func TestUpdateClimbingTick_AttemptsPersistedFromForm(t *testing.T) {
 	// Update with attempts=3 (simulating the handler parsing "attempts" from the form).
 	sent, style := resolveResult("redpoint", "V4")
 	if err := db.UpdateClimbingTick(store.DB, ownerID, tick.ID,
-		"boulder", "indoor", "", "V4", "", "", style, "", 3 /*attempts*/, 0, sent,
+		"boulder", "indoor", "", "V4", "", "", style, "", 3 /*attempts*/, 0, 0 /*durationSeconds*/, sent,
 	); err != nil {
 		t.Fatalf("UpdateClimbingTick: %v", err)
 	}
@@ -844,5 +844,115 @@ func TestResolveResult_ToDBValues(t *testing.T) {
 		if stored.Style != tc.wantStyle {
 			t.Errorf("style=%q grade=%q: Style=%q, want %q", tc.style, tc.grade, stored.Style, tc.wantStyle)
 		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Time on the wall (optional per-climb duration, for ungraded traverse laps)
+// ---------------------------------------------------------------------------
+
+func TestCreateExerciseTick_TraverseDurationPersistedFromForm(t *testing.T) {
+	withRepoRoot(t)
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "tick-duration.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	user := &db.User{Email: "d@d.com", PasswordHash: "x"}
+	if err := store.DB.Create(user).Error; err != nil {
+		t.Fatal(err)
+	}
+	ownerID := user.ID
+	const runID, exerciseID uint = 11, 6
+
+	srv, err := NewServer(store, "secret", 24, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	form := url.Values{
+		"kind":             {"boulder"},
+		"setting":          {"indoor"},
+		"grade":            {"Traverse"},
+		"duration_minutes": {"4"},
+		"duration_seconds": {"12"},
+	}
+	req := tickChiRequest(t, http.MethodPost, "/runs/11/exercises/6/ticks", form.Encode(),
+		map[string]string{"runID": fmt.Sprintf("%d", runID), "exerciseID": fmt.Sprintf("%d", exerciseID)})
+	req = withOwner(t, req, ownerID)
+	rr := httptest.NewRecorder()
+	srv.createExerciseTick(rr, req, ownerID, runID, exerciseID)
+
+	var ticks []db.ClimbingTick
+	if err := store.DB.Where("owner_id = ? AND run_id = ?", ownerID, runID).Find(&ticks).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(ticks) != 1 {
+		t.Fatalf("expected 1 tick, got %d; response: %q", len(ticks), rr.Body.String())
+	}
+	if got := ticks[0].DurationSeconds; got != 252 {
+		t.Errorf("DurationSeconds = %d, want 252 (4:12)", got)
+	}
+	// The logged lap time should render on the tick row.
+	if !strings.Contains(rr.Body.String(), "4:12") {
+		t.Errorf("rendered tick list missing the 4:12 lap time")
+	}
+}
+
+func TestCreateExerciseTick_DurationOmittedStaysZero(t *testing.T) {
+	withRepoRoot(t)
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "tick-noduration.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	user := &db.User{Email: "e@e.com", PasswordHash: "x"}
+	if err := store.DB.Create(user).Error; err != nil {
+		t.Fatal(err)
+	}
+	ownerID := user.ID
+	const runID, exerciseID uint = 12, 7
+
+	srv, err := NewServer(store, "secret", 24, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	form := url.Values{"kind": {"boulder"}, "setting": {"indoor"}, "grade": {"V4"}, "style": {"flash"}}
+	req := tickChiRequest(t, http.MethodPost, "/runs/12/exercises/7/ticks", form.Encode(),
+		map[string]string{"runID": fmt.Sprintf("%d", runID), "exerciseID": fmt.Sprintf("%d", exerciseID)})
+	req = withOwner(t, req, ownerID)
+	srv.createExerciseTick(httptest.NewRecorder(), req, ownerID, runID, exerciseID)
+
+	var tick db.ClimbingTick
+	if err := store.DB.Where("owner_id = ? AND run_id = ?", ownerID, runID).First(&tick).Error; err != nil {
+		t.Fatal(err)
+	}
+	if tick.DurationSeconds != 0 {
+		t.Errorf("DurationSeconds = %d, want 0 when the fields are left blank", tick.DurationSeconds)
+	}
+}
+
+func TestParseTickDuration(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name    string
+		minutes string
+		seconds string
+		want    int
+	}{
+		{"minutes and seconds", "4", "12", 252},
+		{"seconds only", "", "45", 45},
+		{"minutes only", "3", "", 180},
+		{"blank", "", "", 0},
+		{"negatives floored", "-2", "-5", 0},
+		{"capped at six hours", "600", "0", 6 * 60 * 60},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			form := url.Values{"duration_minutes": {tc.minutes}, "duration_seconds": {tc.seconds}}
+			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(form.Encode()))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			if got := parseTickDuration(req); got != tc.want {
+				t.Errorf("parseTickDuration() = %d, want %d", got, tc.want)
+			}
+		})
 	}
 }

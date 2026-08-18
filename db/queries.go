@@ -254,8 +254,8 @@ func ListCompletedRunDatesInRange(gdb *gorm.DB, ownerID uint, start, end time.Ti
 		// sessions and start-from-template) get a throwaway trial ScheduledSession, but
 		// open-session runs leave SessionRun.IsTrial false — so the run's flag would
 		// misreport them as planned.
-		Select("scheduled_sessions.scheduled_date, scheduled_sessions.is_trial as is_trial, " +
-			"session_runs.scheduled_session_id, session_runs.id as run_id, " +
+		Select("scheduled_sessions.scheduled_date, scheduled_sessions.is_trial as is_trial, "+
+			"session_runs.scheduled_session_id, session_runs.id as run_id, "+
 			"COALESCE(NULLIF(session_runs.custom_name,''), session_templates.name, 'Session') as name").
 		Joins("JOIN scheduled_sessions ON scheduled_sessions.id = session_runs.scheduled_session_id").
 		Joins("LEFT JOIN session_templates ON session_templates.id = scheduled_sessions.session_template_id").
@@ -447,21 +447,22 @@ func GetLatestClimbingTickInRun(gdb *gorm.DB, ownerID, runID uint) (ClimbingTick
 }
 
 // UpdateClimbingTick replaces all editable fields on an existing tick.
-func UpdateClimbingTick(gdb *gorm.DB, ownerID, id uint, kind, setting, subtype, grade, focus, thoughts, style, ropeStyle string, attempts, stars int, sent bool) error {
+func UpdateClimbingTick(gdb *gorm.DB, ownerID, id uint, kind, setting, subtype, grade, focus, thoughts, style, ropeStyle string, attempts, stars, durationSeconds int, sent bool) error {
 	return gdb.Model(&ClimbingTick{}).
 		Where("owner_id = ? AND id = ?", ownerID, id).
 		Updates(map[string]interface{}{
-			"kind":       kind,
-			"setting":    setting,
-			"subtype":    subtype,
-			"grade":      grade,
-			"focus":      focus,
-			"thoughts":   thoughts,
-			"style":      style,
-			"rope_style": ropeStyle,
-			"attempts":   attempts,
-			"stars":      stars,
-			"sent":       sent,
+			"kind":             kind,
+			"setting":          setting,
+			"subtype":          subtype,
+			"grade":            grade,
+			"focus":            focus,
+			"thoughts":         thoughts,
+			"style":            style,
+			"rope_style":       ropeStyle,
+			"attempts":         attempts,
+			"stars":            stars,
+			"duration_seconds": durationSeconds,
+			"sent":             sent,
 		}).Error
 }
 
