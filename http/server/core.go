@@ -140,6 +140,8 @@ func (s *Server) Routes() http.Handler {
 		pr.HandleFunc("/training-log/draft/{runID}/exercises/{exerciseID}/sets/{setIndex}/delete", s.handleTrainingLogDeleteSet)
 
 		// Climbing ticks (scoped to a run+exercise)
+		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/burns", s.handleExerciseBurns)
+		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/burns/{burnID}/delete", s.handleExerciseBurnDelete)
 		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/ticks", s.handleExerciseTicks)
 		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/ticks/{tickID}/delete", s.handleExerciseTickDelete)
 		pr.HandleFunc("/runs/{runID}/exercises/{exerciseID}/ticks/{tickID}/update", s.handleExerciseTickUpdate)

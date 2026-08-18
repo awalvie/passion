@@ -254,8 +254,8 @@ func ListCompletedRunDatesInRange(gdb *gorm.DB, ownerID uint, start, end time.Ti
 		// sessions and start-from-template) get a throwaway trial ScheduledSession, but
 		// open-session runs leave SessionRun.IsTrial false — so the run's flag would
 		// misreport them as planned.
-		Select("scheduled_sessions.scheduled_date, scheduled_sessions.is_trial as is_trial, " +
-			"session_runs.scheduled_session_id, session_runs.id as run_id, " +
+		Select("scheduled_sessions.scheduled_date, scheduled_sessions.is_trial as is_trial, "+
+			"session_runs.scheduled_session_id, session_runs.id as run_id, "+
 			"COALESCE(NULLIF(session_runs.custom_name,''), session_templates.name, 'Session') as name").
 		Joins("JOIN scheduled_sessions ON scheduled_sessions.id = session_runs.scheduled_session_id").
 		Joins("LEFT JOIN session_templates ON session_templates.id = scheduled_sessions.session_template_id").
@@ -1017,6 +1017,37 @@ func DeleteManualExerciseSetLog(gdb *gorm.DB, ownerID, runID, exerciseID uint, s
 func DeleteAllManualExerciseSetLogs(gdb *gorm.DB, ownerID, runID, exerciseID uint) error {
 	return gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).
 		Delete(&ManualExerciseSetLog{}).Error
+}
+
+// ListExerciseBurns returns the logged burns for an exercise in the order they happened.
+func ListExerciseBurns(gdb *gorm.DB, ownerID, runID, exerciseID uint) ([]ExerciseBurn, error) {
+	var rows []ExerciseBurn
+	err := gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).
+		Order("order_index asc").Find(&rows).Error
+	return rows, err
+}
+
+// AddExerciseBurn appends a burn of the given duration, numbered after the last one.
+func AddExerciseBurn(gdb *gorm.DB, ownerID, runID, exerciseID uint, durationSeconds int) error {
+	var maxOrder int
+	if err := gdb.Model(&ExerciseBurn{}).
+		Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, exerciseID).
+		Select("COALESCE(MAX(order_index), 0)").Scan(&maxOrder).Error; err != nil {
+		return err
+	}
+	return gdb.Create(&ExerciseBurn{
+		OwnerID:         ownerID,
+		RunID:           runID,
+		ExerciseID:      exerciseID,
+		OrderIndex:      maxOrder + 1,
+		DurationSeconds: durationSeconds,
+	}).Error
+}
+
+// DeleteExerciseBurn removes one logged burn.
+func DeleteExerciseBurn(gdb *gorm.DB, ownerID, runID, exerciseID, burnID uint) error {
+	return gdb.Where("owner_id = ? AND run_id = ? AND exercise_id = ? AND id = ?",
+		ownerID, runID, exerciseID, burnID).Delete(&ExerciseBurn{}).Error
 }
 
 // ListExercisePlannedSets returns all planned sets for an exercise ordered by set_index.
