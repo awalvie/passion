@@ -21,7 +21,7 @@
         document.documentElement.setAttribute("data-theme", t);
       })();
     </script>
-    <link rel="stylesheet" href="/static/passion.css">
+    <link rel="stylesheet" href="{{ asset "/static/passion.css" }}">
     <link rel="stylesheet" href="/static/vendor/toastui-editor.min.css">
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <style>
@@ -283,7 +283,7 @@
       <option value="Crimpd"></option>
     </datalist>
     <script src="/static/vendor/toastui-editor-all.min.js"></script>
-    <script src="/static/markdown-editor.js"></script>
+    <script src="{{ asset "/static/markdown-editor.js" }}"></script>
   </body>
 </html>
 {{ end }}
