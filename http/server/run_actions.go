@@ -179,7 +179,6 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 			}
 			if ex.Kind == "climbing" {
 				se.Ticks = s.summaryTickViews(ownerID, run.ID, ex.ID)
-				s.attachBurnSummary(&se, ownerID, run.ID, ex.ID)
 			}
 			switch se.Status {
 			case db.RunStatusCompleted:
@@ -217,7 +216,6 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 				}
 				if ex.Kind == "climbing" {
 					se.Ticks = s.summaryTickViews(ownerID, run.ID, ex.ID)
-					s.attachBurnSummary(&se, ownerID, run.ID, ex.ID)
 				}
 				switch se.Status {
 				case db.RunStatusCompleted:

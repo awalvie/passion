@@ -378,19 +378,6 @@ type ManualExerciseSetLog struct {
 	WeightKg   float64
 }
 
-// ExerciseBurn records one continuous effort within an exercise — how long you stayed
-// on the wall for a single go. Used for traverse / ARC endurance work, where the
-// interesting numbers are total time on the wall and the longest single burn.
-// Kept separate from ManualExerciseSetLog because a burn has no reps or weight.
-type ExerciseBurn struct {
-	gorm.Model
-	OwnerID         uint `gorm:"index;not null"`
-	RunID           uint `gorm:"index;not null"`
-	ExerciseID      uint `gorm:"index;not null"`
-	OrderIndex      int  `gorm:"not null;default:0"` // 1-based, in the order logged
-	DurationSeconds int  `gorm:"not null;default:0"`
-}
-
 // RunExerciseChoice records which child option was selected for an exercise_catalog parent during a run.
 // Multiple rows per (RunID, ParentExerciseID) are allowed so the user can pick N exercises.
 type RunExerciseChoice struct {

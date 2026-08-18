@@ -78,11 +78,6 @@
               {{ if gt .ElapsedSeconds 0 }} · {{ formatElapsed .ElapsedSeconds }}{{ end -}}
             {{ end }}
           </span>
-          {{ if gt .BurnCount 0 }}
-            <span class="run-summary-row-detail tabular-nums">
-              {{ .BurnCount }} burn{{ if ne .BurnCount 1 }}s{{ end }} · {{ .BurnTotalLabel }} on the wall · best {{ .BurnBestLabel }}
-            </span>
-          {{ end }}
           {{ if .Notes }}<p class="run-summary-row-notes">{{ .Notes }}</p>{{ end }}
           {{ if .Ticks }}{{ template "run_ticks_readonly" .Ticks }}{{ end }}
         </div>

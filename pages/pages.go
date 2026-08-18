@@ -72,25 +72,6 @@ type CalendarCellSession struct {
 	RunID uint
 }
 
-// ExerciseBurnView is one logged burn — a single continuous go on the wall.
-type ExerciseBurnView struct {
-	ID    uint
-	Index int
-	Label string // "4:12"
-}
-
-// ExerciseBurnsView renders the burn list for an exercise, with the two numbers that
-// matter for traverse endurance: total time on the wall and the longest single burn.
-type ExerciseBurnsView struct {
-	RunID      uint
-	ExerciseID uint
-	Burns      []ExerciseBurnView
-	TotalLabel string
-	BestLabel  string
-	// ReadOnly hides the stopwatch and delete controls (used in the run summary).
-	ReadOnly bool
-}
-
 // CalendarEventView is a user-defined calendar event (trip, injury, etc.) for template rendering.
 type CalendarEventView struct {
 	ID         uint
@@ -307,11 +288,6 @@ type RunSummaryExercise struct {
 	Notes           string
 	// Ticks holds logged climbs for a climbing-kind exercise (read-only in the summary).
 	Ticks []ClimbingTickView
-	// BurnCount / BurnTotalLabel / BurnBestLabel summarise time on the wall when any
-	// burns were logged (traverse / ARC endurance work).
-	BurnCount      int
-	BurnTotalLabel string
-	BurnBestLabel  string
 }
 
 type RunSummaryActivity struct {
@@ -1005,7 +981,6 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		filepath.Join("templates", "fragments", "run_ticks.html"),
 		filepath.Join("templates", "fragments", "manual_exercises.html"),
 		filepath.Join("templates", "fragments", "planned_sets.html"),
-		filepath.Join("templates", "fragments", "exercise_burns.html"),
 		filepath.Join("templates", "fragments", "venues_list.html"),
 		filepath.Join("templates", "fragments", "boards_list.html"),
 	}
