@@ -22,6 +22,29 @@
       <span data-burn-label>On the wall</span>
       <span data-burn-clock class="tabular-nums" hidden></span>
     </button>
+
+    {{/* Manual entry, for filling in a session after the fact. Posts minutes+seconds
+         so it works without the stopwatch (and without JS). */}}
+    <form
+      hx-post="/runs/{{ .RunID }}/exercises/{{ .ExerciseID }}/burns"
+      hx-target="#burn-list-{{ .ExerciseID }}"
+      hx-swap="outerHTML"
+      class="mt-2 flex items-center gap-2"
+    >
+      <span class="text-xs muted">or add</span>
+      <input
+        name="minutes" type="number" min="0" max="359" placeholder="min"
+        class="input text-sm" style="width:4.25rem" aria-label="Minutes on the wall"
+      />
+      <span class="text-xs muted">:</span>
+      <input
+        name="seconds" type="number" min="0" max="59" placeholder="sec"
+        class="input text-sm" style="width:4.25rem" aria-label="Seconds on the wall"
+      />
+      <button type="submit" class="rounded-md btn-ghost border px-3 py-1.5 text-xs font-medium" style="border-color:var(--border)">
+        Add
+      </button>
+    </form>
   </div>
   {{ end }}
 

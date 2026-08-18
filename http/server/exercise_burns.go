@@ -102,9 +102,22 @@ func (s *Server) handleExerciseBurns(w http.ResponseWriter, r *http.Request) {
 			s.badRequest(w, "bad request")
 			return
 		}
+		// The stopwatch posts duration_seconds; the manual form (used when filling in a
+		// past session) posts minutes + seconds instead.
 		secs, err := strconv.Atoi(strings.TrimSpace(r.FormValue("duration_seconds")))
 		if err != nil || secs <= 0 {
-			http.Error(w, "duration_seconds must be a positive integer", http.StatusBadRequest)
+			mins, _ := strconv.Atoi(strings.TrimSpace(r.FormValue("minutes")))
+			rem, _ := strconv.Atoi(strings.TrimSpace(r.FormValue("seconds")))
+			if mins < 0 {
+				mins = 0
+			}
+			if rem < 0 {
+				rem = 0
+			}
+			secs = mins*60 + rem
+		}
+		if secs <= 0 {
+			http.Error(w, "a burn needs a duration", http.StatusBadRequest)
 			return
 		}
 		// A burn is one continuous effort; cap it so a forgotten running timer can't
