@@ -9,7 +9,9 @@
     <h1 class="text-xl font-bold">{{ if .JournalID }}Edit Log Entry{{ else }}New Log Entry{{ end }}</h1>
   </div>
 
-  <div class="{{ if .DraftRunID }}flex flex-col gap-5 md:grid md:grid-cols-[1fr_22rem] md:gap-6 md:items-start{{ end }}">
+  {{/* minmax(0,1fr): see training_log_summary.html — a bare 1fr track lets wide
+       content stretch the column past the viewport. */}}
+  <div class="{{ if .DraftRunID }}flex flex-col gap-5 md:grid md:grid-cols-[minmax(0,1fr)_22rem] md:gap-6 md:items-start{{ end }}">
 
   {{/* LEFT column: exercise management */}}
   {{ if .DraftRunID }}
