@@ -1,0 +1,58 @@
+{{ define "fragments/exercise_burns" }}
+<section id="burn-list-{{ .ExerciseID }}" class="rounded-lg border" style="border-color:var(--border)">
+  <div class="flex items-center justify-between gap-3 px-3 py-2">
+    <span class="text-xs font-semibold muted uppercase tracking-widest">Time on the wall</span>
+    {{ if .Burns }}
+      <span class="text-xs muted tabular-nums">
+        {{ .TotalLabel }} total · best {{ .BestLabel }}
+      </span>
+    {{ end }}
+  </div>
+
+  {{ if not .ReadOnly }}
+  <div class="px-3 pb-2">
+    <button
+      type="button"
+      class="burn-toggle w-full rounded-md border px-3 py-2.5 text-sm font-semibold"
+      style="border-color:var(--border)"
+      data-burn-post="/runs/{{ .RunID }}/exercises/{{ .ExerciseID }}/burns"
+      data-burn-target="#burn-list-{{ .ExerciseID }}"
+      aria-live="polite"
+    >
+      <span data-burn-label>On the wall</span>
+      <span data-burn-clock class="tabular-nums" hidden></span>
+    </button>
+  </div>
+  {{ end }}
+
+  {{ if .Burns }}
+    <ul class="border-t px-3 py-2 space-y-1" style="border-color:var(--border)">
+      {{ range .Burns }}
+        <li class="flex items-center gap-3 text-sm">
+          <span class="text-xs muted w-10 shrink-0">#{{ .Index }}</span>
+          <span class="font-medium tabular-nums">{{ .Label }}</span>
+          {{ if not $.ReadOnly }}
+            <form
+              hx-post="/runs/{{ $.RunID }}/exercises/{{ $.ExerciseID }}/burns/{{ .ID }}/delete"
+              hx-target="#burn-list-{{ $.ExerciseID }}"
+              hx-swap="outerHTML"
+              class="ml-auto"
+            >
+              <button type="submit" class="rounded p-1.5" style="color:var(--muted)" aria-label="Remove burn {{ .Index }}">
+                <i data-lucide="x" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+              </button>
+            </form>
+          {{ end }}
+        </li>
+      {{ end }}
+    </ul>
+  {{ else if .ReadOnly }}
+    <p class="border-t px-3 py-2 text-xs muted" style="border-color:var(--border)">No burns logged.</p>
+  {{ else }}
+    <p class="border-t px-3 py-2 text-xs muted" style="border-color:var(--border)">
+      Tap when you get on, tap again when you come off.
+    </p>
+  {{ end }}
+</section>
+<script>if(window.__passionRenderIcons)window.__passionRenderIcons();if(window.__passionBindBurnTimers)window.__passionBindBurnTimers();</script>
+{{ end }}
