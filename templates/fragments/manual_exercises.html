@@ -39,16 +39,6 @@
     <div class="px-4 pb-4 pt-1 space-y-3" style="border-top:1px solid var(--border);touch-action:pan-y">
       {{ if eq .Kind "climbing" }}
         <section
-          id="burn-list-{{ .ExerciseID }}"
-          class="mb-3"
-          hx-get="/runs/{{ .RunID }}/exercises/{{ .ExerciseID }}/burns"
-          hx-trigger="load"
-          hx-swap="outerHTML"
-          hx-target="this"
-        >
-          <div class="text-sm muted">Loading…</div>
-        </section>
-        <section
           id="tick-list-{{ .ExerciseID }}"
           hx-get="/runs/{{ .RunID }}/exercises/{{ .ExerciseID }}/ticks"
           hx-trigger="load"

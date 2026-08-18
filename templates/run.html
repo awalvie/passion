@@ -492,15 +492,7 @@
           <input type="hidden" name="actual_sets" value="0" />
           <input type="hidden" name="actual_reps" value="0" />
           <input type="hidden" name="actual_weight_kg" value="0" />
-          <div class="mb-3 mt-2 px-1 space-y-3">
-            <section
-              id="burn-list-{{ .CurrentStep.ExerciseID }}"
-              hx-get="/runs/{{ .RunID }}/exercises/{{ .CurrentStep.ExerciseID }}/burns"
-              hx-trigger="load"
-              hx-swap="outerHTML"
-            >
-              <div class="text-sm muted py-2">Loading time on the wall…</div>
-            </section>
+          <div class="mb-3 mt-2 px-1">
             <section
               id="tick-list-{{ .CurrentStep.ExerciseID }}"
               hx-get="/runs/{{ .RunID }}/exercises/{{ .CurrentStep.ExerciseID }}/ticks"
@@ -855,67 +847,6 @@
             : '<i data-lucide="play" class="run-icon"></i>';
           refreshIcons();
         }
-
-        // --- Burn stopwatch: tap on to start timing a go on the wall, tap off to log it.
-        // Bound globally (and re-bound after each HTMX swap) because the burn list
-        // replaces its own markup. Wall-clock based so it survives a backgrounded tab. ---
-        window.__passionBindBurnTimers = function () {
-          document.querySelectorAll(".burn-toggle").forEach(function (btn) {
-            if (btn.dataset.burnBound === "1") return;
-            btn.dataset.burnBound = "1";
-            var startedAt = null, ticker = null;
-            var label = btn.querySelector("[data-burn-label]");
-            var clock = btn.querySelector("[data-burn-clock]");
-            function fmt(sec) {
-              var m = Math.floor(sec / 60), s = sec % 60;
-              return m + ":" + String(s).padStart(2, "0");
-            }
-            function paint() {
-              if (startedAt === null) return;
-              clock.textContent = fmt(Math.floor((Date.now() - startedAt) / 1000));
-            }
-            btn.addEventListener("click", function () {
-              if (startedAt === null) {
-                startedAt = Date.now();
-                btn.style.borderColor = "var(--accent)";
-                btn.style.color = "var(--accent)";
-                if (label) label.textContent = "Off the wall ·";
-                if (clock) { clock.hidden = false; paint(); }
-                ticker = setInterval(paint, 500);
-                buzz(20);
-                return;
-              }
-              var secs = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
-              startedAt = null;
-              if (ticker) { clearInterval(ticker); ticker = null; }
-              btn.style.borderColor = "";
-              btn.style.color = "";
-              if (label) label.textContent = "On the wall";
-              if (clock) { clock.hidden = true; clock.textContent = ""; }
-              btn.disabled = true;
-              buzz([0, 40, 40, 80]);
-              var body = new URLSearchParams({ duration_seconds: String(secs) });
-              fetch(btn.dataset.burnPost, {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: body.toString(),
-              })
-                .then(function (res) { return res.ok ? res.text() : Promise.reject(res.status); })
-                .then(function (html) {
-                  var target = document.querySelector(btn.dataset.burnTarget);
-                  if (target) target.outerHTML = html;
-                })
-                .catch(function () {
-                  btn.disabled = false;
-                  if (window.passionToast) window.passionToast("Couldn't save that burn.");
-                });
-            });
-          });
-        };
-        document.body.addEventListener("htmx:afterSwap", function () {
-          window.__passionBindBurnTimers();
-        });
-        window.__passionBindBurnTimers();
 
         // --- Audio (Web Audio API) ---
         var audioCtx = null;

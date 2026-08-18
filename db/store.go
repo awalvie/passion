@@ -57,7 +57,6 @@ func (s *Store) AutoMigrate() error {
 		&ClimbingBoard{},
 		&ClimbingTick{},
 		&ManualExerciseSetLog{},
-		&ExerciseBurn{},
 		&ExercisePlannedSet{},
 		&ClimbingExerciseMeta{},
 		&CalendarEvent{},
