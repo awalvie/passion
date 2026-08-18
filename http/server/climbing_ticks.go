@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -74,6 +75,38 @@ func isBoardSubtype(s string) bool {
 	return false
 }
 
+// parseTickDuration reads the optional time-on-the-wall inputs (minutes + seconds)
+// and returns the total in seconds, or 0 when left blank. Capped at six hours so a
+// stray keystroke can't record a nonsense lap.
+func parseTickDuration(r *http.Request) int {
+	mins, _ := strconv.Atoi(strings.TrimSpace(r.FormValue("duration_minutes")))
+	secs, _ := strconv.Atoi(strings.TrimSpace(r.FormValue("duration_seconds")))
+	if mins < 0 {
+		mins = 0
+	}
+	if secs < 0 {
+		secs = 0
+	}
+	total := mins*60 + secs
+	if total > 6*60*60 {
+		total = 6 * 60 * 60
+	}
+	return total
+}
+
+// formatTickDuration renders a lap time as m:ss (h:mm:ss for very long ones), or ""
+// when no duration was recorded.
+func formatTickDuration(seconds int) string {
+	if seconds <= 0 {
+		return ""
+	}
+	h, m, s := seconds/3600, (seconds%3600)/60, seconds%60
+	if h > 0 {
+		return fmt.Sprintf("%d:%02d:%02d", h, m, s)
+	}
+	return fmt.Sprintf("%d:%02d", m, s)
+}
+
 // isUngradedClimb reports whether a grade label is one of the ungraded drill
 // options (Rainbow/Traverse), for which no send/outcome applies.
 func isUngradedClimb(grade string) bool {
@@ -136,30 +169,34 @@ func ticksToViews(ticks []db.ClimbingTick) []pages.ClimbingTickView {
 		ropeStyle, ropeStyleClass, ropeStyleIcon := tickRopeStyleDisplay(ropeStyleRaw)
 
 		views = append(views, pages.ClimbingTickView{
-			ID:             t.ID,
-			RunID:          t.RunID,
-			ExerciseID:     t.ExerciseID,
-			Kind:           kindDisplay,
-			KindRaw:        kindRaw,
-			Setting:        settingDisplay,
-			SettingRaw:     t.Setting,
-			Subtype:        tickSubtypeDisplay(t.Subtype),
-			SubtypeRaw:     t.Subtype,
-			IsBoard:        isBoardSubtype(t.Subtype),
-			Grade:          t.Grade,
-			Focus:          t.Focus,
-			Thoughts:       t.Thoughts,
-			Style:          style,
-			StyleClass:     styleClass,
-			StyleRaw:       styleRaw,
-			StyleIcon:      styleIcon,
-			RopeStyle:      ropeStyle,
-			RopeStyleClass: ropeStyleClass,
-			RopeStyleRaw:   ropeStyleRaw,
-			RopeStyleIcon:  ropeStyleIcon,
-			Attempts:       t.Attempts,
-			Sent:           t.Sent,
-			Stars:          t.Stars,
+			ID:                  t.ID,
+			RunID:               t.RunID,
+			ExerciseID:          t.ExerciseID,
+			Kind:                kindDisplay,
+			KindRaw:             kindRaw,
+			Setting:             settingDisplay,
+			SettingRaw:          t.Setting,
+			Subtype:             tickSubtypeDisplay(t.Subtype),
+			SubtypeRaw:          t.Subtype,
+			IsBoard:             isBoardSubtype(t.Subtype),
+			Grade:               t.Grade,
+			Focus:               t.Focus,
+			Thoughts:            t.Thoughts,
+			Style:               style,
+			StyleClass:          styleClass,
+			StyleRaw:            styleRaw,
+			StyleIcon:           styleIcon,
+			RopeStyle:           ropeStyle,
+			RopeStyleClass:      ropeStyleClass,
+			RopeStyleRaw:        ropeStyleRaw,
+			RopeStyleIcon:       ropeStyleIcon,
+			Attempts:            t.Attempts,
+			DurationSeconds:     t.DurationSeconds,
+			DurationLabel:       formatTickDuration(t.DurationSeconds),
+			DurationMinutesPart: t.DurationSeconds / 60,
+			DurationSecondsPart: t.DurationSeconds % 60,
+			Sent:                t.Sent,
+			Stars:               t.Stars,
 		})
 	}
 	return views
@@ -314,20 +351,21 @@ func (s *Server) createExerciseTick(w http.ResponseWriter, r *http.Request, owne
 	}
 
 	tick := &db.ClimbingTick{
-		OwnerID:    ownerID,
-		RunID:      runID,
-		ExerciseID: exerciseID,
-		Kind:       kind,
-		Setting:    setting,
-		Subtype:    subtype,
-		Grade:      grade,
-		Focus:      strings.TrimSpace(r.FormValue("focus")),
-		Thoughts:   strings.TrimSpace(r.FormValue("thoughts")),
-		Style:      style,
-		RopeStyle:  ropeStyle,
-		Attempts:   attempts,
-		Sent:       sent,
-		Stars:      stars,
+		OwnerID:         ownerID,
+		RunID:           runID,
+		ExerciseID:      exerciseID,
+		Kind:            kind,
+		Setting:         setting,
+		Subtype:         subtype,
+		Grade:           grade,
+		Focus:           strings.TrimSpace(r.FormValue("focus")),
+		Thoughts:        strings.TrimSpace(r.FormValue("thoughts")),
+		Style:           style,
+		RopeStyle:       ropeStyle,
+		Attempts:        attempts,
+		Sent:            sent,
+		DurationSeconds: parseTickDuration(r),
+		Stars:           stars,
 	}
 
 	if err := db.CreateClimbingTick(s.store.DB, tick); err != nil {
@@ -443,7 +481,7 @@ func (s *Server) handleExerciseTickUpdate(w http.ResponseWriter, r *http.Request
 		strings.TrimSpace(r.FormValue("thoughts")),
 		style,
 		ropeStyle,
-		attempts, stars,
+		attempts, stars, parseTickDuration(r),
 		sent,
 	); err != nil {
 		s.serverError(w, r, err)
