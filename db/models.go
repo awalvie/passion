@@ -462,8 +462,8 @@ type ClimbingTick struct {
 	Style    string `gorm:"size:32"`   // "onsight"|"flash"|"redpoint"|"hangdog"|"repeat"|"attempt"
 	// RopeStyle is set for sport/trad ticks: "lead"|"top_rope"|"auto_belay"|"second"
 	RopeStyle string `gorm:"size:32;not null;default:''"`
-	Attempts int
-	Sent     bool
+	Attempts  int
+	Sent      bool
 	// DurationSeconds is optional time on the wall for this climb — mainly for
 	// ungraded traverse / ARC laps, where how long you stayed on is the point.
 	DurationSeconds int `gorm:"not null;default:0"`
