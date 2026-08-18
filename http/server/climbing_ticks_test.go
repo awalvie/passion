@@ -956,3 +956,54 @@ func TestParseTickDuration(t *testing.T) {
 		})
 	}
 }
+
+// TestServeExerciseTicks_RendersEveryTickAndForm guards against a template execution
+// error partway through the tick list. Go aborts rendering on error and emits the
+// partial output, so a bad reference inside the per-tick edit form silently drops
+// every climb after the first while the count still says three.
+func TestServeExerciseTicks_RendersEveryTickAndForm(t *testing.T) {
+	withRepoRoot(t)
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "tick-render-all.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	user := &db.User{Email: "r@r.com", PasswordHash: "x"}
+	if err := store.DB.Create(user).Error; err != nil {
+		t.Fatal(err)
+	}
+	ownerID := user.ID
+	const runID, exerciseID uint = 21, 9
+
+	// Three traverse laps with distinct times, mirroring a real endurance session.
+	for i, secs := range []int{252, 218, 171} {
+		tick := &db.ClimbingTick{
+			OwnerID: ownerID, RunID: runID, ExerciseID: exerciseID,
+			Kind: "boulder", Setting: "indoor", Grade: "Traverse",
+			DurationSeconds: secs, Attempts: 1, OrderIndex: i,
+		}
+		if err := store.DB.Create(tick).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	srv, err := NewServer(store, "secret", 24, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := tickChiRequest(t, http.MethodGet, "/runs/21/exercises/9/ticks", "",
+		map[string]string{"runID": fmt.Sprintf("%d", runID), "exerciseID": fmt.Sprintf("%d", exerciseID)})
+	req = withOwner(t, req, ownerID)
+	rr := httptest.NewRecorder()
+	srv.serveExerciseTicks(rr, req, ownerID, runID, exerciseID)
+	body := rr.Body.String()
+
+	for _, want := range []string{"4:12", "3:38", "2:51"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("rendered tick list is missing lap time %s — template execution likely aborted early", want)
+		}
+	}
+	// The new-tick form renders last, so its presence proves the whole fragment ran.
+	if !strings.Contains(body, "Log climb") {
+		t.Errorf("new-tick form missing — template execution did not reach the end of the fragment")
+	}
+}
