@@ -61,6 +61,21 @@ flash 6c on TB2 (7a is the season goal), fall practice leads the lead day.
       block for the new sessions.
 - [ ] Then create the cycle itself with the guided builder.
 
+## Catalog hygiene (found during the attribution sweep)
+
+- [ ] **Six session templates inline their exercises instead of `ref:`-ing the library** —
+      `Flow & Power`, `Foundations`, `Reading & Sport Tactics`, `Strength Base Session`,
+      `Strength Project Day`, `Upper Body Strength Day` define every exercise inline, so
+      they inherit no source, notes, or video and drift from the library copy. This breaks
+      the Library → Activity → Session hierarchy. Convert to `ref:` where a library entry
+      already exists; promote the rest into the library first.
+- [ ] **`Taylor's Pose` is probably `Tailor's Pose`** — the anatomical name for that seated
+      adductor position. Referenced by nothing, so a rename is free (the prune handles the
+      old row).
+- [ ] **Legacy seed rows sit alongside catalog entries** — `Max Hangs` (seed) duplicates
+      `Max Hangs (20 mm Edge)` (catalog), and `10m Open Mobility` is seed-only. Both are
+      unreferenced. Confirm on prod and delete, so the library stops showing two Max Hangs.
+
 ## Prod data cleanup
 
 - [ ] **Legacy renamed session templates** — `Limit Bouldering | Paradigm Climbing` and

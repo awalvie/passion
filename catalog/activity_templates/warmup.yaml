@@ -1,4 +1,5 @@
 name: "Warm Up"
+source: "Paradigm Climbing"
 label: "warmup"
 exercises:
   - ref: "Finger Base Warm-Up"
