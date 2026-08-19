@@ -3,6 +3,7 @@ package db
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -356,20 +357,30 @@ func loadSessionTemplateYAML(dir string) ([]yamlSessionTemplate, error) {
 	return out, nil
 }
 
+// listYAMLFiles returns every .yaml/.yml file under dir, walking subdirectories so the
+// catalog can be organised into folders (by program, say). Layout carries no meaning to
+// the importer — an entry's identity is its name field, not its path — so files can be
+// moved freely without triggering a rename or a prune. Hidden directories are skipped.
 func listYAMLFiles(dir string) ([]string, error) {
-	entries, err := os.ReadDir(dir)
+	var files []string
+	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if d.IsDir() {
+			if p != dir && strings.HasPrefix(d.Name(), ".") {
+				return fs.SkipDir
+			}
+			return nil
+		}
+		switch strings.ToLower(filepath.Ext(d.Name())) {
+		case ".yaml", ".yml":
+			files = append(files, p)
+		}
+		return nil
+	})
 	if err != nil {
 		return nil, fmt.Errorf("read yaml dir %q: %w", dir, err)
-	}
-	files := make([]string, 0, len(entries))
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		ext := strings.ToLower(filepath.Ext(entry.Name()))
-		if ext == ".yaml" || ext == ".yml" {
-			files = append(files, filepath.Join(dir, entry.Name()))
-		}
 	}
 	sort.Strings(files)
 	return files, nil

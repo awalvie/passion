@@ -317,3 +317,58 @@ activities:
 		t.Errorf("expected both session templates to survive an empty-category import, got count %d", tplCount)
 	}
 }
+
+// TestImportYAMLWalksSubdirectories guards that the catalog can be organised into
+// folders. An entry's identity is its name, not its path, so files must import the same
+// whether they sit at the top level or nested — and moving one must not look like a
+// rename (which the prune would act on).
+func TestImportYAMLWalksSubdirectories(t *testing.T) {
+	dir := t.TempDir()
+	store, err := NewSqlite(filepath.Join(dir, "folders.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.DB.Create(&User{Email: "f@f.com", PasswordHash: "x"}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	exDir := filepath.Join(dir, "exercises")
+	nested := filepath.Join(exDir, "ondra", "mobility")
+	if err := os.MkdirAll(nested, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	stDir := filepath.Join(dir, "session_templates")
+	if err := os.MkdirAll(filepath.Join(stDir, "programs"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// One exercise at the top level, one two folders deep.
+	write := func(p, body string) {
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(filepath.Join(exDir, "flat.yaml"), "name: \"Flat Move\"\nkind: \"session\"\n")
+	write(filepath.Join(nested, "deep.yaml"), "name: \"Deep Move\"\nkind: \"session\"\n")
+	// A session template in a subfolder that refs the nested exercise.
+	write(filepath.Join(stDir, "programs", "s.yaml"),
+		"name: \"Folder Session\"\nactivities:\n  - type: \"activity\"\n    exercises:\n      - ref: \"Deep Move\"\n")
+
+	if err := store.ImportYAML(YAMLImportOptions{
+		OwnerID: 1, ExercisesDir: exDir, SessionTemplatesDir: stDir,
+	}); err != nil {
+		t.Fatalf("import with nested dirs failed: %v", err)
+	}
+
+	for _, name := range []string{"Flat Move", "Deep Move"} {
+		var n int64
+		store.DB.Model(&LibraryExercise{}).Where("owner_id = ? AND name = ?", 1, name).Count(&n)
+		if n != 1 {
+			t.Errorf("exercise %q: got %d rows, want 1 — nested files must import", name, n)
+		}
+	}
+	var tn int64
+	store.DB.Model(&SessionTemplate{}).Where("owner_id = ? AND name = ?", 1, "Folder Session").Count(&tn)
+	if tn != 1 {
+		t.Errorf("session template in a subfolder did not import (got %d rows)", tn)
+	}
+}
