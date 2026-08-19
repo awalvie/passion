@@ -80,7 +80,7 @@ func ListTemplates(gdb *gorm.DB, ownerID uint, sourceFilter, tagFilter string) (
 		q = q.Where("source = ?", sourceFilter)
 	}
 	if tagFilter != "" {
-		q = q.Where("label LIKE ?", "%"+tagFilter+"%")
+		q = q.Where(LabelTagCondition(tagFilter))
 	}
 	err := q.Order("id desc").Find(&templates).Error
 	return templates, err
@@ -105,6 +105,16 @@ func DistinctTemplateTags(gdb *gorm.DB, ownerID uint) ([]string, error) {
 		return nil, err
 	}
 	return distinctTagsFromLabels(labels), nil
+}
+
+// LabelTagCondition builds a SQL condition matching tag as a whole entry in a
+// comma-separated label list, plus its bind argument. A plain LIKE '%tag%' matches
+// substrings, so filtering by "board" also returned every "hangboard" exercise.
+// Separators are normalised first so "a, b", "a,b" and "a , b" all behave the same;
+// tags containing spaces still work.
+func LabelTagCondition(tag string) (string, string) {
+	return "(',' || REPLACE(REPLACE(label, ', ', ','), ' ,', ',') || ',') LIKE ?",
+		"%," + strings.TrimSpace(tag) + ",%"
 }
 
 // distinctTagsFromLabels splits comma-separated label strings into a sorted, de-duplicated tag list.
@@ -161,7 +171,7 @@ func ListActivityTemplates(gdb *gorm.DB, ownerID uint, sourceFilter, tagFilter s
 		q = q.Where("source = ?", sourceFilter)
 	}
 	if tagFilter != "" {
-		q = q.Where("label LIKE ?", "%"+tagFilter+"%")
+		q = q.Where(LabelTagCondition(tagFilter))
 	}
 	err := q.Order("name asc").Find(&rows).Error
 	return rows, err

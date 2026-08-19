@@ -55,7 +55,7 @@ func (s *Server) handleExerciseLibraryIndex(w http.ResponseWriter, r *http.Reque
 		base = base.Where("source = ?", sourceFilter)
 	}
 	if tagFilter != "" {
-		base = base.Where("label LIKE ?", "%"+tagFilter+"%")
+		base = base.Where(db.LabelTagCondition(tagFilter))
 	}
 
 	var total int64
