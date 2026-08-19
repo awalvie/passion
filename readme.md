@@ -114,6 +114,8 @@ Pass `1`, `true`, `yes`, or `on` for boolean flags.
 
 Training plans live in version-controlled YAML files under `catalog/`. On startup (when import is enabled), Passion upserts exercises and templates by name per owner.
 
+Each directory is scanned recursively, so files can be grouped into subfolders however you like — `catalog/exercises/` uses one folder per program (`kettle/`, `power_company/`, `paradigm/`, `ondra/`, `emil/`) with unsourced and one-off entries at the top level. Layout is purely for humans: an entry's identity is its `name`, not its path, so moving a file between folders changes nothing in the database.
+
 <details>
 <summary>Exercise example</summary>
 
