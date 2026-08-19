@@ -63,15 +63,14 @@ flash 6c on TB2 (7a is the season goal), fall practice leads the lead day.
 
 ## Catalog hygiene (found during the attribution sweep)
 
-- [ ] **Six session templates inline their exercises instead of `ref:`-ing the library** —
-      `Flow & Power`, `Foundations`, `Reading & Sport Tactics`, `Strength Base Session`,
-      `Strength Project Day`, `Upper Body Strength Day` define every exercise inline, so
-      they inherit no source, notes, or video and drift from the library copy. This breaks
-      the Library → Activity → Session hierarchy. Convert to `ref:` where a library entry
-      already exists; promote the rest into the library first.
-- [ ] **`Taylor's Pose` is probably `Tailor's Pose`** — the anatomical name for that seated
-      adductor position. Referenced by nothing, so a rename is free (the prune handles the
-      old row).
+- [ ] **`Strength Base Session` inlines a few generic lifts** — `Row + Band Prep`,
+      `Ring Rows`, and the `Pull Exercise` catalog (`Lat Pulldown`, `Face Pulls`) are
+      defined inline rather than `ref:`-ed. Left inline deliberately: these are generic gym
+      lifts, the same class the attribution sweep chose not to promote or source. Revisit
+      only if one becomes reusable across sessions. (The other five templates once flagged
+      here — `Foundations`, `Flow & Power`, `Reading & Sport Tactics`, `Strength Project
+      Day`, `Upper Body Strength Day` — already `ref:` their real exercises; their only
+      inline entries are session-specific `Apply:` prompts, which belong inline.)
 - [ ] **Legacy seed rows sit alongside catalog entries** — `Max Hangs` (seed) duplicates
       `Max Hangs (20 mm Edge)` (catalog), and `10m Open Mobility` is seed-only. Both are
       unreferenced. Confirm on prod and delete, so the library stops showing two Max Hangs.
