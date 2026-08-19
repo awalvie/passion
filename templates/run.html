@@ -993,8 +993,11 @@
         }
 
         function setPhase(nextPhase) {
-          // Insert a prep countdown before each work phase (non-session exercises only).
-          if (nextPhase === "work" && !isSessionExercise && prepSeconds > 0 && phase !== "prep") {
+          // Prep countdown is for getting into position: it belongs before the first rep
+          // and when resuming a paused rep, but NOT between reps or sets — the rest phase
+          // already is the time to get set, and a second countdown there just adds delay.
+          var fromRest = phase === "rep_rest" || phase === "set_rest";
+          if (nextPhase === "work" && !isSessionExercise && prepSeconds > 0 && phase !== "prep" && !fromRest) {
             nextPhase = "prep";
           }
           phase = nextPhase;
