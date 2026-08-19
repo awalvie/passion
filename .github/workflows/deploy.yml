@@ -40,18 +40,19 @@ jobs:
           # Inject the JWT secret into the config template (plain string replace, safe for any secret chars).
           python3 -c "import sys; c=open('passion.prod.yaml').read(); open('passion.rendered.yaml','w').write(c.replace('__JWT_SECRET__',sys.argv[1]))" "${JWT_SECRET}"
 
-          # scp -r copies over the top and never deletes, so a file renamed, moved or
-          # removed in git lingers on the server forever. For the catalog that is fatal:
-          # the old and new copies both define the same exercise name, the importer
-          # rejects the duplicate, and startup exits 1 into a restart loop. Clear these
-          # three directories first so the server mirrors the repo exactly.
-          $SSH "sudo rm -rf /opt/passion/catalog /opt/passion/templates /opt/passion/static && \
-                mkdir -p /opt/passion/catalog /opt/passion/templates /opt/passion/static"
+          $SSH "mkdir -p /opt/passion"
           $SCP passion                                ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/passion/passion.new
           $SCP passion.rendered.yaml                 ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/passion/passion.yaml
-          $SCP -r catalog/   ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/passion/
-          $SCP -r templates/ ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/passion/
-          $SCP -r static/    ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/passion/
+          # Asset trees go over as a tar stream rather than scp -r, for two reasons:
+          # scp never deletes, so a file renamed or moved in git lingered on the server
+          # forever — for the catalog that is fatal, since the stale and current copies
+          # declare the same exercise name and the importer rejects the duplicate; and
+          # modern scp (SFTP-backed) will not create nested destination directories, so
+          # subfolders under catalog/exercises fail to upload at all. Replacing each
+          # directory wholesale keeps the server an exact mirror of the repo.
+          tar czf - catalog templates static | \
+            $SSH "rm -rf /opt/passion/catalog /opt/passion/templates /opt/passion/static && \
+                  tar xzf - -C /opt/passion"
 
           printf '[Unit]\nDescription=Passion training app\nAfter=network.target\n\n[Service]\nExecStart=/opt/passion/passion -config /opt/passion/passion.yaml\nWorkingDirectory=/opt/passion\nRestart=on-failure\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n' > passion.service
           $SCP passion.service ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/passion/
