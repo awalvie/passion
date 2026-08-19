@@ -6,6 +6,7 @@ sets: 1
 reps: 6
 rep_seconds: 10
 rep_rest_seconds: 20
+prep_seconds: 6
 notes: |
   Sub-maximal isometric hangs on an 18-22mm edge with feet on the floor at all
   times. Keep the intensity very low so only a small strain is felt in the
