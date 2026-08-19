@@ -1321,6 +1321,24 @@ func assetURL(path string) string {
 	return path + "?v=" + v
 }
 
+// kindLabel is the display name for an exercise kind. Kept in one place because a
+// hand-written if/else per template silently mislabels any kind it forgets — that's how
+// climbing exercises ended up showing as "Reps & sets" in the library.
+func kindLabel(kind string) string {
+	switch kind {
+	case "session":
+		return "Session"
+	case "climbing":
+		return "Climbing"
+	case "timed_reps":
+		return "Timed reps"
+	case "exercise_catalog":
+		return "Catalog"
+	default:
+		return "Reps & sets"
+	}
+}
+
 // formatExerciseSummary formats an exercise's parameters into a compact human-readable string.
 // sessionSuffix appends " session" to duration strings (used for session-template exercises).
 // catalogLabel is returned for exercise_catalog kind (e.g. "Exercise catalog" or "menu").
@@ -1559,6 +1577,10 @@ func buildFuncMap() template.FuncMap {
 		"exerciseSummary": func(ex db.Exercise) string {
 			return formatExerciseSummary(ex.Kind, ex.SessionDurationSeconds, ex.Sets, ex.Reps, ex.WeightKg, ex.RepSeconds, true, "Exercise catalog")
 		},
+		"libraryExerciseSummary": func(ex db.LibraryExercise) string {
+			return formatExerciseSummary(ex.Kind, ex.SessionDurationSeconds, ex.Sets, ex.Reps, ex.WeightKg, ex.RepSeconds, false, "—")
+		},
+		"kindLabel": kindLabel,
 		"runStepSummary": func(rs RunStep) string {
 			return formatExerciseSummary(rs.Kind, rs.SessionDurationSeconds, rs.Sets, rs.Reps, rs.WeightKg, rs.RepSeconds, true, "Exercise catalog")
 		},

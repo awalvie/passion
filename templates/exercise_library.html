@@ -27,6 +27,7 @@
       <option value="reps_and_sets"{{ if eq .LibraryKind "reps_and_sets" }} selected{{ end }}>Reps &amp; sets</option>
       <option value="timed_reps"{{ if eq .LibraryKind "timed_reps" }} selected{{ end }}>Timed reps</option>
       <option value="session"{{ if eq .LibraryKind "session" }} selected{{ end }}>Session</option>
+      <option value="climbing"{{ if eq .LibraryKind "climbing" }} selected{{ end }}>Climbing</option>
       <option value="exercise_catalog"{{ if eq .LibraryKind "exercise_catalog" }} selected{{ end }}>Catalog</option>
     </select>
     {{ if .DistinctSources }}
@@ -103,27 +104,11 @@
                 {{ end }}
               </td>
               <td class="px-3 py-2.5">
-                {{ if eq .Kind "session" }}
-                  <span class="inline-block rounded border px-1.5 py-0.5 text-xs" style="border-color:var(--border);background:var(--card-muted)">Session</span>
-                {{ else if eq .Kind "exercise_catalog" }}
-                  <span class="inline-block rounded border px-1.5 py-0.5 text-xs" style="border-color:var(--border);background:var(--card-muted)">Catalog</span>
-                {{ else }}
-                  <span class="inline-block rounded border px-1.5 py-0.5 text-xs" style="border-color:var(--border);background:var(--card-muted)">Reps &amp; sets</span>
-                {{ end }}
+                <span class="inline-block rounded border px-1.5 py-0.5 text-xs" style="border-color:var(--border);background:var(--card-muted)">{{ kindLabel .Kind }}</span>
               </td>
               <td class="px-3 py-2.5 text-xs muted whitespace-nowrap">
-                {{ if eq .Kind "session" }}
-                  {{ if gt .SessionDurationSeconds 0 }}{{ formatSessionDuration .SessionDurationSeconds }}{{ else }}&mdash;{{ end }}
-                {{ else if eq .Kind "exercise_catalog" }}
-                  &mdash;
-                {{ else }}
-                  <span class="inline-flex items-center gap-2">
-                    {{ if gt .Sets 0 }}<span>{{ .Sets }} sets</span>{{ end }}
-                    {{ if gt .Reps 0 }}<span>{{ .Reps }} reps</span>{{ end }}
-                    {{ if gt .WeightKg 0.0 }}<span>{{ .WeightKg }}kg</span>{{ end }}
-                    {{ if and (eq .Sets 0) (eq .Reps 0) }}&mdash;{{ end }}
-                  </span>
-                {{ end }}
+                {{ $summary := libraryExerciseSummary . }}
+                {{ if $summary }}{{ $summary }}{{ else }}&mdash;{{ end }}
               </td>
               <td class="px-3 py-2.5">
                 <div class="flex items-center gap-0.5 md:opacity-0 md:group-hover/row:opacity-100 focus-within:opacity-100 transition-opacity">
