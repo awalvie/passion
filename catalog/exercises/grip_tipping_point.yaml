@@ -1,8 +1,7 @@
 name: "Grip Tipping Point"
 source: "Climbing Doctor"
 label: "technique, fingers, endurance"
-kind: "session"
-session_duration_seconds: 300
+kind: "climbing"
 notes: |
   On a traverse: slowly reduce your grip until you slip.
   Add back just enough to hold on. Repeat on different holds.
