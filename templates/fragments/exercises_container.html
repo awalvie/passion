@@ -301,7 +301,8 @@
                         <option value="reps_and_sets" {{ if eq .Kind "reps_and_sets" }}selected{{ end }}>Reps and sets</option>
                         <option value="timed_reps" {{ if eq .Kind "timed_reps" }}selected{{ end }}>Timed reps</option>
                         <option value="session" {{ if eq .Kind "session" }}selected{{ end }}>Session</option>
-                      </select>
+                                              <option value="climbing" {{ if eq .Kind "climbing" }}selected{{ end }}>Climbing</option>
+</select>
                       <p class="text-[10px] muted mt-0.5 mb-0" data-kind-hint></p>
                     </div>
                     <div data-notes-editor>
