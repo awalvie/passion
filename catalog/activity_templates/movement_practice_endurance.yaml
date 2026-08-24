@@ -1,0 +1,21 @@
+name: "Movement Practice: Endurance"
+source: "Neil Gresham"
+label: "technique, warmup"
+exercises:
+  - name: "Movement Practice: Endurance"
+    kind: "exercise_catalog"
+    notes: |
+      One rung per session, in the warm-up. Never at the end.
+
+      Work up the ladder, don't rotate. Move up only when the current rung is
+      solid — and keep holding it as you add the next. Expect rungs 1-2 this
+      cycle.
+
+      Zero pump.
+    children:
+      - ref: "Silent Feet"
+      - ref: "Straight Arms + Relaxed Grip"
+      - ref: "Grip Tipping Point"
+      - ref: "Fluid Style"
+      - ref: "Increase Pace"
+      - ref: "Matched Breath"

@@ -1,0 +1,15 @@
+name: "Movement Practice: Lead"
+label: "technique, warmup, route"
+exercises:
+  - name: "Movement Practice: Lead"
+    kind: "exercise_catalog"
+    notes: |
+      One drill per session, on easy lead or auto-belay before the real work.
+
+      Lead days: breathing and composure. The point is holding it together
+      when it gets scary, so practise it when it isn't.
+    children:
+      - ref: "Matched Breath"
+      - ref: "Sink to Zero Progression"
+      - ref: "Slackjaw"
+      - ref: "Silent Feet"

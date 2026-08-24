@@ -1,0 +1,25 @@
+name: "Lead"
+color: "#f59e0b"
+label: "route, tactics"
+needs: "Rope, or auto-belay plus a 10 m spare rope"
+activities:
+  - ref: "Warm Up"
+  - ref: "Movement Practice: Lead"
+  - type: "activity"
+    name: "Head First"
+    exercises:
+      - name: "Lead Focus"
+        kind: "exercise_catalog"
+        notes: |
+          First, while fresh.
+
+          With a belayer: Fall Practice. Alone: Mock Lead on the auto-belay.
+        children:
+          - ref: "Fall Practice"
+          - ref: "Mock Lead (Auto-Belay)"
+  - type: "activity"
+    name: "Mileage"
+    exercises:
+      - ref: "Easy Lead Mileage"
+      - ref: "Fast-Slow-Perfect"
+  - ref: "Cooldown Stretch"

@@ -1,0 +1,7 @@
+name: "Cooldown Stretch"
+label: "cooldown, mobility"
+exercises:
+  - ref: "Calf Stretch"
+  - ref: "Tailor's Pose"
+  - ref: "Kneeling Tilt"
+  - ref: "Middle Splits Hold"
