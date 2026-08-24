@@ -1,0 +1,7 @@
+name: "Strength & Stretching"
+color: "#a855f7"
+label: "strength, antagonist, mobility"
+activities:
+  - ref: "Synovial & Fascia Warm-Up"
+  - ref: "Antagonist & Prehab"
+  - ref: "Cooldown Stretch"

@@ -1,0 +1,30 @@
+name: "Endurance"
+color: "#3b82f6"
+label: "endurance, boulder"
+activities:
+  - ref: "Warm Up"
+  - ref: "Movement Practice: Endurance"
+  - type: "activity"
+    name: "Campus"
+    exercises:
+      - name: "Easy campusing (optional)"
+        kind: "exercise_catalog"
+        notes: |
+          Optional. Skip it if the fingers already feel awake.
+        children:
+          - ref: "Easy Campus Laddering"
+          - ref: "Campus Punks"
+  - type: "activity"
+    name: "Endurance Work"
+    exercises:
+      - name: "Endurance Method"
+        kind: "exercise_catalog"
+        notes: |
+          Pick one. Traverse Circuit is the default.
+
+          Stay below the pump threshold.
+        children:
+          - ref: "Traverse Circuit"
+          - ref: "Low Intensity Endurance (continuous boulders)"
+          - ref: "Power Endurance Intervals"
+  - ref: "Cooldown Stretch"

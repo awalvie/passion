@@ -1,0 +1,18 @@
+name: "Movement Practice: Board"
+label: "technique, warmup, board"
+exercises:
+  - name: "Movement Practice: Board"
+    kind: "exercise_catalog"
+    notes: |
+      One drill per session, in the warm-up ladder. Never at the end — tired
+      practice degrades learning.
+
+      Board days: tension, commitment, deadpointing. Rotate across sessions.
+      Well below limit.
+    children:
+      - ref: "Tension Activation"
+      - ref: "Directional Holds and Body Positioning"
+      - ref: "Deadpoint Focused"
+      - ref: "Iron Monkey"
+      - ref: "Flash Execution"
+      - ref: "Matched Breath"
