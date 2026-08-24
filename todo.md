@@ -42,26 +42,59 @@ rotation. Decisions already made: 4 training days, weekly lead access, 4-week wa
 (3 load + 1 deload), variable session length, sub-max hangs only this cycle, cycle target
 flash 6c on TB2 (7a is the season goal), fall practice leads the lead day.
 
-- [ ] **Per-day drill assignment** — the open question. 72 drills catalogued by source;
-      24 referenced by nothing. Notably: the five `Kettle: *` menus are referenced by zero
-      sessions, and 16 of 20 Power Company drills are unused. Proposal on the table was
-      four day-specific menus plus a `Flash Tactics` menu in the board day's *main block*
-      (`Flash Execution`, `False Start`, `One Size Fits All`, `Creative Repeats`,
-      `Mirrored Repeat`, `3 Strike Repeat` — all unused, all serve the flash goal).
-- [ ] **Author the missing exercises** — `Traverse Circuit` (timed_reps, 3×3:00 → 6:00),
-      `Fall Practice`, `Easy Lead Mileage`, `Mock Lead (Auto-Belay)`, and optionally
-      `Redpoint Lead Attempts`. Nothing else is missing — the four drills the owner
-      described are all already in the catalog.
-- [ ] **Build the session templates** — Endurance, Lead, Strength & Stretching. Limit
-      Bouldering already exists and needs no changes. Wire `Antagonist & Prehab` (built,
-      referenced by nothing) into the strength day, and add a `Cooldown Stretch` template
-      around the existing stretches.
-- [ ] **Use the Ondra warm-up** — `Synovial & Fascia Warm-Up` is now one attributed
-      activity template but is referenced by no session. It is the natural joint-prep
-      block for the new sessions.
+- [x] **Per-day drill assignment** — settled 2026-08-24 after a deep research pass
+      (55+ sources). Structure: one **daily constant** carrying the learning load in
+      every session's warm-up (Gresham's five-rung ladder, `Movement Practice`), plus
+      one **per-day drill** matched to that day's terrain. Rationale: four parallel
+      drills would give each only 4 exposures across 16 sessions, below Bechtel's
+      8-10 threshold — the constant gets 16.
+      Key evidence: contextual interference does not survive contact with applied
+      sport (rotation is not justified); fatigue degrades motor *learning* for ~2
+      subsequent sessions (so skill work goes first, always); stacked-constraint
+      drills are integration tests, not lessons.
+- [x] **Author the missing exercises** — `Traverse Circuit`, `Fall Practice`,
+      `Easy Lead Mileage`, `Mock Lead (Auto-Belay)`, plus `Fluid Style` and
+      `Increase Pace` (Gresham ladder rungs 3 and 4, which the catalog lacked).
+      `Redpoint Lead Attempts` deliberately skipped — the lead day is already full
+      with fall practice plus mileage.
+- [x] **Build the session templates** — `Cycle 1: Limit Bouldering`, `Endurance`,
+      `Lead`, `Strength & Stretching`. Built as new `cycle1_*` templates rather than
+      editing `Limit Bouldering`, so the Paradigm-published session keeps its
+      attribution intact. Added `Cooldown Stretch` and `Movement Practice` activity
+      templates.
+- [x] **Use the Ondra warm-up** — `Synovial & Fascia Warm-Up` now opens the
+      Strength & Stretching day. `Antagonist & Prehab` is wired into the same day.
+      Both were referenced by nothing before.
 - [ ] Then create the cycle itself with the guided builder.
 
 ## Catalog hygiene (found during the attribution sweep)
+
+- [ ] **`Final Exam I` and `Final Exam II` are not Kettle's names** — verified via a
+      channel-scoped search of his own YouTube (returns no content for "exam", while
+      controls "big three" and "sloth" correctly return `17 The Big Three` and
+      `46 The Sloth`). The structure is real: they are exercises **13 and 14** in the
+      1st edition, **24 and 25** in the 2nd, under a section heading "Final
+      Challenges". Rename to his numbering or to "Final Challenge I/II" — we are
+      currently attributing invented names to a named coach.
+- [ ] **Four files have merged-notes damage** from a past dedup pass, found
+      independently by two agents. Worst: `power_company/heavy_feet_drill.yaml`
+      carries *Silent Feet*'s notes ("completely silent… zero noise"), so the wrong
+      drill is live via `a_foundations`. Also `hip_shapes_drill.yaml` (two drills in
+      one file), `one_touch_drill.yaml` (contradicts its own scope), and
+      `sloth_monkey_drill.yaml` (monkey half undocumented).
+- [ ] **`one_leg.yaml` and `single_leg_climbing.yaml` are the same drill** duplicated
+      with different kinds (`climbing` vs `session` 480s). Both orphans.
+- [ ] **All 36 Kettle drills remain unreachable** — the five `kettle_*` activity
+      templates are referenced by no session template. Left that way deliberately:
+      Cycle 1 uses Gresham's ladder instead. Worth wiring `kettle_feet` if you want
+      `The Big Three` as a week-1 / week-4 technique metric.
+- [ ] **No terrain/equipment field in the schema.** Board-only and lead-only drills
+      are indistinguishable from commercial-boulder drills by metadata; the
+      constraint lives only in prose. This is what made the per-day assignment
+      manual. Needs a `schema` review.
+- [ ] **Tag vocabulary cannot express three of the five elements** — no tag for
+      Rhythm, Commitment, or Effort, which is the structural reason `label:` was
+      unreliable for this audit.
 
 - [ ] **`Strength Base Session` inlines a few generic lifts** — `Row + Band Prep`,
       `Ring Rows`, and the `Pull Exercise` catalog (`Lat Pulldown`, `Face Pulls`) are
