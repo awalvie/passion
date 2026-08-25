@@ -2,7 +2,6 @@ name: "Hip and Hand"
 source: "John Kettle"
 label: "technique, footwork, tension"
 kind: "session"
-session_duration_seconds: 600
 media:
   - video_url: "https://www.youtube.com/watch?v=GS_ByeGPQcY"
     thumbnail_url: "https://i.ytimg.com/vi/GS_ByeGPQcY/hqdefault.jpg"

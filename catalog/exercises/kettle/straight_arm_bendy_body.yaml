@@ -2,7 +2,6 @@ name: "Straight Arm, Bendy Body"
 source: "John Kettle"
 label: "technique, tension, balance"
 kind: "session"
-session_duration_seconds: 600
 media:
   - video_url: "https://www.youtube.com/watch?v=yG2fvVrhc_c"
     thumbnail_url: "https://i.ytimg.com/vi/yG2fvVrhc_c/hqdefault.jpg"

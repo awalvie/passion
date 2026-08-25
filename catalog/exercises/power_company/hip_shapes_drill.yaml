@@ -2,7 +2,6 @@ name: "Hip Shapes"
 source: "Power Company Climbing"
 label: "technique, tension, footwork"
 kind: "session"
-session_duration_seconds: 720
 media:
   - video_url: "https://www.youtube.com/watch?v=asUzUdeX1UE"
     thumbnail_url: "https://i.ytimg.com/vi/asUzUdeX1UE/hqdefault.jpg"

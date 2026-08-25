@@ -2,7 +2,6 @@ name: "The Leg Thrust"
 source: "John Kettle"
 label: "core, power, dynamic"
 kind: "session"
-session_duration_seconds: 480
 media:
   - video_url: "https://www.youtube.com/watch?v=bbTyBqMZ-jE"
     thumbnail_url: "https://i.ytimg.com/vi/bbTyBqMZ-jE/hqdefault.jpg"

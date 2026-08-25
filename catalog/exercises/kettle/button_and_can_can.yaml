@@ -2,7 +2,6 @@ name: "Button and Can-Can"
 source: "John Kettle"
 label: "footwork, tension, balance"
 kind: "session"
-session_duration_seconds: 720
 media:
   - video_url: "https://www.youtube.com/watch?v=uros0WMF6fg"
     thumbnail_url: "https://i.ytimg.com/vi/uros0WMF6fg/hqdefault.jpg"

@@ -2,7 +2,6 @@ name: "Head Fling Variation"
 source: "John Kettle"
 label: "core, dynamic, tension"
 kind: "session"
-session_duration_seconds: 480
 media:
   - video_url: "https://www.youtube.com/watch?v=3OMYp5MCRs4"
     thumbnail_url: "https://i.ytimg.com/vi/3OMYp5MCRs4/hqdefault.jpg"

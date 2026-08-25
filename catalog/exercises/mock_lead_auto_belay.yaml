@@ -1,7 +1,6 @@
 name: "Mock Lead (Auto-Belay)"
 label: "route, technique, tactics"
 kind: "session"
-session_duration_seconds: 900
 notes: |
   No partner. Auto-belay, plus trail a 10 m rope and clip the draws as you pass.
 

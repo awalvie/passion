@@ -2,7 +2,6 @@ name: "One-Hand Variation"
 source: "John Kettle"
 label: "core, power, dynamic"
 kind: "session"
-session_duration_seconds: 480
 media:
   - video_url: "https://www.youtube.com/watch?v=2o1KRrzkg2k"
     thumbnail_url: "https://i.ytimg.com/vi/2o1KRrzkg2k/hqdefault.jpg"

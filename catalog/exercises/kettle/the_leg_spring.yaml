@@ -2,7 +2,6 @@ name: "The Leg Spring"
 source: "John Kettle"
 label: "footwork, power, dynamic"
 kind: "session"
-session_duration_seconds: 480
 media:
   - video_url: "https://www.youtube.com/watch?v=rjdWKkGPOOg"
     thumbnail_url: "https://i.ytimg.com/vi/rjdWKkGPOOg/hqdefault.jpg"

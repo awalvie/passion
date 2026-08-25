@@ -2,7 +2,6 @@ name: "Can-Can and Hip and Hand"
 source: "John Kettle"
 label: "footwork, technique, tension"
 kind: "session"
-session_duration_seconds: 720
 media:
   - video_url: "https://www.youtube.com/watch?v=nlGgMEXMkwE"
     thumbnail_url: "https://i.ytimg.com/vi/nlGgMEXMkwE/hqdefault.jpg"

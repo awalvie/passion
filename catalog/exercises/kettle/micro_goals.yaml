@@ -2,6 +2,5 @@ name: "Micro Goals"
 source: "John Kettle"
 label: "tactics"
 kind: "session"
-session_duration_seconds: 300
 notes: |
   Before the session, set one outcome goal and three process goals. Review each one afterward. Keeps a session pointed at process, not just the tick.

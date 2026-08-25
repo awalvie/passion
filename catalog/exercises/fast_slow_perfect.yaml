@@ -1,7 +1,6 @@
 name: "Fast-Slow-Perfect"
 label: "tactics, endurance, route"
 kind: "session"
-session_duration_seconds: 540
 notes: |
   On a 5.8 sport route, three laps:
   - Lap 1: intentionally TOO FAST (rush it)
