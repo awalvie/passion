@@ -2,7 +2,6 @@ name: "Single-Leg Climbing"
 source: "Power Company Climbing"
 label: "balance, footwork, boulder"
 kind: "session"
-session_duration_seconds: 480
 notes: |
   Climb easy problems using only your left foot (2 sets),
   then only your right foot (2 sets).

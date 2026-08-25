@@ -2,7 +2,6 @@ name: "Platform Builder"
 source: "John Kettle"
 label: "footwork, balance, technique"
 kind: "session"
-session_duration_seconds: 600
 media:
   - video_url: "https://www.youtube.com/watch?v=wFFTpqGGzMg"
     thumbnail_url: "https://i.ytimg.com/vi/wFFTpqGGzMg/hqdefault.jpg"

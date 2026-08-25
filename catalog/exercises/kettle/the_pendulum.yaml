@@ -2,7 +2,6 @@ name: "The Pendulum"
 source: "John Kettle"
 label: "core, dynamic, tension"
 kind: "session"
-session_duration_seconds: 480
 media:
   - video_url: "https://www.youtube.com/watch?v=umxTDNi5qNo"
     thumbnail_url: "https://i.ytimg.com/vi/umxTDNi5qNo/hqdefault.jpg"

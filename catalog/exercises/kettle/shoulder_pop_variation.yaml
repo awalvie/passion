@@ -2,7 +2,6 @@ name: "Shoulder Pop Variation"
 source: "John Kettle"
 label: "core, dynamic, tension"
 kind: "session"
-session_duration_seconds: 480
 media:
   - video_url: "https://www.youtube.com/watch?v=WY9aD9zLnBI"
     thumbnail_url: "https://i.ytimg.com/vi/WY9aD9zLnBI/hqdefault.jpg"

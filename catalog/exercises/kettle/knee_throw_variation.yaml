@@ -2,7 +2,6 @@ name: "Knee-Throw Variation"
 source: "John Kettle"
 label: "core, power, dynamic"
 kind: "session"
-session_duration_seconds: 480
 media:
   - video_url: "https://www.youtube.com/watch?v=0zKeJY9iCbM"
     thumbnail_url: "https://i.ytimg.com/vi/0zKeJY9iCbM/hqdefault.jpg"

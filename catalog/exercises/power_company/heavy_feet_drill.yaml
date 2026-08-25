@@ -2,7 +2,6 @@ name: "Heavy Feet"
 source: "Power Company Climbing"
 label: "warmup, footwork, technique"
 kind: "session"
-session_duration_seconds: 360
 media:
   - video_url: "https://www.youtube.com/watch?v=LFfnjKZajVc"
     thumbnail_url: "https://i.ytimg.com/vi/LFfnjKZajVc/hqdefault.jpg"

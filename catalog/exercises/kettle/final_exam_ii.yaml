@@ -2,7 +2,6 @@ name: "Final Exam II"
 source: "John Kettle"
 label: "technique, footwork, balance"
 kind: "session"
-session_duration_seconds: 720
 media:
   - video_url: "https://www.youtube.com/watch?v=hRLuNi0o0Sk"
     thumbnail_url: "https://i.ytimg.com/vi/hRLuNi0o0Sk/hqdefault.jpg"

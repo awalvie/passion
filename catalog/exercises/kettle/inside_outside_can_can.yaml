@@ -2,7 +2,6 @@ name: "The Inside-Outside Can-Can"
 source: "John Kettle"
 label: "footwork, balance, technique"
 kind: "session"
-session_duration_seconds: 720
 media:
   - video_url: "https://www.youtube.com/watch?v=Hx6JGCTDL-8"
     thumbnail_url: "https://i.ytimg.com/vi/Hx6JGCTDL-8/hqdefault.jpg"

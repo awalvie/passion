@@ -2,7 +2,6 @@ name: "The Big Three"
 source: "John Kettle"
 label: "technique, footwork, tension"
 kind: "session"
-session_duration_seconds: 720
 media:
   - video_url: "https://www.youtube.com/watch?v=7PH6HJ9q4jk"
     thumbnail_url: "https://i.ytimg.com/vi/7PH6HJ9q4jk/hqdefault.jpg"

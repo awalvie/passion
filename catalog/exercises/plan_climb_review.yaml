@@ -2,7 +2,6 @@ name: "Plan-Climb-Review"
 source: "Self-Coached Climber"
 label: "tactics, route"
 kind: "session"
-session_duration_seconds: 900
 notes: |
   For each route (3 unfamiliar routes at flash level):
   1. PLAN: Read from multiple angles. Find the crux first.
