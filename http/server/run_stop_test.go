@@ -497,3 +497,82 @@ func TestCompleteRunExercise_OpenSessionFinalRedirectsToRunPage(t *testing.T) {
 		t.Errorf("HX-Redirect = %q, want prefix /runs/%d (run page)", redirect, run.ID)
 	}
 }
+
+// TestHandleRunStop_MarksRemainingExercisesSkipped guards that finishing a session
+// early accounts for every step. Previously the handler only flipped the run status,
+// leaving untouched exercises with no completion row at all — they rendered as
+// "pending" in the summary and were counted as neither done nor skipped.
+func TestHandleRunStop_MarksRemainingExercisesSkipped(t *testing.T) {
+	withRepoRoot(t)
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "run-stop.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+
+	tpl := &db.SessionTemplate{OwnerID: ownerID, Name: "Stop Template"}
+	if err := store.DB.Create(tpl).Error; err != nil {
+		t.Fatal(err)
+	}
+	act := &db.Activity{OwnerID: ownerID, SessionTemplateID: tpl.ID, Type: "activity", Name: "Work", OrderIndex: 0}
+	if err := store.DB.Create(act).Error; err != nil {
+		t.Fatal(err)
+	}
+	var exIDs []uint
+	for i, name := range []string{"First", "Second", "Third"} {
+		ex := &db.Exercise{OwnerID: ownerID, ActivityID: &act.ID, Name: name, Kind: "session", OrderIndex: i}
+		if err := store.DB.Create(ex).Error; err != nil {
+			t.Fatal(err)
+		}
+		exIDs = append(exIDs, ex.ID)
+	}
+	ss := &db.ScheduledSession{OwnerID: ownerID, IsTrial: true, ScheduledDate: time.Now(), SessionTemplateID: tpl.ID}
+	if err := store.DB.Create(ss).Error; err != nil {
+		t.Fatal(err)
+	}
+	run := &db.SessionRun{
+		OwnerID: ownerID, ScheduledSessionID: ss.ID, IsTrial: true,
+		Status: db.RunStatusRunning, StartedAt: time.Now().Add(-20 * time.Minute),
+	}
+	if err := store.DB.Create(run).Error; err != nil {
+		t.Fatal(err)
+	}
+	// Only the first exercise was actually done.
+	if err := store.DB.Create(&db.RunExerciseCompletion{
+		OwnerID: ownerID, RunID: run.ID, ExerciseID: exIDs[0],
+		Status: db.RunStatusCompleted, CompletedAt: time.Now(), ElapsedSeconds: 90,
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	srv, err := NewServer(store, "secret", 24, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rr := httptest.NewRecorder()
+	srv.handleRunStop(rr, newRunStopRequest(t, run.ID, ownerID))
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body=%q", rr.Code, rr.Body.String())
+	}
+
+	var comps []db.RunExerciseCompletion
+	if err := store.DB.Where("owner_id = ? AND run_id = ?", ownerID, run.ID).Find(&comps).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(comps) != len(exIDs) {
+		t.Fatalf("completion rows = %d, want %d (every step accounted for)", len(comps), len(exIDs))
+	}
+	byID := map[uint]db.RunExerciseCompletion{}
+	for _, c := range comps {
+		byID[c.ExerciseID] = c
+	}
+	// The real completion must survive untouched.
+	if got := byID[exIDs[0]]; got.Status != db.RunStatusCompleted || got.ElapsedSeconds != 90 {
+		t.Errorf("first exercise = %+v, want completed with 90s elapsed", got)
+	}
+	for _, id := range exIDs[1:] {
+		if got := byID[id].Status; got != db.RunStatusSkipped {
+			t.Errorf("exercise %d status = %q, want %q", id, got, db.RunStatusSkipped)
+		}
+	}
+}

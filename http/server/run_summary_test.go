@@ -343,3 +343,99 @@ func TestHandleRunSummary_ClimbingExerciseNoTicksRendersCleanly(t *testing.T) {
 		t.Errorf("climbing exercise with zero ticks rendered a run-summary-ticks block, want none: %.500q", body)
 	}
 }
+
+// seedGuidedRunWithCatalogMenu builds a guided run whose only top-level exercise is
+// an exercise_catalog menu with two climbing children, and records a choice for one
+// of them. Returns the run plus the menu and chosen child IDs.
+func seedGuidedRunWithCatalogMenu(t *testing.T, store *db.Store, ownerID uint) (run *db.SessionRun, menuID, chosenID uint) {
+	t.Helper()
+	tpl := &db.SessionTemplate{OwnerID: ownerID, Name: "Menu Template"}
+	if err := store.DB.Create(tpl).Error; err != nil {
+		t.Fatalf("create template: %v", err)
+	}
+	act := &db.Activity{OwnerID: ownerID, SessionTemplateID: tpl.ID, Type: "activity", Name: "Endurance Work", OrderIndex: 0}
+	if err := store.DB.Create(act).Error; err != nil {
+		t.Fatalf("create activity: %v", err)
+	}
+	menu := &db.Exercise{OwnerID: ownerID, ActivityID: &act.ID, Name: "Endurance Method", Kind: "exercise_catalog", OrderIndex: 0}
+	if err := store.DB.Create(menu).Error; err != nil {
+		t.Fatalf("create menu: %v", err)
+	}
+	chosen := &db.Exercise{OwnerID: ownerID, ActivityID: &act.ID, ParentExerciseID: &menu.ID, Name: "Traverse Circuit", Kind: "climbing", OrderIndex: 0}
+	other := &db.Exercise{OwnerID: ownerID, ActivityID: &act.ID, ParentExerciseID: &menu.ID, Name: "Power Endurance Intervals", Kind: "climbing", OrderIndex: 1}
+	if err := store.DB.Create(chosen).Error; err != nil {
+		t.Fatalf("create chosen child: %v", err)
+	}
+	if err := store.DB.Create(other).Error; err != nil {
+		t.Fatalf("create other child: %v", err)
+	}
+	ss := &db.ScheduledSession{OwnerID: ownerID, IsTrial: true, ScheduledDate: time.Now(), SessionTemplateID: tpl.ID}
+	if err := store.DB.Create(ss).Error; err != nil {
+		t.Fatalf("create scheduled session: %v", err)
+	}
+	now := time.Now()
+	run = &db.SessionRun{
+		OwnerID: ownerID, ScheduledSessionID: ss.ID, IsTrial: true, IsOpen: false,
+		Status: db.RunStatusCompleted, StartedAt: now.Add(-time.Hour), CompletedAt: &now,
+	}
+	if err := store.DB.Create(run).Error; err != nil {
+		t.Fatalf("create run: %v", err)
+	}
+	choice := &db.RunExerciseChoice{OwnerID: ownerID, RunID: run.ID, ParentExerciseID: menu.ID, ChosenExerciseID: chosen.ID}
+	if err := store.DB.Create(choice).Error; err != nil {
+		t.Fatalf("create choice: %v", err)
+	}
+	return run, menu.ID, chosen.ID
+}
+
+// TestHandleRunSummary_CatalogMenuShowsChosenChildAndTicks pins down that an
+// exercise_catalog resolves to whatever was actually picked. The run records the
+// completion and the climbing ticks against the chosen child, not the menu, so a
+// summary that only walked top-level exercises showed the menu as forever "pending"
+// and hid the climbing entirely.
+func TestHandleRunSummary_CatalogMenuShowsChosenChildAndTicks(t *testing.T) {
+	withRepoRoot(t)
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "summary-catalog.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const ownerID uint = 1
+	run, _, chosenID := seedGuidedRunWithCatalogMenu(t, store, ownerID)
+
+	if err := store.DB.Create(&db.RunExerciseCompletion{
+		OwnerID: ownerID, RunID: run.ID, ExerciseID: chosenID,
+		Status: db.RunStatusCompleted, CompletedAt: time.Now(),
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+	tick := &db.ClimbingTick{
+		OwnerID: ownerID, RunID: run.ID, ExerciseID: chosenID,
+		Kind: "boulder", Grade: "Traverse", Sent: true, Attempts: 1, DurationSeconds: 252,
+	}
+	if err := db.CreateClimbingTick(store.DB, tick); err != nil {
+		t.Fatal(err)
+	}
+
+	srv, err := NewServer(store, "secret", 24, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := newRunSummaryRequest(t, run.ID, ownerID, true)
+	rr := httptest.NewRecorder()
+	srv.handleRunSummary(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body=%q", rr.Code, rr.Body.String())
+	}
+	body := rr.Body.String()
+	if !strings.Contains(body, "Traverse Circuit") {
+		t.Errorf("summary omits the chosen catalog option 'Traverse Circuit': %.700q", body)
+	}
+	if !strings.Contains(body, "4:12") {
+		t.Errorf("summary omits the logged time on the wall '4:12': %.700q", body)
+	}
+	if strings.Contains(body, "Power Endurance Intervals") {
+		t.Errorf("summary shows an option that was not chosen: %.700q", body)
+	}
+}
