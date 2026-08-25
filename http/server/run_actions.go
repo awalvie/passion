@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"gorm.io/gorm"
 
 	"passion/db"
 	"passion/pages"
@@ -34,6 +35,15 @@ func (s *Server) handleRunStop(w http.ResponseWriter, r *http.Request) {
 	}
 
 	now := time.Now()
+
+	// Finishing early leaves the remaining steps with no completion row, which the
+	// summary and history then render as "pending" — neither done nor skipped, and
+	// absent from the counts. Mark them skipped so the run is fully accounted for.
+	if err := s.skipRemainingSteps(runID, ownerID, run, now); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+
 	run.Status = db.RunStatusCompleted
 	run.CompletedAt = &now
 	if err := s.store.DB.Save(&run).Error; err != nil {
@@ -52,6 +62,53 @@ func (s *Server) handleRunStop(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("HX-Redirect", "/runs/"+chi.URLParam(r, "runID")+"/summary")
 	w.WriteHeader(http.StatusOK)
+}
+
+// skipRemainingSteps records a skipped completion for every step of the run that
+// has no completion row yet. Idempotent: existing rows are left untouched, so a
+// double-submit cannot overwrite a real "completed" with a "skipped".
+func (s *Server) skipRemainingSteps(runID, ownerID uint, run db.SessionRun, at time.Time) error {
+	var steps []pages.RunStep
+	if run.IsOpen {
+		steps = s.loadOpenSteps(runID)
+	} else {
+		ss, err := db.GetScheduledSessionWithTemplate(s.store.DB, ownerID, run.ScheduledSessionID)
+		if err != nil {
+			return err
+		}
+		steps = s.buildRunSteps(ss, runID, ownerID)
+	}
+	if len(steps) == 0 {
+		return nil
+	}
+
+	return s.store.DB.Transaction(func(tx *gorm.DB) error {
+		var existing []db.RunExerciseCompletion
+		if err := tx.Where("owner_id = ? AND run_id = ?", ownerID, runID).Find(&existing).Error; err != nil {
+			return err
+		}
+		done := make(map[uint]struct{}, len(existing))
+		for _, c := range existing {
+			done[c.ExerciseID] = struct{}{}
+		}
+		for _, st := range steps {
+			if _, ok := done[st.ExerciseID]; ok {
+				continue
+			}
+			row := &db.RunExerciseCompletion{
+				OwnerID:     ownerID,
+				RunID:       runID,
+				ExerciseID:  st.ExerciseID,
+				Status:      db.RunStatusSkipped,
+				CompletedAt: at,
+			}
+			if err := tx.Create(row).Error; err != nil {
+				return err
+			}
+			done[st.ExerciseID] = struct{}{}
+		}
+		return nil
+	})
 }
 
 func (s *Server) handleRunDelete(w http.ResponseWriter, r *http.Request) {
@@ -193,12 +250,25 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 			view.Activities = append(view.Activities, sa)
 		}
 	} else {
+		// An exercise_catalog is only a picker: the run records the completion and any
+		// climbing ticks against the *chosen child*, not the menu. Rendering only
+		// top-level rows therefore showed the menu as forever "pending" and hid the
+		// climbing entirely, so resolve each menu to what was actually picked.
+		var choices []db.RunExerciseChoice
+		s.store.DB.Where("owner_id = ? AND run_id = ?", ownerID, runID).Find(&choices)
+		chosenByParent := map[uint][]uint{}
+		for _, c := range choices {
+			chosenByParent[c.ParentExerciseID] = append(chosenByParent[c.ParentExerciseID], c.ChosenExerciseID)
+		}
+
 		for _, act := range ss.SessionTemplate.Activities {
-			sa := pages.RunSummaryActivity{Name: act.Name}
+			byID := map[uint]db.Exercise{}
 			for _, ex := range act.Exercises {
-				if ex.ParentExerciseID != nil && *ex.ParentExerciseID != 0 {
-					continue
-				}
+				byID[ex.ID] = ex
+			}
+
+			sa := pages.RunSummaryActivity{Name: act.Name}
+			addRow := func(ex db.Exercise) {
 				se := pages.RunSummaryExercise{
 					Name:            ex.Name,
 					Kind:            ex.Kind,
@@ -225,6 +295,25 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 				}
 				view.TotalCount++
 				sa.Exercises = append(sa.Exercises, se)
+			}
+
+			for _, ex := range act.Exercises {
+				if ex.ParentExerciseID != nil && *ex.ParentExerciseID != 0 {
+					continue
+				}
+				if ex.Kind == "exercise_catalog" {
+					if chosen := chosenByParent[ex.ID]; len(chosen) > 0 {
+						for _, cid := range chosen {
+							if child, ok := byID[cid]; ok {
+								addRow(child)
+							}
+						}
+						continue
+					}
+					// Nothing was picked — show the menu itself so it still appears
+					// in the counts as skipped rather than vanishing.
+				}
+				addRow(ex)
 			}
 			if len(sa.Exercises) > 0 {
 				view.Activities = append(view.Activities, sa)
