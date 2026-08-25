@@ -798,6 +798,29 @@
         let phaseCompleted = false;
         const initialWorkSeconds = isSessionExercise ? sessionDurationSeconds : Math.max(0, repSeconds);
         let autoAdvanceTimer = null;
+
+        // --- Phase persistence ---
+        // The session clock survives a reload because the server tracks it, but the
+        // per-exercise phase lived only in JS: closing the phone and coming back to a
+        // refreshed page restarted the stopwatch at zero. Keep it in localStorage,
+        // keyed by run + exercise, and clear it once the step is completed or skipped.
+        const phaseKey = "passion-phase-" + runID + "-" + {{ .CurrentStep.ExerciseID }};
+        function savePhase() {
+          try {
+            localStorage.setItem(phaseKey, JSON.stringify({
+              startMs: phaseStartMs,
+              pausedOffset: pausedPhaseOffsetMs,
+              running: exerciseRunning,
+              started: hasStartedPlayback,
+              phase: phase,
+              repNow: repNow,
+              setNow: setNow,
+            }));
+          } catch (e) { /* quota or private mode — the timer just won't survive reload */ }
+        }
+        function clearPhaseKey() {
+          try { localStorage.removeItem(phaseKey); } catch (e) { /* ignore */ }
+        }
         let lastBeepSecond = -1;
 
         // --- DOM refs ---
@@ -1008,6 +1031,7 @@
           timerState.textContent = phaseLabel();
           setPlaylistRestClass(!isSessionExercise && nextPhase !== "work" && nextPhase !== "prep");
           updateTimerPhaseClass();
+          savePhase();
         }
 
         function currentPhaseElapsed() {
@@ -1288,6 +1312,7 @@
             stopSessionInterval();
             setPlayIcon(false);
             timerState.textContent = "Paused";
+            savePhase();
           } else {
             if (!hasStartedPlayback) {
               hasStartedPlayback = true;
@@ -1303,10 +1328,30 @@
             phaseStartMs = Date.now() - pausedPhaseOffsetMs;
             startSessionInterval();
             setPlayIcon(true);
+            savePhase();
           }
           tickSession();
           tickExercise();
         });
+
+        // Restore a phase left running by a previous page load.
+        (function restorePhase() {
+          var saved = null;
+          try { saved = JSON.parse(localStorage.getItem(phaseKey) || "null"); } catch (e) { return; }
+          if (!saved || typeof saved.startMs !== "number") return;
+          hasStartedPlayback = !!saved.started;
+          phase = saved.phase || "work";
+          repNow = saved.repNow || 1;
+          setNow = saved.setNow || 1;
+          pausedPhaseOffsetMs = saved.pausedOffset || 0;
+          phaseDuration = phaseDurationFor(phase);
+          phaseStartMs = saved.startMs;
+          if (saved.running) {
+            sessionRunning = true;
+            exerciseRunning = true;
+            sessionStartMs = Date.now() - pausedSessionOffsetMs;
+          }
+        })();
 
         // --- Init ---
         tickSession();
@@ -1314,7 +1359,7 @@
         renderCounters();
         highlightActiveSetRow();
         startSessionInterval();
-        setPlayIcon(false);
+        setPlayIcon(exerciseRunning);
         updateUpNextAndButtons();
         refreshIcons();
 
@@ -1326,6 +1371,7 @@
 
         // --- Submit handlers ---
         function clearNotesKey() {
+          clearPhaseKey();
           if (!window.__passion_notesKey) return;
           try { localStorage.removeItem(window.__passion_notesKey); } catch (e) { /* ignore */ }
         }
