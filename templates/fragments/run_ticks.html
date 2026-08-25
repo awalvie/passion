@@ -496,7 +496,7 @@ if(window.__passionRenderIcons)window.__passionRenderIcons();
   <div data-duration-row hidden>
     <label class="text-xs font-medium muted block mb-1" style="text-transform:uppercase;letter-spacing:0.06em">Time on the wall <span class="font-normal">(optional)</span></label>
     <input
-      type="text" name="duration" inputmode="numeric" placeholder="4:12"
+      type="text" name="duration" inputmode="text" placeholder="4:12"
       class="input text-sm" style="width:7rem"
       value="{{ .DurationLabel }}"
       aria-describedby="tick-duration-hint-{{ if eq .Mode "edit" }}{{ .ID }}{{ else }}{{ .ExerciseID }}{{ end }}"
