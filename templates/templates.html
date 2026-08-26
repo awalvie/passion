@@ -7,8 +7,17 @@
     <div class="flex flex-wrap items-center gap-2">
       {{ if or .DistinctSources .DistinctTags }}
       <form method="get" action="/templates" class="flex flex-wrap items-center gap-2">
+        <input
+          type="text"
+          name="q"
+          value="{{ .Search }}"
+          placeholder="Search by name..."
+          class="input text-sm w-full sm:w-auto"
+          style="min-width:10rem"
+          autocomplete="off"
+        />
         {{ if .DistinctSources }}
-        <select name="source" class="input text-sm" style="width:auto;min-width:9rem" onchange="this.form.submit()">
+        <select name="source" class="input text-sm flex-1 min-w-0 sm:flex-none sm:w-auto sm:min-w-[9rem]" onchange="this.form.submit()">
           <option value="">All sources</option>
           {{ range .DistinctSources }}
           <option value="{{ . }}"{{ if eq . $.SourceFilter }} selected{{ end }}>{{ . }}</option>
@@ -16,14 +25,14 @@
         </select>
         {{ end }}
         {{ if .DistinctTags }}
-        <select name="tag" class="input text-sm" style="width:auto;min-width:8rem" onchange="this.form.submit()">
+        <select name="tag" class="input text-sm flex-1 min-w-0 sm:flex-none sm:w-auto sm:min-w-[9rem]" onchange="this.form.submit()">
           <option value="">All labels</option>
           {{ range .DistinctTags }}
           <option value="{{ . }}"{{ if eq . $.TagFilter }} selected{{ end }}>{{ . }}</option>
           {{ end }}
         </select>
         {{ end }}
-        {{ if or .SourceFilter .TagFilter }}<a href="/templates" class="text-xs muted hover:underline">Clear</a>{{ end }}
+        {{ if or .SourceFilter .TagFilter .Search }}<a href="/templates" class="text-xs muted hover:underline">Clear</a>{{ end }}
       </form>
       {{ end }}
       <span class="text-sm muted">{{ if .Templates }}{{ len .Templates }} template(s){{ else }}No templates yet.{{ end }}</span>
@@ -34,64 +43,102 @@
   </div>
 
   {{ if .Templates }}
-  <div class="mt-6 overflow-auto">
-    <table class="min-w-full text-sm">
+  {{/* Split layout, same as exercise_library.html and training_cycles.html: a real
+       table at md:+ so Source and Activities align down the page instead of stacking
+       under the name, and a card list below md where a table cannot fit. */}}
+
+  {{/* Mobile: card. Source and count share one truncating line. */}}
+  <div class="mt-6 space-y-2 md:hidden">
+    {{ range .Templates }}
+    <div class="relative flex items-start gap-2 rounded-lg border px-4 py-3"
+         style="border-color:var(--border);background:var(--panel);border-left:4px solid {{ if .Color }}{{ .Color }}{{ else }}var(--border){{ end }}">
+      <a href="/templates/{{ .ID }}/edit" class="min-w-0 flex-1 no-underline after:absolute after:inset-0">
+        <div class="text-sm font-medium truncate">{{ .Name }}</div>
+        {{ if .Label }}
+        <div class="mt-0.5 text-[11px] muted truncate">
+          {{ range $i, $t := splitTags .Label }}{{ if $i }} &middot; {{ end }}{{ $t }}{{ end }}
+        </div>
+        {{ end }}
+        <div class="mt-0.5 text-[11px] muted truncate">
+          {{ if .Source }}
+          <span class="inline-flex items-center gap-1 align-middle font-medium px-1.5 py-0.5 rounded" style="background:var(--accent-bg);color:var(--accent)">
+            <i data-lucide="book-marked" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>{{ .Source }}
+          </span>
+          {{ end }}
+          <span class="align-middle">{{ len .Activities }} activit{{ if eq (len .Activities) 1 }}y{{ else }}ies{{ end }}</span>
+        </div>
+      </a>
+      <form class="relative z-10 shrink-0"
+            hx-post="/templates/{{ .ID }}/delete"
+            hx-swap="none"
+            method="post"
+            hx-confirm="Delete &ldquo;{{ .Name }}&rdquo;?">
+        <button type="submit" class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
+                title="Delete" aria-label="Delete {{ .Name }}" style="color:var(--muted)"
+        ><i data-lucide="trash-2" style="width:0.9rem;height:0.9rem" aria-hidden="true"></i></button>
+      </form>
+    </div>
+    {{ end }}
+  </div>
+
+  {{/* Desktop table. Source is 11rem to fit the widest source without wrapping. */}}
+  <div class="mt-6 hidden md:block">
+    <table class="min-w-full text-sm table-fixed">
+      <colgroup>
+        <col style="width:0.75rem" />
+        <col />
+        <col style="width:13rem" />
+        <col style="width:11rem" />
+        <col style="width:4.5rem" />
+        <col style="width:4.5rem" />
+      </colgroup>
       <thead>
         <tr class="text-left text-xs font-semibold muted">
+          <th class="py-2"><span class="sr-only">Colour</span></th>
           <th class="px-3 py-2">Name</th>
-          <th class="px-3 py-2">Label</th>
+          <th class="px-3 py-2">Labels</th>
+          <th class="px-3 py-2">Source</th>
           <th class="px-3 py-2">Activities</th>
-          <th class="px-3 py-2 w-24"></th>
+          <th class="px-3 py-2 text-right">Actions</th>
         </tr>
       </thead>
       <tbody>
-          {{ range .Templates }}
-            <tr class="divider group/row">
-              <td class="px-3 py-3">
-                <a class="text-sm font-medium link hover:underline" href="/templates/{{.ID}}/edit">{{ .Name }}</a>
-              </td>
-              <td class="px-3 py-3">
-                <div class="flex flex-wrap gap-1">
-                  {{ if .Source }}<span class="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded" style="background:var(--accent-bg);color:var(--accent)"><i data-lucide="book-marked" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>{{ .Source }}</span>{{ end }}
-                  {{ range splitTags .Label }}<span class="text-xs font-medium px-1.5 py-0.5 rounded border" style="border-color:var(--border);color:var(--muted)">{{ . }}</span>{{ end }}
-                </div>
-              </td>
-              <td class="px-3 py-3 text-xs muted">
-                {{ len .Activities }}
-              </td>
-              <td class="px-3 py-2">
-                <div class="flex items-center gap-0.5 md:opacity-0 md:group-hover/row:opacity-100 focus-within:opacity-100 transition-opacity">
-                  <a
-                    href="/templates/{{.ID}}/edit"
-                    class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
-                    title="Edit"
-                    aria-label="Edit {{ .Name }}"
-                  ><i data-lucide="pencil" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></a>
-                  <a
-                    href="/templates/{{.ID}}/export"
-                    class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
-                    title="Download YAML"
-                    aria-label="Download YAML for {{ .Name }}"
-                  ><i data-lucide="download" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></a>
-                  <form
-                    hx-post="/templates/{{.ID}}/delete"
-                    hx-swap="none"
-                    method="post"
-                    hx-confirm="Delete this template?"
-                    class="inline"
-                  >
-                    <button
-                      type="submit"
-                      class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
-                      title="Delete"
-                      aria-label="Delete {{ .Name }}"
-                      style="color:var(--muted)"
-                    ><i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></button>
-                  </form>
-                </div>
-              </td>
-            </tr>
-          {{ end }}
+        {{ range .Templates }}
+        <tr class="divider">
+          <td class="py-2 align-middle">
+            <span class="block rounded-sm" style="width:0.25rem;height:1.25rem;background:{{ if .Color }}{{ .Color }}{{ else }}var(--border){{ end }}" aria-hidden="true"></span>
+          </td>
+          <td class="px-3 py-2 align-middle">
+            <a class="text-sm font-medium link hover:underline" href="/templates/{{ .ID }}/edit">{{ .Name }}</a>
+          </td>
+          <td class="px-3 py-2 align-middle text-[11px] muted truncate">
+            {{ range $i, $t := splitTags .Label }}{{ if $i }} &middot; {{ end }}{{ $t }}{{ end }}
+          </td>
+          <td class="px-3 py-2 align-middle">
+            {{ if .Source }}
+            <span class="inline-flex max-w-full items-center gap-1 truncate text-[11px] font-medium px-1.5 py-0.5 rounded" style="background:var(--accent-bg);color:var(--accent)">
+              <i data-lucide="book-marked" class="shrink-0" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>{{ .Source }}
+            </span>
+            {{ end }}
+          </td>
+          <td class="px-3 py-2 align-middle text-[11px] muted tabular-nums">{{ len .Activities }}</td>
+          <td class="px-3 py-2 align-middle text-right whitespace-nowrap">
+            <a href="/templates/{{ .ID }}/export"
+               class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
+               title="Download YAML" aria-label="Download YAML for {{ .Name }}"
+            ><i data-lucide="download" style="width:0.9rem;height:0.9rem" aria-hidden="true"></i></a>
+            <form class="inline"
+                  hx-post="/templates/{{ .ID }}/delete"
+                  hx-swap="none"
+                  method="post"
+                  hx-confirm="Delete &ldquo;{{ .Name }}&rdquo;?">
+              <button type="submit" class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
+                      title="Delete" aria-label="Delete {{ .Name }}" style="color:var(--muted)"
+              ><i data-lucide="trash-2" style="width:0.9rem;height:0.9rem" aria-hidden="true"></i></button>
+            </form>
+          </td>
+        </tr>
+        {{ end }}
       </tbody>
     </table>
   </div>

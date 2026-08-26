@@ -7,8 +7,17 @@
     <div class="flex flex-wrap items-center gap-2">
       {{ if or .DistinctSources .DistinctTags }}
       <form method="get" action="/activity-templates" class="flex flex-wrap items-center gap-2">
+        <input
+          type="text"
+          name="q"
+          value="{{ .Search }}"
+          placeholder="Search by name..."
+          class="input text-sm w-full sm:w-auto"
+          style="min-width:10rem"
+          autocomplete="off"
+        />
         {{ if .DistinctSources }}
-        <select name="source" class="input text-sm" style="width:auto;min-width:9rem" onchange="this.form.submit()">
+        <select name="source" class="input text-sm flex-1 min-w-0 sm:flex-none sm:w-auto sm:min-w-[9rem]" onchange="this.form.submit()">
           <option value="">All sources</option>
           {{ range .DistinctSources }}
           <option value="{{ . }}"{{ if eq . $.SourceFilter }} selected{{ end }}>{{ . }}</option>
@@ -16,14 +25,14 @@
         </select>
         {{ end }}
         {{ if .DistinctTags }}
-        <select name="tag" class="input text-sm" style="width:auto;min-width:8rem" onchange="this.form.submit()">
+        <select name="tag" class="input text-sm flex-1 min-w-0 sm:flex-none sm:w-auto sm:min-w-[9rem]" onchange="this.form.submit()">
           <option value="">All labels</option>
           {{ range .DistinctTags }}
           <option value="{{ . }}"{{ if eq . $.TagFilter }} selected{{ end }}>{{ . }}</option>
           {{ end }}
         </select>
         {{ end }}
-        {{ if or .SourceFilter .TagFilter }}<a href="/activity-templates" class="text-xs muted hover:underline">Clear</a>{{ end }}
+        {{ if or .SourceFilter .TagFilter .Search }}<a href="/activity-templates" class="text-xs muted hover:underline">Clear</a>{{ end }}
       </form>
       {{ end }}
       <span class="text-sm muted">{{ if .ActivityTemplates }}{{ len .ActivityTemplates }} template(s){{ else }}No activity templates yet.{{ end }}</span>
@@ -36,62 +45,86 @@
     </a>
   </div>
 
-  <div class="mt-6 overflow-auto">
-    <table class="min-w-full text-sm">
+  {{ if .ActivityTemplates }}
+  {{/* Split layout, same as templates.html: table at md:+ so Source aligns down the
+       page instead of stacking under the name, cards below md. */}}
+
+  <div class="mt-6 space-y-2 md:hidden">
+    {{ range .ActivityTemplates }}
+    <div class="relative flex items-start gap-2 rounded-lg border px-4 py-3"
+         style="border-color:var(--border);background:var(--panel)">
+      <a href="/activity-templates/{{ .ID }}/edit" class="min-w-0 flex-1 no-underline after:absolute after:inset-0">
+        <div class="text-sm font-medium truncate">{{ .Name }}</div>
+        {{ if .Source }}
+        <div class="mt-0.5 text-[11px] muted truncate">
+          <span class="inline-flex items-center gap-1 align-middle font-medium px-1.5 py-0.5 rounded" style="background:var(--accent-bg);color:var(--accent)">
+            <i data-lucide="book-marked" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>{{ .Source }}
+          </span>
+        </div>
+        {{ end }}
+      </a>
+      <form class="relative z-10 shrink-0"
+            hx-post="/activity-templates/{{ .ID }}/delete"
+            hx-swap="none"
+            method="post"
+            hx-confirm="Delete &ldquo;{{ .Name }}&rdquo;?">
+        <button type="submit" class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
+                title="Delete" aria-label="Delete {{ .Name }}" style="color:var(--muted)"
+        ><i data-lucide="trash-2" style="width:0.9rem;height:0.9rem" aria-hidden="true"></i></button>
+      </form>
+    </div>
+    {{ end }}
+  </div>
+
+  <div class="mt-6 hidden md:block">
+    <table class="min-w-full text-sm table-fixed">
+      <colgroup>
+        <col />
+        <col style="width:11rem" />
+        <col style="width:5rem" />
+      </colgroup>
       <thead>
         <tr class="text-left text-xs font-semibold muted">
           <th class="px-3 py-2">Name</th>
-          <th class="px-3 py-2">Label</th>
-          <th class="px-3 py-2 w-24"></th>
+          <th class="px-3 py-2">Source</th>
+          <th class="px-3 py-2 text-right">Actions</th>
         </tr>
       </thead>
       <tbody>
-        {{ if .ActivityTemplates }}
-          {{ range .ActivityTemplates }}
-            <tr class="divider group/row">
-              <td class="px-3 py-3">
-                <a class="text-sm font-medium link hover:underline" href="/activity-templates/{{.ID}}/edit">{{ .Name }}</a>
-              </td>
-              <td class="px-3 py-3">
-                <div class="flex flex-wrap gap-1">
-                  {{ if .Source }}<span class="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded" style="background:var(--accent-bg);color:var(--accent)"><i data-lucide="book-marked" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>{{ .Source }}</span>{{ end }}
-                  {{ range splitTags .Label }}<span class="text-xs font-medium px-1.5 py-0.5 rounded border" style="border-color:var(--border);color:var(--muted)">{{ . }}</span>{{ end }}
-                </div>
-              </td>
-              <td class="px-3 py-2">
-                <div class="flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 focus-within:opacity-100 transition-opacity">
-                  <a
-                    href="/activity-templates/{{.ID}}/edit"
-                    class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
-                    title="Edit"
-                    aria-label="Edit {{ .Name }}"
-                  ><i data-lucide="pencil" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></a>
-                  <form
-                    hx-post="/activity-templates/{{.ID}}/delete"
-                    hx-swap="none"
-                    method="post"
-                    hx-confirm="Delete this activity template?"
-                    class="inline"
-                  >
-                    <button
-                      type="submit"
-                      class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
-                      title="Delete"
-                      aria-label="Delete {{ .Name }}"
-                      style="color:var(--muted)"
-                    ><i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></button>
-                  </form>
-                </div>
-              </td>
-            </tr>
-          {{ end }}
-        {{ else }}
-          <tr class="divider">
-            <td class="px-3 py-3 muted" colspan="3">Activity templates will show up here.</td>
-          </tr>
+        {{ range .ActivityTemplates }}
+        <tr class="divider">
+          <td class="px-3 py-2 align-middle">
+            <a class="text-sm font-medium link hover:underline" href="/activity-templates/{{ .ID }}/edit">{{ .Name }}</a>
+          </td>
+          <td class="px-3 py-2 align-middle">
+            {{ if .Source }}
+            <span class="inline-flex max-w-full items-center gap-1 truncate text-[11px] font-medium px-1.5 py-0.5 rounded" style="background:var(--accent-bg);color:var(--accent)">
+              <i data-lucide="book-marked" class="shrink-0" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>{{ .Source }}
+            </span>
+            {{ end }}
+          </td>
+          <td class="px-3 py-2 align-middle text-right">
+            <form class="inline"
+                  hx-post="/activity-templates/{{ .ID }}/delete"
+                  hx-swap="none"
+                  method="post"
+                  hx-confirm="Delete &ldquo;{{ .Name }}&rdquo;?">
+              <button type="submit" class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
+                      title="Delete" aria-label="Delete {{ .Name }}" style="color:var(--muted)"
+              ><i data-lucide="trash-2" style="width:0.9rem;height:0.9rem" aria-hidden="true"></i></button>
+            </form>
+          </td>
+        </tr>
         {{ end }}
       </tbody>
     </table>
   </div>
+  {{ else }}
+  <div class="mt-6 card card-pad text-center py-12">
+    <i data-lucide="layers" style="width:2rem;height:2rem;opacity:0.3;margin:0 auto 0.75rem" aria-hidden="true"></i>
+    <p class="text-sm font-semibold">No activity templates yet</p>
+    <p class="mt-1 text-xs muted">Create one to reuse a block of exercises across sessions.</p>
+  </div>
+  {{ end }}
 </div>
 {{ end }}
