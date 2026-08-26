@@ -67,7 +67,7 @@ func (s *Server) handleTrainingLogNew(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	activityTemplates, err := db.ListActivityTemplates(s.store.DB, ownerID, "", "")
+	activityTemplates, err := db.ListActivityTemplates(s.store.DB, ownerID, "", "", "")
 	if err != nil {
 		s.serverError(w, r, err)
 		return
@@ -397,7 +397,7 @@ func (s *Server) renderManualExercises(w http.ResponseWriter, r *http.Request, o
 		}
 		views = append(views, mev)
 	}
-	activityTemplates, _ := db.ListActivityTemplates(s.store.DB, ownerID, "", "")
+	activityTemplates, _ := db.ListActivityTemplates(s.store.DB, ownerID, "", "", "")
 	_, boards, _ := s.loadVenuesAndBoards(ownerID)
 	openExerciseID := uint(0)
 	if len(openID) > 0 {

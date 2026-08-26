@@ -19,8 +19,9 @@ func (s *Server) handleActivityTemplatesIndex(w http.ResponseWriter, r *http.Req
 	ownerID := s.mustUserID(r)
 	sourceFilter := strings.TrimSpace(r.URL.Query().Get("source"))
 	tagFilter := strings.TrimSpace(r.URL.Query().Get("tag"))
+	searchQ := strings.TrimSpace(r.URL.Query().Get("q"))
 
-	templates, err := db.ListActivityTemplates(s.store.DB, ownerID, sourceFilter, tagFilter)
+	templates, err := db.ListActivityTemplates(s.store.DB, ownerID, sourceFilter, tagFilter, searchQ)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
@@ -40,6 +41,7 @@ func (s *Server) handleActivityTemplatesIndex(w http.ResponseWriter, r *http.Req
 		ActivityTemplates: templates,
 		SourceFilter:      sourceFilter,
 		TagFilter:         tagFilter,
+		Search:            searchQ,
 		DistinctSources:   distinctSources,
 		DistinctTags:      distinctTags,
 	})

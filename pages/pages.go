@@ -646,6 +646,7 @@ type TemplateListParams struct {
 	Templates       []db.SessionTemplate
 	SourceFilter    string
 	TagFilter       string
+	Search          string
 	DistinctSources []string
 	DistinctTags    []string
 }
@@ -751,6 +752,7 @@ type ActivityTemplateListParams struct {
 	Base
 	ActivityTemplates []db.ActivityTemplate
 	SourceFilter      string
+	Search            string
 	TagFilter         string
 	DistinctSources   []string
 	DistinctTags      []string

@@ -73,9 +73,12 @@ func GetTemplateWithGraph(gdb *gorm.DB, ownerID, templateID uint) (*SessionTempl
 
 // ListTemplates returns all non-system session templates for a user, ordered by id descending.
 // If labelFilter is non-empty, only templates with that label are returned.
-func ListTemplates(gdb *gorm.DB, ownerID uint, sourceFilter, tagFilter string) ([]SessionTemplate, error) {
+func ListTemplates(gdb *gorm.DB, ownerID uint, sourceFilter, tagFilter, nameQuery string) ([]SessionTemplate, error) {
 	var templates []SessionTemplate
 	q := gdb.Preload("Activities").Where("owner_id = ? AND is_system = ?", ownerID, false)
+	if nameQuery != "" {
+		q = q.Where("name LIKE ?", "%"+nameQuery+"%")
+	}
 	if sourceFilter != "" {
 		q = q.Where("source = ?", sourceFilter)
 	}
@@ -164,9 +167,12 @@ func ListLibraryExercises(gdb *gorm.DB, ownerID uint) ([]LibraryExercise, error)
 
 // ListActivityTemplates returns all activity templates for a user, ordered by name ascending.
 // If labelFilter is non-empty, only templates with that label are returned.
-func ListActivityTemplates(gdb *gorm.DB, ownerID uint, sourceFilter, tagFilter string) ([]ActivityTemplate, error) {
+func ListActivityTemplates(gdb *gorm.DB, ownerID uint, sourceFilter, tagFilter, nameQuery string) ([]ActivityTemplate, error) {
 	var rows []ActivityTemplate
 	q := gdb.Where("owner_id = ?", ownerID)
+	if nameQuery != "" {
+		q = q.Where("name LIKE ?", "%"+nameQuery+"%")
+	}
 	if sourceFilter != "" {
 		q = q.Where("source = ?", sourceFilter)
 	}

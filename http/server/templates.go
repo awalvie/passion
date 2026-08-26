@@ -141,8 +141,9 @@ func (s *Server) handleTemplatesIndex(w http.ResponseWriter, r *http.Request) {
 
 	sourceFilter := strings.TrimSpace(r.URL.Query().Get("source"))
 	tagFilter := strings.TrimSpace(r.URL.Query().Get("tag"))
+	searchQ := strings.TrimSpace(r.URL.Query().Get("q"))
 
-	templates, err := db.ListTemplates(s.store.DB, ownerID, sourceFilter, tagFilter)
+	templates, err := db.ListTemplates(s.store.DB, ownerID, sourceFilter, tagFilter, searchQ)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
@@ -163,6 +164,7 @@ func (s *Server) handleTemplatesIndex(w http.ResponseWriter, r *http.Request) {
 		Templates:       templates,
 		SourceFilter:    sourceFilter,
 		TagFilter:       tagFilter,
+		Search:          searchQ,
 		DistinctSources: distinctSources,
 		DistinctTags:    distinctTags,
 	})
@@ -416,7 +418,7 @@ func (s *Server) listLibraryExercises(ownerID uint) ([]db.LibraryExercise, error
 }
 
 func (s *Server) listTemplates(ownerID uint) ([]db.SessionTemplate, error) {
-	return db.ListTemplates(s.store.DB, ownerID, "", "")
+	return db.ListTemplates(s.store.DB, ownerID, "", "", "")
 }
 
 func (s *Server) renderTemplateEdit(w http.ResponseWriter, r *http.Request, templateID uint, ownerID uint) {
@@ -432,7 +434,7 @@ func (s *Server) renderTemplateEdit(w http.ResponseWriter, r *http.Request, temp
 		return
 	}
 
-	ats, err := db.ListActivityTemplates(s.store.DB, ownerID, "", "")
+	ats, err := db.ListActivityTemplates(s.store.DB, ownerID, "", "", "")
 	if err != nil {
 		s.serverError(w, r, err)
 		return
