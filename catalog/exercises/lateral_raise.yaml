@@ -1,8 +1,9 @@
 name: "Lateral Raise"
 label: "antagonist, strength"
 kind: "reps_and_sets"
-sets: 1
-reps: 6
+sets: 3
+reps: 10
+set_rest_seconds: 60
 media:
   - video_url: "https://www.youtube.com/watch?v=f_OqG2XaF_4"
     thumbnail_url: "https://i.ytimg.com/vi/f_OqG2XaF_4/maxresdefault.jpg"
