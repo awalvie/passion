@@ -11,8 +11,11 @@
   </div>
 
   <!-- Search, filter, sort controls -->
+  {{/* Search owns row 1; the selects sit two-per-row below sm and inline above it.
+       Four on one row gives ~70px each, which clips both the neutral option text and
+       any selected value — readable labels are worth the extra row. */}}
   <form method="get" action="/exercise-library" id="library-filter-form" class="mt-4 flex flex-wrap items-end gap-2">
-    <div class="flex-1" style="min-width:10rem">
+    <div class="w-full sm:flex-1" style="min-width:10rem">
       <input
         type="text"
         name="q"
@@ -22,7 +25,7 @@
         autocomplete="off"
       />
     </div>
-    <select name="kind" class="input text-sm" style="width:auto;min-width:8rem">
+    <select name="kind" class="input text-sm w-[calc(50%-0.25rem)] min-w-0 sm:w-auto sm:min-w-[8rem]">
       <option value=""{{ if eq .LibraryKind "" }} selected{{ end }}>All types</option>
       <option value="reps_and_sets"{{ if eq .LibraryKind "reps_and_sets" }} selected{{ end }}>Reps &amp; sets</option>
       <option value="timed_reps"{{ if eq .LibraryKind "timed_reps" }} selected{{ end }}>Timed reps</option>
@@ -31,7 +34,7 @@
       <option value="exercise_catalog"{{ if eq .LibraryKind "exercise_catalog" }} selected{{ end }}>Catalog</option>
     </select>
     {{ if .DistinctSources }}
-    <select name="source" class="input text-sm" style="width:auto;min-width:9rem" onchange="this.form.submit()">
+    <select name="source" class="input text-sm w-[calc(50%-0.25rem)] min-w-0 sm:w-auto sm:min-w-[8rem]" onchange="this.form.submit()">
       <option value="">All sources</option>
       {{ range .DistinctSources }}
       <option value="{{ . }}"{{ if eq . $.LibrarySource }} selected{{ end }}>{{ . }}</option>
@@ -39,14 +42,14 @@
     </select>
     {{ end }}
     {{ if .DistinctTags }}
-    <select name="tag" class="input text-sm" style="width:auto;min-width:8rem" onchange="this.form.submit()">
+    <select name="tag" class="input text-sm w-[calc(50%-0.25rem)] min-w-0 sm:w-auto sm:min-w-[8rem]" onchange="this.form.submit()">
       <option value="">All labels</option>
       {{ range .DistinctTags }}
       <option value="{{ . }}"{{ if eq . $.LibraryTag }} selected{{ end }}>{{ . }}</option>
       {{ end }}
     </select>
     {{ end }}
-    <select name="sort" class="input text-sm" style="width:auto;min-width:8rem">
+    <select name="sort" class="input text-sm w-[calc(50%-0.25rem)] min-w-0 sm:w-auto sm:min-w-[8rem]">
       <option value="name"{{ if eq .LibrarySort "name" }} selected{{ end }}>Name A-Z</option>
       <option value="name_desc"{{ if eq .LibrarySort "name_desc" }} selected{{ end }}>Name Z-A</option>
       <option value="newest"{{ if eq .LibrarySort "newest" }} selected{{ end }}>Newest first</option>
@@ -58,106 +61,90 @@
     {{ end }}
   </form>
 
-  <form id="library-bulk-form" action="/exercise-library/export" method="post">
-  <div class="mt-3 overflow-auto">
-    <table class="min-w-full text-sm" style="border-collapse:collapse">
-      <thead>
-        <tr class="text-left text-xs font-medium muted" style="border-bottom:1px solid var(--border)">
-          <th class="px-3 py-2 w-8">
-            <input type="checkbox" id="select-all-exercises" class="rounded" style="border-color:var(--border)" title="Select all" />
-          </th>
-          <th class="px-3 py-2">Name</th>
-          <th class="px-3 py-2">Type</th>
-          <th class="px-3 py-2">Config</th>
-          <th class="px-3 py-2 w-24">
-            <button
-              type="submit"
-              id="export-selected-btn"
-              class="rounded-md btn-ghost px-2 py-1 text-xs font-medium opacity-40 pointer-events-none whitespace-nowrap"
-              disabled
-            >
-              Export
-            </button>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {{ if .LibraryExercises }}
-          {{ range .LibraryExercises }}
-            <tr class="group/row transition-colors" style="border-bottom:1px solid var(--border)">
-              <td class="px-3 py-2.5">
-                <input
-                  type="checkbox"
-                  name="ids[]"
-                  value="{{ .ID }}"
-                  class="exercise-row-check rounded"
-                  style="border-color:var(--border)"
-                />
-              </td>
-              <td class="px-3 py-2.5">
-                <a class="text-sm font-medium link hover:underline" href="/exercise-library/{{ .ID }}/edit">{{ .Name }}</a>
-                {{ if or .Source (splitTags .Label) }}
-                <div class="mt-1 flex flex-wrap gap-1">
-                  {{ if .Source }}<span class="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded" style="background:var(--accent-bg);color:var(--accent)"><i data-lucide="book-marked" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>{{ .Source }}</span>{{ end }}
-                  {{ range splitTags .Label }}<span class="text-xs font-medium px-1.5 py-0.5 rounded border" style="border-color:var(--border);color:var(--muted)">{{ . }}</span>{{ end }}
-                </div>
-                {{ end }}
-              </td>
-              <td class="px-3 py-2.5">
-                <span class="inline-block rounded border px-1.5 py-0.5 text-xs" style="border-color:var(--border);background:var(--card-muted)">{{ kindLabel .Kind }}</span>
-              </td>
-              <td class="px-3 py-2.5 text-xs muted whitespace-nowrap">
-                {{ $summary := libraryExerciseSummary . }}
-                {{ if $summary }}{{ $summary }}{{ else }}&mdash;{{ end }}
-              </td>
-              <td class="px-3 py-2.5">
-                <div class="flex items-center gap-0.5 md:opacity-0 md:group-hover/row:opacity-100 focus-within:opacity-100 transition-opacity">
-                  <a
-                    href="/exercise-library/{{ .ID }}/history"
-                    class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
-                    title="History"
-                    aria-label="View history for {{ .Name }}"
-                  ><i data-lucide="history" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></a>
-                  <a
-                    href="/exercise-library/{{ .ID }}/edit"
-                    class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
-                    title="Edit"
-                    aria-label="Edit {{ .Name }}"
-                  ><i data-lucide="pencil" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></a>
-                  <a
-                    href="/exercise-library/{{ .ID }}/export"
-                    class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
-                    title="Download YAML"
-                    aria-label="Download YAML for {{ .Name }}"
-                  ><i data-lucide="download" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></a>
-                  <form
-                    hx-post="/exercise-library/{{ .ID }}/delete"
-                    hx-swap="none"
-                    method="post"
-                    hx-confirm="Remove this saved exercise from the library?"
-                    class="inline"
-                  >
-                    <button
-                      type="submit"
-                      class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
-                      title="Delete"
-                      aria-label="Delete {{ .Name }}"
-                      style="color:var(--muted)"
-                    ><i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i></button>
-                  </form>
-                </div>
-              </td>
-            </tr>
+  {{/* Split layout, following training_cycles.html: a real table at md:+ so every
+       field aligns down the page, and a card list below md where a table cannot fit.
+       Column widths are fixed so an empty cell still aligns its neighbours — that is
+       what a table is for. Edit/history/export/delete all live on the detail page. */}}
+  {{ if .LibraryExercises }}
+
+    {{/* Mobile: two-line card. No source — 303px of row cannot carry a 164px chip
+         and still show the name. */}}
+    <div class="mt-3 space-y-1.5 md:hidden">
+      {{ range .LibraryExercises }}
+      <div
+        data-library-row
+        data-name="{{ .Name }}"
+        class="relative rounded-lg border px-3 py-2"
+        style="border-color:var(--border);background:var(--panel)"
+      >
+        <a href="/exercise-library/{{ .ID }}/edit" class="lib-row no-underline after:absolute after:inset-0">
+          <span class="sr-only">{{ kindLabel .Kind }}. </span>
+          <i data-lucide="{{ kindIcon .Kind }}" class="lib-row-glyph muted" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+          <span class="lib-row-name text-sm font-medium truncate">{{ .Name }}</span>
+          {{ if .Label }}
+          <span class="lib-row-labels text-[11px] muted truncate">
+            {{ range $i, $t := splitTags .Label }}{{ if $i }} &middot; {{ end }}{{ $t }}{{ end }}
+          </span>
           {{ end }}
-        {{ else }}
-          <tr>
-            <td class="px-3 py-3 muted" colspan="5">No saved exercises yet.</td>
+        </a>
+      </div>
+      {{ end }}
+    </div>
+
+    {{/* Desktop table. Source is 11rem because the widest source in the catalog
+         ("Power Company Climbing") renders at 164px — a narrower column wraps it and
+         doubles the row height. Labels 16rem covers the widest label line, 212px. */}}
+    <div class="mt-4 hidden md:block">
+      <table class="min-w-full text-sm table-fixed">
+        <colgroup>
+          <col style="width:2rem" />
+          <col />
+          <col style="width:16rem" />
+          <col style="width:11rem" />
+        </colgroup>
+        <thead>
+          <tr class="text-left text-xs font-semibold muted">
+            <th class="px-2 py-2"><span class="sr-only">Type</span></th>
+            <th class="px-3 py-2">Name</th>
+            <th class="px-3 py-2">Labels</th>
+            <th class="px-3 py-2">Source</th>
           </tr>
-        {{ end }}
-      </tbody>
-    </table>
-  </div>
-  </form>
+        </thead>
+        <tbody>
+          {{ range .LibraryExercises }}
+          <tr data-library-row data-name="{{ .Name }}" class="divider">
+            <td class="px-2 py-2 align-middle">
+              <i data-lucide="{{ kindIcon .Kind }}" class="muted" style="width:0.875rem;height:0.875rem" aria-hidden="true" title="{{ kindLabel .Kind }}"></i>
+            </td>
+            <td class="px-3 py-2 align-middle">
+              <a class="text-sm font-medium link hover:underline" href="/exercise-library/{{ .ID }}/edit">{{ .Name }}</a>
+            </td>
+            <td class="px-3 py-2 align-middle text-[11px] muted truncate">
+              {{ range $i, $t := splitTags .Label }}{{ if $i }} &middot; {{ end }}{{ $t }}{{ end }}
+            </td>
+            <td class="px-3 py-2 align-middle">
+              {{ if .Source }}
+              <span class="inline-flex max-w-full items-center gap-1 truncate text-[11px] font-medium px-1.5 py-0.5 rounded" style="background:var(--accent-bg);color:var(--accent)">
+                <i data-lucide="book-marked" class="shrink-0" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>{{ .Source }}
+              </span>
+              {{ end }}
+            </td>
+          </tr>
+          {{ end }}
+        </tbody>
+      </table>
+    </div>
+
+    {{/* Shown when a client-side search filters every row out. */}}
+    <p data-library-empty class="hidden px-3 py-6 text-center text-sm muted">No exercises match your search.</p>
+
+  {{ else }}
+    <div class="mt-3 card card-pad text-center py-12">
+      <i data-lucide="library" style="width:2rem;height:2rem;opacity:0.3;margin:0 auto 0.75rem" aria-hidden="true"></i>
+      <p class="text-sm font-semibold">No saved exercises yet</p>
+      <p class="mt-1 text-xs muted">Add exercises to reuse them across activities and sessions.</p>
+    </div>
+  {{ end }}
 
   {{ if .Pagination }}
     <div class="mt-4 flex items-center justify-between border-t pt-4" style="border-color: var(--border)">
@@ -181,33 +168,6 @@
 </div>
 <script>
   (function () {
-    const form      = document.getElementById("library-bulk-form");
-    const selectAll = document.getElementById("select-all-exercises");
-    const exportBtn = document.getElementById("export-selected-btn");
-    const checks    = () => Array.from(form.querySelectorAll(".exercise-row-check"));
-
-    const syncBtn = () => {
-      const any = checks().some((c) => c.checked);
-      exportBtn.disabled = !any;
-      exportBtn.classList.toggle("opacity-40", !any);
-      exportBtn.classList.toggle("pointer-events-none", !any);
-    };
-
-    selectAll.addEventListener("change", () => {
-      checks().forEach((c) => { c.checked = selectAll.checked; });
-      syncBtn();
-    });
-
-    form.addEventListener("change", (e) => {
-      if (e.target.classList.contains("exercise-row-check")) {
-        selectAll.checked = checks().every((c) => c.checked);
-        syncBtn();
-      }
-    });
-  })();
-</script>
-<script>
-  (function () {
     var filterForm = document.getElementById("library-filter-form");
     if (!filterForm) return;
     var searchInput = filterForm.querySelector('input[name="q"]');
@@ -221,15 +181,20 @@
 
     // Search input filters table rows client-side (no page refresh)
     if (searchInput) {
+      // Keyed off data attributes, not column position: the rows are no longer table
+      // cells, and a positional selector silently filters nothing when markup moves.
       searchInput.addEventListener("input", function () {
         var query = searchInput.value.toLowerCase().trim();
-        var rows = document.querySelectorAll("#library-bulk-form tbody tr");
+        var rows = document.querySelectorAll("[data-library-row]");
+        var shown = 0;
         rows.forEach(function (row) {
-          var nameCell = row.querySelector("td:nth-child(2)");
-          if (!nameCell) return;
-          var name = nameCell.textContent.toLowerCase();
-          row.style.display = name.includes(query) ? "" : "none";
+          var name = (row.dataset.name || "").toLowerCase();
+          var match = name.includes(query);
+          row.style.display = match ? "" : "none";
+          if (match) shown++;
         });
+        var empty = document.querySelector("[data-library-empty]");
+        if (empty) empty.classList.toggle("hidden", shown > 0 || rows.length === 0);
       });
     }
   })();

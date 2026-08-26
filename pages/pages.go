@@ -1341,6 +1341,23 @@ func kindLabel(kind string) string {
 	}
 }
 
+// kindIcon maps an exercise kind to its leading lucide glyph in list rows. Deliberately
+// avoids "dumbbell", which already means "exercise count" elsewhere in the app.
+func kindIcon(kind string) string {
+	switch kind {
+	case "climbing":
+		return "mountain"
+	case "timed_reps":
+		return "timer"
+	case "session":
+		return "layers"
+	case "exercise_catalog":
+		return "layout-list"
+	default:
+		return "list-checks"
+	}
+}
+
 // formatExerciseSummary formats an exercise's parameters into a compact human-readable string.
 // sessionSuffix appends " session" to duration strings (used for session-template exercises).
 // catalogLabel is returned for exercise_catalog kind (e.g. "Exercise catalog" or "menu").
@@ -1582,6 +1599,7 @@ func buildFuncMap() template.FuncMap {
 		"libraryExerciseSummary": func(ex db.LibraryExercise) string {
 			return formatExerciseSummary(ex.Kind, ex.SessionDurationSeconds, ex.Sets, ex.Reps, ex.WeightKg, ex.RepSeconds, false, "—")
 		},
+		"kindIcon":  kindIcon,
 		"kindLabel": kindLabel,
 		"runStepSummary": func(rs RunStep) string {
 			return formatExerciseSummary(rs.Kind, rs.SessionDurationSeconds, rs.Sets, rs.Reps, rs.WeightKg, rs.RepSeconds, true, "Exercise catalog")
