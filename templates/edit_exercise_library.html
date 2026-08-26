@@ -259,11 +259,29 @@
       <!-- Sticky action bar -->
       <div class="lib-edit-sticky-bar">
         <button class="rounded-md btn-primary px-4 py-2 text-sm font-medium" type="submit">Save</button>
-        <a class="rounded-md btn-ghost px-4 py-2 text-sm inline-flex items-center" href="/exercise-library/{{ .ID }}/export">
+        <a class="rounded-md btn-ghost px-4 py-2 text-sm inline-flex items-center" href="/exercise-library/{{ .ID }}/export" title="Export YAML">
           <i data-lucide="download" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
           <span class="ml-1.5 hidden sm:inline">YAML</span>
         </a>
+        <a class="rounded-md btn-ghost px-4 py-2 text-sm inline-flex items-center" href="/exercise-library/{{ .ID }}/history" title="History">
+          <i data-lucide="history" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+          <span class="ml-1.5 hidden sm:inline">History</span>
+        </a>
         <span class="flex-1"></span>
+        {{/* type=button so the enclosing update form never submits; the handler answers
+             with HX-Redirect back to the library. */}}
+        <button
+          type="button"
+          class="rounded-md btn-ghost px-4 py-2 text-sm inline-flex items-center"
+          style="color:var(--destructive)"
+          title="Delete"
+          hx-post="/exercise-library/{{ .ID }}/delete"
+          hx-swap="none"
+          hx-confirm="Remove &ldquo;{{ .Name }}&rdquo; from the library?"
+        >
+          <i data-lucide="trash-2" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+          <span class="ml-1.5 hidden sm:inline">Delete</span>
+        </button>
         <a class="text-sm muted hover:underline" href="/exercise-library">Back</a>
       </div>
     </form>
