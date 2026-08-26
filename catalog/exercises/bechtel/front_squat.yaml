@@ -1,0 +1,9 @@
+name: "Front Squat"
+source: "Logical Progression"
+label: "strength, squat"
+kind: "reps_and_sets"
+sets: 3
+reps: 5
+set_rest_seconds: 90
+notes: |
+  Quads and glutes — the strength behind high steps and rockovers.

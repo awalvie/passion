@@ -18,8 +18,13 @@ activities:
           - ref: "Fall Practice"
           - ref: "Mock Lead (Auto-Belay)"
   - type: "activity"
-    name: "Mileage"
+    name: "Climbing"
     exercises:
-      - ref: "Easy Lead Mileage"
-      - ref: "Fast-Slow-Perfect"
+      - name: "Route Work"
+        kind: "exercise_catalog"
+        notes: |
+          Pick one. Hard if you're fresh and have a belayer, mileage otherwise.
+        children:
+          - ref: "Redpoint Lead Attempts"
+          - ref: "Easy Lead Mileage"
   - ref: "Cooldown Stretch"

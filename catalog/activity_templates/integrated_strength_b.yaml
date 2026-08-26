@@ -1,0 +1,13 @@
+name: "Integrated Strength: B"
+source: "Logical Progression"
+label: "strength, fingers, mobility"
+exercises:
+  - ref: "Hangboard Ladder: Open Hand"
+  - name: "Lift — press"
+    kind: "exercise_catalog"
+    notes: |
+      Pick one. Keep it heavy — low load and low reps gets you nowhere.
+    children:
+      - ref: "Push-Up Variation"
+      - ref: "Overhead Press"
+  - ref: "Doorway Shoulder Opener"
