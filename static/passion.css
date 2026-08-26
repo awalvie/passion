@@ -3518,6 +3518,22 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
   border-radius: 0 0 0.5rem 0.5rem;
 }
 
+/* ── Exercise library: mobile card rows ──
+   Below md the page renders cards, not the table: two lines, name then labels. The
+   desktop layout is a real <table> in the template — see exercise_library.html. */
+.lib-row {
+  display: grid;
+  align-items: center;
+  gap: 0.1875rem 0.5rem;
+  grid-template-columns: 1.125rem minmax(0, 1fr);
+  grid-template-areas:
+    "glyph name"
+    ".     labels";
+}
+.lib-row-glyph  { grid-area: glyph; align-self: start; margin-top: 0.1875rem; }
+.lib-row-name   { grid-area: name; min-width: 0; }
+.lib-row-labels { grid-area: labels; min-width: 0; }
+
 /* ── Activity Template Edit: constrained layout ── */
 .at-edit-container {
   max-width: 52rem;
