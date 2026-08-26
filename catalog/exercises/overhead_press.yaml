@@ -1,8 +1,9 @@
 name: "Overhead Press"
 label: "antagonist, strength"
 kind: "reps_and_sets"
-sets: 1
+sets: 3
 reps: 6
+set_rest_seconds: 90
 media:
   - video_url: "https://www.youtube.com/watch?v=dh-R8cUoPfA"
     thumbnail_url: "https://i.ytimg.com/vi/dh-R8cUoPfA/maxresdefault.jpg"

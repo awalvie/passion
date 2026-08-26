@@ -1,8 +1,9 @@
 name: "Tricep Extensions"
 label: "antagonist, strength"
 kind: "reps_and_sets"
-sets: 1
-reps: 6
+sets: 3
+reps: 10
+set_rest_seconds: 60
 media:
   - video_url: "https://www.youtube.com/watch?v=TQbUBGWrL_k"
     thumbnail_url: "https://i.ytimg.com/vi/TQbUBGWrL_k/maxresdefault.jpg"

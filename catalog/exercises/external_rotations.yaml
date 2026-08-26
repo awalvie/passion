@@ -1,9 +1,9 @@
 name: "External Rotations"
 label: "antagonist, strength"
 kind: "reps_and_sets"
-sets: 5
-reps: 6
-set_rest_seconds: 300
+sets: 3
+reps: 12
+set_rest_seconds: 60
 media:
   - video_url: "https://www.youtube.com/watch?v=Ck5vdTf0W30"
     thumbnail_url: "https://i.ytimg.com/vi/Ck5vdTf0W30/maxresdefault.jpg"
