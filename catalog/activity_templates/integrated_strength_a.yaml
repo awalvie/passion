@@ -1,0 +1,13 @@
+name: "Integrated Strength: A"
+source: "Logical Progression"
+label: "strength, fingers, mobility"
+exercises:
+  - ref: "Hangboard Ladder: Half Crimp"
+  - name: "Lift — hinge or squat"
+    kind: "exercise_catalog"
+    notes: |
+      Pick one. Keep it heavy — low load and low reps gets you nowhere.
+    children:
+      - ref: "Deadlift"
+      - ref: "Front Squat"
+  - ref: "Tailor's Pose"

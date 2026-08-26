@@ -1,7 +1,24 @@
 name: "Strength & Stretching"
 color: "#a855f7"
-label: "strength, antagonist, mobility"
+label: "strength, fingers, mobility"
+needs: "Hangboard, barbell or dumbbells"
 activities:
   - ref: "Synovial & Fascia Warm-Up"
-  - ref: "Antagonist & Prehab"
+  - ref: "Integrated Strength: A"
+    name: "A — Fingers, hinge, hips"
+  - ref: "Integrated Strength: B"
+    name: "B — Fingers, press, shoulders"
+  - ref: "Integrated Strength: C"
+    name: "C — Fingers, midsection, splits"
+  - type: "activity"
+    name: "Prehab"
+    exercises:
+      - name: "Prehab (optional)"
+        kind: "exercise_catalog"
+        notes: |
+          Optional. Pressing is already covered in group B.
+        children:
+          - ref: "External Rotations"
+          - ref: "Lateral Raise"
+          - ref: "Tricep Extensions"
   - ref: "Cooldown Stretch"

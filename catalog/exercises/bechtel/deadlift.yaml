@@ -1,0 +1,10 @@
+name: "Deadlift"
+source: "Logical Progression"
+label: "strength, hinge"
+kind: "reps_and_sets"
+sets: 3
+reps: 3
+set_rest_seconds: 90
+notes: |
+  Hip hinge. Heavy, low reps, form first — this is where hip and core tension
+  comes from.
