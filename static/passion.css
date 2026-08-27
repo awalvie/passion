@@ -3300,6 +3300,61 @@ iframe.catalog-dialog-media {
 
 
 /* ─── Cycle exercise targets ─── */
+/* Phone week cards. One week open at a time, so the page is readable at 390px instead
+   of ~4000px of dashed Add buttons. */
+.cycle-week > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.85rem;
+  cursor: pointer;
+  list-style: none;
+}
+.cycle-week > summary::-webkit-details-marker { display: none; }
+.cycle-week-chevron {
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+.cycle-week[open] .cycle-week-chevron { transform: rotate(180deg); }
+.cycle-week-now {
+  margin-left: 0.15rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.25rem;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.cycle-week-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 0.85rem 0.85rem;
+}
+.cycle-week-rest {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.cycle-week-add {
+  align-self: flex-start;
+  padding: 0.55rem 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.cycle-week-add:hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
 /* Cycle grid completion marks. A run that happened gets a tick; a planned session that
    did not get dimmed, never coloured as an error — the plan is a suggestion. */
 .cycle-session-tick {
