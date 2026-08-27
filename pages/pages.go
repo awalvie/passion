@@ -679,6 +679,9 @@ type NewTrainingCycleParams struct {
 type NewTrainingCycleGuidedParams struct {
 	Base
 	Templates []db.SessionTemplate
+	// DefaultStartDate prefills the start field as "2006-01-02". Next week's Monday,
+	// so week 1 holds every mapped weekday.
+	DefaultStartDate string
 }
 
 // CycleWeekTargetView holds resolved targets for one week of a per-week override.

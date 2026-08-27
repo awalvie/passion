@@ -155,12 +155,21 @@ func TestHandleTrainingCyclesGuided_SkipsPastDatesInFirstWeekOnly(t *testing.T) 
 	const ownerID uint = 1
 	tpl := seedGuidedTemplate(t, store, ownerID, "Everyday")
 
+	// An explicit Thursday start: week 1 keeps Thu-Sun, week 2 is full. The default
+	// start is a Monday precisely so this truncation does NOT happen unasked — see
+	// TestHandleTrainingCyclesGuided_DefaultsToNextWeekMonday.
+	start := nextWeekMondayOfLocalDate(time.Now()).AddDate(0, 0, 3)
+	if start.Weekday() != time.Thursday {
+		t.Fatalf("test setup: start %s is %v, want Thursday", localDateKey(start), start.Weekday())
+	}
+
 	form := url.Values{}
 	for wd := 1; wd <= 7; wd++ {
 		form.Add("day", strconv.Itoa(wd))
 		form.Set(sessionDayKey(wd), strconv.FormatUint(uint64(tpl.ID), 10))
 	}
 	form.Add("weeks", "2")
+	form.Set("start_date", localDateKey(start))
 
 	srv := &Server{store: store}
 	rr := httptest.NewRecorder()
@@ -170,11 +179,10 @@ func TestHandleTrainingCyclesGuided_SkipsPastDatesInFirstWeekOnly(t *testing.T) 
 	}
 	cycleID := cycleIDFromRedirect(t, rr)
 
-	today := localDate(time.Now())
-	week1Monday := mondayOfLocalDate(today)
+	week1Monday := mondayOfLocalDate(start)
 	wantCount := 7 // week 2 is always scheduled in full
 	for d := 0; d < 7; d++ {
-		if !week1Monday.AddDate(0, 0, d).Before(today) {
+		if !week1Monday.AddDate(0, 0, d).Before(start) {
 			wantCount++
 		}
 	}
@@ -185,8 +193,8 @@ func TestHandleTrainingCyclesGuided_SkipsPastDatesInFirstWeekOnly(t *testing.T) 
 		t.Fatal(err)
 	}
 	if int(got) != wantCount {
-		t.Errorf("scheduled session count = %d, want %d (today=%s, week1Monday=%s)",
-			got, wantCount, today.Format("2006-01-02"), week1Monday.Format("2006-01-02"))
+		t.Errorf("scheduled session count = %d, want %d (start=%s, week1Monday=%s)",
+			got, wantCount, localDateKey(start), localDateKey(week1Monday))
 	}
 }
 
@@ -230,8 +238,14 @@ func TestHandleTrainingCyclesGuided_DeloadCreatesNonBlockingRestEvent(t *testing
 		t.Errorf("deload event Kind = %q, want %q", ev.Kind, "rest")
 	}
 
-	today := localDate(time.Now())
-	week1Monday := mondayOfLocalDate(today)
+	// Derived from the cycle's actual start rather than from today, so this stays
+	// correct whatever the default start date is.
+	cycleID := cycleIDFromRedirect(t, rr)
+	var cycle db.TrainingCycle
+	if err := store.DB.First(&cycle, cycleID).Error; err != nil {
+		t.Fatal(err)
+	}
+	week1Monday := mondayOfLocalDate(cycle.StartDate)
 	wantStart := week1Monday.AddDate(0, 0, (3-1)*7)
 	wantEnd := wantStart.AddDate(0, 0, 6)
 	if !ev.StartDate.Equal(wantStart) {
@@ -790,5 +804,156 @@ func TestHandleTrainingCycleDelete_RemovesCycleGoalRows(t *testing.T) {
 	store.DB.Unscoped().Model(&db.CycleGoal{}).Where("training_cycle_id = ?", cycle.ID).Count(&count)
 	if count != 0 {
 		t.Errorf("CycleGoal count = %d after delete, want 0 (hard-deleted with the cycle)", count)
+	}
+}
+
+// TestHandleTrainingCyclesGuided_DefaultsToNextWeekMonday guards the fix for the
+// bug where the guided builder hardcoded "starts today": every mapped weekday
+// earlier in the week than today was silently dropped from week 1, because
+// scheduling anchors on the Monday of the start week and then discards dates
+// before the start date. Anchoring the default start on next week's Monday means
+// week 1 holds every mapped day whatever weekday the cycle is created on.
+func TestHandleTrainingCyclesGuided_DefaultsToNextWeekMonday(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-default-start.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "A")
+
+	// Monday and Sunday: the extremes of the week. Under the old behaviour, one of
+	// these was always dropped unless the cycle happened to be created on a Monday.
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Add("day", "7")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Set(sessionDayKey(7), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Add("weeks", "1")
+	// start_date deliberately absent — this exercises the default.
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
+	}
+	cycleID := cycleIDFromRedirect(t, rr)
+
+	var cycle db.TrainingCycle
+	if err := store.DB.First(&cycle, cycleID).Error; err != nil {
+		t.Fatal(err)
+	}
+	wantStart := nextWeekMondayOfLocalDate(time.Now())
+	if got := localDateKey(cycle.StartDate); got != localDateKey(wantStart) {
+		t.Errorf("StartDate = %s, want next week's Monday %s", got, localDateKey(wantStart))
+	}
+	if wd := cycle.StartDate.Weekday(); wd != time.Monday {
+		t.Errorf("StartDate weekday = %v, want Monday", wd)
+	}
+	if !localDate(cycle.StartDate).After(localDate(time.Now())) {
+		t.Errorf("StartDate %s is not in the future", localDateKey(cycle.StartDate))
+	}
+
+	// Both mapped weekdays must survive into week 1.
+	var sessions []db.ScheduledSession
+	if err := store.DB.Where("training_cycle_id = ?", cycleID).
+		Order("scheduled_date asc").Find(&sessions).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(sessions) != 2 {
+		t.Fatalf("session count = %d, want 2 (a dropped day is the bug this guards)", len(sessions))
+	}
+	gotDays := map[time.Weekday]bool{}
+	for _, ss := range sessions {
+		gotDays[ss.ScheduledDate.Weekday()] = true
+	}
+	for _, want := range []time.Weekday{time.Monday, time.Sunday} {
+		if !gotDays[want] {
+			t.Errorf("no session scheduled on %v; got %+v", want, gotDays)
+		}
+	}
+}
+
+// TestHandleTrainingCyclesGuided_HonoursExplicitStartDate guards that an explicit
+// date always wins over the Monday default, including a mid-week date — where
+// dropping the earlier mapped days is the correct, requested behaviour.
+func TestHandleTrainingCyclesGuided_HonoursExplicitStartDate(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-explicit-start.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "A")
+
+	// A Wednesday well clear of today, with Monday and Friday mapped: Monday falls
+	// before the start and must be dropped, Friday must survive.
+	start := nextWeekMondayOfLocalDate(time.Now()).AddDate(0, 0, 2)
+	if start.Weekday() != time.Wednesday {
+		t.Fatalf("test setup: start %s is %v, want Wednesday", localDateKey(start), start.Weekday())
+	}
+
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Add("day", "5")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Set(sessionDayKey(5), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Add("weeks", "1")
+	form.Set("start_date", localDateKey(start))
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
+	}
+	cycleID := cycleIDFromRedirect(t, rr)
+
+	var cycle db.TrainingCycle
+	if err := store.DB.First(&cycle, cycleID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if got := localDateKey(cycle.StartDate); got != localDateKey(start) {
+		t.Errorf("StartDate = %s, want the explicit %s", got, localDateKey(start))
+	}
+
+	var sessions []db.ScheduledSession
+	if err := store.DB.Where("training_cycle_id = ?", cycleID).Find(&sessions).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(sessions) != 1 {
+		t.Fatalf("session count = %d, want 1 (Friday only; Monday precedes the start)", len(sessions))
+	}
+	if wd := sessions[0].ScheduledDate.Weekday(); wd != time.Friday {
+		t.Errorf("surviving session is on %v, want Friday", wd)
+	}
+}
+
+// TestHandleTrainingCyclesGuided_RejectsUnparseableStartDate guards that a
+// malformed date is refused rather than silently falling back to the default.
+func TestHandleTrainingCyclesGuided_RejectsUnparseableStartDate(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-bad-start.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "A")
+
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Add("weeks", "1")
+	form.Set("start_date", "not-a-date")
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusBadRequest)
+	}
+	var n int64
+	store.DB.Model(&db.TrainingCycle{}).Count(&n)
+	if n != 0 {
+		t.Errorf("cycle count = %d, want 0 — nothing should be created on a bad date", n)
 	}
 }

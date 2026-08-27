@@ -51,6 +51,13 @@ func relativeDateLabel(t time.Time) string {
 	}
 }
 
+// nextWeekMondayOfLocalDate returns the Monday of the week after the one containing t.
+// It is the default start for a new cycle: anchoring week 1 to a Monday means every
+// mapped weekday falls on or after the start date, so none are dropped.
+func nextWeekMondayOfLocalDate(t time.Time) time.Time {
+	return mondayOfLocalDate(t).AddDate(0, 0, 7)
+}
+
 // mondayOfLocalDate returns the local Monday for the week containing t.
 func mondayOfLocalDate(t time.Time) time.Time {
 	t = localDate(t)
