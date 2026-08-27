@@ -72,6 +72,16 @@
 
       <div>
         <div class="gc-field-head">
+          <label for="gc-start" class="text-xs font-semibold muted uppercase tracking-widest">When does it start?</label>
+          <span class="gc-info" tabindex="0" role="note" aria-label="Defaults to next Monday so week one holds every day you pick."><i data-lucide="info" style="width:0.8rem;height:0.8rem" aria-hidden="true"></i><span class="gc-tip">Defaults to next Monday so week one holds every day you pick. Start mid-week and the days before that date are left out.</span></span>
+        </div>
+        <div class="mt-2">
+          <input id="gc-start" name="start_date" type="date" value="{{ .DefaultStartDate }}" class="input text-sm" style="width:11rem" />
+        </div>
+      </div>
+
+      <div>
+        <div class="gc-field-head">
           <label class="text-xs font-semibold muted uppercase tracking-widest">How long is the cycle?</label>
           <span class="gc-info" tabindex="0" role="note" aria-label="Longer cycles leave more room to progress the focus."><i data-lucide="info" style="width:0.8rem;height:0.8rem" aria-hidden="true"></i><span class="gc-tip">Longer cycles leave more room to progress the focus.</span></span>
         </div>

@@ -309,8 +309,9 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 
 	if r.Method == http.MethodGet {
 		s.pages.NewTrainingCycleGuided(w, pages.NewTrainingCycleGuidedParams{
-			Base:      pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
-			Templates: templates,
+			Base:             pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
+			Templates:        templates,
+			DefaultStartDate: localDateKey(nextWeekMondayOfLocalDate(time.Now())),
 		})
 		return
 	}
@@ -430,7 +431,18 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 		name = strconv.Itoa(weeks) + "-week cycle"
 	}
 
-	startDate := localDate(time.Now())
+	// An explicit date always wins. Left blank, the cycle starts on next week's Monday:
+	// week 1 then contains every mapped weekday, where a mid-week start silently drops
+	// the days that fall before it.
+	startDate := nextWeekMondayOfLocalDate(time.Now())
+	if raw := strings.TrimSpace(r.FormValue("start_date")); raw != "" {
+		parsed, err := time.ParseInLocation("2006-01-02", raw, time.Now().Location())
+		if err != nil {
+			http.Error(w, "invalid start_date", http.StatusBadRequest)
+			return
+		}
+		startDate = localDate(parsed)
+	}
 	week1Monday := mondayOfLocalDate(startDate)
 
 	cycle := &db.TrainingCycle{
