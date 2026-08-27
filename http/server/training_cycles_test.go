@@ -1242,3 +1242,221 @@ func TestHandleTrainingCyclesNew_RedirectsToGuided(t *testing.T) {
 		}
 	}
 }
+
+// newDetailsSaveRequest builds a details-save POST carrying exactly the given fields.
+// Which keys are absent is the point of these tests, so the form is passed verbatim.
+func newDetailsSaveRequest(t *testing.T, ownerID uint, form url.Values) *http.Request {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, "/training-cycles/1/details-save",
+		strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return req.WithContext(context.WithValue(req.Context(), authUserIDKey, ownerID))
+}
+
+// seedCycleWithMetadata creates a cycle carrying every metadata field plus two goals.
+func seedCycleWithMetadata(t *testing.T, store *db.Store, ownerID uint) *db.TrainingCycle {
+	t.Helper()
+	cycle := &db.TrainingCycle{
+		OwnerID: ownerID, Name: "Block", Weeks: 4,
+		StartDate: nextWeekMondayOfLocalDate(time.Now()),
+		Notes:     "Sub-max hangs only.", Focus: "strength", Label: "power, indoor",
+	}
+	if err := store.DB.Create(cycle).Error; err != nil {
+		t.Fatalf("create cycle: %v", err)
+	}
+	goals := []db.CycleGoal{
+		{OwnerID: ownerID, TrainingCycleID: cycle.ID, Before: "V5", After: "V6", How: "limit day", OrderIndex: 0},
+		{OwnerID: ownerID, TrainingCycleID: cycle.ID, Before: "4 laps", After: "6 laps", How: "endurance day", OrderIndex: 1},
+	}
+	if err := store.DB.Create(&goals).Error; err != nil {
+		t.Fatalf("create goals: %v", err)
+	}
+	return cycle
+}
+
+// TestCycleDetailsSave_NotesOnlyKeepsGoals guards against silent data loss once the
+// cycle page splits its metadata across several forms. The handler used to hard-delete
+// every CycleGoal row on any submit, so a notes-only save would destroy the goals.
+func TestCycleDetailsSave_NotesOnlyKeepsGoals(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "details-notes-only.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	cycle := seedCycleWithMetadata(t, store, ownerID)
+
+	form := url.Values{}
+	form.Set("notes", "Deload the last week.")
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleCycleDetailsSave(rr, newDetailsSaveRequest(t, ownerID, form), cycle.ID, ownerID)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusOK, rr.Body.String())
+	}
+
+	var goals []db.CycleGoal
+	if err := store.DB.Where("owner_id = ? AND training_cycle_id = ?", ownerID, cycle.ID).
+		Order("order_index asc").Find(&goals).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(goals) != 2 {
+		t.Fatalf("goal count = %d, want 2 — a notes-only save destroyed the goals", len(goals))
+	}
+	if goals[0].Before != "V5" || goals[1].After != "6 laps" {
+		t.Errorf("goals were altered: %+v", goals)
+	}
+
+	var got db.TrainingCycle
+	if err := store.DB.First(&got, cycle.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if got.Notes != "Deload the last week." {
+		t.Errorf("Notes = %q, want the submitted text", got.Notes)
+	}
+	if got.Focus != "strength" {
+		t.Errorf("Focus = %q, want it untouched (%q)", got.Focus, "strength")
+	}
+	if got.Label != "power, indoor" {
+		t.Errorf("Label = %q, want it untouched", got.Label)
+	}
+}
+
+// TestCycleDetailsSave_GoalsOnlyKeepsNotes is the mirror: a goals-only form must not
+// blank the notes, focus or tags it does not carry.
+func TestCycleDetailsSave_GoalsOnlyKeepsNotes(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "details-goals-only.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	cycle := seedCycleWithMetadata(t, store, ownerID)
+
+	form := url.Values{}
+	form.Add("goal_before", "V6")
+	form.Add("goal_after", "V7")
+	form.Add("goal_how", "one limit session a week")
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleCycleDetailsSave(rr, newDetailsSaveRequest(t, ownerID, form), cycle.ID, ownerID)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusOK, rr.Body.String())
+	}
+
+	var got db.TrainingCycle
+	if err := store.DB.First(&got, cycle.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if got.Notes != "Sub-max hangs only." {
+		t.Errorf("Notes = %q, want it untouched — a goals-only save blanked the notes", got.Notes)
+	}
+	if got.Focus != "strength" {
+		t.Errorf("Focus = %q, want it untouched", got.Focus)
+	}
+	if got.Label != "power, indoor" {
+		t.Errorf("Label = %q, want it untouched", got.Label)
+	}
+
+	// The goals it did carry are still replaced wholesale — that contract is unchanged.
+	var goals []db.CycleGoal
+	if err := store.DB.Where("owner_id = ? AND training_cycle_id = ?", ownerID, cycle.ID).
+		Find(&goals).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(goals) != 1 || goals[0].After != "V7" {
+		t.Errorf("goals = %+v, want exactly the submitted V6→V7 pair", goals)
+	}
+}
+
+// TestCycleDetailsSave_ClearingNotesStillWorks guards that the presence check does not
+// make an empty value unsettable: submitting an empty notes field must clear the notes,
+// which is why presence is tested with Form.Has rather than FormValue != "".
+func TestCycleDetailsSave_ClearingNotesStillWorks(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "details-clear-notes.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	cycle := seedCycleWithMetadata(t, store, ownerID)
+
+	form := url.Values{}
+	form.Set("notes", "")
+	form.Set("label", "")
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleCycleDetailsSave(rr, newDetailsSaveRequest(t, ownerID, form), cycle.ID, ownerID)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+
+	var got db.TrainingCycle
+	if err := store.DB.First(&got, cycle.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if got.Notes != "" {
+		t.Errorf("Notes = %q, want cleared", got.Notes)
+	}
+	if got.Label != "" {
+		t.Errorf("Label = %q, want cleared", got.Label)
+	}
+	var n int64
+	store.DB.Model(&db.CycleGoal{}).Where("training_cycle_id = ?", cycle.ID).Count(&n)
+	if n != 2 {
+		t.Errorf("goal count = %d, want 2 — clearing notes must not touch goals", n)
+	}
+}
+
+// TestCycleDetailsSave_LegacyGoalColumnClearedOnlyWithGoals guards the narrow case of a
+// cycle whose goal still lives in the legacy TrainingCycle.Goal column: a save that
+// carries no goals must not clear it, or the detail page loses the only goal it had.
+func TestCycleDetailsSave_LegacyGoalColumnClearedOnlyWithGoals(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "details-legacy-goal.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	cycle := &db.TrainingCycle{
+		OwnerID: ownerID, Name: "Old block", Weeks: 4,
+		StartDate: nextWeekMondayOfLocalDate(time.Now()),
+		Goal:      "Send V7",
+	}
+	if err := store.DB.Create(cycle).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	srv := &Server{store: store}
+
+	// A notes-only save leaves the legacy goal alone.
+	form := url.Values{}
+	form.Set("notes", "still going")
+	rr := httptest.NewRecorder()
+	srv.handleCycleDetailsSave(rr, newDetailsSaveRequest(t, ownerID, form), cycle.ID, ownerID)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("notes save: status = %d, want %d", rr.Code, http.StatusOK)
+	}
+	var got db.TrainingCycle
+	if err := store.DB.First(&got, cycle.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if got.Goal != "Send V7" {
+		t.Errorf("legacy Goal = %q, want it untouched by a notes-only save", got.Goal)
+	}
+
+	// A goals-bearing save supersedes it, so the column is cleared.
+	form = url.Values{}
+	form.Add("goal_before", "V6")
+	form.Add("goal_after", "V7")
+	rr = httptest.NewRecorder()
+	srv.handleCycleDetailsSave(rr, newDetailsSaveRequest(t, ownerID, form), cycle.ID, ownerID)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("goals save: status = %d, want %d", rr.Code, http.StatusOK)
+	}
+	if err := store.DB.First(&got, cycle.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if got.Goal != "" {
+		t.Errorf("legacy Goal = %q, want cleared once real goals exist", got.Goal)
+	}
+}

@@ -67,45 +67,15 @@ flash 6c on TB2 (7a is the season goal), fall practice leads the lead day.
       Both were referenced by nothing before.
 - [ ] Then create the cycle itself with the guided builder.
 
-## PLAN: bring the guided-cycle fields to `/training-cycles/new`
+## DONE (2026-08-27): cycle creation consolidated onto the guided builder
 
-Raised 2026-08-27. The two creation routes have **diverged**, and neither is a superset:
-
-| Field | `/training-cycles/new` | `/new/guided` | Where it persists |
-|---|---|---|---|
-| name, weeks | yes | yes | `TrainingCycle` columns |
-| **start_date** | yes | **no** | `TrainingCycle.StartDate` |
-| weekday → template | yes (7 fixed selects) | yes (`day` + `session_day_N`) | `TrainingCycleWeekdayMapping` |
-| **focus** | no | yes | `TrainingCycle.Focus` |
-| **goals (before→after→how, ≤5)** | no | yes | `CycleGoal` rows |
-| **target date → weeks** | no | yes | derives `Weeks` |
-| **equipment (multi)** | no | yes | folded into `Notes` as `Equipment: …` |
-| **per-day energy** | no | yes | folded into `Notes` as `Energy: …` |
-| **deload final week** | no | yes | non-blocking `CalendarEvent` |
-| **rest window** | no | yes | `CalendarEvent` |
-| label, notes | no | no (notes written, not editable) | `TrainingCycle` |
-
-So guided is missing `start_date` and plain is missing nine things. Copying nine fields
-into the second form would double the parsing logic that already disagrees.
-
-**Steps**
-
-- [ ] 1. Extract the shared parser. One `parseCycleForm(r) (cycleInput, error)` in
-      `http/server/training_cycles.go` covering every field above, used by both handlers.
-      This is the actual fix — the divergence is a duplication bug, not a missing-field bug.
-- [ ] 2. Add `start_date` to the guided flow (it currently has no way to say "starts Monday").
-- [ ] 3. On `/training-cycles/new`, surface the full set: focus, goals, equipment, deload,
-      rest window behind a collapsed "More options" disclosure so the quick path stays quick.
-- [ ] 4. Make `label` and `notes` editable at creation on both — today they are only
-      reachable after the fact on the detail page, and `notes` gets silently overwritten
-      by the equipment/energy lines.
-- [ ] 5. Regression tests: one per handler asserting the same form produces the same
-      cycle, goals, mappings and calendar events.
-
-**Decision needed before step 1:** equipment, energy and deload live as free text inside
-`TrainingCycle.Notes`. That is fine for reference but cannot be filtered or reported on.
-If cycles should ever be searchable by equipment, those need real columns — a `schema`
-review and a migration. Ask before assuming.
+Superseded the earlier "bring the guided fields to `/training-cycles/new`" plan — the
+decision went the other way: retire the manual page rather than bring it to parity.
+`/training-cycles/new` now 302s to `/new/guided`; `new_cycle.html` is deleted.
+Equipment and per-day Effort were deleted (nothing read them); `label` and `notes` are
+real fields. Shipped in 4abc246, with the four Phase 0 bugs in af945d6, 19c641f,
+66f6420, e8384eb. Remaining cycle work is Phases 2-4, planned in
+`scratchpad/cycle_plan_phase234.md`.
 
 ## PLAN: richer History metrics
 
@@ -169,6 +139,45 @@ is to find them mechanically instead.
 all the same thing — a grid or flex child with the default `min-width: auto` that cannot
 shrink below its content. Any new grid column holding user text needs `minmax(0, 1fr)` or
 `min-width: 0`.
+
+## PLAN: give light mode a real ground-to-panel step (site-wide)
+
+Sections are hard to tell apart in light mode. Measured on the shipped palette, not
+guessed:
+
+| Pair | Contrast ratio |
+|---|---|
+| `--bg` `#f9fafb` vs `--panel` `#ffffff` | **1.045** — visually identical |
+| `--bg` vs `--card-muted` `#f9fafb` | byte-identical |
+| `--border` `#e5e7eb` vs `--bg` | 1.185 |
+| dark mode `--bg` `#161f2e` vs `--panel` `#1e2a3a` | 1.14 |
+
+So in light mode a card is separated from the page only by its 1px border, and a
+`.card-muted` panel sitting on the page ground is invisible. Dark mode has a real step;
+light mode never did. Pre-existing, not a regression — confirmed no colour token has been
+touched (`git diff` over the 2026-08-27 commits changes one breakpoint and nothing else).
+
+Ground candidates, all keeping `--panel: #ffffff`:
+
+| Ground | vs panel | Note |
+|---|---|---|
+| `#f4f6f8` | 1.083 | barely more than today |
+| `#f1f3f5` | 1.112 | ≈ dark mode's step |
+| `#eaedf1` | 1.174 | clear separation |
+| `#e3e7ec` | 1.242 | strong; border then vanishes into the ground (1.003) |
+
+- [ ] Pick a ground. `--bg` is used 3× in CSS and 0× in templates, so it is a safe change.
+- [ ] `--card-muted` needs its own value regardless. It is used **108×** (52 CSS, 56
+      templates), mostly as an inset tint *inside* white cards, where `#f9fafb` works —
+      so it may need no change once the ground moves away from it. Check both contexts:
+      inset on white, and standalone on the ground.
+- [ ] Darkening the ground weakens `--border` against it. Either restrengthen the border
+      or accept it, but decide deliberately — at `#e3e7ec` the border is gone.
+- [ ] Verify light *and* dark after: the tokens are redefined in a `prefers-color-scheme`
+      block and again under `html[data-theme="dark"]`, so a change in `:root` alone can
+      silently apply to only one of the three theme states.
+- [ ] Sweep the real pages at 390/768/1024/1440 in both themes; the offender that
+      surfaced this was the cycle detail page, where every section is a white card.
 
 ## Catalog hygiene (found during the attribution sweep)
 
