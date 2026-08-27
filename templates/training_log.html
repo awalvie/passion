@@ -168,7 +168,7 @@
       {{/* Volume */}}
       {{ if gt .Stats.TotalSessions 0 }}
       <section class="card card-pad space-y-3">
-        <h2 class="text-[11px] font-bold uppercase tracking-widest muted">Volume</h2>
+        <h2 class="text-sm font-semibold">Volume</h2>
         <div class="grid grid-cols-2 gap-2">
           <div class="rounded-lg px-3 py-2.5" style="background:var(--card-muted)">
             <p class="text-[10px] uppercase tracking-wide muted">All time</p>
@@ -193,7 +193,7 @@
       {{/* Location split */}}
       {{ if or (gt .Stats.IndoorCount 0) (gt .Stats.OutdoorCount 0) }}
       <section class="card card-pad space-y-3">
-        <h2 class="text-[11px] font-bold uppercase tracking-widest muted">Location</h2>
+        <h2 class="text-sm font-semibold">Location</h2>
         <div class="grid grid-cols-2 gap-2">
           <div class="rounded-lg px-3 py-2.5" style="background:var(--card-muted)">
             <p class="text-[10px] uppercase tracking-wide muted">Indoor</p>
@@ -218,7 +218,7 @@
       {{/* Averages */}}
       {{ if or (ne .Stats.AvgSleep "—") (ne .Stats.AvgEnergy "—") (ne .Stats.AvgRPE "—") }}
       <section class="card card-pad space-y-3">
-        <h2 class="text-[11px] font-bold uppercase tracking-widest muted">Averages</h2>
+        <h2 class="text-sm font-semibold">Averages</h2>
         <div class="space-y-2.5">
           {{ if ne .Stats.AvgSleep "—" }}
           <div class="flex items-center justify-between text-xs">
@@ -260,7 +260,7 @@
       {{/* Plan adherence */}}
       {{ if .Adherence }}
       <section class="card card-pad space-y-3">
-        <h2 class="text-[11px] font-bold uppercase tracking-widest muted">
+        <h2 class="text-sm font-semibold">
           Adherence{{ if .CycleName }} — {{ .CycleName }}{{ end }}
         </h2>
         <div class="space-y-2">
