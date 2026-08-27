@@ -537,23 +537,44 @@ func (s *Server) handleCycleDetailsSave(w http.ResponseWriter, r *http.Request, 
 		s.notFound(w)
 		return
 	}
-	focus := strings.TrimSpace(r.FormValue("focus"))
-	switch focus {
-	case "", "strength", "endurance", "technique", "projects", "general":
-	default:
-		focus = ""
-	}
+	// Every write is guarded on the field actually being present, so a form carrying
+	// only some of the cycle's metadata updates only those fields. This handler used to
+	// assume one form carrying everything: it overwrote Notes/Focus/Label from the
+	// request and hard-deleted every CycleGoal row before recreating them. Once goals
+	// and notes live in separate forms on the page, that assumption silently destroys
+	// data — a notes-only save would wipe the goals. FormValue cannot tell "absent"
+	// from "empty", so presence is checked with Form.Has.
 	if name := strings.TrimSpace(r.FormValue("name")); name != "" {
 		cycle.Name = name
 	}
-	cycle.Notes = strings.TrimSpace(r.FormValue("notes"))
-	cycle.Focus = focus
-	cycle.Label = strings.TrimSpace(r.FormValue("label"))
-	// Goals moved to first-class CycleGoal rows; clear the legacy column so it
-	// can't shadow the new list on the detail page.
-	cycle.Goal = ""
+	if r.Form.Has("notes") {
+		cycle.Notes = strings.TrimSpace(r.FormValue("notes"))
+	}
+	if r.Form.Has("focus") {
+		focus := strings.TrimSpace(r.FormValue("focus"))
+		switch focus {
+		case "", "strength", "endurance", "technique", "projects", "general":
+		default:
+			focus = ""
+		}
+		cycle.Focus = focus
+	}
+	if r.Form.Has("label") {
+		cycle.Label = strings.TrimSpace(r.FormValue("label"))
+	}
+	// Goals are first-class CycleGoal rows. Only touch them — and only clear the legacy
+	// Goal column that would otherwise shadow them — when goals were actually submitted.
+	submittedGoals := r.Form.Has("goal_before")
+	if submittedGoals {
+		cycle.Goal = ""
+	}
 	if err := s.store.DB.Save(&cycle).Error; err != nil {
 		s.serverError(w, r, err)
+		return
+	}
+
+	if !submittedGoals {
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 
