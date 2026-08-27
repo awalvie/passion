@@ -34,6 +34,17 @@
       </button>
     </div>
     <div id="week-agenda-rows" style="border-top:1px solid var(--border)"></div>
+    {{/* The desktop events sidebar carries a full-width Add event at the foot of its
+         list; it is hidden below md, which left the 30px toolbar ghost as the only way
+         to create an event on a phone. */}}
+    <button
+      type="button"
+      onclick="document.getElementById('add-event-dialog').showModal()"
+      class="mt-3 w-full rounded-md btn-ghost px-3 py-2.5 text-sm font-medium flex items-center justify-center gap-1.5"
+    >
+      <i data-lucide="plus" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+      Add event
+    </button>
   </div>
 
   {{/* ── Desktop: 2-col layout (grid + sidebar) ── */}}
