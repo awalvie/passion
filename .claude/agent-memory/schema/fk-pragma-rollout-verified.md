@@ -1,8 +1,23 @@
 ---
 name: fk-pragma-rollout-verified
-description: Empirical results of testing `_foreign_keys=on` against this schema — which relations actually have declared constraints, and how soft-delete interacts with them
+description: Empirical results of testing `_foreign_keys=on` against this schema — which relations actually have declared constraints, and how soft-delete interacts with them. UPDATE 2026-08-27 — this was adopted for real in commit 7c95a4c; findings below are now live production behavior, not a proposal.
 type: project
 ---
+
+**UPDATE 2026-08-27:** this file's findings were written for an advisory review, but the
+proposal was subsequently adopted — commit `7c95a4c` ("db: enable sqlite foreign key
+enforcement") added `_foreign_keys=on` to the DSN in `db/store.go`, still present on
+`master` as of `4f54aaa`. Everything below is now real, live connection behavior, not a
+hypothetical. Practical consequence for future reviews: adding a *new* GORM association
+(belongs_to/has_many with a real foreign key relationship, not a bare `uint` column) now
+means AutoMigrate will emit a real `REFERENCES` clause that SQLite enforces — inserts
+with a dangling value on that column will now fail loudly, and hard-deleting a parent
+row that still has children on a non-CASCADE relation will now fail instead of silently
+orphaning them. Prefer plain undeclared `uint`/`*uint` columns (no GORM association tag)
+for new cross-references unless real DB-level enforcement is actually wanted — that
+keeps the new column's behavior consistent with the vast majority of existing
+cross-references in this schema (RunID, ScheduledSessionID, TrainingCycleID on the
+override/goal tables, etc.), none of which are FK-declared.
 
 Context: 2026-07-10 advisory review of "enable SQLite foreign keys" proposal. Built a
 throwaway harness (`gorm.Open` against a temp file, `db.Store.AutoMigrate()`, then
