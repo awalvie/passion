@@ -669,13 +669,6 @@ type TrainingCycleListParams struct {
 	ScheduledCounts map[uint]int
 }
 
-type NewTrainingCycleParams struct {
-	Base
-	Templates  []db.SessionTemplate
-	Conflicts  []CycleConflictView
-	FormValues map[string]string
-}
-
 type NewTrainingCycleGuidedParams struct {
 	Base
 	Templates []db.SessionTemplate
@@ -1032,7 +1025,6 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		{"pages/new_template_content", "new_template.html"},
 		{"pages/template_edit_content", "template_edit.html"},
 		{"pages/training_cycles_content", "training_cycles.html"},
-		{"pages/new_cycle_content", "new_cycle.html"},
 		{"pages/new_cycle_guided_content", "new_cycle_guided.html"},
 		{"pages/training_cycle_detail_content", "training_cycle_detail.html"},
 		{"pages/run_content", "run.html"},
@@ -1197,12 +1189,6 @@ func (p *Pages) TrainingCycleList(w http.ResponseWriter, params TrainingCycleLis
 	params.Title = "Training Cycles"
 	params.Authenticated = true
 	p.renderPage(w, "pages/training_cycles_content", params)
-}
-
-func (p *Pages) NewTrainingCycle(w http.ResponseWriter, params NewTrainingCycleParams) {
-	params.Title = "New Training Cycle"
-	params.Authenticated = true
-	p.renderPage(w, "pages/new_cycle_content", params)
 }
 
 func (p *Pages) NewTrainingCycleGuided(w http.ResponseWriter, params NewTrainingCycleGuidedParams) {
