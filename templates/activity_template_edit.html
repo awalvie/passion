@@ -8,9 +8,16 @@
       method="post"
     >
       <div class="at-edit-header">
-        <div class="flex items-center gap-2 min-w-0">
-          <h1 class="at-edit-title m-0" id="at-title-display-{{ .Template.ID }}">{{ .Template.Name }}</h1>
-          {{ if .Template.Label }}<span class="text-xs font-medium px-1.5 py-0.5 rounded border" style="border-color:var(--border);color:var(--muted)">{{ .Template.Label }}</span>{{ end }}
+        {{/* See template_edit.html: title on its own line, labels as one muted line. */}}
+        <div class="flex items-start gap-2 min-w-0">
+          <div class="min-w-0 flex-1">
+            <h1 class="at-edit-title m-0 break-words" id="at-title-display-{{ .Template.ID }}">{{ .Template.Name }}</h1>
+            {{ if .Template.Label }}
+            <div class="mt-1 text-[11px] muted">
+              {{ range $i, $t := splitTags .Template.Label }}{{ if $i }} &middot; {{ end }}{{ $t }}{{ end }}
+            </div>
+            {{ end }}
+          </div>
           <button
             type="button"
             class="rounded btn-ghost px-1.5 py-1 text-xs muted shrink-0"
