@@ -22,6 +22,7 @@
 
     var editor = new toastui.Editor({
       el: wrap,
+      autofocus: false,
       initialEditType: 'wysiwyg',
       initialValue: ta.value || '',
       height: 'auto',
