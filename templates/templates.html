@@ -1,7 +1,17 @@
 {{ define "content" }}
 <div class="card card-pad">
-  <h1 class="text-xl font-bold">Your session templates</h1>
-  <p class="mt-1 text-sm muted">Create an activity plan (warmup, exercises, cooldown) and reuse it for schedules.</p>
+  {{/* CTA shares the header row with the H1, as on exercise_library.html. It used to sit
+       in the filter row, whose control count depends on how many distinct sources and
+       labels exist — so the button moved as the catalog grew. */}}
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <h1 class="text-xl font-bold">Your session templates</h1>
+      <p class="mt-1 text-sm muted">Create an activity plan (warmup, exercises, cooldown) and reuse it for schedules.</p>
+    </div>
+    <a class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md btn-primary px-4 py-2 text-sm font-medium" href="/templates/new">
+      New Session Template
+    </a>
+  </div>
 
   <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     <div class="flex flex-wrap items-center gap-2">
@@ -37,9 +47,6 @@
       {{ end }}
       <span class="text-sm muted">{{ if .Templates }}{{ len .Templates }} template(s){{ else }}No templates yet.{{ end }}</span>
     </div>
-    <a class="inline-flex items-center justify-center rounded-md btn-primary px-4 py-2 text-sm font-medium" href="/templates/new">
-      New Session Template
-    </a>
   </div>
 
   {{ if .Templates }}
@@ -68,28 +75,20 @@
           <span class="align-middle">{{ len .Activities }} activit{{ if eq (len .Activities) 1 }}y{{ else }}ies{{ end }}</span>
         </div>
       </a>
-      <form class="relative z-10 shrink-0"
-            hx-post="/templates/{{ .ID }}/delete"
-            hx-swap="none"
-            method="post"
-            hx-confirm="Delete &ldquo;{{ .Name }}&rdquo;?">
-        <button type="submit" class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
-                title="Delete" aria-label="Delete {{ .Name }}" style="color:var(--muted)"
-        ><i data-lucide="trash-2" style="width:0.9rem;height:0.9rem" aria-hidden="true"></i></button>
-      </form>
     </div>
     {{ end }}
   </div>
 
-  {{/* Desktop table. Source is 11rem to fit the widest source without wrapping. */}}
+  {{/* Desktop table. Source is 12rem to fit the widest source chip (164px) without
+       wrapping; Labels is 15rem, matching exercise_library.html, which renders the
+       same tag lines with no truncation. Export and delete live on the edit page. */}}
   <div class="mt-6 hidden md:block">
     <table class="w-full text-sm table-fixed">
       <colgroup>
         <col style="width:0.75rem" />
         <col />
-        <col style="width:10rem" />
+        <col style="width:15rem" />
         <col style="width:12rem" />
-        <col style="width:4rem" />
         <col style="width:4rem" />
       </colgroup>
       <thead>
@@ -99,7 +98,6 @@
           <th class="px-3 py-2">Labels</th>
           <th class="px-3 py-2">Source</th>
           <th class="px-3 py-2">Activities</th>
-          <th class="px-3 py-2 text-right">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -122,21 +120,6 @@
             {{ end }}
           </td>
           <td class="px-3 py-2 align-middle text-[11px] muted tabular-nums">{{ len .Activities }}</td>
-          <td class="px-3 py-2 align-middle text-right whitespace-nowrap">
-            <a href="/templates/{{ .ID }}/export"
-               class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
-               title="Download YAML" aria-label="Download YAML for {{ .Name }}"
-            ><i data-lucide="download" style="width:0.9rem;height:0.9rem" aria-hidden="true"></i></a>
-            <form class="inline"
-                  hx-post="/templates/{{ .ID }}/delete"
-                  hx-swap="none"
-                  method="post"
-                  hx-confirm="Delete &ldquo;{{ .Name }}&rdquo;?">
-              <button type="submit" class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
-                      title="Delete" aria-label="Delete {{ .Name }}" style="color:var(--muted)"
-              ><i data-lucide="trash-2" style="width:0.9rem;height:0.9rem" aria-hidden="true"></i></button>
-            </form>
-          </td>
         </tr>
         {{ end }}
       </tbody>
