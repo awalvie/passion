@@ -119,194 +119,10 @@ func (s *Server) findCycleConflicts(ownerID uint, spec cycleScheduleSpec) ([]pag
 	return conflicts, blockedKeys, nil
 }
 
+// handleTrainingCyclesNew is retired. The guided builder is the single creation
+// surface; this stays as a redirect for bookmarks and any stale links.
 func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request) {
-	ownerID := s.mustUserID(r)
-	switch r.Method {
-	case http.MethodGet:
-		templates, err := s.listTemplates(ownerID)
-		if err != nil {
-			s.serverError(w, r, err)
-			return
-		}
-
-		s.pages.NewTrainingCycle(w, pages.NewTrainingCycleParams{
-			Base:      pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
-			Templates: templates,
-		})
-		return
-	case http.MethodPost:
-		if err := r.ParseForm(); err != nil {
-			s.badRequest(w, "bad request")
-			return
-		}
-
-		name := strings.TrimSpace(r.FormValue("name"))
-		if name == "" {
-			http.Error(w, "name is required", http.StatusBadRequest)
-			return
-		}
-
-		startDateStr := strings.TrimSpace(r.FormValue("start_date"))
-		if startDateStr == "" {
-			http.Error(w, "start_date is required", http.StatusBadRequest)
-			return
-		}
-
-		weeks, err := strconv.Atoi(strings.TrimSpace(r.FormValue("weeks")))
-		if err != nil || weeks <= 0 {
-			http.Error(w, "weeks must be a positive integer", http.StatusBadRequest)
-			return
-		}
-
-		loc := time.Now().Location()
-		startDate, err := time.ParseInLocation("2006-01-02", startDateStr, loc)
-		if err != nil {
-			http.Error(w, "invalid start_date", http.StatusBadRequest)
-			return
-		}
-		startDate = localDate(startDate)
-
-		templates, err := s.listTemplates(ownerID)
-		if err != nil {
-			s.serverError(w, r, err)
-			return
-		}
-		allowedTemplateIDs := map[uint]bool{}
-		for _, t := range templates {
-			allowedTemplateIDs[t.ID] = true
-		}
-
-		// Weekday params map to Mon=1..Sun=7
-		weekdayKeys := []struct {
-			weekday int
-			key     string
-		}{
-			{1, "template_mon"},
-			{2, "template_tue"},
-			{3, "template_wed"},
-			{4, "template_thu"},
-			{5, "template_fri"},
-			{6, "template_sat"},
-			{7, "template_sun"},
-		}
-
-		type pendingMapping struct {
-			weekday    int
-			key        string
-			templateID uint
-		}
-		var pendingMappings []pendingMapping
-		for _, m := range weekdayKeys {
-			raw := strings.TrimSpace(r.FormValue(m.key))
-			if raw == "" {
-				continue
-			}
-			id, err := strconv.ParseUint(raw, 10, 64)
-			if err != nil || id == 0 || !allowedTemplateIDs[uint(id)] {
-				continue
-			}
-			pendingMappings = append(pendingMappings, pendingMapping{m.weekday, m.key, uint(id)})
-		}
-
-		if len(pendingMappings) == 0 {
-			http.Error(w, "select at least one template for a weekday", http.StatusBadRequest)
-			return
-		}
-
-		var weekdays []int
-		for _, pm := range pendingMappings {
-			weekdays = append(weekdays, pm.weekday)
-		}
-		spec := cycleScheduleSpec{StartDate: startDate, Weeks: weeks, Weekdays: weekdays}
-
-		confirmed := r.FormValue("confirmed")
-		blockedKeys := map[string]bool{}
-		if confirmed == "" || confirmed == "skip" {
-			conflicts, blocked, err := s.findCycleConflicts(ownerID, spec)
-			if err != nil {
-				s.serverError(w, r, err)
-				return
-			}
-			if confirmed == "" && len(conflicts) > 0 {
-				// Preserve form values for hidden inputs in the conflict review step.
-				formValues := map[string]string{
-					"name":       name,
-					"start_date": startDateStr,
-					"weeks":      strconv.Itoa(weeks),
-				}
-				for _, pm := range pendingMappings {
-					formValues[pm.key] = strconv.FormatUint(uint64(pm.templateID), 10)
-				}
-
-				s.pages.NewTrainingCycle(w, pages.NewTrainingCycleParams{
-					Base:       pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
-					Templates:  templates,
-					Conflicts:  conflicts,
-					FormValues: formValues,
-				})
-				return
-			}
-			if confirmed == "skip" {
-				blockedKeys = blocked
-			}
-		}
-
-		cycle := &db.TrainingCycle{
-			OwnerID:   ownerID,
-			Name:      name,
-			StartDate: startDate,
-			Weeks:     weeks,
-		}
-		if err := s.store.DB.Create(cycle).Error; err != nil {
-			s.serverError(w, r, err)
-			return
-		}
-
-		var mappingRows []db.TrainingCycleWeekdayMapping
-		for _, pm := range pendingMappings {
-			mappingRows = append(mappingRows, db.TrainingCycleWeekdayMapping{
-				OwnerID:           ownerID,
-				TrainingCycleID:   cycle.ID,
-				Weekday:           pm.weekday,
-				SessionTemplateID: pm.templateID,
-			})
-		}
-		if err := s.store.DB.Create(&mappingRows).Error; err != nil {
-			s.serverError(w, r, err)
-			return
-		}
-
-		// Generate scheduled sessions, skipping blocked dates when requested.
-		cycleID := cycle.ID
-		week1Monday := mondayOfLocalDate(startDate)
-		for weekIdx := 0; weekIdx < weeks; weekIdx++ {
-			for _, mr := range mappingRows {
-				scheduled := week1Monday.AddDate(0, 0, weekIdx*7+(mr.Weekday-1))
-				scheduled = localDate(scheduled)
-				if scheduled.Before(startDate) {
-					continue
-				}
-				if blockedKeys[localDateKey(scheduled)] {
-					continue
-				}
-				ss := &db.ScheduledSession{
-					OwnerID:           ownerID,
-					TrainingCycleID:   &cycleID,
-					ScheduledDate:     scheduled,
-					SessionTemplateID: mr.SessionTemplateID,
-				}
-				if err := s.store.DB.Create(ss).Error; err != nil {
-					s.serverError(w, r, err)
-					return
-				}
-			}
-		}
-
-		http.Redirect(w, r, "/training-cycles/"+strconv.FormatUint(uint64(cycle.ID), 10), http.StatusSeeOther)
-		return
-	default:
-		s.methodNotAllowed(w)
-	}
+	http.Redirect(w, r, "/training-cycles/new/guided", http.StatusFound)
 }
 
 // handleTrainingCyclesGuided renders and processes the guided cycle builder — a short
@@ -349,19 +165,6 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 	goalBefores := r.Form["goal_before"]
 	goalAfters := r.Form["goal_after"]
 	goalHows := r.Form["goal_how"]
-
-	// Equipment: multiple tag values, captured into the cycle notes for reference
-	// (no dedicated column). The old free-text "venue" field was never persisted.
-	var equipment []string
-	for _, e := range r.Form["equipment"] {
-		if e = strings.TrimSpace(e); e != "" {
-			equipment = append(equipment, e)
-		}
-	}
-	notes := ""
-	if len(equipment) > 0 {
-		notes = "Equipment: " + strings.Join(equipment, ", ")
-	}
 
 	// Weeks: an explicit count, or counted back from a target date.
 	weeks := 0
@@ -420,25 +223,10 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Advisory per-day energy ("days are not equal") — informational only, folded
-	// into the cycle notes. Only non-default (non-moderate) days are recorded to
-	// keep the note concise; moderate is the neutral baseline.
-	dowNames := []string{"", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}
-	var energyParts []string
-	for _, dw := range days {
-		e := strings.TrimSpace(r.FormValue("energy_day_" + strconv.Itoa(dw)))
-		if e != "" && e != "moderate" {
-			energyParts = append(energyParts, dowNames[dw]+" "+e)
-		}
-	}
-	if len(energyParts) > 0 {
-		line := "Energy: " + strings.Join(energyParts, " · ")
-		if notes != "" {
-			notes += "\n" + line
-		} else {
-			notes = line
-		}
-	}
+	// Label and notes are plain fields now that nothing else is competing to write
+	// into Notes (equipment and per-day energy used to be folded in as text lines).
+	label := strings.TrimSpace(r.FormValue("label"))
+	notes := strings.TrimSpace(r.FormValue("notes"))
 
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" {
@@ -513,7 +301,7 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 
 	cycle := &db.TrainingCycle{
 		OwnerID: ownerID, Name: name, StartDate: startDate, Weeks: weeks,
-		Focus: focus, Notes: notes,
+		Focus: focus, Notes: notes, Label: label,
 	}
 	if err := s.store.DB.Create(cycle).Error; err != nil {
 		s.serverError(w, r, err)

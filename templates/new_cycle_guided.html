@@ -1,13 +1,8 @@
 {{ define "content" }}
 <div class="w-full space-y-4">
   <div class="card card-pad">
-    <div class="flex items-start justify-between gap-3">
-      <div>
-        <h1 class="text-xl font-bold">Build a training cycle</h1>
-        <p class="mt-1 text-sm muted">Answer a few questions and Passion drafts a cycle you can edit.</p>
-      </div>
-      <a href="/training-cycles/new" class="btn btn-ghost text-sm shrink-0">Build it manually →</a>
-    </div>
+    <h1 class="text-xl font-bold">Build a training cycle</h1>
+    <p class="mt-1 text-sm muted">Answer a few questions and Passion drafts a cycle you can edit.</p>
   </div>
 
   {{ if not .Templates }}
@@ -102,6 +97,22 @@
           <label class="gc-chip"><input type="radio" name="focus" value="general" /><span>General</span></label>
         </div>
       </div>
+
+      <div>
+        <div class="gc-field-head">
+          <label class="text-xs font-semibold muted uppercase tracking-widest" for="gc-label">Labels <span class="normal-case font-normal">(optional)</span></label>
+          <span class="gc-info" tabindex="0" role="note" aria-label="Comma-separated tags, the same as on sessions."><i data-lucide="info" style="width:0.8rem;height:0.8rem" aria-hidden="true"></i><span class="gc-tip">Comma-separated tags, the same as on sessions.</span></span>
+        </div>
+        <input id="gc-label" name="label" class="mt-1 w-full input text-sm" placeholder="e.g. power, indoor" autocomplete="off" />
+      </div>
+
+      <div>
+        <div class="gc-field-head">
+          <label class="text-xs font-semibold muted uppercase tracking-widest" for="gc-notes">Notes <span class="normal-case font-normal">(optional)</span></label>
+          <span class="gc-info" tabindex="0" role="note" aria-label="Anything about this block. Editable later on the cycle page."><i data-lucide="info" style="width:0.8rem;height:0.8rem" aria-hidden="true"></i><span class="gc-tip">Anything about this block — editable later on the cycle page.</span></span>
+        </div>
+        <textarea id="gc-notes" name="notes" rows="3" class="mt-1 w-full input text-sm" placeholder="e.g. sub-max hangs only this cycle"></textarea>
+      </div>
     </div>
 
     {{/* ── Card 2: schedule ── */}}
@@ -173,31 +184,6 @@
         </select>
       </div>
 
-      <div>
-        <div class="gc-field-head">
-          <label class="text-xs font-semibold muted uppercase tracking-widest">Equipment <span class="normal-case font-normal">(optional)</span></label>
-          <span class="gc-info" tabindex="0" role="note" aria-label="Add the gear this cycle needs — captured in the cycle notes."><i data-lucide="info" style="width:0.8rem;height:0.8rem" aria-hidden="true"></i><span class="gc-tip">Add the gear this cycle needs — captured in the cycle notes.</span></span>
-        </div>
-        <div class="gc-tags mt-2" id="gc-equip">
-          <input type="text" class="gc-tag-field" id="gc-equip-input" list="gc-equip-suggest" placeholder="Type equipment, press Enter…" autocomplete="off" aria-label="Add equipment" />
-        </div>
-        <datalist id="gc-equip-suggest">
-          <option value="Hangboard"></option>
-          <option value="Fingerboard"></option>
-          <option value="Campus board"></option>
-          <option value="Spray wall"></option>
-          <option value="Kilter board"></option>
-          <option value="Tension board"></option>
-          <option value="MoonBoard"></option>
-          <option value="Rings"></option>
-          <option value="Pull-up bar"></option>
-          <option value="Weights"></option>
-          <option value="Lifting pin"></option>
-          <option value="Rope"></option>
-          <option value="Crash pad"></option>
-          <option value="Resistance bands"></option>
-        </datalist>
-      </div>
     </div>
 
     <div class="card card-pad">
@@ -219,8 +205,10 @@
       </div>
     </div>
 
-    <div class="flex items-center gap-3">
-      <button type="submit" class="btn btn-primary text-sm font-medium" id="gc-generate">Generate cycle →</button>
+    {{/* Stacked below sm: sharing one row with the hint squeezed the button until its
+         label wrapped to two lines at 390px. */}}
+    <div class="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
+      <button type="submit" class="btn btn-primary shrink-0 whitespace-nowrap text-sm font-medium" id="gc-generate">Generate cycle →</button>
       <span class="text-xs muted" id="gc-generate-hint">You'll land in the cycle editor to tweak anything.</span>
     </div>
   </form>
@@ -246,39 +234,6 @@
         return Math.max(1, Math.round(days / 7));
       }
       return Math.max(1, parseInt(document.getElementById('gc-weeks').value || '4', 10));
-    }
-
-    // ── Equipment tag input ────────────────────────────────────────────────
-    var equipWrap = document.getElementById('gc-equip');
-    var equipInput = document.getElementById('gc-equip-input');
-    function addEquip(raw) {
-      var val = (raw || '').trim().replace(/,+$/, '').trim();
-      if (!val) return;
-      var existing = Array.prototype.map.call(equipWrap.querySelectorAll('input[name="equipment"]'), function (i) { return i.value.toLowerCase(); });
-      if (existing.indexOf(val.toLowerCase()) !== -1) { equipInput.value = ''; return; }
-      var chip = document.createElement('span');
-      chip.className = 'gc-tag-chip';
-      var text = document.createElement('span');
-      text.textContent = val;
-      var hidden = document.createElement('input');
-      hidden.type = 'hidden'; hidden.name = 'equipment'; hidden.value = val;
-      var rm = document.createElement('button');
-      rm.type = 'button'; rm.setAttribute('aria-label', 'Remove ' + val); rm.textContent = '×';
-      rm.addEventListener('click', function () { chip.remove(); });
-      chip.appendChild(text); chip.appendChild(hidden); chip.appendChild(rm);
-      equipWrap.insertBefore(chip, equipInput);
-      equipInput.value = '';
-    }
-    if (equipInput) {
-      equipInput.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addEquip(equipInput.value); }
-        else if (e.key === 'Backspace' && equipInput.value === '') {
-          var chips = equipWrap.querySelectorAll('.gc-tag-chip');
-          if (chips.length) chips[chips.length - 1].remove();
-        }
-      });
-      equipInput.addEventListener('change', function () { if (equipInput.value) addEquip(equipInput.value); });
-      equipWrap.addEventListener('click', function (e) { if (e.target === equipWrap) equipInput.focus(); });
     }
 
     // ── Goals: add/remove before→after rows (cap 5) ────────────────────────
@@ -333,15 +288,11 @@
 
     // Render one session dropdown per chosen training day; preserve user edits,
     // seed untouched days with a focus-ordered round-robin default.
-    var ENERGY = ['Easy', 'Moderate', 'Hard'];
     function buildDaySessions() {
       var days = checkedVals('day').map(function (i) { return parseInt(i.value, 10); }).sort(function (a, b) { return a - b; });
-      var prev = {}, prevE = {};
+      var prev = {};
       Array.prototype.forEach.call(dayWrap.querySelectorAll('select[data-day]'), function (s) {
         prev[s.dataset.day] = { value: s.value, edited: s.dataset.edited === '1' };
-      });
-      Array.prototype.forEach.call(dayWrap.querySelectorAll('input[name^="energy_day_"]:checked'), function (r) {
-        prevE[r.name.slice('energy_day_'.length)] = r.value;
       });
       dayWrap.innerHTML = '';
       var ordered = focusOrderedTemplates();
@@ -371,31 +322,9 @@
         function syncView() { view.href = '/templates/' + sel.value + '/edit'; }
         syncView();
         sel.addEventListener('change', function () { sel.dataset.edited = '1'; syncView(); render(); });
-        // Advisory per-day energy/effort (days are not equal) — informational, folded into notes.
-        var effort = document.createElement('div');
-        effort.className = 'gc-effort';
-        var effortLabel = document.createElement('span');
-        effortLabel.className = 'gc-effort-label';
-        effortLabel.textContent = 'Effort';
-        var energy = document.createElement('div');
-        energy.className = 'gc-energy';
-        var cur = prevE[dw] || 'moderate';
-        ENERGY.forEach(function (lvl) {
-          var lab = document.createElement('label');
-          lab.className = 'gc-chip gc-chip-sm';
-          var inp = document.createElement('input');
-          inp.type = 'radio'; inp.name = 'energy_day_' + dw; inp.value = lvl.toLowerCase();
-          if (cur === lvl.toLowerCase()) inp.checked = true;
-          var sp = document.createElement('span'); sp.textContent = lvl;
-          lab.appendChild(inp); lab.appendChild(sp);
-          energy.appendChild(lab);
-        });
-        effort.appendChild(effortLabel);
-        effort.appendChild(energy);
         row.appendChild(name);
         row.appendChild(sel);
         row.appendChild(view);
-        row.appendChild(effort);
         dayWrap.appendChild(row);
       });
       if (dayEmpty) dayEmpty.hidden = days.length > 0;

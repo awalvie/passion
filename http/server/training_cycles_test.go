@@ -342,77 +342,6 @@ func TestHandleTrainingCyclesGuided_RejectsMissingDaysOrSessions(t *testing.T) {
 	}
 }
 
-// TestHandleTrainingCyclesGuided_EquipmentJoinedIntoNotes guards the
-// equipment-to-notes persistence: multiple "equipment" form values must be
-// trimmed, joined with ", ", and stored as "Equipment: a, b, c" in cycle.Notes
-// — the only place this data is persisted (there is no dedicated column).
-func TestHandleTrainingCyclesGuided_EquipmentJoinedIntoNotes(t *testing.T) {
-	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-equipment.db"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	const ownerID uint = 1
-	tpl := seedGuidedTemplate(t, store, ownerID, "Equipment Test")
-
-	form := url.Values{}
-	form.Add("day", "1")
-	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
-	form.Add("weeks", "1")
-	form.Add("equipment", "  hangboard  ")
-	form.Add("equipment", "rings")
-	form.Add("equipment", "") // blank values must be dropped, not joined as ""
-
-	srv := &Server{store: store}
-	rr := httptest.NewRecorder()
-	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
-	if rr.Code != http.StatusSeeOther {
-		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
-	}
-	cycleID := cycleIDFromRedirect(t, rr)
-
-	var cycle db.TrainingCycle
-	if err := store.DB.First(&cycle, cycleID).Error; err != nil {
-		t.Fatal(err)
-	}
-	want := "Equipment: hangboard, rings"
-	if cycle.Notes != want {
-		t.Errorf("Notes = %q, want %q", cycle.Notes, want)
-	}
-}
-
-// TestHandleTrainingCyclesGuided_NoEquipmentLeavesNotesEmpty guards the other
-// side of the branch: when no equipment tags are submitted, Notes must stay
-// empty rather than storing a stray "Equipment: " prefix.
-func TestHandleTrainingCyclesGuided_NoEquipmentLeavesNotesEmpty(t *testing.T) {
-	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-no-equipment.db"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	const ownerID uint = 1
-	tpl := seedGuidedTemplate(t, store, ownerID, "No Equipment Test")
-
-	form := url.Values{}
-	form.Add("day", "1")
-	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
-	form.Add("weeks", "1")
-
-	srv := &Server{store: store}
-	rr := httptest.NewRecorder()
-	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
-	if rr.Code != http.StatusSeeOther {
-		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
-	}
-	cycleID := cycleIDFromRedirect(t, rr)
-
-	var cycle db.TrainingCycle
-	if err := store.DB.First(&cycle, cycleID).Error; err != nil {
-		t.Fatal(err)
-	}
-	if cycle.Notes != "" {
-		t.Errorf("Notes = %q, want empty when no equipment submitted", cycle.Notes)
-	}
-}
-
 // TestHandleTrainingCyclesGuided_RejectsUnownedSessionTemplate guards owner
 // scoping: a session template ID belonging to another user must be filtered
 // out, not silently attached to the requesting owner's cycle.
@@ -538,82 +467,6 @@ func TestHandleTrainingCyclesGuided_SkipsEmptyGoalPair(t *testing.T) {
 	store.DB.Model(&db.CycleGoal{}).Where("training_cycle_id = ?", cycleID).Count(&count)
 	if count != 0 {
 		t.Errorf("goal count = %d, want 0 when only a blank pair is submitted", count)
-	}
-}
-
-// TestHandleTrainingCyclesGuided_EnergyFoldedIntoNotes guards the per-day
-// energy annotation: non-moderate days must appear in Notes as
-// "Energy: Mon hard · Fri easy" (day-order, using the 3-letter weekday
-// label), while "moderate" (the neutral baseline) is omitted entirely. It
-// must also coexist with an equipment line, newline-separated.
-func TestHandleTrainingCyclesGuided_EnergyFoldedIntoNotes(t *testing.T) {
-	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-energy.db"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	const ownerID uint = 1
-	tpl := seedGuidedTemplate(t, store, ownerID, "Energy Test")
-
-	form := url.Values{}
-	for _, wd := range []int{1, 3, 5} {
-		form.Add("day", strconv.Itoa(wd))
-		form.Set(sessionDayKey(wd), strconv.FormatUint(uint64(tpl.ID), 10))
-	}
-	form.Set("energy_day_1", "hard")
-	form.Set("energy_day_3", "moderate") // neutral baseline, must be omitted
-	form.Set("energy_day_5", "easy")
-	form.Add("equipment", "hangboard")
-	form.Add("weeks", "1")
-
-	srv := &Server{store: store}
-	rr := httptest.NewRecorder()
-	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
-	if rr.Code != http.StatusSeeOther {
-		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
-	}
-	cycleID := cycleIDFromRedirect(t, rr)
-
-	var cycle db.TrainingCycle
-	if err := store.DB.First(&cycle, cycleID).Error; err != nil {
-		t.Fatal(err)
-	}
-	want := "Equipment: hangboard\nEnergy: Mon hard · Fri easy"
-	if cycle.Notes != want {
-		t.Errorf("Notes = %q, want %q", cycle.Notes, want)
-	}
-}
-
-// TestHandleTrainingCyclesGuided_AllModerateEnergyOmitsEnergyLine guards that
-// when every chosen day is left at the "moderate" baseline (or unset), no
-// "Energy:" line is added to Notes at all.
-func TestHandleTrainingCyclesGuided_AllModerateEnergyOmitsEnergyLine(t *testing.T) {
-	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-energy-moderate.db"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	const ownerID uint = 1
-	tpl := seedGuidedTemplate(t, store, ownerID, "Moderate Test")
-
-	form := url.Values{}
-	form.Add("day", "1")
-	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
-	form.Set("energy_day_1", "moderate")
-	form.Add("weeks", "1")
-
-	srv := &Server{store: store}
-	rr := httptest.NewRecorder()
-	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
-	if rr.Code != http.StatusSeeOther {
-		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
-	}
-	cycleID := cycleIDFromRedirect(t, rr)
-
-	var cycle db.TrainingCycle
-	if err := store.DB.First(&cycle, cycleID).Error; err != nil {
-		t.Fatal(err)
-	}
-	if cycle.Notes != "" {
-		t.Errorf("Notes = %q, want empty when all days are moderate", cycle.Notes)
 	}
 }
 
@@ -1289,5 +1142,103 @@ func TestHandleTrainingCycleDelete_LeavesUnrelatedCycleEventsAlone(t *testing.T)
 	}
 	if n != 1 {
 		t.Errorf("surviving cycle's events = %d, want 1", n)
+	}
+}
+
+// TestHandleTrainingCyclesGuided_PersistsLabelAndNotes guards that label and notes
+// are real fields at creation. They replaced two features that wrote text lines into
+// Notes ("Equipment: ..." and "Energy: ..."), which is why Notes could not be edited
+// freely before.
+func TestHandleTrainingCyclesGuided_PersistsLabelAndNotes(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-label-notes.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "A")
+
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Add("weeks", "2")
+	form.Set("label", "power, indoor")
+	form.Set("notes", "Sub-max hangs only this cycle.")
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
+	}
+
+	var cycle db.TrainingCycle
+	if err := store.DB.First(&cycle, cycleIDFromRedirect(t, rr)).Error; err != nil {
+		t.Fatal(err)
+	}
+	if cycle.Label != "power, indoor" {
+		t.Errorf("Label = %q, want %q", cycle.Label, "power, indoor")
+	}
+	if cycle.Notes != "Sub-max hangs only this cycle." {
+		t.Errorf("Notes = %q, want the submitted text", cycle.Notes)
+	}
+}
+
+// TestHandleTrainingCyclesGuided_NotesAreNotSynthesised guards that nothing writes
+// into Notes behind the owner's back. Equipment and per-day energy used to be folded
+// in as text, so a cycle created without notes came back carrying notes.
+func TestHandleTrainingCyclesGuided_NotesAreNotSynthesised(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-no-synth-notes.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "A")
+
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Add("weeks", "2")
+	// Values the retired features used to read; they must now be ignored entirely.
+	form.Add("equipment", "Hangboard")
+	form.Set("energy_day_1", "hard")
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
+	}
+
+	var cycle db.TrainingCycle
+	if err := store.DB.First(&cycle, cycleIDFromRedirect(t, rr)).Error; err != nil {
+		t.Fatal(err)
+	}
+	if cycle.Notes != "" {
+		t.Errorf("Notes = %q, want empty — nothing may be synthesised into notes", cycle.Notes)
+	}
+}
+
+// TestHandleTrainingCyclesNew_RedirectsToGuided guards the retirement of the second
+// creation surface: the old manual form is gone, and its path must land on the
+// builder rather than 404 for anyone with a bookmark.
+func TestHandleTrainingCyclesNew_RedirectsToGuided(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "cycles-new-redirect.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := &Server{store: store}
+
+	for _, method := range []string{http.MethodGet, http.MethodPost} {
+		req := httptest.NewRequest(method, "/training-cycles/new", nil)
+		req = req.WithContext(context.WithValue(req.Context(), authUserIDKey, uint(1)))
+		rr := httptest.NewRecorder()
+		srv.handleTrainingCyclesNew(rr, req)
+
+		if rr.Code != http.StatusFound {
+			t.Errorf("%s: status = %d, want %d", method, rr.Code, http.StatusFound)
+		}
+		if loc := rr.Header().Get("Location"); loc != "/training-cycles/new/guided" {
+			t.Errorf("%s: Location = %q, want %q", method, loc, "/training-cycles/new/guided")
+		}
 	}
 }
