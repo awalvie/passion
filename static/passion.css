@@ -3487,14 +3487,15 @@ details[open] .cycle-targets-chevron { transform: rotate(180deg); }
   max-width: 64rem;
   margin: 0 auto;
 }
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .lib-edit-grid {
-    grid-template-columns: 1fr 20rem;
+    grid-template-columns: minmax(0, 1fr) 20rem;
   }
 }
 
-/* On a phone the preview goes above the form rather than below a long field list. */
-@media (max-width: 767px) {
+/* Below the two-column breakpoint the preview goes above the form rather than below a
+   long field list. */
+@media (max-width: 1023px) {
   .lib-edit-side {
     order: -1;
   }

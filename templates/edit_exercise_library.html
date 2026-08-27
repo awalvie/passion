@@ -226,7 +226,7 @@
       </div>
 
       <!-- Section: Media (inline, below form on mobile; handled by right column on desktop via hidden duplicate) -->
-      <div class="mt-5 pt-5 border-t md:hidden" style="border-color: var(--border)" data-exercise-media-fields="1">
+      <div class="mt-5 pt-5 border-t lg:hidden" style="border-color: var(--border)" data-exercise-media-fields="1">
         <label class="text-sm font-medium">Media</label>
         <div data-media-list class="space-y-2 mt-2 {{ if not .Media }}hidden{{ end }}">
           {{ if .Media }}
@@ -340,7 +340,7 @@
     </div>
 
     <!-- Media editing in right column on desktop; the phone has its own set inline -->
-    <div class="hidden md:block card card-pad" data-exercise-media-fields="1">
+    <div class="hidden lg:block card card-pad" data-exercise-media-fields="1">
       <div class="text-xs font-semibold muted uppercase tracking-widest mb-3">Media</div>
       <div data-media-list class="space-y-2 {{ if not .Media }}hidden{{ end }}">
         {{ if .Media }}

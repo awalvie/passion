@@ -20,7 +20,7 @@
     </div>
   </div>
 
-  <div class="md:grid md:grid-cols-[3fr_2fr] md:gap-6 md:items-start space-y-5 md:space-y-0">
+  <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-6 lg:items-start space-y-5 lg:space-y-0">
 
     {{/* ── Left (60%): log entries ──────────────────────────────────────── */}}
     <div>
@@ -163,7 +163,7 @@
     </div>
 
     {{/* ── Right (40%): stats panels ────────────────────────────────────── */}}
-    <div class="md:sticky md:top-6 space-y-4">
+    <div class="lg:sticky lg:top-6 space-y-4">
 
       {{/* Volume */}}
       {{ if gt .Stats.TotalSessions 0 }}
