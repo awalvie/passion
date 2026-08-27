@@ -164,7 +164,11 @@ Always `aria-hidden="true"` on decorative icons. Add `aria-label` on icon-only b
 
 ## Layout
 
-**Page container**: `.passion-container` (max-width 72rem, padded). Use `.passion-container-wide` (max-width 84rem) for calendar/data-heavy pages.
+**Page container**: `.passion-container` (max-width 72rem, padded). Use
+`.passion-container-wide` (max-width 84rem) only for **fixed-column grids** — the calendar
+month view and the run player, where a set number of columns sets an irreducible minimum
+width. Dense *content* is not the test: `/history` is data-heavy and stays at 72rem,
+because widening it only stretches bars that are already over-scaled for their numbers.
 
 **Two-column content layout** (most detail pages):
 ```html
@@ -227,4 +231,11 @@ Mobile-first. `md:` (768px) is the primary breakpoint.
 - Sidebars: full-width overlay on mobile (`position: fixed; inset: 0`), sticky aside on desktop.
 - Navigation: hidden checkbox toggle on mobile, full nav on desktop.
 - Grids collapse to a single column below `md:`.
-- Touch targets: minimum 44px height (`.btn` enforces this).
+- Touch targets: **any button that is the primary action in a mid-session flow gets a
+  minimum 44px height** — the run transport, run completion, Start and Continue. Add
+  `.btn` to opt into that size; it is the only class carrying `min-height: 2.75rem`.
+  Everywhere else the house pattern is `rounded-md px-4 py-2 text-sm font-medium` plus a
+  tier class, and the deliberately small variants (28px table row icons, 26px inline
+  pills, segmented-control halves) are correct as they are. The tier classes
+  `.btn-primary` / `.btn-accent` / `.btn-ghost` are **colour skins only** — they set no
+  size, and must not, or the small variants lose their opt-out.
