@@ -17,6 +17,44 @@
     <p class="mt-1 text-xs muted">Create one before the builder can plan a cycle.</p>
     <a href="/templates/new" class="btn btn-primary mt-3 text-sm font-medium">Create a session template →</a>
   </div>
+  {{ else if .Conflicts }}
+  {{/* ── Conflict review step (mirrors new_cycle.html) ──────────────────── */}}
+  <div class="card card-pad space-y-3" style="border-left:3px solid var(--warn-border)">
+    <div class="flex items-start gap-2">
+      <span class="text-base leading-none mt-px" style="color:var(--warn-border)">⚠</span>
+      <p class="text-sm font-semibold">This cycle overlaps with events that block training</p>
+    </div>
+    {{ range .Conflicts }}
+    <div class="rounded-lg p-3 space-y-1" style="background:var(--card-muted)">
+      <div class="flex items-center gap-2 text-sm font-medium">
+        <span class="w-2 h-2 rounded-full shrink-0" style="background:{{ .EventColor }}"></span>
+        {{ .EventTitle }}
+        <span class="text-xs muted font-normal ml-auto">{{ .AffectedCount }} session{{ if ne .AffectedCount 1 }}s{{ end }} affected</span>
+      </div>
+      <p class="text-xs muted" style="padding-left:1rem">{{ .AffectedLabel }}</p>
+    </div>
+    {{ end }}
+  </div>
+
+  <form class="space-y-4" method="post" action="/training-cycles/new/guided">
+    {{ range .FormFields }}
+    <input type="hidden" name="{{ .Key }}" value="{{ .Value }}">
+    {{ end }}
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <a class="rounded-md btn-ghost px-4 py-2 text-sm" href="/training-cycles/new/guided">← Change dates</a>
+      <div class="flex gap-2">
+        <button type="submit" name="confirmed" value="keep"
+                class="rounded-md btn-ghost px-4 py-2 text-sm font-medium">
+          Create anyway
+        </button>
+        <button type="submit" name="confirmed" value="skip"
+                class="rounded-md btn-primary px-4 py-2 text-sm font-medium">
+          Create + skip conflicts
+        </button>
+      </div>
+    </div>
+  </form>
+
   {{ else }}
 
   <form method="post" action="/training-cycles/new/guided" class="space-y-4" id="gc-form">
