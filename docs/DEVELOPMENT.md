@@ -38,5 +38,28 @@
 ## Database
 
 - SQLite via GORM. The DB file is `passion.db` by default.
-- `make reseed` is the fastest way to reset state during development.
+- `make reseed` is the fastest way to reset state during development. **It deletes
+  `passion.db`** — point `DB_PATH` elsewhere if the current one holds real training data:
+  `make reseed DB_PATH=/tmp/demo.db`.
 - Seed data lives in [../db/seed.go](../db/seed.go); YAML import in [../db/yaml_import.go](../db/yaml_import.go).
+- `SeedDevIfEmpty` only runs when the owner has **no session templates**. The YAML
+  importer creates templates from `catalog/` on every boot, so on a database that has
+  booted once the seed will never run again — reseed rather than expecting it to top up.
+
+### What the seed covers
+
+The fixtures aim to give every screen something to render, including states that only
+appear when something unusual happened:
+
+| Area | What you get |
+|---|---|
+| Templates | 3 built-in templates with labels, sources and `needs`, plus 3 activity templates |
+| History | ~45 completed runs over 14 weeks, journals, ~165 climbing ticks |
+| Cycle | A 4-week cycle mid-flight, with goals, weekday mappings and future scheduled sessions |
+| Run states | Running, completed, finished-early with skipped steps, open session, manual draft, manual saved |
+| Climbing | 4 venues, 3 boards, board context on a run, per-set planned targets and logs |
+| Calendar | Trip, injury, deload and competition events |
+| Awkward content | Very long names, 7-label rows, missing sources, and a template with no activities |
+
+That last row is deliberate: every mobile overflow bug found so far only reproduced with
+content that long. Keep it when adding fixtures.
