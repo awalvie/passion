@@ -9,13 +9,9 @@
         </a>
         <h1 class="m-0 text-xl font-bold">{{ .CycleName }}</h1>
       </div>
-      <div class="mt-1 flex items-center gap-3 text-xs muted">
-        <span>{{ .CycleWeeks }} week{{ if ne .CycleWeeks 1 }}s{{ end }}</span>
-        <span class="inline-flex items-center gap-1 rounded border px-1.5 py-0.5" style="border-color:var(--border);background:var(--card-muted)">
-          <i data-lucide="calendar-days" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
-          {{ .TotalScheduled }} session{{ if ne .TotalScheduled 1 }}s{{ end }} scheduled
-        </span>
-      </div>
+      {{/* Progress, not a static count: the old line read "4 weeks · 10 sessions
+           scheduled" for the whole cycle and never changed. */}}
+      <div class="mt-1 text-xs muted tabular-nums">{{ .ProgressLine }}</div>
     </div>
     <div class="flex items-center gap-2 shrink-0">
       {{ if .TargetCount }}
@@ -267,7 +263,7 @@
             {{ end }}
             {{ if .HasSession }}
               <div
-                class="session-card dnd-item mt-1 rounded-md px-1.5 py-1 text-xs relative"
+                class="session-card dnd-item mt-1 rounded-md px-1.5 py-1 text-xs relative{{ if .IsMissed }} cycle-session-missed{{ end }}"
                 draggable="true"
                 data-session-id="{{ .SessionID }}"
                 style="border-color: var(--border); box-shadow: none{{ if .SessionTemplateColor }}; border-left: 3px solid {{ .SessionTemplateColor }}; background: color-mix(in srgb, {{ .SessionTemplateColor }} 8%, var(--panel)){{ else }}; background: var(--card-muted){{ end }}"
@@ -277,6 +273,7 @@
               >
                 <div class="flex items-center gap-0.5 min-w-0">
                   <span style="font-size:11px;letter-spacing:-1px;line-height:1;color:var(--muted);opacity:0.5;flex-shrink:0" aria-hidden="true">⋮⋮</span>
+                  {{ if .HasCompletedRun }}<span class="cycle-session-tick" title="Completed" aria-label="Completed">✓</span>{{ end }}
                   <div class="font-semibold truncate leading-snug" title="{{ .SessionTemplateName }}">{{ .SessionTemplateName }}</div>
                 </div>
                 <div class="hidden group-hover:flex absolute -top-1 -right-1 z-10">
@@ -327,7 +324,7 @@
               {{ end }}
               {{ if .HasSession }}
                 <div
-                  class="session-card dnd-item flex flex-1 items-center gap-2 rounded-md border px-2 py-1.5 min-w-0"
+                  class="session-card dnd-item flex flex-1 items-center gap-2 rounded-md border px-2 py-1.5 min-w-0{{ if .IsMissed }} cycle-session-missed{{ end }}"
                   style="border-color: var(--border){{ if .SessionTemplateColor }}; border-left: 3px solid {{ .SessionTemplateColor }}; background: color-mix(in srgb, {{ .SessionTemplateColor }} 6%, var(--panel)){{ else }}; background: var(--card-muted){{ end }}; touch-action:none"
                   data-session-id="{{ .SessionID }}"
                   draggable="true"
@@ -340,7 +337,8 @@
                     {{ if .SessionTemplateColor }}
                       <span class="shrink-0 rounded-full" style="width:8px;height:8px;background:{{ .SessionTemplateColor }}"></span>
                     {{ end }}
-                    <div class="text-sm font-semibold truncate">{{ .SessionTemplateName }}</div>
+                    {{ if .HasCompletedRun }}<span class="cycle-session-tick" title="Completed" aria-label="Completed">✓</span>{{ end }}
+                    <div class="text-sm font-semibold break-words">{{ .SessionTemplateName }}</div>
                   </div>
                   <form hx-post="/training-cycles/{{ $.CycleID }}/remove" hx-swap="none" hx-confirm="Remove this session from the plan?" method="post" class="shrink-0">
                     <input type="hidden" name="scheduled_session_id" value="{{ .SessionID }}" />

@@ -3300,6 +3300,19 @@ iframe.catalog-dialog-media {
 
 
 /* ─── Cycle exercise targets ─── */
+/* Cycle grid completion marks. A run that happened gets a tick; a planned session that
+   did not get dimmed, never coloured as an error — the plan is a suggestion. */
+.cycle-session-tick {
+  flex-shrink: 0;
+  color: var(--tick-sent-accent);
+  font-weight: 700;
+  line-height: 1;
+}
+.cycle-session-missed {
+  opacity: 0.45;
+  border-style: dashed;
+}
+
 /* Cycle goals, read mode. before → after on one line, the "how" dim beneath, so a
    goal scans in one pass on a phone. */
 .cycle-goal + .cycle-goal {

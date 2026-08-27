@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
@@ -633,6 +634,69 @@ func (s *Server) handleCycleDetailsSave(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusOK)
 }
 
+// cycleProgressLine describes where the owner is in the cycle. Counts rather than a
+// percentage: at the ~16-20 sessions a cycle holds, a count says what to do next and a
+// percentage does not.
+//
+// Three states, because the old static chip never had to distinguish them:
+//   - not started yet  → say when it starts, not "week 1 of 4"
+//   - finished         → say so, with the final tally
+//   - in flight        → week, tally, and what is left this week
+func cycleProgressLine(
+	cycle db.TrainingCycle,
+	gridStart, gridEnd, today time.Time,
+	rows []pages.CycleWeekRowView,
+	totalPlanned, totalDone int,
+) string {
+	weeks := cycle.Weeks
+	plural := func(n int, one, many string) string {
+		if n == 1 {
+			return one
+		}
+		return many
+	}
+	tally := fmt.Sprintf("%d of %d session%s done", totalDone, totalPlanned, plural(totalPlanned, "", "s"))
+
+	if today.Before(localDate(cycle.StartDate)) {
+		return fmt.Sprintf("Starts %s · %d week%s · %d session%s planned",
+			cycle.StartDate.Format("Mon Jan 2"), weeks, plural(weeks, "", "s"),
+			totalPlanned, plural(totalPlanned, "", "s"))
+	}
+	if today.After(gridEnd) {
+		return "Finished · " + tally
+	}
+
+	week := int(today.Sub(gridStart).Hours()/24)/7 + 1
+	if week < 1 {
+		week = 1
+	}
+	if week > weeks {
+		week = weeks
+	}
+	line := fmt.Sprintf("Week %d of %d · %s", week, weeks, tally)
+
+	// "Left this week" counts only sessions still ahead. A past day with no run is
+	// missed, not pending, and calling it "left" would quietly overstate what is doable.
+	left := 0
+	for _, row := range rows {
+		if !row.IsCurrent {
+			continue
+		}
+		for _, c := range row.Cells {
+			if !c.HasSession || c.HasCompletedRun {
+				continue
+			}
+			if d, err := time.ParseInLocation("2006-01-02", c.DateKey, today.Location()); err == nil && !d.Before(today) {
+				left++
+			}
+		}
+	}
+	if left > 0 {
+		line += fmt.Sprintf(" · %d left this week", left)
+	}
+	return line
+}
+
 // renderCycleTargets serves the standalone exercise-targets page. Reached from the
 // cycle header, and from the end of the guided builder with ?new=1 so targets can be
 // set at creation — the list is derived from the templates scheduled into the cycle, so
@@ -704,6 +768,27 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 		sessionsByDateKey[key] = ss
 	}
 
+	// Which of the cycle's sessions were actually run. The page showed only the plan
+	// before this, so there was no way to see progress without going to the history.
+	completedSSID := map[uint]bool{}
+	if len(scheduled) > 0 {
+		ssIDs := make([]uint, 0, len(scheduled))
+		for _, ss := range scheduled {
+			ssIDs = append(ssIDs, ss.ID)
+		}
+		var completedRuns []db.SessionRun
+		if err := s.store.DB.
+			Where("owner_id = ? AND status = ? AND scheduled_session_id IN ?",
+				ownerID, db.RunStatusCompleted, ssIDs).
+			Find(&completedRuns).Error; err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		for _, run := range completedRuns {
+			completedSSID[run.ScheduledSessionID] = true
+		}
+	}
+
 	// Load calendar events covering the cycle range and index by date key.
 	calEvents, err := db.ListCalendarEventsInRange(s.store.DB, ownerID, gridStart, gridEnd)
 	if err != nil {
@@ -718,6 +803,7 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 		eventViews[i] = calendarEventToView(e)
 	}
 
+	today := localDate(time.Now())
 	weekdayLabels := []string{"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}
 	rows := make([]pages.CycleWeekRowView, 0, cycle.Weeks)
 	for weekIdx := 0; weekIdx < cycle.Weeks; weekIdx++ {
@@ -739,14 +825,32 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 				cell.SessionID = ss.ID
 				cell.SessionTemplateName = ss.SessionTemplate.Name
 				cell.SessionTemplateColor = ss.SessionTemplate.Color
+				cell.HasCompletedRun = completedSSID[ss.ID]
+				// Dim, never red: the plan is a suggestion and the run is what happened.
+				cell.IsMissed = !cell.HasCompletedRun && d.Before(today)
 			}
 			cells = append(cells, cell)
+		}
+		weekStart := gridStart.AddDate(0, 0, weekIdx*7)
+		planned, done := 0, 0
+		for _, c := range cells {
+			if c.HasSession {
+				planned++
+				if c.HasCompletedRun {
+					done++
+				}
+			}
 		}
 		rows = append(rows, pages.CycleWeekRowView{
 			WeekNumber: weekIdx + 1,
 			Cells:      cells,
+			Planned:    planned,
+			Done:       done,
+			IsCurrent:  !today.Before(weekStart) && today.Before(weekStart.AddDate(0, 0, 7)),
 		})
 	}
+
+	progressLine := cycleProgressLine(cycle, gridStart, gridEnd, today, rows, len(scheduled), len(completedSSID))
 
 	// Only the count: the targets themselves render on /targets now.
 	targetCount := len(s.buildCycleExerciseOverrides(cycleID, ownerID, cycle.Weeks))
@@ -777,6 +881,7 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 		CycleTemplates:     templates,
 		CycleRows:          rows,
 		TotalScheduled:     len(scheduled),
+		ProgressLine:       progressLine,
 		TargetCount:        targetCount,
 		Events:             eventViews,
 	})
