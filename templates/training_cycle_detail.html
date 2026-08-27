@@ -46,16 +46,89 @@
     </div>
   </div>
 
+  {{/* ── Goals ──────────────────────────────────────────────────────────────
+        The reason the cycle exists, so they read at the top rather than sitting
+        collapsed behind a generic "cycle details" label. Read mode by default;
+        the edit form is present but hidden so the toggle needs no round trip.
+        The form carries only goal fields — /details-save updates just what it
+        receives, so this cannot clobber notes, focus or tags. ── */}}
+  <section class="card card-pad" id="cycle-goals-card">
+    <div class="flex items-start justify-between gap-2">
+      <h2 class="m-0 text-sm font-semibold">Goals</h2>
+      <button
+        type="button"
+        class="shrink-0 rounded btn-ghost px-2 py-1 text-xs"
+        data-goals-toggle
+        aria-expanded="false"
+        aria-controls="cycle-goals-edit"
+      >Edit</button>
+    </div>
+
+    <div class="mt-2" data-goals-read>
+      {{ range .CycleGoals }}
+      <div class="cycle-goal">
+        <div class="cycle-goal-line">
+          {{ if .Before }}<span class="cycle-goal-from">{{ .Before }}</span><span class="cycle-goal-arrow" aria-hidden="true">→</span>{{ end }}
+          <span class="cycle-goal-to">{{ .After }}</span>
+        </div>
+        {{ if .How }}<div class="cycle-goal-how">{{ .How }}</div>{{ end }}
+      </div>
+      {{ else }}
+      <p class="m-0 text-sm muted">No goals for this cycle yet.</p>
+      {{ end }}
+    </div>
+
+    <form
+      id="cycle-goals-edit"
+      hx-post="/training-cycles/{{ .CycleID }}/details-save"
+      hx-swap="none"
+      hx-trigger="change, keyup delay:800ms"
+      hx-on::before-request="const s=this.querySelector('[data-saved]'); if(s){s.textContent='Saving…';s.style.opacity=1}"
+      hx-on::after-request="const s=this.querySelector('[data-saved]'); if(s){const ok=event.detail&&event.detail.successful; s.textContent=ok?'Saved':'Save failed'; s.style.opacity=1; if(ok)setTimeout(function(){s.style.opacity=0},1200)}"
+      class="mt-3 hidden space-y-2"
+    >
+      <div class="space-y-2" id="cycle-goals">
+          {{ range .CycleGoals }}
+          <div class="gc-goal-row">
+            <input name="goal_before" class="input text-sm" value="{{ .Before }}" placeholder="Now" autocomplete="off" />
+            <span class="gc-goal-arrow" aria-hidden="true">→</span>
+            <input name="goal_after" class="input text-sm" value="{{ .After }}" placeholder="Goal" autocomplete="off" />
+            <button type="button" class="gc-goal-remove" aria-label="Remove goal" title="Remove goal">×</button>
+            <div class="gc-goal-how-row">
+              <span class="gc-goal-how-label">How</span>
+              <input name="goal_how" class="input gc-goal-how" value="{{ .How }}" placeholder="e.g. one lead session a week" autocomplete="off" />
+            </div>
+          </div>
+          {{ else }}
+          <div class="gc-goal-row">
+            <input name="goal_before" class="input text-sm" placeholder="Now — e.g. Scared leading" autocomplete="off" />
+            <span class="gc-goal-arrow" aria-hidden="true">→</span>
+            <input name="goal_after" class="input text-sm" placeholder="Goal — e.g. Confident leading" autocomplete="off" />
+            <button type="button" class="gc-goal-remove" aria-label="Remove goal" title="Remove goal">×</button>
+            <div class="gc-goal-how-row">
+              <span class="gc-goal-how-label">How</span>
+              <input name="goal_how" class="input gc-goal-how" value="" placeholder="e.g. one lead session a week" autocomplete="off" />
+            </div>
+          </div>
+          {{ end }}
+      </div>
+      <div class="flex items-center justify-between gap-2">
+        <button type="button" class="gc-goal-add" id="cycle-goal-add">+ Add goal</button>
+        <span data-saved class="text-xs muted" style="opacity:0;transition:opacity .2s" aria-live="polite">Saved</span>
+      </div>
+    </form>
+  </section>
+
   {{/* ── Cycle details (optional metadata, autosaved) ── */}}
   <details class="card passion-disclosure">
     <summary class="cursor-pointer list-none flex items-center gap-3 px-3 py-3 sm:px-4 text-sm font-semibold">
       Cycle details
-      <span class="ml-auto text-xs font-normal muted">focus · goal · tags · notes</span>
+      <span class="ml-auto text-xs font-normal muted">name · focus · tags</span>
     </summary>
     <form
       hx-post="/training-cycles/{{ .CycleID }}/details-save"
       hx-swap="none"
-      hx-trigger="change, keyup changed delay:800ms"
+      hx-trigger="change, keyup delay:800ms"
       hx-on::before-request="const s=this.querySelector('[data-saved]'); if(s){s.textContent='Saving…';s.style.opacity=1}"
       hx-on::after-request="const s=this.querySelector('[data-saved]'); if(s){const ok=event.detail&&event.detail.successful; s.textContent=ok?'Saved':'Save failed'; s.style.opacity=1; if(ok)setTimeout(function(){s.style.opacity=0},1200)}"
       class="border-t px-4 py-4 space-y-3"
@@ -77,42 +150,9 @@
         </select>
       </div>
       <div>
-        <label class="text-xs font-semibold muted uppercase tracking-widest">Goals — before → after</label>
-        <div class="mt-1 space-y-2" id="cycle-goals">
-          {{ range .CycleGoals }}
-          <div class="gc-goal-row">
-            <input name="goal_before" class="input text-sm" value="{{ .Before }}" placeholder="Now" autocomplete="off" />
-            <span class="gc-goal-arrow" aria-hidden="true">→</span>
-            <input name="goal_after" class="input text-sm" value="{{ .After }}" placeholder="Goal" autocomplete="off" />
-            <button type="button" class="gc-goal-remove" aria-label="Remove goal" title="Remove goal">×</button>
-            <div class="gc-goal-how-row">
-              <span class="gc-goal-how-label">How</span>
-              <input name="goal_how" class="input gc-goal-how" value="{{ .How }}" placeholder="e.g. one lead session a week" autocomplete="off" />
-            </div>
-          </div>
-          {{ else }}
-          <div class="gc-goal-row">
-            <input name="goal_before" class="input text-sm" placeholder="Now — e.g. Scared leading" autocomplete="off" />
-            <span class="gc-goal-arrow" aria-hidden="true">→</span>
-            <input name="goal_after" class="input text-sm" placeholder="Goal — e.g. Confident leading" autocomplete="off" />
-            <button type="button" class="gc-goal-remove" aria-label="Remove goal" title="Remove goal">×</button>
-            <div class="gc-goal-how-row">
-              <span class="gc-goal-how-label">How</span>
-              <input name="goal_how" class="input gc-goal-how" placeholder="e.g. one lead session a week" autocomplete="off" />
-            </div>
-          </div>
-          {{ end }}
-        </div>
-        <button type="button" class="gc-goal-add" id="cycle-goal-add">+ Add goal</button>
-      </div>
-      <div>
         <label for="cycle-label" class="text-xs font-semibold muted uppercase tracking-widest">Tags</label>
         <input id="cycle-label" name="label" class="mt-1 w-full input text-sm" value="{{ .CycleLabel }}" placeholder="e.g. power block, trip prep" autocomplete="off" />
         <p class="mt-1 text-xs muted">Comma-separated.</p>
-      </div>
-      <div>
-        <label for="cycle-notes" class="text-xs font-semibold muted uppercase tracking-widest">Notes</label>
-        <textarea id="cycle-notes" name="notes" rows="3" class="mt-1 w-full input text-sm" placeholder="Anything about this block…">{{ .CycleNotes }}</textarea>
       </div>
       <div class="text-right">
         <span data-saved class="text-xs muted" style="opacity:0;transition:opacity .2s" aria-live="polite">Saved</span>
@@ -152,6 +192,33 @@
         }
       });
       updateAdd();
+    })();
+
+    // Goals read/edit toggle. The edit form is always in the DOM so switching is
+    // instant; it opens automatically when there is nothing to read yet.
+    (function () {
+      var card = document.getElementById('cycle-goals-card');
+      if (!card) return;
+      var btn = card.querySelector('[data-goals-toggle]');
+      var read = card.querySelector('[data-goals-read]');
+      var edit = document.getElementById('cycle-goals-edit');
+      if (!btn || !read || !edit) return;
+      function show(editing) {
+        edit.classList.toggle('hidden', !editing);
+        read.classList.toggle('hidden', editing);
+        btn.textContent = editing ? 'Done' : 'Edit';
+        btn.setAttribute('aria-expanded', editing ? 'true' : 'false');
+      }
+      btn.addEventListener('click', function () {
+        show(edit.classList.contains('hidden'));
+        if (!edit.classList.contains('hidden')) {
+          var first = edit.querySelector('input');
+          if (first) first.focus();
+        }
+      });
+      // Nothing to read → start in edit mode rather than showing an empty state
+      // the owner then has to click past.
+      if (!card.querySelector('.cycle-goal')) show(true);
     })();
   </script>
 
@@ -287,6 +354,26 @@
       </section>
     {{ end }}
   </div>
+
+  {{/* ── Notes ──────────────────────────────────────────────────────────────
+        Written once, read rarely, so they sit below the grid the page is opened
+        for. Own form carrying only `notes`; safe because /details-save updates
+        only the fields it receives. ── */}}
+  <section class="card card-pad">
+    <form
+      hx-post="/training-cycles/{{ .CycleID }}/details-save"
+      hx-swap="none"
+      hx-trigger="change, keyup delay:800ms"
+      hx-on::before-request="const s=this.querySelector('[data-saved]'); if(s){s.textContent='Saving…';s.style.opacity=1}"
+      hx-on::after-request="const s=this.querySelector('[data-saved]'); if(s){const ok=event.detail&&event.detail.successful; s.textContent=ok?'Saved':'Save failed'; s.style.opacity=1; if(ok)setTimeout(function(){s.style.opacity=0},1200)}"
+    >
+      <div class="flex items-baseline justify-between gap-2">
+        <label for="cycle-notes" class="text-sm font-semibold">Notes</label>
+        <span data-saved class="text-xs muted" style="opacity:0;transition:opacity .2s" aria-live="polite">Saved</span>
+      </div>
+      <textarea id="cycle-notes" name="notes" rows="3" class="mt-2 w-full input text-sm" placeholder="Anything about this block…">{{ .CycleNotes }}</textarea>
+    </form>
+  </section>
 
   {{ if eq .TotalScheduled 0 }}
     <div class="card-muted rounded-md p-3 text-center text-sm muted">

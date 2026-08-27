@@ -3300,6 +3300,29 @@ iframe.catalog-dialog-media {
 
 
 /* ─── Cycle exercise targets ─── */
+/* Cycle goals, read mode. before → after on one line, the "how" dim beneath, so a
+   goal scans in one pass on a phone. */
+.cycle-goal + .cycle-goal {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+.cycle-goal-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+}
+.cycle-goal-from { color: var(--muted); }
+.cycle-goal-arrow { color: var(--muted); }
+.cycle-goal-to { font-weight: 600; }
+.cycle-goal-how {
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
 .cycle-targets-details {
   padding: 0.85rem 1rem;
 }
