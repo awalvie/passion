@@ -77,10 +77,15 @@ Sign up at `/signup`, or skip auth entirely with `PASSION_DEV_AUTH_BYPASS=1 PASS
 |---|---|
 | `/dashboard` | Weekly session agenda + month calendar |
 | `/history` | Training log with heatmap and streaks |
-| `/templates` | Session template editor |
-| `/exercise-library` | Exercise library grid |
-| `/cycles` | Training cycles |
+| `/templates` | Session template list |
+| `/activity-templates` | Activity template list |
+| `/exercise-library` | Exercise library table |
+| `/training-cycles` | Training cycles (**not** `/cycles`, which 404s) |
+| `/training-cycles/{id}` | One cycle: goals, week grid, notes |
+| `/training-cycles/{id}/targets` | Per-cycle exercise targets |
+| `/training-cycles/new/guided` | The only cycle builder; `/training-cycles/new` redirects here |
 | `/calendar` | Full calendar view |
+| `/training-log` | Manual log entries |
 
 ## Test
 

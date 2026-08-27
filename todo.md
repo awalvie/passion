@@ -67,6 +67,27 @@ flash 6c on TB2 (7a is the season goal), fall practice leads the lead day.
       Both were referenced by nothing before.
 - [ ] Then create the cycle itself with the guided builder.
 
+## DONE (2026-08-27): the cycle page rework, all five phases
+
+Bugs (Phase 0): guided start date + next-Monday default, the missing blocking-event
+conflict check, varies-by-week zeroing exercise targets, and calendar events orphaned by
+a cycle delete. af945d6, 19c641f, 66f6420, e8384eb.
+
+The page (Phases 2-4): goals read at the top instead of collapsed behind "cycle
+details"; notes below the grid; exercise targets on their own page at
+`/training-cycles/{id}/targets`, reached from the header and from the end of the builder
+so they stay configurable at creation; a real progress line ("Week 2 of 4 · 6 of 8 done
+· 2 left this week"); ticks on completed sessions and dim on missed ones; and a phone
+layout that went from 4077px to 1261px — one week open at a time, rest days on one line,
+one Add button per week, names that wrap. 90c5908, 588ddcd, c199777, 9d52a41, 272b63b.
+
+Two traps worth remembering. `details-save` used to overwrite every metadata field and
+hard-delete all goal rows on any submit, so splitting the panel into separate forms would
+have deleted the goals the first time notes were edited — guarded with `Form.Has`, tests
+in `training_cycles_test.go`. And the `keyup changed` autosave trigger had never fired,
+because `changed` compares the value of the element carrying `hx-trigger` and a form has
+none; notes only saved on blur.
+
 ## DONE (2026-08-27): cycle creation consolidated onto the guided builder
 
 Superseded the earlier "bring the guided fields to `/training-cycles/new`" plan — the
