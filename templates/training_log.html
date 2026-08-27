@@ -1,18 +1,20 @@
 {{ define "content" }}
 <div class="space-y-5">
 
-  <div class="flex items-center justify-between">
+  {{/* Stacks below sm so the two buttons get a row of their own: side by side with
+       the heading at 390px there was no room for their labels, which wrapped. */}}
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     <div>
       <h1 class="text-xl font-bold">Training Log</h1>
       <p class="mt-0.5 text-xs muted">Track patterns across your sessions</p>
     </div>
     <div class="flex items-center gap-2">
-      <a href="/training-log/quick" class="rounded-md btn-ghost border px-3 py-2 text-sm font-medium flex items-center gap-1.5" style="border-color:var(--border)">
-        <i data-lucide="notebook-pen" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+      <a href="/training-log/quick" class="shrink-0 whitespace-nowrap rounded-md btn-ghost border px-3 py-2 text-sm font-medium flex items-center gap-1.5" style="border-color:var(--border)">
+        <i data-lucide="notebook-pen" class="shrink-0" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
         Quick note
       </a>
-      <a href="/training-log/new" class="rounded-md btn-primary px-3 py-2 text-sm font-medium flex items-center gap-1.5">
-        <i data-lucide="plus" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+      <a href="/training-log/new" class="shrink-0 whitespace-nowrap rounded-md btn-primary px-3 py-2 text-sm font-medium flex items-center gap-1.5">
+        <i data-lucide="plus" class="shrink-0" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
         Add entry
       </a>
     </div>
