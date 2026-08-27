@@ -287,8 +287,10 @@
     </form>
   </div>
 
-  <!-- Right column: media preview + summary -->
-  <div class="hidden md:block space-y-4">
+  <!-- Right column on desktop; on a phone it moves above the form (see .lib-edit-side)
+       so the media preview is actually visible — it used to be hidden below md, which
+       meant a phone showed the media URL inputs but never the thumbnail or video. -->
+  <div class="lib-edit-side space-y-4">
     <div class="card card-pad">
       <div class="text-xs font-semibold muted uppercase tracking-widest mb-3">Preview</div>
       {{ if .Media }}
@@ -337,8 +339,8 @@
       </div>
     </div>
 
-    <!-- Media editing in right column on desktop -->
-    <div class="card card-pad" data-exercise-media-fields="1">
+    <!-- Media editing in right column on desktop; the phone has its own set inline -->
+    <div class="hidden md:block card card-pad" data-exercise-media-fields="1">
       <div class="text-xs font-semibold muted uppercase tracking-widest mb-3">Media</div>
       <div data-media-list class="space-y-2 {{ if not .Media }}hidden{{ end }}">
         {{ if .Media }}
