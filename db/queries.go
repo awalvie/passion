@@ -1147,6 +1147,25 @@ func MaterialiseTemplateExercises(gdb *gorm.DB, ownerID, runID uint, ss Schedule
 				if err := tx.Create(&runEx).Error; err != nil {
 					return err
 				}
+				// Ticks, board context and set logs are keyed by (run_id, exercise_id) and
+				// were written against the pre-materialisation exercise. Re-point them, or
+				// the log editor renders the new row and reports no climbs while the data
+				// still sits under the old id.
+				for _, model := range []interface{}{
+					&ClimbingTick{}, &ClimbingExerciseMeta{}, &ManualExerciseSetLog{},
+				} {
+					if err := tx.Model(model).
+						Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, ex.ID).
+						Update("exercise_id", runEx.ID).Error; err != nil {
+						return err
+					}
+				}
+				if err := tx.Model(&RunExerciseChoice{}).
+					Where("owner_id = ? AND run_id = ? AND parent_exercise_id = ?", ownerID, runID, ex.ID).
+					Update("parent_exercise_id", runEx.ID).Error; err != nil {
+					return err
+				}
+
 				if comp, ok := compByExID[ex.ID]; ok {
 					newComp := RunExerciseCompletion{
 						OwnerID:        ownerID,
@@ -1169,4 +1188,89 @@ func MaterialiseTemplateExercises(gdb *gorm.DB, ownerID, runID uint, ss Schedule
 			Where("id = ? AND owner_id = ?", runID, ownerID).
 			Update("exercises_materialised", true).Error
 	})
+}
+
+// RepairMaterialisedTickLinks re-points climbing data that materialisation orphaned
+// before it learned to carry those rows across. It matches by exercise name within
+// the run, and only when that name is unambiguous, so a template with two
+// identically-named exercises is left alone rather than guessed at.
+//
+// Idempotent: once repaired there are no orphans left to find. Safe to call at boot.
+func RepairMaterialisedTickLinks(gdb *gorm.DB) (int64, error) {
+	var runs []SessionRun
+	if err := gdb.Where("exercises_materialised = ?", true).Find(&runs).Error; err != nil {
+		return 0, err
+	}
+
+	var repaired int64
+	for _, run := range runs {
+		var runExercises []Exercise
+		if err := gdb.Where("owner_id = ? AND session_run_id = ?", run.OwnerID, run.ID).
+			Find(&runExercises).Error; err != nil {
+			return repaired, err
+		}
+		if len(runExercises) == 0 {
+			continue
+		}
+
+		liveIDs := make(map[uint]bool, len(runExercises))
+		byName := map[string][]uint{}
+		for _, ex := range runExercises {
+			liveIDs[ex.ID] = true
+			byName[ex.Name] = append(byName[ex.Name], ex.ID)
+		}
+
+		// Collect the exercise ids this run's climbing data still points at.
+		orphanIDs := map[uint]bool{}
+		// Resolve tables through the models rather than by name — GORM's pluralisation
+		// is not guessable (ClimbingExerciseMeta is one such case).
+		collect := func(model interface{}) error {
+			var ids []uint
+			if err := gdb.Model(model).
+				Where("owner_id = ? AND run_id = ?", run.OwnerID, run.ID).
+				Distinct().Pluck("exercise_id", &ids).Error; err != nil {
+				return err
+			}
+			for _, id := range ids {
+				if !liveIDs[id] {
+					orphanIDs[id] = true
+				}
+			}
+			return nil
+		}
+		for _, model := range []interface{}{
+			&ClimbingTick{}, &ClimbingExerciseMeta{}, &ManualExerciseSetLog{},
+		} {
+			if err := collect(model); err != nil {
+				return repaired, err
+			}
+		}
+		if len(orphanIDs) == 0 {
+			continue
+		}
+
+		for oldID := range orphanIDs {
+			var old Exercise
+			if err := gdb.Unscoped().Where("id = ?", oldID).First(&old).Error; err != nil {
+				continue // source exercise is gone; nothing to match on
+			}
+			candidates := byName[old.Name]
+			if len(candidates) != 1 {
+				continue // ambiguous or absent — leave it rather than guess
+			}
+			newID := candidates[0]
+			for _, model := range []interface{}{
+				&ClimbingTick{}, &ClimbingExerciseMeta{}, &ManualExerciseSetLog{},
+			} {
+				res := gdb.Model(model).
+					Where("owner_id = ? AND run_id = ? AND exercise_id = ?", run.OwnerID, run.ID, oldID).
+					Update("exercise_id", newID)
+				if res.Error != nil {
+					return repaired, res.Error
+				}
+				repaired += res.RowsAffected
+			}
+		}
+	}
+	return repaired, nil
 }
