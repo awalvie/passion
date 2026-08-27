@@ -682,6 +682,19 @@ type NewTrainingCycleGuidedParams struct {
 	// DefaultStartDate prefills the start field as "2006-01-02". Next week's Monday,
 	// so week 1 holds every mapped weekday.
 	DefaultStartDate string
+	// Conflicts is non-empty when the submitted schedule overlaps events that block
+	// training. The page then renders the review step instead of the form.
+	Conflicts []CycleConflictView
+	// FormFields carries the original submission forward as hidden inputs on the
+	// review step. A slice rather than a map because the guided form repeats keys
+	// (`day` once per chosen weekday).
+	FormFields []CycleFormField
+}
+
+// CycleFormField is one preserved key/value pair for a resubmitted guided form.
+type CycleFormField struct {
+	Key   string
+	Value string
 }
 
 // CycleWeekTargetView holds resolved targets for one week of a per-week override.

@@ -2,6 +2,8 @@ package web
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -12,7 +14,22 @@ import (
 	"time"
 
 	"passion/db"
+	"passion/pages"
 )
+
+// newGuidedTestServer builds a Server with real page templates, for the paths that
+// render rather than redirect. NewPages resolves template paths relative to the
+// working directory, so the test runs from the repo root, not the package directory.
+func newGuidedTestServer(t *testing.T, store *db.Store) *Server {
+	t.Helper()
+	t.Chdir("../..")
+	quiet := slog.New(slog.NewTextHandler(io.Discard, nil))
+	p, err := pages.NewPages(quiet)
+	if err != nil {
+		t.Fatalf("load page templates: %v", err)
+	}
+	return &Server{store: store, pages: p, logger: quiet}
+}
 
 // seedGuidedTemplate creates a minimal SessionTemplate owned by ownerID.
 func seedGuidedTemplate(t *testing.T, store *db.Store, ownerID uint, name string) *db.SessionTemplate {
@@ -955,5 +972,198 @@ func TestHandleTrainingCyclesGuided_RejectsUnparseableStartDate(t *testing.T) {
 	store.DB.Model(&db.TrainingCycle{}).Count(&n)
 	if n != 0 {
 		t.Errorf("cycle count = %d, want 0 — nothing should be created on a bad date", n)
+	}
+}
+
+// seedBlockingEvent creates a calendar event that blocks training over [start, end].
+func seedBlockingEvent(t *testing.T, store *db.Store, ownerID uint, title string, start, end time.Time) *db.CalendarEvent {
+	t.Helper()
+	ev := &db.CalendarEvent{
+		OwnerID: ownerID, Title: title, Kind: "trip",
+		StartDate: localDate(start), EndDate: localDate(end), Blocks: true,
+	}
+	if err := store.DB.Create(ev).Error; err != nil {
+		t.Fatalf("create blocking event %q: %v", title, err)
+	}
+	return ev
+}
+
+// TestHandleTrainingCyclesGuided_BlockingEventStopsCreation guards the fix for the
+// guided builder having no conflict check at all: the quick path asked before
+// scheduling through a trip or injury week, the guided path scheduled straight
+// through it. First submission must show the review step and create nothing.
+func TestHandleTrainingCyclesGuided_BlockingEventStopsCreation(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-conflict.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "Everyday")
+
+	// A trip covering the whole of week 1, which every mapped day falls inside.
+	start := nextWeekMondayOfLocalDate(time.Now())
+	seedBlockingEvent(t, store, ownerID, "Fontainebleau", start, start.AddDate(0, 0, 6))
+
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Add("day", "3")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Set(sessionDayKey(3), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Add("weeks", "2")
+
+	srv := newGuidedTestServer(t, store)
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d (the review step renders, it does not redirect)", rr.Code, http.StatusOK)
+	}
+	body := rr.Body.String()
+	if !strings.Contains(body, "overlaps with events that block training") {
+		t.Errorf("review step not rendered; body did not mention the conflict")
+	}
+	if !strings.Contains(body, "Fontainebleau") {
+		t.Errorf("review step did not name the blocking event")
+	}
+
+	var n int64
+	store.DB.Model(&db.TrainingCycle{}).Count(&n)
+	if n != 0 {
+		t.Errorf("cycle count = %d, want 0 — nothing may be created before confirming", n)
+	}
+	store.DB.Model(&db.ScheduledSession{}).Count(&n)
+	if n != 0 {
+		t.Errorf("scheduled session count = %d, want 0", n)
+	}
+}
+
+// TestHandleTrainingCyclesGuided_ConfirmedSkipOmitsBlockedDays guards the two-step:
+// resubmitting with confirmed=skip creates the cycle but drops the sessions that
+// fall on blocked days, leaving the unaffected week intact.
+func TestHandleTrainingCyclesGuided_ConfirmedSkipOmitsBlockedDays(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-conflict-skip.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "Everyday")
+
+	start := nextWeekMondayOfLocalDate(time.Now())
+	seedBlockingEvent(t, store, ownerID, "Fontainebleau", start, start.AddDate(0, 0, 6))
+
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Add("day", "3")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Set(sessionDayKey(3), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Add("weeks", "2")
+	form.Set("confirmed", "skip")
+
+	srv := newGuidedTestServer(t, store)
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
+	}
+	cycleID := cycleIDFromRedirect(t, rr)
+
+	var sessions []db.ScheduledSession
+	if err := store.DB.Where("training_cycle_id = ?", cycleID).
+		Order("scheduled_date asc").Find(&sessions).Error; err != nil {
+		t.Fatal(err)
+	}
+	// Week 1's Mon+Wed are blocked; week 2's Mon+Wed survive.
+	if len(sessions) != 2 {
+		t.Fatalf("session count = %d, want 2 (week 2 only)", len(sessions))
+	}
+	for _, ss := range sessions {
+		if !localDate(ss.ScheduledDate).After(start.AddDate(0, 0, 6)) {
+			t.Errorf("session on %s falls inside the blocked week", localDateKey(ss.ScheduledDate))
+		}
+	}
+}
+
+// TestHandleTrainingCyclesGuided_ConfirmedKeepSchedulesThrough guards that the
+// owner can override: confirmed=keep schedules every day, blocked or not.
+func TestHandleTrainingCyclesGuided_ConfirmedKeepSchedulesThrough(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-conflict-keep.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "Everyday")
+
+	start := nextWeekMondayOfLocalDate(time.Now())
+	seedBlockingEvent(t, store, ownerID, "Fontainebleau", start, start.AddDate(0, 0, 6))
+
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Add("day", "3")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Set(sessionDayKey(3), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Add("weeks", "2")
+	form.Set("confirmed", "keep")
+
+	srv := newGuidedTestServer(t, store)
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
+	}
+	cycleID := cycleIDFromRedirect(t, rr)
+
+	var n int64
+	if err := store.DB.Model(&db.ScheduledSession{}).
+		Where("training_cycle_id = ?", cycleID).Count(&n).Error; err != nil {
+		t.Fatal(err)
+	}
+	if n != 4 {
+		t.Errorf("session count = %d, want 4 (2 days x 2 weeks, nothing skipped)", n)
+	}
+}
+
+// TestHandleTrainingCyclesGuided_NonBlockingEventIsNotAConflict guards that only
+// events flagged Blocks stop creation — a deload or a note-to-self must not.
+func TestHandleTrainingCyclesGuided_NonBlockingEventIsNotAConflict(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-nonblocking.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "Everyday")
+
+	start := nextWeekMondayOfLocalDate(time.Now())
+	ev := &db.CalendarEvent{
+		OwnerID: ownerID, Title: "Deload week", Kind: "rest",
+		StartDate: start, EndDate: start.AddDate(0, 0, 6),
+	}
+	if err := store.DB.Create(ev).Error; err != nil {
+		t.Fatal(err)
+	}
+	// Blocks defaults to true in the DB and GORM omits the false zero-value on insert,
+	// so it has to be forced off after the fact — same dance as the deload handler.
+	if err := store.DB.Model(ev).Update("blocks", false).Error; err != nil {
+		t.Fatal(err)
+	}
+	var check db.CalendarEvent
+	if err := store.DB.First(&check, ev.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if check.Blocks {
+		t.Fatalf("test setup: event still blocks; the non-blocking case is not being exercised")
+	}
+
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Add("weeks", "1")
+
+	srv := newGuidedTestServer(t, store)
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d — a non-blocking event must not raise a conflict; body=%q",
+			rr.Code, http.StatusSeeOther, rr.Body.String())
 	}
 }

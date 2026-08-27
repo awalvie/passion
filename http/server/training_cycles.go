@@ -52,6 +52,73 @@ func (s *Server) handleTrainingCycles(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// cycleScheduleSpec describes the sessions a cycle would generate, before any of them
+// exist. Both creation paths build one so conflict detection is shared rather than
+// copied — the copy is why the guided builder silently had no conflict check at all.
+type cycleScheduleSpec struct {
+	StartDate time.Time
+	Weeks     int
+	Weekdays  []int // Mon=1..Sun=7
+}
+
+// endDate is the last day of the cycle's final week.
+func (spec cycleScheduleSpec) endDate() time.Time {
+	return mondayOfLocalDate(spec.StartDate).AddDate(0, 0, spec.Weeks*7-1)
+}
+
+// sessionDateKeys returns the local date keys the spec would schedule sessions on.
+// Week 1 anchors on the Monday of the start week, so mapped days falling before
+// StartDate are excluded — matching the rule both creation loops apply.
+func (spec cycleScheduleSpec) sessionDateKeys() map[string]bool {
+	keys := map[string]bool{}
+	week1Monday := mondayOfLocalDate(spec.StartDate)
+	for weekIdx := 0; weekIdx < spec.Weeks; weekIdx++ {
+		for _, wd := range spec.Weekdays {
+			d := localDate(week1Monday.AddDate(0, 0, weekIdx*7+(wd-1)))
+			if !d.Before(spec.StartDate) {
+				keys[localDateKey(d)] = true
+			}
+		}
+	}
+	return keys
+}
+
+// findCycleConflicts returns the training-blocking calendar events that overlap the
+// sessions spec would create, along with every date key those events block (used when
+// the owner chooses to skip the conflicting days).
+func (s *Server) findCycleConflicts(ownerID uint, spec cycleScheduleSpec) ([]pages.CycleConflictView, map[string]bool, error) {
+	events, err := db.ListCalendarEventsInRange(s.store.DB, ownerID, spec.StartDate, spec.endDate())
+	if err != nil {
+		return nil, nil, err
+	}
+	wouldBe := spec.sessionDateKeys()
+	blockedKeys := map[string]bool{}
+	var conflicts []pages.CycleConflictView
+	for _, e := range events {
+		if !e.Blocks {
+			continue
+		}
+		var affected []string
+		for d := e.StartDate; !d.After(e.EndDate); d = d.AddDate(0, 0, 1) {
+			key := localDateKey(d)
+			blockedKeys[key] = true
+			if wouldBe[key] {
+				affected = append(affected, d.Format("Mon Jan 2"))
+			}
+		}
+		if len(affected) > 0 {
+			conflicts = append(conflicts, pages.CycleConflictView{
+				EventTitle:    e.Title,
+				EventColor:    pages.CalendarEventColor(e.Kind),
+				AffectedDates: affected,
+				AffectedLabel: strings.Join(affected, ", "),
+				AffectedCount: len(affected),
+			})
+		}
+	}
+	return conflicts, blockedKeys, nil
+}
+
 func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request) {
 	ownerID := s.mustUserID(r)
 	switch r.Method {
@@ -146,95 +213,41 @@ func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		// Compute the set of would-be session dates so we can check for conflicts.
-		week1Monday := mondayOfLocalDate(startDate)
-		cycleEnd := week1Monday.AddDate(0, 0, weeks*7-1)
+		var weekdays []int
+		for _, pm := range pendingMappings {
+			weekdays = append(weekdays, pm.weekday)
+		}
+		spec := cycleScheduleSpec{StartDate: startDate, Weeks: weeks, Weekdays: weekdays}
 
 		confirmed := r.FormValue("confirmed")
-
-		// Conflict detection: only run on first submission (confirmed == "").
-		if confirmed == "" {
-			blockingEvents, err := db.ListCalendarEventsInRange(s.store.DB, ownerID, startDate, cycleEnd)
-			if err != nil {
-				s.serverError(w, r, err)
-				return
-			}
-			// Filter to blocking-only events.
-			var blocking []db.CalendarEvent
-			for _, e := range blockingEvents {
-				if e.Blocks {
-					blocking = append(blocking, e)
-				}
-			}
-
-			if len(blocking) > 0 {
-				// Compute the set of session dates that would be generated.
-				wouldBeKeys := map[string]bool{}
-				for weekIdx := 0; weekIdx < weeks; weekIdx++ {
-					for _, pm := range pendingMappings {
-						d := localDate(week1Monday.AddDate(0, 0, weekIdx*7+(pm.weekday-1)))
-						if !d.Before(startDate) {
-							wouldBeKeys[localDateKey(d)] = true
-						}
-					}
-				}
-
-				// Match would-be session dates against each blocking event.
-				var conflicts []pages.CycleConflictView
-				for _, e := range blocking {
-					var affected []string
-					for d := e.StartDate; !d.After(e.EndDate); d = d.AddDate(0, 0, 1) {
-						if wouldBeKeys[localDateKey(d)] {
-							affected = append(affected, d.Format("Mon Jan 2"))
-						}
-					}
-					if len(affected) > 0 {
-						conflicts = append(conflicts, pages.CycleConflictView{
-							EventTitle:    e.Title,
-							EventColor:    pages.CalendarEventColor(e.Kind),
-							AffectedDates: affected,
-							AffectedLabel: strings.Join(affected, ", "),
-							AffectedCount: len(affected),
-						})
-					}
-				}
-
-				if len(conflicts) > 0 {
-					// Preserve form values for hidden inputs in the conflict review step.
-					formValues := map[string]string{
-						"name":       name,
-						"start_date": startDateStr,
-						"weeks":      strconv.Itoa(weeks),
-					}
-					for _, pm := range pendingMappings {
-						formValues[pm.key] = strconv.FormatUint(uint64(pm.templateID), 10)
-					}
-
-					s.pages.NewTrainingCycle(w, pages.NewTrainingCycleParams{
-						Base:       pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
-						Templates:  templates,
-						Conflicts:  conflicts,
-						FormValues: formValues,
-					})
-					return
-				}
-			}
-		}
-
-		// Build blocked date set when skipping.
 		blockedKeys := map[string]bool{}
-		if confirmed == "skip" {
-			blockingEvents, err := db.ListCalendarEventsInRange(s.store.DB, ownerID, startDate, cycleEnd)
+		if confirmed == "" || confirmed == "skip" {
+			conflicts, blocked, err := s.findCycleConflicts(ownerID, spec)
 			if err != nil {
 				s.serverError(w, r, err)
 				return
 			}
-			for _, e := range blockingEvents {
-				if e.Blocks {
-					for d := e.StartDate; !d.After(e.EndDate); d = d.AddDate(0, 0, 1) {
-						blockedKeys[localDateKey(d)] = true
-					}
+			if confirmed == "" && len(conflicts) > 0 {
+				// Preserve form values for hidden inputs in the conflict review step.
+				formValues := map[string]string{
+					"name":       name,
+					"start_date": startDateStr,
+					"weeks":      strconv.Itoa(weeks),
 				}
+				for _, pm := range pendingMappings {
+					formValues[pm.key] = strconv.FormatUint(uint64(pm.templateID), 10)
+				}
+
+				s.pages.NewTrainingCycle(w, pages.NewTrainingCycleParams{
+					Base:       pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
+					Templates:  templates,
+					Conflicts:  conflicts,
+					FormValues: formValues,
+				})
+				return
+			}
+			if confirmed == "skip" {
+				blockedKeys = blocked
 			}
 		}
 
@@ -265,6 +278,7 @@ func (s *Server) handleTrainingCyclesNew(w http.ResponseWriter, r *http.Request)
 
 		// Generate scheduled sessions, skipping blocked dates when requested.
 		cycleID := cycle.ID
+		week1Monday := mondayOfLocalDate(startDate)
 		for weekIdx := 0; weekIdx < weeks; weekIdx++ {
 			for _, mr := range mappingRows {
 				scheduled := week1Monday.AddDate(0, 0, weekIdx*7+(mr.Weekday-1))
@@ -445,6 +459,58 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 	}
 	week1Monday := mondayOfLocalDate(startDate)
 
+	// Conflict check, shared with the quick path. The guided builder previously had
+	// none at all, so it would happily schedule a cycle straight through a trip or an
+	// injury week that the calendar had marked as blocking training.
+	var weekdays []int
+	for _, dw := range days {
+		if _, ok := dayTemplate[dw]; ok {
+			weekdays = append(weekdays, dw)
+		}
+	}
+	confirmed := r.FormValue("confirmed")
+	blockedKeys := map[string]bool{}
+	if confirmed == "" || confirmed == "skip" {
+		conflicts, blocked, err := s.findCycleConflicts(ownerID, cycleScheduleSpec{
+			StartDate: startDate, Weeks: weeks, Weekdays: weekdays,
+		})
+		if err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		if confirmed == "" && len(conflicts) > 0 {
+			// Carry the whole submission forward so the review step can resubmit it
+			// verbatim; the guided form has too many fields to enumerate by hand, and
+			// repeats `day` once per chosen weekday.
+			var fields []pages.CycleFormField
+			for key, values := range r.Form {
+				if key == "confirmed" {
+					continue
+				}
+				for _, v := range values {
+					fields = append(fields, pages.CycleFormField{Key: key, Value: v})
+				}
+			}
+			sort.Slice(fields, func(i, j int) bool {
+				if fields[i].Key != fields[j].Key {
+					return fields[i].Key < fields[j].Key
+				}
+				return fields[i].Value < fields[j].Value
+			})
+			s.pages.NewTrainingCycleGuided(w, pages.NewTrainingCycleGuidedParams{
+				Base:             pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
+				Templates:        templates,
+				DefaultStartDate: localDateKey(startDate),
+				Conflicts:        conflicts,
+				FormFields:       fields,
+			})
+			return
+		}
+		if confirmed == "skip" {
+			blockedKeys = blocked
+		}
+	}
+
 	cycle := &db.TrainingCycle{
 		OwnerID: ownerID, Name: name, StartDate: startDate, Weeks: weeks,
 		Focus: focus, Notes: notes,
@@ -502,6 +568,9 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 		for _, mr := range mappingRows {
 			scheduled := localDate(week1Monday.AddDate(0, 0, weekIdx*7+(mr.Weekday-1)))
 			if scheduled.Before(startDate) {
+				continue
+			}
+			if blockedKeys[localDateKey(scheduled)] {
 				continue
 			}
 			ss := &db.ScheduledSession{
