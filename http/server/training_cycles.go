@@ -407,7 +407,13 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	http.Redirect(w, r, "/training-cycles/"+strconv.FormatUint(uint64(cycleID), 10), http.StatusSeeOther)
+	// End on the targets page so per-cycle targets are configurable at creation, not
+	// only afterwards. The list is derived from the templates just scheduled, so it
+	// cannot be a field earlier in the builder. /targets redirects straight through to
+	// the cycle when the cycle has nothing targetable, so this never dead-ends.
+	http.Redirect(w, r,
+		"/training-cycles/"+strconv.FormatUint(uint64(cycleID), 10)+"/targets?new=1",
+		http.StatusSeeOther)
 }
 
 func (s *Server) handleTrainingCyclesByID(w http.ResponseWriter, r *http.Request) {
@@ -426,6 +432,16 @@ func (s *Server) handleTrainingCyclesByID(w http.ResponseWriter, r *http.Request
 			return
 		}
 		s.renderTrainingCycleDetail(w, r, cycleID, ownerID)
+		return
+	}
+
+	// Exercise targets page: GET /training-cycles/{id}/targets
+	if action == "targets" {
+		if r.Method != http.MethodGet {
+			s.methodNotAllowed(w)
+			return
+		}
+		s.renderCycleTargets(w, r, cycleID, ownerID)
 		return
 	}
 
@@ -617,6 +633,36 @@ func (s *Server) handleCycleDetailsSave(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusOK)
 }
 
+// renderCycleTargets serves the standalone exercise-targets page. Reached from the
+// cycle header, and from the end of the guided builder with ?new=1 so targets can be
+// set at creation — the list is derived from the templates scheduled into the cycle, so
+// it cannot exist before the cycle does.
+func (s *Server) renderCycleTargets(w http.ResponseWriter, r *http.Request, cycleID uint, ownerID uint) {
+	var cycle db.TrainingCycle
+	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, cycleID).First(&cycle).Error; err != nil {
+		s.notFound(w)
+		return
+	}
+
+	overrides := s.buildCycleExerciseOverrides(cycleID, ownerID, cycle.Weeks)
+	if len(overrides) == 0 {
+		// Nothing targetable in this cycle's templates, so there is no page to show.
+		// Matters most for the creation redirect: landing on an empty page after every
+		// build would be worse than not stopping here at all.
+		http.Redirect(w, r, "/training-cycles/"+strconv.FormatUint(uint64(cycleID), 10), http.StatusFound)
+		return
+	}
+
+	s.pages.CycleTargets(w, pages.CycleTargetsParams{
+		Base:              pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
+		CycleID:           cycleID,
+		CycleName:         cycle.Name,
+		CycleWeeks:        cycle.Weeks,
+		ExerciseOverrides: overrides,
+		IsNewCycle:        r.URL.Query().Get("new") == "1",
+	})
+}
+
 func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Request, cycleID uint, ownerID uint) {
 	var cycle db.TrainingCycle
 	res := s.store.DB.
@@ -702,8 +748,8 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 		})
 	}
 
-	// Load exercise targets for this cycle.
-	exerciseOverrides := s.buildCycleExerciseOverrides(cycleID, ownerID, cycle.Weeks)
+	// Only the count: the targets themselves render on /targets now.
+	targetCount := len(s.buildCycleExerciseOverrides(cycleID, ownerID, cycle.Weeks))
 
 	// Load goals; fall back to the legacy single Goal column for cycles created
 	// before multi-goals shipped (shown as one target, no "before").
@@ -731,7 +777,7 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 		CycleTemplates:     templates,
 		CycleRows:          rows,
 		TotalScheduled:     len(scheduled),
-		ExerciseOverrides:  exerciseOverrides,
+		TargetCount:        targetCount,
 		Events:             eventViews,
 	})
 }
