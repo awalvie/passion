@@ -134,6 +134,19 @@
         <a class="rounded-md btn-ghost p-2 inline-flex items-center justify-center" href="/templates/{{ .Template.ID }}/export" title="Download YAML" aria-label="Download YAML for {{ .Template.Name }}">
           <i data-lucide="download" style="width:1rem;height:1rem" aria-hidden="true"></i>
         </a>
+        {{/* type=button, not a nested form: this sits inside the activities panel, and a
+             form here would be illegal markup. The handler answers with HX-Redirect. */}}
+        <button
+          type="button"
+          class="rounded-md btn-ghost p-2 inline-flex items-center justify-center"
+          title="Delete template"
+          aria-label="Delete {{ .Template.Name }}"
+          hx-post="/templates/{{ .Template.ID }}/delete"
+          hx-swap="none"
+          hx-confirm="Delete &ldquo;{{ .Template.Name }}&rdquo;?"
+        >
+          <i data-lucide="trash-2" style="width:1rem;height:1rem;color:var(--destructive)" aria-hidden="true"></i>
+        </button>
         <a class="rounded-md btn-ghost p-2 inline-flex items-center justify-center" href="/templates" title="Back to templates" aria-label="Back to templates">
           <i data-lucide="arrow-left" style="width:1rem;height:1rem" aria-hidden="true"></i>
         </a>

@@ -1,7 +1,19 @@
 {{ define "content" }}
 <div class="card card-pad">
-  <h1 class="text-xl font-bold">Your activity templates</h1>
-  <p class="mt-1 text-sm muted">Reusable activity blueprints you can import into session templates.</p>
+  {{/* CTA shares the header row with the H1, as on templates.html and
+       exercise_library.html — out of the data-dependent filter row. */}}
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <h1 class="text-xl font-bold">Your activity templates</h1>
+      <p class="mt-1 text-sm muted">Reusable activity blueprints you can import into session templates.</p>
+    </div>
+    <a
+      href="/activity-templates/new"
+      class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md btn-primary px-4 py-2 text-sm font-medium"
+    >
+      New Activity Template
+    </a>
+  </div>
 
   <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     <div class="flex flex-wrap items-center gap-2">
@@ -37,12 +49,6 @@
       {{ end }}
       <span class="text-sm muted">{{ if .ActivityTemplates }}{{ len .ActivityTemplates }} template(s){{ else }}No activity templates yet.{{ end }}</span>
     </div>
-    <a
-      href="/activity-templates/new"
-      class="inline-flex items-center justify-center rounded-md btn-primary px-4 py-2 text-sm font-medium"
-    >
-      New Activity Template
-    </a>
   </div>
 
   {{ if .ActivityTemplates }}
@@ -55,6 +61,11 @@
          style="border-color:var(--border);background:var(--panel)">
       <a href="/activity-templates/{{ .ID }}/edit" class="min-w-0 flex-1 no-underline after:absolute after:inset-0">
         <div class="text-sm font-medium truncate">{{ .Name }}</div>
+        {{ if .Label }}
+        <div class="mt-0.5 text-[11px] muted truncate">
+          {{ range $i, $t := splitTags .Label }}{{ if $i }} &middot; {{ end }}{{ $t }}{{ end }}
+        </div>
+        {{ end }}
         {{ if .Source }}
         <div class="mt-0.5 text-[11px] muted truncate">
           <span class="inline-flex items-center gap-1 align-middle font-medium px-1.5 py-0.5 rounded" style="background:var(--accent-bg);color:var(--accent)">
@@ -63,31 +74,24 @@
         </div>
         {{ end }}
       </a>
-      <form class="relative z-10 shrink-0"
-            hx-post="/activity-templates/{{ .ID }}/delete"
-            hx-swap="none"
-            method="post"
-            hx-confirm="Delete &ldquo;{{ .Name }}&rdquo;?">
-        <button type="submit" class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
-                title="Delete" aria-label="Delete {{ .Name }}" style="color:var(--muted)"
-        ><i data-lucide="trash-2" style="width:0.9rem;height:0.9rem" aria-hidden="true"></i></button>
-      </form>
     </div>
     {{ end }}
   </div>
 
   <div class="mt-6 hidden md:block">
     <table class="w-full text-sm table-fixed">
+      {{/* Same column set as templates.html and exercise_library.html: Labels 15rem,
+           Source 12rem, Name flexes. Export and delete live on the edit page. */}}
       <colgroup>
         <col />
+        <col style="width:15rem" />
         <col style="width:12rem" />
-        <col style="width:4.5rem" />
       </colgroup>
       <thead>
         <tr class="text-left text-xs font-semibold muted">
           <th class="px-3 py-2">Name</th>
+          <th class="px-3 py-2">Labels</th>
           <th class="px-3 py-2">Source</th>
-          <th class="px-3 py-2 text-right">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -96,23 +100,15 @@
           <td class="px-3 py-2 align-middle">
             <a class="text-sm font-medium link hover:underline" href="/activity-templates/{{ .ID }}/edit">{{ .Name }}</a>
           </td>
+          <td class="px-3 py-2 align-middle text-[11px] muted truncate">
+            {{ range $i, $t := splitTags .Label }}{{ if $i }} &middot; {{ end }}{{ $t }}{{ end }}
+          </td>
           <td class="px-3 py-2 align-middle">
             {{ if .Source }}
             <span class="inline-flex max-w-full items-center gap-1 truncate text-[11px] font-medium px-1.5 py-0.5 rounded" style="background:var(--accent-bg);color:var(--accent)">
               <i data-lucide="book-marked" class="shrink-0" style="width:0.6rem;height:0.6rem" aria-hidden="true"></i>{{ .Source }}
             </span>
             {{ end }}
-          </td>
-          <td class="px-3 py-2 align-middle text-right">
-            <form class="inline"
-                  hx-post="/activity-templates/{{ .ID }}/delete"
-                  hx-swap="none"
-                  method="post"
-                  hx-confirm="Delete &ldquo;{{ .Name }}&rdquo;?">
-              <button type="submit" class="rounded btn-ghost p-1.5 inline-flex items-center justify-center"
-                      title="Delete" aria-label="Delete {{ .Name }}" style="color:var(--muted)"
-              ><i data-lucide="trash-2" style="width:0.9rem;height:0.9rem" aria-hidden="true"></i></button>
-            </form>
           </td>
         </tr>
         {{ end }}
