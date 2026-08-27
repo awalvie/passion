@@ -1,6 +1,7 @@
 package db
 
 import (
+	"log/slog"
 	"strings"
 
 	"gorm.io/driver/sqlite"
@@ -70,6 +71,9 @@ func (s *Store) AutoMigrate() error {
 	if err := s.migrateSessionJournals(); err != nil {
 		return err
 	}
+	if err := s.repairMaterialisedTickLinks(); err != nil {
+		return err
+	}
 	return s.backfillCatalogManaged(catalogManagedNew)
 }
 
@@ -136,6 +140,20 @@ func (s *Store) migrateTimedReps() error {
 		`).Error; err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// repairMaterialisedTickLinks reconnects climbing data that log-edit materialisation
+// orphaned before it carried those rows across. Runs on every boot but only finds
+// work once — see RepairMaterialisedTickLinks.
+func (s *Store) repairMaterialisedTickLinks() error {
+	n, err := RepairMaterialisedTickLinks(s.DB)
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		slog.Info("repaired climbing rows orphaned by log-edit materialisation", "rows", n)
 	}
 	return nil
 }
