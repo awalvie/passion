@@ -168,3 +168,74 @@ func TestCycleProgressLine_NoneLeftThisWeekOmitsClause(t *testing.T) {
 		t.Errorf("progress = %q, want no leftover clause when nothing is left", got)
 	}
 }
+
+// TestOpenWeekIndex covers which week the phone layout expands. Exactly one week opens,
+// and every cycle state must land on a sensible one — a cycle with no current week
+// (not started, or finished) previously had no rule at all.
+func TestOpenWeekIndex(t *testing.T) {
+	today := localDate(time.Date(2026, 8, 27, 12, 0, 0, 0, time.Local))
+
+	weeks := func(currentIdx int, n int) []pages.CycleWeekRowView {
+		rows := make([]pages.CycleWeekRowView, n)
+		for i := range rows {
+			rows[i] = pages.CycleWeekRowView{WeekNumber: i + 1, IsCurrent: i == currentIdx}
+		}
+		return rows
+	}
+
+	cases := []struct {
+		name      string
+		rows      []pages.CycleWeekRowView
+		gridStart time.Time
+		want      int
+	}{
+		{"current week wins", weeks(1, 4), today.AddDate(0, 0, -7), 1},
+		{"first week of an in-flight cycle", weeks(0, 4), today, 0},
+		{"last week of an in-flight cycle", weeks(3, 4), today.AddDate(0, 0, -21), 3},
+		{"not started yet opens week 1", weeks(-1, 4), today.AddDate(0, 0, 7), 0},
+		{"finished opens the last week", weeks(-1, 4), today.AddDate(0, 0, -70), 3},
+		{"single-week cycle", weeks(0, 1), today, 0},
+		{"no weeks at all", nil, today, -1},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := openWeekIndex(tc.rows, today, tc.gridStart); got != tc.want {
+				t.Errorf("openWeekIndex = %d, want %d", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestOpenWeekIndex_OpensExactlyOne guards the invariant the phone layout depends on:
+// more than one open week defeats the point, and none leaves the page looking empty.
+func TestOpenWeekIndex_OpensExactlyOne(t *testing.T) {
+	today := localDate(time.Date(2026, 8, 27, 12, 0, 0, 0, time.Local))
+	for _, gridStart := range []time.Time{
+		today.AddDate(0, 0, 14),  // not started
+		today.AddDate(0, 0, -7),  // in flight
+		today.AddDate(0, 0, -70), // finished
+	} {
+		rows := make([]pages.CycleWeekRowView, 4)
+		for i := range rows {
+			weekStart := gridStart.AddDate(0, 0, i*7)
+			rows[i] = pages.CycleWeekRowView{
+				WeekNumber: i + 1,
+				IsCurrent:  !today.Before(weekStart) && today.Before(weekStart.AddDate(0, 0, 7)),
+			}
+		}
+		i := openWeekIndex(rows, today, gridStart)
+		if i < 0 || i >= len(rows) {
+			t.Fatalf("gridStart %s: index %d out of range", localDateKey(gridStart), i)
+		}
+		rows[i].IsOpen = true
+		open := 0
+		for _, r := range rows {
+			if r.IsOpen {
+				open++
+			}
+		}
+		if open != 1 {
+			t.Errorf("gridStart %s: %d weeks open, want exactly 1", localDateKey(gridStart), open)
+		}
+	}
+}

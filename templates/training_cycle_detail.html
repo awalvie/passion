@@ -302,63 +302,90 @@
   </div>
 
   {{/* ── Mobile: week-by-week list ── */}}
-  <div class="md:hidden space-y-4">
+  {{/* ── Phone: week by week ────────────────────────────────────────────────
+        One week open at a time. Rest days collapse to a single line, event chips
+        sit in a band above the rows rather than fighting session names for the
+        same row, and each week gets one Add button instead of one per empty day —
+        he trains 4 of 7 days, so the old layout was mostly dashed buttons. ── */}}
+  <div class="md:hidden space-y-2">
     {{ range .CycleRows }}
-      <section class="card card-pad">
-        <h2 class="m-0 mb-2 text-[11px] font-bold muted uppercase tracking-widest">Week {{ .WeekNumber }}</h2>
-        <div class="space-y-1">
-          {{ range .Cells }}
+      <details class="card cycle-week" {{ if .IsOpen }}open{{ end }}>
+        <summary class="cycle-week-summary">
+          <span class="text-xs font-semibold">
+            Week {{ .WeekNumber }}{{ if .IsCurrent }} <span class="cycle-week-now">now</span>{{ end }}
+          </span>
+          <span class="ml-auto text-[11px] muted tabular-nums">
+            {{ if .Planned }}{{ .Done }}/{{ .Planned }} done{{ else }}no sessions{{ end }}
+          </span>
+          <i data-lucide="chevron-down" class="cycle-week-chevron" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+        </summary>
+
+        <div class="cycle-week-body">
+          {{ if .WeekEvents }}
+          <div class="flex flex-wrap gap-1.5">
+            {{ range .WeekEvents }}
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium cursor-pointer"
+                  style="background:{{ .Color }}22;color:{{ .Color }};border:1px solid {{ .Color }}44"
+                  onclick="openEditEventDialog({{ .ID }})"
+                  title="{{ .Title }}">
+              {{ .Title }}
+            </span>
+            {{ end }}
+          </div>
+          {{ end }}
+
+          {{ range .SessionCells }}
             <div
-              class="flex items-center gap-3 rounded-md px-2 py-1 group"
+              class="flex items-start gap-2 group"
               data-date-key="{{ .DateKey }}"
               data-day-number="{{ .DayNumber }}"
             >
-              <div class="w-14 shrink-0 text-xs {{ if .IsWeekend }}muted{{ else }}font-medium{{ end }}">{{ .DateLabel }}</div>
-              {{ range .Events }}
-              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium cursor-pointer"
-                    style="background:{{ .Color }}22;color:{{ .Color }};border:1px solid {{ .Color }}44"
-                    onclick="openEditEventDialog({{ .ID }})"
-                    title="{{ .Title }}">
-                {{ .Title }}
-              </span>
-              {{ end }}
-              {{ if .HasSession }}
-                <div
-                  class="session-card dnd-item flex flex-1 items-center gap-2 rounded-md border px-2 py-1.5 min-w-0{{ if .IsMissed }} cycle-session-missed{{ end }}"
-                  style="border-color: var(--border){{ if .SessionTemplateColor }}; border-left: 3px solid {{ .SessionTemplateColor }}; background: color-mix(in srgb, {{ .SessionTemplateColor }} 6%, var(--panel)){{ else }}; background: var(--card-muted){{ end }}; touch-action:none"
-                  data-session-id="{{ .SessionID }}"
-                  draggable="true"
-                  ondragstart="event.dataTransfer.setData('text/plain', this.dataset.sessionId); this.classList.add('session-dragging','dnd-item-dragging');"
-                  ondragend="this.classList.remove('session-dragging','dnd-item-dragging');"
-                  title="Drag to move · {{ .SessionTemplateName }}"
-                >
-                  <span class="dnd-handle" style="font-size:13px;touch-action:none" aria-hidden="true">⋮⋮</span>
-                  <div class="flex items-center gap-2 min-w-0 flex-1">
-                    {{ if .SessionTemplateColor }}
-                      <span class="shrink-0 rounded-full" style="width:8px;height:8px;background:{{ .SessionTemplateColor }}"></span>
-                    {{ end }}
-                    {{ if .HasCompletedRun }}<span class="cycle-session-tick" title="Completed" aria-label="Completed">✓</span>{{ end }}
-                    <div class="text-sm font-semibold break-words">{{ .SessionTemplateName }}</div>
-                  </div>
-                  <form hx-post="/training-cycles/{{ $.CycleID }}/remove" hx-swap="none" hx-confirm="Remove this session from the plan?" method="post" class="shrink-0">
-                    <input type="hidden" name="scheduled_session_id" value="{{ .SessionID }}" />
-                    <button type="submit" class="rounded-md btn-ghost p-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity" style="position:relative;z-index:1" title="Remove" aria-label="Remove session">
-                      <i data-lucide="trash-2" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
-                    </button>
-                  </form>
+              <div class="w-14 shrink-0 pt-2 text-xs {{ if .IsWeekend }}muted{{ else }}font-medium{{ end }}">{{ .DateLabel }}</div>
+              <div
+                class="session-card dnd-item flex flex-1 items-start gap-2 rounded-md border px-2 py-1.5 min-w-0{{ if .IsMissed }} cycle-session-missed{{ end }}"
+                style="border-color: var(--border){{ if .SessionTemplateColor }}; border-left: 3px solid {{ .SessionTemplateColor }}; background: color-mix(in srgb, {{ .SessionTemplateColor }} 6%, var(--panel)){{ else }}; background: var(--card-muted){{ end }}; touch-action:none"
+                data-session-id="{{ .SessionID }}"
+                draggable="true"
+                ondragstart="event.dataTransfer.setData('text/plain', this.dataset.sessionId); this.classList.add('session-dragging','dnd-item-dragging');"
+                ondragend="this.classList.remove('session-dragging','dnd-item-dragging');"
+                title="Drag to move · {{ .SessionTemplateName }}"
+              >
+                <span class="dnd-handle shrink-0" style="font-size:13px;touch-action:none;padding-top:0.15rem" aria-hidden="true">⋮⋮</span>
+                <div class="flex items-start gap-2 min-w-0 flex-1">
+                  {{ if .SessionTemplateColor }}
+                    <span class="shrink-0 rounded-full" style="width:8px;height:8px;background:{{ .SessionTemplateColor }};margin-top:0.35rem"></span>
+                  {{ end }}
+                  {{ if .HasCompletedRun }}<span class="cycle-session-tick" style="padding-top:0.1rem" title="Completed" aria-label="Completed">✓</span>{{ end }}
+                  {{/* Wraps rather than truncating: "Strength & Stretching" used to
+                       render as "Stren…" at 390px. */}}
+                  <div class="text-sm font-semibold leading-snug break-words">{{ .SessionTemplateName }}</div>
                 </div>
-              {{ else }}
-                <button
-                  type="button"
-                  class="flex-1 text-left text-xs italic muted cursor-pointer rounded-md px-2.5 py-1.5 transition-colors hover:bg-[var(--card-muted)] {{ if .IsWeekend }}opacity-50{{ end }}"
-                  style="border: 1px dashed var(--border)"
-                  data-add-date="{{ .DateKey }}"
-                >+ Add session</button>
-              {{ end }}
+                <form hx-post="/training-cycles/{{ $.CycleID }}/remove" hx-swap="none" hx-confirm="Remove this session from the plan?" method="post" class="shrink-0">
+                  <input type="hidden" name="scheduled_session_id" value="{{ .SessionID }}" />
+                  <button type="submit" class="rounded-md btn-ghost p-1 text-xs" style="position:relative;z-index:1" title="Remove" aria-label="Remove session">
+                    <i data-lucide="trash-2" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+                  </button>
+                </form>
+              </div>
             </div>
           {{ end }}
+
+          {{ if .RestLabel }}
+          <p class="cycle-week-rest">{{ .RestLabel }}</p>
+          {{ else if not .Planned }}
+          <p class="cycle-week-rest">Nothing planned this week.</p>
+          {{ end }}
+
+          {{ if .FreeDays }}
+          <button
+            type="button"
+            class="cycle-week-add"
+            data-add-week="{{ .WeekNumber }}"
+            data-free-days="{{ range $i, $d := .FreeDays }}{{ if $i }};{{ end }}{{ $d.DateKey }}|{{ $d.Label }}{{ end }}"
+          >+ Add session</button>
+          {{ end }}
         </div>
-      </section>
+      </details>
     {{ end }}
   </div>
 
@@ -522,7 +549,7 @@
           <div class="flex items-start justify-between gap-3">
             <div>
               <h3 class="m-0 text-base font-semibold">Schedule session</h3>
-              <p class="mt-1 text-sm muted">Choose a template to add to this day.</p>
+              <p class="mt-1 text-sm muted">Pick a session to add to this cycle.</p>
             </div>
             <form method="dialog">
               <button type="submit" class="rounded-md btn-ghost px-3 py-1 text-sm font-medium">Close</button>
@@ -536,6 +563,12 @@
             class="mt-4 flex flex-col gap-3"
           >
             <input type="hidden" id="add-session-date" name="scheduled_date" value="" />
+            {{/* Shown only when opened from a week's Add button, which has no single
+                 date. The desktop per-cell + keeps using the hidden input above. */}}
+            <div id="add-session-day-wrap" class="hidden">
+              <label for="add-session-day" class="mb-1 block text-xs font-medium muted">Day</label>
+              <select id="add-session-day" class="w-full input text-sm" aria-label="Choose a day"></select>
+            </div>
             <div>
               <label for="add-session-template" class="mb-1 block text-xs font-medium muted">Template</label>
               <select
@@ -579,13 +612,48 @@
     const dateInput = document.getElementById('add-session-date');
 
     // ── Add-session dialog ──
+    const dayWrap = document.getElementById('add-session-day-wrap');
+    const daySelect = document.getElementById('add-session-day');
+
+    // Desktop: the clicked cell is the date, so the picker stays hidden.
     document.querySelectorAll('[data-add-date]').forEach((btn) => {
       btn.addEventListener('click', () => {
         if (!dialog || !dateInput) return;
         dateInput.value = btn.dataset.addDate;
+        if (dayWrap) dayWrap.classList.add('hidden');
         dialog.showModal();
       });
     });
+
+    // Phone: one button per week, so the day has to be chosen. Options come from that
+    // week's days that have no session yet, encoded as "key|label;key|label".
+    document.querySelectorAll('[data-add-week]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (!dialog || !dateInput || !dayWrap || !daySelect) return;
+        const raw = btn.dataset.freeDays || '';
+        const days = raw.split(';').filter(Boolean).map((pair) => {
+          const i = pair.indexOf('|');
+          return { key: pair.slice(0, i), label: pair.slice(i + 1) };
+        });
+        if (!days.length) return;
+        daySelect.innerHTML = '';
+        days.forEach((d) => {
+          const o = document.createElement('option');
+          o.value = d.key;
+          o.textContent = d.label;
+          daySelect.appendChild(o);
+        });
+        dateInput.value = days[0].key;
+        dayWrap.classList.remove('hidden');
+        dialog.showModal();
+      });
+    });
+
+    // The select drives the hidden field the form actually submits, so both entry
+    // paths post the same `scheduled_date`.
+    if (daySelect && dateInput) {
+      daySelect.addEventListener('change', () => { dateInput.value = daySelect.value; });
+    }
 
     // ── Drag and drop (desktop grid only) ──
     const clearDropPreview = () => {

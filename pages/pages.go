@@ -163,7 +163,16 @@ type CycleDayCellView struct {
 	// IsMissed marks a planned session in the past with no completed run. Rendered dim
 	// rather than red — the plan is a suggestion, the run is what happened.
 	IsMissed bool
-	Events   []CalendarEventView
+	// WeekdayShort is "Mon", used by the phone layout's collapsed rest-day line.
+	WeekdayShort string
+	Events       []CalendarEventView
+}
+
+// CycleFreeDay is a day in a week with no session yet — an option in the phone layout's
+// per-week "Add session" day picker.
+type CycleFreeDay struct {
+	DateKey string
+	Label   string
 }
 
 type CycleWeekRowView struct {
@@ -174,6 +183,19 @@ type CycleWeekRowView struct {
 	Done    int
 	// IsCurrent marks the week containing today, which opens by default on a phone.
 	IsCurrent bool
+	// IsOpen is the week the phone layout expands. Normally the current week; the first
+	// week for a cycle that has not started, the last for one already finished.
+	IsOpen bool
+	// SessionCells are the cells worth their own row on a phone — the ones with a
+	// session. Rest days collapse into RestLabel instead of taking a row each.
+	SessionCells []CycleDayCellView
+	// RestLabel reads "Tue, Thu, Sun" — the days with neither a session nor an event.
+	RestLabel string
+	// WeekEvents are this week's calendar events, deduped, shown as a band above the day
+	// rows rather than competing with session names inside them.
+	WeekEvents []CalendarEventView
+	// FreeDays backs the per-week add-session day picker.
+	FreeDays []CycleFreeDay
 }
 
 // RunStepOption is one selectable option under an exercise_catalog menu step.

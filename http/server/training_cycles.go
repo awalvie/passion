@@ -634,6 +634,24 @@ func (s *Server) handleCycleDetailsSave(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusOK)
 }
 
+// openWeekIndex picks the single week the phone layout expands: the one containing
+// today, else the first week for a cycle that has not started and the last for one
+// already finished. Returns -1 when there are no weeks.
+func openWeekIndex(rows []pages.CycleWeekRowView, today, gridStart time.Time) int {
+	if len(rows) == 0 {
+		return -1
+	}
+	for i, row := range rows {
+		if row.IsCurrent {
+			return i
+		}
+	}
+	if today.Before(gridStart) {
+		return 0
+	}
+	return len(rows) - 1
+}
+
 // cycleProgressLine describes where the owner is in the cycle. Counts rather than a
 // percentage: at the ~16-20 sessions a cycle holds, a count says what to do next and a
 // percentage does not.
@@ -812,13 +830,14 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 			d := gridStart.AddDate(0, 0, weekIdx*7+dayIdx)
 			key := localDateKey(d)
 			cell := pages.CycleDayCellView{
-				DateKey:    key,
-				DateLabel:  d.Format("Mon 02"),
-				DayNum:     d.Format("2"),
-				DayNumber:  d.Day(),
-				IsWeekend:  d.Weekday() == time.Saturday || d.Weekday() == time.Sunday,
-				HasSession: false,
-				Events:     eventsByDateKey[key],
+				DateKey:      key,
+				DateLabel:    d.Format("Mon 02"),
+				DayNum:       d.Format("2"),
+				DayNumber:    d.Day(),
+				WeekdayShort: d.Format("Mon"),
+				IsWeekend:    d.Weekday() == time.Saturday || d.Weekday() == time.Sunday,
+				HasSession:   false,
+				Events:       eventsByDateKey[key],
 			}
 			if ss, ok := sessionsByDateKey[key]; ok {
 				cell.HasSession = true
@@ -833,21 +852,58 @@ func (s *Server) renderTrainingCycleDetail(w http.ResponseWriter, r *http.Reques
 		}
 		weekStart := gridStart.AddDate(0, 0, weekIdx*7)
 		planned, done := 0, 0
+		// The phone layout renders a row per session and collapses the rest, so the
+		// week is split up here rather than filtered in the template.
+		var sessionCells []pages.CycleDayCellView
+		var restDays []string
+		var freeDays []pages.CycleFreeDay
+		var weekEvents []pages.CalendarEventView
+		seenEvent := map[uint]bool{}
 		for _, c := range cells {
 			if c.HasSession {
 				planned++
 				if c.HasCompletedRun {
 					done++
 				}
+				sessionCells = append(sessionCells, c)
+			} else {
+				freeDays = append(freeDays, pages.CycleFreeDay{DateKey: c.DateKey, Label: c.DateLabel})
+				// A day carrying an event is not a rest day: its chip belongs in the
+				// band, and calling it rest would hide a trip or an injury week.
+				if len(c.Events) == 0 {
+					restDays = append(restDays, c.WeekdayShort)
+				}
+			}
+			for _, ev := range c.Events {
+				if !seenEvent[ev.ID] {
+					seenEvent[ev.ID] = true
+					weekEvents = append(weekEvents, ev)
+				}
 			}
 		}
+		// A week with nothing planned reads better as one sentence than as all seven
+		// weekdays listed out as rest.
+		restLabel := ""
+		if planned == 0 {
+			restLabel = ""
+		} else if len(restDays) > 0 {
+			restLabel = strings.Join(restDays, ", ") + " — rest"
+		}
 		rows = append(rows, pages.CycleWeekRowView{
-			WeekNumber: weekIdx + 1,
-			Cells:      cells,
-			Planned:    planned,
-			Done:       done,
-			IsCurrent:  !today.Before(weekStart) && today.Before(weekStart.AddDate(0, 0, 7)),
+			WeekNumber:   weekIdx + 1,
+			Cells:        cells,
+			Planned:      planned,
+			Done:         done,
+			IsCurrent:    !today.Before(weekStart) && today.Before(weekStart.AddDate(0, 0, 7)),
+			SessionCells: sessionCells,
+			RestLabel:    restLabel,
+			WeekEvents:   weekEvents,
+			FreeDays:     freeDays,
 		})
+	}
+
+	if i := openWeekIndex(rows, today, gridStart); i >= 0 {
+		rows[i].IsOpen = true
 	}
 
 	progressLine := cycleProgressLine(cycle, gridStart, gridEnd, today, rows, len(scheduled), len(completedSSID))
