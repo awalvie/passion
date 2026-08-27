@@ -11,7 +11,7 @@
 
   {{/* minmax(0,1fr): see training_log_summary.html — a bare 1fr track lets wide
        content stretch the column past the viewport. */}}
-  <div class="{{ if .DraftRunID }}flex flex-col gap-5 md:grid md:grid-cols-[minmax(0,1fr)_22rem] md:gap-6 md:items-start{{ end }}">
+  <div class="{{ if .DraftRunID }}flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-6 lg:items-start{{ end }}">
 
   {{/* LEFT column: exercise management */}}
   {{ if .DraftRunID }}
@@ -21,7 +21,7 @@
   {{ end }}
 
   {{/* RIGHT column: form */}}
-  <div class="{{ if .DraftRunID }}md:sticky md:top-6{{ end }}">
+  <div class="{{ if .DraftRunID }}lg:sticky lg:top-6{{ end }}">
 
     {{ if .FormErr }}
     <div class="mb-4 card-muted p-3 text-sm rounded-lg" style="border-left: 3px solid var(--destructive); color: var(--destructive);">
