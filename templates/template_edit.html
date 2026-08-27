@@ -8,15 +8,25 @@
       hx-swap="none"
       method="post"
     >
-      <div class="flex items-center gap-2">
+      {{/* Title owns its own line: on a phone the name, a label chip and the settings
+           button competed for one flex row, so a long name wrapped to five lines with
+           the colour dot floating in the middle of it. Labels follow as one muted
+           line, the same treatment the list pages use. */}}
+      <div class="flex items-start gap-2">
         {{ if .Template.Color }}
-        <span class="inline-block w-3 h-3 rounded-full shrink-0" style="background:{{ .Template.Color }}"></span>
+        <span class="inline-block w-3 h-3 rounded-full shrink-0 mt-2" style="background:{{ .Template.Color }}"></span>
         {{ end }}
-        <h1 class="text-xl font-bold m-0" id="tpl-title-display-{{ .Template.ID }}">{{ .Template.Name }}</h1>
-        {{ if .Template.Label }}<span class="text-xs font-medium px-1.5 py-0.5 rounded border" style="border-color:var(--border);color:var(--muted)">{{ .Template.Label }}</span>{{ end }}
+        <div class="min-w-0 flex-1">
+          <h1 class="text-xl font-bold m-0 break-words" id="tpl-title-display-{{ .Template.ID }}">{{ .Template.Name }}</h1>
+          {{ if .Template.Label }}
+          <div class="mt-1 text-[11px] muted">
+            {{ range $i, $t := splitTags .Template.Label }}{{ if $i }} &middot; {{ end }}{{ $t }}{{ end }}
+          </div>
+          {{ end }}
+        </div>
         <button
           type="button"
-          class="rounded btn-ghost px-1.5 py-1 text-xs muted"
+          class="shrink-0 rounded btn-ghost px-1.5 py-1 text-xs muted"
           title="Edit template settings"
           data-settings-toggle="tpl-settings-{{ .Template.ID }}"
         >✎</button>
