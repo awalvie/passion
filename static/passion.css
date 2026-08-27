@@ -236,11 +236,14 @@ body {
 
 /* Layout primitives */
 .passion-container {
+  /* Single source of truth for the page gutter. .site-header cancels it with a
+     negative margin, so the two must never drift — read it, don't restate it. */
+  --container-pad: 1rem;
   margin-left: auto;
   margin-right: auto;
   max-width: 72rem; /* ~6xl */
-  padding-left: 1rem;
-  padding-right: 1rem;
+  padding-left: var(--container-pad);
+  padding-right: var(--container-pad);
   padding-top: 1.5rem;
   padding-bottom: 1.5rem;
 }
@@ -585,10 +588,10 @@ details > summary::-webkit-details-marker {
   position: sticky;
   top: 0;
   z-index: 50;
-  margin-left: -1rem;
-  margin-right: -1rem;
+  margin-left: calc(-1 * var(--container-pad, 1rem));
+  margin-right: calc(-1 * var(--container-pad, 1rem));
   margin-bottom: 0.25rem;
-  padding: calc(0.75rem + env(safe-area-inset-top, 0px)) 1rem 0.5rem;
+  padding: calc(0.75rem + env(safe-area-inset-top, 0px)) var(--container-pad, 1rem) 0.5rem;
   border-bottom: 1px solid var(--border);
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(10px);
@@ -2822,10 +2825,10 @@ iframe.catalog-dialog-media {
     font-size: 1rem;
   }
 
-  /* Slightly tighter container padding on small screens */
+  /* Slightly tighter container padding on small screens. The header follows via
+     --container-pad; it used to hardcode -1rem and hung 4px off both edges. */
   .passion-container {
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
+    --container-pad: 0.75rem;
   }
 }
 
