@@ -67,6 +67,109 @@ flash 6c on TB2 (7a is the season goal), fall practice leads the lead day.
       Both were referenced by nothing before.
 - [ ] Then create the cycle itself with the guided builder.
 
+## PLAN: bring the guided-cycle fields to `/training-cycles/new`
+
+Raised 2026-08-27. The two creation routes have **diverged**, and neither is a superset:
+
+| Field | `/training-cycles/new` | `/new/guided` | Where it persists |
+|---|---|---|---|
+| name, weeks | yes | yes | `TrainingCycle` columns |
+| **start_date** | yes | **no** | `TrainingCycle.StartDate` |
+| weekday → template | yes (7 fixed selects) | yes (`day` + `session_day_N`) | `TrainingCycleWeekdayMapping` |
+| **focus** | no | yes | `TrainingCycle.Focus` |
+| **goals (before→after→how, ≤5)** | no | yes | `CycleGoal` rows |
+| **target date → weeks** | no | yes | derives `Weeks` |
+| **equipment (multi)** | no | yes | folded into `Notes` as `Equipment: …` |
+| **per-day energy** | no | yes | folded into `Notes` as `Energy: …` |
+| **deload final week** | no | yes | non-blocking `CalendarEvent` |
+| **rest window** | no | yes | `CalendarEvent` |
+| label, notes | no | no (notes written, not editable) | `TrainingCycle` |
+
+So guided is missing `start_date` and plain is missing nine things. Copying nine fields
+into the second form would double the parsing logic that already disagrees.
+
+**Steps**
+
+- [ ] 1. Extract the shared parser. One `parseCycleForm(r) (cycleInput, error)` in
+      `http/server/training_cycles.go` covering every field above, used by both handlers.
+      This is the actual fix — the divergence is a duplication bug, not a missing-field bug.
+- [ ] 2. Add `start_date` to the guided flow (it currently has no way to say "starts Monday").
+- [ ] 3. On `/training-cycles/new`, surface the full set: focus, goals, equipment, deload,
+      rest window behind a collapsed "More options" disclosure so the quick path stays quick.
+- [ ] 4. Make `label` and `notes` editable at creation on both — today they are only
+      reachable after the fact on the detail page, and `notes` gets silently overwritten
+      by the equipment/energy lines.
+- [ ] 5. Regression tests: one per handler asserting the same form produces the same
+      cycle, goals, mappings and calendar events.
+
+**Decision needed before step 1:** equipment, energy and deload live as free text inside
+`TrainingCycle.Notes`. That is fine for reference but cannot be filtered or reported on.
+If cycles should ever be searchable by equipment, those need real columns — a `schema`
+review and a migration. Ask before assuming.
+
+## PLAN: richer History metrics
+
+Raised 2026-08-27, deferred from the mobile-bug pass because it needs design, not patching.
+
+Today `/history` shows: Activity heatmap, Weekly trend, By template, Climbing (grade
+pyramid + per-discipline), Workouts. Computed in `http/server/history.go` (`handleHistory`,
+`buildClimbingView`, `computeStreaks`).
+
+**Steps**
+
+- [ ] 1. Decide the questions the page must answer before choosing charts. Candidates:
+      "am I training more or less than last block", "which grade am I converting",
+      "is volume drifting toward one discipline", "how much of the plan did I actually do".
+      Pick 4–5; everything else is noise on a phone.
+- [ ] 2. Audit what is already derivable with no schema change. Ticks carry grade, style,
+      attempts, sent, stars, duration, setting and subtype — that is enough for send rate,
+      attempts-to-send, flash rate, indoor/outdoor split and quality distribution, none of
+      which the page shows today.
+- [ ] 3. Adherence needs the plan side: `ScheduledSession` vs `SessionRun` per week gives
+      planned-vs-completed, and the skipped-step completions now recorded give
+      per-session completion. No schema change needed.
+- [ ] 4. Consult `scout` for how Crimpd / Lattice / Strong present training history before
+      designing, and `pixel` for chart-in-a-card patterns at 390px.
+- [ ] 5. Only then build, one metric per commit, each verified at 390 / 900 / 1440.
+
+**Constraint from experience:** the exercise-library redesign took eight rounds because the
+layout was chosen before the questions were settled. Settle step 1 in writing first.
+
+## PLAN: comprehensive consistency review, desktop and mobile separately
+
+Raised 2026-08-27: "there's a lot of small inconsistencies I keep finding all the time".
+The pattern so far is that each one is found by hand, in production, on a phone. The goal
+is to find them mechanically instead.
+
+**Steps**
+
+- [ ] 1. Build an automated sweep as a checked-in script (not a scratch file): walk every
+      route at 375 / 390 / 768 / 900 / 1440 against a seeded DB and assert
+      **page-level invariants** — no horizontal overflow, no element escaping the viewport,
+      no wrapped button label, every tap target ≥ 44px, no clipped text (`scrollWidth >
+      clientWidth`) outside declared scroll containers. Several of these already exist as
+      throwaway probes; the value is in keeping them.
+- [ ] 2. Seed fixtures already carry deliberately long names and 7-label rows — every
+      layout bug found so far only reproduced with content like that. Keep the sweep
+      pointed at that DB.
+- [ ] 3. Separate desktop and mobile passes, as asked: mobile checks stacking, tap targets
+      and single-column behaviour; desktop checks column alignment, table widths and
+      whether space is used.
+- [ ] 4. Then a **design-consistency** pass, which automation cannot do: dispatch `pixel`
+      over the template tree for one-off patterns — heading levels that differ per page,
+      chips vs plain text for the same field, action placement, empty-state wording,
+      filter-bar shape. Feed the findings into `docs/DESIGN.md` as rules, so the next
+      page inherits them instead of re-litigating.
+- [ ] 5. Known undocumented patterns to write into DESIGN.md while doing this: the
+      `md:`-table / mobile-card split layout, `--container-pad` as the single source of
+      the page gutter, `min-width: 0` on every grid/flex child that holds text, and
+      "labels render as one muted `·`-separated line, never as chips".
+
+**Recurring root cause worth writing down:** four separate overflow bugs this week were
+all the same thing — a grid or flex child with the default `min-width: auto` that cannot
+shrink below its content. Any new grid column holding user text needs `minmax(0, 1fr)` or
+`min-width: 0`.
+
 ## Catalog hygiene (found during the attribution sweep)
 
 - [ ] **`Final Exam I` and `Final Exam II` are not Kettle's names** — verified via a
