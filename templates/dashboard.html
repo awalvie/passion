@@ -343,7 +343,9 @@
           var unplanned = spans[i].getAttribute("data-session-unplanned") === "true";
           var runID = spans[i].getAttribute("data-session-run");
           var row = document.createElement("div");
-          row.className = "flex items-center gap-2 text-sm";
+          // min-w-0 plus a truncating name: an unclassed name span wrapped inside the
+          // flex row, so a long session name became three ragged lines on a phone.
+          row.className = "flex min-w-0 items-center gap-2 text-sm";
           // Built with textContent rather than innerHTML: session names are user-supplied.
           function part(cls, text, style) {
             var el = document.createElement("span");
@@ -357,10 +359,12 @@
             unplanned ? "border:1.5px dashed var(--muted)" : "background-color:" + (color || "var(--muted)"));
           if (unplanned) marker.title = "Not on the schedule";
           row.appendChild(marker);
-          row.appendChild(part("", name));
-          if (cycle) row.appendChild(part("text-xs muted", "· " + cycle));
-          if (unplanned) row.appendChild(part("text-xs muted", "· unplanned"));
-          if (done) row.appendChild(part("text-xs font-medium", "· Done", "color:var(--tick-sent-accent)"));
+          var nameEl = part("min-w-0 flex-1 truncate", name);
+          nameEl.title = name;
+          row.appendChild(nameEl);
+          if (cycle) row.appendChild(part("shrink-0 text-xs muted", "· " + cycle));
+          if (unplanned) row.appendChild(part("shrink-0 text-xs muted", "· unplanned"));
+          if (done) row.appendChild(part("shrink-0 text-xs font-medium", "· Done", "color:var(--tick-sent-accent)"));
           if (done && runID && runID !== "0") {
             var view = document.createElement("a");
             view.href = "/runs/" + encodeURIComponent(runID) + "/summary";
