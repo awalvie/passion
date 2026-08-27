@@ -158,12 +158,22 @@ type CycleDayCellView struct {
 	SessionTemplateName  string
 	SessionTemplateColor string
 	HasSession           bool
-	Events               []CalendarEventView
+	// HasCompletedRun is true when this planned session was actually run.
+	HasCompletedRun bool
+	// IsMissed marks a planned session in the past with no completed run. Rendered dim
+	// rather than red — the plan is a suggestion, the run is what happened.
+	IsMissed bool
+	Events   []CalendarEventView
 }
 
 type CycleWeekRowView struct {
 	WeekNumber int
 	Cells      []CycleDayCellView
+	// Planned and Done drive the collapsed week summary on a phone ("Week 2 · 2/4 done").
+	Planned int
+	Done    int
+	// IsCurrent marks the week containing today, which opens by default on a phone.
+	IsCurrent bool
 }
 
 // RunStepOption is one selectable option under an exercise_catalog menu step.
@@ -742,6 +752,9 @@ type TrainingCycleDetailParams struct {
 	CycleTemplates     []db.SessionTemplate
 	CycleRows          []CycleWeekRowView
 	TotalScheduled     int
+	// Progress replaces a static "N weeks · M sessions scheduled" chip that never
+	// changed. Counts, not a percentage: at ~16 sessions a count says what to do.
+	ProgressLine string
 	// TargetCount drives the "Exercise targets (N)" header link. The targets themselves
 	// live on their own page now, so the detail page needs only the count.
 	TargetCount int
