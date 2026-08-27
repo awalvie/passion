@@ -9,6 +9,40 @@ import (
 	"passion/pages"
 )
 
+// cycleTemplateExercise returns the template exercise a cycle target is derived from
+// — the same row buildCycleExerciseOverrides reads planned sets/reps/weight from. Used
+// to seed a newly created override row so it never starts life all-zero.
+func (s *Server) cycleTemplateExercise(cycleID, ownerID uint, libID *uint, name string) (db.Exercise, bool) {
+	var mappings []db.TrainingCycleWeekdayMapping
+	s.store.DB.Where("training_cycle_id = ? AND owner_id = ?", cycleID, ownerID).Find(&mappings)
+	if len(mappings) == 0 {
+		return db.Exercise{}, false
+	}
+	ids := make([]uint, 0, len(mappings))
+	for _, m := range mappings {
+		ids = append(ids, m.SessionTemplateID)
+	}
+
+	q := s.store.DB.
+		Joins("JOIN activities ON activities.id = exercises.activity_id").
+		Where("activities.session_template_id IN ? AND exercises.owner_id = ? "+
+			"AND exercises.kind IN ('reps_and_sets','timed_reps') "+
+			"AND exercises.parent_exercise_id IS NULL "+
+			"AND exercises.deleted_at IS NULL AND activities.deleted_at IS NULL",
+			ids, ownerID)
+	if libID != nil && *libID != 0 {
+		q = q.Where("exercises.library_exercise_id = ?", *libID)
+	} else {
+		q = q.Where("exercises.name = ?", name)
+	}
+
+	var ex db.Exercise
+	if err := q.Order("exercises.id asc").First(&ex).Error; err != nil {
+		return db.Exercise{}, false
+	}
+	return ex, true
+}
+
 func (s *Server) buildCycleExerciseOverrides(cycleID uint, ownerID uint, cycleWeeks int) []pages.CycleExerciseOverrideView {
 	var mappings []db.TrainingCycleWeekdayMapping
 	s.store.DB.Where("training_cycle_id = ? AND owner_id = ?", cycleID, ownerID).Find(&mappings)
@@ -124,10 +158,27 @@ func (s *Server) buildCycleExerciseOverrides(cycleID uint, ownerID uint, cycleWe
 		} else {
 			weekMap = weekByName[ex.Name]
 		}
-		// Fallback values: cycle override if set, else template default.
+		// Fallback values: cycle override if set, else template default. Resolved per
+		// field rather than wholesale — a zero sets/reps/rep-seconds means "not
+		// overridden", so the template value must survive. Wholesale replacement is
+		// what made the varies-by-week toggle blank out every target: it creates a
+		// bare flag row, and HasOverride is true whenever a row exists at all.
+		//
+		// Weight is deliberately excluded from the > 0 guard: 0 kg legitimately means
+		// bodyweight, so guarding it would make bodyweight impossible to set. Seeding
+		// the flag row from the template (see cycleTemplateExercise) covers weight.
 		fbSets, fbReps, fbWeight, fbSecs := v.PlannedSets, v.PlannedReps, v.PlannedWeightKg, v.PlannedRepSecs
 		if v.HasOverride {
-			fbSets, fbReps, fbWeight, fbSecs = v.OverrideSets, v.OverrideReps, v.OverrideWeightKg, v.OverrideRepSecs
+			if v.OverrideSets > 0 {
+				fbSets = v.OverrideSets
+			}
+			if v.OverrideReps > 0 {
+				fbReps = v.OverrideReps
+			}
+			if v.OverrideRepSecs > 0 {
+				fbSecs = v.OverrideRepSecs
+			}
+			fbWeight = v.OverrideWeightKg
 		}
 		v.WeekOverrides = make([]pages.CycleWeekTargetView, cycleWeeks)
 		for i := 0; i < cycleWeeks; i++ {
@@ -307,6 +358,15 @@ func (s *Server) handleCycleWeekOverrideToggle(w http.ResponseWriter, r *http.Re
 		existing = db.CycleExerciseOverride{
 			OwnerID: ownerID, TrainingCycleID: cycleID,
 			LibraryExerciseID: libIDPtr, ExerciseName: exName,
+		}
+		// Seed from the template so the row is never all-zero. An all-zero row reads as
+		// "override everything to nothing", which is how flipping this toggle used to
+		// blank out the exercise's targets for every week of the cycle.
+		if tex, ok := s.cycleTemplateExercise(cycleID, ownerID, libIDPtr, exName); ok {
+			existing.Sets = tex.Sets
+			existing.Reps = tex.Reps
+			existing.WeightKg = tex.WeightKg
+			existing.RepSeconds = tex.RepSeconds
 		}
 		s.store.DB.Create(&existing)
 	}
