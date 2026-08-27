@@ -93,7 +93,7 @@
 
 <div class="grid gap-4 md:grid-cols-2">
   <!-- Current week -->
-  <section class="card card-pad">
+  <section class="card card-pad min-w-0">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex items-center gap-1.5">
         <a href="{{ .WeekPrevURL }}" class="inline-flex items-center min-h-[2.75rem] px-1 muted hover:text-[var(--text)]" aria-label="Previous week">&larr;</a>
@@ -130,10 +130,13 @@
                   onclick="document.getElementById('scheduled-session-preview-dialog').showModal()"
                   {{ end }}
                 >
-                  <div class="flex flex-1 items-center justify-between gap-3 px-3 py-2.5">
+                  <div class="flex min-w-0 flex-1 items-center justify-between gap-3 px-3 py-2.5">
                     <div class="min-w-0">
                       <div class="text-sm font-semibold truncate">{{ .TemplateName }}</div>
-                      <div class="mt-0.5 flex items-center gap-2 text-xs muted">
+                      {{/* flex-wrap and min-w-0: unwrapped badges set this row's
+                           min-content width, which pushed the whole card past its
+                           grid track and clipped it off a phone screen. */}}
+                      <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs muted min-w-0">
                         {{ if .Done }}
                           <span class="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-medium" style="border-color:var(--tick-green-fg);background:var(--tick-green-bg);color:var(--tick-green-fg)">
                             <i data-lucide="check" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
@@ -214,7 +217,7 @@
   </section>
 
   <!-- Month calendar -->
-  <section class="card card-pad">
+  <section class="card card-pad min-w-0">
     <div class="flex items-center justify-center gap-1.5">
       <a href="{{ .MonthPrevURL }}" class="inline-flex items-center justify-center px-1 muted hover:text-[var(--text)]" aria-label="Previous month">&larr;</a>
       <h2 class="text-sm font-semibold">{{ .CalendarMonth }} <span class="font-normal muted">{{ .CalendarYear }}</span></h2>
