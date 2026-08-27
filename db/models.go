@@ -483,4 +483,11 @@ type CalendarEvent struct {
 	EndDate   time.Time `gorm:"not null"`         // local midnight, inclusive
 	Notes     string    `gorm:"type:text"`
 	Blocks    bool      `gorm:"default:true"`
+	// TrainingCycleID marks the deload and rest events a cycle builder created, so
+	// deleting the cycle can take them with it instead of leaving them stranded on the
+	// calendar. Deliberately a bare pointer with no association tag: foreign keys are
+	// enforced (_foreign_keys=on), and a declared association would add a REFERENCES
+	// clause that makes the cycle's hard delete fail. Events created by hand leave it
+	// nil and are never touched by a cycle delete.
+	TrainingCycleID *uint `gorm:"index"`
 }

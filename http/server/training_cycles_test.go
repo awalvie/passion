@@ -1167,3 +1167,127 @@ func TestHandleTrainingCyclesGuided_NonBlockingEventIsNotAConflict(t *testing.T)
 			rr.Code, http.StatusSeeOther, rr.Body.String())
 	}
 }
+
+// newCycleDeleteRequest builds the POST that deletes a cycle.
+func newCycleDeleteRequest(t *testing.T, ownerID uint) *http.Request {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, "/training-cycles/1/delete", nil)
+	ctx := context.WithValue(req.Context(), authUserIDKey, ownerID)
+	return req.WithContext(ctx)
+}
+
+// TestHandleTrainingCycleDelete_RemovesItsOwnCalendarEvents guards the fix for
+// deleting a cycle leaving its deload and rest events stranded on the calendar with
+// nothing to explain them. Events the owner added by hand must survive.
+func TestHandleTrainingCycleDelete_RemovesItsOwnCalendarEvents(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "cycle-delete-events.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "Everyday")
+
+	// Build a cycle with both a deload and a rest period through the guided flow, so
+	// the events are stamped exactly the way the real builder stamps them.
+	start := nextWeekMondayOfLocalDate(time.Now())
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Add("weeks", "3")
+	form.Add("deload", "1")
+	form.Set("rest_enabled", "1")
+	form.Set("rest_start", localDateKey(start.AddDate(0, 0, 8)))
+	form.Set("rest_end", localDateKey(start.AddDate(0, 0, 10)))
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("create: status = %d, want %d; body=%q", rr.Code, http.StatusSeeOther, rr.Body.String())
+	}
+	cycleID := cycleIDFromRedirect(t, rr)
+
+	// An unrelated event the owner added by hand.
+	manual := &db.CalendarEvent{
+		OwnerID: ownerID, Title: "Dentist", Kind: "other",
+		StartDate: start, EndDate: start,
+	}
+	if err := store.DB.Create(manual).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	var owned int64
+	if err := store.DB.Model(&db.CalendarEvent{}).
+		Where("owner_id = ? AND training_cycle_id = ?", ownerID, cycleID).Count(&owned).Error; err != nil {
+		t.Fatal(err)
+	}
+	if owned != 2 {
+		t.Fatalf("cycle-owned events = %d, want 2 (deload + rest) — they are not being stamped", owned)
+	}
+
+	rr = httptest.NewRecorder()
+	srv.handleTrainingCycleDelete(rr, newCycleDeleteRequest(t, ownerID), cycleID, ownerID)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("delete: status = %d, want %d; body=%q", rr.Code, http.StatusOK, rr.Body.String())
+	}
+
+	var left int64
+	if err := store.DB.Unscoped().Model(&db.CalendarEvent{}).
+		Where("training_cycle_id = ?", cycleID).Count(&left).Error; err != nil {
+		t.Fatal(err)
+	}
+	if left != 0 {
+		t.Errorf("cycle events left after delete = %d, want 0 (orphans on the calendar)", left)
+	}
+
+	var survived db.CalendarEvent
+	if err := store.DB.First(&survived, manual.ID).Error; err != nil {
+		t.Errorf("the hand-added event was deleted with the cycle: %v", err)
+	} else if survived.Title != "Dentist" {
+		t.Errorf("surviving event = %q, want %q", survived.Title, "Dentist")
+	}
+}
+
+// TestHandleTrainingCycleDelete_LeavesUnrelatedCycleEventsAlone guards that the
+// delete is scoped to one cycle: a second cycle's events must not be caught by it.
+func TestHandleTrainingCycleDelete_LeavesUnrelatedCycleEventsAlone(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "cycle-delete-scope.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "Everyday")
+
+	makeCycle := func() uint {
+		form := url.Values{}
+		form.Add("day", "1")
+		form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+		form.Add("weeks", "2")
+		form.Add("deload", "1")
+		srv := &Server{store: store}
+		rr := httptest.NewRecorder()
+		srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+		if rr.Code != http.StatusSeeOther {
+			t.Fatalf("create: status = %d, want %d", rr.Code, http.StatusSeeOther)
+		}
+		return cycleIDFromRedirect(t, rr)
+	}
+	doomed := makeCycle()
+	keeper := makeCycle()
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCycleDelete(rr, newCycleDeleteRequest(t, ownerID), doomed, ownerID)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("delete: status = %d, want %d", rr.Code, http.StatusOK)
+	}
+
+	var n int64
+	if err := store.DB.Model(&db.CalendarEvent{}).
+		Where("owner_id = ? AND training_cycle_id = ?", ownerID, keeper).Count(&n).Error; err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Errorf("surviving cycle's events = %d, want 1", n)
+	}
+}

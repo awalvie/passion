@@ -590,6 +590,7 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 		ev := &db.CalendarEvent{
 			OwnerID: ownerID, Title: "Deload week", Kind: "rest",
 			StartDate: ds, EndDate: localDate(ds.AddDate(0, 0, 6)),
+			TrainingCycleID: &cycleID,
 		}
 		if s.store.DB.Create(ev).Error == nil {
 			// Blocks has a DB default of true and GORM omits the false zero-value on
@@ -610,6 +611,7 @@ func (s *Server) handleTrainingCyclesGuided(w http.ResponseWriter, r *http.Reque
 			ev := &db.CalendarEvent{
 				OwnerID: ownerID, Title: "Rest period", Kind: "rest",
 				StartDate: localDate(start), EndDate: localDate(end),
+				TrainingCycleID: &cycleID,
 			}
 			if s.store.DB.Create(ev).Error == nil {
 				s.store.DB.Model(ev).Update("blocks", false)
@@ -717,6 +719,13 @@ func (s *Server) handleTrainingCycleDelete(w http.ResponseWriter, r *http.Reques
 		// cycle. The CASCADE tag isn't relied on: soft-deletes don't trigger it.
 		if err := tx.Unscoped().Where("owner_id = ? AND training_cycle_id = ?", ownerID, cycleID).
 			Delete(&db.CycleGoal{}).Error; err != nil {
+			return err
+		}
+		// The deload and rest events the builder created belong to the cycle, and used
+		// to outlive it as unexplained entries on the calendar. Events added by hand
+		// have a nil TrainingCycleID and are left alone.
+		if err := tx.Unscoped().Where("owner_id = ? AND training_cycle_id = ?", ownerID, cycleID).
+			Delete(&db.CalendarEvent{}).Error; err != nil {
 			return err
 		}
 		return tx.Unscoped().Delete(&db.TrainingCycle{}, cycleID).Error
