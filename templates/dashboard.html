@@ -64,7 +64,7 @@
     </div>
     <div class="flex items-center gap-2 shrink-0">
       <a href="/training-log/new?resume={{ .RunID }}"
-         class="btn rounded-md btn-primary px-3 py-1 text-xs font-medium">Continue →</a>
+         class="rounded-md btn-primary px-3 py-1 text-xs font-medium">Continue →</a>
       <form method="post" action="/training-log/draft/{{ .RunID }}/discard" hx-post="/training-log/draft/{{ .RunID }}/discard" hx-swap="none" hx-on:htmx:after-request="window.location.reload()">
         <button type="submit" class="rounded-md btn-ghost px-2 py-1 text-xs muted" title="Discard draft">Discard</button>
       </form>
@@ -91,7 +91,7 @@
 </div>
 {{ end }}
 
-<div class="grid gap-4 md:grid-cols-2">
+<div class="grid gap-6 md:grid-cols-2">
   <!-- Current week -->
   <section class="card card-pad min-w-0">
     <div class="flex flex-wrap items-center justify-between gap-2">
