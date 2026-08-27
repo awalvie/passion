@@ -2,12 +2,27 @@ package web
 
 import (
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
 	"passion/db"
 	"passion/pages"
 )
+
+// cycleRedirectTarget picks where an override edit should send the browser. These
+// handlers answer with HX-Redirect to reload the page, which is fine on the cycle page
+// but would bounce the owner off the standalone targets page mid-edit. HTMX sends the
+// current page in HX-Current-URL, so stay put when the edit came from there.
+func cycleRedirectTarget(r *http.Request, cycleID uint) string {
+	base := "/training-cycles/" + strconv.FormatUint(uint64(cycleID), 10)
+	if cur := r.Header.Get("HX-Current-URL"); cur != "" {
+		if u, err := url.Parse(cur); err == nil && strings.HasSuffix(u.Path, "/targets") {
+			return base + "/targets"
+		}
+	}
+	return base
+}
 
 // cycleTemplateExercise returns the template exercise a cycle target is derived from
 // — the same row buildCycleExerciseOverrides reads planned sets/reps/weight from. Used
@@ -273,7 +288,7 @@ func (s *Server) handleCycleOverrideClear(w http.ResponseWriter, r *http.Request
 	q.Delete(&db.CycleExerciseOverride{})
 	db.DeleteCycleExerciseWeekOverridesForExercise(s.store.DB, ownerID, cycleID, libIDPtr, exName)
 
-	w.Header().Set("HX-Redirect", "/training-cycles/"+strconv.FormatUint(uint64(cycleID), 10))
+	w.Header().Set("HX-Redirect", cycleRedirectTarget(r, cycleID))
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -377,6 +392,6 @@ func (s *Server) handleCycleWeekOverrideToggle(w http.ResponseWriter, r *http.Re
 		db.DeleteCycleExerciseWeekOverridesForExercise(s.store.DB, ownerID, cycleID, libIDPtr, exName)
 	}
 
-	w.Header().Set("HX-Redirect", "/training-cycles/"+strconv.FormatUint(uint64(cycleID), 10))
+	w.Header().Set("HX-Redirect", cycleRedirectTarget(r, cycleID))
 	w.WriteHeader(http.StatusOK)
 }

@@ -51,8 +51,9 @@ func newGuidedRequest(t *testing.T, ownerID uint, form url.Values) *http.Request
 	return req.WithContext(ctx)
 }
 
-// cycleIDFromRedirect extracts the numeric cycle ID from a
-// "/training-cycles/{id}" Location header set by http.Redirect.
+// cycleIDFromRedirect extracts the numeric cycle ID from a Location header set by
+// http.Redirect. Creation redirects to "/training-cycles/{id}/targets?new=1" so targets
+// are configurable at creation; other paths redirect to "/training-cycles/{id}".
 func cycleIDFromRedirect(t *testing.T, rr *httptest.ResponseRecorder) uint {
 	t.Helper()
 	loc := rr.Header().Get("Location")
@@ -60,9 +61,13 @@ func cycleIDFromRedirect(t *testing.T, rr *httptest.ResponseRecorder) uint {
 	if !strings.HasPrefix(loc, prefix) {
 		t.Fatalf("Location = %q, want prefix %q", loc, prefix)
 	}
-	id, err := strconv.ParseUint(strings.TrimPrefix(loc, prefix), 10, 64)
+	rest := strings.TrimPrefix(loc, prefix)
+	if i := strings.IndexAny(rest, "/?"); i >= 0 {
+		rest = rest[:i]
+	}
+	id, err := strconv.ParseUint(rest, 10, 64)
 	if err != nil {
-		t.Fatalf("Location %q did not end in a cycle id: %v", loc, err)
+		t.Fatalf("Location %q did not carry a cycle id: %v", loc, err)
 	}
 	return uint(id)
 }
@@ -1458,5 +1463,102 @@ func TestCycleDetailsSave_LegacyGoalColumnClearedOnlyWithGoals(t *testing.T) {
 	}
 	if got.Goal != "" {
 		t.Errorf("legacy Goal = %q, want cleared once real goals exist", got.Goal)
+	}
+}
+
+// TestHandleTrainingCyclesGuided_EndsOnTargetsPage guards the owner's condition that
+// per-cycle exercise targets stay configurable at creation, not only afterwards. The
+// target list is derived from the templates just scheduled, so it cannot be a field
+// earlier in the builder — creation ends on the targets page instead.
+func TestHandleTrainingCyclesGuided_EndsOnTargetsPage(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "guided-ends-targets.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "A")
+
+	form := url.Values{}
+	form.Add("day", "1")
+	form.Set(sessionDayKey(1), strconv.FormatUint(uint64(tpl.ID), 10))
+	form.Add("weeks", "2")
+
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.handleTrainingCyclesGuided(rr, newGuidedRequest(t, ownerID, form))
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", rr.Code, http.StatusSeeOther)
+	}
+	cycleID := cycleIDFromRedirect(t, rr)
+	want := "/training-cycles/" + strconv.FormatUint(uint64(cycleID), 10) + "/targets?new=1"
+	if got := rr.Header().Get("Location"); got != want {
+		t.Errorf("Location = %q, want %q", got, want)
+	}
+}
+
+// TestRenderCycleTargets_RedirectsWhenNothingTargetable guards that the targets page
+// never dead-ends. buildCycleExerciseOverrides only collects reps_and_sets and
+// timed_reps exercises, so a cycle whose templates hold none has no page to show —
+// landing there after every creation would be worse than not stopping at all.
+func TestRenderCycleTargets_RedirectsWhenNothingTargetable(t *testing.T) {
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "targets-empty.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+	tpl := seedGuidedTemplate(t, store, ownerID, "Climbing only")
+	cycle := &db.TrainingCycle{
+		OwnerID: ownerID, Name: "Block", Weeks: 2,
+		StartDate: nextWeekMondayOfLocalDate(time.Now()),
+	}
+	if err := store.DB.Create(cycle).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := store.DB.Create(&db.TrainingCycleWeekdayMapping{
+		OwnerID: ownerID, TrainingCycleID: cycle.ID, Weekday: 1, SessionTemplateID: tpl.ID,
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/training-cycles/1/targets?new=1", nil)
+	req = req.WithContext(context.WithValue(req.Context(), authUserIDKey, ownerID))
+	srv := &Server{store: store}
+	rr := httptest.NewRecorder()
+	srv.renderCycleTargets(rr, req, cycle.ID, ownerID)
+
+	if rr.Code != http.StatusFound {
+		t.Fatalf("status = %d, want %d (redirect through to the cycle)", rr.Code, http.StatusFound)
+	}
+	want := "/training-cycles/" + strconv.FormatUint(uint64(cycle.ID), 10)
+	if got := rr.Header().Get("Location"); got != want {
+		t.Errorf("Location = %q, want %q", got, want)
+	}
+}
+
+// TestCycleRedirectTarget_StaysOnTargetsPage guards the trap that target edits autosave
+// with HX-Redirect: without honouring HX-Current-URL, every keystroke on the standalone
+// targets page would bounce the owner back to the cycle page.
+func TestCycleRedirectTarget_StaysOnTargetsPage(t *testing.T) {
+	cases := []struct {
+		name       string
+		currentURL string
+		want       string
+	}{
+		{"from the targets page", "http://localhost:3000/training-cycles/7/targets", "/training-cycles/7/targets"},
+		{"from the targets page with a query", "http://localhost:3000/training-cycles/7/targets?new=1", "/training-cycles/7/targets"},
+		{"from the cycle page", "http://localhost:3000/training-cycles/7", "/training-cycles/7"},
+		{"no header at all", "", "/training-cycles/7"},
+		{"unparseable header", "://nonsense", "/training-cycles/7"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/training-cycles/7/override-save", nil)
+			if tc.currentURL != "" {
+				req.Header.Set("HX-Current-URL", tc.currentURL)
+			}
+			if got := cycleRedirectTarget(req, 7); got != tc.want {
+				t.Errorf("cycleRedirectTarget = %q, want %q", got, tc.want)
+			}
+		})
 	}
 }

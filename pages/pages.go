@@ -742,8 +742,23 @@ type TrainingCycleDetailParams struct {
 	CycleTemplates     []db.SessionTemplate
 	CycleRows          []CycleWeekRowView
 	TotalScheduled     int
-	ExerciseOverrides  []CycleExerciseOverrideView
-	Events             []CalendarEventView
+	// TargetCount drives the "Exercise targets (N)" header link. The targets themselves
+	// live on their own page now, so the detail page needs only the count.
+	TargetCount int
+	Events      []CalendarEventView
+}
+
+// CycleTargetsParams backs the standalone exercise-targets page. Extracted from the
+// cycle detail page, which was 714 lines with 180 of them steppers.
+type CycleTargetsParams struct {
+	Base
+	CycleID           uint
+	CycleName         string
+	CycleWeeks        int
+	ExerciseOverrides []CycleExerciseOverrideView
+	// IsNewCycle is set when the guided builder has just created this cycle, turning the
+	// page into an optional last step rather than a detour.
+	IsNewCycle bool
 }
 
 type CalendarPageParams struct {
@@ -1027,6 +1042,7 @@ func NewPages(logger *slog.Logger) (*Pages, error) {
 		{"pages/training_cycles_content", "training_cycles.html"},
 		{"pages/new_cycle_guided_content", "new_cycle_guided.html"},
 		{"pages/training_cycle_detail_content", "training_cycle_detail.html"},
+		{"pages/cycle_targets_content", "cycle_targets.html"},
 		{"pages/run_content", "run.html"},
 		{"pages/open_session_content", "open_session.html"},
 		{"pages/activity_templates_content", "activity_templates.html"},
@@ -1201,6 +1217,12 @@ func (p *Pages) TrainingCycleDetail(w http.ResponseWriter, params TrainingCycleD
 	params.Title = "Training Cycle: " + params.CycleName
 	params.Authenticated = true
 	p.renderPage(w, "pages/training_cycle_detail_content", params)
+}
+
+func (p *Pages) CycleTargets(w http.ResponseWriter, params CycleTargetsParams) {
+	params.Title = "Exercise targets: " + params.CycleName
+	params.Authenticated = true
+	p.renderPage(w, "pages/cycle_targets_content", params)
 }
 
 func (p *Pages) NewActivityTemplate(w http.ResponseWriter, params NewActivityTemplateParams) {
