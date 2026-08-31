@@ -4,6 +4,7 @@ label: "boulder, power, fingers"
 needs: "Tension Board 2"
 activities:
   - ref: "Warm Up"
+  - ref: "Finger Warm-Up"
   - ref: "Wall Crawls"
   - ref: "Movement Practice: Board"
   - type: "activity"

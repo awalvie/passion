@@ -1,0 +1,17 @@
+name: "Warmup Pulls"
+label: "warmup, fingers"
+kind: "timed_reps"
+sets: 4
+reps: 2
+rep_seconds: 6
+set_rest_seconds: 60
+prep_seconds: 10
+notes: |
+  Portable fingerboard, anchored under a foot or clipped to a rope. 20mm edge,
+  half crimp or chisel — whichever feels best that day.
+
+  Build gently to a firm pull over 5-8s, then relax. Pull with the fingers, not
+  by yanking from the shoulder.
+
+  Sub-max only this cycle — this is a warm-up, never a maximal effort. One pull
+  each hand is a set; go at your own pace and stop when the fingers feel awake.

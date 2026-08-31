@@ -1,15 +1,20 @@
 name: "Movement Practice: Lead"
-label: "technique, warmup, route"
+label: "technique, warmup, lead"
 exercises:
   - name: "Movement Practice: Lead"
     kind: "exercise_catalog"
     notes: |
-      One drill per session, on easy lead or auto-belay before the real work.
+      One drill per session, in the warm-up ladder. Never at the end — tired
+      practice degrades learning.
 
-      Lead days: breathing and composure. The point is holding it together
-      when it gets scary, so practise it when it isn't.
+      Pick whichever fits the day. Lead days: breathing, committing, staying relaxed above the bolt.
+      Well below limit.
     children:
+      - ref: "Eyes, Feet, Hips, Hands"
+      - ref: "Soft Hands"
       - ref: "Matched Breath"
       - ref: "Sink to Zero Progression"
       - ref: "Slackjaw"
       - ref: "Silent Feet"
+      - ref: "Straight Arms + Relaxed Grip"
+      - ref: "Fluid Style"

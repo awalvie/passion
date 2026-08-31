@@ -3,6 +3,7 @@ color: "#5d86c9"
 label: "endurance, boulder"
 activities:
   - ref: "Warm Up"
+  - ref: "Finger Warm-Up"
   - ref: "Movement Practice: Endurance"
   - type: "activity"
     name: "Campus"

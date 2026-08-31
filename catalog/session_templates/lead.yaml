@@ -4,6 +4,7 @@ label: "route, tactics"
 needs: "Rope, or auto-belay plus a 10 m spare rope"
 activities:
   - ref: "Warm Up"
+  - ref: "Finger Warm-Up"
   - ref: "Movement Practice: Lead"
   - type: "activity"
     name: "Head First"
