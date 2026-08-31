@@ -1,6 +1,6 @@
 name: "Limit Bouldering (Paradigm)"
 source: "Paradigm Climbing"
-color: "#84cc16"
+color: "#7ba33f"
 label: "boulder, power, fingers"
 activities:
   - ref: "Warm Up"

@@ -1,6 +1,6 @@
 name: "Explore"
 source: "Power Company Climbing"
-color: "#a855f7"
+color: "#9c68cd"
 label: "technique, tactics, boulder"
 activities:
   - ref: "Warm Up"
