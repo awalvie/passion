@@ -1,0 +1,15 @@
+name: "90/90 Hold"
+label: "cooldown, mobility"
+kind: "timed_reps"
+sets: 1
+reps: 2
+rep_seconds: 45
+set_rest_seconds: 0
+prep_seconds: 10
+media:
+  - video_url: "https://www.youtube.com/watch?v=VYvMMw8z3rE"
+    thumbnail_url: "https://i.ytimg.com/vi/VYvMMw8z3rE/maxresdefault.jpg"
+notes: |
+  Front shin across you at 90°, back leg 90° behind. Sit tall.
+
+  Front leg is your heel hook, back leg your drop knee. 45s, then switch.

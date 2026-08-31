@@ -1,0 +1,16 @@
+name: "Frog Stretch"
+label: "cooldown, mobility"
+kind: "timed_reps"
+sets: 2
+reps: 1
+rep_seconds: 60
+set_rest_seconds: 30
+prep_seconds: 10
+media:
+  - video_url: "https://www.youtube.com/watch?v=JzOkzgDuHzY"
+    thumbnail_url: "https://i.ytimg.com/vi/JzOkzgDuHzY/maxresdefault.jpg"
+notes: |
+  Knees wide, shins in line with the knees, forearms on the floor.
+
+  Rock back only to the point before the low back rounds. Back off if the
+  inside of the knee complains.

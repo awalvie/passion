@@ -1,0 +1,16 @@
+name: "Forearms & Fingers"
+label: "cooldown, mobility, fingers"
+kind: "timed_reps"
+sets: 1
+reps: 4
+rep_seconds: 30
+set_rest_seconds: 0
+prep_seconds: 10
+media:
+  - video_url: "https://www.youtube.com/watch?v=fTIW6qSYnX4"
+    thumbnail_url: "https://i.ytimg.com/vi/fTIW6qSYnX4/maxresdefault.jpg"
+notes: |
+  Arm straight, palm up — pull the fingers back gently. 30s.
+  Then palm down — pull the hand toward you. 30s.
+
+  Both arms. Mild, never sharp.

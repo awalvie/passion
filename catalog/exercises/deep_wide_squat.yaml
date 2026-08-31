@@ -1,0 +1,16 @@
+name: "Deep Wide Squat"
+label: "cooldown, mobility"
+kind: "timed_reps"
+sets: 1
+reps: 1
+rep_seconds: 60
+set_rest_seconds: 0
+prep_seconds: 10
+media:
+  - video_url: "https://www.youtube.com/watch?v=wDSYGEXvDIM"
+    thumbnail_url: "https://i.ytimg.com/vi/wDSYGEXvDIM/maxresdefault.jpg"
+notes: |
+  Feet wide, toes slightly out. Sink all the way down, elbows inside the
+  knees, pushing them open.
+
+  Heels stay down. If they lift, narrow the stance until they don't.
