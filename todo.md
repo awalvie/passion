@@ -98,6 +98,68 @@ real fields. Shipped in 4abc246, with the four Phase 0 bugs in af945d6, 19c641f,
 66f6420, e8384eb. Remaining cycle work is Phases 2-4, planned in
 `scratchpad/cycle_plan_phase234.md`.
 
+## PLAN: import BoardSesh sessions into Passion
+
+Raised 2026-08-31. Board sessions are logged in BoardSesh; the goal is to pull them in
+as Passion sessions rather than re-typing them.
+
+**Feasible.** BoardSesh has a real user data export (verified in
+`github.com/boardsesh/boardsesh`, `packages/backend/src/handlers/user-data-export.ts`
+and `services/user-data-export-format.ts`):
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/user-data-export?boardType=kilter` | request generation |
+| `GET /api/user-data-export` | status — 202 while generating, 501 if unavailable |
+| `GET /api/user-data-export/download` | the JSON |
+
+Auth is `Authorization: Bearer <token>`, validated by `validateToken`. Note the public
+docs at boardsesh.com/docs mention only NextAuth session cookies — the code shows a
+bearer path on these endpoints, so trust the code.
+
+### Field mapping onto `ClimbingTick`
+
+| BoardSesh | Passion | Note |
+|---|---|---|
+| `status` (`flash`/`send`/`attempt`) | `Style` + `Sent` | their three-way split matches ours |
+| `attemptCount` / `count` | `Attempts` | |
+| `stars` / `quality` | `Stars` | already 0–3, nullable there |
+| `grade` / `difficultyName` | `Grade` | `difficulty` is nullable by design |
+| `climbed_at` | the run's date | |
+| `climb` (name) | **missing** | needs a column |
+| `angle` | **missing** | needs a column |
+
+Board climbs are already `Kind: boulder`, `Setting: indoor`, `Subtype: board` here, and
+`ClimbingExerciseMeta.BoardKind` can carry kilter/tension.
+
+### Steps
+
+- [ ] 1. **Resolve the open question first: how to get a bearer token outside their app.**
+      Everything else is wasted if there is no non-interactive way to obtain one. If there
+      isn't, file a feature request upstream — it is open source, and a personal access
+      token is the durable answer.
+- [ ] 2. Add two columns to `ClimbingTick`: a climb name and an angle. Additive and
+      nullable; every other tick source leaves them empty. `schema` review before landing.
+- [ ] 3. Read `docs/ascents-and-attempts.md` in their repo before choosing the grouping.
+      They have their own Sessions concept; decide whether one Passion session is one day
+      or their session. Their ticks are deliberately **not** deduplicated, so several goes
+      on one problem must stay separate rows.
+- [ ] 4. Parser + importer. Ticks need a `RunID` and an `ExerciseID`, so an import creates
+      a manual `SessionRun` per group plus one climbing exercise to hang ticks on — the
+      manual-log path (`is_manual`, `is_draft`) already does exactly this, so reuse it.
+- [ ] 5. Import screen with a dry-run preview, and a dedupe key so importing twice does
+      not double the logbook. Candidate key: (climbed_at, climb name, angle, board).
+      There is no CSV or file-import code anywhere in Passion yet — this is a new surface.
+
+### Rejected alternatives
+
+- **BoardLib CSV** (`boardlib logbook kilter --username=... --output=...`). Talks to
+  Aurora, whose Kilter backend Aurora shut down on 25 March; BoardSesh's Aurora proxy
+  endpoints 404 from 2026-10-01. Do not build on it.
+- **Storing BoardSesh credentials and reusing a session cookie.** Works until they touch
+  NextAuth or CSRF, and puts a password in this app. Not worth it.
+- **Aurora's emailed JSON export.** One-off, and only useful for pre-shutdown history.
+
 ## PLAN: richer History metrics
 
 Raised 2026-08-27, deferred from the mobile-bug pass because it needs design, not patching.
