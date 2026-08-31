@@ -1,18 +1,17 @@
 name: "Movement Practice: Endurance"
-source: "Neil Gresham"
-label: "technique, warmup"
+label: "technique, warmup, endurance"
 exercises:
   - name: "Movement Practice: Endurance"
     kind: "exercise_catalog"
     notes: |
-      One rung per session, in the warm-up. Never at the end.
+      One drill per session, in the warm-up ladder. Never at the end — tired
+      practice degrades learning.
 
-      Work up the ladder, don't rotate. Move up only when the current rung is
-      solid — and keep holding it as you add the next. Expect rungs 1-2 this
-      cycle.
-
-      Zero pump.
+      Pick whichever fits the day. Endurance days: pace, grip economy, staying loose.
+      Well below limit.
     children:
+      - ref: "Eyes, Feet, Hips, Hands"
+      - ref: "Soft Hands"
       - ref: "Silent Feet"
       - ref: "Straight Arms + Relaxed Grip"
       - ref: "Grip Tipping Point"

@@ -1,0 +1,4 @@
+name: "Finger Warm-Up"
+label: "warmup, fingers"
+exercises:
+  - ref: "Warmup Pulls"
