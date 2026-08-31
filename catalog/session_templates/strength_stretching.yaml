@@ -1,24 +1,28 @@
 name: "Strength & Stretching"
 color: "#9c68cd"
 label: "strength, fingers, mobility"
-needs: "Hangboard, barbell or dumbbells"
+needs: "Hangboard, barbell or dumbbells, cable machine"
 activities:
-  - ref: "Synovial & Fascia Warm-Up"
+  - ref: "Warm Up"
+  - ref: "Mobility"
+    name: "Mobility — done fresh, before the lifting"
   - ref: "Integrated Strength: A"
-    name: "A — Fingers, hinge, hips"
+    name: "A — Fingers, pull, lift"
   - ref: "Integrated Strength: B"
-    name: "B — Fingers, press, shoulders"
+    name: "B — Fingers, rotation, posterior"
   - ref: "Integrated Strength: C"
-    name: "C — Fingers, midsection, splits"
+    name: "C — Fingers, midsection"
   - type: "activity"
     name: "Prehab"
     exercises:
       - name: "Prehab (optional)"
         kind: "exercise_catalog"
         notes: |
-          Optional. Pressing is already covered in group B.
+          Optional. Shoulder and elbow insurance — pick one, keep it light.
         children:
           - ref: "External Rotations"
           - ref: "Lateral Raise"
           - ref: "Tricep Extensions"
+          - ref: "Face Pulls"
+          - ref: "Overhead Press"
   - ref: "Cooldown Stretch"

@@ -1,13 +1,21 @@
 name: "Integrated Strength: A"
 source: "Logical Progression"
-label: "strength, fingers, mobility"
+label: "strength, fingers"
 exercises:
   - ref: "Hangboard Ladder: Half Crimp"
-  - name: "Lift — hinge or squat"
+  - name: "Pull"
     kind: "exercise_catalog"
     notes: |
-      Pick one. Keep it heavy — low load and low reps gets you nowhere.
+      Pick one. Goes before the heavy lift — this is the one that matters most.
+    children:
+      - ref: "Weighted Pull-ups"
+      - ref: "Bar/Ring Rows"
+  - name: "Lift — hinge, squat or press"
+    kind: "exercise_catalog"
+    notes: |
+      Pick one, whichever you feel like. Keep it heavy — low load and low reps
+      gets you nowhere.
     children:
       - ref: "Deadlift"
       - ref: "Front Squat"
-  - ref: "Tailor's Pose"
+      - ref: "Bench Press"

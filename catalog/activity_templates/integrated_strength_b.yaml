@@ -1,13 +1,14 @@
 name: "Integrated Strength: B"
 source: "Logical Progression"
-label: "strength, fingers, mobility"
+label: "strength, fingers, core"
 exercises:
   - ref: "Hangboard Ladder: Open Hand"
-  - name: "Lift — press"
+  - ref: "Cable Axe Chops"
+  - name: "Posterior chain"
     kind: "exercise_catalog"
     notes: |
-      Pick one. Keep it heavy — low load and low reps gets you nowhere.
+      Pick one. This is the heel-hook end of your strength — nothing else in
+      the day trains it.
     children:
-      - ref: "Push-Up Variation"
-      - ref: "Overhead Press"
-  - ref: "Doorway Shoulder Opener"
+      - ref: "Single Leg Romanian Deadlift"
+      - ref: "Heel-Hook Isometric Pull 60, 90, 120 Degrees"
