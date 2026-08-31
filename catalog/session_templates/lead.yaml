@@ -1,5 +1,5 @@
 name: "Lead"
-color: "#f59e0b"
+color: "#c09040"
 label: "route, tactics"
 needs: "Rope, or auto-belay plus a 10 m spare rope"
 activities:

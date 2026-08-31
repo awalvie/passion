@@ -1,5 +1,5 @@
 name: "Endurance"
-color: "#3b82f6"
+color: "#5d86c9"
 label: "endurance, boulder"
 activities:
   - ref: "Warm Up"

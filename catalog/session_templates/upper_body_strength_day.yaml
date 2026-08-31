@@ -1,5 +1,5 @@
 name: "Upper Body Strength Day"
-color: "#3b82f6"
+color: "#5d86c9"
 label: "strength, antagonist"
 activities:
   - ref: "Warm Up"
