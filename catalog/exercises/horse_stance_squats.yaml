@@ -4,7 +4,9 @@ kind: "timed_reps"
 sets: 2
 reps: 6
 rep_seconds: 6
-set_rest_seconds: 300
+rep_rest_seconds: 3
+set_rest_seconds: 30
+prep_seconds: 5
 media:
   - video_url: "https://www.youtube.com/watch?v=_IZ-te1nkdk"
     thumbnail_url: "https://i.ytimg.com/vi/_IZ-te1nkdk/maxresdefault.jpg"

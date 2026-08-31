@@ -6,6 +6,7 @@ sets: 2
 reps: 1
 rep_seconds: 10
 set_rest_seconds: 300
+prep_seconds: 10
 media:
   - video_url: "https://www.youtube.com/watch?v=aDeEkQ0g5cA"
     thumbnail_url: "https://i.ytimg.com/vi/aDeEkQ0g5cA/maxresdefault.jpg"

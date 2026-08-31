@@ -6,5 +6,6 @@ sets: 3
 reps: 1
 rep_seconds: 60
 set_rest_seconds: 15
+prep_seconds: 10
 notes: |
   Forearms on the frame, step through, chest forward. Breathe into it.

@@ -4,6 +4,7 @@ label: "hangboard, fingers, strength"
 kind: "timed_reps"
 sets: 3
 reps: 3
+prep_seconds: 10
 rung_seconds: "3,6,9"
 rep_rest_seconds: 60
 notes: |
