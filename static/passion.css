@@ -1891,9 +1891,62 @@ button.run-hero-icon:hover {
   color: var(--muted);
 }
 
+/* --- Timer phase feedback -------------------------------------------------
+   The four states have to be tellable apart at a glance, mid-exercise, on a
+   phone — so colour carries them, not just the label text. Traffic-light
+   order: idle grey, prep amber ("not yet"), work green ("go"), rest blue.
+   All from existing token families so both themes invert correctly. */
 .run-phase-text {
   text-align: center;
   font-size: 0.8rem;
+  width: fit-content;
+  margin-inline: auto;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: color 120ms ease, background-color 120ms ease, border-color 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run-phase-text {
+    transition: none;
+  }
+}
+
+.run-phase-text[data-phase="idle"] {
+  color: var(--muted);
+}
+
+.run-phase-text[data-phase="prep"] {
+  color: var(--warn-fg);
+  background: var(--warn-bg);
+  border-color: var(--warn-border);
+}
+
+.run-phase-text[data-phase="work"] {
+  color: var(--tick-green-fg);
+  background: var(--tick-green-bg);
+  border-color: color-mix(in srgb, var(--tick-green-fg) 45%, transparent);
+}
+
+.run-phase-text[data-phase="rest"] {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+
+.run-main-timer[data-phase="prep"] {
+  color: var(--warn-fg);
+}
+
+.run-main-timer[data-phase="work"] {
+  color: var(--tick-green-fg);
+}
+
+.run-main-timer[data-phase="rest"] {
+  color: var(--accent);
 }
 
 .run-up-next-row {
@@ -2102,13 +2155,15 @@ button.run-hero-icon:hover {
   padding: 0.45rem 0.25rem calc(0.45rem + env(safe-area-inset-bottom));
 }
 
+/* Resting uses the accent family here too, so "rest" reads the same in the
+   playlist as it does on the timer. */
 .run-playlist-row-resting {
-  border-color: color-mix(in srgb, var(--warning, #d97706) 60%, var(--border));
-  background: color-mix(in srgb, var(--warning, #d97706) 15%, var(--card-muted));
+  border-color: var(--accent-border);
+  background: color-mix(in srgb, var(--accent) 12%, var(--card-muted));
 }
 
 .run-playlist-row-resting .run-playlist-marker {
-  background: var(--warning, #d97706);
+  background: var(--accent);
 }
 
 .run-collapse {
@@ -2151,12 +2206,9 @@ button.run-hero-icon:hover {
   background: var(--accent-bg);
 }
 
-.run-timer-panel-overtime {
-  color: var(--warning, #d97706);
-}
-
-.run-timer-panel-rest {
-  color: var(--warning, #d97706);
+/* Two classes so overtime still wins over the [data-phase] colour below. */
+.run-main-timer.run-timer-panel-overtime {
+  color: var(--warn-fg);
 }
 
 .run-feedback {

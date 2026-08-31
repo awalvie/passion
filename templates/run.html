@@ -447,7 +447,7 @@
         <div class="run-main-timer" id="exercise-timer-display">
           <span id="exercise-timer-main">00:00</span><span id="exercise-timer-fraction" class="run-timer-frac">.00</span>
         </div>
-        <div class="run-phase-text muted" id="exercise-timer-state">Waiting to start</div>
+        <div class="run-phase-text" id="exercise-timer-state" data-phase="idle">Waiting to start</div>
         {{ if .CurrentStep.TemplateNotes }}
         <details class="run-notes-card">
           <summary class="run-collapse-toggle"><i data-lucide="book-open" class="run-collapse-icon"></i><i data-lucide="chevron-right" class="run-collapse-chevron"></i> Exercise notes</summary>
@@ -1009,10 +1009,21 @@
         }
 
         // --- Phase color feedback ---
+        // data-phase drives both the big digits and the label chip: prep, work and
+        // rest each get their own colour, since a label alone is too easy to miss
+        // mid-exercise.
+        function currentPhaseName() {
+          if (!hasStartedPlayback) return "idle";
+          if (isSessionExercise) return "work";
+          if (phase === "prep") return "prep";
+          if (phase === "rep_rest" || phase === "set_rest") return "rest";
+          return "work";
+        }
+
         function updateTimerPhaseClass() {
-          if (!timerPanel) return;
-          timerPanel.classList.toggle("run-timer-panel-rest",
-            !isSessionExercise && (phase === "rep_rest" || phase === "set_rest") && hasStartedPlayback);
+          const name = currentPhaseName();
+          if (timerPanel) timerPanel.dataset.phase = name;
+          if (timerState) timerState.dataset.phase = name;
         }
 
         function setPhase(nextPhase) {
@@ -1120,7 +1131,8 @@
           if (!hasStartedPlayback) {
             renderExerciseTimer(initialWorkSeconds);
             timerState.textContent = phaseLabel();
-            timerPanel.classList.remove("run-timer-panel-overtime", "run-timer-panel-rest");
+            timerPanel.classList.remove("run-timer-panel-overtime");
+            updateTimerPhaseClass();
             return;
           }
 
