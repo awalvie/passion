@@ -1,6 +1,6 @@
 name: "Integrated Strength: C"
 source: "Logical Progression"
-label: "strength, fingers, mobility"
+label: "strength, fingers"
 exercises:
   - ref: "Hangboard Ladder: Full Crimp"
   - name: "Lift — midsection"
@@ -10,4 +10,3 @@ exercises:
     children:
       - ref: "Hanging Straight Leg Raise"
       - ref: "TRX/Rings Body Saws"
-  - ref: "Middle Splits Hold"
