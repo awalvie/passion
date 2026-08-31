@@ -1,0 +1,16 @@
+name: "Butcher Block"
+label: "cooldown, mobility, shoulders"
+kind: "timed_reps"
+sets: 1
+reps: 1
+rep_seconds: 60
+set_rest_seconds: 0
+prep_seconds: 10
+media:
+  - video_url: "https://www.youtube.com/watch?v=oDnP3sPkdO0"
+    thumbnail_url: "https://i.ytimg.com/vi/oDnP3sPkdO0/maxresdefault.jpg"
+notes: |
+  Forearms on a bench or table, elbows shoulder-width. Walk the hips back.
+
+  Ribs down and tailbone tucked first, then let the chest drop. You should
+  feel it in the armpits, not the low back.

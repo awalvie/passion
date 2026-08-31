@@ -1,0 +1,13 @@
+name: "Active 90/90"
+label: "mobility, strength"
+kind: "reps_and_sets"
+sets: 2
+reps: 8
+set_rest_seconds: 45
+media:
+  - video_url: "https://www.youtube.com/watch?v=xPxRrOwLUHI"
+    thumbnail_url: "https://i.ytimg.com/vi/xPxRrOwLUHI/maxresdefault.jpg"
+notes: |
+  Sit in 90/90. Swing the knees floor to floor without using your hands.
+
+  Slow. If you need the hands, shrink the range until you don't.

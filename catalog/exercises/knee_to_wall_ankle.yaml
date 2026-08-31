@@ -1,0 +1,16 @@
+name: "Knee-to-Wall Ankle"
+label: "mobility"
+kind: "timed_reps"
+sets: 2
+reps: 2
+rep_seconds: 30
+set_rest_seconds: 30
+prep_seconds: 5
+media:
+  - video_url: "https://www.youtube.com/watch?v=Y1IZXkdPPdw"
+    thumbnail_url: "https://i.ytimg.com/vi/Y1IZXkdPPdw/maxresdefault.jpg"
+notes: |
+  Foot a few inches from a wall. Drive the knee forward to touch the wall,
+  heel flat on the floor.
+
+  Back the foot off until the wall is only just reachable. Each side.

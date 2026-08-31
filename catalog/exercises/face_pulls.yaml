@@ -1,0 +1,15 @@
+name: "Face Pulls"
+label: "antagonist, strength, prehab"
+kind: "reps_and_sets"
+sets: 3
+reps: 15
+set_rest_seconds: 60
+media:
+  - video_url: "https://www.youtube.com/watch?v=eTCBSFlCJ_s"
+    thumbnail_url: "https://i.ytimg.com/vi/eTCBSFlCJ_s/maxresdefault.jpg"
+notes: |
+  Rope or band at face height. Pull to your forehead, elbows high, thumbs
+  back at the end.
+
+  Light. Squeeze the shoulder blades together — don't lean back to move
+  more weight.

@@ -1,0 +1,15 @@
+name: "Cossack Squat"
+label: "mobility, strength"
+kind: "reps_and_sets"
+sets: 2
+reps: 5
+set_rest_seconds: 60
+media:
+  - video_url: "https://www.youtube.com/watch?v=JaCbmoDqUc4"
+    thumbnail_url: "https://i.ytimg.com/vi/JaCbmoDqUc4/maxresdefault.jpg"
+notes: |
+  Wide stance. Sink onto one leg, other leg straight with the toe up.
+  Slow down, slow up.
+
+  A light weight held at the chest helps you get deeper. Stop at the depth
+  where the pelvis starts to tuck under.
