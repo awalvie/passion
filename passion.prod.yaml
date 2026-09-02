@@ -14,7 +14,13 @@ Auth:
 
 YAMLImport:
   Enabled: true
-  ExercisesDir: "/opt/passion/catalog/exercises"
-  SessionTemplatesDir: "/opt/passion/catalog/session_templates"
-  ActivityTemplatesDir: "/opt/passion/catalog/activity_templates"
+  ExercisesDir:
+    - "/opt/passion/catalog/exercises"
+    - "/opt/passion/catalog-private/exercises"
+  SessionTemplatesDir:
+    - "/opt/passion/catalog/session_templates"
+    - "/opt/passion/catalog-private/session_templates"
+  ActivityTemplatesDir:
+    - "/opt/passion/catalog/activity_templates"
+    - "/opt/passion/catalog-private/activity_templates"
   OwnerID: 1
