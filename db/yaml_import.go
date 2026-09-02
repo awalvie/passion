@@ -15,9 +15,9 @@ import (
 
 type YAMLImportOptions struct {
 	OwnerID              uint
-	ExercisesDir         string
-	SessionTemplatesDir  string
-	ActivityTemplatesDir string
+	ExercisesDir         []string
+	SessionTemplatesDir  []string
+	ActivityTemplatesDir []string
 }
 
 type yamlExerciseDoc struct {
@@ -100,13 +100,13 @@ func (s *Store) ImportYAML(opts YAMLImportOptions) error {
 	if opts.OwnerID == 0 {
 		return errors.New("yaml import owner id must be positive")
 	}
-	exercisesDir := strings.TrimSpace(opts.ExercisesDir)
-	templatesDir := strings.TrimSpace(opts.SessionTemplatesDir)
-	if exercisesDir == "" || templatesDir == "" {
+	exercisesDirs := trimDirs(opts.ExercisesDir)
+	templatesDirs := trimDirs(opts.SessionTemplatesDir)
+	if len(exercisesDirs) == 0 || len(templatesDirs) == 0 {
 		return errors.New("yaml import directories are required")
 	}
 
-	libraryExercises, err := loadExerciseYAML(exercisesDir)
+	libraryExercises, err := loadExerciseYAML(exercisesDirs)
 	if err != nil {
 		return err
 	}
@@ -121,8 +121,8 @@ func (s *Store) ImportYAML(opts YAMLImportOptions) error {
 
 	// Activity templates are optional — skip if dir not configured.
 	var activityTemplates []yamlActivityTemplate
-	if activityTemplatesDir := strings.TrimSpace(opts.ActivityTemplatesDir); activityTemplatesDir != "" {
-		activityTemplates, err = loadActivityTemplateYAML(activityTemplatesDir)
+	if activityTemplatesDirs := trimDirs(opts.ActivityTemplatesDir); len(activityTemplatesDirs) > 0 {
+		activityTemplates, err = loadActivityTemplateYAML(activityTemplatesDirs)
 		if err != nil {
 			return err
 		}
@@ -136,7 +136,7 @@ func (s *Store) ImportYAML(opts YAMLImportOptions) error {
 		resolvedActivityTemplateMap[strings.TrimSpace(at.Name)] = at
 	}
 
-	sessionTemplates, err := loadSessionTemplateYAML(templatesDir)
+	sessionTemplates, err := loadSessionTemplateYAML(templatesDirs)
 	if err != nil {
 		return err
 	}
@@ -317,8 +317,8 @@ func deleteExercisesAndMedia(tx *gorm.DB, cond string, arg any) error {
 	return tx.Unscoped().Where(cond, arg).Delete(&Exercise{}).Error
 }
 
-func loadExerciseYAML(dir string) ([]yamlExercise, error) {
-	paths, err := listYAMLFiles(dir)
+func loadExerciseYAML(dirs []string) ([]yamlExercise, error) {
+	paths, err := listYAMLFiles(dirs)
 	if err != nil {
 		return nil, err
 	}
@@ -337,8 +337,8 @@ func loadExerciseYAML(dir string) ([]yamlExercise, error) {
 	return out, nil
 }
 
-func loadSessionTemplateYAML(dir string) ([]yamlSessionTemplate, error) {
-	paths, err := listYAMLFiles(dir)
+func loadSessionTemplateYAML(dirs []string) ([]yamlSessionTemplate, error) {
+	paths, err := listYAMLFiles(dirs)
 	if err != nil {
 		return nil, err
 	}
@@ -357,30 +357,51 @@ func loadSessionTemplateYAML(dir string) ([]yamlSessionTemplate, error) {
 	return out, nil
 }
 
-// listYAMLFiles returns every .yaml/.yml file under dir, walking subdirectories so the
-// catalog can be organised into folders (by program, say). Layout carries no meaning to
-// the importer — an entry's identity is its name field, not its path — so files can be
-// moved freely without triggering a rename or a prune. Hidden directories are skipped.
-func listYAMLFiles(dir string) ([]string, error) {
-	var files []string
-	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
+// trimDirs drops blank entries so a stray comma in configuration is not read as a
+// directory named "".
+func trimDirs(in []string) []string {
+	out := make([]string, 0, len(in))
+	for _, s := range in {
+		if s = strings.TrimSpace(s); s != "" {
+			out = append(out, s)
 		}
-		if d.IsDir() {
-			if p != dir && strings.HasPrefix(d.Name(), ".") {
-				return fs.SkipDir
+	}
+	return out
+}
+
+// listYAMLFiles returns every .yaml/.yml file under each dir, walking subdirectories so
+// the catalog can be organised into folders (by program, say). Layout carries no meaning
+// to the importer — an entry's identity is its name field, not its path — so files can be
+// moved freely, including between directories, without triggering a rename or a prune.
+// Hidden directories are skipped.
+//
+// Several directories may be given: the published catalog plus a private one, say. They
+// are concatenated before validation, so a ref in one resolves against every other, and
+// a name defined twice is caught by the duplicate-name check as if it came from one tree.
+// Note that filepath.WalkDir does not follow symlinks, so a symlinked directory is
+// skipped silently — list the real path instead.
+func listYAMLFiles(dirs []string) ([]string, error) {
+	var files []string
+	for _, dir := range dirs {
+		err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
+			}
+			if d.IsDir() {
+				if p != dir && strings.HasPrefix(d.Name(), ".") {
+					return fs.SkipDir
+				}
+				return nil
+			}
+			switch strings.ToLower(filepath.Ext(d.Name())) {
+			case ".yaml", ".yml":
+				files = append(files, p)
 			}
 			return nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("read yaml dir %q: %w", dir, err)
 		}
-		switch strings.ToLower(filepath.Ext(d.Name())) {
-		case ".yaml", ".yml":
-			files = append(files, p)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("read yaml dir %q: %w", dir, err)
 	}
 	sort.Strings(files)
 	return files, nil
@@ -528,8 +549,8 @@ func createExerciseMedia(tx *gorm.DB, ownerID uint, exerciseID *uint, libraryExe
 	return nil
 }
 
-func loadActivityTemplateYAML(dir string) ([]yamlActivityTemplate, error) {
-	paths, err := listYAMLFiles(dir)
+func loadActivityTemplateYAML(dirs []string) ([]yamlActivityTemplate, error) {
+	paths, err := listYAMLFiles(dirs)
 	if err != nil {
 		return nil, err
 	}
