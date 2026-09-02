@@ -1,8 +1,0 @@
-name: "Hang Warm-Up"
-source: "Paradigm Climbing"
-label: "warmup, fingers, hangboard"
-kind: "session"
-media:
-  - video_url: "https://www.youtube.com/watch?v=yYA3kXgzMPM"
-    thumbnail_url: "https://i.ytimg.com/vi/yYA3kXgzMPM/maxresdefault.jpg"
-notes: "Optional."
