@@ -3,6 +3,7 @@ package db
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -53,8 +54,8 @@ activities:
 
 	opts := YAMLImportOptions{
 		OwnerID:             1,
-		ExercisesDir:        exercisesDir,
-		SessionTemplatesDir: templatesDir,
+		ExercisesDir:        []string{exercisesDir},
+		SessionTemplatesDir: []string{templatesDir},
 	}
 	if err := store.ImportYAML(opts); err != nil {
 		t.Fatal(err)
@@ -166,8 +167,8 @@ activities:
 	}
 	err = store.ImportYAML(YAMLImportOptions{
 		OwnerID:             1,
-		ExercisesDir:        exercisesDir,
-		SessionTemplatesDir: templatesDir,
+		ExercisesDir:        []string{exercisesDir},
+		SessionTemplatesDir: []string{templatesDir},
 	})
 	if err == nil {
 		t.Fatal("expected unknown reference import error")
@@ -233,7 +234,7 @@ activities:
 `)
 
 	const ownerID uint = 1
-	opts := YAMLImportOptions{OwnerID: ownerID, ExercisesDir: exercisesDir, SessionTemplatesDir: templatesDir}
+	opts := YAMLImportOptions{OwnerID: ownerID, ExercisesDir: []string{exercisesDir}, SessionTemplatesDir: []string{templatesDir}}
 	if err := store.ImportYAML(opts); err != nil {
 		t.Fatalf("initial import: %v", err)
 	}
@@ -303,8 +304,8 @@ activities:
 	}
 	if err := store.ImportYAML(YAMLImportOptions{
 		OwnerID:             ownerID,
-		ExercisesDir:        exercisesDir,
-		SessionTemplatesDir: emptyTemplatesDir,
+		ExercisesDir:        []string{exercisesDir},
+		SessionTemplatesDir: []string{emptyTemplatesDir},
 	}); err != nil {
 		t.Fatalf("import with empty session-templates dir: %v", err)
 	}
@@ -354,7 +355,7 @@ func TestImportYAMLWalksSubdirectories(t *testing.T) {
 		"name: \"Folder Session\"\nactivities:\n  - type: \"activity\"\n    exercises:\n      - ref: \"Deep Move\"\n")
 
 	if err := store.ImportYAML(YAMLImportOptions{
-		OwnerID: 1, ExercisesDir: exDir, SessionTemplatesDir: stDir,
+		OwnerID: 1, ExercisesDir: []string{exDir}, SessionTemplatesDir: []string{stDir},
 	}); err != nil {
 		t.Fatalf("import with nested dirs failed: %v", err)
 	}
@@ -371,4 +372,129 @@ func TestImportYAMLWalksSubdirectories(t *testing.T) {
 	if tn != 1 {
 		t.Errorf("session template in a subfolder did not import (got %d rows)", tn)
 	}
+}
+
+// mustWrite is a small helper for the multi-directory tests below, which set up several
+// catalog trees each and would otherwise be mostly error checks.
+func mustWrite(t *testing.T, dir, name, body string) {
+	t.Helper()
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestImportYAMLMultipleDirectories covers the catalog split: content lives in a
+// published tree and a private tree, refs must resolve across both, and a name defined
+// in both trees must be rejected rather than silently shadowing.
+func TestImportYAMLMultipleDirectories(t *testing.T) {
+	t.Run("ref resolves across directories", func(t *testing.T) {
+		tmp := t.TempDir()
+		store, err := NewSqlite(filepath.Join(tmp, "test.db"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		pubEx := filepath.Join(tmp, "public", "exercises")
+		privEx := filepath.Join(tmp, "private", "exercises")
+		pubST := filepath.Join(tmp, "public", "templates")
+		mustWrite(t, pubEx, "rows.yaml", "name: \"Ring Rows\"\nkind: \"reps_and_sets\"\nsets: 3\nreps: 10\n")
+		mustWrite(t, privEx, "ladder.yaml", "name: \"Private Ladder\"\nkind: \"reps_and_sets\"\nsets: 2\nreps: 6\n")
+		// The session lives in the published tree but references the private exercise.
+		mustWrite(t, pubST, "day.yaml", `
+name: "Mixed Day"
+activities:
+  - type: "activity"
+    exercises:
+      - ref: "Ring Rows"
+      - ref: "Private Ladder"
+`)
+		opts := YAMLImportOptions{
+			OwnerID:             1,
+			ExercisesDir:        []string{pubEx, privEx},
+			SessionTemplatesDir: []string{pubST},
+		}
+		if err := store.ImportYAML(opts); err != nil {
+			t.Fatalf("import across two exercise dirs: %v", err)
+		}
+		var count int64
+		if err := store.DB.Model(&LibraryExercise{}).Where("owner_id = ?", 1).Count(&count).Error; err != nil {
+			t.Fatal(err)
+		}
+		if count != 2 {
+			t.Fatalf("library exercises = %d, want 2", count)
+		}
+	})
+
+	t.Run("duplicate name across directories is rejected", func(t *testing.T) {
+		tmp := t.TempDir()
+		store, err := NewSqlite(filepath.Join(tmp, "test.db"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		a := filepath.Join(tmp, "a", "exercises")
+		b := filepath.Join(tmp, "b", "exercises")
+		st := filepath.Join(tmp, "templates")
+		body := "name: \"Ring Rows\"\nkind: \"reps_and_sets\"\nsets: 3\nreps: 10\n"
+		mustWrite(t, a, "rows.yaml", body)
+		mustWrite(t, b, "rows.yaml", body)
+		mustWrite(t, st, "day.yaml", "name: \"Day\"\nactivities: []\n")
+		err = store.ImportYAML(YAMLImportOptions{
+			OwnerID:             1,
+			ExercisesDir:        []string{a, b},
+			SessionTemplatesDir: []string{st},
+		})
+		if err == nil {
+			t.Fatal("want an error for a name defined in two directories, got nil")
+		}
+		if !strings.Contains(err.Error(), "Ring Rows") {
+			t.Fatalf("error should name the duplicate, got %v", err)
+		}
+	})
+
+	t.Run("missing directory names which one", func(t *testing.T) {
+		tmp := t.TempDir()
+		store, err := NewSqlite(filepath.Join(tmp, "test.db"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		ex := filepath.Join(tmp, "exercises")
+		st := filepath.Join(tmp, "templates")
+		mustWrite(t, ex, "rows.yaml", "name: \"Ring Rows\"\nkind: \"reps_and_sets\"\nsets: 3\nreps: 10\n")
+		mustWrite(t, st, "day.yaml", "name: \"Day\"\nactivities: []\n")
+		absent := filepath.Join(tmp, "not-there")
+		err = store.ImportYAML(YAMLImportOptions{
+			OwnerID:             1,
+			ExercisesDir:        []string{ex, absent},
+			SessionTemplatesDir: []string{st},
+		})
+		if err == nil {
+			t.Fatal("want an error for a missing directory, got nil")
+		}
+		if !strings.Contains(err.Error(), "not-there") {
+			t.Fatalf("error should name the missing directory, got %v", err)
+		}
+	})
+
+	t.Run("blank entries are ignored", func(t *testing.T) {
+		tmp := t.TempDir()
+		store, err := NewSqlite(filepath.Join(tmp, "test.db"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		ex := filepath.Join(tmp, "exercises")
+		st := filepath.Join(tmp, "templates")
+		mustWrite(t, ex, "rows.yaml", "name: \"Ring Rows\"\nkind: \"reps_and_sets\"\nsets: 3\nreps: 10\n")
+		mustWrite(t, st, "day.yaml", "name: \"Day\"\nactivities: []\n")
+		// A trailing comma in configuration produces an empty entry; it must not be
+		// read as a directory named "".
+		if err := store.ImportYAML(YAMLImportOptions{
+			OwnerID:             1,
+			ExercisesDir:        []string{ex, "  "},
+			SessionTemplatesDir: []string{st, ""},
+		}); err != nil {
+			t.Fatalf("blank directory entries should be ignored, got %v", err)
+		}
+	})
 }

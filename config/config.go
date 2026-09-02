@@ -32,17 +32,55 @@ type AuthConfig struct {
 	DevAuthBypass bool `yaml:"DevAuthBypass"`
 }
 
+// DirList is one or more catalog directories. It accepts either a single scalar or a
+// sequence in YAML, so config files written before the catalog was split keep working.
+type DirList []string
+
+// UnmarshalYAML accepts `Dir: a` and `Dir: [a, b]` alike.
+func (d *DirList) UnmarshalYAML(value *yaml.Node) error {
+	var one string
+	if err := value.Decode(&one); err == nil {
+		*d = cleanDirs([]string{one})
+		return nil
+	}
+	var many []string
+	if err := value.Decode(&many); err != nil {
+		return fmt.Errorf("catalog directory must be a string or a list of strings: %w", err)
+	}
+	*d = cleanDirs(many)
+	return nil
+}
+
+// cleanDirs trims each entry and drops the empty ones, so a trailing comma in an
+// environment variable is not read as a directory named "".
+func cleanDirs(in []string) DirList {
+	out := make(DirList, 0, len(in))
+	for _, s := range in {
+		if s = strings.TrimSpace(s); s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// parseDirList splits a comma-separated environment variable into directories.
+func parseDirList(s string) DirList {
+	return cleanDirs(strings.Split(s, ","))
+}
+
 // YAMLImportConfig holds startup YAML import settings.
 type YAMLImportConfig struct {
 	// Enabled loads exercise/template YAML content on startup.
 	Enabled bool `yaml:"Enabled"`
-	// ExercisesDir contains YAML files for library exercises.
-	ExercisesDir string `yaml:"ExercisesDir"`
+	// ExercisesDir contains YAML files for library exercises. Several directories may
+	// be listed — the published catalog plus a private one, say — and refs resolve
+	// across all of them.
+	ExercisesDir DirList `yaml:"ExercisesDir"`
 	// SessionTemplatesDir contains YAML files for session templates.
-	SessionTemplatesDir string `yaml:"SessionTemplatesDir"`
+	SessionTemplatesDir DirList `yaml:"SessionTemplatesDir"`
 	// ActivityTemplatesDir contains YAML files for activity templates.
 	// Optional — if empty, activity template import is skipped.
-	ActivityTemplatesDir string `yaml:"ActivityTemplatesDir"`
+	ActivityTemplatesDir DirList `yaml:"ActivityTemplatesDir"`
 	// OwnerID is the owner receiving imported records.
 	OwnerID uint `yaml:"OwnerID"`
 }
@@ -70,9 +108,9 @@ func defaultConfig() *Config {
 		},
 		YAMLImport: YAMLImportConfig{
 			Enabled:              false,
-			ExercisesDir:         "catalog/exercises",
-			SessionTemplatesDir:  "catalog/session_templates",
-			ActivityTemplatesDir: "catalog/activity_templates",
+			ExercisesDir:         DirList{"catalog/exercises"},
+			SessionTemplatesDir:  DirList{"catalog/session_templates"},
+			ActivityTemplatesDir: DirList{"catalog/activity_templates"},
 			OwnerID:              1,
 		},
 	}
@@ -94,20 +132,19 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("auth.jwt_ttl_hours must be a positive integer, got %d", c.Auth.JWTTTLHours)
 	}
 	if c.YAMLImport.Enabled {
-		if strings.TrimSpace(c.YAMLImport.ExercisesDir) == "" {
+		if len(c.YAMLImport.ExercisesDir) == 0 {
 			return fmt.Errorf("yaml_import.exercises_dir must not be empty when import is enabled")
 		}
-		if strings.TrimSpace(c.YAMLImport.SessionTemplatesDir) == "" {
+		if len(c.YAMLImport.SessionTemplatesDir) == 0 {
 			return fmt.Errorf("yaml_import.session_templates_dir must not be empty when import is enabled")
 		}
-		for _, dir := range []string{c.YAMLImport.ExercisesDir, c.YAMLImport.SessionTemplatesDir} {
+		all := make([]string, 0, 8)
+		all = append(all, c.YAMLImport.ExercisesDir...)
+		all = append(all, c.YAMLImport.SessionTemplatesDir...)
+		all = append(all, c.YAMLImport.ActivityTemplatesDir...)
+		for _, dir := range all {
 			if _, err := os.Stat(dir); err != nil {
 				return fmt.Errorf("yaml_import directory %q: %w", dir, err)
-			}
-		}
-		if d := strings.TrimSpace(c.YAMLImport.ActivityTemplatesDir); d != "" {
-			if _, err := os.Stat(d); err != nil {
-				return fmt.Errorf("yaml_import directory %q: %w", d, err)
 			}
 		}
 	}
@@ -156,13 +193,13 @@ func applyEnv(c *Config) {
 		c.YAMLImport.Enabled = parseTruthy(os.Getenv("PASSION_YAML_IMPORT_ENABLED"))
 	}
 	if v := strings.TrimSpace(os.Getenv("PASSION_YAML_EXERCISES_DIR")); v != "" {
-		c.YAMLImport.ExercisesDir = v
+		c.YAMLImport.ExercisesDir = parseDirList(v)
 	}
 	if v := strings.TrimSpace(os.Getenv("PASSION_YAML_SESSION_TEMPLATES_DIR")); v != "" {
-		c.YAMLImport.SessionTemplatesDir = v
+		c.YAMLImport.SessionTemplatesDir = parseDirList(v)
 	}
 	if v := strings.TrimSpace(os.Getenv("PASSION_YAML_ACTIVITY_TEMPLATES_DIR")); v != "" {
-		c.YAMLImport.ActivityTemplatesDir = v
+		c.YAMLImport.ActivityTemplatesDir = parseDirList(v)
 	}
 	if v := strings.TrimSpace(os.Getenv("PASSION_YAML_IMPORT_OWNER_ID")); v != "" {
 		if n, err := parsePositiveInt(v); err == nil {
