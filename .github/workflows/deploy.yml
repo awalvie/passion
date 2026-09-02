@@ -65,10 +65,22 @@ jobs:
           # replaced wholesale for the same reason as catalog: a file that moves between
           # the two trees would otherwise exist in both, and the importer rejects the
           # duplicate name.
-          tar --exclude='.git' czf - catalog catalog-private templates static | \
-            $SSH "rm -rf /opt/passion/catalog /opt/passion/catalog-private \
+          # Unpack into a staging directory first and swap only once that succeeds. The
+          # obvious form — rm -rf on the server, piped straight into tar — deletes
+          # before it knows the stream is any good, so a local tar that fails to start
+          # leaves the server with no catalog, no templates and no static assets, and
+          # the service dies on its next restart. Ask how this comment came to exist.
+          #
+          # Note the option order: czf must lead, or tar reads it as a file name.
+          tar czf - --exclude='.git' catalog catalog-private templates static | \
+            $SSH "rm -rf /opt/passion/.stage && mkdir -p /opt/passion/.stage && \
+                  tar xzf - -C /opt/passion/.stage && \
+                  rm -rf /opt/passion/catalog /opt/passion/catalog-private \
                          /opt/passion/templates /opt/passion/static && \
-                  tar xzf - -C /opt/passion"
+                  mv /opt/passion/.stage/catalog /opt/passion/.stage/catalog-private \
+                     /opt/passion/.stage/templates /opt/passion/.stage/static \
+                     /opt/passion/ && \
+                  rmdir /opt/passion/.stage"
 
           printf '[Unit]\nDescription=Passion training app\nAfter=network.target\n\n[Service]\nExecStart=/opt/passion/passion -config /opt/passion/passion.yaml\nWorkingDirectory=/opt/passion\nRestart=on-failure\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n' > passion.service
           $SCP passion.service ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/passion/
