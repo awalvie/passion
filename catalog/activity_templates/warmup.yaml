@@ -1,8 +1,0 @@
-name: "Warm Up"
-source: "Paradigm Climbing"
-label: "warmup"
-exercises:
-  - ref: "Finger Base Warm-Up"
-  - ref: "Dynamic Stretching"
-  - ref: "Muscular Activation"
-  - ref: "Hang Warm-Up"

@@ -13,6 +13,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The licensed part of the catalog lives in a private repo, because it is not
+      # ours to redistribute. It is checked out read-only with a deploy key and shipped
+      # to the server alongside the published tree. Without it the server would import
+      # a published-only catalog, and pruneCatalogOrphans would then delete every
+      # session and block that depends on the licensed content.
+      - uses: actions/checkout@v4
+        with:
+          repository: awalvie/passion-private-catalog
+          ssh-key: ${{ secrets.PRIVATE_CATALOG_DEPLOY_KEY }}
+          path: catalog-private
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -50,8 +61,13 @@ jobs:
           # modern scp (SFTP-backed) will not create nested destination directories, so
           # subfolders under catalog/exercises fail to upload at all. Replacing each
           # directory wholesale keeps the server an exact mirror of the repo.
-          tar czf - catalog templates static | \
-            $SSH "rm -rf /opt/passion/catalog /opt/passion/templates /opt/passion/static && \
+          # catalog-private carries the licensed content from the private repo. It is
+          # replaced wholesale for the same reason as catalog: a file that moves between
+          # the two trees would otherwise exist in both, and the importer rejects the
+          # duplicate name.
+          tar --exclude='.git' czf - catalog catalog-private templates static | \
+            $SSH "rm -rf /opt/passion/catalog /opt/passion/catalog-private \
+                         /opt/passion/templates /opt/passion/static && \
                   tar xzf - -C /opt/passion"
 
           printf '[Unit]\nDescription=Passion training app\nAfter=network.target\n\n[Service]\nExecStart=/opt/passion/passion -config /opt/passion/passion.yaml\nWorkingDirectory=/opt/passion\nRestart=on-failure\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n' > passion.service
