@@ -108,6 +108,45 @@ Copy [`passion.example.yaml`](passion.example.yaml) to `passion.yaml` or configu
 
 Pass `1`, `true`, `yes`, or `on` for boolean flags.
 
+The server refuses to start on an unsafe `JWTSecret`. It rejects the example value
+`change-me-in-production`, the deploy template's `__JWT_SECRET__` placeholder, and anything
+shorter than 32 characters. Generate one with `openssl rand -base64 48`. Dev auth bypass
+skips the check, because it short-circuits token verification anyway. `DemoOwnerID` and
+`YAMLImport.OwnerID` must not be `0` — that id is the "no owner" sentinel across the data
+layer.
+
+---
+
+## Administration
+
+These flags run against the database and exit. They do not start the server.
+
+| Command | What it does |
+|---|---|
+| `--mint-invites=N` | Print N new signup invite codes. Add `--invite-note="for X"` to record who each is for. |
+| `--list-invites` | List every code and whether it has been used. |
+| `--purge-orphans-dry-run` | Count exercises orphaned by the old importer bug. Changes nothing. |
+| `--purge-orphans` | Delete those orphans, keeping any that run history still references. |
+| `--delete-users-except=ID` | Show what deleting every other account would remove. Changes nothing on its own. |
+| `--i-have-a-backup` | Required with `--delete-users-except` to actually delete. There is no undo. |
+
+Stop the server before running any of these. Two writers on one SQLite file give
+`database is locked`. After a purge or a deletion, run `VACUUM` to reclaim the space — the
+rows go immediately but the file does not shrink on its own.
+
+### Invite-only signup
+
+Signup requires a valid invite code. The one exception is the very first account on a fresh
+install, so a new self-hosted instance can create its owner without one. After that every
+signup needs a code:
+
+```sh
+./passion --mint-invites=3 --invite-note="climbing club"
+```
+
+Codes look like `K7PM-3XQD-9RTB`. Case and dashes do not matter when one is typed in. A
+code works once.
+
 ---
 
 ## YAML catalog
