@@ -1,0 +1,13 @@
+name: "Boulder Session"
+color: "#ef4444"
+label: "boulder, power, technique"
+needs: "bouldering wall"
+activities:
+  - ref: "Warm Up"
+  - ref: "Drills"
+  - type: "activity"
+    exercises:
+      - ref: "Boulder Projects"
+  - ref: "Antagonist & Prehab"
+  - ref: "Cooldown Stretch"
+  - ref: "Journal"

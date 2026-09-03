@@ -1,0 +1,11 @@
+name: "Fingers & Strength"
+color: "#2563eb"
+label: "fingers, strength, board"
+needs: "hangboard, bouldering wall"
+activities:
+  - ref: "Warm Up"
+  - ref: "Finger Warm-Up"
+  - ref: "Wall Crawls"
+  - ref: "Antagonist & Prehab"
+  - ref: "Mobility"
+  - ref: "Journal"
