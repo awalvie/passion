@@ -19,6 +19,24 @@ Always set `hx-target="this"` on lazy-load divs inside forms. HTMX inherits `hx-
 
 Never commit unless the user explicitly asks. Implement changes, then stop — do not run `git add` or `git commit` on your own initiative.
 
+## Never put paid-programme content in the public catalog
+
+`catalog/` is published under the repository's licence. Content from a paid programme is
+not ours to redistribute, so it belongs in the private catalog repository only.
+
+This applies to every file under `catalog/`:
+
+- Do not copy a coach's prose, cues, or exercise notes. Write our own words.
+- Do not reproduce a programme's session structure — its exercise selection, order, and
+  weekly progression. Selection and arrangement are protected even when the individual
+  numbers are not.
+- Do not invent a name and attribute it to a real coach. That is worse than copying.
+- Doses, sets, reps and rest times are facts and are fine to use.
+- `source:` may name a coach or programme the method is publicly known by, as long as the
+  words describing it are ours.
+
+If a catalog entry cannot meet this, put it in `passion-private-catalog` instead.
+
 ## Code style
 
 - No comments unless the WHY is non-obvious.
