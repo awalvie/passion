@@ -814,6 +814,41 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 		return err
 	}
 
+	// Retire the previous generation of children before rebuilding them. Soft-delete only
+	// targets the exact table it names: soft-deleting an Activity is an UPDATE, so the
+	// ON DELETE CASCADE on activities→exercises never fires and the child rows are left
+	// live and unreachable. That leaked ~3,400 exercises a day, because this import runs
+	// for every user on every restart.
+	//
+	// The leaves go first and by hand, matching upsertActivityTemplate. A hard delete
+	// would be worse than the leak it fixes: RunExerciseCompletion, ClimbingTick,
+	// ManualExerciseSetLog, ExercisePlannedSet, RunExerciseChoice and
+	// ClimbingExerciseMeta all carry exercise_id with no REFERENCES clause, so nothing
+	// stops a hard delete from stranding a completed run's history for good. Soft-deleted
+	// rows stay recoverable; pruneCatalogOrphans is the only place that hard-deletes, and
+	// it counts references first.
+	var oldActivityIDs []uint
+	if err := tx.Model(&Activity{}).
+		Where("owner_id = ? AND session_template_id = ?", ownerID, template.ID).
+		Pluck("id", &oldActivityIDs).Error; err != nil {
+		return err
+	}
+	if len(oldActivityIDs) > 0 {
+		var oldExerciseIDs []uint
+		if err := tx.Model(&Exercise{}).
+			Where("activity_id IN ?", oldActivityIDs).
+			Pluck("id", &oldExerciseIDs).Error; err != nil {
+			return err
+		}
+		if len(oldExerciseIDs) > 0 {
+			if err := tx.Where("exercise_id IN ?", oldExerciseIDs).Delete(&ExerciseMedia{}).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Where("activity_id IN ?", oldActivityIDs).Delete(&Exercise{}).Error; err != nil {
+			return err
+		}
+	}
 	if err := tx.Where("owner_id = ? AND session_template_id = ?", ownerID, template.ID).Delete(&Activity{}).Error; err != nil {
 		return err
 	}
