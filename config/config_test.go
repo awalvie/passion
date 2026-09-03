@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -188,5 +189,88 @@ func TestParseDirListSplitsAndTrims(t *testing.T) {
 		if got[i] != want[i] {
 			t.Fatalf("parseDirList = %v, want %v", got, want)
 		}
+	}
+}
+
+// validConfig returns a config that passes Validate, so each test below can break
+// exactly one field and prove that field is what Validate rejects.
+func validConfig() *Config {
+	c := defaultConfig()
+	c.Auth.JWTSecret = "0FA7pQxK3mZr8vN2wLtY6cJdHsB4eUgX"
+	return c
+}
+
+func TestValidateRejectsPlaceholderJWTSecrets(t *testing.T) {
+	for _, secret := range []string{"change-me-in-production", "__JWT_SECRET__"} {
+		c := validConfig()
+		c.Auth.JWTSecret = secret
+		err := c.Validate()
+		if err == nil {
+			t.Fatalf("Validate accepted the placeholder secret %q", secret)
+		}
+		if !strings.Contains(err.Error(), secret) {
+			t.Fatalf("error should name the offending secret, got: %v", err)
+		}
+	}
+}
+
+// The shipped defaults must not be deployable. This is the misconfiguration the
+// example file used to invite: copy it, deploy it, sign tokens with a public key.
+func TestValidateRejectsDefaultConfig(t *testing.T) {
+	if err := defaultConfig().Validate(); err == nil {
+		t.Fatal("the default config must not validate — its JWT secret is public")
+	}
+}
+
+func TestValidateRejectsShortJWTSecret(t *testing.T) {
+	c := validConfig()
+	c.Auth.JWTSecret = strings.Repeat("a", minJWTSecretLen-1)
+	if err := c.Validate(); err == nil {
+		t.Fatalf("Validate accepted a %d-character secret", minJWTSecretLen-1)
+	}
+	c.Auth.JWTSecret = strings.Repeat("a", minJWTSecretLen)
+	if err := c.Validate(); err != nil {
+		t.Fatalf("Validate rejected a secret of exactly the minimum length: %v", err)
+	}
+}
+
+// Dev auth bypass short-circuits token verification, so the secret signs nothing.
+// Requiring ceremony there would only push developers to invent a throwaway value.
+func TestValidateSkipsSecretChecksUnderDevAuthBypass(t *testing.T) {
+	c := validConfig()
+	c.Auth.JWTSecret = "change-me-in-production"
+	c.Auth.DevAuthBypass = true
+	if err := c.Validate(); err != nil {
+		t.Fatalf("dev auth bypass should not require a real secret: %v", err)
+	}
+}
+
+// Owner id 0 is the "no owner" sentinel across the data layer, and EnsureSeedUser
+// force-sets the primary key from this value.
+func TestValidateRejectsZeroDemoOwnerID(t *testing.T) {
+	c := validConfig()
+	c.Server.DemoOwnerID = 0
+	if err := c.Validate(); err == nil {
+		t.Fatal("Validate accepted server.demo_owner_id = 0")
+	}
+}
+
+func TestValidateRejectsZeroImportOwnerID(t *testing.T) {
+	c := validConfig()
+	c.YAMLImport.Enabled = true
+	c.YAMLImport.OwnerID = 0
+	if err := c.Validate(); err == nil {
+		t.Fatal("Validate accepted yaml_import.owner_id = 0 with import enabled")
+	}
+	// Disabled import has no owner to check, so the zero must not block startup.
+	c.YAMLImport.Enabled = false
+	if err := c.Validate(); err != nil {
+		t.Fatalf("a zero import owner must be ignored when import is off: %v", err)
+	}
+}
+
+func TestValidateAcceptsAGoodConfig(t *testing.T) {
+	if err := validConfig().Validate(); err != nil {
+		t.Fatalf("a well-formed config must validate: %v", err)
 	}
 }
