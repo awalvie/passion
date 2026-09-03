@@ -179,13 +179,17 @@ func nameSet[T any](items []T, name func(T) string) map[string]struct{} {
 // that has scheduled sessions or cycle mappings (which would orphan logged runs) or a
 // library exercise still referenced by an exercise copy or cycle override.
 //
+// A row with CatalogEditedAt set is skipped too. That is the whole point of the flag: a
+// user who renames an edited row would otherwise see it deleted on the next restart,
+// because its new name is absent from the YAML.
+//
 // As a safety guard against a misconfigured/empty import directory wiping a whole
 // category, a category is only pruned when the YAML actually defined entries for it.
 func pruneCatalogOrphans(tx *gorm.DB, ownerID uint, exs []yamlExercise, ats []yamlActivityTemplate, sts []yamlSessionTemplate) error {
 	if len(exs) > 0 {
 		keep := nameSet(exs, func(e yamlExercise) string { return e.Name })
 		var rows []LibraryExercise
-		if err := tx.Where("owner_id = ? AND managed_by_catalog = ?", ownerID, true).Find(&rows).Error; err != nil {
+		if err := tx.Where("owner_id = ? AND managed_by_catalog = ? AND catalog_edited_at IS NULL", ownerID, true).Find(&rows).Error; err != nil {
 			return err
 		}
 		for _, le := range rows {
@@ -234,7 +238,7 @@ func pruneCatalogOrphans(tx *gorm.DB, ownerID uint, exs []yamlExercise, ats []ya
 	if len(ats) > 0 {
 		keep := nameSet(ats, func(a yamlActivityTemplate) string { return a.Name })
 		var rows []ActivityTemplate
-		if err := tx.Where("owner_id = ? AND managed_by_catalog = ?", ownerID, true).Find(&rows).Error; err != nil {
+		if err := tx.Where("owner_id = ? AND managed_by_catalog = ? AND catalog_edited_at IS NULL", ownerID, true).Find(&rows).Error; err != nil {
 			return err
 		}
 		for _, at := range rows {
@@ -253,7 +257,7 @@ func pruneCatalogOrphans(tx *gorm.DB, ownerID uint, exs []yamlExercise, ats []ya
 	if len(sts) > 0 {
 		keep := nameSet(sts, func(t yamlSessionTemplate) string { return t.Name })
 		var rows []SessionTemplate
-		if err := tx.Where("owner_id = ? AND managed_by_catalog = ?", ownerID, true).Find(&rows).Error; err != nil {
+		if err := tx.Where("owner_id = ? AND managed_by_catalog = ? AND catalog_edited_at IS NULL", ownerID, true).Find(&rows).Error; err != nil {
 			return err
 		}
 		for _, st := range rows {
@@ -624,6 +628,11 @@ func upsertActivityTemplate(tx *gorm.DB, ownerID uint, at yamlActivityTemplate, 
 	if res.Error != nil {
 		return res.Error
 	}
+	// A row the user has edited is theirs now. Leave it exactly as it is — including its
+	// child rows, which the code below would otherwise delete and recreate.
+	if res.RowsAffected > 0 && row.CatalogEditedAt != nil {
+		return nil
+	}
 	if res.RowsAffected == 0 {
 		row = ActivityTemplate{OwnerID: ownerID, Name: at.Name}
 	}
@@ -743,6 +752,11 @@ func upsertLibraryExercise(tx *gorm.DB, ownerID uint, ex yamlExercise) error {
 	if res.Error != nil {
 		return res.Error
 	}
+	// A row the user has edited is theirs now. Leave it exactly as it is — including its
+	// child rows, which the code below would otherwise delete and recreate.
+	if res.RowsAffected > 0 && row.CatalogEditedAt != nil {
+		return nil
+	}
 	if res.RowsAffected == 0 {
 		row = LibraryExercise{
 			OwnerID: ownerID,
@@ -779,6 +793,11 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 	res := tx.Where("owner_id = ? AND name = ?", ownerID, tpl.Name).Limit(1).Find(&template)
 	if res.Error != nil {
 		return res.Error
+	}
+	// A row the user has edited is theirs now. Leave it exactly as it is — including its
+	// child rows, which the code below would otherwise delete and recreate.
+	if res.RowsAffected > 0 && template.CatalogEditedAt != nil {
+		return nil
 	}
 	if res.RowsAffected == 0 {
 		template = SessionTemplate{

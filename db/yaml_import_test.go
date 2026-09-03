@@ -498,3 +498,224 @@ activities:
 		}
 	})
 }
+
+// TestImportYAMLSkipsEditedRows covers the edited-row flag. The importer overwrites every
+// field of the row it matches by name, and for blocks and sessions it deletes and
+// recreates the child rows — so before this flag existed, any edit made in the app was
+// gone on the next restart and a rename was deleted outright by pruneCatalogOrphans.
+func TestImportYAMLSkipsEditedRows(t *testing.T) {
+	// setup writes one exercise, one block and one session, imports them once, and
+	// returns the store plus the options needed to import again.
+	setup := func(t *testing.T) (*Store, YAMLImportOptions) {
+		t.Helper()
+		tmp := t.TempDir()
+		store, err := NewSqlite(filepath.Join(tmp, "test.db"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		exDir := filepath.Join(tmp, "exercises")
+		atDir := filepath.Join(tmp, "blocks")
+		stDir := filepath.Join(tmp, "sessions")
+		mustWrite(t, exDir, "rows.yaml", `
+name: "Ring Rows"
+kind: "reps_and_sets"
+sets: 3
+reps: 10
+notes: "from the catalog"
+`)
+		mustWrite(t, atDir, "warmup.yaml", `
+name: "Warm Up"
+label: "warmup"
+exercises:
+  - ref: "Ring Rows"
+`)
+		mustWrite(t, stDir, "day.yaml", `
+name: "Pull Day"
+label: "strength"
+activities:
+  - ref: "Warm Up"
+`)
+		opts := YAMLImportOptions{
+			OwnerID:              1,
+			ExercisesDir:         []string{exDir},
+			ActivityTemplatesDir: []string{atDir},
+			SessionTemplatesDir:  []string{stDir},
+		}
+		if err := store.ImportYAML(opts); err != nil {
+			t.Fatalf("first import: %v", err)
+		}
+		return store, opts
+	}
+
+	markEdited := func(t *testing.T, store *Store, model any, id uint) {
+		t.Helper()
+		now := time.Now()
+		if err := store.DB.Model(model).Where("id = ?", id).
+			Update("catalog_edited_at", now).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	t.Run("edited library exercise keeps its fields", func(t *testing.T) {
+		store, opts := setup(t)
+		var ex LibraryExercise
+		if err := store.DB.Where("name = ?", "Ring Rows").First(&ex).Error; err != nil {
+			t.Fatal(err)
+		}
+		if err := store.DB.Model(&ex).Updates(map[string]any{"reps": 5, "notes": "my own cue"}).Error; err != nil {
+			t.Fatal(err)
+		}
+		markEdited(t, store, &LibraryExercise{}, ex.ID)
+
+		if err := store.ImportYAML(opts); err != nil {
+			t.Fatalf("second import: %v", err)
+		}
+		var after LibraryExercise
+		if err := store.DB.First(&after, ex.ID).Error; err != nil {
+			t.Fatal(err)
+		}
+		if after.Reps != 5 {
+			t.Fatalf("reps = %d, want 5 (the edit must survive re-import)", after.Reps)
+		}
+		if after.Notes != "my own cue" {
+			t.Fatalf("notes = %q, want the edited value", after.Notes)
+		}
+		if !after.ManagedByCatalog {
+			t.Fatal("managed_by_catalog must stay true — it records where the row came from")
+		}
+	})
+
+	t.Run("edited block keeps its child exercises", func(t *testing.T) {
+		store, opts := setup(t)
+		var at ActivityTemplate
+		if err := store.DB.Where("name = ?", "Warm Up").First(&at).Error; err != nil {
+			t.Fatal(err)
+		}
+		var before []uint
+		if err := store.DB.Model(&Exercise{}).
+			Where("activity_template_id = ?", at.ID).
+			Order("id asc").Pluck("id", &before).Error; err != nil {
+			t.Fatal(err)
+		}
+		if len(before) == 0 {
+			t.Fatal("block has no exercises to begin with")
+		}
+		markEdited(t, store, &ActivityTemplate{}, at.ID)
+
+		if err := store.ImportYAML(opts); err != nil {
+			t.Fatalf("second import: %v", err)
+		}
+		var after []uint
+		if err := store.DB.Model(&Exercise{}).
+			Where("activity_template_id = ?", at.ID).
+			Order("id asc").Pluck("id", &after).Error; err != nil {
+			t.Fatal(err)
+		}
+		if len(after) != len(before) {
+			t.Fatalf("exercise count = %d, want %d", len(after), len(before))
+		}
+		for i := range before {
+			if after[i] != before[i] {
+				t.Fatalf("exercise ids changed: %v -> %v (the importer deleted and recreated them)", before, after)
+			}
+		}
+	})
+
+	t.Run("edited session keeps its activities", func(t *testing.T) {
+		store, opts := setup(t)
+		var st SessionTemplate
+		if err := store.DB.Where("name = ?", "Pull Day").First(&st).Error; err != nil {
+			t.Fatal(err)
+		}
+		var before []uint
+		if err := store.DB.Model(&Activity{}).
+			Where("session_template_id = ?", st.ID).
+			Order("id asc").Pluck("id", &before).Error; err != nil {
+			t.Fatal(err)
+		}
+		if len(before) == 0 {
+			t.Fatal("session has no activities to begin with")
+		}
+		markEdited(t, store, &SessionTemplate{}, st.ID)
+
+		if err := store.ImportYAML(opts); err != nil {
+			t.Fatalf("second import: %v", err)
+		}
+		var after []uint
+		if err := store.DB.Model(&Activity{}).
+			Where("session_template_id = ?", st.ID).
+			Order("id asc").Pluck("id", &after).Error; err != nil {
+			t.Fatal(err)
+		}
+		if len(after) != len(before) {
+			t.Fatalf("activity count = %d, want %d", len(after), len(before))
+		}
+		for i := range before {
+			if after[i] != before[i] {
+				t.Fatalf("activity ids changed: %v -> %v", before, after)
+			}
+		}
+	})
+
+	t.Run("renaming an edited row does not delete it", func(t *testing.T) {
+		store, opts := setup(t)
+		var ex LibraryExercise
+		if err := store.DB.Where("name = ?", "Ring Rows").First(&ex).Error; err != nil {
+			t.Fatal(err)
+		}
+		// A rename puts the row's name outside the YAML's keep set, which is what used
+		// to make pruneCatalogOrphans delete it.
+		if err := store.DB.Model(&ex).Update("name", "My Rows").Error; err != nil {
+			t.Fatal(err)
+		}
+		markEdited(t, store, &LibraryExercise{}, ex.ID)
+
+		if err := store.ImportYAML(opts); err != nil {
+			t.Fatalf("second import: %v", err)
+		}
+		var count int64
+		if err := store.DB.Model(&LibraryExercise{}).Where("id = ?", ex.ID).Count(&count).Error; err != nil {
+			t.Fatal(err)
+		}
+		if count != 1 {
+			t.Fatal("renamed edited row was deleted by prune")
+		}
+	})
+
+	t.Run("an unedited row is still overwritten and still pruned", func(t *testing.T) {
+		store, opts := setup(t)
+		var ex LibraryExercise
+		if err := store.DB.Where("name = ?", "Ring Rows").First(&ex).Error; err != nil {
+			t.Fatal(err)
+		}
+		if err := store.DB.Model(&ex).Update("reps", 5).Error; err != nil {
+			t.Fatal(err)
+		}
+		// No stamp this time.
+		if err := store.ImportYAML(opts); err != nil {
+			t.Fatalf("second import: %v", err)
+		}
+		var after LibraryExercise
+		if err := store.DB.First(&after, ex.ID).Error; err != nil {
+			t.Fatal(err)
+		}
+		if after.Reps != 10 {
+			t.Fatalf("reps = %d, want 10 — an unstamped row must still be overwritten", after.Reps)
+		}
+
+		// And a rename with no stamp is still pruned.
+		if err := store.DB.Model(&after).Update("name", "Orphan Rows").Error; err != nil {
+			t.Fatal(err)
+		}
+		if err := store.ImportYAML(opts); err != nil {
+			t.Fatalf("third import: %v", err)
+		}
+		var count int64
+		if err := store.DB.Model(&LibraryExercise{}).Where("name = ?", "Orphan Rows").Count(&count).Error; err != nil {
+			t.Fatal(err)
+		}
+		if count != 0 {
+			t.Fatal("unstamped rename orphan should have been pruned")
+		}
+	})
+}
