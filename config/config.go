@@ -116,6 +116,42 @@ func defaultConfig() *Config {
 	}
 }
 
+// minJWTSecretLen is the shortest secret accepted for a real deployment. HS256 keys
+// shorter than the 256-bit hash they feed add nothing but a false sense of length.
+const minJWTSecretLen = 32
+
+// placeholderJWTSecrets are the values that must never sign a live token. The first is
+// the example file's value. The second is the deploy template's placeholder — if the CI
+// substitution ever fails quietly, the app would otherwise boot and sign tokens with the
+// literal string, which is public in this repository.
+var placeholderJWTSecrets = []string{
+	"change-me-in-production",
+	"__JWT_SECRET__",
+}
+
+// validateJWTSecret rejects secrets that are public knowledge or too short to be worth
+// signing with. Dev auth bypass skips the check: it short-circuits token verification
+// entirely, so the secret is not load-bearing and local dev needs no ceremony.
+func validateJWTSecret(secret string, devAuthBypass bool) error {
+	if devAuthBypass {
+		return nil
+	}
+	secret = strings.TrimSpace(secret)
+	for _, bad := range placeholderJWTSecrets {
+		if secret == bad {
+			return fmt.Errorf(
+				"auth.jwt_secret is still the placeholder %q — set a real secret, "+
+					"for example with: openssl rand -base64 48", bad)
+		}
+	}
+	if len(secret) < minJWTSecretLen {
+		return fmt.Errorf(
+			"auth.jwt_secret must be at least %d characters, got %d — "+
+				"generate one with: openssl rand -base64 48", minJWTSecretLen, len(secret))
+	}
+	return nil
+}
+
 // Validate checks that required fields are present and well-formed.
 // Call after Load. Returns a non-nil error on the first problem found.
 func (c *Config) Validate() error {
@@ -128,10 +164,24 @@ func (c *Config) Validate() error {
 	if strings.TrimSpace(c.Auth.JWTSecret) == "" {
 		return fmt.Errorf("auth.jwt_secret must not be empty")
 	}
+	if err := validateJWTSecret(c.Auth.JWTSecret, c.Auth.DevAuthBypass); err != nil {
+		return err
+	}
 	if c.Auth.JWTTTLHours <= 0 {
 		return fmt.Errorf("auth.jwt_ttl_hours must be a positive integer, got %d", c.Auth.JWTTTLHours)
 	}
+	// Owner id 0 is the sentinel for "no owner" throughout the data layer, and
+	// EnsureSeedUser force-sets the primary key from this value. A zero here creates a
+	// real, log-in-able account at id 0 that owns rows nothing else can be scoped against.
+	if c.Server.DemoOwnerID == 0 {
+		return fmt.Errorf("server.demo_owner_id must not be 0")
+	}
 	if c.YAMLImport.Enabled {
+		// ImportYAML refuses owner 0 at the call site. Catching it here names the
+		// setting that is wrong instead of failing later with an opaque import error.
+		if c.YAMLImport.OwnerID == 0 {
+			return fmt.Errorf("yaml_import.owner_id must not be 0 when import is enabled")
+		}
 		if len(c.YAMLImport.ExercisesDir) == 0 {
 			return fmt.Errorf("yaml_import.exercises_dir must not be empty when import is enabled")
 		}
