@@ -1,0 +1,18 @@
+name: "Joint Circles"
+label: "warmup, mobility"
+kind: "timed_reps"
+sets: 1
+reps: 6
+rep_seconds: 30
+rep_rest_seconds: 0
+set_rest_seconds: 0
+prep_seconds: 5
+notes: |
+  Six stations, 30s each. Full range, no force, keep moving.
+
+  1. Shoulder circles
+  2. Wrist circles, then open and close the fists
+  3. Elbow and forearm rotations
+  4. Standing trunk rotations
+  5. Hip circles, swap legs halfway
+  6. Ankle circles, swap feet halfway
