@@ -20,9 +20,14 @@ Server:
   Seed: false
 
 Auth:
-  JWTSecret: "change-me-in-production"
+  # Generate one with: openssl rand -base64 48
+  # The server refuses to start on a placeholder or on anything shorter than 32
+  # characters, unless DevAuthBypass is on. Never copy a secret from an example file.
+  JWTSecret: ""
   JWTTTLHours: 168
-  DevAuthBypass: true
+  # Local development only. This skips login entirely and auto-authenticates every
+  # request as user 1. It must be false anywhere the server is reachable by anyone else.
+  DevAuthBypass: false
 
 # Startup YAML import (idempotent upsert by name)
 YAMLImport:
