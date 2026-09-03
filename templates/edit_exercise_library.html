@@ -270,6 +270,20 @@
         <span class="flex-1"></span>
         {{/* type=button so the enclosing update form never submits; the handler answers
              with HX-Redirect back to the library. */}}
+        {{ if and .CatalogEditedAt $.CatalogImportEnabled }}
+        <button
+          type="button"
+          class="rounded-md btn-ghost px-4 py-2 text-sm inline-flex items-center"
+          title="Reset to catalog"
+          aria-label="Reset {{ .Name }} to the catalog version"
+          hx-post="/exercise-library/{{ .ID }}/reset-catalog"
+          hx-swap="none"
+          hx-confirm="Reset to the catalog version? Your changes to this exercise are replaced."
+        >
+          <i data-lucide="rotate-ccw" style="width:0.875rem;height:0.875rem" aria-hidden="true"></i>
+          <span class="ml-1.5 hidden sm:inline">Reset</span>
+        </button>
+        {{ end }}
         <button
           type="button"
           class="rounded-md btn-ghost px-4 py-2 text-sm inline-flex items-center"

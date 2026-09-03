@@ -692,6 +692,9 @@ type TemplateEditParams struct {
 	Template          *db.SessionTemplate
 	LibraryExercises  []db.LibraryExercise
 	ActivityTemplates []db.ActivityTemplate
+	// CatalogImportEnabled gates the "Reset to catalog" action: with import off there is
+	// no catalog to reset to.
+	CatalogImportEnabled bool
 }
 
 type TrainingCycleListParams struct {
@@ -823,8 +826,9 @@ type NewActivityTemplateParams struct {
 
 type ActivityTemplateEditParams struct {
 	Base
-	Template         *db.ActivityTemplate
-	LibraryExercises []db.LibraryExercise
+	Template             *db.ActivityTemplate
+	LibraryExercises     []db.LibraryExercise
+	CatalogImportEnabled bool
 }
 
 type LibraryListParams struct {
@@ -852,6 +856,7 @@ type EditLibraryExerciseParams struct {
 	LibraryExerciseChildren []db.LibraryExercise
 	LibraryExercises        []db.LibraryExercise
 	LibraryExerciseFormErr  string
+	CatalogImportEnabled    bool
 }
 
 // SessionExerciseSummaryView is a unified exercise row for the summary page,

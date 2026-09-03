@@ -134,6 +134,19 @@
         <a class="rounded-md btn-ghost p-2 inline-flex items-center justify-center" href="/templates/{{ .Template.ID }}/export" title="Download YAML" aria-label="Download YAML for {{ .Template.Name }}">
           <i data-lucide="download" style="width:1rem;height:1rem" aria-hidden="true"></i>
         </a>
+        {{ if and .Template.CatalogEditedAt .CatalogImportEnabled }}
+        <button
+          type="button"
+          class="rounded-md btn-ghost p-2 inline-flex items-center justify-center"
+          title="Reset to catalog"
+          aria-label="Reset {{ .Template.Name }} to the catalog version"
+          hx-post="/templates/{{ .Template.ID }}/reset-catalog"
+          hx-swap="none"
+          hx-confirm="Reset to the catalog version? Your changes to this session are replaced."
+        >
+          <i data-lucide="rotate-ccw" style="width:1rem;height:1rem" aria-hidden="true"></i>
+        </button>
+        {{ end }}
         {{/* type=button, not a nested form: this sits inside the activities panel, and a
              form here would be illegal markup. The handler answers with HX-Redirect. */}}
         <button
