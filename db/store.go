@@ -38,6 +38,7 @@ func (s *Store) AutoMigrate() error {
 
 	if err := s.DB.AutoMigrate(
 		&User{},
+		&InviteCode{},
 		&SessionTemplate{},
 		&Activity{},
 		&Exercise{},

@@ -23,6 +23,37 @@ type User struct {
 	RouteGradeSystem   string `gorm:"size:32;not null;default:'french'"`
 }
 
+// InviteCode gates signup. Passion's catalog carries content licensed to one account, so
+// an open signup page hands that content to anyone who finds it. Bounding who can create
+// an account is what makes the rest of the account layer (manual deletion, support by
+// hand) legitimate at this scale.
+//
+// A code is single-use: UsedByID is set when it is redeemed and a redeemed code is never
+// accepted again.
+type InviteCode struct {
+	gorm.Model
+
+	Code string `gorm:"uniqueIndex;not null"`
+	// CreatedByID is the user who minted it, or nil when the binary minted it from the
+	// command line before any user existed.
+	CreatedByID *uint `gorm:"index"`
+	// UsedByID is the account created with this code. Nil means unredeemed.
+	UsedByID *uint      `gorm:"index"`
+	UsedAt   *time.Time `gorm:"index"`
+	// ExpiresAt is nil for a code that never expires.
+	ExpiresAt *time.Time `gorm:"index"`
+	// Note records who the code was meant for, so unredeemed codes can be told apart.
+	Note string `gorm:"size:128;not null;default:''"`
+}
+
+// Redeemed reports whether the code has already been used to create an account.
+func (c InviteCode) Redeemed() bool { return c.UsedByID != nil }
+
+// Expired reports whether the code is past its expiry at time now.
+func (c InviteCode) Expired(now time.Time) bool {
+	return c.ExpiresAt != nil && now.After(*c.ExpiresAt)
+}
+
 // SessionTemplate is a reusable workout plan blueprint (activities + exercises).
 type SessionTemplate struct {
 	gorm.Model
