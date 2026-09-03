@@ -43,6 +43,10 @@ type SessionTemplate struct {
 	// ManagedByCatalog is true for rows created by the YAML importer. Only these are
 	// eligible for prune-on-import; UI-created templates stay false and are never removed.
 	ManagedByCatalog bool `gorm:"not null;default:false"`
+	// CatalogEditedAt is set the first time a user edits a row the importer created. Once
+	// set, the importer stops overwriting the row and prune-on-import stops deleting it, so
+	// the edit survives a restart. Clearing it hands the row back to the importer.
+	CatalogEditedAt *time.Time
 
 	Activities []Activity `gorm:"constraint:OnDelete:CASCADE;"`
 }
@@ -145,6 +149,10 @@ type ActivityTemplate struct {
 	// ManagedByCatalog is true for rows created by the YAML importer. Only these are
 	// eligible for prune-on-import; UI-created templates stay false and are never removed.
 	ManagedByCatalog bool `gorm:"not null;default:false"`
+	// CatalogEditedAt is set the first time a user edits a row the importer created. Once
+	// set, the importer stops overwriting the row and prune-on-import stops deleting it, so
+	// the edit survives a restart. Clearing it hands the row back to the importer.
+	CatalogEditedAt *time.Time
 
 	Exercises []Exercise `gorm:"foreignKey:ActivityTemplateID;constraint:OnDelete:CASCADE;"`
 }
@@ -164,6 +172,10 @@ type LibraryExercise struct {
 	// ManagedByCatalog is true for rows created by the YAML importer. Only these are
 	// eligible for prune-on-import; UI-created exercises stay false and are never removed.
 	ManagedByCatalog bool `gorm:"not null;default:false"`
+	// CatalogEditedAt is set the first time a user edits a row the importer created. Once
+	// set, the importer stops overwriting the row and prune-on-import stops deleting it, so
+	// the edit survives a restart. Clearing it hands the row back to the importer.
+	CatalogEditedAt *time.Time
 
 	Notes string `gorm:"type:text"`
 
