@@ -72,7 +72,12 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleSignup(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		s.pages.Signup(w, pages.SignupParams{})
+		open, err := db.SignupIsOpen(s.store.DB)
+		if err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		s.pages.Signup(w, pages.SignupParams{InviteRequired: !open})
 		return
 	case http.MethodPost:
 		if err := r.ParseForm(); err != nil {
@@ -100,6 +105,30 @@ func (s *Server) handleSignup(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// The catalog carries content licensed to one account, so signup is gated. The
+		// exception is a fresh install with no accounts at all, which needs a way to
+		// create its first user.
+		inviteCode := r.FormValue("invite_code")
+		open, err := db.SignupIsOpen(s.store.DB)
+		if err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		if !open {
+			// Check the code before creating the user, so a bad code leaves no account
+			// behind. It is claimed for real once the user row exists.
+			if err := db.CheckInviteCode(s.store.DB, inviteCode, time.Now()); err != nil {
+				s.logger.Warn("signup rejected", "reason", err, "email", email)
+				s.pages.Signup(w, pages.SignupParams{
+					InviteRequired: true,
+					InviteCode:     inviteCode,
+					Email:          email,
+					AuthFormError:  "That invite code is not valid.",
+				})
+				return
+			}
+		}
+
 		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
 			s.serverError(w, r, err)
@@ -112,6 +141,21 @@ func (s *Server) handleSignup(w http.ResponseWriter, r *http.Request) {
 		if err := s.store.DB.Create(user).Error; err != nil {
 			s.serverError(w, r, err)
 			return
+		}
+		if !open {
+			// Claim the code now the account exists. A failure here means someone else
+			// took the same code in between, so undo the account rather than leave one
+			// that got in without a code.
+			if err := db.RedeemInviteCode(s.store.DB, inviteCode, user.ID, time.Now()); err != nil {
+				s.store.DB.Unscoped().Delete(user)
+				s.logger.Warn("signup rolled back: invite claim failed", "reason", err, "email", email)
+				s.pages.Signup(w, pages.SignupParams{
+					InviteRequired: true,
+					Email:          email,
+					AuthFormError:  "That invite code is not valid.",
+				})
+				return
+			}
 		}
 		if s.yamlImport != nil {
 			opts := *s.yamlImport
