@@ -9,3 +9,4 @@
 - [CTA button wrap in flex justify-between](cta-button-wrap-in-flex-justify-between.md) — a CTA sharing a flex row with a data-dependent filter group wraps at in-between widths; the fix is moving it into the header row, not shrink-0
 - [btn class touch target gap](btn-class-touch-target-gap.md) — tier classes are colour skins with no size, by design; 44px is opt-in via `.btn` and only required for mid-session primary actions. SETTLED — do not re-propose adding min-height to the tier classes
 - [Playwright fullPage sticky artifact](playwright-fullpage-sticky-artifact.md) — fullPage screenshots misplace position:sticky elements; re-verify with viewport-only shot before reporting as a bug
+- [--border fails as chip background](border-token-fails-as-chip-background.md) — muted chip text on var(--border) is ~3.9:1 in both themes, below AA; the approved muted-chip bg is var(--card-muted)
