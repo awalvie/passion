@@ -242,6 +242,7 @@ func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Reques
 			LibraryExercise:         &row,
 			LibraryExerciseChildren: children,
 			LibraryExercises:        lib,
+			CatalogImportEnabled:    s.yamlImport != nil,
 		})
 		return
 	case "update":
@@ -272,6 +273,7 @@ func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Reques
 				LibraryExerciseChildren: children,
 				LibraryExerciseFormErr:  errMsg,
 				LibraryExercises:        lib,
+				CatalogImportEnabled:    s.yamlImport != nil,
 			})
 			return
 		}
@@ -312,7 +314,21 @@ func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Reques
 				Delete(&db.LibraryExercise{})
 		}
 
+		s.markLibraryExerciseEdited(ownerID, existing.ID)
+
 		w.Header().Set("HX-Redirect", "/exercise-library")
+		w.WriteHeader(http.StatusOK)
+		return
+	case "reset-catalog":
+		if r.Method != http.MethodPost {
+			s.methodNotAllowed(w)
+			return
+		}
+		if err := s.resetCatalogRow(&db.LibraryExercise{}, ownerID, id); err != nil {
+			s.catalogResetError(w, r, err)
+			return
+		}
+		w.Header().Set("HX-Redirect", "/exercise-library/"+strconv.FormatUint(uint64(id), 10)+"/edit")
 		w.WriteHeader(http.StatusOK)
 		return
 	case "export":

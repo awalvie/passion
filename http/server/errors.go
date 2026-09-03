@@ -37,3 +37,12 @@ func (s *Server) dbError(w http.ResponseWriter, r *http.Request, err error) {
 	}
 	s.serverError(w, r, err)
 }
+
+// catalogResetError writes a 400 when there is no catalog to reset to and a 500 otherwise.
+func (s *Server) catalogResetError(w http.ResponseWriter, r *http.Request, err error) {
+	if errors.Is(err, errCatalogImportDisabled) {
+		s.badRequest(w, "catalog import is disabled")
+		return
+	}
+	s.serverError(w, r, err)
+}

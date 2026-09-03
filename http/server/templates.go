@@ -279,6 +279,18 @@ func (s *Server) handleTemplatesByID(w http.ResponseWriter, r *http.Request) {
 		}
 		s.handleUpdateSessionTemplate(w, r, uint(templateID), ownerID)
 		return
+	case "reset-catalog":
+		if r.Method != http.MethodPost {
+			s.methodNotAllowed(w)
+			return
+		}
+		if err := s.resetCatalogRow(&db.SessionTemplate{}, ownerID, uint(templateID)); err != nil {
+			s.catalogResetError(w, r, err)
+			return
+		}
+		w.Header().Set("HX-Redirect", "/templates/"+strconv.FormatUint(uint64(templateID), 10)+"/edit")
+		w.WriteHeader(http.StatusOK)
+		return
 	case "export":
 		s.handleExportTemplate(w, r, ownerID, uint(templateID))
 		return
@@ -358,6 +370,7 @@ func (s *Server) handleReorderActivities(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
+	s.markSessionTemplateEdited(ownerID, templateID)
 	tpl, err := s.loadTemplateWithGraph(templateID, ownerID)
 	if err != nil {
 		s.serverError(w, r, err)
@@ -441,10 +454,11 @@ func (s *Server) renderTemplateEdit(w http.ResponseWriter, r *http.Request, temp
 	}
 
 	s.pages.TemplateEdit(w, pages.TemplateEditParams{
-		Base:              pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
-		Template:          tpl,
-		LibraryExercises:  lib,
-		ActivityTemplates: ats,
+		Base:                 pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
+		Template:             tpl,
+		LibraryExercises:     lib,
+		ActivityTemplates:    ats,
+		CatalogImportEnabled: s.yamlImport != nil,
 	})
 }
 
@@ -481,6 +495,7 @@ func (s *Server) handleUpdateSessionTemplate(w http.ResponseWriter, r *http.Requ
 		s.serverError(w, r, err)
 		return
 	}
+	s.markSessionTemplateEdited(ownerID, templateID)
 	w.Header().Set("HX-Redirect", "/templates/"+strconv.FormatUint(uint64(templateID), 10)+"/edit")
 	w.WriteHeader(http.StatusOK)
 }

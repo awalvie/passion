@@ -39,6 +39,7 @@ func (s *Server) handleAddActivity(w http.ResponseWriter, r *http.Request, templ
 		return
 	}
 
+	s.markSessionTemplateEdited(ownerID, templateID)
 	tpl, err := s.loadTemplateWithGraph(templateID, ownerID)
 	if err != nil {
 		s.serverError(w, r, err)
@@ -206,6 +207,7 @@ func (s *Server) handleAddActivityFromTemplate(w http.ResponseWriter, r *http.Re
 		}
 	}
 
+	s.markSessionTemplateEdited(ownerID, templateID)
 	tpl, err := s.loadTemplateWithGraph(templateID, ownerID)
 	if err != nil {
 		s.serverError(w, r, err)
@@ -237,6 +239,7 @@ func (s *Server) handleDeleteActivity(w http.ResponseWriter, r *http.Request, ac
 		return
 	}
 
+	s.markSessionTemplateEdited(ownerID, act.SessionTemplateID)
 	tpl, err := s.loadTemplateWithGraph(act.SessionTemplateID, ownerID)
 	if err != nil {
 		s.serverError(w, r, err)
