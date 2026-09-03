@@ -117,6 +117,17 @@ func (s *Server) handleActivityTemplatesByID(w http.ResponseWriter, r *http.Requ
 		}
 		w.Header().Set("HX-Redirect", "/activity-templates")
 		w.WriteHeader(http.StatusOK)
+	case "reset-catalog":
+		if r.Method != http.MethodPost {
+			s.methodNotAllowed(w)
+			return
+		}
+		if err := s.resetCatalogRow(&db.ActivityTemplate{}, ownerID, uint(tplID)); err != nil {
+			s.catalogResetError(w, r, err)
+			return
+		}
+		w.Header().Set("HX-Redirect", "/activity-templates/"+strconv.FormatUint(uint64(tplID), 10)+"/edit")
+		w.WriteHeader(http.StatusOK)
 	case "export":
 		s.handleExportActivityTemplate(w, r, ownerID, uint(tplID))
 	case "exercises":
@@ -151,9 +162,10 @@ func (s *Server) renderActivityTemplateEdit(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	s.pages.ActivityTemplateEdit(w, pages.ActivityTemplateEditParams{
-		Base:             pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
-		Template:         tpl,
-		LibraryExercises: lib,
+		Base:                 pages.Base{CurrentUserEmail: s.currentUserEmail(r)},
+		Template:             tpl,
+		LibraryExercises:     lib,
+		CatalogImportEnabled: s.yamlImport != nil,
 	})
 }
 
@@ -180,6 +192,7 @@ func (s *Server) handleUpdateActivityTemplate(w http.ResponseWriter, r *http.Req
 		s.serverError(w, r, err)
 		return
 	}
+	s.markActivityTemplateEdited(ownerID, tplID)
 	w.Header().Set("HX-Redirect", "/activity-templates/"+strconv.FormatUint(uint64(tplID), 10)+"/edit")
 	w.WriteHeader(http.StatusOK)
 }
@@ -280,6 +293,7 @@ func (s *Server) handleAddActivityTemplateExercise(w http.ResponseWriter, r *htt
 		s.dbError(w, r, err)
 		return
 	}
+	s.markActivityTemplateEdited(ownerID, tplID)
 	s.renderActivityTemplateExercises(w, r, tpl, ownerID)
 }
 
@@ -365,6 +379,7 @@ func (s *Server) handleAddATExerciseFromLibrary(w http.ResponseWriter, r *http.R
 		s.dbError(w, r, err)
 		return
 	}
+	s.markActivityTemplateEdited(ownerID, tplID)
 	s.renderActivityTemplateExercises(w, r, tpl, ownerID)
 }
 
@@ -416,5 +431,6 @@ func (s *Server) handleReorderActivityTemplateExercises(w http.ResponseWriter, r
 		s.dbError(w, r, err)
 		return
 	}
+	s.markActivityTemplateEdited(ownerID, tplID)
 	s.renderActivityTemplateExercises(w, r, tpl, ownerID)
 }

@@ -153,6 +153,7 @@ func (s *Server) handleReorderExercises(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
+	s.markActivityEdited(ownerID, activityID)
 	act, err := s.loadActivityExercises(activityID, ownerID)
 	if err != nil {
 		s.serverError(w, r, err)
@@ -260,6 +261,8 @@ func (s *Server) handleUpdateExercise(w http.ResponseWriter, r *http.Request, ex
 		}
 	}
 
+	s.markExerciseOwnerEdited(ownerID, &ex)
+
 	if err := s.rerenderExerciseOwner(w, r, &ex, ownerID); err != nil {
 		s.serverError(w, r, err)
 	}
@@ -291,6 +294,8 @@ func (s *Server) handleDeleteExercise(w http.ResponseWriter, r *http.Request, ex
 		s.serverError(w, r, err)
 		return
 	}
+
+	s.markExerciseOwnerEdited(ownerID, &ex)
 
 	if err := s.rerenderExerciseOwner(w, r, &ex, ownerID); err != nil {
 		s.serverError(w, r, err)
@@ -375,6 +380,7 @@ func (s *Server) handleAddExercise(w http.ResponseWriter, r *http.Request, activ
 			s.serverError(w, r, err)
 			return
 		}
+		s.markActivityEdited(ownerID, activityID)
 		act, err := s.loadActivityExercises(activityID, ownerID)
 		if err != nil {
 			s.serverError(w, r, err)
@@ -499,6 +505,7 @@ func (s *Server) handleAddExercise(w http.ResponseWriter, r *http.Request, activ
 		}
 	}
 
+	s.markActivityEdited(ownerID, activityID)
 	act, err := s.loadActivityExercises(activityID, ownerID)
 	if err != nil {
 		s.serverError(w, r, err)
@@ -593,6 +600,7 @@ func (s *Server) handleAddExerciseFromLibrary(w http.ResponseWriter, r *http.Req
 		}
 	}
 
+	s.markActivityEdited(ownerID, activityID)
 	act, err := s.loadActivityExercises(activityID, ownerID)
 	if err != nil {
 		s.serverError(w, r, err)
@@ -684,6 +692,9 @@ func (s *Server) handleExercisePlannedSets(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "exercise not found", http.StatusNotFound)
 		return
 	}
+	// Planned sets hang off the Exercise row, and re-import deletes and recreates a
+	// block's exercises — which orphans them. Stamping the block or session stops that.
+	s.markExerciseIDOwnerEdited(ownerID, exerciseID)
 	rows, _ := db.ListExercisePlannedSets(s.store.DB, exerciseID)
 	nextIndex := len(rows) + 1
 	if err := db.UpsertExercisePlannedSet(s.store.DB, ownerID, exerciseID, nextIndex, 0, 0); err != nil {
@@ -715,6 +726,7 @@ func (s *Server) handleExercisePlannedSetSave(w http.ResponseWriter, r *http.Req
 		http.Error(w, "exercise not found", http.StatusNotFound)
 		return
 	}
+	s.markExerciseIDOwnerEdited(ownerID, exerciseID)
 	if err := r.ParseForm(); err != nil {
 		s.badRequest(w, "bad request")
 		return
@@ -747,6 +759,7 @@ func (s *Server) handleExercisePlannedSetDelete(w http.ResponseWriter, r *http.R
 		http.Error(w, "exercise not found", http.StatusNotFound)
 		return
 	}
+	s.markExerciseIDOwnerEdited(ownerID, exerciseID)
 	if err := db.DeleteExercisePlannedSet(s.store.DB, ownerID, exerciseID, int(setIndex)); err != nil {
 		s.serverError(w, r, err)
 		return
@@ -776,6 +789,7 @@ func (s *Server) handleExercisePlannedSetsClear(w http.ResponseWriter, r *http.R
 		http.Error(w, "exercise not found", http.StatusNotFound)
 		return
 	}
+	s.markExerciseIDOwnerEdited(ownerID, exerciseID)
 	if err := db.DeleteAllExercisePlannedSets(s.store.DB, ownerID, exerciseID); err != nil {
 		s.serverError(w, r, err)
 		return
