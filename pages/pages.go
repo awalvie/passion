@@ -450,6 +450,13 @@ type LoginParams struct {
 type SignupParams struct {
 	Base
 	AuthFormError string
+	// InviteRequired is false only on a fresh install with no accounts yet, where the
+	// first user signs up without a code.
+	InviteRequired bool
+	// InviteCode and Email are echoed back after a failed attempt so the visitor does not
+	// retype what was already right.
+	InviteCode string
+	Email      string
 }
 
 // DraftLogEntryView represents an abandoned manual log draft shown on the dashboard.
