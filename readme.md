@@ -114,7 +114,32 @@ Pass `1`, `true`, `yes`, or `on` for boolean flags.
 
 Training plans live in version-controlled YAML files under `catalog/`. On startup (when import is enabled), Passion upserts exercises and templates by name per owner.
 
-Each directory is scanned recursively, so files can be grouped into subfolders however you like — `catalog/exercises/` uses one folder per program (`kettle/`, `power_company/`, `paradigm/`, `ondra/`, `emil/`) with unsourced and one-off entries at the top level. Layout is purely for humans: an entry's identity is its `name`, not its path, so moving a file between folders changes nothing in the database.
+Each directory is scanned recursively, so files can be grouped into subfolders however you like — `catalog/exercises/` uses one folder per program (`ondra/`, `emil/`, `bechtel/`, `nelson/`) with unsourced and one-off entries at the top level. Layout is purely for humans: an entry's identity is its `name`, not its path, so moving a file between folders changes nothing in the database.
+
+Each of the three settings takes one directory or a list of them, so the catalog can span
+several trees and `ref:` resolves across all of them. Content from paid programmes is not
+ours to redistribute, so it lives in a separate private repository and is shipped to the
+server alongside this tree (see `.github/workflows/deploy.yml`). A name defined in two
+trees is a hard error rather than a silent shadow.
+
+### Editing a catalog item in the app
+
+The importer overwrites the row it matches by name, and for blocks and sessions it
+replaces the child rows outright. So editing a catalog item in the UI would be undone on
+the next restart, and renaming one would delete it.
+
+Editing one now stamps `CatalogEditedAt` on it. From that point the importer skips the row
+completely and never prunes it, the lists show an **Edited** chip, and the edit page offers
+**Reset to catalog** — which clears the stamp and re-imports, restoring the original.
+
+An edited row stops receiving catalog fixes. That is the trade, and the chip is there to
+say so.
+
+Two things this deliberately does not cover. Per-cycle numbers already have their own
+place — `CycleExerciseOverride` and `CycleExerciseWeekOverride` hold your sets, reps,
+weight and rep seconds for a cycle or a single week, and the importer never touches them,
+so changing your numbers needs no stamp at all. And **deleting** a catalog item leaves no
+row to carry a stamp, so the next import recreates it.
 
 <details>
 <summary>Exercise example</summary>
@@ -170,6 +195,8 @@ Import behavior:
 - Runs on startup only when `PASSION_YAML_IMPORT_ENABLED` is set
 - Upserts by `owner_id + name` — safe to re-run
 - Template updates replace activities/exercises to preserve ordering
+- Skips any row a user has edited in the app (`catalog_edited_at` set) — neither
+  overwritten nor pruned
 - Prunes catalog rows that dropped out of the YAML (e.g. after a rename): only rows the
   importer created are removed, the system open-session template is left alone, and a
   session template is never deleted while it still has scheduled sessions or cycle
