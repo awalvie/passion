@@ -1,0 +1,20 @@
+name: "Drills"
+label: "technique, footwork, boulder"
+exercises:
+  - name: "Drills"
+    kind: "exercise_catalog"
+    notes: |
+      One drill per session. Carry it through the whole warm-up ladder —
+      easiest grades first, about 10-15 min.
+
+      Well below your limit. Blow the drill on a move? Climb the move again.
+
+      Do it warm and fresh, before the hard climbing. Rotate the drill each
+      session.
+    children:
+      - ref: "Silent Feet"
+      - ref: "Eyes, Feet, Hips, Hands"
+      - ref: "Straight Arms + Relaxed Grip"
+      - ref: "Soft Hands"
+      - ref: "Down-Climbing"
+      - ref: "Flag Every Move"
