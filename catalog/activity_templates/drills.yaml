@@ -1,4 +1,5 @@
 name: "Drills"
+slug: "drills"
 label: "technique, footwork, boulder"
 exercises:
   - name: "Drills"

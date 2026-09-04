@@ -1,4 +1,5 @@
 name: "Light Climbing Warmup"
+slug: "light_climbing_warmup"
 label: "warmup, footwork"
 exercises:
   - ref: "General Warmup"

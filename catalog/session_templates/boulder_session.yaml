@@ -1,4 +1,5 @@
 name: "Boulder Session"
+slug: "boulder_session"
 color: "#ef4444"
 label: "boulder, power, technique"
 needs: "bouldering wall"

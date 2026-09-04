@@ -1,4 +1,5 @@
 name: "Fingers & Strength"
+slug: "fingers_strength"
 color: "#2563eb"
 label: "fingers, strength, board"
 needs: "hangboard, bouldering wall"

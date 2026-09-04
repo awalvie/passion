@@ -1,4 +1,5 @@
 name: "Single Leg Romanian Deadlift"
+slug: "single_leg_romanian_deadlift"
 label: "strength, mobility"
 kind: "reps_and_sets"
 sets: 1

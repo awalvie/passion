@@ -1,4 +1,5 @@
 name: "Knee-to-Wall Ankle"
+slug: "knee_to_wall_ankle"
 label: "mobility"
 kind: "timed_reps"
 sets: 2

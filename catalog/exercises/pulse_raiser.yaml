@@ -1,4 +1,5 @@
 name: "Pulse Raiser"
+slug: "pulse_raiser"
 label: "warmup"
 kind: "session"
 session_duration_seconds: 180

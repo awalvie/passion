@@ -1,4 +1,5 @@
 name: "Overhead Press"
+slug: "overhead_press"
 label: "antagonist, strength"
 kind: "reps_and_sets"
 sets: 3

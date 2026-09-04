@@ -1,4 +1,5 @@
 name: "Seated Hamstring Hold"
+slug: "seated_hamstring_hold"
 label: "cooldown, mobility"
 kind: "timed_reps"
 sets: 1

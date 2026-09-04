@@ -1,4 +1,5 @@
 name: "Journal"
+slug: "journal"
 label: "cooldown, tactics"
 exercises:
   - name: "Journal"
