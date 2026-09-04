@@ -254,6 +254,9 @@ func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Reques
 			s.badRequest(w, "bad request")
 			return
 		}
+		if !s.guardCatalogWrite(w, r, &db.LibraryExercise{}, ownerID, id) {
+			return
+		}
 		var existing db.LibraryExercise
 		if err := s.store.DB.
 			Where("owner_id = ? AND id = ?", ownerID, id).
@@ -337,6 +340,9 @@ func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Reques
 	case "delete":
 		if r.Method != http.MethodPost {
 			s.methodNotAllowed(w)
+			return
+		}
+		if !s.guardCatalogWrite(w, r, &db.LibraryExercise{}, ownerID, id) {
 			return
 		}
 		// Delete children first (catalog options), then the parent.

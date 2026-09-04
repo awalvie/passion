@@ -111,6 +111,9 @@ func (s *Server) handleActivityTemplatesByID(w http.ResponseWriter, r *http.Requ
 			s.methodNotAllowed(w)
 			return
 		}
+		if !s.guardCatalogWrite(w, r, &db.ActivityTemplate{}, ownerID, uint(tplID)) {
+			return
+		}
 		if err := s.deleteActivityTemplate(uint(tplID), ownerID); err != nil {
 			s.serverError(w, r, err)
 			return
@@ -180,6 +183,9 @@ func (s *Server) handleUpdateActivityTemplate(w http.ResponseWriter, r *http.Req
 		return
 	}
 	label := strings.TrimSpace(r.FormValue("label"))
+	if !s.guardCatalogWrite(w, r, &db.ActivityTemplate{}, ownerID, tplID) {
+		return
+	}
 	var tpl db.ActivityTemplate
 	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, tplID).First(&tpl).Error; err != nil {
 		s.notFound(w)
