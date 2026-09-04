@@ -65,7 +65,7 @@ func newCatalogFixture(t *testing.T) (*Server, *db.Store, catalogIDs) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

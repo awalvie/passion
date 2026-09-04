@@ -151,11 +151,14 @@ func main() {
 		}
 	}
 
+	if cfg.Auth.InsecureCookies {
+		slog.Warn("insecure cookies enabled — the session cookie will travel in the clear; local development only")
+	}
 	if cfg.Auth.DevAuthBypass {
 		slog.Warn("dev auth bypass is enabled — all requests are auto-authenticated; disable before deploying")
 	}
 
-	srv, err := web.NewServer(store, cfg.Auth.JWTSecret, time.Duration(cfg.Auth.JWTTTLHours)*time.Hour, cfg.Auth.DevAuthBypass, yamlImport)
+	srv, err := web.NewServer(store, cfg.Auth.JWTSecret, time.Duration(cfg.Auth.JWTTTLHours)*time.Hour, cfg.Auth.DevAuthBypass, cfg.Auth.InsecureCookies, yamlImport)
 	if err != nil {
 		slog.Error("failed to create server", "error", err)
 		os.Exit(1)

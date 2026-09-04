@@ -8,6 +8,7 @@
 #   PASSION_JWT_SECRET                    JWT signing secret (required for auth security)
 #   PASSION_JWT_TTL_HOURS                 JWT lifetime in hours (default 168)
 #   PASSION_DEV_AUTH_BYPASS               1/true/yes to skip login in dev and auto-auth as demo user
+#   PASSION_INSECURE_COOKIES              1/true/yes to allow the session cookie over plain http (dev only)
 #   PASSION_YAML_IMPORT_ENABLED           1/true/yes to import YAML seed data at startup
 #   PASSION_YAML_EXERCISES_DIR            directory with exercise YAML files
 #   PASSION_YAML_SESSION_TEMPLATES_DIR    directory with session-template YAML files
@@ -28,6 +29,10 @@ Auth:
   # Local development only. This skips login entirely and auto-authenticates every
   # request as user 1. It must be false anywhere the server is reachable by anyone else.
   DevAuthBypass: false
+  # Local development only. Drops the Secure flag from the session cookie so a browser
+  # keeps it over plain http://. Without this, a local login succeeds and the browser
+  # throws the cookie away. Never set it where the site is reachable by anyone else.
+  InsecureCookies: false
 
 # Startup YAML import (idempotent upsert by name)
 YAMLImport:

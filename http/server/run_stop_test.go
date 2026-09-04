@@ -545,7 +545,7 @@ func TestHandleRunStop_MarksRemainingExercisesSkipped(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
