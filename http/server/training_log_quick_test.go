@@ -98,7 +98,7 @@ func TestHandleTrainingLogQuick_RejectsEmptyNotes(t *testing.T) {
 				t.Fatal(err)
 			}
 			const ownerID uint = 1
-			srv, err := NewServer(store, "secret", 24, false, false, nil)
+			srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -219,7 +219,7 @@ func TestHandleTrainingLogQuick_StandaloneEntryEditableViaExistingRoutes(t *test
 		t.Fatal(err)
 	}
 	const ownerID uint = 1
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
