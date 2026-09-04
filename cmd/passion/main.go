@@ -32,6 +32,8 @@ func main() {
 	listInvites := flag.Bool("list-invites", false, "list every invite code and whether it has been used, then exit")
 	purgeOrphans := flag.Bool("purge-orphans", false, "delete exercises orphaned by the old importer bug, then exit — run the dry run first")
 	purgeDryRun := flag.Bool("purge-orphans-dry-run", false, "count the orphaned exercises without deleting anything, then exit")
+	backfillRuns := flag.Bool("backfill-runs", false, "give every past run its own copy of the exercises its records point at, then exit")
+	backfillDryRun := flag.Bool("backfill-runs-dry-run", false, "report what --backfill-runs would change, then exit")
 	keepOnlyUser := flag.Uint("delete-users-except", 0, "permanently delete every account except this user id, and everything those accounts own")
 	confirmDelete := flag.Bool("i-have-a-backup", false, "required with --delete-users-except: without it the deletion is only a dry run")
 	flag.Parse()
@@ -70,6 +72,14 @@ func main() {
 	if *mintInvites > 0 || *listInvites {
 		if err := runInviteCommand(store, *mintInvites, *inviteNote, *listInvites); err != nil {
 			slog.Error("invite command failed", "error", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
+	if *backfillRuns || *backfillDryRun {
+		if err := runBackfillCommand(store, cfg.Server.DBPath, *backfillDryRun); err != nil {
+			slog.Error("backfill failed", "error", err)
 			os.Exit(1)
 		}
 		os.Exit(0)
@@ -233,6 +243,28 @@ func runDeleteUsersCommand(store *db.Store, dbPath string, keepUserID uint, conf
 	}
 	fmt.Printf("Deleted %d account(s) and everything they owned.\n", applied.DeletedUsers)
 	fmt.Println("The rows are gone but the file is the same size. Run VACUUM to reclaim the space.")
+	return nil
+}
+
+// runBackfillCommand gives past runs their own exercises. A run used to read the live
+// template to render itself, so an import rewrote what a finished session said the athlete
+// did. Output goes to stdout so the owner can read the numbers before and after.
+func runBackfillCommand(store *db.Store, dbPath string, dryRun bool) error {
+	rep, err := db.BackfillRunExercises(store.DB, dryRun)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("database:            %s\n", dbPath)
+	fmt.Printf("runs examined:       %d\n", rep.RunsExamined)
+	fmt.Printf("runs to change:      %d\n", rep.RunsChanged)
+	fmt.Printf("exercises to copy:   %d\n", rep.Copied)
+	fmt.Printf("empty rows to clear: %d\n", rep.EmptyRemoved)
+	if rep.DryRun {
+		fmt.Println("\nDry run. Nothing was changed.")
+		fmt.Println("Back up the database, then run again with --backfill-runs.")
+		return nil
+	}
+	fmt.Println("\nDone. Every past run now renders from its own rows.")
 	return nil
 }
 
