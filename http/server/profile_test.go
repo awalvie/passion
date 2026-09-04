@@ -43,7 +43,7 @@ func TestHandleProfileGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func TestHandleProfilePostUpdatesStats(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func TestHandleProfilePostBadNumberShowsError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +175,7 @@ func TestHandleProfilePassword_Success(t *testing.T) {
 		t.Fatal(err)
 	}
 	user := seedUserWithPassword(t, store, "climber@example.com", "oldpassword")
-	srv, err := NewServer(store, "secret", 24, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,7 +204,7 @@ func TestHandleProfilePassword_WrongCurrentRejected(t *testing.T) {
 		t.Fatal(err)
 	}
 	user := seedUserWithPassword(t, store, "climber@example.com", "oldpassword")
-	srv, err := NewServer(store, "secret", 24, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -229,7 +229,7 @@ func TestHandleProfilePassword_MismatchAndTooShortRejected(t *testing.T) {
 		t.Fatal(err)
 	}
 	user := seedUserWithPassword(t, store, "climber@example.com", "oldpassword")
-	srv, err := NewServer(store, "secret", 24, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -589,14 +589,19 @@ func (s *Server) handleTrainingLogView(w http.ResponseWriter, r *http.Request) {
 							continue
 						}
 						sv := pages.SessionExerciseSummaryView{
-							Name:   ex.Name,
-							Kind:   ex.Kind,
-							Status: "pending",
+							Name:      ex.Name,
+							Kind:      ex.Kind,
+							Status:    "pending",
+							BlockType: act.Type,
+							BlockName: act.Name,
 						}
 						if c, ok := compByID[ex.ID]; ok {
 							sv.Status = c.Status
 							sv.Notes = c.RunNotes
 							sv.ElapsedMinutes = c.ElapsedSeconds / 60
+						}
+						if ex.Kind == "climbing" {
+							sv.Ticks = s.summaryTickViews(ownerID, run.ID, ex.ID)
 						}
 						params.Exercises = append(params.Exercises, sv)
 					}
@@ -608,8 +613,10 @@ func (s *Server) handleTrainingLogView(w http.ResponseWriter, r *http.Request) {
 				exs, _ := db.ListExercisesForRun(s.store.DB, ownerID, run.ID)
 				for _, ex := range exs {
 					sv := pages.SessionExerciseSummaryView{
-						Name: ex.Name,
-						Kind: ex.Kind,
+						Name:      ex.Name,
+						Kind:      ex.Kind,
+						BlockType: ex.RunBlockType,
+						BlockName: ex.RunBlockName,
 					}
 					var comp db.RunExerciseCompletion
 					if err3 := s.store.DB.Where("owner_id = ? AND run_id = ? AND exercise_id = ?",
@@ -641,6 +648,11 @@ func (s *Server) handleTrainingLogView(w http.ResponseWriter, r *http.Request) {
 						if meta, _ := db.GetClimbingExerciseMeta(s.store.DB, ownerID, run.ID, ex.ID); meta != nil {
 							sv.ClimbingType = meta.Type
 						}
+						// The focus and thoughts on each climb are the athlete's own
+						// writing, and for a climbing session they are most of it. The
+						// summary page has always shown them; without this the log renders
+						// a session full of notes as empty.
+						sv.Ticks = s.summaryTickViews(ownerID, run.ID, ex.ID)
 					}
 					params.Exercises = append(params.Exercises, sv)
 				}
@@ -648,6 +660,10 @@ func (s *Server) handleTrainingLogView(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// A session reads as warm-up, main work and cooldown rather than one long list.
+	// Returns nil for a manual or open session, which has no blocks, and the page falls
+	// back to the flat list.
+	params.Blocks = pages.GroupExercisesIntoBlocks(params.Exercises)
 	s.pages.TrainingLogSummaryPage(w, params)
 }
 

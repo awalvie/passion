@@ -182,6 +182,9 @@ func (s *Server) handleRunSummary(w http.ResponseWriter, r *http.Request) {
 		s.dbError(w, r, err)
 		return
 	}
+	// The summary is keyed by exercise id against the run's completions, so it has to read
+	// the same rows those completions point at — the run's own, not today's template.
+	ss = s.useRunOwnedGraph(ss, run, ownerID)
 
 	var completions []db.RunExerciseCompletion
 	s.store.DB.Where("run_id = ? AND owner_id = ?", runID, ownerID).Find(&completions)

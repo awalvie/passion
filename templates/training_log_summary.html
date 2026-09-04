@@ -1,3 +1,42 @@
+{{/* One logged exercise. Shared by the grouped and flat lists below. */}}
+{{ define "training_log_exercise_row" }}
+<div class="py-2.5" style="border-top: 1px solid var(--border)">
+  <div class="flex items-start gap-2">
+    {{ if .Status }}
+    <span class="mt-0.5 shrink-0" style="color:{{ if eq .Status "completed" }}var(--accent){{ else }}var(--muted){{ end }}">
+      {{ if eq .Status "completed" }}<i data-lucide="check" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+      {{ else if eq .Status "skipped" }}<i data-lucide="minus" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+      {{ else }}<i data-lucide="circle" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>{{ end }}
+    </span>
+    {{ end }}
+    <div class="flex-1 min-w-0">
+      <div class="flex items-baseline justify-between gap-2">
+        <span class="text-sm font-medium{{ if eq .Status "skipped" }} line-through muted{{ end }}">{{ .Name }}</span>
+        <span class="text-[11px] muted shrink-0">
+          {{ if eq .Kind "climbing" }}
+            {{ .ClimbingType }}
+          {{ else if or (eq .Kind "session") (eq .Kind "timed_reps") }}
+            {{ if gt .ElapsedMinutes 0 }}{{ .ElapsedMinutes }} min{{ end }}
+          {{ else }}
+            {{ if gt .ActualSets 0 }}{{ .ActualSets }}×{{ .ActualReps }}{{ end -}}
+            {{- if gt .ActualWeightKg 0.0 }} · {{ printf "%.1f" .ActualWeightKg }}kg{{ end }}
+          {{ end }}
+        </span>
+      </div>
+      {{ if .PerSetMode }}
+      <div class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+        {{ range .SetLogs }}
+        <span class="text-[11px] muted">Set {{ .SetIndex }}: {{ .Reps }} reps{{ if gt .WeightKg 0.0 }} @ {{ printf "%.1f" .WeightKg }}kg{{ end }}</span>
+        {{ end }}
+      </div>
+      {{ end }}
+      {{ if .Notes }}<p class="mt-1 text-xs muted whitespace-pre-wrap">{{ .Notes }}</p>{{ end }}
+      {{ if .Ticks }}{{ template "run_ticks_readonly" .Ticks }}{{ end }}
+    </div>
+  </div>
+</div>
+{{ end }}
+
 {{ define "content" }}
 <div class="space-y-5">
 
@@ -29,45 +68,21 @@
 
     {{/* LEFT: exercises */}}
     <div>
-      {{ if .Exercises }}
-      <div class="card card-pad">
-        <p class="text-[10px] font-bold uppercase tracking-widest muted mb-3">Exercises</p>
-        {{ range .Exercises }}
-        <div class="py-2.5" style="border-top: 1px solid var(--border)">
-          <div class="flex items-start gap-2">
-            {{ if .Status }}
-            <span class="mt-0.5 shrink-0" style="color:{{ if eq .Status "completed" }}var(--accent){{ else }}var(--muted){{ end }}">
-              {{ if eq .Status "completed" }}<i data-lucide="check" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
-              {{ else if eq .Status "skipped" }}<i data-lucide="minus" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
-              {{ else }}<i data-lucide="circle" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>{{ end }}
-            </span>
-            {{ end }}
-            <div class="flex-1 min-w-0">
-              <div class="flex items-baseline justify-between gap-2">
-                <span class="text-sm font-medium{{ if eq .Status "skipped" }} line-through muted{{ end }}">{{ .Name }}</span>
-                <span class="text-[11px] muted shrink-0">
-                  {{ if eq .Kind "climbing" }}
-                    {{ .ClimbingType }}
-                  {{ else if or (eq .Kind "session") (eq .Kind "timed_reps") }}
-                    {{ if gt .ElapsedMinutes 0 }}{{ .ElapsedMinutes }} min{{ end }}
-                  {{ else }}
-                    {{ if gt .ActualSets 0 }}{{ .ActualSets }}×{{ .ActualReps }}{{ end -}}
-                    {{- if gt .ActualWeightKg 0.0 }} · {{ printf "%.1f" .ActualWeightKg }}kg{{ end }}
-                  {{ end }}
-                </span>
-              </div>
-              {{ if .PerSetMode }}
-              <div class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-                {{ range .SetLogs }}
-                <span class="text-[11px] muted">Set {{ .SetIndex }}: {{ .Reps }} reps{{ if gt .WeightKg 0.0 }} @ {{ printf "%.1f" .WeightKg }}kg{{ end }}</span>
-                {{ end }}
-              </div>
-              {{ end }}
-              {{ if .Notes }}<p class="mt-1 text-xs muted whitespace-pre-wrap">{{ .Notes }}</p>{{ end }}
-            </div>
-          </div>
+      {{ if .Blocks }}
+      <div class="card card-pad space-y-4">
+        {{ range .Blocks }}
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-widest muted mb-2">
+            {{ if .Name }}{{ .Name }}{{ else if .Type }}{{ .Type }}{{ else }}Exercises{{ end }}
+          </p>
+          {{ range .Exercises }}{{ template "training_log_exercise_row" . }}{{ end }}
         </div>
         {{ end }}
+      </div>
+      {{ else if .Exercises }}
+      <div class="card card-pad">
+        <p class="text-[10px] font-bold uppercase tracking-widest muted mb-3">Exercises</p>
+        {{ range .Exercises }}{{ template "training_log_exercise_row" . }}{{ end }}
       </div>
       {{ else }}
       <div class="card card-pad text-sm muted">No exercises logged for this session.</div>
