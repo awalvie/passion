@@ -2,4 +2,4 @@ name: "Finger Warm-Up"
 slug: "finger_warm_up"
 label: "warmup, fingers"
 exercises:
-  - ref: "Warmup Pulls"
+  - ref: "warmup_pulls"

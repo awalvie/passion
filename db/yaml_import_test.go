@@ -27,6 +27,7 @@ func TestImportYAMLUpsertByName(t *testing.T) {
 
 	if err := os.WriteFile(filepath.Join(exercisesDir, "pullups.yaml"), []byte(`
 name: "Weighted Pull-ups"
+slug: "weighted_pull_ups"
 kind: "reps_and_sets"
 sets: 5
 reps: 5
@@ -38,6 +39,7 @@ weight_kg: 10
 	}
 	if err := os.WriteFile(filepath.Join(templatesDir, "strength.yaml"), []byte(`
 name: "Strength Base Session"
+slug: "strength_base_session"
 color: "#ef4444"
 activities:
   - type: "activity"
@@ -46,6 +48,7 @@ activities:
   - type: "cooldown"
     exercises:
       - name: "Lat + Pec Stretch"
+        slug: "lat_pec_stretch"
         kind: "session"
         session_duration_seconds: 300
 `), 0o644); err != nil {
@@ -79,6 +82,7 @@ activities:
 	// Re-import changed YAML: same names should update, not duplicate.
 	if err := os.WriteFile(filepath.Join(exercisesDir, "pullups.yaml"), []byte(`
 name: "Weighted Pull-ups"
+slug: "weighted_pull_ups"
 kind: "reps_and_sets"
 sets: 5
 reps: 6
@@ -90,6 +94,7 @@ weight_kg: 12.5
 	}
 	if err := os.WriteFile(filepath.Join(templatesDir, "strength.yaml"), []byte(`
 name: "Strength Base Session"
+slug: "strength_base_session"
 color: "#3b82f6"
 activities:
   - type: "activity"
@@ -158,6 +163,7 @@ func TestImportYAMLUnknownReferenceFails(t *testing.T) {
 	}
 	if err := os.WriteFile(filepath.Join(templatesDir, "broken.yaml"), []byte(`
 name: "Broken Session"
+slug: "broken_session"
 activities:
   - type: "activity"
     exercises:
@@ -208,18 +214,21 @@ func TestImportYAMLPrunesRenameOrphansButProtectsInUseAndUIRows(t *testing.T) {
 
 	writeFile(filepath.Join(exercisesDir, "pullups.yaml"), `
 name: "Pull Ups"
+slug: "pull_ups"
 kind: "reps_and_sets"
 sets: 3
 reps: 10
 `)
 	writeFile(filepath.Join(exercisesDir, "pushups.yaml"), `
 name: "Push Ups"
+slug: "push_ups"
 kind: "reps_and_sets"
 sets: 3
 reps: 15
 `)
 	writeFile(filepath.Join(templatesDir, "strength.yaml"), `
 name: "Strength Session"
+slug: "strength_session"
 activities:
   - type: "activity"
     exercises:
@@ -227,6 +236,7 @@ activities:
 `)
 	writeFile(filepath.Join(templatesDir, "old.yaml"), `
 name: "Old Session"
+slug: "old_session"
 activities:
   - type: "activity"
     exercises:
@@ -268,13 +278,30 @@ activities:
 		t.Fatalf("re-import after rename: %v", err)
 	}
 
+	// "Push Ups" left the YAML, but "Old Session" refs it and is pinned in place by a
+	// scheduled session — so a template exercise still describes it, and that exercise now
+	// carries a link back to this library row. Prune protects a row that is still in use.
+	//
+	// This assertion used to expect the row to be deleted. It was deleted only because the
+	// link did not exist: the importer never set LibraryExerciseID on a ref, so prune saw
+	// no user and removed the row while a live exercise still pointed at it in spirit. The
+	// link is what makes the protection work.
 	var pushUpsCount int64
 	if err := store.DB.Model(&LibraryExercise{}).
 		Where("owner_id = ? AND name = ?", ownerID, "Push Ups").Count(&pushUpsCount).Error; err != nil {
 		t.Fatal(err)
 	}
-	if pushUpsCount != 0 {
-		t.Errorf("expected renamed-away 'Push Ups' to be pruned, but %d row(s) remain", pushUpsCount)
+	if pushUpsCount != 1 {
+		t.Errorf("'Push Ups' is still used by a pinned template, so it must survive prune; %d row(s) remain", pushUpsCount)
+	}
+	var linked int64
+	if err := store.DB.Model(&Exercise{}).
+		Where("library_exercise_id = (SELECT id FROM library_exercises WHERE owner_id = ? AND name = ?)",
+			ownerID, "Push Ups").Count(&linked).Error; err != nil {
+		t.Fatal(err)
+	}
+	if linked == 0 {
+		t.Error("nothing links back to 'Push Ups', so prune had no reason to protect it")
 	}
 
 	var uiCount int64
@@ -348,11 +375,11 @@ func TestImportYAMLWalksSubdirectories(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write(filepath.Join(exDir, "flat.yaml"), "name: \"Flat Move\"\nkind: \"session\"\n")
-	write(filepath.Join(nested, "deep.yaml"), "name: \"Deep Move\"\nkind: \"session\"\n")
+	write(filepath.Join(exDir, "flat.yaml"), "name: \"Flat Move\"\nslug: \"flat_move\"\nkind: \"session\"\n")
+	write(filepath.Join(nested, "deep.yaml"), "name: \"Deep Move\"\nslug: \"deep_move\"\nkind: \"session\"\n")
 	// A session template in a subfolder that refs the nested exercise.
 	write(filepath.Join(stDir, "programs", "s.yaml"),
-		"name: \"Folder Session\"\nactivities:\n  - type: \"activity\"\n    exercises:\n      - ref: \"Deep Move\"\n")
+		"name: \"Folder Session\"\nslug: \"folder_session\"\nactivities:\n  - type: \"activity\"\n    exercises:\n      - ref: \"Deep Move\"\n")
 
 	if err := store.ImportYAML(YAMLImportOptions{
 		OwnerID: 1, ExercisesDir: []string{exDir}, SessionTemplatesDir: []string{stDir},
@@ -399,11 +426,12 @@ func TestImportYAMLMultipleDirectories(t *testing.T) {
 		pubEx := filepath.Join(tmp, "public", "exercises")
 		privEx := filepath.Join(tmp, "private", "exercises")
 		pubST := filepath.Join(tmp, "public", "templates")
-		mustWrite(t, pubEx, "rows.yaml", "name: \"Ring Rows\"\nkind: \"reps_and_sets\"\nsets: 3\nreps: 10\n")
-		mustWrite(t, privEx, "ladder.yaml", "name: \"Private Ladder\"\nkind: \"reps_and_sets\"\nsets: 2\nreps: 6\n")
+		mustWrite(t, pubEx, "rows.yaml", "name: \"Ring Rows\"\nslug: \"ring_rows\"\nkind: \"reps_and_sets\"\nsets: 3\nreps: 10\n")
+		mustWrite(t, privEx, "ladder.yaml", "name: \"Private Ladder\"\nslug: \"private_ladder\"\nkind: \"reps_and_sets\"\nsets: 2\nreps: 6\n")
 		// The session lives in the published tree but references the private exercise.
 		mustWrite(t, pubST, "day.yaml", `
 name: "Mixed Day"
+slug: "mixed_day"
 activities:
   - type: "activity"
     exercises:
@@ -436,10 +464,10 @@ activities:
 		a := filepath.Join(tmp, "a", "exercises")
 		b := filepath.Join(tmp, "b", "exercises")
 		st := filepath.Join(tmp, "templates")
-		body := "name: \"Ring Rows\"\nkind: \"reps_and_sets\"\nsets: 3\nreps: 10\n"
+		body := "name: \"Ring Rows\"\nslug: \"ring_rows\"\nkind: \"reps_and_sets\"\nsets: 3\nreps: 10\n"
 		mustWrite(t, a, "rows.yaml", body)
 		mustWrite(t, b, "rows.yaml", body)
-		mustWrite(t, st, "day.yaml", "name: \"Day\"\nactivities: []\n")
+		mustWrite(t, st, "day.yaml", "name: \"Day\"\nslug: \"day\"\nactivities: []\n")
 		err = store.ImportYAML(YAMLImportOptions{
 			OwnerID:             1,
 			ExercisesDir:        []string{a, b},
@@ -461,8 +489,8 @@ activities:
 		}
 		ex := filepath.Join(tmp, "exercises")
 		st := filepath.Join(tmp, "templates")
-		mustWrite(t, ex, "rows.yaml", "name: \"Ring Rows\"\nkind: \"reps_and_sets\"\nsets: 3\nreps: 10\n")
-		mustWrite(t, st, "day.yaml", "name: \"Day\"\nactivities: []\n")
+		mustWrite(t, ex, "rows.yaml", "name: \"Ring Rows\"\nslug: \"ring_rows\"\nkind: \"reps_and_sets\"\nsets: 3\nreps: 10\n")
+		mustWrite(t, st, "day.yaml", "name: \"Day\"\nslug: \"day\"\nactivities: []\n")
 		absent := filepath.Join(tmp, "not-there")
 		err = store.ImportYAML(YAMLImportOptions{
 			OwnerID:             1,
@@ -485,8 +513,8 @@ activities:
 		}
 		ex := filepath.Join(tmp, "exercises")
 		st := filepath.Join(tmp, "templates")
-		mustWrite(t, ex, "rows.yaml", "name: \"Ring Rows\"\nkind: \"reps_and_sets\"\nsets: 3\nreps: 10\n")
-		mustWrite(t, st, "day.yaml", "name: \"Day\"\nactivities: []\n")
+		mustWrite(t, ex, "rows.yaml", "name: \"Ring Rows\"\nslug: \"ring_rows\"\nkind: \"reps_and_sets\"\nsets: 3\nreps: 10\n")
+		mustWrite(t, st, "day.yaml", "name: \"Day\"\nslug: \"day\"\nactivities: []\n")
 		// A trailing comma in configuration produces an empty entry; it must not be
 		// read as a directory named "".
 		if err := store.ImportYAML(YAMLImportOptions{
@@ -518,6 +546,7 @@ func TestImportYAMLSkipsEditedRows(t *testing.T) {
 		stDir := filepath.Join(tmp, "sessions")
 		mustWrite(t, exDir, "rows.yaml", `
 name: "Ring Rows"
+slug: "ring_rows"
 kind: "reps_and_sets"
 sets: 3
 reps: 10
@@ -525,12 +554,14 @@ notes: "from the catalog"
 `)
 		mustWrite(t, atDir, "warmup.yaml", `
 name: "Warm Up"
+slug: "warm_up"
 label: "warmup"
 exercises:
   - ref: "Ring Rows"
 `)
 		mustWrite(t, stDir, "day.yaml", `
 name: "Pull Day"
+slug: "pull_day"
 label: "strength"
 activities:
   - ref: "Warm Up"
