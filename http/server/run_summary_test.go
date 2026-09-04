@@ -149,7 +149,7 @@ func TestHandleRunSummary_GuidedRunShowsTicks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +189,7 @@ func TestHandleRunSummary_OpenRunShowsTicks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,7 +241,7 @@ func TestHandleRunSummary_TicksOwnerScoped(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -294,7 +294,7 @@ func TestHandleRunSummary_NonClimbingExerciseHasNoTicksBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -326,7 +326,7 @@ func TestHandleRunSummary_ClimbingExerciseNoTicksRendersCleanly(t *testing.T) {
 	run, _ := seedGuidedRunWithClimbingExercise(t, store, ownerID)
 	// No ticks created for this exercise.
 
-	srv, err := NewServer(store, "secret", 24, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -417,7 +417,7 @@ func TestHandleRunSummary_CatalogMenuShowsChosenChildAndTicks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -437,5 +437,90 @@ func TestHandleRunSummary_CatalogMenuShowsChosenChildAndTicks(t *testing.T) {
 	}
 	if strings.Contains(body, "Power Endurance Intervals") {
 		t.Errorf("summary shows an option that was not chosen: %.700q", body)
+	}
+}
+
+// The summary is keyed by exercise id against the run's completions. A materialised run
+// holds its own exercises, so the summary has to read those and not today's template.
+//
+// This regressed in the worst possible way: before runs owned their exercises, the summary
+// found 29 of the owner's 113 completions. After the backfill moved every completion onto
+// run-owned rows, the summary still read the template and found none at all.
+func TestRunSummaryReadsTheRunsOwnExercises(t *testing.T) {
+	withRepoRoot(t)
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "summary-owned.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv, err := NewServer(store, "test-secret-at-least-32-characters!!", time.Hour, false, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const ownerID uint = 1
+
+	tpl := &db.SessionTemplate{OwnerID: ownerID, Name: "Strength Day"}
+	if err := store.DB.Create(tpl).Error; err != nil {
+		t.Fatal(err)
+	}
+	act := &db.Activity{OwnerID: ownerID, SessionTemplateID: tpl.ID, Type: "activity", Name: "Main"}
+	if err := store.DB.Create(act).Error; err != nil {
+		t.Fatal(err)
+	}
+	tplEx := &db.Exercise{OwnerID: ownerID, ActivityID: &act.ID,
+		Name: "Weighted Pull-ups", Kind: "reps_and_sets", Sets: 5, Reps: 5}
+	if err := store.DB.Create(tplEx).Error; err != nil {
+		t.Fatal(err)
+	}
+	ss := &db.ScheduledSession{OwnerID: ownerID, ScheduledDate: time.Now(), SessionTemplateID: tpl.ID}
+	if err := store.DB.Create(ss).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	// Start the run the way the app now does: it takes its own copy immediately.
+	run, err := db.StartRunForScheduledSession(store.DB, ownerID, ss.ID, false, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var runEx db.Exercise
+	if err := store.DB.Where("session_run_id = ?", run.ID).First(&runEx).Error; err != nil {
+		t.Fatal(err)
+	}
+	done := time.Now()
+	if err := store.DB.Create(&db.RunExerciseCompletion{
+		OwnerID: ownerID, RunID: run.ID, ExerciseID: runEx.ID,
+		Status: "completed", CompletedAt: done,
+		ActualSets: 5, ActualReps: 4, ActualWeightKg: 12.5,
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := store.DB.Model(&db.SessionRun{}).Where("id = ?", run.ID).
+		Updates(map[string]any{"status": db.RunStatusCompleted, "completed_at": done}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	// Now retire the template's exercise, exactly as an import does.
+	if err := store.DB.Delete(&db.Exercise{}, tplEx.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := store.DB.Delete(&db.Activity{}, act.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	srv.handleRunSummary(rr, newRunSummaryRequest(t, run.ID, ownerID, false))
+	if rr.Code != http.StatusOK {
+		t.Fatalf("summary returned %d", rr.Code)
+	}
+	body := rr.Body.String()
+	if !strings.Contains(body, "Weighted Pull-ups") {
+		t.Error("the summary lost the exercise once the template row was retired")
+	}
+	// The completion has to be matched, or the exercise renders as "pending" with no
+	// detail — the reported bug.
+	if strings.Contains(body, "run-summary-row--pending") {
+		t.Error("the exercise renders as pending: its completion was not matched")
+	}
+	if !strings.Contains(body, "run-summary-row--completed") {
+		t.Error("the summary shows nothing completed, so the completion was not matched")
 	}
 }
