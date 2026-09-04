@@ -32,6 +32,8 @@ func main() {
 	listInvites := flag.Bool("list-invites", false, "list every invite code and whether it has been used, then exit")
 	purgeOrphans := flag.Bool("purge-orphans", false, "delete exercises orphaned by the old importer bug, then exit — run the dry run first")
 	purgeDryRun := flag.Bool("purge-orphans-dry-run", false, "count the orphaned exercises without deleting anything, then exit")
+	backfillSlugs := flag.Bool("backfill-slugs", false, "derive a slug for every catalog row that has none, then exit")
+	backfillSlugsDry := flag.Bool("backfill-slugs-dry-run", false, "report what --backfill-slugs would set, then exit")
 	backfillRuns := flag.Bool("backfill-runs", false, "give every past run its own copy of the exercises its records point at, then exit")
 	backfillDryRun := flag.Bool("backfill-runs-dry-run", false, "report what --backfill-runs would change, then exit")
 	keepOnlyUser := flag.Uint("delete-users-except", 0, "permanently delete every account except this user id, and everything those accounts own")
@@ -72,6 +74,14 @@ func main() {
 	if *mintInvites > 0 || *listInvites {
 		if err := runInviteCommand(store, *mintInvites, *inviteNote, *listInvites); err != nil {
 			slog.Error("invite command failed", "error", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
+	if *backfillSlugs || *backfillSlugsDry {
+		if err := runSlugBackfillCommand(store, cfg.Server.DBPath, *backfillSlugsDry); err != nil {
+			slog.Error("slug backfill failed", "error", err)
 			os.Exit(1)
 		}
 		os.Exit(0)
@@ -253,6 +263,44 @@ func runDeleteUsersCommand(store *db.Store, dbPath string, keepUserID uint, conf
 	}
 	fmt.Printf("Deleted %d account(s) and everything they owned.\n", applied.DeletedUsers)
 	fmt.Println("The rows are gone but the file is the same size. Run VACUUM to reclaim the space.")
+	return nil
+}
+
+// runSlugBackfillCommand derives a slug for every catalog row that has none. The importer
+// is about to match on slug, and a switch against an empty column makes every row match
+// nothing — prune would then treat the whole catalog as orphaned.
+func runSlugBackfillCommand(store *db.Store, dbPath string, dryRun bool) error {
+	rep, err := db.BackfillSlugs(store.DB, dryRun)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("database:  %s\n", dbPath)
+	if rep.Total == 0 {
+		fmt.Println("Every catalog row already has a slug. Nothing to do.")
+		return nil
+	}
+	tables := make([]string, 0, len(rep.ByTable))
+	for t := range rep.ByTable {
+		tables = append(tables, t)
+	}
+	sort.Strings(tables)
+	for _, t := range tables {
+		fmt.Printf("  %-24s %6d\n", t, rep.ByTable[t])
+	}
+	fmt.Printf("  %-24s %6d\n", "total", rep.Total)
+
+	if len(rep.Collisions) > 0 {
+		fmt.Printf("\n%d name collision(s) — numbered apart, but worth a look:\n", len(rep.Collisions))
+		for _, c := range rep.Collisions {
+			fmt.Println("  " + c)
+		}
+	}
+	if rep.DryRun {
+		fmt.Println("\nDry run. Nothing was changed.")
+		fmt.Println("Back up the database, then run again with --backfill-slugs.")
+		return nil
+	}
+	fmt.Println("\nDone. The importer can now match on slug.")
 	return nil
 }
 
