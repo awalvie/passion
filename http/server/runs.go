@@ -81,6 +81,7 @@ func (s *Server) renderRun(w http.ResponseWriter, r *http.Request, runID uint, o
 		s.dbError(w, r, err)
 		return
 	}
+	ss = s.useRunOwnedGraph(ss, run, ownerID)
 
 	steps := s.buildRunSteps(ss, runID, ownerID)
 	if run.IsOpen {
@@ -288,6 +289,7 @@ func (s *Server) completeRunExercise(w http.ResponseWriter, r *http.Request, run
 	if err != nil {
 		return err
 	}
+	ss = s.useRunOwnedGraph(ss, run, ownerID)
 
 	steps := s.buildRunSteps(ss, runID, ownerID)
 	if run.IsOpen {
@@ -502,6 +504,8 @@ func (s *Server) handleRunExerciseChoose(w http.ResponseWriter, r *http.Request)
 		s.dbError(w, r, err)
 		return
 	}
+	// The choice names exercise ids, so it has to see the same rows the player showed.
+	ss = s.useRunOwnedGraph(ss, run, ownerID)
 
 	// Build an index of all exercises for fast lookup.
 	exerciseByID := map[uint]*db.Exercise{}
@@ -815,4 +819,26 @@ func sumElapsedSeconds(completions []db.RunExerciseCompletion) int {
 		}
 	}
 	return total
+}
+
+// useRunOwnedGraph swaps the live template graph for the exercises the run owns, when it
+// has them. A run must render from its own copy: the importer deletes and recreates a
+// template's children, so reading the template shows a past run whatever the catalog says
+// today — or nothing at all, once the rows it pointed at were retired.
+//
+// Falls back to the template untouched for a run that was never materialised.
+func (s *Server) useRunOwnedGraph(ss db.ScheduledSession, run db.SessionRun, ownerID uint) db.ScheduledSession {
+	if !run.ExercisesMaterialised {
+		return ss
+	}
+	acts, err := db.RunOwnedActivities(s.store.DB, ownerID, run.ID)
+	if err != nil {
+		s.logger.Error("failed to load run-owned exercises", "run_id", run.ID, "error", err)
+		return ss
+	}
+	if len(acts) == 0 {
+		return ss
+	}
+	ss.SessionTemplate.Activities = acts
+	return ss
 }
