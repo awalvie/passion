@@ -1120,66 +1120,110 @@ func DeleteCalendarEvent(gdb *gorm.DB, ownerID, id uint) error {
 	return gdb.Where("id = ? AND owner_id = ?", id, ownerID).Delete(&CalendarEvent{}).Error
 }
 
-// MaterialiseTemplateExercises copies template exercises from a ScheduledSession into
-// RunExercise rows for the given run, carrying over any existing completion data.
-// Sets ExercisesMaterialised = true so this only runs once.
+// snapshotExercise copies a template exercise into a row the run owns. Every field the
+// player and the log need comes across, because the run must render from its own copy and
+// never read the template again — the template's children are deleted and recreated on
+// every import.
+func snapshotExercise(src Exercise, block Activity, ownerID, runID uint, orderIndex int, parentID *uint) Exercise {
+	return Exercise{
+		OwnerID:      ownerID,
+		SessionRunID: &runID,
+		// The grouping travels as text: an Activity cannot belong to a run.
+		RunBlockType: block.Type,
+		RunBlockName: block.Name,
+		// Kept so metrics can group the same movement across runs. Never read to render.
+		LibraryExerciseID:      src.LibraryExerciseID,
+		ParentExerciseID:       parentID,
+		Name:                   src.Name,
+		Notes:                  src.Notes,
+		Kind:                   src.Kind,
+		SessionDurationSeconds: src.SessionDurationSeconds,
+		Sets:                   src.Sets,
+		Reps:                   src.Reps,
+		RepSeconds:             src.RepSeconds,
+		RepRestSeconds:         src.RepRestSeconds,
+		SetRestSeconds:         src.SetRestSeconds,
+		PrepSeconds:            src.PrepSeconds,
+		RungSeconds:            src.RungSeconds,
+		WeightKg:               src.WeightKg,
+		OrderIndex:             orderIndex,
+	}
+}
+
+// repointRunRows moves every row keyed by (run_id, exercise_id) from the template exercise
+// onto the run's own copy. These are records of what the athlete did, so they are moved,
+// never duplicated.
+func repointRunRows(tx *gorm.DB, ownerID, runID, fromID, toID uint) error {
+	for _, model := range []any{
+		&ClimbingTick{}, &ClimbingExerciseMeta{}, &ManualExerciseSetLog{},
+		&ExercisePlannedSet{}, &RunExerciseCompletion{},
+	} {
+		q := tx.Model(model).Where("owner_id = ? AND exercise_id = ?", ownerID, fromID)
+		// ExercisePlannedSet hangs off the exercise, not the run, so it carries no run_id.
+		if _, isPlanned := model.(*ExercisePlannedSet); !isPlanned {
+			q = q.Where("run_id = ?", runID)
+		}
+		if err := q.Update("exercise_id", toID).Error; err != nil {
+			return err
+		}
+	}
+	for _, col := range []string{"parent_exercise_id", "chosen_exercise_id"} {
+		if err := tx.Model(&RunExerciseChoice{}).
+			Where("owner_id = ? AND run_id = ? AND "+col+" = ?", ownerID, runID, fromID).
+			Update(col, toID).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// MaterialiseTemplateExercises gives a run its own copy of the session's exercises, and
+// moves every record already logged against the template rows onto that copy. After this
+// the run is self-contained: an import that rewrites the template cannot change what the
+// run says the athlete did.
+//
+// Sets ExercisesMaterialised so it runs once per run.
 func MaterialiseTemplateExercises(gdb *gorm.DB, ownerID, runID uint, ss ScheduledSession) error {
 	return gdb.Transaction(func(tx *gorm.DB) error {
-		var comps []RunExerciseCompletion
-		tx.Where("run_id = ? AND owner_id = ?", runID, ownerID).Find(&comps)
-		compByExID := make(map[uint]RunExerciseCompletion, len(comps))
-		for _, c := range comps {
-			compByExID[c.ExerciseID] = c
-		}
+		return materialiseInto(tx, ownerID, runID, ss)
+	})
+}
+
+// materialiseInto is the body of MaterialiseTemplateExercises, callable from inside an
+// existing transaction so a run can be created and given its exercises atomically.
+func materialiseInto(tx *gorm.DB, ownerID, runID uint, ss ScheduledSession) error {
+	{
 		orderIdx := 0
 		for _, act := range ss.SessionTemplate.Activities {
+			// Index the template's option rows by their parent, so a catalog parent brings
+			// its choices across. Skipping them left RunExerciseChoice pointing at rows the
+			// run does not own.
+			childrenByParent := map[uint][]Exercise{}
+			for _, ex := range act.Exercises {
+				if ex.ParentExerciseID != nil {
+					childrenByParent[*ex.ParentExerciseID] = append(childrenByParent[*ex.ParentExerciseID], ex)
+				}
+			}
+
 			for _, ex := range act.Exercises {
 				if ex.ParentExerciseID != nil {
 					continue
 				}
-				runEx := Exercise{
-					OwnerID:      ownerID,
-					SessionRunID: &runID,
-					Name:         ex.Name,
-					Kind:         ex.Kind,
-					OrderIndex:   orderIdx,
-				}
+				runEx := snapshotExercise(ex, act, ownerID, runID, orderIdx, nil)
 				if err := tx.Create(&runEx).Error; err != nil {
 					return err
 				}
-				// Ticks, board context and set logs are keyed by (run_id, exercise_id) and
-				// were written against the pre-materialisation exercise. Re-point them, or
-				// the log editor renders the new row and reports no climbs while the data
-				// still sits under the old id.
-				for _, model := range []interface{}{
-					&ClimbingTick{}, &ClimbingExerciseMeta{}, &ManualExerciseSetLog{},
-				} {
-					if err := tx.Model(model).
-						Where("owner_id = ? AND run_id = ? AND exercise_id = ?", ownerID, runID, ex.ID).
-						Update("exercise_id", runEx.ID).Error; err != nil {
-						return err
-					}
-				}
-				if err := tx.Model(&RunExerciseChoice{}).
-					Where("owner_id = ? AND run_id = ? AND parent_exercise_id = ?", ownerID, runID, ex.ID).
-					Update("parent_exercise_id", runEx.ID).Error; err != nil {
+				if err := repointRunRows(tx, ownerID, runID, ex.ID, runEx.ID); err != nil {
 					return err
 				}
-
-				if comp, ok := compByExID[ex.ID]; ok {
-					newComp := RunExerciseCompletion{
-						OwnerID:        ownerID,
-						RunID:          runID,
-						ExerciseID:     runEx.ID,
-						Status:         comp.Status,
-						RunNotes:       comp.RunNotes,
-						ElapsedSeconds: comp.ElapsedSeconds,
-						CompletedAt:    comp.CompletedAt,
-						ActualSets:     comp.ActualSets,
-						ActualReps:     comp.ActualReps,
-						ActualWeightKg: comp.ActualWeightKg,
+				for i, child := range childrenByParent[ex.ID] {
+					runChild := snapshotExercise(child, act, ownerID, runID, i, &runEx.ID)
+					if err := tx.Create(&runChild).Error; err != nil {
+						return err
 					}
-					tx.Create(&newComp)
+					if err := repointRunRows(tx, ownerID, runID, child.ID, runChild.ID); err != nil {
+						return err
+					}
 				}
 				orderIdx++
 			}
@@ -1187,7 +1231,81 @@ func MaterialiseTemplateExercises(gdb *gorm.DB, ownerID, runID uint, ss Schedule
 		return tx.Model(&SessionRun{}).
 			Where("id = ? AND owner_id = ?", runID, ownerID).
 			Update("exercises_materialised", true).Error
+	}
+}
+
+// StartRunForScheduledSession creates a run and immediately gives it its own copy of the
+// session's exercises, in one transaction. Copying at the start rather than lazily on the
+// first log edit is what makes a run independent of the template: the importer rewrites a
+// template's children on every restart, so a run that still read the template would show
+// whatever the catalog says today.
+func StartRunForScheduledSession(gdb *gorm.DB, ownerID, scheduledSessionID uint, isTrial bool, at time.Time) (SessionRun, error) {
+	var run SessionRun
+	err := gdb.Transaction(func(tx *gorm.DB) error {
+		ss, err := GetScheduledSessionWithTemplate(tx, ownerID, scheduledSessionID)
+		if err != nil {
+			return err
+		}
+		run = SessionRun{
+			OwnerID:            ownerID,
+			ScheduledSessionID: scheduledSessionID,
+			IsTrial:            isTrial,
+			Status:             RunStatusRunning,
+			StartedAt:          at,
+		}
+		if err := tx.Create(&run).Error; err != nil {
+			return err
+		}
+		return materialiseInto(tx, ownerID, run.ID, ss)
 	})
+	return run, err
+}
+
+// RunOwnedActivities rebuilds the block grouping from the exercises a run owns, so a
+// materialised run renders from its own rows and never reads the template again. The
+// Activity values it returns are built in memory and never stored — a real Activity needs
+// a SessionTemplateID, and these belong to a run.
+//
+// Returns nil when the run owns nothing, so callers fall back to the template.
+func RunOwnedActivities(gdb *gorm.DB, ownerID, runID uint) ([]Activity, error) {
+	var rows []Exercise
+	if err := gdb.Preload("Media").
+		Where("owner_id = ? AND session_run_id = ?", ownerID, runID).
+		Order("order_index asc, id asc").
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return nil, nil
+	}
+
+	// Options hang off their parent and must not become steps of their own.
+	children := map[uint][]Exercise{}
+	for _, ex := range rows {
+		if ex.ParentExerciseID != nil {
+			children[*ex.ParentExerciseID] = append(children[*ex.ParentExerciseID], ex)
+		}
+	}
+
+	var out []Activity
+	for _, ex := range rows {
+		if ex.ParentExerciseID != nil {
+			continue
+		}
+		// Rows arrive in run order, so a block is only ever extended or started.
+		if len(out) == 0 || out[len(out)-1].Type != ex.RunBlockType || out[len(out)-1].Name != ex.RunBlockName {
+			out = append(out, Activity{
+				OwnerID:    ownerID,
+				Type:       ex.RunBlockType,
+				Name:       ex.RunBlockName,
+				OrderIndex: len(out),
+			})
+		}
+		block := &out[len(out)-1]
+		block.Exercises = append(block.Exercises, ex)
+		block.Exercises = append(block.Exercises, children[ex.ID]...)
+	}
+	return out, nil
 }
 
 // RepairMaterialisedTickLinks re-points climbing data that materialisation orphaned
