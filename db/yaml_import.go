@@ -31,6 +31,7 @@ type yamlMediaItem struct {
 
 type yamlExercise struct {
 	Name                   string          `yaml:"name"`
+	Slug                   string          `yaml:"slug"`
 	Label                  string          `yaml:"label"`
 	Source                 string          `yaml:"source"`
 	Kind                   string          `yaml:"kind"`
@@ -53,6 +54,7 @@ type yamlSessionTemplateDoc struct {
 
 type yamlSessionTemplate struct {
 	Name       string                `yaml:"name"`
+	Slug       string                `yaml:"slug"`
 	Color      string                `yaml:"color"`
 	Label      string                `yaml:"label"`
 	Source     string                `yaml:"source"`
@@ -73,6 +75,7 @@ type yamlActivityTemplateDoc struct {
 
 type yamlActivityTemplate struct {
 	Name      string                `yaml:"name"`
+	Slug      string                `yaml:"slug"`
 	Label     string                `yaml:"label"`
 	Source    string                `yaml:"source"`
 	Exercises []yamlSessionExercise `yaml:"exercises"`
@@ -114,9 +117,20 @@ func (s *Store) ImportYAML(opts YAMLImportOptions) error {
 		return err
 	}
 
-	resolvedExerciseMap := make(map[string]yamlExercise, len(libraryExercises))
+	// A ref: names its target by slug, and by display name for YAML written before slugs
+	// existed. Both go in one map. Unlike the slug itself, a name fallback here is safe:
+	// an unresolved ref is a hard error, so nothing is silently mismatched — the fallback
+	// only widens what resolves. Slug wins, so a rename cannot break a ref that uses one.
+	resolvedExerciseMap := make(map[string]yamlExercise, len(libraryExercises)*2)
 	for _, ex := range libraryExercises {
-		resolvedExerciseMap[strings.TrimSpace(ex.Name)] = ex
+		if n := strings.TrimSpace(ex.Name); n != "" {
+			resolvedExerciseMap[n] = ex
+		}
+	}
+	for _, ex := range libraryExercises {
+		if sl := strings.TrimSpace(ex.Slug); sl != "" {
+			resolvedExerciseMap[sl] = ex
+		}
 	}
 
 	// Activity templates are optional — skip if dir not configured.
@@ -131,9 +145,16 @@ func (s *Store) ImportYAML(opts YAMLImportOptions) error {
 		}
 	}
 
-	resolvedActivityTemplateMap := make(map[string]yamlActivityTemplate, len(activityTemplates))
+	resolvedActivityTemplateMap := make(map[string]yamlActivityTemplate, len(activityTemplates)*2)
 	for _, at := range activityTemplates {
-		resolvedActivityTemplateMap[strings.TrimSpace(at.Name)] = at
+		if n := strings.TrimSpace(at.Name); n != "" {
+			resolvedActivityTemplateMap[n] = at
+		}
+	}
+	for _, at := range activityTemplates {
+		if sl := strings.TrimSpace(at.Slug); sl != "" {
+			resolvedActivityTemplateMap[sl] = at
+		}
 	}
 
 	sessionTemplates, err := loadSessionTemplateYAML(templatesDirs)
@@ -143,6 +164,16 @@ func (s *Store) ImportYAML(opts YAMLImportOptions) error {
 	if err := validateNoDuplicateTemplateNames(sessionTemplates); err != nil {
 		return err
 	}
+	// Slug is what the importer matches on, so both checks run before a single row is
+	// written. A missing slug is fatal on purpose: deriving one from the name would
+	// reinstate the identity this replaces, and the first rename would silently delete
+	// the row and create a new one.
+	if err := validateSlugsPresent(libraryExercises, activityTemplates, sessionTemplates); err != nil {
+		return err
+	}
+	if err := validateNoDuplicateSlugs(libraryExercises, activityTemplates, sessionTemplates); err != nil {
+		return err
+	}
 
 	return s.DB.Transaction(func(tx *gorm.DB) error {
 		for _, ex := range libraryExercises {
@@ -150,18 +181,55 @@ func (s *Store) ImportYAML(opts YAMLImportOptions) error {
 				return err
 			}
 		}
+		// An exercise placed by `ref:` is a copy of a library entry, and it needs to say
+		// so. Without this link, "how has my pull-up progressed" and every cycle override
+		// fall back to matching on the display name — which is exactly the identity the
+		// slug replaced. Only 2 of 122,180 rows carried it before.
+		libIDBySlug, err := libraryIDsBySlug(tx, opts.OwnerID)
+		if err != nil {
+			return err
+		}
 		for _, at := range activityTemplates {
-			if err := upsertActivityTemplate(tx, opts.OwnerID, at, resolvedExerciseMap); err != nil {
+			if err := upsertActivityTemplate(tx, opts.OwnerID, at, resolvedExerciseMap, libIDBySlug); err != nil {
 				return err
 			}
 		}
 		for _, tpl := range sessionTemplates {
-			if err := upsertSessionTemplate(tx, opts.OwnerID, tpl, resolvedExerciseMap, resolvedActivityTemplateMap); err != nil {
+			if err := upsertSessionTemplate(tx, opts.OwnerID, tpl, resolvedExerciseMap, resolvedActivityTemplateMap, libIDBySlug); err != nil {
 				return err
 			}
 		}
 		return pruneCatalogOrphans(tx, opts.OwnerID, libraryExercises, activityTemplates, sessionTemplates)
 	})
+}
+
+// libraryIDsBySlug maps an owner's library exercises by slug, so an exercise built from a
+// `ref:` can record which library entry it came from.
+// libIDPtr returns a pointer to the library exercise id for a slug, or nil when the slug
+// is unknown — which cannot happen after ref validation, but nil is the honest answer.
+func libIDPtr(byslug map[string]uint, slug string) *uint {
+	if id, ok := byslug[strings.TrimSpace(slug)]; ok && id != 0 {
+		return &id
+	}
+	return nil
+}
+
+func libraryIDsBySlug(tx *gorm.DB, ownerID uint) (map[string]uint, error) {
+	type row struct {
+		ID   uint
+		Slug string
+	}
+	var rows []row
+	if err := tx.Model(&LibraryExercise{}).
+		Where("owner_id = ? AND slug <> ''", ownerID).
+		Select("id, slug").Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make(map[string]uint, len(rows))
+	for _, r := range rows {
+		out[r.Slug] = r.ID
+	}
+	return out, nil
 }
 
 func nameSet[T any](items []T, name func(T) string) map[string]struct{} {
@@ -172,28 +240,28 @@ func nameSet[T any](items []T, name func(T) string) map[string]struct{} {
 	return out
 }
 
-// pruneCatalogOrphans removes catalog-managed rows for the owner whose names are no
+// pruneCatalogOrphans removes catalog-managed rows for the owner whose slugs are no
 // longer present in the YAML — the stale rows left behind when a catalog entry is
-// renamed or dropped. It only touches rows flagged ManagedByCatalog (never UI-created
+// dropped. A rename no longer reaches here at all: slug is identity, so renaming an
+// entry updates its row instead of orphaning it. It only touches rows flagged ManagedByCatalog (never UI-created
 // data), skips the system open-session template, and never deletes a session template
 // that has scheduled sessions or cycle mappings (which would orphan logged runs) or a
 // library exercise still referenced by an exercise copy or cycle override.
 //
-// A row with CatalogEditedAt set is skipped too. That is the whole point of the flag: a
-// user who renames an edited row would otherwise see it deleted on the next restart,
-// because its new name is absent from the YAML.
+// A row with CatalogEditedAt set is skipped too, so an edit made in the app survives a
+// restart.
 //
 // As a safety guard against a misconfigured/empty import directory wiping a whole
 // category, a category is only pruned when the YAML actually defined entries for it.
 func pruneCatalogOrphans(tx *gorm.DB, ownerID uint, exs []yamlExercise, ats []yamlActivityTemplate, sts []yamlSessionTemplate) error {
 	if len(exs) > 0 {
-		keep := nameSet(exs, func(e yamlExercise) string { return e.Name })
+		keep := nameSet(exs, func(e yamlExercise) string { return e.Slug })
 		var rows []LibraryExercise
 		if err := tx.Where("owner_id = ? AND managed_by_catalog = ? AND catalog_edited_at IS NULL", ownerID, true).Find(&rows).Error; err != nil {
 			return err
 		}
 		for _, le := range rows {
-			if _, ok := keep[le.Name]; ok {
+			if _, ok := keep[le.Slug]; ok {
 				continue
 			}
 			var used int64
@@ -236,13 +304,13 @@ func pruneCatalogOrphans(tx *gorm.DB, ownerID uint, exs []yamlExercise, ats []ya
 	}
 
 	if len(ats) > 0 {
-		keep := nameSet(ats, func(a yamlActivityTemplate) string { return a.Name })
+		keep := nameSet(ats, func(a yamlActivityTemplate) string { return a.Slug })
 		var rows []ActivityTemplate
 		if err := tx.Where("owner_id = ? AND managed_by_catalog = ? AND catalog_edited_at IS NULL", ownerID, true).Find(&rows).Error; err != nil {
 			return err
 		}
 		for _, at := range rows {
-			if _, ok := keep[at.Name]; ok {
+			if _, ok := keep[at.Slug]; ok {
 				continue
 			}
 			if err := deleteExercisesAndMedia(tx, "activity_template_id = ?", at.ID); err != nil {
@@ -255,13 +323,13 @@ func pruneCatalogOrphans(tx *gorm.DB, ownerID uint, exs []yamlExercise, ats []ya
 	}
 
 	if len(sts) > 0 {
-		keep := nameSet(sts, func(t yamlSessionTemplate) string { return t.Name })
+		keep := nameSet(sts, func(t yamlSessionTemplate) string { return t.Slug })
 		var rows []SessionTemplate
 		if err := tx.Where("owner_id = ? AND managed_by_catalog = ? AND catalog_edited_at IS NULL", ownerID, true).Find(&rows).Error; err != nil {
 			return err
 		}
 		for _, st := range rows {
-			if _, ok := keep[st.Name]; ok {
+			if _, ok := keep[st.Slug]; ok {
 				continue
 			}
 			if st.IsSystem {
@@ -491,6 +559,60 @@ func validateSessionTemplates(items []yamlSessionTemplate) ([]yamlSessionTemplat
 	return items, nil
 }
 
+// validateSlugsPresent refuses an import where any entry lacks a slug. A soft fallback
+// would derive one from the display name, which is exactly the identity this replaces: the
+// first rename would then silently produce a new slug, delete the old row and create a new
+// one. Better to fail at the file that is missing it.
+func validateSlugsPresent(exs []yamlExercise, ats []yamlActivityTemplate, sts []yamlSessionTemplate) error {
+	for _, e := range exs {
+		if strings.TrimSpace(e.Slug) == "" {
+			return fmt.Errorf("exercise %q has no slug: add `slug:` to its YAML file", e.Name)
+		}
+	}
+	for _, a := range ats {
+		if strings.TrimSpace(a.Slug) == "" {
+			return fmt.Errorf("activity template %q has no slug: add `slug:` to its YAML file", a.Name)
+		}
+	}
+	for _, t := range sts {
+		if strings.TrimSpace(t.Slug) == "" {
+			return fmt.Errorf("session template %q has no slug: add `slug:` to its YAML file", t.Name)
+		}
+	}
+	return nil
+}
+
+// validateNoDuplicateSlugs catches two entries claiming one identity. Slug is what the
+// importer matches on, so a duplicate would have the two overwrite each other on every
+// boot, alternately.
+func validateNoDuplicateSlugs(exs []yamlExercise, ats []yamlActivityTemplate, sts []yamlSessionTemplate) error {
+	for _, group := range []struct {
+		kind  string
+		slugs []string
+	}{
+		{"exercise", slugsOf(exs, func(e yamlExercise) string { return e.Slug })},
+		{"activity template", slugsOf(ats, func(a yamlActivityTemplate) string { return a.Slug })},
+		{"session template", slugsOf(sts, func(t yamlSessionTemplate) string { return t.Slug })},
+	} {
+		seen := map[string]bool{}
+		for _, sl := range group.slugs {
+			if seen[sl] {
+				return fmt.Errorf("two %s entries share the slug %q", group.kind, sl)
+			}
+			seen[sl] = true
+		}
+	}
+	return nil
+}
+
+func slugsOf[T any](items []T, get func(T) string) []string {
+	out := make([]string, 0, len(items))
+	for _, it := range items {
+		out = append(out, strings.TrimSpace(get(it)))
+	}
+	return out
+}
+
 func validateNoDuplicateExerciseNames(items []yamlExercise) error {
 	seen := map[string]struct{}{}
 	for _, ex := range items {
@@ -622,9 +744,9 @@ func validateNoDuplicateActivityTemplateNames(items []yamlActivityTemplate) erro
 	return nil
 }
 
-func upsertActivityTemplate(tx *gorm.DB, ownerID uint, at yamlActivityTemplate, byExerciseName map[string]yamlExercise) error {
+func upsertActivityTemplate(tx *gorm.DB, ownerID uint, at yamlActivityTemplate, byExerciseName map[string]yamlExercise, libIDBySlug map[string]uint) error {
 	var row ActivityTemplate
-	res := tx.Where("owner_id = ? AND name = ?", ownerID, at.Name).Limit(1).Find(&row)
+	res := tx.Where("owner_id = ? AND slug = ?", ownerID, at.Slug).Limit(1).Find(&row)
 	if res.Error != nil {
 		return res.Error
 	}
@@ -634,8 +756,13 @@ func upsertActivityTemplate(tx *gorm.DB, ownerID uint, at yamlActivityTemplate, 
 		return nil
 	}
 	if res.RowsAffected == 0 {
-		row = ActivityTemplate{OwnerID: ownerID, Name: at.Name}
+		row = ActivityTemplate{OwnerID: ownerID}
 	}
+	// Slug is the match key, so it is written on create. Name is refreshed on every
+	// import: under name-matching it was the key and could not change, but a rename now
+	// finds the row by slug and must actually update it.
+	row.Slug = strings.TrimSpace(at.Slug)
+	row.Name = at.Name
 	row.Label = strings.TrimSpace(at.Label)
 	row.Source = strings.TrimSpace(at.Source)
 	row.ManagedByCatalog = true
@@ -662,6 +789,7 @@ func upsertActivityTemplate(tx *gorm.DB, ownerID uint, at yamlActivityTemplate, 
 				return fmt.Errorf("activity template %q references unknown exercise %q", at.Name, ex.Ref)
 			}
 			ate.Name = ref.Name
+			ate.LibraryExerciseID = libIDPtr(libIDBySlug, ref.Slug)
 			ate.Kind = ref.Kind
 			ate.SessionDurationSeconds = ref.SessionDurationSeconds
 			ate.Notes = ref.Notes
@@ -713,6 +841,7 @@ func upsertActivityTemplate(tx *gorm.DB, ownerID uint, at yamlActivityTemplate, 
 						return fmt.Errorf("activity template %q exercise_catalog %q: unknown child exercise %q", at.Name, ate.Name, child.Ref)
 					}
 					childEx.Name = ref.Name
+					childEx.LibraryExerciseID = libIDPtr(libIDBySlug, ref.Slug)
 					childEx.Kind = NormalizeKind(ref.Kind)
 					childEx.SessionDurationSeconds = ref.SessionDurationSeconds
 					childEx.Notes = ref.Notes
@@ -748,7 +877,7 @@ func upsertActivityTemplate(tx *gorm.DB, ownerID uint, at yamlActivityTemplate, 
 
 func upsertLibraryExercise(tx *gorm.DB, ownerID uint, ex yamlExercise) error {
 	var row LibraryExercise
-	res := tx.Where("owner_id = ? AND name = ?", ownerID, ex.Name).Limit(1).Find(&row)
+	res := tx.Where("owner_id = ? AND slug = ?", ownerID, ex.Slug).Limit(1).Find(&row)
 	if res.Error != nil {
 		return res.Error
 	}
@@ -758,11 +887,10 @@ func upsertLibraryExercise(tx *gorm.DB, ownerID uint, ex yamlExercise) error {
 		return nil
 	}
 	if res.RowsAffected == 0 {
-		row = LibraryExercise{
-			OwnerID: ownerID,
-			Name:    ex.Name,
-		}
+		row = LibraryExercise{OwnerID: ownerID}
 	}
+	row.Slug = strings.TrimSpace(ex.Slug)
+	row.Name = ex.Name
 	row.Label = strings.TrimSpace(ex.Label)
 	row.Source = strings.TrimSpace(ex.Source)
 	row.ManagedByCatalog = true
@@ -788,9 +916,9 @@ func upsertLibraryExercise(tx *gorm.DB, ownerID uint, ex yamlExercise) error {
 	return createExerciseMedia(tx, ownerID, nil, &row.ID, ex.Media)
 }
 
-func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, byName map[string]yamlExercise, byActivityTemplate map[string]yamlActivityTemplate) error {
+func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, byName map[string]yamlExercise, byActivityTemplate map[string]yamlActivityTemplate, libIDBySlug map[string]uint) error {
 	var template SessionTemplate
-	res := tx.Where("owner_id = ? AND name = ?", ownerID, tpl.Name).Limit(1).Find(&template)
+	res := tx.Where("owner_id = ? AND slug = ?", ownerID, tpl.Slug).Limit(1).Find(&template)
 	if res.Error != nil {
 		return res.Error
 	}
@@ -800,11 +928,10 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 		return nil
 	}
 	if res.RowsAffected == 0 {
-		template = SessionTemplate{
-			OwnerID: ownerID,
-			Name:    tpl.Name,
-		}
+		template = SessionTemplate{OwnerID: ownerID}
 	}
+	template.Slug = strings.TrimSpace(tpl.Slug)
+	template.Name = tpl.Name
 	template.Color = strings.TrimSpace(tpl.Color)
 	template.Label = strings.TrimSpace(tpl.Label)
 	template.Source = strings.TrimSpace(tpl.Source)
@@ -888,6 +1015,7 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 						return fmt.Errorf("activity template %q references unknown exercise %q", a.Ref, ex.Ref)
 					}
 					exercise.Name = ref.Name
+					exercise.LibraryExerciseID = libIDPtr(libIDBySlug, ref.Slug)
 					exercise.Kind = ref.Kind
 					exercise.SessionDurationSeconds = ref.SessionDurationSeconds
 					exercise.Notes = ref.Notes
@@ -937,6 +1065,7 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 								return fmt.Errorf("activity template %q exercise_catalog %q: unknown child %q", a.Ref, exercise.Name, child.Ref)
 							}
 							childEx.Name = ref.Name
+							childEx.LibraryExerciseID = libIDPtr(libIDBySlug, ref.Slug)
 							childEx.Kind = NormalizeKind(ref.Kind)
 							childEx.SessionDurationSeconds = ref.SessionDurationSeconds
 							childEx.Notes = ref.Notes
@@ -1000,6 +1129,7 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 					return fmt.Errorf("template %q activity %q references unknown exercise %q", tpl.Name, a.Type, ex.Ref)
 				}
 				exercise.Name = ref.Name
+				exercise.LibraryExerciseID = libIDPtr(libIDBySlug, ref.Slug)
 				exercise.Kind = ref.Kind
 				exercise.SessionDurationSeconds = ref.SessionDurationSeconds
 				exercise.Notes = ref.Notes
@@ -1041,6 +1171,7 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 					var childSessionDur, childSets, childReps, childRepSec, childRepRest, childSetRest, childPrepSec int
 					var childWeight float64
 					var childMedia []yamlMediaItem
+					var childLibID *uint
 
 					if child.Ref != "" {
 						ref, ok := byName[child.Ref]
@@ -1048,6 +1179,7 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 							return fmt.Errorf("template %q exercise_catalog %q references unknown child exercise %q", tpl.Name, exercise.Name, child.Ref)
 						}
 						childName = ref.Name
+						childLibID = libIDPtr(libIDBySlug, ref.Slug)
 						childKind = NormalizeKind(ref.Kind)
 						childSessionDur = ref.SessionDurationSeconds
 						childNotes = ref.Notes
@@ -1085,6 +1217,7 @@ func upsertSessionTemplate(tx *gorm.DB, ownerID uint, tpl yamlSessionTemplate, b
 						ActivityID:             &actID,
 						OrderIndex:             eIdx*1000 + cIdx + 1,
 						Name:                   childName,
+						LibraryExerciseID:      childLibID,
 						Kind:                   childKind,
 						SessionDurationSeconds: childSessionDur,
 						Notes:                  childNotes,

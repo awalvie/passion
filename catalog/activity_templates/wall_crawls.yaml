@@ -14,6 +14,6 @@ exercises:
 
       Fine to keep the same crawls for months.
     children:
-      - ref: "Wall Crawl: Slow Boulder"
-      - ref: "Wall Crawl: Static Holds"
-      - ref: "Wall Crawl: Project"
+      - ref: "wall_crawl_slow_boulder"
+      - ref: "wall_crawl_static_holds"
+      - ref: "wall_crawl_project"

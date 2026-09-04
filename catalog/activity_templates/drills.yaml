@@ -13,9 +13,9 @@ exercises:
       Do it warm and fresh, before the hard climbing. Rotate the drill each
       session.
     children:
-      - ref: "Silent Feet"
-      - ref: "Eyes, Feet, Hips, Hands"
-      - ref: "Straight Arms + Relaxed Grip"
-      - ref: "Soft Hands"
-      - ref: "Down-Climbing"
-      - ref: "Flag Every Move"
+      - ref: "silent_feet"
+      - ref: "eyes_feet_hips_hands"
+      - ref: "straight_arms_relaxed_grip"
+      - ref: "soft_hands"
+      - ref: "down_climbing"
+      - ref: "flag_every_move"
