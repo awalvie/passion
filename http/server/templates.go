@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -273,6 +274,19 @@ func (s *Server) handleTemplatesByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Header().Set("HX-Redirect", "/templates")
+		w.WriteHeader(http.StatusOK)
+		return
+	case "save-as-mine":
+		if r.Method != http.MethodPost {
+			s.methodNotAllowed(w)
+			return
+		}
+		copyRow, err := db.SaveSessionTemplateAsMine(s.store.DB, ownerID, uint(templateID))
+		if err != nil {
+			s.dbError(w, r, err)
+			return
+		}
+		w.Header().Set("HX-Redirect", fmt.Sprintf("/templates/%d/edit", copyRow.ID))
 		w.WriteHeader(http.StatusOK)
 		return
 	case "update":

@@ -1,6 +1,8 @@
 package db
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 )
 
@@ -69,3 +71,7 @@ func GuardWritable(gdb *gorm.DB, model any, ownerID, id uint) error {
 	}
 	return ErrNotFound
 }
+
+// zeroTime is the value GORM treats as "not set", so a copied row gets its own timestamps
+// instead of inheriting the original's.
+func zeroTime() time.Time { return time.Time{} }

@@ -196,3 +196,81 @@ func mustCreateWeb(t *testing.T, store *db.Store, v any) {
 		t.Fatal(err)
 	}
 }
+
+// Editing a catalog row is not offered. Saving your own copy is, and it lands the user on
+// their own row ready to change.
+func TestSaveAsMineRoutesTheUserToTheirOwnCopy(t *testing.T) {
+	const app, user uint = 1, 2
+
+	cases := []struct {
+		name   string
+		seed   func(t *testing.T, store *db.Store) uint
+		call   func(t *testing.T, srv *Server, id uint) *httptest.ResponseRecorder
+		prefix string
+		count  func(t *testing.T, store *db.Store) int64
+	}{
+		{
+			name: "session template",
+			seed: func(t *testing.T, store *db.Store) uint {
+				row := db.SessionTemplate{OwnerID: app, Name: "Boulder Session", Slug: "boulder", Shared: true}
+				mustCreateWeb(t, store, &row)
+				return row.ID
+			},
+			call: func(t *testing.T, srv *Server, id uint) *httptest.ResponseRecorder {
+				rr := httptest.NewRecorder()
+				srv.handleTemplatesByID(rr, postAs(t, user, fmt.Sprintf("/templates/%d/save-as-mine", id), nil,
+					map[string]string{"templateID": fmt.Sprint(id), "action": "save-as-mine"}))
+				return rr
+			},
+			prefix: "/templates/",
+			count: func(t *testing.T, store *db.Store) int64 {
+				var n int64
+				store.DB.Model(&db.SessionTemplate{}).Where("owner_id = ?", user).Count(&n)
+				return n
+			},
+		},
+		{
+			name: "library exercise",
+			seed: func(t *testing.T, store *db.Store) uint {
+				row := db.LibraryExercise{OwnerID: app, Name: "Max Hangs", Slug: "max_hangs", Shared: true}
+				mustCreateWeb(t, store, &row)
+				return row.ID
+			},
+			call: func(t *testing.T, srv *Server, id uint) *httptest.ResponseRecorder {
+				rr := httptest.NewRecorder()
+				srv.handleExerciseLibraryByID(rr, postAs(t, user, fmt.Sprintf("/exercise-library/%d/save-as-mine", id), nil,
+					map[string]string{"libraryExerciseID": fmt.Sprint(id), "action": "save-as-mine"}))
+				return rr
+			},
+			prefix: "/exercise-library/",
+			count: func(t *testing.T, store *db.Store) int64 {
+				var n int64
+				store.DB.Model(&db.LibraryExercise{}).Where("owner_id = ?", user).Count(&n)
+				return n
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			srv, store := guardTestServer(t, "saveas-"+strings.ReplaceAll(tc.name, " ", "-")+".db")
+			id := tc.seed(t, store)
+
+			if before := tc.count(t, store); before != 0 {
+				t.Fatalf("the user should start owning none, owns %d", before)
+			}
+			rr := tc.call(t, srv, id)
+
+			dest := rr.Header().Get("HX-Redirect")
+			if !strings.HasPrefix(dest, tc.prefix) {
+				t.Fatalf("want a redirect to the copy under %s, got %q (status %d)", tc.prefix, dest, rr.Code)
+			}
+			if strings.Contains(dest, fmt.Sprintf("%s%d/", tc.prefix, id)) {
+				t.Error("the redirect points back at the catalog row, not the copy")
+			}
+			if after := tc.count(t, store); after != 1 {
+				t.Errorf("want exactly 1 row owned by the user, got %d", after)
+			}
+		})
+	}
+}
