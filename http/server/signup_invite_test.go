@@ -23,7 +23,7 @@ func inviteTestServer(t *testing.T, name string) (*Server, *db.Store) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv, err := NewServer(store, "test-secret-at-least-32-characters!!", time.Hour, false, nil)
+	srv, err := NewServer(store, "test-secret-at-least-32-characters!!", time.Hour, false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,5 +235,50 @@ func TestSignupAcceptsACodeTypedLoosely(t *testing.T) {
 	loose := "  " + strings.ToLower(strings.ReplaceAll(code, "-", "")) + "  "
 	if rr := postSignup(t, srv, "loose@example.com", "password123", loose); rr.Header().Get("HX-Redirect") == "" {
 		t.Fatalf("a code typed as %q should be accepted", loose)
+	}
+}
+
+// A browser will not store a Secure cookie over plain http, so running the app locally on
+// http:// used to mean the login succeeded and the session vanished — you landed back on
+// the login page with no explanation. Safari refuses it even on localhost.
+func TestAuthCookieSecureFlagFollowsTheConfig(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		insecure   bool
+		wantSecure bool
+	}{
+		{"default is secure", false, true},
+		{"insecure cookies for local http", true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			withRepoRoot(t)
+			store, err := db.NewSqlite(filepath.Join(t.TempDir(), "cookie.db"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			srv, err := NewServer(store, "test-secret-at-least-32-characters!!", time.Hour, false, tc.insecure, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			rr := httptest.NewRecorder()
+			if err := srv.setAuthCookie(rr, 1); err != nil {
+				t.Fatal(err)
+			}
+			cookies := rr.Result().Cookies()
+			if len(cookies) != 1 {
+				t.Fatalf("want 1 cookie, got %d", len(cookies))
+			}
+			if cookies[0].Secure != tc.wantSecure {
+				t.Errorf("Secure=%v, want %v", cookies[0].Secure, tc.wantSecure)
+			}
+			// Never negotiable, whatever the transport.
+			if !cookies[0].HttpOnly {
+				t.Error("the session cookie must always be HttpOnly")
+			}
+			if cookies[0].SameSite != http.SameSiteLaxMode {
+				t.Error("the session cookie must always be SameSite=Lax")
+			}
+		})
 	}
 }

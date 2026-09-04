@@ -100,6 +100,7 @@ Copy [`passion.example.yaml`](passion.example.yaml) to `passion.yaml` or configu
 | `PASSION_JWT_TTL_HOURS` | `168` | Token lifetime in hours (7 days) |
 | `PASSION_SEED` | off | Populate demo data on empty DB |
 | `PASSION_DEV_AUTH_BYPASS` | off | Auto-login as user 1 (dev only) |
+| `PASSION_INSECURE_COOKIES` | off | Allow the session cookie over plain HTTP (dev only) |
 | `PASSION_YAML_IMPORT_ENABLED` | off | Import catalog YAML at startup |
 | `PASSION_YAML_EXERCISES_DIR` | `catalog/exercises` | Exercise YAML directory |
 | `PASSION_YAML_SESSION_TEMPLATES_DIR` | `catalog/session_templates` | Session template YAML directory |

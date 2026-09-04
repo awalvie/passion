@@ -187,7 +187,7 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		MaxAge:   -1,
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   !s.insecureCookies,
 		SameSite: http.SameSiteLaxMode,
 	})
 	w.Header().Set("HX-Redirect", "/login")
@@ -305,7 +305,7 @@ func (s *Server) setAuthCookie(w http.ResponseWriter, userID uint) error {
 		Value:    tokenStr,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   !s.insecureCookies,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(s.jwtTTL.Seconds()),
 	})

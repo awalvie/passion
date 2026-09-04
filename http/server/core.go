@@ -18,22 +18,28 @@ type Server struct {
 	jwtSecret     string
 	jwtTTL        time.Duration
 	devAuthBypass bool
-	yamlImport    *db.YAMLImportOptions // nil when YAML import is disabled
+	// insecureCookies drops the Secure flag so a browser keeps the session over plain
+	// HTTP. Local development only.
+	insecureCookies bool
+	yamlImport      *db.YAMLImportOptions // nil when YAML import is disabled
 }
 
-func NewServer(store *db.Store, jwtSecret string, jwtTTL time.Duration, devAuthBypass bool, yamlImport *db.YAMLImportOptions) (*Server, error) {
+// NewServer wires the HTTP server. insecureCookies is for local development over plain
+// HTTP only — see AuthConfig.InsecureCookies.
+func NewServer(store *db.Store, jwtSecret string, jwtTTL time.Duration, devAuthBypass, insecureCookies bool, yamlImport *db.YAMLImportOptions) (*Server, error) {
 	p, err := pages.NewPages(slog.Default().With("component", "pages"))
 	if err != nil {
 		return nil, err
 	}
 	return &Server{
-		pages:         p,
-		store:         store,
-		logger:        slog.Default().With("component", "http_server"),
-		jwtSecret:     jwtSecret,
-		jwtTTL:        jwtTTL,
-		devAuthBypass: devAuthBypass,
-		yamlImport:    yamlImport,
+		pages:           p,
+		store:           store,
+		logger:          slog.Default().With("component", "http_server"),
+		jwtSecret:       jwtSecret,
+		jwtTTL:          jwtTTL,
+		devAuthBypass:   devAuthBypass,
+		insecureCookies: insecureCookies,
+		yamlImport:      yamlImport,
 	}, nil
 }
 
