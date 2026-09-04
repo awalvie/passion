@@ -120,3 +120,91 @@ func TestAPrivateTemplateIsStillUnreachable(t *testing.T) {
 		}
 	}
 }
+
+// The point of the whole change: a second account sees the catalog on its first login,
+// with nothing copied to it. Every list and detail read goes through Visible, so this is
+// the test that says the read side works end to end.
+func TestASecondAccountSeesTheCatalogWithoutOwningAnyOfIt(t *testing.T) {
+	store, err := NewSqlite(filepath.Join(t.TempDir(), "catalog-visible.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const app, newcomer uint = 1, 2
+
+	tpl := SessionTemplate{OwnerID: app, Name: "Boulder Session", Slug: "boulder",
+		Shared: true, Source: "Passion", Label: "bouldering"}
+	mustCreate(t, store, &tpl)
+	act := Activity{OwnerID: app, SessionTemplateID: tpl.ID, Type: "activity", Name: "Main"}
+	mustCreate(t, store, &act)
+	mustCreate(t, store, &Exercise{OwnerID: app, ActivityID: &act.ID, Name: "Boulder Projects", Sets: 4})
+
+	block := ActivityTemplate{OwnerID: app, Name: "Warm Up", Slug: "warm_up",
+		Shared: true, Source: "Passion", Label: "warmup"}
+	mustCreate(t, store, &block)
+	mustCreate(t, store, &Exercise{OwnerID: app, ActivityTemplateID: &block.ID, Name: "Row"})
+
+	lib := LibraryExercise{OwnerID: app, Name: "Max Hangs", Slug: "max_hangs",
+		Shared: true, Source: "Passion", Label: "fingers"}
+	mustCreate(t, store, &lib)
+
+	// The newcomer owns nothing at all.
+	var owned int64
+	for _, m := range catalogModels() {
+		var n int64
+		if err := store.DB.Model(m).Where("owner_id = ?", newcomer).Count(&n).Error; err != nil {
+			t.Fatal(err)
+		}
+		owned += n
+	}
+	if owned != 0 {
+		t.Fatalf("the newcomer should own nothing, owns %d rows", owned)
+	}
+
+	// Lists.
+	tpls, err := ListTemplates(store.DB, newcomer, "", "", "")
+	if err != nil || len(tpls) != 1 {
+		t.Fatalf("ListTemplates: %d templates, err %v", len(tpls), err)
+	}
+	blocks, err := ListActivityTemplates(store.DB, newcomer, "", "", "")
+	if err != nil || len(blocks) != 1 {
+		t.Fatalf("ListActivityTemplates: %d blocks, err %v", len(blocks), err)
+	}
+	libs, err := ListLibraryExercises(store.DB, newcomer)
+	if err != nil || len(libs) != 1 {
+		t.Fatalf("ListLibraryExercises: %d exercises, err %v", len(libs), err)
+	}
+
+	// The filter dropdowns, which read from the same rows.
+	for name, fn := range map[string]func() ([]string, error){
+		"template sources": func() ([]string, error) { return DistinctTemplateSources(store.DB, newcomer) },
+		"template tags":    func() ([]string, error) { return DistinctTemplateTags(store.DB, newcomer) },
+		"library sources":  func() ([]string, error) { return DistinctLibrarySources(store.DB, newcomer) },
+		"library tags":     func() ([]string, error) { return DistinctLibraryTags(store.DB, newcomer) },
+		"block sources":    func() ([]string, error) { return DistinctActivityTemplateSources(store.DB, newcomer) },
+		"block tags":       func() ([]string, error) { return DistinctActivityTemplateTags(store.DB, newcomer) },
+	} {
+		got, err := fn()
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if len(got) == 0 {
+			t.Errorf("%s: empty, so the filter offers nothing for a catalog the user can see", name)
+		}
+	}
+
+	// Detail, with children.
+	full, err := GetTemplateWithGraph(store.DB, newcomer, tpl.ID)
+	if err != nil {
+		t.Fatalf("the newcomer cannot open the catalog session: %v", err)
+	}
+	if len(full.Activities) != 1 || len(full.Activities[0].Exercises) != 1 {
+		t.Errorf("the catalog session opened without its contents: %d blocks", len(full.Activities))
+	}
+	fullBlock, err := GetActivityTemplateWithExercises(store.DB, newcomer, block.ID)
+	if err != nil {
+		t.Fatalf("the newcomer cannot open the catalog block: %v", err)
+	}
+	if len(fullBlock.Exercises) != 1 {
+		t.Errorf("the catalog block opened without its exercises")
+	}
+}
