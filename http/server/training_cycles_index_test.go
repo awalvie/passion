@@ -30,7 +30,7 @@ func TestHandleTrainingCycles_ScheduledCountsCountsSessionsPerCycle(t *testing.T
 		t.Fatal(err)
 	}
 	const ownerID uint = 1
-	srv, err := NewServer(store, "secret", 24, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

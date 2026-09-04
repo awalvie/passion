@@ -30,6 +30,14 @@ type AuthConfig struct {
 	JWTTTLHours int `yaml:"JWTTTLHours"`
 	// DevAuthBypass auto-authenticates as demo user in development.
 	DevAuthBypass bool `yaml:"DevAuthBypass"`
+	// InsecureCookies drops the Secure flag from the auth cookie, so a browser will keep
+	// it over plain HTTP. Without this, running the app locally on http:// means the login
+	// succeeds, the browser discards the cookie, and the visitor lands back on the login
+	// page with no session — Safari in particular refuses a Secure cookie on localhost.
+	//
+	// Defaults to false. Never set it anywhere the site is reachable by anyone else: it
+	// lets the session cookie travel in the clear.
+	InsecureCookies bool `yaml:"InsecureCookies"`
 }
 
 // DirList is one or more catalog directories. It accepts either a single scalar or a
@@ -235,6 +243,9 @@ func applyEnv(c *Config) {
 		if n, err := parsePositiveInt(v); err == nil {
 			c.Auth.JWTTTLHours = n
 		}
+	}
+	if _, ok := os.LookupEnv("PASSION_INSECURE_COOKIES"); ok {
+		c.Auth.InsecureCookies = parseTruthy(os.Getenv("PASSION_INSECURE_COOKIES"))
 	}
 	if _, ok := os.LookupEnv("PASSION_DEV_AUTH_BYPASS"); ok {
 		c.Auth.DevAuthBypass = parseTruthy(os.Getenv("PASSION_DEV_AUTH_BYPASS"))
