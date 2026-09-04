@@ -130,6 +130,10 @@ These flags run against the database and exit. They do not start the server.
 | `--purge-orphans` | Delete those orphans, keeping any that run history still references. |
 | `--delete-users-except=ID` | Show what deleting every other account would remove. Changes nothing on its own. |
 | `--i-have-a-backup` | Required with `--delete-users-except` to actually delete. There is no undo. |
+| `--backfill-runs-dry-run` / `--backfill-runs` | Give past runs their own copy of the exercises their records point at. |
+| `--backfill-slugs-dry-run` / `--backfill-slugs` | Derive a slug for every catalog row that has none. Run before the importer matches on slug. |
+| `--publish-catalog-dry-run` / `--publish-catalog=ID` | Flag that owner's importer-created rows as the shared catalog every account reads. |
+| `--unpublish-catalog=ID` | Take those rows back into private ownership. Reverses `--publish-catalog` exactly. |
 
 Stop the server before running any of these. Two writers on one SQLite file give
 `database is locked`. After a purge or a deletion, run `VACUUM` to reclaim the space — the
@@ -150,9 +154,28 @@ code works once.
 
 ---
 
+## The shared catalog
+
+The catalog belongs to the app, not to a user. One account owns the rows and they are
+flagged `shared`, so every other account reads them and nobody edits them in place. Saving
+your own version copies that one row to you, and from then on it is an ordinary row you own.
+
+A new account gets nothing copied to it. It reads the catalog on first login because the
+catalog was always there.
+
+See [docs/SHIP_1_RUNBOOK.md](docs/SHIP_1_RUNBOOK.md) for switching this on.
+
 ## YAML catalog
 
-Training plans live in version-controlled YAML files under `catalog/`. On startup (when import is enabled), Passion upserts exercises and templates by name per owner.
+Training plans live in version-controlled YAML files under `catalog/`. On startup (when
+import is enabled), Passion upserts exercises and templates **by slug**, once, into the
+account that holds the catalog.
+
+Every entry needs an explicit `slug:`. It is the row's identity, so the display `name:` is
+free to change without the row being deleted and recreated. A missing slug is a hard error
+rather than something derived from the name — deriving it would mean the first rename
+silently produced a new slug, deleted the row and created another. `ref:` names its target
+by slug for the same reason.
 
 Each directory is scanned recursively, so files can be grouped into subfolders however you like — `catalog/exercises/` uses one folder per program (`ondra/`, `emil/`, `bechtel/`, `nelson/`) with unsourced and one-off entries at the top level. Layout is purely for humans: an entry's identity is its `name`, not its path, so moving a file between folders changes nothing in the database.
 
@@ -233,7 +256,7 @@ activities:
 Import behavior:
 
 - Runs on startup only when `PASSION_YAML_IMPORT_ENABLED` is set
-- Upserts by `owner_id + name` — safe to re-run
+- Upserts by `owner_id + slug` — safe to re-run
 - Template updates replace activities/exercises to preserve ordering
 - Skips any row a user has edited in the app (`catalog_edited_at` set) — neither
   overwritten nor pruned
