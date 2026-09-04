@@ -229,3 +229,66 @@ func TestOwnerScopedTablesCoversEveryTableWithAnOwner(t *testing.T) {
 		}
 	}
 }
+
+// The catalog is the app's, read by every account. It happens to be owned by whichever
+// account imported it, so account deletion could take it away — silently, and with no
+// undo. This is the guard, and it exists before anything can be marked shared.
+func TestDeleteAllUsersExceptRefusesToTakeTheCatalog(t *testing.T) {
+	store, err := NewSqlite(filepath.Join(t.TempDir(), "deluser-shared.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	keepID := seedAccountWithData(t, store, "keep@example.com")
+	donorID := seedAccountWithData(t, store, "donor@example.com")
+
+	// The donor holds a catalog row, the way the account that ran the import would.
+	shared := LibraryExercise{OwnerID: donorID, Name: "Shared Max Hangs", Slug: "max_hangs", Shared: true}
+	mustCreate(t, store, &shared)
+
+	plan, err := PlanDeleteAllUsersExcept(store.DB, keepID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.SharedRowsHeld != 1 {
+		t.Fatalf("the plan should report 1 catalog row at risk, reported %d", plan.SharedRowsHeld)
+	}
+
+	if _, err := DeleteAllUsersExcept(store.DB, keepID); err == nil {
+		t.Fatal("the deletion should be refused while a victim owns catalog rows")
+	}
+	var still int64
+	if err := store.DB.Model(&LibraryExercise{}).Where("id = ?", shared.ID).Count(&still).Error; err != nil {
+		t.Fatal(err)
+	}
+	if still != 1 {
+		t.Error("the catalog row was removed")
+	}
+	var users int64
+	if err := store.DB.Model(&User{}).Count(&users).Error; err != nil {
+		t.Fatal(err)
+	}
+	if users != 2 {
+		t.Fatalf("a refused deletion must change nothing, %d account(s) left", users)
+	}
+}
+
+// With no catalog rows at risk, deletion still works exactly as before.
+func TestDeleteAllUsersExceptStillWorksWithNoSharedRows(t *testing.T) {
+	store, err := NewSqlite(filepath.Join(t.TempDir(), "deluser-noshared.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	keepID := seedAccountWithData(t, store, "keep@example.com")
+	seedAccountWithData(t, store, "gone@example.com")
+
+	// A catalog row owned by the account being KEPT is not at risk.
+	mustCreate(t, store, &LibraryExercise{OwnerID: keepID, Name: "Shared Rows", Slug: "rows", Shared: true})
+
+	plan, err := DeleteAllUsersExcept(store.DB, keepID)
+	if err != nil {
+		t.Fatalf("deletion should proceed: %v", err)
+	}
+	if plan.DeletedUsers != 1 {
+		t.Fatalf("want 1 account deleted, got %d", plan.DeletedUsers)
+	}
+}

@@ -66,6 +66,17 @@ type SessionTemplate struct {
 	// private trees both contain drills.yaml and warmup.yaml, and because some files hold a
 	// list of items rather than one.
 	Slug string `gorm:"size:128;not null;default:''"`
+	// Shared marks a row as part of the catalog every account reads. The catalog is the
+	// app's, not a user's: nobody edits a shared row, and saving your own version copies
+	// it to you.
+	//
+	// A separate flag rather than a magic OwnerID. A nullable owner would mean SQLite
+	// enforces no uniqueness among catalog rows (NULLs are distinct in a unique index),
+	// and "WHERE owner_id <> me" would silently skip the whole catalog — a trap this
+	// project already hit once, in a production cleanup script. OwnerID keeps meaning
+	// exactly one thing: who made this. Forgetting to set Shared leaves a row private,
+	// so the failure is closed.
+	Shared bool `gorm:"index;not null;default:false"`
 	// Color is an optional hex accent (#rrggbb) for dashboard cards; empty = no accent.
 	Color string `gorm:"size:16;not null;default:''"`
 	// Label holds comma-separated freeform tags shown as chips (e.g. "technique, indoor").
@@ -191,6 +202,17 @@ type ActivityTemplate struct {
 	// private trees both contain drills.yaml and warmup.yaml, and because some files hold a
 	// list of items rather than one.
 	Slug string `gorm:"size:128;not null;default:''"`
+	// Shared marks a row as part of the catalog every account reads. The catalog is the
+	// app's, not a user's: nobody edits a shared row, and saving your own version copies
+	// it to you.
+	//
+	// A separate flag rather than a magic OwnerID. A nullable owner would mean SQLite
+	// enforces no uniqueness among catalog rows (NULLs are distinct in a unique index),
+	// and "WHERE owner_id <> me" would silently skip the whole catalog — a trap this
+	// project already hit once, in a production cleanup script. OwnerID keeps meaning
+	// exactly one thing: who made this. Forgetting to set Shared leaves a row private,
+	// so the failure is closed.
+	Shared bool `gorm:"index;not null;default:false"`
 	// Label holds comma-separated freeform tags shown as chips (e.g. "warmup, technique").
 	Label string `gorm:"size:128;not null;default:''"`
 	// Source is the program or coach the template comes from (e.g. "Power Company Climbing").
@@ -220,6 +242,17 @@ type LibraryExercise struct {
 	// private trees both contain drills.yaml and warmup.yaml, and because some files hold a
 	// list of items rather than one.
 	Slug string `gorm:"size:128;not null;default:''"`
+	// Shared marks a row as part of the catalog every account reads. The catalog is the
+	// app's, not a user's: nobody edits a shared row, and saving your own version copies
+	// it to you.
+	//
+	// A separate flag rather than a magic OwnerID. A nullable owner would mean SQLite
+	// enforces no uniqueness among catalog rows (NULLs are distinct in a unique index),
+	// and "WHERE owner_id <> me" would silently skip the whole catalog — a trap this
+	// project already hit once, in a production cleanup script. OwnerID keeps meaning
+	// exactly one thing: who made this. Forgetting to set Shared leaves a row private,
+	// so the failure is closed.
+	Shared bool `gorm:"index;not null;default:false"`
 	// Label holds comma-separated freeform tags shown as chips (e.g. "technique, fingers").
 	Label string `gorm:"size:128;not null;default:''"`
 	// Source is the program or coach the exercise comes from (e.g. "Power Company Climbing").

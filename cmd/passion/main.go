@@ -232,6 +232,13 @@ func runDeleteUsersCommand(store *db.Store, dbPath string, keepUserID uint, conf
 		fmt.Printf("  %-32s %8d\n", "invite_codes (redeemed by them)", plan.InviteCodes)
 	}
 
+	if plan.SharedRowsHeld > 0 {
+		fmt.Printf("\nSTOP: %d catalog row(s) belong to an account listed above.\n", plan.SharedRowsHeld)
+		fmt.Println("The catalog is read by every account, so this deletion is refused.")
+		fmt.Println("Move those rows to the account you are keeping, or keep that account instead.")
+		return nil
+	}
+
 	if !confirmed {
 		fmt.Println("\nDry run. Nothing was changed.")
 		fmt.Println("Read the list above and make sure it holds no account you want.")
