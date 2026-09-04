@@ -520,14 +520,8 @@ func (s *Server) startTrialRun(templateID uint, ownerID uint) (uint, error) {
 		return 0, err
 	}
 
-	run := &db.SessionRun{
-		OwnerID:            ownerID,
-		ScheduledSessionID: scheduled.ID,
-		IsTrial:            true,
-		Status:             db.RunStatusRunning,
-		StartedAt:          now,
-	}
-	if err := s.store.DB.Create(run).Error; err != nil {
+	run, err := db.StartRunForScheduledSession(s.store.DB, ownerID, scheduled.ID, true, now)
+	if err != nil {
 		return 0, err
 	}
 	return run.ID, nil

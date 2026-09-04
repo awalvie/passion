@@ -68,14 +68,10 @@ func (s *Server) handleScheduledSessionsByID(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
-		run := &db.SessionRun{
-			OwnerID:            ownerID,
-			ScheduledSessionID: uint(ss.ID),
-			IsTrial:            ss.IsTrial,
-			Status:             db.RunStatusRunning,
-			StartedAt:          time.Now(),
-		}
-		if err := s.store.DB.Create(run).Error; err != nil {
+		// The run takes its own copy of the exercises here, not later on the first log
+		// edit. Reading the template afterwards would show whatever the catalog says today.
+		run, err := db.StartRunForScheduledSession(s.store.DB, ownerID, uint(ss.ID), ss.IsTrial, time.Now())
+		if err != nil {
 			s.serverError(w, r, err)
 			return
 		}

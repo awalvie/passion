@@ -60,6 +60,12 @@ type SessionTemplate struct {
 
 	OwnerID uint   `gorm:"index;not null"`
 	Name    string `gorm:"not null"`
+	// Slug is the stable identity of a catalog row. The importer matches on it, so the
+	// display Name is free to change without the row being deleted and recreated. It comes
+	// from an explicit `slug:` in the YAML — never from the filename, because the public and
+	// private trees both contain drills.yaml and warmup.yaml, and because some files hold a
+	// list of items rather than one.
+	Slug string `gorm:"size:128;not null;default:''"`
 	// Color is an optional hex accent (#rrggbb) for dashboard cards; empty = no accent.
 	Color string `gorm:"size:16;not null;default:''"`
 	// Label holds comma-separated freeform tags shown as chips (e.g. "technique, indoor").
@@ -134,6 +140,12 @@ type Exercise struct {
 	ActivityTemplateID *uint `gorm:"index"`
 	// SessionRunID is set only for exercises added on-the-fly during an open session.
 	SessionRunID *uint `gorm:"index"`
+	// RunBlockType and RunBlockName are copied from the Activity this exercise came from,
+	// and are set only on rows a run owns. A run must render from its own copy, and an
+	// Activity cannot belong to a run (SessionTemplateID is not null), so the grouping
+	// travels as text instead. Empty on template-owned rows.
+	RunBlockType string `gorm:"size:32;not null;default:''"`
+	RunBlockName string `gorm:"size:128;not null;default:''"`
 	// LibraryExerciseID links back to the source LibraryExercise when the exercise was added from the library.
 	LibraryExerciseID *uint `gorm:"index"`
 
@@ -173,6 +185,12 @@ type ActivityTemplate struct {
 
 	OwnerID uint   `gorm:"index;not null"`
 	Name    string `gorm:"not null"`
+	// Slug is the stable identity of a catalog row. The importer matches on it, so the
+	// display Name is free to change without the row being deleted and recreated. It comes
+	// from an explicit `slug:` in the YAML — never from the filename, because the public and
+	// private trees both contain drills.yaml and warmup.yaml, and because some files hold a
+	// list of items rather than one.
+	Slug string `gorm:"size:128;not null;default:''"`
 	// Label holds comma-separated freeform tags shown as chips (e.g. "warmup, technique").
 	Label string `gorm:"size:128;not null;default:''"`
 	// Source is the program or coach the template comes from (e.g. "Power Company Climbing").
@@ -196,6 +214,12 @@ type LibraryExercise struct {
 	OwnerID uint `gorm:"index;not null"`
 
 	Name string `gorm:"not null"`
+	// Slug is the stable identity of a catalog row. The importer matches on it, so the
+	// display Name is free to change without the row being deleted and recreated. It comes
+	// from an explicit `slug:` in the YAML — never from the filename, because the public and
+	// private trees both contain drills.yaml and warmup.yaml, and because some files hold a
+	// list of items rather than one.
+	Slug string `gorm:"size:128;not null;default:''"`
 	// Label holds comma-separated freeform tags shown as chips (e.g. "technique, fingers").
 	Label string `gorm:"size:128;not null;default:''"`
 	// Source is the program or coach the exercise comes from (e.g. "Power Company Climbing").
