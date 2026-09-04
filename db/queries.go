@@ -33,10 +33,10 @@ func GetScheduledSessionWithTemplate(gdb *gorm.DB, ownerID, ssID uint) (Schedule
 		Preload("SessionTemplate", func(tx *gorm.DB) *gorm.DB {
 			return tx.
 				Preload("Activities", func(tx2 *gorm.DB) *gorm.DB {
-					return tx2.Where("owner_id = ?", ownerID).Order("order_index asc")
+					return tx2.Order("order_index asc")
 				}).
 				Preload("Activities.Exercises", func(tx2 *gorm.DB) *gorm.DB {
-					return tx2.Where("owner_id = ?", ownerID).Order("order_index asc")
+					return tx2.Order("order_index asc")
 				}).
 				Preload("Activities.Exercises.Media")
 		}).
@@ -54,10 +54,10 @@ func GetTemplateWithGraph(gdb *gorm.DB, ownerID, templateID uint) (*SessionTempl
 	var tpl SessionTemplate
 	err := gdb.
 		Preload("Activities", func(tx *gorm.DB) *gorm.DB {
-			return tx.Where("owner_id = ?", ownerID).Order("order_index asc")
+			return tx.Order("order_index asc")
 		}).
 		Preload("Activities.Exercises", func(tx *gorm.DB) *gorm.DB {
-			return tx.Where("owner_id = ?", ownerID).Order("order_index asc")
+			return tx.Order("order_index asc")
 		}).
 		Preload("Activities.Exercises.Media").
 		Where("id = ? AND owner_id = ?", templateID, ownerID).
@@ -208,7 +208,7 @@ func GetActivityTemplateWithExercises(gdb *gorm.DB, ownerID, templateID uint) (*
 	var tpl ActivityTemplate
 	err := gdb.
 		Preload("Exercises", func(tx *gorm.DB) *gorm.DB {
-			return tx.Where("owner_id = ?", ownerID).Order("order_index asc")
+			return tx.Order("order_index asc")
 		}).
 		Preload("Exercises.Media").
 		Where("id = ? AND owner_id = ?", templateID, ownerID).
@@ -228,7 +228,7 @@ func ListActivityTemplatesWithExercises(gdb *gorm.DB, ownerID uint) ([]ActivityT
 	var rows []ActivityTemplate
 	err := gdb.
 		Preload("Exercises", func(tx *gorm.DB) *gorm.DB {
-			return tx.Where("owner_id = ?", ownerID).Order("order_index asc")
+			return tx.Order("order_index asc")
 		}).
 		Where("owner_id = ?", ownerID).
 		Order("name asc").
