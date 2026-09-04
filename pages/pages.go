@@ -880,6 +880,15 @@ type SessionExerciseSummaryView struct {
 	PerSetMode     bool
 	SetLogs        []ManualExerciseSetLogView
 	ClimbingType   string
+	// BlockType and BlockName say which part of the session this was — warm-up, main
+	// work, cooldown. Copied onto the run's own exercise rows at run start.
+	BlockType string
+	BlockName string
+	// Ticks holds the logged climbs. Each carries the athlete's own focus and thoughts,
+	// which for a climbing session is where most of the writing actually lives — 28 of
+	// this instance's 39 ticks have thoughts, against 15 exercise notes in total. The run
+	// summary has always shown these; the log did not, so a climbing session read as empty.
+	Ticks []ClimbingTickView
 }
 
 type TrainingLogSummaryParams struct {
@@ -898,7 +907,45 @@ type TrainingLogSummaryParams struct {
 	WentWell     string
 	NextFocus    string
 	SessionNotes string
-	Exercises    []SessionExerciseSummaryView
+	// Exercises is the flat list, kept for the manual and open-session cases that have no
+	// blocks. Blocks is preferred when set: a session reads as warm-up, main work and
+	// cooldown, not as one long list.
+	Exercises []SessionExerciseSummaryView
+	Blocks    []SessionBlockSummaryView
+}
+
+// SessionBlockSummaryView groups a logged session's exercises the way the run itself was
+// structured. The name and type travel on each run-owned exercise row, because an Activity
+// belongs to a template and cannot belong to a run.
+type SessionBlockSummaryView struct {
+	Name      string
+	Type      string
+	Exercises []SessionExerciseSummaryView
+}
+
+// GroupExercisesIntoBlocks splits a flat list into the blocks it came from, preserving
+// order. Returns nil when nothing carries a block, so the caller falls back to the flat
+// list rather than rendering one unnamed group.
+func GroupExercisesIntoBlocks(exs []SessionExerciseSummaryView) []SessionBlockSummaryView {
+	any := false
+	for _, e := range exs {
+		if e.BlockName != "" || e.BlockType != "" {
+			any = true
+			break
+		}
+	}
+	if !any {
+		return nil
+	}
+	var out []SessionBlockSummaryView
+	for _, e := range exs {
+		if len(out) == 0 || out[len(out)-1].Name != e.BlockName || out[len(out)-1].Type != e.BlockType {
+			out = append(out, SessionBlockSummaryView{Name: e.BlockName, Type: e.BlockType})
+		}
+		b := &out[len(out)-1]
+		b.Exercises = append(b.Exercises, e)
+	}
+	return out
 }
 
 type TrainingLogNewParams struct {
