@@ -107,10 +107,16 @@ func (s *Server) resetCatalogRow(model any, ownerID, id uint) error {
 	if s.yamlImport == nil {
 		return errCatalogImportDisabled
 	}
-	if err := s.store.DB.Model(model).
+	// Report a miss instead of a success. This matched zero rows for a catalog row and
+	// still redirected as if it had worked, so the row stayed exactly as it was.
+	res := s.store.DB.Model(model).
 		Where("owner_id = ? AND id = ? AND managed_by_catalog = ?", ownerID, id, true).
-		Update("catalog_edited_at", nil).Error; err != nil {
-		return err
+		Update("catalog_edited_at", nil)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return db.ErrNotFound
 	}
 	opts := *s.yamlImport
 	opts.OwnerID = ownerID
