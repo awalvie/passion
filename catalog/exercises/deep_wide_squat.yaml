@@ -1,4 +1,5 @@
 name: "Deep Wide Squat"
+slug: "deep_wide_squat"
 label: "cooldown, mobility"
 kind: "timed_reps"
 sets: 1

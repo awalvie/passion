@@ -1,4 +1,5 @@
 name: "Warm Up"
+slug: "warm_up"
 label: "warmup, mobility, fingers"
 exercises:
   - ref: "Pulse Raiser"

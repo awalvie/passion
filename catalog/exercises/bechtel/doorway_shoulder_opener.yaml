@@ -1,4 +1,5 @@
 name: "Doorway Shoulder Opener"
+slug: "doorway_shoulder_opener"
 label: "mobility, shoulder"
 kind: "timed_reps"
 sets: 3

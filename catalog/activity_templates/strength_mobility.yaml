@@ -1,4 +1,5 @@
 name: "Mobility"
+slug: "mobility"
 label: "mobility, strength"
 exercises:
   - ref: "Cossack Squat"

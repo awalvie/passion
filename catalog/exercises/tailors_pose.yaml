@@ -1,4 +1,5 @@
 name: "Tailor's Pose"
+slug: "tailors_pose"
 label: "mobility, strength"
 kind: "timed_reps"
 sets: 2

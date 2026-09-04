@@ -1,4 +1,5 @@
 name: "Antagonist & Prehab"
+slug: "antagonist_prehab"
 label: "antagonist, strength"
 exercises:
   - ref: "External Rotations"
