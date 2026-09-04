@@ -23,7 +23,7 @@ func inviteTestServer(t *testing.T, name string) (*Server, *db.Store) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv, err := NewServer(store, "test-secret-at-least-32-characters!!", time.Hour, false, false, nil)
+	srv, err := NewServer(store, "test-secret-at-least-32-characters!!", time.Hour, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,7 +256,7 @@ func TestAuthCookieSecureFlagFollowsTheConfig(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			srv, err := NewServer(store, "test-secret-at-least-32-characters!!", time.Hour, false, tc.insecure, nil)
+			srv, err := NewServer(store, "test-secret-at-least-32-characters!!", time.Hour, false, tc.insecure, nil, 1)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -280,5 +280,75 @@ func TestAuthCookieSecureFlagFollowsTheConfig(t *testing.T) {
 				t.Error("the session cookie must always be SameSite=Lax")
 			}
 		})
+	}
+}
+
+// Signup used to import the whole catalog for the new account, and the boot import re-ran
+// it for every account on every restart. That is how one instance reached 122,180 exercise
+// rows for 8 users, and how content licensed to one person reached everyone else.
+//
+// A new account now reads the shared catalog instead, so there is nothing to copy.
+func TestSignupCopiesNothingIntoTheNewAccount(t *testing.T) {
+	withRepoRoot(t)
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "signup-nocopy.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const catalogOwner uint = 1
+	opts := &db.YAMLImportOptions{
+		ExercisesDir:        []string{"catalog/exercises"},
+		SessionTemplatesDir: []string{"catalog/session_templates"},
+	}
+	srv, err := NewServer(store, "test-secret-at-least-32-characters!!", time.Hour, false, false, opts, catalogOwner)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The catalog exists, owned by the importer's account and published.
+	if err := store.DB.Create(&db.User{Email: "app@example.com", PasswordHash: "x"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	mustCreateWeb(t, store, &db.LibraryExercise{OwnerID: catalogOwner, Name: "Max Hangs",
+		Slug: "max_hangs", ManagedByCatalog: true, Shared: true})
+	mustCreateWeb(t, store, &db.SessionTemplate{OwnerID: catalogOwner, Name: "Boulder Session",
+		Slug: "boulder", ManagedByCatalog: true, Shared: true})
+
+	code := mintCode(t, store)
+	rr := postSignup(t, srv, "newcomer@example.com", "password123", code)
+	if got := rr.Header().Get("HX-Redirect"); got != "/dashboard" {
+		t.Fatalf("signup failed: status %d, redirect %q", rr.Code, got)
+	}
+	var newcomer db.User
+	if err := store.DB.Where("email = ?", "newcomer@example.com").First(&newcomer).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	// Nothing was copied.
+	var owned int64
+	for _, m := range []any{&db.LibraryExercise{}, &db.ActivityTemplate{}, &db.SessionTemplate{}} {
+		var n int64
+		if err := store.DB.Model(m).Where("owner_id = ?", newcomer.ID).Count(&n).Error; err != nil {
+			t.Fatal(err)
+		}
+		owned += n
+	}
+	if owned != 0 {
+		t.Errorf("signup copied %d catalog rows into the new account", owned)
+	}
+
+	// And they can still see the catalog.
+	libs, err := db.ListLibraryExercises(store.DB, newcomer.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(libs) != 1 {
+		t.Errorf("the newcomer should read the shared library, saw %d rows", len(libs))
+	}
+	tpls, err := db.ListTemplates(store.DB, newcomer.ID, "", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tpls) != 1 {
+		t.Errorf("the newcomer should read the shared sessions, saw %d", len(tpls))
 	}
 }

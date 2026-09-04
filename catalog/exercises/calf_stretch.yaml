@@ -1,4 +1,5 @@
 name: "Calf Stretch"
+slug: "calf_stretch"
 label: "mobility, cooldown"
 kind: "timed_reps"
 sets: 2

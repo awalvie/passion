@@ -1,4 +1,5 @@
 name: "Frog Stretch"
+slug: "frog_stretch"
 label: "cooldown, mobility"
 kind: "timed_reps"
 sets: 2

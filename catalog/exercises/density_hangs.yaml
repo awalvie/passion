@@ -1,4 +1,5 @@
 name: "Density Hangs (20 mm Edge)"
+slug: "density_hangs_20_mm_edge"
 label: "hangboard, fingers, strength"
 kind: "timed_reps"
 sets: 4

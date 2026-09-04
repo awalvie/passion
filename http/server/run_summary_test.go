@@ -149,7 +149,7 @@ func TestHandleRunSummary_GuidedRunShowsTicks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +189,7 @@ func TestHandleRunSummary_OpenRunShowsTicks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,7 +241,7 @@ func TestHandleRunSummary_TicksOwnerScoped(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -294,7 +294,7 @@ func TestHandleRunSummary_NonClimbingExerciseHasNoTicksBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -326,7 +326,7 @@ func TestHandleRunSummary_ClimbingExerciseNoTicksRendersCleanly(t *testing.T) {
 	run, _ := seedGuidedRunWithClimbingExercise(t, store, ownerID)
 	// No ticks created for this exercise.
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -417,7 +417,7 @@ func TestHandleRunSummary_CatalogMenuShowsChosenChildAndTicks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -452,7 +452,7 @@ func TestRunSummaryReadsTheRunsOwnExercises(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv, err := NewServer(store, "test-secret-at-least-32-characters!!", time.Hour, false, false, nil)
+	srv, err := NewServer(store, "test-secret-at-least-32-characters!!", time.Hour, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}

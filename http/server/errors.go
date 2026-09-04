@@ -46,3 +46,29 @@ func (s *Server) catalogResetError(w http.ResponseWriter, r *http.Request, err e
 	}
 	s.serverError(w, r, err)
 }
+
+// guardCatalogWrite refuses a write that targets a shared catalog row, and says why.
+// Returns false when it has already written a response.
+//
+// The distinction matters. A catalog row deserves "save your own copy to change this";
+// a row belonging to someone else is simply not found, and saying anything else would
+// confirm it exists. Before this, the write was scoped to owner_id and matched nothing:
+// the user pressed Delete on a catalog row, got a success redirect, and found the row
+// still there on reload. Silent, and identical in shape to the empty-children bug on the
+// read side.
+func (s *Server) guardCatalogWrite(w http.ResponseWriter, r *http.Request, model any, ownerID, id uint) bool {
+	err := db.GuardWritable(s.store.DB, model, ownerID, id)
+	switch {
+	case err == nil:
+		return true
+	case errors.Is(err, db.ErrSharedReadOnly):
+		s.badRequest(w, "That is part of the shared catalog. Save your own copy to change it.")
+		return false
+	case errors.Is(err, db.ErrNotFound):
+		s.notFound(w)
+		return false
+	default:
+		s.serverError(w, r, err)
+		return false
+	}
+}

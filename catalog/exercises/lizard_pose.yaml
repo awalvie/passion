@@ -1,4 +1,5 @@
 name: "Lizard Pose"
+slug: "lizard_pose"
 label: "cooldown, mobility"
 kind: "timed_reps"
 sets: 1

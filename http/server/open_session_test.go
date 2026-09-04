@@ -128,7 +128,7 @@ func TestHandleOpenDeleteExercise_CompletedExerciseFullyCleanedUp(t *testing.T) 
 
 	runID, exID := seedOpenRunWithCompletedExercise(t, store, ownerID)
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +201,7 @@ func TestHandleOpenDeleteExercise_DeletedExerciseExcludedFromOrderIndexCount(t *
 
 	runID, exID := seedOpenRunWithCompletedExercise(t, store, ownerID)
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,7 +249,7 @@ func TestHandleOpenDeleteExercise_WrongOwnerBlocked(t *testing.T) {
 
 	runID, exID := seedOpenRunWithCompletedExercise(t, store, owner.ID)
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -297,7 +297,7 @@ func TestHandleOpenDeleteExercise_ClosedRunBlocked(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -334,7 +334,7 @@ func TestHandleOpenDeleteExercise_UnknownExerciseNotFound(t *testing.T) {
 
 	runID, _ := seedOpenRunWithCompletedExercise(t, store, ownerID)
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -358,7 +358,7 @@ func TestHandleOpenDeleteExercise_MethodNotAllowed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}

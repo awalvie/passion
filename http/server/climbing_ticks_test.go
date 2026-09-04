@@ -545,7 +545,7 @@ func TestCreateExerciseTick_AttemptsPersistedFromForm(t *testing.T) {
 	const runID uint = 10
 	const exerciseID uint = 5
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -594,7 +594,7 @@ func TestCreateExerciseTick_AttemptsLessThanOneClampedToOne(t *testing.T) {
 	const runID uint = 20
 	const exerciseID uint = 6
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -715,7 +715,7 @@ func TestHandleExerciseTickLogAgain_SeedsFromTick(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -757,7 +757,7 @@ func TestHandleExerciseTickLogAgain_UnknownTickFallsBackGracefully(t *testing.T)
 	}
 	ownerID := user.ID
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -864,7 +864,7 @@ func TestCreateExerciseTick_TraverseDurationPersistedFromForm(t *testing.T) {
 	ownerID := user.ID
 	const runID, exerciseID uint = 11, 6
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -910,7 +910,7 @@ func TestCreateExerciseTick_DurationOmittedStaysZero(t *testing.T) {
 	ownerID := user.ID
 	const runID, exerciseID uint = 12, 7
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -990,7 +990,7 @@ func TestServeExerciseTicks_RendersEveryTickAndForm(t *testing.T) {
 		}
 	}
 
-	srv, err := NewServer(store, "secret", 24, false, false, nil)
+	srv, err := NewServer(store, "secret", 24, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}

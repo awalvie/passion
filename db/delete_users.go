@@ -56,6 +56,31 @@ type UserDeletionPlan struct {
 	InviteCodes  int64
 	Applied      bool
 	DeletedUsers int64
+	// SharedRowsHeld counts catalog rows owned by an account marked for deletion. Any at
+	// all stops the deletion: those rows are the app's catalog, read by everyone, and
+	// removing an account must never take them.
+	SharedRowsHeld int64
+}
+
+// catalogModels are the three that can carry Shared. A shared row belongs to the app's
+// catalog, not to the account that happens to own the row, so account deletion must
+// leave it alone.
+func catalogModels() []any {
+	return []any{&LibraryExercise{}, &ActivityTemplate{}, &SessionTemplate{}}
+}
+
+// countSharedHeldBy reports how many catalog rows the given accounts own.
+func countSharedHeldBy(gdb *gorm.DB, ownerIDs []uint) (int64, error) {
+	var total int64
+	for _, model := range catalogModels() {
+		var n int64
+		if err := gdb.Unscoped().Model(model).
+			Where("owner_id IN ? AND shared = ?", ownerIDs, true).Count(&n).Error; err != nil {
+			return 0, err
+		}
+		total += n
+	}
+	return total, nil
 }
 
 // PlanDeleteAllUsersExcept reports which accounts would go and how many rows each table
@@ -104,6 +129,11 @@ func PlanDeleteAllUsersExcept(gdb *gorm.DB, keepUserID uint) (UserDeletionPlan, 
 		Where("used_by_id IN ?", victimIDs).Count(&plan.InviteCodes).Error; err != nil {
 		return plan, err
 	}
+	sharedHeld, err := countSharedHeldBy(gdb, victimIDs)
+	if err != nil {
+		return plan, err
+	}
+	plan.SharedRowsHeld = sharedHeld
 	return plan, nil
 }
 
@@ -114,6 +144,16 @@ func DeleteAllUsersExcept(gdb *gorm.DB, keepUserID uint) (UserDeletionPlan, erro
 	plan, err := PlanDeleteAllUsersExcept(gdb, keepUserID)
 	if err != nil || len(plan.DeleteUsers) == 0 {
 		return plan, err
+	}
+
+	// A deletion that would take catalog rows with it is refused rather than narrowed.
+	// The alternative — skip the shared rows and delete the account anyway — leaves the
+	// catalog owned by an account that no longer exists, which is worse and silent.
+	if plan.SharedRowsHeld > 0 {
+		return plan, fmt.Errorf(
+			"refusing to delete: %d catalog row(s) are owned by an account marked for deletion. "+
+				"Move them to the account you are keeping first, or keep that account instead",
+			plan.SharedRowsHeld)
 	}
 
 	victimIDs := make([]uint, 0, len(plan.DeleteUsers))

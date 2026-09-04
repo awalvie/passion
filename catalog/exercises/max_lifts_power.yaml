@@ -1,4 +1,5 @@
 name: "Max Lifts (power)"
+slug: "max_lifts_power"
 source: "Tension Climbing"
 label: "fingers, strength, power, hangboard"
 kind: "reps_and_sets"

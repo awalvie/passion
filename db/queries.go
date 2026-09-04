@@ -33,10 +33,10 @@ func GetScheduledSessionWithTemplate(gdb *gorm.DB, ownerID, ssID uint) (Schedule
 		Preload("SessionTemplate", func(tx *gorm.DB) *gorm.DB {
 			return tx.
 				Preload("Activities", func(tx2 *gorm.DB) *gorm.DB {
-					return tx2.Where("owner_id = ?", ownerID).Order("order_index asc")
+					return tx2.Order("order_index asc")
 				}).
 				Preload("Activities.Exercises", func(tx2 *gorm.DB) *gorm.DB {
-					return tx2.Where("owner_id = ?", ownerID).Order("order_index asc")
+					return tx2.Order("order_index asc")
 				}).
 				Preload("Activities.Exercises.Media")
 		}).
@@ -54,13 +54,13 @@ func GetTemplateWithGraph(gdb *gorm.DB, ownerID, templateID uint) (*SessionTempl
 	var tpl SessionTemplate
 	err := gdb.
 		Preload("Activities", func(tx *gorm.DB) *gorm.DB {
-			return tx.Where("owner_id = ?", ownerID).Order("order_index asc")
+			return tx.Order("order_index asc")
 		}).
 		Preload("Activities.Exercises", func(tx *gorm.DB) *gorm.DB {
-			return tx.Where("owner_id = ?", ownerID).Order("order_index asc")
+			return tx.Order("order_index asc")
 		}).
 		Preload("Activities.Exercises.Media").
-		Where("id = ? AND owner_id = ?", templateID, ownerID).
+		Scopes(Visible(ownerID)).Where("id = ?", templateID).
 		First(&tpl).Error
 	if isNotFound(err) {
 		return nil, ErrNotFound
@@ -75,7 +75,7 @@ func GetTemplateWithGraph(gdb *gorm.DB, ownerID, templateID uint) (*SessionTempl
 // If labelFilter is non-empty, only templates with that label are returned.
 func ListTemplates(gdb *gorm.DB, ownerID uint, sourceFilter, tagFilter, nameQuery string) ([]SessionTemplate, error) {
 	var templates []SessionTemplate
-	q := gdb.Preload("Activities").Where("owner_id = ? AND is_system = ?", ownerID, false)
+	q := gdb.Preload("Activities").Scopes(Visible(ownerID)).Where("is_system = ?", false)
 	if nameQuery != "" {
 		q = q.Where("name LIKE ?", "%"+nameQuery+"%")
 	}
@@ -93,7 +93,7 @@ func ListTemplates(gdb *gorm.DB, ownerID uint, sourceFilter, tagFilter, nameQuer
 func DistinctTemplateSources(gdb *gorm.DB, ownerID uint) ([]string, error) {
 	var sources []string
 	err := gdb.Model(&SessionTemplate{}).
-		Where("owner_id = ? AND is_system = ? AND source != ''", ownerID, false).
+		Scopes(Visible(ownerID)).Where("is_system = ? AND source != ''", false).
 		Distinct("source").Order("source asc").Pluck("source", &sources).Error
 	return sources, err
 }
@@ -103,7 +103,7 @@ func DistinctTemplateSources(gdb *gorm.DB, ownerID uint) ([]string, error) {
 func DistinctTemplateTags(gdb *gorm.DB, ownerID uint) ([]string, error) {
 	var labels []string
 	if err := gdb.Model(&SessionTemplate{}).
-		Where("owner_id = ? AND is_system = ? AND label != ''", ownerID, false).
+		Scopes(Visible(ownerID)).Where("is_system = ? AND label != ''", false).
 		Pluck("label", &labels).Error; err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func distinctTagsFromLabels(labels []string) []string {
 func DistinctLibrarySources(gdb *gorm.DB, ownerID uint) ([]string, error) {
 	var sources []string
 	err := gdb.Model(&LibraryExercise{}).
-		Where("owner_id = ? AND parent_library_exercise_id IS NULL AND source != ''", ownerID).
+		Scopes(Visible(ownerID)).Where("parent_library_exercise_id IS NULL AND source != ''").
 		Distinct("source").Order("source asc").Pluck("source", &sources).Error
 	return sources, err
 }
@@ -147,7 +147,7 @@ func DistinctLibrarySources(gdb *gorm.DB, ownerID uint) ([]string, error) {
 func DistinctLibraryTags(gdb *gorm.DB, ownerID uint) ([]string, error) {
 	var labels []string
 	if err := gdb.Model(&LibraryExercise{}).
-		Where("owner_id = ? AND parent_library_exercise_id IS NULL AND label != ''", ownerID).
+		Scopes(Visible(ownerID)).Where("parent_library_exercise_id IS NULL AND label != ''").
 		Pluck("label", &labels).Error; err != nil {
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func DistinctLibraryTags(gdb *gorm.DB, ownerID uint) ([]string, error) {
 func ListLibraryExercises(gdb *gorm.DB, ownerID uint) ([]LibraryExercise, error) {
 	var rows []LibraryExercise
 	err := gdb.
-		Where("owner_id = ? AND parent_library_exercise_id IS NULL", ownerID).
+		Scopes(Visible(ownerID)).Where("parent_library_exercise_id IS NULL").
 		Order("name asc").
 		Find(&rows).Error
 	return rows, err
@@ -169,7 +169,7 @@ func ListLibraryExercises(gdb *gorm.DB, ownerID uint) ([]LibraryExercise, error)
 // If labelFilter is non-empty, only templates with that label are returned.
 func ListActivityTemplates(gdb *gorm.DB, ownerID uint, sourceFilter, tagFilter, nameQuery string) ([]ActivityTemplate, error) {
 	var rows []ActivityTemplate
-	q := gdb.Where("owner_id = ?", ownerID)
+	q := gdb.Scopes(Visible(ownerID))
 	if nameQuery != "" {
 		q = q.Where("name LIKE ?", "%"+nameQuery+"%")
 	}
@@ -187,7 +187,7 @@ func ListActivityTemplates(gdb *gorm.DB, ownerID uint, sourceFilter, tagFilter, 
 func DistinctActivityTemplateSources(gdb *gorm.DB, ownerID uint) ([]string, error) {
 	var sources []string
 	err := gdb.Model(&ActivityTemplate{}).
-		Where("owner_id = ? AND source != ''", ownerID).
+		Scopes(Visible(ownerID)).Where("source != ''").
 		Distinct("source").Order("source asc").Pluck("source", &sources).Error
 	return sources, err
 }
@@ -195,7 +195,7 @@ func DistinctActivityTemplateSources(gdb *gorm.DB, ownerID uint) ([]string, erro
 func DistinctActivityTemplateTags(gdb *gorm.DB, ownerID uint) ([]string, error) {
 	var labels []string
 	if err := gdb.Model(&ActivityTemplate{}).
-		Where("owner_id = ? AND label != ''", ownerID).
+		Scopes(Visible(ownerID)).Where("label != ''").
 		Pluck("label", &labels).Error; err != nil {
 		return nil, err
 	}
@@ -208,10 +208,10 @@ func GetActivityTemplateWithExercises(gdb *gorm.DB, ownerID, templateID uint) (*
 	var tpl ActivityTemplate
 	err := gdb.
 		Preload("Exercises", func(tx *gorm.DB) *gorm.DB {
-			return tx.Where("owner_id = ?", ownerID).Order("order_index asc")
+			return tx.Order("order_index asc")
 		}).
 		Preload("Exercises.Media").
-		Where("id = ? AND owner_id = ?", templateID, ownerID).
+		Scopes(Visible(ownerID)).Where("id = ?", templateID).
 		First(&tpl).Error
 	if isNotFound(err) {
 		return nil, ErrNotFound
@@ -228,9 +228,9 @@ func ListActivityTemplatesWithExercises(gdb *gorm.DB, ownerID uint) ([]ActivityT
 	var rows []ActivityTemplate
 	err := gdb.
 		Preload("Exercises", func(tx *gorm.DB) *gorm.DB {
-			return tx.Where("owner_id = ?", ownerID).Order("order_index asc")
+			return tx.Order("order_index asc")
 		}).
-		Where("owner_id = ?", ownerID).
+		Scopes(Visible(ownerID)).
 		Order("name asc").
 		Find(&rows).Error
 	return rows, err

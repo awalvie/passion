@@ -1,4 +1,5 @@
 name: "Forearms & Fingers"
+slug: "forearms_fingers"
 label: "cooldown, mobility, fingers"
 kind: "timed_reps"
 sets: 1

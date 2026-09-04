@@ -28,6 +28,7 @@ func writeReimportFixture(t *testing.T) YAMLImportOptions {
 	}
 	if err := os.WriteFile(filepath.Join(exercisesDir, "pullups.yaml"), []byte(`
 name: "Weighted Pull-ups"
+slug: "weighted_pull_ups"
 kind: "reps_and_sets"
 sets: 5
 reps: 5
@@ -36,16 +37,19 @@ reps: 5
 	}
 	if err := os.WriteFile(filepath.Join(templatesDir, "strength.yaml"), []byte(`
 name: "Strength Base Session"
+slug: "strength_base_session"
 activities:
   - type: "warmup"
     exercises:
       - name: "Band Prep"
+        slug: "band_prep"
         sets: 2
         reps: 12
   - type: "activity"
     exercises:
       - ref: "Weighted Pull-ups"
       - name: "Ring Rows"
+        slug: "ring_rows"
         sets: 4
         reps: 10
 `), 0o644); err != nil {
