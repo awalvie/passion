@@ -243,3 +243,97 @@ func TestMaterialisedRunSurvivesTheTemplateBeingRewritten(t *testing.T) {
 		t.Error("the completion points at an exercise that no longer exists")
 	}
 }
+
+// The copy has to happen when the run starts. Doing it later, on the first log edit, is
+// what left every completion pointing at a template row the importer then retired.
+func TestStartRunGivesTheRunItsExercisesImmediately(t *testing.T) {
+	f := newSnapshotFixture(t, "snap-start.db")
+
+	run, err := StartRunForScheduledSession(f.store.DB, 1, f.ss.ID, false, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !run.ExercisesMaterialised {
+		var fresh SessionRun
+		if err := f.store.DB.Where("id = ?", run.ID).First(&fresh).Error; err != nil {
+			t.Fatal(err)
+		}
+		if !fresh.ExercisesMaterialised {
+			t.Fatal("a new run should already own its exercises")
+		}
+	}
+
+	rows := runExercises(t, f.store, run.ID)
+	if len(rows) != 3 {
+		t.Fatalf("want the run to own 3 exercises, got %d", len(rows))
+	}
+	for _, r := range rows {
+		if r.Name == "Weighted Pull-ups" && r.Sets != 5 {
+			t.Errorf("the run's copy lost its prescription: sets=%d", r.Sets)
+		}
+	}
+}
+
+// The block grouping has to survive, or the player and the summary lose warmup, main and
+// cooldown. An Activity cannot belong to a run, so it travels as text on each exercise.
+func TestRunOwnedActivitiesRebuildsTheBlocks(t *testing.T) {
+	store, err := NewSqlite(filepath.Join(t.TempDir(), "snap-blocks.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const owner uint = 1
+
+	tpl := SessionTemplate{OwnerID: owner, Name: "Full Session"}
+	mustCreate(t, store, &tpl)
+	warm := Activity{OwnerID: owner, SessionTemplateID: tpl.ID, Type: "warmup", Name: "Warm Up", OrderIndex: 0}
+	mustCreate(t, store, &warm)
+	main := Activity{OwnerID: owner, SessionTemplateID: tpl.ID, Type: "activity", Name: "Main", OrderIndex: 1}
+	mustCreate(t, store, &main)
+	for i, spec := range []struct {
+		act  *Activity
+		name string
+	}{
+		{&warm, "Row"}, {&warm, "Band Prep"}, {&main, "Pull-ups"}, {&main, "Hangs"},
+	} {
+		ex := Exercise{OwnerID: owner, ActivityID: &spec.act.ID, Name: spec.name, Sets: 3, OrderIndex: i}
+		mustCreate(t, store, &ex)
+	}
+
+	ss := ScheduledSession{OwnerID: owner, ScheduledDate: time.Now(), SessionTemplateID: tpl.ID}
+	mustCreate(t, store, &ss)
+	run, err := StartRunForScheduledSession(store.DB, owner, ss.ID, false, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	acts, err := RunOwnedActivities(store.DB, owner, run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(acts) != 2 {
+		t.Fatalf("want 2 blocks rebuilt from the run's rows, got %d", len(acts))
+	}
+	if acts[0].Type != "warmup" || acts[0].Name != "Warm Up" {
+		t.Errorf("first block is wrong: %s / %s", acts[0].Type, acts[0].Name)
+	}
+	if acts[1].Type != "activity" || acts[1].Name != "Main" {
+		t.Errorf("second block is wrong: %s / %s", acts[1].Type, acts[1].Name)
+	}
+	for i, want := range []int{2, 2} {
+		if len(acts[i].Exercises) != want {
+			t.Errorf("block %d should hold %d exercises, holds %d", i, want, len(acts[i].Exercises))
+		}
+	}
+}
+
+// A run that owns nothing must fall back to the template, not render empty.
+func TestRunOwnedActivitiesReturnsNothingForAnUnmaterialisedRun(t *testing.T) {
+	f := newSnapshotFixture(t, "snap-empty.db")
+	acts, err := RunOwnedActivities(f.store.DB, 1, f.run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if acts != nil {
+		t.Fatalf("want nil so the caller falls back to the template, got %d blocks", len(acts))
+	}
+}

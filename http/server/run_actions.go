@@ -76,6 +76,7 @@ func (s *Server) skipRemainingSteps(runID, ownerID uint, run db.SessionRun, at t
 		if err != nil {
 			return err
 		}
+		ss = s.useRunOwnedGraph(ss, run, ownerID)
 		steps = s.buildRunSteps(ss, runID, ownerID)
 	}
 	if len(steps) == 0 {
