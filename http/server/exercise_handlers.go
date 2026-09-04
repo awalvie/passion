@@ -47,7 +47,7 @@ func (s *Server) loadActivityExercises(activityID uint, ownerID uint) (db.Activi
 	var act db.Activity
 	err := s.store.DB.
 		Preload("Exercises", func(tx *gorm.DB) *gorm.DB {
-			return tx.Where("owner_id = ?", ownerID).Order("order_index asc")
+			return tx.Order("order_index asc")
 		}).
 		Preload("Exercises.Media").
 		Where("id = ? AND owner_id = ?", activityID, ownerID).

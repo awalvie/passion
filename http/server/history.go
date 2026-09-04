@@ -75,10 +75,10 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 		err = s.store.DB.
 			Preload("SessionTemplate").
 			Preload("SessionTemplate.Activities", func(tx *gorm.DB) *gorm.DB {
-				return tx.Where("owner_id = ?", ownerID)
+				return tx
 			}).
 			Preload("SessionTemplate.Activities.Exercises", func(tx *gorm.DB) *gorm.DB {
-				return tx.Where("owner_id = ? AND parent_exercise_id IS NULL", ownerID)
+				return tx.Where("parent_exercise_id IS NULL")
 			}).
 			Where("id IN ?", ssIDs).
 			Find(&scheduledSessions).Error

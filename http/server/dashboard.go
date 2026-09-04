@@ -190,10 +190,10 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		var tplsWithExercises []db.SessionTemplate
 		err = s.store.DB.
 			Preload("Activities", func(tx *gorm.DB) *gorm.DB {
-				return tx.Where("owner_id = ?", ownerID)
+				return tx
 			}).
 			Preload("Activities.Exercises", func(tx *gorm.DB) *gorm.DB {
-				return tx.Where("owner_id = ? AND parent_exercise_id IS NULL", ownerID)
+				return tx.Where("parent_exercise_id IS NULL")
 			}).
 			Where("id IN ? AND owner_id = ?", uniqueTplIDs, ownerID).
 			Find(&tplsWithExercises).Error

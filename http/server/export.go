@@ -190,7 +190,7 @@ func (s *Server) handleExportActivityTemplate(w http.ResponseWriter, r *http.Req
 	if err := s.store.DB.
 		Where("owner_id = ? AND id = ?", ownerID, templateID).
 		Preload("Exercises", func(tx *gorm.DB) *gorm.DB {
-			return tx.Where("owner_id = ?", ownerID).Order("order_index asc")
+			return tx.Order("order_index asc")
 		}).
 		Preload("Exercises.Media").
 		First(&at).Error; err != nil {
@@ -299,10 +299,10 @@ func (s *Server) handleExportTemplate(w http.ResponseWriter, r *http.Request, ow
 	if err := s.store.DB.
 		Where("owner_id = ? AND id = ?", ownerID, templateID).
 		Preload("Activities", func(tx *gorm.DB) *gorm.DB {
-			return tx.Where("owner_id = ?", ownerID).Order("order_index asc")
+			return tx.Order("order_index asc")
 		}).
 		Preload("Activities.Exercises", func(tx *gorm.DB) *gorm.DB {
-			return tx.Where("owner_id = ?", ownerID).Order("order_index asc")
+			return tx.Order("order_index asc")
 		}).
 		Preload("Activities.Exercises.Media").
 		First(&tpl).Error; err != nil {
