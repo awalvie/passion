@@ -25,7 +25,7 @@ func TestTrainingLogShowsTheNotesWrittenOnEachClimb(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv, err := NewServer(store, "test-secret-at-least-32-characters!!", time.Hour, false, false, nil)
+	srv, err := NewServer(store, "test-secret-at-least-32-characters!!", time.Hour, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}

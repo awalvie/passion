@@ -157,13 +157,6 @@ func (s *Server) handleSignup(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		if s.yamlImport != nil {
-			opts := *s.yamlImport
-			opts.OwnerID = user.ID
-			if err := s.store.ImportYAML(opts); err != nil {
-				s.logger.Error("yaml import for new user failed", "owner_id", user.ID, "error", err)
-			}
-		}
 		if err := s.setAuthCookie(w, user.ID); err != nil {
 			s.serverError(w, r, err)
 			return

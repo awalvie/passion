@@ -32,6 +32,9 @@ func main() {
 	listInvites := flag.Bool("list-invites", false, "list every invite code and whether it has been used, then exit")
 	purgeOrphans := flag.Bool("purge-orphans", false, "delete exercises orphaned by the old importer bug, then exit — run the dry run first")
 	purgeDryRun := flag.Bool("purge-orphans-dry-run", false, "count the orphaned exercises without deleting anything, then exit")
+	publishCatalog := flag.Uint("publish-catalog", 0, "flag this owner's importer-created rows as the shared catalog every account reads, then exit")
+	publishDryRun := flag.Bool("publish-catalog-dry-run", false, "report what --publish-catalog would flag, then exit")
+	unpublish := flag.Uint("unpublish-catalog", 0, "take this owner's shared rows back into private ownership, then exit")
 	backfillSlugs := flag.Bool("backfill-slugs", false, "derive a slug for every catalog row that has none, then exit")
 	backfillSlugsDry := flag.Bool("backfill-slugs-dry-run", false, "report what --backfill-slugs would set, then exit")
 	backfillRuns := flag.Bool("backfill-runs", false, "give every past run its own copy of the exercises its records point at, then exit")
@@ -74,6 +77,15 @@ func main() {
 	if *mintInvites > 0 || *listInvites {
 		if err := runInviteCommand(store, *mintInvites, *inviteNote, *listInvites); err != nil {
 			slog.Error("invite command failed", "error", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
+	if *publishCatalog > 0 || *publishDryRun || *unpublish > 0 {
+		if err := runPublishCommand(store, cfg.Server.DBPath, *publishCatalog, *unpublish,
+			*publishDryRun, cfg.YAMLImport.OwnerID); err != nil {
+			slog.Error("publish failed", "error", err)
 			os.Exit(1)
 		}
 		os.Exit(0)
@@ -145,19 +157,17 @@ func main() {
 			"activity_templates_dir", yamlImport.ActivityTemplatesDir,
 			"session_templates_dir", yamlImport.SessionTemplatesDir,
 		)
-		// Import for all existing users at startup (idempotent upsert).
-		var users []db.User
-		if err := store.DB.Find(&users).Error; err != nil {
-			slog.Error("yaml import: failed to list users", "error", err)
+		// Import once, into the account that holds the catalog. It used to run for every
+		// account on every restart, which is how one instance reached 122,180 exercise
+		// rows for 8 users, and how content licensed to one person reached everyone else.
+		//
+		// Every other account reads those rows because they are flagged shared, so there
+		// is nothing to copy.
+		opts := *yamlImport
+		opts.OwnerID = cfg.YAMLImport.OwnerID
+		if err := store.ImportYAML(opts); err != nil {
+			slog.Error("yaml import failed", "owner_id", opts.OwnerID, "error", err)
 			os.Exit(1)
-		}
-		for _, u := range users {
-			opts := *yamlImport
-			opts.OwnerID = u.ID
-			if err := store.ImportYAML(opts); err != nil {
-				slog.Error("yaml import failed", "owner_id", u.ID, "error", err)
-				os.Exit(1)
-			}
 		}
 	}
 
@@ -168,7 +178,7 @@ func main() {
 		slog.Warn("dev auth bypass is enabled — all requests are auto-authenticated; disable before deploying")
 	}
 
-	srv, err := web.NewServer(store, cfg.Auth.JWTSecret, time.Duration(cfg.Auth.JWTTTLHours)*time.Hour, cfg.Auth.DevAuthBypass, cfg.Auth.InsecureCookies, yamlImport)
+	srv, err := web.NewServer(store, cfg.Auth.JWTSecret, time.Duration(cfg.Auth.JWTTTLHours)*time.Hour, cfg.Auth.DevAuthBypass, cfg.Auth.InsecureCookies, yamlImport, cfg.YAMLImport.OwnerID)
 	if err != nil {
 		slog.Error("failed to create server", "error", err)
 		os.Exit(1)
@@ -263,6 +273,71 @@ func runDeleteUsersCommand(store *db.Store, dbPath string, keepUserID uint, conf
 	}
 	fmt.Printf("Deleted %d account(s) and everything they owned.\n", applied.DeletedUsers)
 	fmt.Println("The rows are gone but the file is the same size. Run VACUUM to reclaim the space.")
+	return nil
+}
+
+// runPublishCommand flags an owner's importer-created rows as the shared catalog, or takes
+// them back. Output goes to stdout so the numbers can be read before and after.
+func runPublishCommand(store *db.Store, dbPath string, publishOwner, unpublishOwner uint, dryRun bool, importOwner uint) error {
+	if unpublishOwner > 0 {
+		n, err := db.UnpublishCatalog(store.DB, unpublishOwner)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("database:  %s\n", dbPath)
+		fmt.Printf("Took %d row(s) back into private ownership for owner %d.\n", n, unpublishOwner)
+		return nil
+	}
+
+	owner := publishOwner
+	if owner == 0 {
+		// A dry run with no owner named defaults to the account the importer writes to,
+		// which is the one holding the catalog.
+		owner = importOwner
+	}
+	rep, err := db.PublishCatalog(store.DB, owner, dryRun || publishOwner == 0)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("database:  %s\n", dbPath)
+	fmt.Printf("owner:     %d\n\n", rep.OwnerID)
+	if rep.Total == 0 {
+		fmt.Printf("Nothing to publish. %d row(s) are already shared.\n", rep.AlreadyShared)
+		return nil
+	}
+
+	fmt.Println("WOULD PUBLISH:")
+	tables := make([]string, 0, len(rep.ByTable))
+	for t := range rep.ByTable {
+		tables = append(tables, t)
+	}
+	sort.Strings(tables)
+	for _, t := range tables {
+		fmt.Printf("  %-24s %6d\n", t, rep.ByTable[t])
+	}
+	fmt.Printf("  %-24s %6d\n", "total", rep.Total)
+
+	if len(rep.SkippedUser) > 0 || len(rep.SkippedEdited) > 0 {
+		fmt.Println("\nLEAVING PRIVATE (your own work):")
+		for t, n := range rep.SkippedUser {
+			fmt.Printf("  %-24s %6d  you created these\n", t, n)
+		}
+		for t, n := range rep.SkippedEdited {
+			fmt.Printf("  %-24s %6d  you edited these\n", t, n)
+		}
+	}
+	if rep.AlreadyShared > 0 {
+		fmt.Printf("\n%d row(s) were already shared.\n", rep.AlreadyShared)
+	}
+
+	if rep.DryRun {
+		fmt.Println("\nDry run. Nothing was changed.")
+		fmt.Printf("Back up the database, then run again with --publish-catalog=%d.\n", rep.OwnerID)
+		fmt.Println("To undo afterwards: --unpublish-catalog=" + fmt.Sprint(rep.OwnerID))
+		return nil
+	}
+	fmt.Println("\nDone. Every account now reads these, and nobody can edit them in place.")
 	return nil
 }
 

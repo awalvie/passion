@@ -31,7 +31,7 @@ func guardTestServer(t *testing.T, name string) (*Server, *db.Store) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv, err := NewServer(store, "test-secret-at-least-32-characters!!", time.Hour, false, false, nil)
+	srv, err := NewServer(store, "test-secret-at-least-32-characters!!", time.Hour, false, false, nil, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,5 +272,45 @@ func TestSaveAsMineRoutesTheUserToTheirOwnCopy(t *testing.T) {
 				t.Errorf("want exactly 1 row owned by the user, got %d", after)
 			}
 		})
+	}
+}
+
+// The import writes the whole catalog into whichever account it runs for, so re-running it
+// as anyone else copies the catalog — the licensed part included — into their account.
+// That was the leak this project spent a day closing, and "Reset to catalog" was a path
+// straight back to it.
+func TestResetToCatalogIsRefusedForAnyoneButTheCatalogOwner(t *testing.T) {
+	withRepoRoot(t)
+	store, err := db.NewSqlite(filepath.Join(t.TempDir(), "reset-guard.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const catalogOwner, stranger uint = 1, 2
+	opts := &db.YAMLImportOptions{
+		ExercisesDir:        []string{"catalog/exercises"},
+		SessionTemplatesDir: []string{"catalog/session_templates"},
+	}
+	srv, err := NewServer(store, "test-secret-at-least-32-characters!!", time.Hour, false, false, opts, catalogOwner)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	stamped := time.Now()
+	theirs := db.LibraryExercise{OwnerID: stranger, Name: "Max Hangs", Slug: "max_hangs",
+		ManagedByCatalog: true, CatalogEditedAt: &stamped}
+	mustCreateWeb(t, store, &theirs)
+
+	if err := srv.resetCatalogRow(&db.LibraryExercise{}, stranger, theirs.ID); err == nil {
+		t.Fatal("reset should be refused for an account that does not hold the catalog")
+	}
+
+	// And nothing was imported into their account.
+	var count int64
+	if err := store.DB.Model(&db.LibraryExercise{}).Where("owner_id = ?", stranger).
+		Count(&count).Error; err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Errorf("the catalog was copied into their account: %d rows", count)
 	}
 }
