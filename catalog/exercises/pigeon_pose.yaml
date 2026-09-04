@@ -1,4 +1,5 @@
 name: "Pigeon Pose"
+slug: "pigeon_pose"
 label: "cooldown, mobility"
 kind: "timed_reps"
 sets: 1

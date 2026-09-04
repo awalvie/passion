@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -100,6 +101,19 @@ func (s *Server) handleActivityTemplatesByID(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		s.renderActivityTemplateEdit(w, r, uint(tplID), ownerID)
+	case "save-as-mine":
+		if r.Method != http.MethodPost {
+			s.methodNotAllowed(w)
+			return
+		}
+		copyRow, err := db.SaveActivityTemplateAsMine(s.store.DB, ownerID, uint(tplID))
+		if err != nil {
+			s.dbError(w, r, err)
+			return
+		}
+		w.Header().Set("HX-Redirect", fmt.Sprintf("/activity-templates/%d/edit", copyRow.ID))
+		w.WriteHeader(http.StatusOK)
+		return
 	case "update":
 		if r.Method != http.MethodPost {
 			s.methodNotAllowed(w)
@@ -109,6 +123,9 @@ func (s *Server) handleActivityTemplatesByID(w http.ResponseWriter, r *http.Requ
 	case "delete":
 		if r.Method != http.MethodPost {
 			s.methodNotAllowed(w)
+			return
+		}
+		if !s.guardCatalogWrite(w, r, &db.ActivityTemplate{}, ownerID, uint(tplID)) {
 			return
 		}
 		if err := s.deleteActivityTemplate(uint(tplID), ownerID); err != nil {
@@ -180,6 +197,9 @@ func (s *Server) handleUpdateActivityTemplate(w http.ResponseWriter, r *http.Req
 		return
 	}
 	label := strings.TrimSpace(r.FormValue("label"))
+	if !s.guardCatalogWrite(w, r, &db.ActivityTemplate{}, ownerID, tplID) {
+		return
+	}
 	var tpl db.ActivityTemplate
 	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, tplID).First(&tpl).Error; err != nil {
 		s.notFound(w)

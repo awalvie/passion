@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -265,11 +266,27 @@ func (s *Server) handleTemplatesByID(w http.ResponseWriter, r *http.Request) {
 			s.methodNotAllowed(w)
 			return
 		}
+		if !s.guardCatalogWrite(w, r, &db.SessionTemplate{}, ownerID, uint(templateID)) {
+			return
+		}
 		if err := s.deleteTemplate(uint(templateID), ownerID); err != nil {
 			s.serverError(w, r, err)
 			return
 		}
 		w.Header().Set("HX-Redirect", "/templates")
+		w.WriteHeader(http.StatusOK)
+		return
+	case "save-as-mine":
+		if r.Method != http.MethodPost {
+			s.methodNotAllowed(w)
+			return
+		}
+		copyRow, err := db.SaveSessionTemplateAsMine(s.store.DB, ownerID, uint(templateID))
+		if err != nil {
+			s.dbError(w, r, err)
+			return
+		}
+		w.Header().Set("HX-Redirect", fmt.Sprintf("/templates/%d/edit", copyRow.ID))
 		w.WriteHeader(http.StatusOK)
 		return
 	case "update":
@@ -481,6 +498,9 @@ func (s *Server) handleUpdateSessionTemplate(w http.ResponseWriter, r *http.Requ
 	}
 	label := strings.TrimSpace(r.FormValue("label"))
 
+	if !s.guardCatalogWrite(w, r, &db.SessionTemplate{}, ownerID, templateID) {
+		return
+	}
 	var tpl db.SessionTemplate
 	if err := s.store.DB.Where("owner_id = ? AND id = ?", ownerID, templateID).First(&tpl).Error; err != nil {
 		s.notFound(w)

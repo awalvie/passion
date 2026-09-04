@@ -1,19 +1,20 @@
 name: "Cooldown Stretch"
+slug: "cooldown_stretch"
 label: "cooldown, mobility"
 exercises:
-  - ref: "Forearms & Fingers"
-  - ref: "Deep Wide Squat"
-  - ref: "Lizard Pose"
-  - ref: "Seated Hamstring Hold"
-  - ref: "Butcher Block"
-  - ref: "Doorway Shoulder Opener"
+  - ref: "forearms_fingers"
+  - ref: "deep_wide_squat"
+  - ref: "lizard_pose"
+  - ref: "seated_hamstring_hold"
+  - ref: "butcher_block"
+  - ref: "doorway_shoulder_opener"
   - name: "Deep hip pick"
     kind: "exercise_catalog"
     notes: |
       One of these, whichever you feel like. They all train the same deep hip
       range, so rotating never leaves a gap.
     children:
-      - ref: "Middle Splits Hold"
-      - ref: "Frog Stretch"
-      - ref: "Pigeon Pose"
-      - ref: "90/90 Hold"
+      - ref: "middle_splits_hold"
+      - ref: "frog_stretch"
+      - ref: "pigeon_pose"
+      - ref: "90_90_hold"

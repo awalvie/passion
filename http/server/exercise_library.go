@@ -245,6 +245,19 @@ func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Reques
 			CatalogImportEnabled:    s.yamlImport != nil,
 		})
 		return
+	case "save-as-mine":
+		if r.Method != http.MethodPost {
+			s.methodNotAllowed(w)
+			return
+		}
+		copyRow, err := db.SaveLibraryExerciseAsMine(s.store.DB, ownerID, id)
+		if err != nil {
+			s.dbError(w, r, err)
+			return
+		}
+		w.Header().Set("HX-Redirect", fmt.Sprintf("/exercise-library/%d/edit", copyRow.ID))
+		w.WriteHeader(http.StatusOK)
+		return
 	case "update":
 		if r.Method != http.MethodPost {
 			s.methodNotAllowed(w)
@@ -252,6 +265,9 @@ func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Reques
 		}
 		if err := r.ParseForm(); err != nil {
 			s.badRequest(w, "bad request")
+			return
+		}
+		if !s.guardCatalogWrite(w, r, &db.LibraryExercise{}, ownerID, id) {
 			return
 		}
 		var existing db.LibraryExercise
@@ -337,6 +353,9 @@ func (s *Server) handleExerciseLibraryByID(w http.ResponseWriter, r *http.Reques
 	case "delete":
 		if r.Method != http.MethodPost {
 			s.methodNotAllowed(w)
+			return
+		}
+		if !s.guardCatalogWrite(w, r, &db.LibraryExercise{}, ownerID, id) {
 			return
 		}
 		// Delete children first (catalog options), then the parent.

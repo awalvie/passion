@@ -1,4 +1,5 @@
 name: "Kneeling Tilt"
+slug: "kneeling_tilt"
 label: "mobility, strength"
 kind: "timed_reps"
 sets: 2

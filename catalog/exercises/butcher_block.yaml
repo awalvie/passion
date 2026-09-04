@@ -1,4 +1,5 @@
 name: "Butcher Block"
+slug: "butcher_block"
 label: "cooldown, mobility, shoulders"
 kind: "timed_reps"
 sets: 1

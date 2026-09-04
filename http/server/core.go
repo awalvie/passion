@@ -22,11 +22,14 @@ type Server struct {
 	// HTTP. Local development only.
 	insecureCookies bool
 	yamlImport      *db.YAMLImportOptions // nil when YAML import is disabled
+	// catalogOwnerID holds the catalog. Only that account may re-run the import, because
+	// the import writes the whole catalog into whichever account it runs for.
+	catalogOwnerID uint
 }
 
 // NewServer wires the HTTP server. insecureCookies is for local development over plain
 // HTTP only — see AuthConfig.InsecureCookies.
-func NewServer(store *db.Store, jwtSecret string, jwtTTL time.Duration, devAuthBypass, insecureCookies bool, yamlImport *db.YAMLImportOptions) (*Server, error) {
+func NewServer(store *db.Store, jwtSecret string, jwtTTL time.Duration, devAuthBypass, insecureCookies bool, yamlImport *db.YAMLImportOptions, catalogOwnerID uint) (*Server, error) {
 	p, err := pages.NewPages(slog.Default().With("component", "pages"))
 	if err != nil {
 		return nil, err
@@ -40,6 +43,7 @@ func NewServer(store *db.Store, jwtSecret string, jwtTTL time.Duration, devAuthB
 		devAuthBypass:   devAuthBypass,
 		insecureCookies: insecureCookies,
 		yamlImport:      yamlImport,
+		catalogOwnerID:  catalogOwnerID,
 	}, nil
 }
 

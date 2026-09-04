@@ -1,4 +1,5 @@
 name: "Mock Lead (Auto-Belay)"
+slug: "mock_lead_auto_belay"
 label: "route, technique, tactics"
 kind: "session"
 notes: |

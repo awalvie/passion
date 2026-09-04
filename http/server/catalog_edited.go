@@ -103,14 +103,33 @@ func (s *Server) markExerciseIDOwnerEdited(ownerID, exerciseID uint) {
 
 // resetCatalogRow clears the edited stamp and re-runs the import for the owner, so the row
 // goes back to what the YAML says.
+//
+// Only the account that holds the catalog may do this. The import writes the whole catalog
+// into whichever account it runs for, so calling it as anyone else would copy the catalog —
+// including the licensed part — into their account. That was the leak this project spent a
+// day closing.
+//
+// Under the shared catalog nobody edits a catalog row in place, so there is nothing left to
+// reset: a user's own copies are not importer-created and never match the WHERE below. The
+// feature is dead for everyone but the catalog owner, and this makes that explicit rather
+// than incidental.
 func (s *Server) resetCatalogRow(model any, ownerID, id uint) error {
 	if s.yamlImport == nil {
 		return errCatalogImportDisabled
 	}
-	if err := s.store.DB.Model(model).
+	if s.catalogOwnerID == 0 || ownerID != s.catalogOwnerID {
+		return db.ErrNotFound
+	}
+	// Report a miss instead of a success. This matched zero rows for a catalog row and
+	// still redirected as if it had worked, so the row stayed exactly as it was.
+	res := s.store.DB.Model(model).
 		Where("owner_id = ? AND id = ? AND managed_by_catalog = ?", ownerID, id, true).
-		Update("catalog_edited_at", nil).Error; err != nil {
-		return err
+		Update("catalog_edited_at", nil)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return db.ErrNotFound
 	}
 	opts := *s.yamlImport
 	opts.OwnerID = ownerID
