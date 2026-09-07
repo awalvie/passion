@@ -143,7 +143,8 @@ These flags run against the database and exit. They do not start the server.
 | `--purge-orphans-dry-run` | Count exercises orphaned by the old importer bug. Changes nothing. |
 | `--purge-orphans` | Delete those orphans, keeping any that run history still references. |
 | `--delete-users-except=ID` | Show what deleting every other account would remove. Changes nothing on its own. Refuses if a victim owns catalog rows, or is the configured import owner. |
-| `--i-have-a-backup` | Required with `--delete-users-except` to actually delete. There is no undo but the backup file. |
+| `--i-have-a-backup` | Required with `--delete-users-except` or `--purge-ghost-catalog` to actually delete. There is no undo but the backup file. |
+| `--purge-ghost-catalog=ID` | Show what removing every row owned by that id would take. Only works when no account has the id, and refuses if anything still points at the rows. |
 | `--backfill-runs-dry-run` / `--backfill-runs` | Give past runs their own copy of the exercises their records point at. |
 | `--backfill-slugs-dry-run` / `--backfill-slugs` | Derive a slug for every catalog row that has none. Run before the importer matches on slug. |
 | `--publish-catalog-dry-run` / `--publish-catalog=ID` | Flag that owner's importer-created rows as the shared catalog every account reads. |

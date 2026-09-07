@@ -41,7 +41,8 @@ func main() {
 	backfillRuns := flag.Bool("backfill-runs", false, "give every past run its own copy of the exercises its records point at, then exit")
 	backfillDryRun := flag.Bool("backfill-runs-dry-run", false, "report what --backfill-runs would change, then exit")
 	keepOnlyUser := flag.Uint("delete-users-except", 0, "permanently delete every account except this user id, and everything those accounts own")
-	confirmDelete := flag.Bool("i-have-a-backup", false, "required with --delete-users-except: without it the deletion is only a dry run")
+	confirmDelete := flag.Bool("i-have-a-backup", false, "required with --delete-users-except or --purge-ghost-catalog: without it the deletion is only a dry run")
+	purgeGhost := flag.Uint("purge-ghost-catalog", 0, "remove every row owned by this id when no account has it, then exit — dry run unless --i-have-a-backup")
 	flag.Parse()
 
 	cfgPath := strings.TrimSpace(*configPath)
@@ -116,6 +117,16 @@ func main() {
 			// word for it. Non-zero either way, so a script can tell.
 			if !errors.Is(err, errRefused) {
 				slog.Error("delete users failed", "error", err)
+			}
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
+	if *purgeGhost > 0 {
+		if err := runPurgeGhostCommand(store, cfg.Server.DBPath, *purgeGhost, *confirmDelete); err != nil {
+			if !errors.Is(err, errRefused) {
+				slog.Error("purge ghost catalog failed", "error", err)
 			}
 			os.Exit(1)
 		}
@@ -512,4 +523,60 @@ func listenHint(addr string) string {
 		return "http://127.0.0.1:" + port + " on this host; use your Tailscale/LAN IP with :" + port + " from other devices"
 	}
 	return "open http://" + addr + " if TCP host:port"
+}
+
+// runPurgeGhostCommand removes the rows a stale import owner left behind. Dry run by
+// default, following --delete-users-except: a dry run you have to remember to ask for is a
+// dry run somebody skips.
+func runPurgeGhostCommand(store *db.Store, dbPath string, ownerID uint, confirmed bool) error {
+	plan, err := db.PlanPurgeGhostCatalog(store.DB, ownerID)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("database:  %s\n", dbPath)
+	fmt.Printf("owner:     %d\n\n", plan.OwnerID)
+
+	if len(plan.Refusals) > 0 {
+		fmt.Println("STOP: this is not an unreachable catalog.")
+		for _, r := range plan.Refusals {
+			fmt.Printf("  - %s\n", r)
+		}
+		fmt.Println("\nNothing was changed.")
+		return errRefused
+	}
+
+	if plan.TotalRows == 0 {
+		fmt.Println("No rows are owned by that id. Nothing to do.")
+		return nil
+	}
+
+	fmt.Printf("REMOVING %d row(s):\n", plan.TotalRows)
+	tables := make([]string, 0, len(plan.RowsByTable))
+	for t := range plan.RowsByTable {
+		tables = append(tables, t)
+	}
+	sort.Strings(tables)
+	for _, t := range tables {
+		fmt.Printf("  %-32s %8d\n", t, plan.RowsByTable[t])
+	}
+	if plan.InviteCodes > 0 {
+		fmt.Printf("\n%d invite code(s) were redeemed by that id. Left alone — a used code is a\n", plan.InviteCodes)
+		fmt.Println("record of a signup, not catalog content.")
+	}
+
+	if !confirmed {
+		fmt.Println("\nDry run. Nothing was changed.")
+		fmt.Println("Read the list above, back up the database, then run again with --i-have-a-backup.")
+		return nil
+	}
+
+	fmt.Println("\nRemoving now. The only way back is the backup file.")
+	applied, err := db.PurgeGhostCatalog(store.DB, ownerID)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Removed %d row(s).\n", applied.TotalRows)
+	fmt.Println("The rows are gone but the file is the same size. Run VACUUM to reclaim the space.")
+	return nil
 }
