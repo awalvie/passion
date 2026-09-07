@@ -6,10 +6,19 @@ This is what happened, what is already fixed, and the order to fix the rest in.
 Nothing in this document changes production before step 3, and every step says how it
 reverses.
 
-**Status as of 7 September: nothing here has been run against production.** The guards are
-written, reviewed and tested but uncommitted, so the deployed binary still has none of
-them, the config still reads `Enabled: true` / `OwnerID: 1`, and owner 1 still holds a full
-catalog beside user 4's. The order below has not started.
+**Status: recovered on 7 September.** Steps 2 to 4 are done — the guards are deployed, the
+1,172 ghost rows are gone, and every YAML slug matches an existing row. Step 5 re-enables
+the import. Step 6, publishing the catalog, is the only thing left and is not recovery.
+
+Two things worth recording, because both corrected an assumption made while diagnosing:
+
+- **The slugs were already filled in.** `--backfill-slugs` reported "nothing to do", and
+  the YAML-to-database comparison came back with 225 slugs on each side plus the seeded
+  `open_session` template. The claim that user 4's rows were unslugged came from a copy of
+  the database taken at 17:08 on 4 September, before the backfill was run. It was inference
+  presented as fact, twice.
+- **The purge only held because the guards went first.** A hand-run SQL cleanup on
+  4 September was undone by the next restart, which re-imported into the deleted owner.
 
 ## What happened
 
