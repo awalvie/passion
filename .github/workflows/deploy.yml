@@ -72,17 +72,13 @@ jobs:
           # the service dies on its next restart. Ask how this comment came to exist.
           #
           # Note the option order: czf must lead, or tar reads it as a file name.
-          # scripts is here so operational checks arrive with the deploy. Pasting a long
-          # shell script into an ssh session mangles lines, which cost two rounds during
-          # the 4 September recovery.
-          tar czf - --exclude='.git' catalog catalog-private templates static scripts | \
+          tar czf - --exclude='.git' catalog catalog-private templates static | \
             $SSH "rm -rf /opt/passion/.stage && mkdir -p /opt/passion/.stage && \
                   tar xzf - -C /opt/passion/.stage && \
                   rm -rf /opt/passion/catalog /opt/passion/catalog-private \
-                         /opt/passion/templates /opt/passion/static /opt/passion/scripts && \
+                         /opt/passion/templates /opt/passion/static && \
                   mv /opt/passion/.stage/catalog /opt/passion/.stage/catalog-private \
                      /opt/passion/.stage/templates /opt/passion/.stage/static \
-                     /opt/passion/.stage/scripts \
                      /opt/passion/ && \
                   rmdir /opt/passion/.stage"
 
