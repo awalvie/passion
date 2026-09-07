@@ -13,15 +13,7 @@ Auth:
   DevAuthBypass: false
 
 YAMLImport:
-  # Off deliberately, and temporarily. OwnerID below is now correct, but user 4's catalog
-  # rows have no slugs yet, so an import would match nothing, create a second copy of
-  # everything and prune the originals. ImportYAML refuses that outright, and with
-  # Restart=on-failure a refusal at boot crash-loops the service — so the import is
-  # switched off instead, leaving the site up.
-  #
-  # This is the only line to change. Flip it once docs/RECOVERY.md steps 3 and 4 are done:
-  # the ghost rows removed, and --backfill-slugs run and checked against the YAML.
-  Enabled: false
+  Enabled: true
   ExercisesDir:
     - "/opt/passion/catalog/exercises"
     - "/opt/passion/catalog-private/exercises"
