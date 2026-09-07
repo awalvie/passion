@@ -57,7 +57,15 @@ sqlite3 passion.db.bak-$STAMP "PRAGMA integrity_check;"
 Expect `ok`. Copy it off the box as well — a backup on the same disk does not survive
 losing the disk.
 
-### 2. Deploy
+### 2. Deploy with the import switched off
+
+**The order below changed after the 4 September incident. Read it rather than the version
+you remember.** The importer now refuses to run when the catalog rows it would match have
+no slug — and a refusal at boot crash-loops the service, because the systemd unit sets
+`Restart=on-failure`. So the deploy must not run an import.
+
+`passion.prod.yaml` ships `YAMLImport.Enabled: false` for exactly this reason. Leave it off
+until step 3 is done.
 
 Push both repos. **The private catalog must go first**: the code refuses to start on an
 entry with no slug, so its slugs have to be on the server before the code that requires
@@ -68,15 +76,15 @@ git -C ~/code/lamp/passion-private-catalog push origin master
 git -C ~/code/lamp/passion push origin master
 ```
 
-The service is stopped, so the deploy's restart is what brings it back. The boot import
-will run once, for the catalog owner, matching on slug.
+The deploy restarts the service, which comes back on the same data with no import.
 
-### 3. Fill in the slugs, then publish
+### 3. Fill in the slugs, publish, then turn the import back on
 
 ```sh
 cd /opt/passion
 sudo systemctl stop passion
 
+./passion -config passion.yaml --backfill-slugs-dry-run
 ./passion -config passion.yaml --backfill-slugs
 ./passion -config passion.yaml --publish-catalog-dry-run
 ./passion -config passion.yaml --publish-catalog=4
@@ -84,12 +92,16 @@ sudo systemctl stop passion
 sudo systemctl start passion
 ```
 
-Expect 226 rows slugged and 225 published. **Read the dry run before the real one** — it
-lists what it would publish and what it leaves private.
+Expect 226 rows slugged and 225 published. **Read each dry run before the real one** — the
+publish dry run lists what it would publish and what it leaves private, and the backfill
+dry run lists slug collisions it would number apart.
 
-Order matters. Publishing before the backfill would work, but the importer matches on slug,
-and a switch against an empty column makes every row match nothing — prune then treats the
-whole catalog as orphaned.
+Order matters, and it is now enforced rather than just advised. The importer matches on
+slug, so a switch against an empty column makes every row match nothing and prune then
+treats the whole catalog as orphaned. That used to be a footgun; it is now a refusal.
+
+Only once the backfill has run does `YAMLImport.Enabled: true` go back into
+`passion.prod.yaml` as its own commit.
 
 ### 4. Check
 

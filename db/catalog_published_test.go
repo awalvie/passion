@@ -16,6 +16,7 @@ func TestPublishedCatalogImportsOnItsOwn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	seedImportOwner(t, store, 1)
 	opts := YAMLImportOptions{
 		OwnerID:              1,
 		ExercisesDir:         []string{filepath.Join("..", "catalog", "exercises")},

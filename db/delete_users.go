@@ -60,6 +60,17 @@ type UserDeletionPlan struct {
 	// all stops the deletion: those rows are the app's catalog, read by everyone, and
 	// removing an account must never take them.
 	SharedRowsHeld int64
+	// ImportOwnerVictim is the configured YAML import owner when it is among the accounts
+	// to delete, or 0. SharedRowsHeld does not catch this: a catalog that has not been
+	// published yet holds no shared rows, so deleting its owner looks harmless and then
+	// the next import rebuilds the whole thing under an id with no account behind it.
+	// That is exactly what happened on 4 September 2026.
+	ImportOwnerVictim uint
+	// ImportOwnerMissing is the configured import owner when no account has that id at
+	// all, or 0. Not a refusal — ImportYAML blocks that on its own — but this plan is what
+	// an operator reads while recovering from exactly that misconfiguration, so it should
+	// not stay silent about it.
+	ImportOwnerMissing uint
 }
 
 // catalogModels are the three that can carry Shared. A shared row belongs to the app's
@@ -84,8 +95,9 @@ func countSharedHeldBy(gdb *gorm.DB, ownerIDs []uint) (int64, error) {
 }
 
 // PlanDeleteAllUsersExcept reports which accounts would go and how many rows each table
-// would lose. It changes nothing.
-func PlanDeleteAllUsersExcept(gdb *gorm.DB, keepUserID uint) (UserDeletionPlan, error) {
+// would lose. It changes nothing. importOwnerID is the configured YAML import owner, or 0
+// when the import is disabled.
+func PlanDeleteAllUsersExcept(gdb *gorm.DB, keepUserID, importOwnerID uint) (UserDeletionPlan, error) {
 	plan := UserDeletionPlan{KeepUserID: keepUserID, RowsByTable: map[string]int64{}}
 
 	if keepUserID == 0 {
@@ -97,6 +109,22 @@ func PlanDeleteAllUsersExcept(gdb *gorm.DB, keepUserID uint) (UserDeletionPlan, 
 	}
 	plan.KeepEmail = keep.Email
 
+	if importOwnerID != 0 {
+		// Scoped, so this agrees with ImportYAML exactly. That matters more than the
+		// choice itself: this field exists to predict what will break the import, and a
+		// dry run that disagrees with the thing it predicts is worse than no dry run.
+		// (PurgeGhostCatalog asks a different question — "might these rows belong to a
+		// restorable account" — and is Unscoped for that reason. Each check errs towards
+		// not acting on its own consequence: one refuses to write, the other to delete.)
+		var n int64
+		if err := gdb.Model(&User{}).Where("id = ?", importOwnerID).Count(&n).Error; err != nil {
+			return plan, err
+		}
+		if n == 0 {
+			plan.ImportOwnerMissing = importOwnerID
+		}
+	}
+
 	if err := gdb.Where("id <> ?", keepUserID).Order("id").Find(&plan.DeleteUsers).Error; err != nil {
 		return plan, err
 	}
@@ -107,6 +135,9 @@ func PlanDeleteAllUsersExcept(gdb *gorm.DB, keepUserID uint) (UserDeletionPlan, 
 	victimIDs := make([]uint, 0, len(plan.DeleteUsers))
 	for _, u := range plan.DeleteUsers {
 		victimIDs = append(victimIDs, u.ID)
+		if importOwnerID != 0 && u.ID == importOwnerID {
+			plan.ImportOwnerVictim = u.ID
+		}
 	}
 
 	for _, model := range ownerScopedTables() {
@@ -140,10 +171,20 @@ func PlanDeleteAllUsersExcept(gdb *gorm.DB, keepUserID uint) (UserDeletionPlan, 
 // DeleteAllUsersExcept permanently removes every account except keepUserID, along with
 // everything those accounts own. It is one transaction: it either all happens or none of
 // it does. There is no undo, so the caller must have taken a backup.
-func DeleteAllUsersExcept(gdb *gorm.DB, keepUserID uint) (UserDeletionPlan, error) {
-	plan, err := PlanDeleteAllUsersExcept(gdb, keepUserID)
+func DeleteAllUsersExcept(gdb *gorm.DB, keepUserID, importOwnerID uint) (UserDeletionPlan, error) {
+	plan, err := PlanDeleteAllUsersExcept(gdb, keepUserID, importOwnerID)
 	if err != nil || len(plan.DeleteUsers) == 0 {
 		return plan, err
+	}
+
+	// Refused rather than narrowed, and refused before the shared-rows check because it
+	// is the more common shape: an unpublished catalog holds no shared rows at all.
+	if plan.ImportOwnerVictim != 0 {
+		return plan, fmt.Errorf(
+			"refusing to delete: user %d is the configured yaml import owner. "+
+				"Point yaml_import.owner_id at the account you are keeping (%d) first, "+
+				"or the next import will build a catalog under an account that no longer exists",
+			plan.ImportOwnerVictim, keepUserID)
 	}
 
 	// A deletion that would take catalog rows with it is refused rather than narrowed.

@@ -15,6 +15,7 @@ func TestImportYAMLUpsertByName(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	seedImportOwner(t, store, 1)
 
 	exercisesDir := filepath.Join(tmp, "exercises")
 	templatesDir := filepath.Join(tmp, "templates")
@@ -153,6 +154,7 @@ func TestImportYAMLUnknownReferenceFails(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	seedImportOwner(t, store, 1)
 	exercisesDir := filepath.Join(tmp, "exercises")
 	templatesDir := filepath.Join(tmp, "templates")
 	if err := os.MkdirAll(exercisesDir, 0o755); err != nil {
@@ -195,6 +197,7 @@ func TestImportYAMLPrunesRenameOrphansButProtectsInUseAndUIRows(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	seedImportOwner(t, store, 1)
 
 	exercisesDir := filepath.Join(tmp, "exercises")
 	templatesDir := filepath.Join(tmp, "templates")
@@ -356,9 +359,7 @@ func TestImportYAMLWalksSubdirectories(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := store.DB.Create(&User{Email: "f@f.com", PasswordHash: "x"}).Error; err != nil {
-		t.Fatal(err)
-	}
+	seedImportOwner(t, store, 1)
 
 	exDir := filepath.Join(dir, "exercises")
 	nested := filepath.Join(exDir, "ondra", "mobility")
@@ -423,6 +424,7 @@ func TestImportYAMLMultipleDirectories(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		seedImportOwner(t, store, 1)
 		pubEx := filepath.Join(tmp, "public", "exercises")
 		privEx := filepath.Join(tmp, "private", "exercises")
 		pubST := filepath.Join(tmp, "public", "templates")
@@ -461,6 +463,7 @@ activities:
 		if err != nil {
 			t.Fatal(err)
 		}
+		seedImportOwner(t, store, 1)
 		a := filepath.Join(tmp, "a", "exercises")
 		b := filepath.Join(tmp, "b", "exercises")
 		st := filepath.Join(tmp, "templates")
@@ -487,6 +490,7 @@ activities:
 		if err != nil {
 			t.Fatal(err)
 		}
+		seedImportOwner(t, store, 1)
 		ex := filepath.Join(tmp, "exercises")
 		st := filepath.Join(tmp, "templates")
 		mustWrite(t, ex, "rows.yaml", "name: \"Ring Rows\"\nslug: \"ring_rows\"\nkind: \"reps_and_sets\"\nsets: 3\nreps: 10\n")
@@ -511,6 +515,7 @@ activities:
 		if err != nil {
 			t.Fatal(err)
 		}
+		seedImportOwner(t, store, 1)
 		ex := filepath.Join(tmp, "exercises")
 		st := filepath.Join(tmp, "templates")
 		mustWrite(t, ex, "rows.yaml", "name: \"Ring Rows\"\nslug: \"ring_rows\"\nkind: \"reps_and_sets\"\nsets: 3\nreps: 10\n")
@@ -541,6 +546,7 @@ func TestImportYAMLSkipsEditedRows(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		seedImportOwner(t, store, 1)
 		exDir := filepath.Join(tmp, "exercises")
 		atDir := filepath.Join(tmp, "blocks")
 		stDir := filepath.Join(tmp, "sessions")
