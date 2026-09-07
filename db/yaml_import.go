@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
@@ -102,6 +103,18 @@ type yamlSessionExercise struct {
 func (s *Store) ImportYAML(opts YAMLImportOptions) error {
 	if opts.OwnerID == 0 {
 		return errors.New("yaml import owner id must be positive")
+	}
+	// The import writes an entire catalog under this id, and every read is owner-scoped,
+	// so a stale id produces a catalog nobody can reach and prune then treats as orphaned
+	// on the next run. PublishCatalog has always checked this; the importer did not, and a
+	// config left pointing at a deleted account built 1,172 unreachable rows in production.
+	// Failing to start is the point: silently ignoring this setting is how it went stale.
+	var owner User
+	if err := s.DB.Where("id = ?", opts.OwnerID).First(&owner).Error; err != nil {
+		return fmt.Errorf("yaml import owner id %d names no existing account: %w", opts.OwnerID, err)
+	}
+	if err := refuseUnsluggedCatalog(s.DB, opts.OwnerID); err != nil {
+		return err
 	}
 	exercisesDirs := trimDirs(opts.ExercisesDir)
 	templatesDirs := trimDirs(opts.SessionTemplatesDir)
@@ -313,6 +326,24 @@ func pruneCatalogOrphans(tx *gorm.DB, ownerID uint, exs []yamlExercise, ats []ya
 			if _, ok := keep[at.Slug]; ok {
 				continue
 			}
+			// This branch is the only one that has to check history directly, and it did
+			// not. A session template's history is caught transitively: SessionRun.
+			// ScheduledSessionID is not null, so every run hangs off a scheduled session
+			// and that branch's scheduled-session count sees it. A block has no such
+			// chain — completions point straight at its exercises. So a block leaving the
+			// YAML hard-deleted them, silently, because none of the six history tables
+			// declares a foreign key to exercises.
+			used, err := countExercisesReferencedByHistory(tx, "activity_template_id = ?", at.ID)
+			if err != nil {
+				return err
+			}
+			if used > 0 {
+				// Silence here is the trap: the operator deleted this block from the YAML,
+				// restarted, and nothing tells them it is still in the catalog.
+				slog.Warn("kept a catalog block that left the YAML: run history points at its exercises",
+					"slug", at.Slug, "name", at.Name, "owner_id", ownerID, "referenced_exercises", used)
+				continue
+			}
 			if err := deleteExercisesAndMedia(tx, "activity_template_id = ?", at.ID); err != nil {
 				return err
 			}
@@ -372,10 +403,64 @@ func pruneCatalogOrphans(tx *gorm.DB, ownerID uint, exs []yamlExercise, ats []ya
 	return nil
 }
 
-// deleteExercisesAndMedia hard-deletes the exercises matched by cond (plus their
-// media) so pruned templates leave no orphaned child rows behind. The step-by-step
-// child deletion is required, not redundant: SQLite foreign keys are not enabled on
-// this connection, so the OnDelete:CASCADE tags in the models never fire.
+// refuseUnsluggedCatalog stops an import that would match nothing and then prune what it
+// failed to match. The importer identifies rows by slug, so an importer-created row with
+// an empty slug matches no YAML entry: the import creates a second copy of everything, and
+// prune then treats the originals as having left the YAML.
+//
+// This refuses rather than backfilling on the spot. The backfill can number colliding
+// slugs apart, which is a decision an operator should see the dry run for — and doing it
+// silently inside an import is how a rescue turns into the next incident.
+//
+// Only importer-created rows are counted, because only those are matched or pruned. Note
+// this is scoped to the importer's needs and is not a general "every row has a slug"
+// check: no UI path sets Slug, so user-created rows sit at the default ”. That is fine
+// here and is a blocker for the deferred unique index on (owner_id, slug) — see
+// docs/RECOVERY.md.
+func refuseUnsluggedCatalog(gdb *gorm.DB, ownerID uint) error {
+	var problems []string
+	for _, tbl := range slugTables() {
+		var n int64
+		// Unscoped deliberately, and it must stay explicit: a soft-deleted row still holds
+		// its (owner_id, slug) identity, and the upsert lookups are scoped, so the import
+		// would create a duplicate beside it. This has to match what BackfillSlugs fixes —
+		// a guard the named remedy cannot clear is a permanent refusal on the boot path.
+		if err := gdb.Unscoped().Model(tbl.model).
+			Where("owner_id = ? AND managed_by_catalog = ? AND slug = ''", ownerID, true).
+			Count(&n).Error; err != nil {
+			return err
+		}
+		if n > 0 {
+			problems = append(problems, fmt.Sprintf("%s: %d row(s)", tbl.name, n))
+		}
+	}
+	if len(problems) == 0 {
+		return nil
+	}
+	// Every table at once. One per run means an operator fixes, re-runs, and hits the next.
+	return fmt.Errorf(
+		"owner %d has catalog rows with no slug (%s), so this import would duplicate them "+
+			"and prune the originals. Run --backfill-slugs-dry-run, read it, then --backfill-slugs",
+		ownerID, strings.Join(problems, ", "))
+}
+
+// countExercisesReferencedByHistory counts the exercises matched by cond that some record
+// of a completed session still points at. Unscoped to match the scope of the hard delete
+// it guards: a soft-deleted exercise row is still what a completion points at.
+func countExercisesReferencedByHistory(tx *gorm.DB, cond string, arg any) (int64, error) {
+	var n int64
+	err := tx.Unscoped().Model(&Exercise{}).
+		Where(cond, arg).
+		Where(referencedByHistoryWhere).
+		Count(&n).Error
+	return n, err
+}
+
+// deleteExercisesAndMedia hard-deletes the exercises matched by cond (plus their media) so
+// pruned templates leave no orphaned child rows behind. The step-by-step child deletion is
+// required, not redundant: the OnDelete:CASCADE tags in the models never fire here,
+// because a soft delete is an UPDATE, not a DELETE. Foreign keys themselves are enabled on
+// this connection — see db/store.go.
 func deleteExercisesAndMedia(tx *gorm.DB, cond string, arg any) error {
 	var exs []Exercise
 	if err := tx.Where(cond, arg).Find(&exs).Error; err != nil {

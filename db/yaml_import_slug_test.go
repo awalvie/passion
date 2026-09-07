@@ -17,6 +17,7 @@ func slugImportFixture(t *testing.T, exerciseYAML, templateYAML string) (*Store,
 	if err != nil {
 		t.Fatal(err)
 	}
+	seedImportOwner(t, store, 1)
 	exDir := filepath.Join(tmp, "exercises")
 	tplDir := filepath.Join(tmp, "templates")
 	for _, d := range []string{exDir, tplDir} {

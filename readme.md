@@ -116,6 +116,20 @@ skips the check, because it short-circuits token verification anyway. `DemoOwner
 `YAMLImport.OwnerID` must not be `0` — that id is the "no owner" sentinel across the data
 layer.
 
+The importer refuses to run, rather than warn, on two conditions:
+
+- **`YAMLImport.OwnerID` names no existing account.** The import writes a whole catalog
+  under that id and every catalog read is owner-scoped, so a stale id produces rows nobody
+  can reach — and the next run's prune treats them as orphaned. A config left pointing at a
+  deleted account did exactly that in production; see [docs/RECOVERY.md](docs/RECOVERY.md).
+- **That owner has importer-created catalog rows with no slug.** Rows are matched by slug,
+  so an unslugged row matches no YAML entry: the import would create a second copy of
+  everything and prune the originals. Run `--backfill-slugs-dry-run`, read it, then
+  `--backfill-slugs`.
+
+The second one bites on any database predating the slug switch, local ones included. If
+`make watch` exits with a "no slug" error, that is this check — run the backfill once.
+
 ---
 
 ## Administration
@@ -128,8 +142,8 @@ These flags run against the database and exit. They do not start the server.
 | `--list-invites` | List every code and whether it has been used. |
 | `--purge-orphans-dry-run` | Count exercises orphaned by the old importer bug. Changes nothing. |
 | `--purge-orphans` | Delete those orphans, keeping any that run history still references. |
-| `--delete-users-except=ID` | Show what deleting every other account would remove. Changes nothing on its own. |
-| `--i-have-a-backup` | Required with `--delete-users-except` to actually delete. There is no undo. |
+| `--delete-users-except=ID` | Show what deleting every other account would remove. Changes nothing on its own. Refuses if a victim owns catalog rows, or is the configured import owner. |
+| `--i-have-a-backup` | Required with `--delete-users-except` to actually delete. There is no undo but the backup file. |
 | `--backfill-runs-dry-run` / `--backfill-runs` | Give past runs their own copy of the exercises their records point at. |
 | `--backfill-slugs-dry-run` / `--backfill-slugs` | Derive a slug for every catalog row that has none. Run before the importer matches on slug. |
 | `--publish-catalog-dry-run` / `--publish-catalog=ID` | Flag that owner's importer-created rows as the shared catalog every account reads. |
@@ -256,14 +270,15 @@ activities:
 Import behavior:
 
 - Runs on startup only when `PASSION_YAML_IMPORT_ENABLED` is set
+- Refuses to run if the owner does not exist, or if its catalog rows have no slug
 - Upserts by `owner_id + slug` — safe to re-run
 - Template updates replace activities/exercises to preserve ordering
 - Skips any row a user has edited in the app (`catalog_edited_at` set) — neither
   overwritten nor pruned
 - Prunes catalog rows that dropped out of the YAML (e.g. after a rename): only rows the
-  importer created are removed, the system open-session template is left alone, and a
-  session template is never deleted while it still has scheduled sessions or cycle
-  mappings (so logged runs are never orphaned)
+  importer created are removed, the system open-session template is left alone, and
+  nothing is deleted while run history, a scheduled session or a cycle mapping still
+  points at it (so logged runs are never orphaned)
 - Unknown `ref` or invalid YAML fails startup fast
 
 ---

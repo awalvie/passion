@@ -81,6 +81,7 @@ func TestReimportUnchangedYAMLDoesNotGrowExercises(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	seedImportOwner(t, store, 1)
 	opts := writeReimportFixture(t)
 
 	if err := store.ImportYAML(opts); err != nil {
@@ -109,6 +110,7 @@ func TestReimportLeavesNoLiveExerciseUnderADeadActivity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	seedImportOwner(t, store, 1)
 	opts := writeReimportFixture(t)
 
 	for i := 0; i < 3; i++ {
@@ -139,6 +141,7 @@ func TestReimportKeepsRetiredExercisesRecoverable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	seedImportOwner(t, store, 1)
 	opts := writeReimportFixture(t)
 
 	if err := store.ImportYAML(opts); err != nil {

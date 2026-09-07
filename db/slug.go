@@ -58,6 +58,11 @@ func slugTables() []struct {
 // A slug is unique per owner, so a collision within one account gets a counter. Collisions
 // are reported either way: two rows an account named the same thing is worth knowing about
 // before the importer starts matching on it.
+//
+// Unscoped, which matters: refuseUnsluggedCatalog counts soft-deleted rows too, so a
+// scoped backfill would leave the import refused with no way forward but hand-written
+// SQL — and that refusal is on the boot path, where the service crash-loops. A
+// soft-deleted row also still occupies its (owner_id, slug) identity, so it needs one.
 func BackfillSlugs(gdb *gorm.DB, dryRun bool) (SlugBackfillReport, error) {
 	rep := SlugBackfillReport{ByTable: map[string]int64{}, DryRun: dryRun}
 
@@ -68,7 +73,7 @@ func BackfillSlugs(gdb *gorm.DB, dryRun bool) (SlugBackfillReport, error) {
 			Name    string
 		}
 		var rows []row
-		if err := gdb.Model(tbl.model).
+		if err := gdb.Unscoped().Model(tbl.model).
 			Where("slug = ''").
 			Select("id, owner_id, name").
 			Order("id").Scan(&rows).Error; err != nil {
@@ -86,7 +91,7 @@ func BackfillSlugs(gdb *gorm.DB, dryRun bool) (SlugBackfillReport, error) {
 			Slug    string
 		}
 		var have []existing
-		if err := gdb.Model(tbl.model).Where("slug <> ''").
+		if err := gdb.Unscoped().Model(tbl.model).Where("slug <> ''").
 			Select("owner_id, slug").Scan(&have).Error; err != nil {
 			return rep, err
 		}
@@ -119,7 +124,7 @@ func BackfillSlugs(gdb *gorm.DB, dryRun bool) (SlugBackfillReport, error) {
 			if dryRun {
 				continue
 			}
-			if err := gdb.Model(tbl.model).Where("id = ?", r.ID).
+			if err := gdb.Unscoped().Model(tbl.model).Where("id = ?", r.ID).
 				Update("slug", slug).Error; err != nil {
 				return rep, err
 			}

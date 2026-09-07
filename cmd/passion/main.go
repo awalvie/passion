@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -108,8 +109,14 @@ func main() {
 	}
 
 	if *keepOnlyUser > 0 {
-		if err := runDeleteUsersCommand(store, cfg.Server.DBPath, *keepOnlyUser, *confirmDelete); err != nil {
-			slog.Error("delete users failed", "error", err)
+		// Passed regardless of whether the import is enabled. A disabled import is
+		// usually temporary, and the setting outlives the toggle.
+		if err := runDeleteUsersCommand(store, cfg.Server.DBPath, *keepOnlyUser, cfg.YAMLImport.OwnerID, *confirmDelete); err != nil {
+			// A refusal already explained itself on stdout, and "failed" is the wrong
+			// word for it. Non-zero either way, so a script can tell.
+			if !errors.Is(err, errRefused) {
+				slog.Error("delete users failed", "error", err)
+			}
 			os.Exit(1)
 		}
 		os.Exit(0)
@@ -220,14 +227,24 @@ func main() {
 
 // runDeleteUsersCommand shows exactly what deleting every other account would remove, and
 // removes it only when the caller confirms a backup exists. There is no undo.
-func runDeleteUsersCommand(store *db.Store, dbPath string, keepUserID uint, confirmed bool) error {
-	plan, err := db.PlanDeleteAllUsersExcept(store.DB, keepUserID)
+// errRefused marks a command that declined to act. The reason is already on stdout, so the
+// caller exits non-zero without printing it again — otherwise a refusal looks like success
+// to anything reading the exit code.
+var errRefused = errors.New("refused")
+
+func runDeleteUsersCommand(store *db.Store, dbPath string, keepUserID, importOwnerID uint, confirmed bool) error {
+	plan, err := db.PlanDeleteAllUsersExcept(store.DB, keepUserID, importOwnerID)
 	if err != nil {
 		return err
 	}
 
 	fmt.Printf("database:  %s\n", dbPath)
 	fmt.Printf("keeping:   user %d  <%s>\n\n", plan.KeepUserID, plan.KeepEmail)
+
+	if plan.ImportOwnerMissing != 0 {
+		fmt.Printf("NOTE: yaml_import.owner_id is %d, and no account has that id.\n", plan.ImportOwnerMissing)
+		fmt.Printf("      The import refuses to run until this points at a real account (%d).\n\n", plan.KeepUserID)
+	}
 
 	if len(plan.DeleteUsers) == 0 {
 		fmt.Println("No other accounts exist. Nothing to do.")
@@ -252,11 +269,28 @@ func runDeleteUsersCommand(store *db.Store, dbPath string, keepUserID uint, conf
 		fmt.Printf("  %-32s %8d\n", "invite_codes (redeemed by them)", plan.InviteCodes)
 	}
 
+	// Both stops printed together, then one refusal. Reporting one at a time means the
+	// operator fixes it, re-runs a destructive command, and meets the next one.
+	stopped := false
+	if plan.ImportOwnerVictim != 0 {
+		fmt.Printf("\nSTOP: user %d is the configured yaml import owner.\n", plan.ImportOwnerVictim)
+		fmt.Println("Deleting it would leave the catalog owned by an account that does not exist,")
+		fmt.Println("and the next import would rebuild the whole thing there, unreachable.")
+		fmt.Printf("Point yaml_import.owner_id at user %d.\n", plan.KeepUserID)
+		stopped = true
+	}
 	if plan.SharedRowsHeld > 0 {
 		fmt.Printf("\nSTOP: %d catalog row(s) belong to an account listed above.\n", plan.SharedRowsHeld)
 		fmt.Println("The catalog is read by every account, so this deletion is refused.")
-		fmt.Println("Move those rows to the account you are keeping, or keep that account instead.")
-		return nil
+		// Deliberately not "change the config": rows are counted by owner_id, so pointing
+		// the setting elsewhere leaves them where they are and this stop fires again.
+		fmt.Printf("Republish the catalog under user %d (--unpublish-catalog then --publish-catalog),\n", plan.KeepUserID)
+		fmt.Println("or keep the account that owns it instead.")
+		stopped = true
+	}
+	if stopped {
+		fmt.Println("\nNothing was changed.")
+		return errRefused
 	}
 
 	if !confirmed {
@@ -267,7 +301,7 @@ func runDeleteUsersCommand(store *db.Store, dbPath string, keepUserID uint, conf
 	}
 
 	fmt.Println("\nDeleting now. This cannot be undone.")
-	applied, err := db.DeleteAllUsersExcept(store.DB, keepUserID)
+	applied, err := db.DeleteAllUsersExcept(store.DB, keepUserID, importOwnerID)
 	if err != nil {
 		return err
 	}

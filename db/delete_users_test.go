@@ -80,7 +80,7 @@ func TestDeleteAllUsersExceptRemovesEverythingTheOthersOwn(t *testing.T) {
 		t.Fatal("the fixture created no owned rows")
 	}
 
-	plan, err := DeleteAllUsersExcept(store.DB, keepID)
+	plan, err := DeleteAllUsersExcept(store.DB, keepID, 0)
 	if err != nil {
 		t.Fatalf("deletion failed: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestDeleteAllUsersExceptRefusesAnUnknownOrZeroKeepID(t *testing.T) {
 	keepID := seedAccountWithData(t, store, "keep@example.com")
 
 	for _, badID := range []uint{0, 9999} {
-		if _, err := DeleteAllUsersExcept(store.DB, badID); err == nil {
+		if _, err := DeleteAllUsersExcept(store.DB, badID, 0); err == nil {
 			t.Fatalf("deletion should refuse keep-id %d", badID)
 		}
 	}
@@ -130,7 +130,7 @@ func TestPlanDeleteAllUsersExceptChangesNothing(t *testing.T) {
 	goneID := seedAccountWithData(t, store, "gone@example.com")
 	before := countOwned(t, store, goneID)
 
-	plan, err := PlanDeleteAllUsersExcept(store.DB, keepID)
+	plan, err := PlanDeleteAllUsersExcept(store.DB, keepID, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +171,7 @@ func TestDeleteAllUsersExceptRemovesTheirInviteCodes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := DeleteAllUsersExcept(store.DB, keepID); err != nil {
+	if _, err := DeleteAllUsersExcept(store.DB, keepID, 0); err != nil {
 		t.Fatal(err)
 	}
 
@@ -245,7 +245,7 @@ func TestDeleteAllUsersExceptRefusesToTakeTheCatalog(t *testing.T) {
 	shared := LibraryExercise{OwnerID: donorID, Name: "Shared Max Hangs", Slug: "max_hangs", Shared: true}
 	mustCreate(t, store, &shared)
 
-	plan, err := PlanDeleteAllUsersExcept(store.DB, keepID)
+	plan, err := PlanDeleteAllUsersExcept(store.DB, keepID, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +253,7 @@ func TestDeleteAllUsersExceptRefusesToTakeTheCatalog(t *testing.T) {
 		t.Fatalf("the plan should report 1 catalog row at risk, reported %d", plan.SharedRowsHeld)
 	}
 
-	if _, err := DeleteAllUsersExcept(store.DB, keepID); err == nil {
+	if _, err := DeleteAllUsersExcept(store.DB, keepID, 0); err == nil {
 		t.Fatal("the deletion should be refused while a victim owns catalog rows")
 	}
 	var still int64
@@ -284,7 +284,7 @@ func TestDeleteAllUsersExceptStillWorksWithNoSharedRows(t *testing.T) {
 	// A catalog row owned by the account being KEPT is not at risk.
 	mustCreate(t, store, &LibraryExercise{OwnerID: keepID, Name: "Shared Rows", Slug: "rows", Shared: true})
 
-	plan, err := DeleteAllUsersExcept(store.DB, keepID)
+	plan, err := DeleteAllUsersExcept(store.DB, keepID, 0)
 	if err != nil {
 		t.Fatalf("deletion should proceed: %v", err)
 	}
