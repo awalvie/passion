@@ -5,10 +5,14 @@ PASSION_ADDR ?= :$(PORT)
 
 DB_PATH ?= passion.db
 
-.PHONY: run watch build reseed test test-all pg-up pg-down migrations
+.PHONY: run run-v2 watch build reseed test test-all pg-up pg-down migrations
 
 run:
 	PASSION_ADDR="$(PASSION_ADDR)" go run ./cmd/passion
+
+# V2. Runs the root main.go rather than cmd/passion.
+run-v2:
+	PASSION_ADDR="$(PASSION_ADDR)" go run .
 
 build:
 	go build ./...
@@ -33,13 +37,13 @@ PG_DSN       ?= postgres://postgres:passion@localhost:$(PG_PORT)/passion_test?ss
 
 # SQLite only. Fast, and what you run while writing code.
 test:
-	go test ./store/... ./config/... -count=1
+	go test ./store/... ./config/... ./web/... -count=1
 
 # Both engines. Needs pg-up first. Every store test runs twice, because deleting an
 # account behaved differently per engine from identical DDL and a SQLite-only run
 # would not have caught it.
 test-all: pg-up
-	PASSION_TEST_POSTGRES="$(PG_DSN)" go test ./store/... ./config/... -count=1
+	PASSION_TEST_POSTGRES="$(PG_DSN)" go test ./store/... ./config/... ./web/... -count=1
 
 pg-up:
 	@docker inspect $(PG_CONTAINER) >/dev/null 2>&1 || \
