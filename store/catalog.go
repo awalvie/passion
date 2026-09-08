@@ -9,7 +9,7 @@ package store
 //     the struct tags are the format: a key that is not on a struct cannot be imported. A
 //     key left off by mistake is then a loud failure rather than a value silently dropped.
 //   - A slug equals its filename, and both are kept. The slug is the row's identity, so it
-//     cannot be derived; checking it against the filename stops the two drifting apart.
+//     cannot be derived. Checking it against the filename stops the two drifting apart.
 //
 // Nothing here touches the database. Load returns a whole tree or an error naming the file
 // and the problem, so a bad tree fails before the importer opens a transaction.
@@ -73,52 +73,52 @@ type TagDef struct {
 // Media is one video and its thumbnail, both optional. A list, because a movement can have
 // more than one.
 type Media struct {
-	URL      string `yaml:"url"`
-	ThumbURL string `yaml:"thumb_url"`
+	URL      string `yaml:"url,omitempty"`
+	ThumbURL string `yaml:"thumb_url,omitempty"`
 }
 
 // SetEntry is one rep inside one set: a rung of a ladder. On a movement it is that
 // movement's own shape. On a reference it is what one block asks for.
 type SetEntry struct {
-	Reps     *int     `yaml:"reps"`
-	WeightKg *float64 `yaml:"weight_kg"`
-	Seconds  *int     `yaml:"seconds"`
+	Reps     *int     `yaml:"reps,omitempty"`
+	WeightKg *float64 `yaml:"weight_kg,omitempty"`
+	Seconds  *int     `yaml:"seconds,omitempty"`
 }
 
 // Dose is every number a movement or a reference can carry. Shared so the two cannot drift:
 // a reference overrides a movement's default, and an override the movement cannot express
 // would be meaningless.
 type Dose struct {
-	Sets           *int     `yaml:"sets"`
-	Reps           *int     `yaml:"reps"`
-	WeightKg       *float64 `yaml:"weight_kg"`
-	RepSeconds     *int     `yaml:"rep_seconds"`
-	RepRestSeconds *int     `yaml:"rep_rest_seconds"`
-	SetRestSeconds *int     `yaml:"set_rest_seconds"`
-	PrepSeconds    *int     `yaml:"prep_seconds"`
-	Seconds        *int     `yaml:"seconds"`
+	Sets           *int     `yaml:"sets,omitempty"`
+	Reps           *int     `yaml:"reps,omitempty"`
+	WeightKg       *float64 `yaml:"weight_kg,omitempty"`
+	RepSeconds     *int     `yaml:"rep_seconds,omitempty"`
+	RepRestSeconds *int     `yaml:"rep_rest_seconds,omitempty"`
+	SetRestSeconds *int     `yaml:"set_rest_seconds,omitempty"`
+	PrepSeconds    *int     `yaml:"prep_seconds,omitempty"`
+	Seconds        *int     `yaml:"seconds,omitempty"`
 
 	// PerSet is a ladder: 3 seconds, then 6, then 9, inside one set.
-	PerSet []SetEntry `yaml:"per_set"`
+	PerSet []SetEntry `yaml:"per_set,omitempty"`
 }
 
 type MovementFile struct {
 	Name    string   `yaml:"name"`
 	Slug    string   `yaml:"slug"`
 	Kind    string   `yaml:"kind"`
-	Tags    []string `yaml:"tags"`
-	Notes   string   `yaml:"notes"`
-	Source  string   `yaml:"source"`
-	PerSide bool     `yaml:"per_side"`
-	Media   []Media  `yaml:"media"`
+	Tags    []string `yaml:"tags,omitempty"`
+	Notes   string   `yaml:"notes,omitempty"`
+	Source  string   `yaml:"source,omitempty"`
+	PerSide bool     `yaml:"per_side,omitempty"`
+	Media   []Media  `yaml:"media,omitempty"`
 	Dose    `yaml:",inline"`
 }
 
 type MenuFile struct {
 	Name  string   `yaml:"name"`
 	Slug  string   `yaml:"slug"`
-	Tags  []string `yaml:"tags"`
-	Notes string   `yaml:"notes"`
+	Tags  []string `yaml:"tags,omitempty"`
+	Notes string   `yaml:"notes,omitempty"`
 
 	// Pick is the FEWEST options you must choose, not the most. 0 means the menu may be
 	// skipped.
@@ -129,13 +129,13 @@ type MenuFile struct {
 type BlockFile struct {
 	Name   string   `yaml:"name"`
 	Slug   string   `yaml:"slug"`
-	Tags   []string `yaml:"tags"`
-	Notes  string   `yaml:"notes"`
-	Source string   `yaml:"source"`
+	Tags   []string `yaml:"tags,omitempty"`
+	Notes  string   `yaml:"notes,omitempty"`
+	Source string   `yaml:"source,omitempty"`
 
 	// Role is warmup, main or cooldown. It belongs to the block, not to a session's use of
 	// it, so a block cannot be a warm-up in one session and the main event in another.
-	Role  string `yaml:"role"`
+	Role  string `yaml:"role,omitempty"`
 	Items []Item `yaml:"items"`
 }
 
@@ -143,10 +143,10 @@ type SessionFile struct {
 	Name   string   `yaml:"name"`
 	Slug   string   `yaml:"slug"`
 	Color  string   `yaml:"color"`
-	Tags   []string `yaml:"tags"`
-	Notes  string   `yaml:"notes"`
-	Source string   `yaml:"source"`
-	Needs  string   `yaml:"needs"`
+	Tags   []string `yaml:"tags,omitempty"`
+	Notes  string   `yaml:"notes,omitempty"`
+	Source string   `yaml:"source,omitempty"`
+	Needs  string   `yaml:"needs,omitempty"`
 	Items  []Item   `yaml:"items"`
 }
 
@@ -154,7 +154,7 @@ type SessionFile struct {
 // inline children, so every row in the database comes from a file of its own.
 type Item struct {
 	Ref   string `yaml:"ref"`
-	Notes string `yaml:"notes"`
+	Notes string `yaml:"notes,omitempty"`
 	Dose  `yaml:",inline"`
 }
 
