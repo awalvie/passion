@@ -203,11 +203,13 @@ func seedAccount(t *testing.T, s *Store, id int64, email string) {
 	                VALUES (?, ?, 'x', ?, ?)`, id, email, time.Now(), time.Now())
 }
 
-func seedContent(t *testing.T, s *Store, id int64, kind, slug string, author *int64) {
+func seedContent(t *testing.T, s *Store, id int64, kind, slug string, author *int64) string {
 	t.Helper()
-	mustExec(t, s, `INSERT INTO content (id, kind, slug, name, author_id, created_at, updated_at)
-	                VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		id, kind, slug, slug, author, time.Now(), time.Now())
+	key := uuid.NewString()
+	mustExec(t, s, `INSERT INTO content (id, kind, slug, name, content_key, author_id, created_at, updated_at)
+	                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, kind, slug, slug, key, author, time.Now(), time.Now())
+	return key
 }
 
 func TestShippedSlugsAreUniqueAndForksMayReuseThem(t *testing.T) {
@@ -216,23 +218,23 @@ func TestShippedSlugsAreUniqueAndForksMayReuseThem(t *testing.T) {
 		seedAccount(t, s, 1, "a@b.c")
 		seedContent(t, s, 10, KindSession, "boulder", nil)
 
-		if err := exec(t, s, `INSERT INTO content (id,kind,slug,name,created_at,updated_at)
-		                      VALUES (11,'session','boulder','dup',?,?)`,
-			time.Now(), time.Now()); err == nil {
+		if err := exec(t, s, `INSERT INTO content (id,kind,slug,name,content_key,created_at,updated_at)
+		                      VALUES (11,'session','boulder','dup',?,?,?)`,
+			uuid.NewString(), time.Now(), time.Now()); err == nil {
 			t.Error("two shipped rows shared a kind and slug")
 		}
 
-		// The fork keeps the slug on purpose: a log entry's only durable link back to a
-		// movement is its slug, so renaming on fork would split the athlete's history.
-		if err := exec(t, s, `INSERT INTO content (id,kind,slug,name,author_id,forked_from_id,created_at,updated_at)
-		                      VALUES (12,'session','boulder','mine',?,10,?,?)`,
-			one, time.Now(), time.Now()); err != nil {
-			t.Errorf("a fork could not keep the shipped slug: %v", err)
+		// A fork of a SHIPPED row may still reuse the slug: the original sits in the
+		// shipped index and the copy in the per-author one, so they never meet.
+		if err := exec(t, s, `INSERT INTO content (id,kind,slug,name,content_key,author_id,forked_from_id,created_at,updated_at)
+		                      VALUES (12,'session','boulder','mine',?,?,10,?,?)`,
+			uuid.NewString(), one, time.Now(), time.Now()); err != nil {
+			t.Errorf("a fork of shipped content could not reuse its slug: %v", err)
 		}
 
-		if err := exec(t, s, `INSERT INTO content (id,kind,slug,name,author_id,created_at,updated_at)
-		                      VALUES (13,'session','boulder','again',?,?,?)`,
-			one, time.Now(), time.Now()); err == nil {
+		if err := exec(t, s, `INSERT INTO content (id,kind,slug,name,content_key,author_id,created_at,updated_at)
+		                      VALUES (13,'session','boulder','again',?,?,?,?)`,
+			uuid.NewString(), one, time.Now(), time.Now()); err == nil {
 			t.Error("one account had the same slug twice")
 		}
 	})
@@ -246,8 +248,9 @@ func TestForkedFromIsRestrictedNotNulled(t *testing.T) {
 		one := int64(1)
 		seedAccount(t, s, 1, "a@b.c")
 		seedContent(t, s, 10, KindSession, "orig", nil)
-		mustExec(t, s, `INSERT INTO content (id,kind,slug,name,author_id,forked_from_id,created_at,updated_at)
-		                VALUES (11,'session','orig','fork',?,10,?,?)`, one, time.Now(), time.Now())
+		mustExec(t, s, `INSERT INTO content (id,kind,slug,name,content_key,author_id,forked_from_id,created_at,updated_at)
+		                VALUES (11,'session','orig','fork',?,?,10,?,?)`,
+			uuid.NewString(), one, time.Now(), time.Now())
 
 		if err := exec(t, s, `DELETE FROM content WHERE id=10`); err == nil {
 			t.Error("deleted a row that a fork still points at")
@@ -255,6 +258,119 @@ func TestForkedFromIsRestrictedNotNulled(t *testing.T) {
 		mustExec(t, s, `DELETE FROM content WHERE id=11`)
 		if err := exec(t, s, `DELETE FROM content WHERE id=10`); err != nil {
 			t.Errorf("could not delete the original once the fork was gone: %v", err)
+		}
+	})
+}
+
+// The mechanism the whole identity change rests on: a fork carries its parent's
+// content_key, which is what keeps one progression together across an edit. If a unique
+// index ever appears on that column this test is what fails.
+func TestAForkInheritsItsParentsContentKey(t *testing.T) {
+	eachEngine(t, func(t *testing.T, s *Store) {
+		one := int64(1)
+		seedAccount(t, s, 1, "a@b.c")
+		key := seedContent(t, s, 10, KindMovement, "wpu", nil)
+
+		mustExec(t, s, `INSERT INTO content (id,kind,slug,name,content_key,author_id,forked_from_id,created_at,updated_at)
+		                VALUES (11,'movement','wpu_mine','Mine',?,?,10,?,?)`,
+			key, one, time.Now(), time.Now())
+
+		if n := count(t, s, `SELECT count(*) FROM content WHERE content_key=?`, key); n != 2 {
+			t.Fatalf("%d rows share the parent's content_key, want 2", n)
+		}
+
+		// Two unrelated movements must NOT share a key, or their histories would merge.
+		other := seedContent(t, s, 12, KindMovement, "deadlift", nil)
+		if other == key {
+			t.Error("two unrelated rows were minted the same content_key")
+		}
+	})
+}
+
+// Forking a row you already own has to take a new slug. The per-author unique index is
+// (author_id, kind, slug), so a copy that kept the slug could never insert -- which is
+// what would have happened on every edit to an imported private-tree row under the old
+// "a fork keeps its slug" rule.
+func TestForkingYourOwnRowNeedsANewSlug(t *testing.T) {
+	eachEngine(t, func(t *testing.T, s *Store) {
+		one := int64(1)
+		seedAccount(t, s, 1, "a@b.c")
+		key := seedContent(t, s, 10, KindMovement, "one_arm_lockoff_90", &one)
+
+		if err := exec(t, s, `INSERT INTO content (id,kind,slug,name,content_key,author_id,forked_from_id,created_at,updated_at)
+		                      VALUES (11,'movement','one_arm_lockoff_90','Mine',?,?,10,?,?)`,
+			key, one, time.Now(), time.Now()); err == nil {
+			t.Error("a same-author fork kept its slug and inserted; the unique index should refuse it")
+		}
+
+		if err := exec(t, s, `INSERT INTO content (id,kind,slug,name,content_key,author_id,forked_from_id,created_at,updated_at)
+		                      VALUES (12,'movement','one_arm_lockoff_90_mine','Mine',?,?,10,?,?)`,
+			key, one, time.Now(), time.Now()); err != nil {
+			t.Errorf("a same-author fork with a new slug was refused: %v", err)
+		}
+	})
+}
+
+// The payoff. Runs from before and after an edit answer as one series, which is the thing
+// the old slug-based link could only do by making the fork keep its slug.
+func TestProgressionSpansAForkAsOneSeries(t *testing.T) {
+	eachEngine(t, func(t *testing.T, s *Store) {
+		one := int64(1)
+		seedAccount(t, s, 1, "a@b.c")
+		key := seedContent(t, s, 10, KindMovement, "wpu", nil)
+		mustExec(t, s, `INSERT INTO content (id,kind,slug,name,content_key,author_id,forked_from_id,created_at,updated_at)
+		                VALUES (11,'movement','wpu_mine','Mine',?,?,10,?,?)`,
+			key, one, time.Now(), time.Now())
+
+		for i, d := range []string{"2026-01-01", "2026-02-01"} {
+			logID, entryID := uuid.NewString(), uuid.NewString()
+			mustExec(t, s, `INSERT INTO log (id,account_id,on_date,state,created_at,updated_at)
+			                VALUES (?,1,?,'done',?,?)`, logID, d, time.Now(), time.Now())
+			mustExec(t, s, `INSERT INTO log_entry
+			     (id,log_id,account_id,on_date,position,movement_key,movement_name,created_at,updated_at)
+			     VALUES (?,?,1,?,?,?,'Weighted Pull-Ups',?,?)`,
+				entryID, logID, d, i, key, time.Now(), time.Now())
+		}
+
+		// The real progression query, served by ix_entry_progression.
+		if n := count(t, s,
+			`SELECT count(*) FROM log_entry WHERE account_id=1 AND movement_key=?`, key); n != 2 {
+			t.Errorf("progression across the fork returned %d rows, want 2 as one series", n)
+		}
+	})
+}
+
+// source_tree is the row's own answer to "may the importer refresh me, and may a person
+// edit me here". Your imported private content is yours and still read-only, which is the
+// case Editable exists to separate from Shipped.
+func TestSourceTreeMarksARowReadOnly(t *testing.T) {
+	eachEngine(t, func(t *testing.T, s *Store) {
+		one := int64(1)
+		seedAccount(t, s, 1, "a@b.c")
+		seedContent(t, s, 10, KindMovement, "shipped_one", nil)
+		seedContent(t, s, 11, KindMovement, "typed_by_hand", &one)
+		mustExec(t, s, `UPDATE content SET source_tree='shipped' WHERE id=10`)
+		mustExec(t, s, `INSERT INTO content (id,kind,slug,name,content_key,author_id,source_tree,created_at,updated_at)
+		                VALUES (12,'movement','from_my_tree','Mine',?,?,'private',?,?)`,
+			uuid.NewString(), one, time.Now(), time.Now())
+
+		var rows []Content
+		if err := s.read(context.Background()).Order("id").Find(&rows).Error; err != nil {
+			t.Fatal(err)
+		}
+		want := []struct {
+			shipped, fromFile, editable bool
+		}{
+			{true, true, false},  // 10: the app ships it
+			{false, false, true}, // 11: you typed it here
+			{false, true, false}, // 12: yours, but a file owns it
+		}
+		for i, w := range want {
+			c := rows[i]
+			if c.Shipped() != w.shipped || c.FromAFile() != w.fromFile || c.Editable() != w.editable {
+				t.Errorf("%s: shipped=%v fromAFile=%v editable=%v, want %v/%v/%v",
+					c.Slug, c.Shipped(), c.FromAFile(), c.Editable(), w.shipped, w.fromFile, w.editable)
+			}
 		}
 	})
 }
@@ -280,7 +396,7 @@ func TestContentTreeRejectsIllegalEdges(t *testing.T) {
 		}
 
 		illegal := [][4]any{
-			{10, KindSession, 30, KindMovement}, // a session cannot hold a movement
+			{10, KindSession, 30, KindMovement},  // a session cannot hold a movement
 			{30, KindMovement, 30, KindMovement}, // nothing leaves a movement, so no cycles
 			{20, KindBlock, 10, KindSession},     // a block cannot hold a session
 			{10, KindSession, 30, KindBlock},     // the kind lies about the row
@@ -318,8 +434,9 @@ func TestDeletingAnAccountTakesItsDataAndLeavesTheCatalog(t *testing.T) {
 		mustExec(t, s, `INSERT INTO log (id,account_id,on_date,state,created_at,updated_at)
 		                VALUES (?,1,'2026-01-06','done',?,?)`, logID, time.Now(), time.Now())
 		mustExec(t, s, `INSERT INTO log_entry
-		     (id,log_id,account_id,on_date,position,movement_slug,movement_name,created_at,updated_at)
-		     VALUES (?,?,1,'2026-01-06',0,'mv','MV',?,?)`, entryID, logID, time.Now(), time.Now())
+		     (id,log_id,account_id,on_date,position,movement_key,movement_name,created_at,updated_at)
+		     VALUES (?,?,1,'2026-01-06',0,?,'MV',?,?)`,
+			entryID, logID, uuid.NewString(), time.Now(), time.Now())
 		mustExec(t, s, `INSERT INTO log_set (id,log_entry_id,set_index,updated_at)
 		                VALUES (?,?,1,?)`, uuid.NewString(), entryID, time.Now())
 
@@ -365,7 +482,7 @@ func TestLogEntryCannotDivergeFromItsLog(t *testing.T) {
 		mustExec(t, s, `INSERT INTO log (id,account_id,on_date,state,created_at,updated_at)
 		                VALUES (?,1,'2026-03-01','done',?,?)`, logID, time.Now(), time.Now())
 		mustExec(t, s, `INSERT INTO log_entry
-		     (id,log_id,account_id,on_date,position,movement_slug,movement_name,created_at,updated_at)
+		     (id,log_id,account_id,on_date,position,movement_key,movement_name,created_at,updated_at)
 		     VALUES (?,?,1,'2026-03-01',0,'wpu','Weighted Pull-Ups',?,?)`,
 			entryID, logID, time.Now(), time.Now())
 
@@ -399,16 +516,16 @@ func TestLogEntryCannotDivergeFromItsLog(t *testing.T) {
 func TestHistorySurvivesTheCatalogBeingDropped(t *testing.T) {
 	eachEngine(t, func(t *testing.T, s *Store) {
 		seedAccount(t, s, 1, "a@b.c")
-		seedContent(t, s, 30, KindMovement, "wpu", nil)
+		movementKey := seedContent(t, s, 30, KindMovement, "wpu", nil)
 
 		logID, entryID := uuid.NewString(), uuid.NewString()
 		mustExec(t, s, `INSERT INTO log (id,account_id,on_date,session_name,state,created_at,updated_at)
 		                VALUES (?,1,'2026-03-01','Boulder Session','done',?,?)`,
 			logID, time.Now(), time.Now())
 		mustExec(t, s, `INSERT INTO log_entry
-		     (id,log_id,account_id,on_date,position,movement_id,movement_slug,movement_name,t_sets,t_reps,created_at,updated_at)
-		     VALUES (?,?,1,'2026-03-01',0,30,'wpu','Weighted Pull-Ups',4,6,?,?)`,
-			entryID, logID, time.Now(), time.Now())
+		     (id,log_id,account_id,on_date,position,movement_key,movement_name,t_sets,t_reps,created_at,updated_at)
+		     VALUES (?,?,1,'2026-03-01',0,?,'Weighted Pull-Ups',4,6,?,?)`,
+			entryID, logID, movementKey, time.Now(), time.Now())
 
 		// CASCADE, because the log holds nullable pointers back into content and
 		// scheduled — for grouping only, never for rendering. Postgres refuses a bare
@@ -426,15 +543,15 @@ func TestHistorySurvivesTheCatalogBeingDropped(t *testing.T) {
 			mustExec(t, s, "DROP TABLE "+tbl+cascade)
 		}
 
-		var slug, name, session string
+		var key, name, session string
 		if err := s.read(context.Background()).Raw(
-			`SELECT e.movement_slug, e.movement_name, l.session_name
+			`SELECT e.movement_key, e.movement_name, l.session_name
 			 FROM log_entry e JOIN log l ON l.id = e.log_id LIMIT 1`).
-			Row().Scan(&slug, &name, &session); err != nil {
+			Row().Scan(&key, &name, &session); err != nil {
 			t.Fatalf("history could not be read with the catalog gone: %v", err)
 		}
-		if slug != "wpu" || name != "Weighted Pull-Ups" || session != "Boulder Session" {
-			t.Errorf("history lost its frozen copies: %q %q %q", slug, name, session)
+		if key != movementKey || name != "Weighted Pull-Ups" || session != "Boulder Session" {
+			t.Errorf("history lost its frozen copies: %q %q %q", key, name, session)
 		}
 	})
 }
@@ -531,8 +648,9 @@ func TestWithTxRollsBackEverything(t *testing.T) {
 
 		wantErr := fmt.Errorf("deliberate")
 		err := s.WithTx(ctx, func(tx *gorm.DB) error {
-			if err := tx.Exec(`INSERT INTO content (id,kind,slug,name,created_at,updated_at)
-			                   VALUES (10,'session','a','A',?,?)`, time.Now(), time.Now()).Error; err != nil {
+			if err := tx.Exec(`INSERT INTO content (id,kind,slug,name,content_key,created_at,updated_at)
+			                   VALUES (10,'session','a','A',?,?,?)`,
+				uuid.NewString(), time.Now(), time.Now()).Error; err != nil {
 				return err
 			}
 			if err := tx.Exec(`INSERT INTO content_item (parent_id,parent_kind,child_id,child_kind,position)

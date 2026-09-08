@@ -44,9 +44,9 @@ type Account struct {
 }
 
 type BodyMeasurement struct {
-	ID        int64 `gorm:"primaryKey"`
-	AccountID int64 `gorm:"not null;uniqueIndex:ux_body_measurement,priority:1"`
-	TakenOn   Date  `gorm:"type:varchar(10);not null;uniqueIndex:ux_body_measurement,priority:2"`
+	ID        int64    `gorm:"primaryKey"`
+	AccountID int64    `gorm:"not null;uniqueIndex:ux_body_measurement,priority:1"`
+	TakenOn   Date     `gorm:"type:varchar(10);not null;uniqueIndex:ux_body_measurement,priority:2"`
 	WeightKg  *float64 `gorm:"type:numeric(5,2)"`
 }
 
@@ -86,14 +86,37 @@ type Content struct {
 	Slug string `gorm:"size:128;not null"`
 	Name string `gorm:"size:255;not null"`
 
+	// ContentKey is what a finished run points at, and it is NOT unique: a fork inherits
+	// its parent's value. That inheritance is the mechanism — it holds one progression
+	// together across an edit. Never put a unique index on it.
+	//
+	// Deliberately not named UUID. A reader who sees "uuid" eventually adds UNIQUE, which
+	// would break forking outright.
+	ContentKey string `gorm:"type:char(36);not null;index"`
+
+	// SourceTree is the name of the catalog tree that owns this row, or nil when a person
+	// made it in the app. Every fork is nil. A re-import rewrites exactly the rows whose
+	// SourceTree matches the tree being imported, which is what keeps a YAML file
+	// meaningful after its first import instead of dead.
+	//
+	// A tree name, never a path: paths differ between machines.
+	SourceTree *string `gorm:"size:64"`
+
 	// AuthorID nil means the app ships this row. No account holds it, so no account's
 	// deletion can reach it. Nothing in the schema sets this column to NULL on delete —
 	// that would silently publish a user's private content into the shipped catalog.
 	AuthorID *int64 `gorm:"index"`
 
-	// ForkedFromID names the row this was copied from. The copy keeps the original slug,
-	// because a log entry's only durable link back to a movement is its slug and a fork
-	// that renamed itself would split the athlete's history in two.
+	// ForkedFromID names the row this was copied from. The copy takes a NEW slug and
+	// inherits ContentKey.
+	//
+	// It has to take a new slug. A fork of a row from a private tree has the same author as
+	// its source, and the per-author unique index is (author_id, kind, slug) — so a copy
+	// that kept the slug could never insert. History is safe anyway, because ContentKey is
+	// the durable link now, not the slug.
+	//
+	// This is also why "show my version, hide the one it replaced" resolves through this
+	// column and not by matching slugs.
 	ForkedFromID *int64 `gorm:"index"`
 
 	Notes  string `gorm:"type:text;not null;default:''"`
@@ -130,6 +153,15 @@ type Content struct {
 
 // Shipped reports whether the app ships this row rather than a user having written it.
 func (c Content) Shipped() bool { return c.AuthorID == nil }
+
+// FromAFile reports whether a catalog tree owns this row. Such a row is read-only in the
+// app for the same reason shipped content is: a file is the source, and an edit made here
+// would be overwritten by the next import with no message. Editing one forks it instead.
+func (c Content) FromAFile() bool { return c.SourceTree != nil }
+
+// Editable is the one question a handler should ask before letting a write through. It is
+// not the same as "mine": your imported private content is yours and still read-only.
+func (c Content) Editable() bool { return !c.Shipped() && !c.FromAFile() }
 
 // ContentItem is one edge in the content tree, and the numbers for that use.
 //
@@ -363,8 +395,11 @@ type LogEntry struct {
 	BlockName string `gorm:"size:255;not null;default:''"`
 	BlockKind string `gorm:"size:16;not null;default:''"`
 
-	MovementID   *int64 `gorm:"index"`
-	MovementSlug string `gorm:"size:128;not null;index:ix_entry_progression,priority:2"`
+	// MovementKey replaces the pair this used to carry — a row pointer nulled on delete,
+	// and the slug as text. No foreign key: the log is frozen and has to survive its
+	// content row being deleted outright, and a fork shares this value, so it could never
+	// be a key to exactly one row.
+	MovementKey  string `gorm:"type:char(36);not null;index:ix_entry_progression,priority:2"`
 	MovementName string `gorm:"size:255;not null"`
 	MovementKind string `gorm:"size:32;not null;default:''"`
 
@@ -418,14 +453,14 @@ type LogClimb struct {
 	Subtype      string `gorm:"size:32;not null;default:''"`
 	Grade        string `gorm:"size:32;not null;default:''"`
 	GradeOrdinal *int
-	Style        string `gorm:"size:32;not null;default:''"`
-	RopeStyle    string `gorm:"size:32;not null;default:''"`
-	Attempts     int    `gorm:"not null;default:0"`
-	Sent         bool   `gorm:"not null;default:false"`
-	Seconds      int    `gorm:"not null;default:0"`
-	Stars        int    `gorm:"not null;default:0"`
-	Focus        string `gorm:"type:text;not null;default:''"`
-	Thoughts     string `gorm:"type:text;not null;default:''"`
+	Style        string    `gorm:"size:32;not null;default:''"`
+	RopeStyle    string    `gorm:"size:32;not null;default:''"`
+	Attempts     int       `gorm:"not null;default:0"`
+	Sent         bool      `gorm:"not null;default:false"`
+	Seconds      int       `gorm:"not null;default:0"`
+	Stars        int       `gorm:"not null;default:0"`
+	Focus        string    `gorm:"type:text;not null;default:''"`
+	Thoughts     string    `gorm:"type:text;not null;default:''"`
 	UpdatedAt    time.Time `gorm:"not null"`
 }
 
