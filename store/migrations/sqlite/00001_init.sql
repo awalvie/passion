@@ -54,6 +54,8 @@ CREATE TABLE content (
   kind           VARCHAR(16)  NOT NULL,
   slug           VARCHAR(128) NOT NULL,
   name           VARCHAR(255) NOT NULL,
+  content_key    CHAR(36)     NOT NULL,
+  source_tree    VARCHAR(64),
   author_id      BIGINT       REFERENCES account(id) ON DELETE CASCADE,
   forked_from_id BIGINT,
   notes          TEXT         NOT NULL DEFAULT '',
@@ -370,8 +372,7 @@ CREATE TABLE log_entry (
   position      INTEGER      NOT NULL,
   block_name    VARCHAR(255) NOT NULL DEFAULT '',
   block_kind    VARCHAR(16)  NOT NULL DEFAULT '',
-  movement_id   BIGINT       REFERENCES content(id) ON DELETE SET NULL,
-  movement_slug VARCHAR(128) NOT NULL,
+  movement_key  CHAR(36)     NOT NULL,
   movement_name VARCHAR(255) NOT NULL,
   movement_kind VARCHAR(32)  NOT NULL DEFAULT '',
   t_sets        INTEGER,
@@ -398,7 +399,7 @@ CREATE TABLE log_entry (
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-CREATE INDEX ix_entry_progression ON log_entry (account_id, movement_slug, on_date DESC);
+CREATE INDEX ix_entry_progression ON log_entry (account_id, movement_key, on_date DESC);
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -406,7 +407,7 @@ CREATE INDEX ix_entry_log         ON log_entry (log_id, position);
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-CREATE INDEX ix_entry_movement    ON log_entry (movement_id);
+CREATE INDEX ix_content_key       ON content (content_key);
 -- +goose StatementEnd
 
 -- +goose StatementBegin
