@@ -254,9 +254,19 @@ when `per_set` is present, `sets` equals its length.
 **`name` on a reference is dropped.** Six references carry one, as a per-use display name.
 The name belongs to the row being referenced.
 
-**The resolver reads two scopes, yours first, then the app's.** No slug is shared between the
-two trees today, so the tie-break fires on nothing, and its test has to build a collision by
-hand.
+**A reference may point outside its own tree, and usually does.** A private tree leans on
+the shipped movements rather than carrying copies of them: the real one does this 39 times.
+So loading a tree needs the index of every tree loaded before it, and the shipped tree is
+always loaded first.
+
+**A reference resolves in this order: this tree, then your own content, then the app's.** So a
+movement you own shadows a shipped one with the same slug.
+
+**A file cannot take a slug you already used.** If you built something in the app and a file
+in the tree has its slug, the import is refused and names both. It cannot overwrite your row.
+It also cannot quietly leave it, because then every file pointing at that slug would get your
+row instead of the one the tree describes, and the import would report success while the tree
+meant something else. Rename yours, or rename the file.
 
 ---
 

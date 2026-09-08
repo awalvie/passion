@@ -70,7 +70,7 @@ reps: 5
 
 func loadGood(t *testing.T, fsys fstest.MapFS, name string) *Tree {
 	t.Helper()
-	tree, err := Load(fsys, name)
+	tree, err := Load(fsys, name, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,9 +213,11 @@ notes: |
 	})
 }
 
-// The importer rewrites what a file owns and never touches what a person made. Without
-// that, an edit made in the app would be undone by the next start.
-func TestTheImportLeavesAPersonsOwnRowAlone(t *testing.T) {
+// A file whose slug is already taken by something you made is refused. The importer must
+// not overwrite your row, and it must not quietly leave it either: every other file
+// pointing at that slug would then get your row instead of the one the tree describes, so
+// the import would report success and the tree would mean something else.
+func TestAFileCannotTakeASlugYouAlreadyUsed(t *testing.T) {
 	eachEngine(t, func(t *testing.T, s *Store) {
 		ctx := context.Background()
 		one := int64(1)
@@ -227,72 +229,103 @@ func TestTheImportLeavesAPersonsOwnRowAlone(t *testing.T) {
 		     VALUES ('movement','general_warmup','Mine, by hand',?,?,'open',?,?)`,
 			"11111111-1111-1111-1111-111111111111", one, time.Now(), time.Now())
 
-		res, err := s.ImportOwned(ctx, loadGood(t, goodTree(), "private"), "a@b.c")
-		if err != nil {
-			t.Fatal(err)
+		_, err := s.ImportOwned(ctx, loadGood(t, goodTree(), "private"), "a@b.c")
+		if err == nil {
+			t.Fatal("the import accepted a file whose slug a hand-made row already held")
 		}
-		if res.Skipped != 1 {
-			t.Errorf("%d rows skipped, want 1: %s", res.Skipped, res)
+		for _, want := range []string{"general_warmup", "Rename yours"} {
+			if !strings.Contains(err.Error(), want) {
+				t.Errorf("the error does not mention %q: %v", want, err)
+			}
 		}
 
+		// The whole import is one transaction, so a refusal leaves nothing behind.
 		var mine Content
 		if err := s.read(ctx).Where("slug = ? AND author_id = ?", "general_warmup", one).
 			First(&mine).Error; err != nil {
 			t.Fatal(err)
 		}
 		if mine.Name != "Mine, by hand" {
-			t.Errorf("the import overwrote a row a person made: %q", mine.Name)
+			t.Errorf("the row was changed: %q", mine.Name)
 		}
-		if mine.SourceTree != nil {
-			t.Error("the import claimed a row a person made")
+		if n := count(t, s, `SELECT count(*) FROM content WHERE source_tree IS NOT NULL`); n != 0 {
+			t.Errorf("%d rows from the tree survived a refused import", n)
 		}
 	})
 }
 
-// A skipped row keeps its own children. The row and its child list are protected
-// separately: the row is left alone because its source_tree is NULL, and the child list is
-// left alone because the edge pass only writes rows this import owns.
-func TestASkippedRowKeepsItsOwnChildren(t *testing.T) {
+// A private tree references content the shipped tree defines, rather than carrying its own
+// copy of it. The real private tree does this 39 times.
+func TestAPrivateTreeCanReferenceShippedContent(t *testing.T) {
 	eachEngine(t, func(t *testing.T, s *Store) {
 		ctx := context.Background()
-		one := int64(1)
 		seedAccount(t, s, 1, "a@b.c")
 
-		// A block this account built in the app, holding one movement of its own. Its slug
-		// collides with a block in the tree.
-		mustExec(t, s, `INSERT INTO content (id,kind,slug,name,content_key,author_id,created_at,updated_at)
-		                VALUES (100,'block','warm_up','My Warm-up',?,?,?,?)`,
-			"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", one, time.Now(), time.Now())
-		mustExec(t, s, `INSERT INTO content
-		     (id,kind,slug,name,content_key,author_id,movement_kind,created_at,updated_at)
-		     VALUES (101,'movement','my_own_move','Mine',?,?,'open',?,?)`,
-			"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", one, time.Now(), time.Now())
-		mustExec(t, s, `INSERT INTO content_item (parent_id,parent_kind,child_id,child_kind,position)
-		                VALUES (100,'block',101,'movement',0)`)
-
-		if _, err := s.ImportOwned(ctx, loadGood(t, goodTree(), "private"), "a@b.c"); err != nil {
+		shipped := loadGood(t, shippedOnly(), ShippedTree)
+		if _, err := s.ImportShipped(ctx, shipped); err != nil {
 			t.Fatal(err)
 		}
 
-		// The block's list is still the one it was built with.
-		var children []string
+		// A private tree holding one block that points at a shipped movement, and nothing
+		// of its own to point at.
+		priv := fstest.MapFS{
+			"catalog.yaml": &fstest.MapFile{Data: []byte("format_version: 1\n")},
+			"blocks/my_block.yaml": &fstest.MapFile{Data: []byte(`
+name: "My Block"
+slug: "my_block"
+tags: ["strength"]
+items:
+  - ref: "bench_press"
+    sets: 5
+`)},
+		}
+
+		// Loading needs the shipped tree's index, or the ref has nothing to check against.
+		tree, err := Load(priv, "private", shipped.Index())
+		if err != nil {
+			t.Fatalf("a private tree could not reference a shipped slug: %v", err)
+		}
+		if _, err := s.ImportOwned(ctx, tree, "a@b.c"); err != nil {
+			t.Fatal(err)
+		}
+
+		// The edge crosses the boundary: an owned parent, a shipped child.
+		var got struct {
+			ParentAuthor *int64
+			ChildAuthor  *int64
+			ChildSlug    string
+			Sets         *int
+		}
 		if err := s.read(ctx).Raw(`
-			SELECT c.slug FROM content_item i JOIN content c ON c.id = i.child_id
-			WHERE i.parent_id = 100 ORDER BY i.position`).Scan(&children).Error; err != nil {
+			SELECT p.author_id AS parent_author, c.author_id AS child_author,
+			       c.slug AS child_slug, i.sets
+			FROM content_item i
+			JOIN content p ON p.id = i.parent_id
+			JOIN content c ON c.id = i.child_id`).Scan(&got).Error; err != nil {
 			t.Fatal(err)
 		}
-		if len(children) != 1 || children[0] != "my_own_move" {
-			t.Errorf("the import rewrote a skipped block's children: %v, want [my_own_move]", children)
+		if got.ParentAuthor == nil {
+			t.Error("the block was not owned by the account")
+		}
+		if got.ChildAuthor != nil {
+			t.Error("the shipped movement was copied instead of referenced")
+		}
+		if got.ChildSlug != "bench_press" {
+			t.Errorf("the edge points at %q", got.ChildSlug)
+		}
+		if got.Sets == nil || *got.Sets != 5 {
+			t.Errorf("the per-use number did not land: %v", got.Sets)
 		}
 
-		// And the tree's session resolved that slug to this row, rather than making a second
-		// block with the same slug, which the per-author unique index would refuse anyway.
-		if n := count(t, s,
-			`SELECT count(*) FROM content WHERE slug='warm_up' AND author_id=?`, one); n != 1 {
-			t.Errorf("%d rows hold the slug warm_up for this account, want 1", n)
+		// Deleting the owner takes the block and leaves the shipped movement.
+		if err := s.DeleteAccount(ctx, 1); err != nil {
+			t.Fatalf("deleting the owner of a block that points at shipped content: %v", err)
 		}
-		if n := count(t, s, `SELECT count(*) FROM content_item WHERE child_id = 100`); n != 1 {
-			t.Errorf("%d parents point at the skipped block, want 1 (the tree's session)", n)
+		if n := count(t, s, `SELECT count(*) FROM content WHERE slug='bench_press'`); n != 1 {
+			t.Error("the shipped movement went with the account")
+		}
+		if n := count(t, s, `SELECT count(*) FROM content_item`); n != 0 {
+			t.Errorf("%d edges outlived their owner", n)
 		}
 	})
 }
