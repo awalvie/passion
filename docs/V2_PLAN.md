@@ -279,7 +279,8 @@ columns and an index after real rows exist is exactly what SQLite makes expensiv
 
 # Part 2 — the catalog YAML format
 
-Full detail in `V2_PLAN_REVIEW.md` §3.1. The essentials:
+**The spec of record is [CATALOG_FORMAT.md](CATALOG_FORMAT.md)**, which lists every key per
+kind. This part states the decisions and why. The essentials:
 
 ```
 catalog/
@@ -300,7 +301,8 @@ List order is `position`, renumbered densely by the importer.
 **No inline children.** Every content row is a file. This is the largest mechanical change:
 the trees hold **27 inline exercises** (24 of them menus) and **22 inline blocks**, 9 with no
 name. The conversion invents 22 block slugs, 24 menu slugs and 9 block names, once, by hand.
-The file count goes from 225 to **271**.
+The file count goes from 225 to **274**. An earlier draft said 271: it counted the 22 blocks
+and 24 menus and forgot the **3 inline movements**, which become files too.
 
 **Two list keys, not one and not three.** A session's list and a block's list are both
 `items:`; a menu's list is `options:`. The distinction is the one a coach actually reads for: a
