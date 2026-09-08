@@ -62,3 +62,26 @@ and generic strength/mobility exercises (bench press, rows, splits, etc.).
   - "Limit Boulder + Strength Block"  → source "Paradigm Climbing", label "boulder, power, strength".
   - "Antagonist & Prehab"             → label "antagonist, strength", no source (generic prehab).
   "Paradigm Climbing" is now used as an activity-template source too (was session-template only).
+
+# 2026-09-07 recount (both trees, 184 library entries)
+
+Source counts now: John Kettle (41), Power Company Climbing (36), Paradigm Climbing (28),
+Logical Progression (6), Neil Gresham (5), Self-Coached Climber (2), and one each for
+Tyler Nelson, Tension Climbing, Emil Abrahamsson, Climbing Doctor, Catalyst Climbing,
+Adam Ondra. 12 distinct values — small enough to treat as a controlled list.
+
+"John Kettle" and "Logical Progression" are new since the 2026-07 pass. Note the folder
+names are coaches and `source:` is the programme: `bechtel/` holds source
+"Logical Progression", `nelson/` holds source "Tyler Nelson".
+
+Label coverage is 100%. Nineteen tags carry almost everything; then a tail of
+near-singletons that prove free text drifts: `shoulder`(2) AND `shoulders`(1),
+`prehab`(2) beside `antagonist`(12), `lead`(1) beside `route`(16), `stretching`(1)
+beside `mobility`(48), plus one-offs `squat`, `hinge`, `pressing`, `mental`, `rest`.
+Do not mint any more of these. Body-part tags total 8 entries in the whole catalog —
+climbers do not browse by muscle, so do not build that axis out.
+
+The tags also mix three axes in one list: quality trained (power, endurance, fingers),
+body part (core, shoulder, hinge), and session context (warmup 36, cooldown 12,
+boulder 53, route 16, board 11, hangboard 15). The context tags are the ones that behave
+like a real facet.
