@@ -287,15 +287,19 @@ Import behavior:
 ## Project structure
 
 ```
-cmd/passion/           Entry point — config loading, DB init, server startup
+main.go                V2 entry point — holds the embeds, since a pattern cannot use ".."
+store/                 V2 data layer — models, goose migrations, one store per area
+web/                   V2 handlers, middleware and template rendering
+cmd/passion/           V1 entry point — config loading, DB init, server startup
+cmd/genmigrations/     Writes both dialects' migrations from docs/SCHEMA_V2.sql
 config/                12-factor config (YAML + env vars)
-db/                    GORM models, SQLite store, seed data, YAML importer
-http/server/           Chi router, all HTTP handlers, middleware
-pages/                 Compiles and renders all Go HTML templates
+db/                    V1 GORM models, SQLite store, seed data, YAML importer
+http/server/           V1 Chi router, all HTTP handlers, middleware
+pages/                 V1 template compiling and rendering
 templates/             Go HTML templates — pages, fragments, layouts
 static/                CSS, JS (HTMX, Tailwind, Lucide), icons
 catalog/               YAML exercise and template definitions
-docs/                  Screenshots and documentation
+docs/                  Screenshots, design documents, the canonical schema
 scripts/               Utility scripts
 ```
 

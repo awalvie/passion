@@ -23,7 +23,3 @@ passion.yaml
 *.exe
 *.out
 
-
-# Python bytecode
-__pycache__/
-*.pyc

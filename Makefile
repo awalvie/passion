@@ -62,4 +62,4 @@ pg-down:
 
 # Both dialect migrations are generated from docs/SCHEMA_V2.sql so they cannot drift.
 migrations:
-	python3 scripts/gen_migrations.py
+	go run ./cmd/genmigrations
