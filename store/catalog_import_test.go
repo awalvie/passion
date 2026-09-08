@@ -249,6 +249,54 @@ func TestTheImportLeavesAPersonsOwnRowAlone(t *testing.T) {
 	})
 }
 
+// A skipped row keeps its own children. The row and its child list are protected
+// separately: the row is left alone because its source_tree is NULL, and the child list is
+// left alone because the edge pass only writes rows this import owns.
+func TestASkippedRowKeepsItsOwnChildren(t *testing.T) {
+	eachEngine(t, func(t *testing.T, s *Store) {
+		ctx := context.Background()
+		one := int64(1)
+		seedAccount(t, s, 1, "a@b.c")
+
+		// A block this account built in the app, holding one movement of its own. Its slug
+		// collides with a block in the tree.
+		mustExec(t, s, `INSERT INTO content (id,kind,slug,name,content_key,author_id,created_at,updated_at)
+		                VALUES (100,'block','warm_up','My Warm-up',?,?,?,?)`,
+			"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", one, time.Now(), time.Now())
+		mustExec(t, s, `INSERT INTO content
+		     (id,kind,slug,name,content_key,author_id,movement_kind,created_at,updated_at)
+		     VALUES (101,'movement','my_own_move','Mine',?,?,'open',?,?)`,
+			"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", one, time.Now(), time.Now())
+		mustExec(t, s, `INSERT INTO content_item (parent_id,parent_kind,child_id,child_kind,position)
+		                VALUES (100,'block',101,'movement',0)`)
+
+		if _, err := s.ImportOwned(ctx, loadGood(t, goodTree(), "private"), "a@b.c"); err != nil {
+			t.Fatal(err)
+		}
+
+		// The block's list is still the one it was built with.
+		var children []string
+		if err := s.read(ctx).Raw(`
+			SELECT c.slug FROM content_item i JOIN content c ON c.id = i.child_id
+			WHERE i.parent_id = 100 ORDER BY i.position`).Scan(&children).Error; err != nil {
+			t.Fatal(err)
+		}
+		if len(children) != 1 || children[0] != "my_own_move" {
+			t.Errorf("the import rewrote a skipped block's children: %v, want [my_own_move]", children)
+		}
+
+		// And the tree's session resolved that slug to this row, rather than making a second
+		// block with the same slug, which the per-author unique index would refuse anyway.
+		if n := count(t, s,
+			`SELECT count(*) FROM content WHERE slug='warm_up' AND author_id=?`, one); n != 1 {
+			t.Errorf("%d rows hold the slug warm_up for this account, want 1", n)
+		}
+		if n := count(t, s, `SELECT count(*) FROM content_item WHERE child_id = 100`); n != 1 {
+			t.Errorf("%d parents point at the skipped block, want 1 (the tree's session)", n)
+		}
+	})
+}
+
 func TestImportOwnedNeedsAnAccount(t *testing.T) {
 	eachEngine(t, func(t *testing.T, s *Store) {
 		ctx := context.Background()
