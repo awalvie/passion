@@ -32,8 +32,21 @@ without naming its kind.
 1. `slug` is required and equals the filename without `.yaml`. The importer fails when they
    differ. The key stays because it is the row's identity, and the check stops the two
    drifting apart. **46 of 225 files disagree today** and become 46 renames.
-2. **Quote every string.** This is not house style. Tested against `gopkg.in/yaml.v3`,
-   `90_90` parses as the integer `9090` and `007` as `7`. Five slugs start with a digit.
+2. **Quote a string that starts with `#`, and quote the rest by convention.** Corrected
+   2026-09-08 after measuring, because an earlier draft of this file overstated it.
+
+   Only `#` is load-bearing: unquoted, it starts a YAML comment, so every `color` must be
+   quoted. The exporter's marshaller does this on its own.
+
+   Everything else is safe, because the loader decodes into typed fields. Tested against
+   `gopkg.in/yaml.v3`: written unquoted, `90_90_hold`, `no`, `007` and `3_strike_repeat` all
+   arrive as those exact strings in a `string` field. Only an untyped decode turns `007` into
+   `7`, and nothing here does an untyped decode. Five slugs start with a digit and every one
+   has letters in it, so none is even a candidate.
+
+   Quote anyway in a hand-written file. It reads consistently and it survives another tool
+   reading the tree less carefully. The exporter writes what the marshaller thinks is safe,
+   which is unquoted for most values.
 3. Every number is optional unless the table says otherwise. Absent means NULL. `0` is a
    real value, so `reps: 0` is not the same as no `reps`.
 4. `tags` is a list, validated against `tags.yaml`. An unknown tag fails the import.
