@@ -286,7 +286,7 @@ kind. This part states the decisions and why. The essentials:
 
 ```
 catalog/
-  tags.yaml                  the whole tag vocabulary, 28 entries
+  tags.yaml                  the whole tag vocabulary, 21 entries — shipped tree only
   movements/<slug>.yaml
   menus/<slug>.yaml
   blocks/<slug>.yaml
@@ -639,7 +639,7 @@ exists. Every Make target runs.
 | **The catalog conversion is your content** | Public tree first. Show one file's diff and get agreement before touching the private repo |
 | **The owned import has a dependency the shipped import never had** (1.10): an account must exist, and 39 refs need the shipped rows already in place | Fixed import order. Skip-with-warning on an unresolved owner. A gate that boots empty, signs up, boots again, and finds the tree |
 | **A stranger can claim the private catalog** by signing up with the configured `owner:` email while no account holds it (1.10 item 8) | **Accepted, knowingly, 2026-09-08.** Not mitigated by design. Log the resolved binding at boot with email and account id. Revisit only if this instance ever takes signups from other people |
-| **The tag vocabulary is five axes in one flat list** — body part, equipment, discipline, quality, session role, skill — with 10 tokens used once or twice, and hard validation would freeze `hinge` and `squat` as permanent vocabulary | Clean `tags.yaml` before turning the hard failure on: collapse `shoulder`/`shoulders`, settle `antagonist` versus `prehab`, drop or promote the singletons |
+| **The tag vocabulary is five axes in one flat list** — body part, equipment, discipline, quality, session role, skill — with 10 tokens used once or twice, and hard validation would freeze `hinge` and `squat` as permanent vocabulary | **Cleaned 2026-09-08, before the hard failure goes on. 29 tags became 21.** Four merges, four drops. `catalog/tags.yaml` records every one and why. The axes are still mixed in one list, which stays a known limit |
 | **The `web/` file list is a guess** | Expected to move at phase 4. Not a commitment |
 
 ---
