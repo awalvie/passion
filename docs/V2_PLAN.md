@@ -37,11 +37,12 @@ cannot add a CHECK, a UNIQUE or a primary key to an existing table, so they cann
 | 5 | Add `account.token_epoch INTEGER NOT NULL DEFAULT 0` | See 1.2. Without it, changing a password does not end old sessions |
 | 6 | Add `account.max_pull_ups INTEGER`, `account.max_hang_kg NUMERIC(5,2)` | Both are on the profile form today and have no column anywhere |
 | 7 | Add index `content (author_id, kind, name)` | The library list. One line |
-| 8 | `content.content_key CHAR(36) NOT NULL`, and `log_entry` carries `movement_key` in place of `movement_id` + `movement_slug`, with `ix_entry_progression` regrouped onto it | 1.11. **In 001 while it is free** — restructuring a NOT NULL column and an index on SQLite after real rows exist is exactly what is expensive later |
 | 8 | Add index `log (account_id, state)` | History filtering. One line |
 | 9 | Make `forked_from_id` composite **with `ON DELETE RESTRICT`** | Pins the fork's kind for free. **Never `SET NULL`** — on a composite key that nulls *every* column including `kind NOT NULL`, which makes any forked-from row undeletable. Verified on both engines |
 | 10 | `content_item_set` and `log_set` primary keys gain `rep_index`: `(item, set_index, rep_index)` | **A ladder's rungs are reps inside one set, not sets.** `(item, set)` cannot hold 3s/6s/9s. An ordinary set is rep_index 0. SQLite cannot alter a primary key later, so this is irreversible and it was missing from this list |
 | 11 | Every composite FK into `content` that sits in an account's cascade path becomes `ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED` — `content_item.child`, `plan_slot`, `plan_target`, `scheduled` | **With `RESTRICT`, deleting your own account is refused on Postgres and succeeds on SQLite.** Identical DDL, opposite behaviour, verified. Deferring the check to commit makes both agree |
+| 12 | `content.content_key CHAR(36) NOT NULL`, and `log_entry` carries `movement_key` in place of `movement_id` + `movement_slug`, with `ix_entry_progression` regrouped onto it and a new `ix_content_key` | 1.11. **In 001 while it is free** — restructuring a NOT NULL column and an index on SQLite after real rows exist is exactly what is expensive later. **Done 2026-09-08** (`383259a`) |
+| 13 | `content.source_tree VARCHAR(64)` | 1.10 item 5. 1.10 says this can wait for 2a, and it did not: migration 001 was being regenerated for row 12 anyway, so a later migration would have cost more than one line now. **Done 2026-09-08** (`383259a`) |
 
 ## 1.2 Auth — stateless JWT, plus one integer
 
