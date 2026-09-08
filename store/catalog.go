@@ -160,7 +160,12 @@ type Item struct {
 
 // Load reads and checks a whole tree. It returns the first problem it finds, naming the
 // file, because a tree that is half right is not worth importing.
-func Load(fsys fs.FS, name string) (*Tree, error) {
+//
+// known is slug to kind for content that already exists outside this tree, so a file here
+// can point at one there. A private tree does this a great deal: it leans on the shipped
+// movements rather than carrying its own copies. Pass nil when loading the shipped tree,
+// which by definition has nothing before it.
+func Load(fsys fs.FS, name string, known map[string]string) (*Tree, error) {
 	t := &Tree{Name: name}
 
 	var meta catalogMeta
@@ -191,10 +196,17 @@ func Load(fsys fs.FS, name string) (*Tree, error) {
 		return nil, err
 	}
 
-	if err := t.validate(); err != nil {
+	if err := t.validate(known); err != nil {
 		return nil, fmt.Errorf("catalog %q: %w", name, err)
 	}
 	return t, nil
+}
+
+// Index is every slug this tree defines and its kind. Pass it to Load as the known set when
+// loading a tree that comes after this one.
+func (t *Tree) Index() map[string]string {
+	out, _ := t.kindOf()
+	return out
 }
 
 // decodeFile reads one YAML file with unknown keys refused.
@@ -291,10 +303,17 @@ func (t *Tree) kindOf() (map[string]string, error) {
 }
 
 // validate runs every rule that needs more than one file to check.
-func (t *Tree) validate() error {
+func (t *Tree) validate(known map[string]string) error {
 	kinds, err := t.kindOf()
 	if err != nil {
 		return err
+	}
+	// A slug in this tree shadows the same slug outside it, which is the same order the
+	// importer resolves in: this tree first, then what came before.
+	for slug, kind := range known {
+		if _, ours := kinds[slug]; !ours {
+			kinds[slug] = kind
+		}
 	}
 
 	tags := make(map[string]bool, len(t.Tags))

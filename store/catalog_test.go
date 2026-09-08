@@ -97,7 +97,7 @@ func with(fsys fstest.MapFS, path, body string) fstest.MapFS {
 }
 
 func TestAGoodTreeLoads(t *testing.T) {
-	tree, err := Load(goodTree(), "shipped")
+	tree, err := Load(goodTree(), "shipped", nil)
 	if err != nil {
 		t.Fatalf("a valid tree failed to load: %v", err)
 	}
@@ -162,7 +162,7 @@ kind: "timed_reps"
 tags: ["fingers"]
 set_rest_second: 45
 `)
-	_, err := Load(fsys, "shipped")
+	_, err := Load(fsys, "shipped", nil)
 	if err == nil {
 		t.Fatal("a misspelled key was accepted")
 	}
@@ -181,7 +181,7 @@ slug: "general_warmup"
 kind: "open"
 tags: ["warmup", "shouldres"]
 `)
-	_, err := Load(fsys, "shipped")
+	_, err := Load(fsys, "shipped", nil)
 	if err == nil {
 		t.Fatal("an unknown tag was accepted")
 	}
@@ -199,7 +199,7 @@ slug: "warmup_general"
 kind: "open"
 tags: ["warmup"]
 `)
-	_, err := Load(fsys, "shipped")
+	_, err := Load(fsys, "shipped", nil)
 	if err == nil {
 		t.Fatal("a slug that disagreed with its filename was accepted")
 	}
@@ -220,7 +220,7 @@ pick: 1
 options:
   - ref: "half_crimp_hang"
 `)
-	_, err := Load(fsys, "shipped")
+	_, err := Load(fsys, "shipped", nil)
 	if err == nil {
 		t.Fatal("one slug was accepted for both a movement and a menu")
 	}
@@ -237,7 +237,7 @@ tags: ["warmup"]
 items:
   - ref: "no_such_movement"
 `)
-	_, err := Load(fsys, "shipped")
+	_, err := Load(fsys, "shipped", nil)
 	if err == nil {
 		t.Fatal("a ref to nothing was accepted")
 	}
@@ -302,7 +302,7 @@ options:
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := Load(with(goodTree(), tc.path, tc.body), "shipped")
+			_, err := Load(with(goodTree(), tc.path, tc.body), "shipped", nil)
 			if err == nil {
 				t.Fatalf("%s: accepted", tc.name)
 			}
@@ -324,7 +324,7 @@ options:
   - ref: "half_crimp_hang"
   - ref: "half_crimp_hang"
 `)
-	_, err := Load(fsys, "shipped")
+	_, err := Load(fsys, "shipped", nil)
 	if err == nil {
 		t.Fatal("the same ref twice in one list was accepted")
 	}
@@ -357,7 +357,7 @@ options:
 `, "only 1 options"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := Load(with(goodTree(), "menus/hang_choice.yaml", tc.body), "shipped")
+			_, err := Load(with(goodTree(), "menus/hang_choice.yaml", tc.body), "shipped", nil)
 			if err == nil {
 				t.Fatalf("pick %s was accepted", tc.name)
 			}
@@ -378,7 +378,7 @@ pick: 0
 options:
   - ref: "half_crimp_hang"
 `)
-	if _, err := Load(fsys, "shipped"); err != nil {
+	if _, err := Load(fsys, "shipped", nil); err != nil {
 		t.Errorf("pick: 0 was refused: %v", err)
 	}
 }
@@ -407,7 +407,7 @@ per_set:
 `, "needs sets"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := Load(with(goodTree(), "movements/hangboard_ladder.yaml", tc.body), "shipped")
+			_, err := Load(with(goodTree(), "movements/hangboard_ladder.yaml", tc.body), "shipped", nil)
 			if err == nil {
 				t.Fatalf("%s was accepted", tc.name)
 			}
@@ -427,7 +427,7 @@ slug: "general_warmup"
 kind: "`+kind+`"
 tags: ["warmup"]
 `)
-		if _, err := Load(fsys, "shipped"); err == nil {
+		if _, err := Load(fsys, "shipped", nil); err == nil {
 			t.Errorf("kind %q was accepted", kind)
 		}
 	}
@@ -442,7 +442,7 @@ role: "cooldwn"
 items:
   - ref: "general_warmup"
 `)
-	_, err := Load(fsys, "shipped")
+	_, err := Load(fsys, "shipped", nil)
 	if err == nil {
 		t.Fatal("a misspelled role was accepted")
 	}
@@ -455,7 +455,7 @@ items:
 // the tree root, so there is one thing to bump.
 func TestAWrongFormatVersionIsRefused(t *testing.T) {
 	fsys := with(goodTree(), "catalog.yaml", "format_version: 99\n")
-	_, err := Load(fsys, "shipped")
+	_, err := Load(fsys, "shipped", nil)
 	if err == nil {
 		t.Fatal("a tree from the future was accepted")
 	}
@@ -469,7 +469,7 @@ func TestAWrongFormatVersionIsRefused(t *testing.T) {
 func TestATreeWithoutItsOwnTagsStillLoads(t *testing.T) {
 	fsys := goodTree()
 	delete(fsys, "tags.yaml")
-	tree, err := Load(fsys, "private")
+	tree, err := Load(fsys, "private", nil)
 	if err != nil {
 		t.Fatalf("a tree with no tags.yaml failed: %v", err)
 	}
@@ -485,7 +485,7 @@ slug: "warm_up"
 tags: ["warmup"]
 items: []
 `)
-	if _, err := Load(fsys, "shipped"); err == nil {
+	if _, err := Load(fsys, "shipped", nil); err == nil {
 		t.Fatal("a block with no items was accepted")
 	}
 }

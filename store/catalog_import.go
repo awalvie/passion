@@ -34,20 +34,19 @@ var ErrNoSuchOwner = errors.New("store: no account holds that owner email")
 // ShippedTree is the source_tree value for content the app ships.
 const ShippedTree = "shipped"
 
-// ImportResult is what one import did, for the log line. Unchanged being the whole count on
-// a second run is the point.
+// ImportResult is what one import did, for the log line. On a second run of an unchanged
+// tree, Unchanged is the whole count and everything else is zero.
 type ImportResult struct {
 	Tree      string
 	Inserted  int
 	Updated   int
 	Unchanged int
 	Retired   int
-	Skipped   int
 }
 
 func (r ImportResult) String() string {
-	return fmt.Sprintf("tree=%s inserted=%d updated=%d unchanged=%d retired=%d skipped=%d",
-		r.Tree, r.Inserted, r.Updated, r.Unchanged, r.Retired, r.Skipped)
+	return fmt.Sprintf("tree=%s inserted=%d updated=%d unchanged=%d retired=%d",
+		r.Tree, r.Inserted, r.Updated, r.Unchanged, r.Retired)
 }
 
 // ImportShipped writes a tree as content the app ships: no author, so no account's deletion
@@ -81,51 +80,46 @@ func (s *Store) importTree(ctx context.Context, t *Tree, authorID *int64) (Impor
 		// Movements first, then menus, blocks and sessions. A child must exist before an
 		// edge can point at it, and the four kinds nest in exactly that order.
 		//
-		// Two maps, and the difference matters. ids resolves every ref, including one that
-		// points at a row this import does not own. mine holds only the rows it DOES own,
-		// and it is what the edge pass reads — so a row a person made keeps its own
-		// children, not the file's.
 		ids := map[string]int64{}
-		mine := map[string]int64{}
 		for _, m := range t.Movements {
-			if err := upsertOne(tx, t, authorID, contentFromMovement(m), m.Tags, m.Media, m.PerSet, ids, mine, &res); err != nil {
+			if err := upsertOne(tx, t, authorID, contentFromMovement(m), m.Tags, m.Media, m.PerSet, ids, &res); err != nil {
 				return err
 			}
 		}
 		for _, m := range t.Menus {
-			if err := upsertOne(tx, t, authorID, contentFromMenu(m), m.Tags, nil, nil, ids, mine, &res); err != nil {
+			if err := upsertOne(tx, t, authorID, contentFromMenu(m), m.Tags, nil, nil, ids, &res); err != nil {
 				return err
 			}
 		}
 		for _, b := range t.Blocks {
-			if err := upsertOne(tx, t, authorID, contentFromBlock(b), b.Tags, nil, nil, ids, mine, &res); err != nil {
+			if err := upsertOne(tx, t, authorID, contentFromBlock(b), b.Tags, nil, nil, ids, &res); err != nil {
 				return err
 			}
 		}
 		for _, sn := range t.Sessions {
-			if err := upsertOne(tx, t, authorID, contentFromSession(sn), sn.Tags, nil, nil, ids, mine, &res); err != nil {
+			if err := upsertOne(tx, t, authorID, contentFromSession(sn), sn.Tags, nil, nil, ids, &res); err != nil {
 				return err
 			}
 		}
 
 		// Edges last, once every slug in the tree has a row.
 		for _, m := range t.Menus {
-			if err := syncEdges(tx, mine[m.Slug], KindMenu, m.Options, ids); err != nil {
+			if err := syncEdges(tx, authorID, ids[m.Slug], KindMenu, m.Options, ids); err != nil {
 				return fmt.Errorf("menus/%s.yaml: %w", m.Slug, err)
 			}
 		}
 		for _, b := range t.Blocks {
-			if err := syncEdges(tx, mine[b.Slug], KindBlock, b.Items, ids); err != nil {
+			if err := syncEdges(tx, authorID, ids[b.Slug], KindBlock, b.Items, ids); err != nil {
 				return fmt.Errorf("blocks/%s.yaml: %w", b.Slug, err)
 			}
 		}
 		for _, sn := range t.Sessions {
-			if err := syncEdges(tx, mine[sn.Slug], KindSession, sn.Items, ids); err != nil {
+			if err := syncEdges(tx, authorID, ids[sn.Slug], KindSession, sn.Items, ids); err != nil {
 				return fmt.Errorf("sessions/%s.yaml: %w", sn.Slug, err)
 			}
 		}
 
-		n, err := retireMissing(tx, t, authorID, mine)
+		n, err := retireMissing(tx, t, authorID, ids)
 		res.Retired = n
 		return err
 	})
@@ -161,7 +155,7 @@ func syncTags(tx *gorm.DB, tags []TagDef) error {
 // edge pass can resolve a ref without a second query.
 func upsertOne(tx *gorm.DB, t *Tree, authorID *int64, want Content,
 	tags []string, media []Media, perSet []SetEntry,
-	ids, mine map[string]int64, res *ImportResult) error {
+	ids map[string]int64, res *ImportResult) error {
 
 	where := fmt.Sprintf("%ss/%s.yaml", want.Kind, want.Slug)
 	want.AuthorID = authorID
@@ -186,19 +180,18 @@ func upsertOne(tx *gorm.DB, t *Tree, authorID *int64, want Content,
 			return fmt.Errorf("%s: %w", where, err)
 		}
 		ids[want.Slug] = want.ID
-		mine[want.Slug] = want.ID
 		res.Inserted++
 
 	case err != nil:
 		return err
 
-	// A row a person made, or a fork. The importer never touches one; that is what
-	// source_tree is for. So editing a file whose slug collides with one of your own rows
-	// does nothing, and the count is reported rather than passed over in silence.
+	// A row a person made, or a fork, holding the slug this file wants. Refused rather than
+	// worked around. The importer must not overwrite it, and it must not quietly leave it
+	// either: every other file pointing at this slug would then get that row instead of the
+	// one described here, so the tree would import "successfully" and mean something else.
 	case have.SourceTree == nil:
-		ids[have.Slug] = have.ID // still resolvable as a ref target
-		res.Skipped++
-		return nil
+		return fmt.Errorf("%s: you already have a %s called %q that you made yourself. "+
+			"Rename yours, or rename this file", where, want.Kind, want.Slug)
 
 	// Two trees claiming one slug for one owner. Nothing can resolve that, so it stops here
 	// rather than letting the last tree imported win.
@@ -208,7 +201,6 @@ func upsertOne(tx *gorm.DB, t *Tree, authorID *int64, want Content,
 
 	default:
 		ids[have.Slug] = have.ID
-		mine[have.Slug] = have.ID
 		want.ID = have.ID
 		want.ContentKey = have.ContentKey // survives a refresh; history hangs off it
 		want.CreatedAt = have.CreatedAt
@@ -224,7 +216,7 @@ func upsertOne(tx *gorm.DB, t *Tree, authorID *int64, want Content,
 		}
 	}
 
-	id := mine[want.Slug]
+	id := ids[want.Slug]
 	if err := syncTagLinks(tx, id, tags); err != nil {
 		return fmt.Errorf("%s: %w", where, err)
 	}
@@ -489,12 +481,8 @@ func syncContentSets(tx *gorm.DB, contentID int64, perSet []SetEntry) error {
 
 // syncEdges writes one parent's children. An edge is matched by (parent, child), which is
 // what ux_item_edge makes unique, so position and the per-use numbers are updated in place.
-func syncEdges(tx *gorm.DB, parentID int64, parentKind string, items []Item, ids map[string]int64) error {
-	if parentID == 0 {
-		// The parent row was skipped, because a person's own row holds its slug. Its
-		// children belong to that row, not to the file, so nothing is written.
-		return nil
-	}
+func syncEdges(tx *gorm.DB, authorID *int64, parentID int64, parentKind string,
+	items []Item, ids map[string]int64) error {
 
 	var have []ContentItem
 	if err := tx.Where("parent_id = ?", parentID).Order("position").Find(&have).Error; err != nil {
@@ -507,15 +495,15 @@ func syncEdges(tx *gorm.DB, parentID int64, parentKind string, items []Item, ids
 
 	keep := map[int64]bool{}
 	for i, it := range items {
-		childID, ok := ids[it.Ref]
-		if !ok || childID == 0 {
-			return fmt.Errorf("ref %q has no row", it.Ref)
+		childID, childKind, err := resolveRef(tx, authorID, it.Ref, ids)
+		if err != nil {
+			return err
 		}
 		keep[childID] = true
 
 		want := ContentItem{
 			ParentID: parentID, ParentKind: parentKind,
-			ChildID: childID, ChildKind: childKind(ids, it.Ref, tx),
+			ChildID: childID, ChildKind: childKind,
 			Position: i, Notes: it.Notes,
 		}
 		itemDose(&want, it.Dose)
@@ -552,15 +540,45 @@ func syncEdges(tx *gorm.DB, parentID int64, parentKind string, items []Item, ids
 	return nil
 }
 
-// childKind reads the child's kind from its own row. The composite foreign key in
-// content_item names the kind as well as the id, which is what pins an edge to one kind and
-// makes a cycle impossible.
-func childKind(ids map[string]int64, ref string, tx *gorm.DB) string {
-	var c Content
-	if err := tx.Select("kind").Where("id = ?", ids[ref]).First(&c).Error; err != nil {
-		return ""
+// resolveRef turns a slug into the row an edge should point at, and its kind. The kind is
+// needed as well as the id because the foreign key in content_item names both, which is
+// what pins an edge to one kind and makes a cycle impossible.
+//
+// It looks in this tree first, then at content already in the database. A private tree
+// leans heavily on the second case: it references shipped movements rather than carrying
+// copies of them.
+//
+// Order within the database is your own content, then the app's. So a movement you own
+// shadows a shipped one of the same slug, which is the same order the loader validates in.
+func resolveRef(tx *gorm.DB, authorID *int64, ref string, ids map[string]int64) (int64, string, error) {
+	if id, ok := ids[ref]; ok && id != 0 {
+		var c Content
+		if err := tx.Select("kind").Where("id = ?", id).First(&c).Error; err != nil {
+			return 0, "", err
+		}
+		return id, c.Kind, nil
 	}
-	return c.Kind
+
+	var c Content
+	if authorID != nil {
+		err := tx.Select("id", "kind").
+			Where("slug = ? AND author_id = ?", ref, *authorID).First(&c).Error
+		if err == nil {
+			return c.ID, c.Kind, nil
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, "", err
+		}
+	}
+	err := tx.Select("id", "kind").
+		Where("slug = ? AND author_id IS NULL", ref).First(&c).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return 0, "", fmt.Errorf("ref %q names nothing in this tree and nothing already imported", ref)
+	}
+	if err != nil {
+		return 0, "", err
+	}
+	return c.ID, c.Kind, nil
 }
 
 var itemColumns = []string{
