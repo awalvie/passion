@@ -1,15 +1,15 @@
 package store
 
 // Reading a catalog tree off disk, and checking it before a single row is written.
+// The format is specified in docs/CATALOG_FORMAT.md.
 //
-// The spec is docs/CATALOG_FORMAT.md. Two rules there shape this whole file:
+// Two rules shape this file:
 //
-//   - An unknown key is an error, not something to ignore. Six keys existed in the trees
-//     and in no draft of the spec, and `color` alone would have silently dropped off every
-//     session. So every struct here is decoded with KnownFields(true), and the struct tags
-//     below ARE the spec — a key that is not on a struct cannot be imported.
-//   - A slug equals its filename. The key stays, because the row's identity is the slug and
-//     a filename is renamed by hand, but the two are checked against each other.
+//   - An unknown key is an error. Every struct below is decoded with KnownFields(true), so
+//     the struct tags are the format: a key that is not on a struct cannot be imported. A
+//     key left off by mistake is then a loud failure rather than a value silently dropped.
+//   - A slug equals its filename, and both are kept. The slug is the row's identity, so it
+//     cannot be derived; checking it against the filename stops the two drifting apart.
 //
 // Nothing here touches the database. Load returns a whole tree or an error naming the file
 // and the problem, so a bad tree fails before the importer opens a transaction.
@@ -29,8 +29,8 @@ import (
 // and a mismatch is refused rather than guessed at.
 const FormatVersion = 1
 
-// The four movement kinds. "open" means no numbers, just do the thing: 55 of the 56 files
-// that used to say `session` carry no dose key at all, which is why it is not "duration".
+// The four movement kinds. They say how a movement is counted. "open" means it carries no
+// numbers at all, so it is not called "duration": there is no duration to look for.
 const (
 	MovementClimbing    = "climbing"
 	MovementOpen        = "open"
@@ -63,22 +63,22 @@ type catalogMeta struct {
 	FormatVersion int `yaml:"format_version"`
 }
 
-// TagDef is one entry in tags.yaml. The whole vocabulary is 21 entries and lives only in
-// the shipped tree; a private tree adds its own only if it needs a tag of its own.
+// TagDef is one entry in tags.yaml. The shipped tree holds the vocabulary. A private tree
+// carries a tags.yaml only if it needs a tag the shipped list does not have.
 type TagDef struct {
 	Slug string `yaml:"slug"`
 	Name string `yaml:"name"`
 }
 
-// Media is one video and its thumbnail. Both optional: 3 entries have no thumbnail and 2
-// have no video. It stays a list because 6 files carry more than one.
+// Media is one video and its thumbnail, both optional. A list, because a movement can have
+// more than one.
 type Media struct {
 	URL      string `yaml:"url"`
 	ThumbURL string `yaml:"thumb_url"`
 }
 
-// SetEntry is one rep inside one set — a rung of a ladder. On a movement it is that
-// movement's own shape; on a reference it is what one block asks for.
+// SetEntry is one rep inside one set: a rung of a ladder. On a movement it is that
+// movement's own shape. On a reference it is what one block asks for.
 type SetEntry struct {
 	Reps     *int     `yaml:"reps"`
 	WeightKg *float64 `yaml:"weight_kg"`
@@ -121,7 +121,7 @@ type MenuFile struct {
 	Notes string   `yaml:"notes"`
 
 	// Pick is the FEWEST options you must choose, not the most. 0 means the menu may be
-	// skipped, which is where the four "(optional)" suffixes in display names belong.
+	// skipped.
 	Pick    *int   `yaml:"pick"`
 	Options []Item `yaml:"options"`
 }
@@ -133,9 +133,8 @@ type BlockFile struct {
 	Notes  string   `yaml:"notes"`
 	Source string   `yaml:"source"`
 
-	// Role is warmup, main or cooldown, and it belongs to the block rather than to a
-	// session's use of it. No block referenced by slug carries one today, so no block is a
-	// warm-up in one session and the main event in another.
+	// Role is warmup, main or cooldown. It belongs to the block, not to a session's use of
+	// it, so a block cannot be a warm-up in one session and the main event in another.
 	Role  string `yaml:"role"`
 	Items []Item `yaml:"items"`
 }
@@ -217,9 +216,9 @@ func decodeFile(fsys fs.FS, name string, out any) error {
 // loadDir reads every .yaml in one directory into a slice, in filename order so an import
 // is repeatable. A missing directory is not an error: a private tree may hold sessions only.
 //
-// slugOf is how the slug-equals-filename rule gets checked here, where both are in hand.
-// 46 of 225 files disagree today, so this is the check that turns them into 46 deliberate
-// renames instead of 46 silent reinterpretations.
+// slugOf checks the slug against the filename here, where both are in hand. A file whose
+// slug disagrees is refused, so renaming one becomes a deliberate act rather than a silent
+// change of identity.
 func loadDir[T any](fsys fs.FS, dir string, out *[]T, slugOf func(T) string) error {
 	entries, err := fs.ReadDir(fsys, dir)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -393,10 +392,12 @@ func (t *Tree) validate() error {
 	return nil
 }
 
-// checkItems enforces the one structural rule: a session holds blocks, a block holds
-// movements or menus, a menu holds movements. Nothing else. The same rule is a CHECK in the
-// schema (ck_item_pair), and it is what makes a loop in the tree impossible — so catching a
-// bad edge here gives a message naming the file instead of a constraint violation.
+// checkItems enforces the structural rule: a session holds blocks, a block holds movements
+// or menus, a menu holds movements. Nothing else.
+//
+// ck_item_pair in the schema enforces the same rule, and the fixed chain is what makes a
+// loop in the tree impossible. Checking here as well gives a message naming the file,
+// instead of a constraint violation from the driver.
 func checkItems(where, listKey string, items []Item, kinds map[string]string, want ...string) error {
 	if len(items) == 0 {
 		return fmt.Errorf("%s: %s is empty", where, listKey)
@@ -427,7 +428,7 @@ func checkItems(where, listKey string, items []Item, kinds map[string]string, wa
 	return nil
 }
 
-// validate covers the one rule that ties the numbers together. A ladder's entries are reps
+// validate covers the rule that ties the numbers together. A ladder's entries are reps
 // inside one set, so `sets` counts sets and cannot also be the rung count.
 func (d Dose) validate(where string) error {
 	if len(d.PerSet) == 0 {
