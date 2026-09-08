@@ -11,8 +11,16 @@ run:
 	PASSION_ADDR="$(PASSION_ADDR)" go run ./cmd/passion
 
 # V2. Runs the root main.go rather than cmd/passion.
+#
+# Supplies a throwaway secret and allows plain-HTTP cookies, so `make run-v2` works from a
+# fresh clone with no config file. Both are local-dev only, and the binary already warns
+# loudly on start when insecure cookies are on. A real deployment passes -config.
 run-v2:
-	PASSION_ADDR="$(PASSION_ADDR)" go run .
+	PASSION_ADDR="$(PASSION_ADDR)" \
+	PASSION_JWT_SECRET="local-dev-only-not-a-real-secret-000000" \
+	PASSION_INSECURE_COOKIES=true \
+	PASSION_DB_DSN="tmp/passion-v2.db" \
+	go run .
 
 build:
 	go build ./...

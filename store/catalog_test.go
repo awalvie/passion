@@ -152,8 +152,8 @@ func TestAGoodTreeLoads(t *testing.T) {
 	}
 }
 
-// The rule that makes the spec normative. Six keys existed in the real trees and in no
-// draft of the spec, and `color` alone would have dropped off every session in silence.
+// A key the format does not list must fail, not be ignored. Otherwise a misspelling
+// silently drops the value it was meant to set.
 func TestAnUnknownKeyIsRefused(t *testing.T) {
 	fsys := with(goodTree(), "movements/half_crimp_hang.yaml", `
 name: "Half Crimp Hang"
@@ -190,8 +190,8 @@ tags: ["warmup", "shouldres"]
 	}
 }
 
-// 46 of the 225 real files have a slug that differs from their filename. This is the check
-// that turns those into deliberate renames instead of silent reinterpretation.
+// A slug is a row's identity, so a file whose slug and filename disagree is refused.
+// Renaming then has to be deliberate.
 func TestASlugMustMatchItsFilename(t *testing.T) {
 	fsys := with(goodTree(), "movements/general_warmup.yaml", `
 name: "General Warm-up"
@@ -246,8 +246,8 @@ items:
 	}
 }
 
-// The same rule as ck_item_pair in the schema. Catching it here names the file; letting the
-// database catch it gives a constraint violation instead.
+// The same rule as ck_item_pair in the schema. Catching it here names the file. Letting the
+// database catch it gives a driver's constraint violation instead.
 func TestTheParentChildRulesAreEnforced(t *testing.T) {
 	for _, tc := range []struct{ name, path, body, wantIn string }{
 		{
@@ -314,7 +314,7 @@ options:
 }
 
 // ux_item_edge is UNIQUE (parent_id, child_id), so one parent cannot hold one child twice.
-// It is also why a ladder is one reference with per_set and not three references.
+// That is also why a ladder is one reference carrying per_set, and not three references.
 func TestOneListCannotHoldTheSameRefTwice(t *testing.T) {
 	fsys := with(goodTree(), "menus/hang_choice.yaml", `
 name: "Pick a hang"
@@ -368,8 +368,8 @@ options:
 	}
 }
 
-// pick: 0 is legal and means the menu may be skipped. Four real menus put that in their
-// display name as "(optional)", which the app cannot act on.
+// pick: 0 is legal and means the menu may be skipped. The alternative is saying "optional"
+// in the display name, which the app cannot act on.
 func TestPickZeroMeansSkippable(t *testing.T) {
 	fsys := with(goodTree(), "menus/hang_choice.yaml", `
 name: "Pick a hang"
@@ -451,8 +451,8 @@ items:
 	}
 }
 
-// A stale tree must fail loudly rather than import wrong. The version lives in one file per
-// tree, not in all 274, so there is one thing to bump.
+// A stale tree must fail loudly rather than import wrong. The version lives in one file at
+// the tree root, so there is one thing to bump.
 func TestAWrongFormatVersionIsRefused(t *testing.T) {
 	fsys := with(goodTree(), "catalog.yaml", "format_version: 99\n")
 	_, err := Load(fsys, "shipped")
@@ -464,8 +464,8 @@ func TestAWrongFormatVersionIsRefused(t *testing.T) {
 	}
 }
 
-// A private tree carries no tags.yaml of its own: after the merges, every tag either real
-// tree uses is in the shipped list. So a tree without one still has to parse.
+// A private tree normally carries no tags.yaml, because the shipped list already covers
+// what it uses. So a tree without one has to parse.
 func TestATreeWithoutItsOwnTagsStillLoads(t *testing.T) {
 	fsys := goodTree()
 	delete(fsys, "tags.yaml")

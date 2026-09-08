@@ -86,12 +86,12 @@ type Content struct {
 	Slug string `gorm:"size:128;not null"`
 	Name string `gorm:"size:255;not null"`
 
-	// ContentKey is what a finished run points at, and it is NOT unique: a fork inherits
-	// its parent's value. That inheritance is the mechanism — it holds one progression
-	// together across an edit. Never put a unique index on it.
+	// ContentKey is what a finished run points at. It is NOT unique: a fork inherits its
+	// parent's value, and that inheritance is what holds one progression together across an
+	// edit. Never put a unique index on it.
 	//
-	// Deliberately not named UUID. A reader who sees "uuid" eventually adds UNIQUE, which
-	// would break forking outright.
+	// Not named UUID for that reason. A column called uuid invites the constraint that would
+	// break forking.
 	ContentKey string `gorm:"type:char(36);not null;index"`
 
 	// SourceTree is the name of the catalog tree that owns this row, or nil when a person
@@ -129,9 +129,8 @@ type Content struct {
 	// Movement columns. Defaults only — what a session asks for lives on ContentItem.
 	MovementKind *string `gorm:"size:32"`
 
-	// PerSide is true when the numbers are per side. 24 movements say "per side" or "per
-	// leg" in prose only, so the app undercounts them: bulgarian_split_squats is 1 set of
-	// 6 with "per side" in its notes, and the player counts 6 when you owe 12.
+	// PerSide is true when the numbers are per side. Without it, "1 set of 6, per side" can
+	// only be said in prose, and the player counts 6 when the athlete owes 12.
 	PerSide bool `gorm:"not null;default:false"`
 
 	DSets           *int
@@ -200,15 +199,15 @@ type ContentItem struct {
 // RepIndex is why the key has three columns. A ladder's rungs are reps inside one set, not
 // sets of their own, so (item, set) cannot hold 3s / 6s / 9s. An ordinary set is RepIndex
 // 0; a three-rung ladder is set 1 with RepIndex 1, 2 and 3.
-// ContentSet is a movement's own per-rep numbers, for a movement whose reps are not all
-// the same. The mirror of ContentItemSet one level up: that holds what a block asks for,
-// this holds what the movement is.
+// ContentSet is a movement's own per-rep numbers, for a movement whose reps are not all the
+// same. The mirror of ContentItemSet one level up: that table holds what a block asks for,
+// this one holds what the movement is.
 //
-// It exists because some movements ARE a ladder. "Hangboard Ladder: Half Crimp" is a 3s,
-// then 6s, then 9s hang, and its name, slug and notes all say so. Without this a ladder
-// could only be written inside one block, so the library could not hold one.
+// It exists because a movement can BE a ladder — a 3-second hang, then 6, then 9, is not a
+// choice a block makes about a plain hang, it is the movement itself. Without this table
+// such a shape could only be written inside one block, so no library could hold one.
 //
-// Three of 184 movements need a row here. The rest need none.
+// Most movements need no row here.
 type ContentSet struct {
 	ContentID int64 `gorm:"primaryKey"`
 	SetIndex  int   `gorm:"primaryKey"`

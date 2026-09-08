@@ -134,9 +134,8 @@ CREATE TABLE content (
   -- movement rows
   movement_kind  VARCHAR(32),
 
-  -- TRUE when the numbers are per side. 24 movements say "per side" or "per leg" in prose
-  -- only, and the app therefore undercounts: bulgarian_split_squats is sets 1, reps 6 with
-  -- "per side" in its notes, so the player counts 6 when you owe 12.
+  -- TRUE when the numbers are per side. Without it, "1 set of 6, per side" can only be
+  -- said in prose, and the player counts 6 when the athlete owes 12.
   per_side       BOOLEAN      NOT NULL DEFAULT FALSE,
   d_sets         INTEGER,
   d_reps         INTEGER,
@@ -255,20 +254,20 @@ CREATE TABLE content_item_set (
 
 
 -- A movement's OWN per-rep numbers, when its reps are not all the same. The mirror of
--- content_item_set, one level up: that table holds what a block asks for, this one holds
+-- content_item_set one level up: that table holds what a block asks for, this one holds
 -- what the movement is.
 --
--- It exists because some movements ARE a ladder. "Hangboard Ladder: Half Crimp" is a
--- 3s, then 6s, then 9s hang -- its name, slug and notes all say so. Without this table a
--- ladder could only be written inside one block, so the library could not hold one, and
--- three movements would carry names describing a shape they did not have.
+-- It exists because a movement can BE a ladder. A 3s, then 6s, then 9s hang is not a choice
+-- a block makes about a plain hang; it is what the movement is, and its name says so.
+-- Without this table such a shape could only be written inside one block, so no library
+-- could hold one.
 --
--- Researched before adding: seven other apps put non-uniform sets in the workout and keep
--- their movement library plain, which argues for leaving this out. They can, because they
--- have a second library of named protocols. Here the equivalent would be a block inside a
--- block, and ck_item_pair forbids that on purpose -- it is what makes a loop impossible.
+-- Other training apps keep their movement library plain and put non-uniform sets in the
+-- workout. They can, because they also have a library of named protocols. The equivalent
+-- here would be a block inside a block, which ck_item_pair forbids on purpose. See
+-- docs/V2_PLAN.md 1.1 row 14.
 --
--- Most movements need no row here. 3 of 184 do.
+-- Most movements need no row here.
 CREATE TABLE content_set (
   content_id BIGINT  NOT NULL REFERENCES content(id) ON DELETE CASCADE,
   set_index  INTEGER NOT NULL,
