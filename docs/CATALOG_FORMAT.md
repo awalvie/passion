@@ -17,7 +17,7 @@ templates, 17 session templates.
 ```
 <tree>/
   catalog.yaml               format_version, and nothing else yet
-  tags.yaml                  the whole tag vocabulary
+  tags.yaml                  the whole tag vocabulary — shipped tree only
   movements/<slug>.yaml
   menus/<slug>.yaml
   blocks/<slug>.yaml
@@ -37,6 +37,19 @@ without naming its kind.
 3. Every number is optional unless the table says otherwise. Absent means NULL. `0` is a
    real value, so `reps: 0` is not the same as no `reps`.
 4. `tags` is a list, validated against `tags.yaml`. An unknown tag fails the import.
+
+   **There is one `tags.yaml`, in the shipped tree**, and it holds **21 entries**. A private
+   tree needs none: after the merges recorded in that file, every tag either tree uses is in
+   the list. The only tag once unique to a private tree was `lead`, now `route`. If a private
+   tree ever wants a tag of its own, give it its own `tags.yaml` whose entries are merged with
+   the shipped one — do not copy the shipped list, or the two will drift.
+
+   The list went from **29 tags to 21** on 2026-09-08. Four merges — `shoulders` into
+   `shoulder`, `stretching` into `mobility`, `lead` into `route`, `prehab` into `antagonist`.
+   Four drops — `squat`, `hinge` and `pressing`, which were one movement-pattern tag per file
+   and not enough to be an axis, and `rest`, whose one meaning is simply gone. `mental` was
+   kept on one file, `fall_practice`, because falling practice is a mental thing and no other
+   tag says that. `tags.yaml` records every one with the files it touched.
 5. List order becomes `position`, renumbered from 0 by the importer.
 6. **No inline children.** Every row is a file. See "What the conversion creates".
 
