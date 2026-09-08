@@ -127,7 +127,13 @@ type Content struct {
 	RetiredOn *Date `gorm:"type:varchar(10)"`
 
 	// Movement columns. Defaults only — what a session asks for lives on ContentItem.
-	MovementKind    *string `gorm:"size:32"`
+	MovementKind *string `gorm:"size:32"`
+
+	// PerSide is true when the numbers are per side. 24 movements say "per side" or "per
+	// leg" in prose only, so the app undercounts them: bulgarian_split_squats is 1 set of
+	// 6 with "per side" in its notes, and the player counts 6 when you owe 12.
+	PerSide bool `gorm:"not null;default:false"`
+
 	DSets           *int
 	DReps           *int
 	DWeightKg       *float64 `gorm:"type:numeric(6,2)"`
@@ -194,6 +200,24 @@ type ContentItem struct {
 // RepIndex is why the key has three columns. A ladder's rungs are reps inside one set, not
 // sets of their own, so (item, set) cannot hold 3s / 6s / 9s. An ordinary set is RepIndex
 // 0; a three-rung ladder is set 1 with RepIndex 1, 2 and 3.
+// ContentSet is a movement's own per-rep numbers, for a movement whose reps are not all
+// the same. The mirror of ContentItemSet one level up: that holds what a block asks for,
+// this holds what the movement is.
+//
+// It exists because some movements ARE a ladder. "Hangboard Ladder: Half Crimp" is a 3s,
+// then 6s, then 9s hang, and its name, slug and notes all say so. Without this a ladder
+// could only be written inside one block, so the library could not hold one.
+//
+// Three of 184 movements need a row here. The rest need none.
+type ContentSet struct {
+	ContentID int64 `gorm:"primaryKey"`
+	SetIndex  int   `gorm:"primaryKey"`
+	RepIndex  int   `gorm:"primaryKey;default:0"`
+	Reps      *int
+	WeightKg  *float64 `gorm:"type:numeric(6,2)"`
+	Seconds   *int
+}
+
 type ContentItemSet struct {
 	ContentItemID int64 `gorm:"primaryKey"`
 	SetIndex      int   `gorm:"primaryKey"`
@@ -470,7 +494,7 @@ type LogClimb struct {
 func Tables() []any {
 	return []any{
 		&Account{}, &BodyMeasurement{}, &GradeMilestone{},
-		&Content{}, &ContentItem{}, &ContentItemSet{}, &ContentMedia{},
+		&Content{}, &ContentSet{}, &ContentItem{}, &ContentItemSet{}, &ContentMedia{},
 		&Tag{}, &ContentTag{},
 		&Plan{}, &PlanSlot{}, &PlanTarget{}, &Scheduled{}, &CalendarEvent{},
 		&Place{},

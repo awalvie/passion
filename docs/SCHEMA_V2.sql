@@ -133,6 +133,11 @@ CREATE TABLE content (
 
   -- movement rows
   movement_kind  VARCHAR(32),
+
+  -- TRUE when the numbers are per side. 24 movements say "per side" or "per leg" in prose
+  -- only, and the app therefore undercounts: bulgarian_split_squats is sets 1, reps 6 with
+  -- "per side" in its notes, so the player counts 6 when you owe 12.
+  per_side       BOOLEAN      NOT NULL DEFAULT FALSE,
   d_sets         INTEGER,
   d_reps         INTEGER,
   d_weight_kg    NUMERIC(6,2),
@@ -246,6 +251,34 @@ CREATE TABLE content_item_set (
   PRIMARY KEY (content_item_id, set_index, rep_index),
   CONSTRAINT ck_set_index CHECK (set_index >= 1),
   CONSTRAINT ck_rep_index CHECK (rep_index >= 0)
+);
+
+
+-- A movement's OWN per-rep numbers, when its reps are not all the same. The mirror of
+-- content_item_set, one level up: that table holds what a block asks for, this one holds
+-- what the movement is.
+--
+-- It exists because some movements ARE a ladder. "Hangboard Ladder: Half Crimp" is a
+-- 3s, then 6s, then 9s hang -- its name, slug and notes all say so. Without this table a
+-- ladder could only be written inside one block, so the library could not hold one, and
+-- three movements would carry names describing a shape they did not have.
+--
+-- Researched before adding: seven other apps put non-uniform sets in the workout and keep
+-- their movement library plain, which argues for leaving this out. They can, because they
+-- have a second library of named protocols. Here the equivalent would be a block inside a
+-- block, and ck_item_pair forbids that on purpose -- it is what makes a loop impossible.
+--
+-- Most movements need no row here. 3 of 184 do.
+CREATE TABLE content_set (
+  content_id BIGINT  NOT NULL REFERENCES content(id) ON DELETE CASCADE,
+  set_index  INTEGER NOT NULL,
+  rep_index  INTEGER NOT NULL DEFAULT 0,
+  reps       INTEGER,
+  weight_kg  NUMERIC(6,2),
+  seconds    INTEGER,
+  PRIMARY KEY (content_id, set_index, rep_index),
+  CONSTRAINT ck_content_set_index CHECK (set_index >= 1),
+  CONSTRAINT ck_content_rep_index CHECK (rep_index >= 0)
 );
 -- A ladder lives here too: rungs of 3, 6 and 9 seconds are three rows, not the string
 -- "3,6,9" in a column. That way the target and what you actually did are the same shape,

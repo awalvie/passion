@@ -53,7 +53,7 @@ without naming its kind.
 | `notes` | `content.notes` | no | 183 |
 | `source` | `content.source` | no | 106 |
 | `media` | `content_media` rows | no | 112 |
-| `per_side` | **new column** | no | 24 need it |
+| `per_side` | `content.per_side` | no | 24 need it |
 | `sets` | `content.d_sets` | no | 70 |
 | `reps` | `content.d_reps` | no | 70 |
 | `weight_kg` | `content.d_weight_kg` | no | 1 |
@@ -62,6 +62,7 @@ without naming its kind.
 | `set_rest_seconds` | `content.d_set_rest_seconds` | no | 43 |
 | `prep_seconds` | `content.d_prep_seconds` | no | 35 |
 | `seconds` | `content.d_seconds` | no | 1 |
+| `per_set` | `content_set` rows | no | 3 |
 
 `kind` is one of four values. It says how you count the movement:
 
@@ -93,10 +94,33 @@ the notes, so the player counts 6 when you owe 12. `heel_hook_isometric_pull_60_
 is `sets: 6, reps: 1` with "per leg", and no reader can tell whether that is six total or six
 each.
 
-**`rung_seconds` is dropped.** Three files carry it, as the string `"3,6,9"`. It is a ladder,
-which is a per-use shape rather than a movement default, and the schema has no movement-level
-place for one. Each of the three is referenced exactly once, so the ladder moves to that
-reference as `per_set`.
+**`rung_seconds` becomes `per_set`, and it stays on the movement.** Three files carry it, as
+the string `"3,6,9"`. It is a ladder: one set is a 3-second hang, then 6, then 9.
+
+```yaml
+name: "Hangboard Ladder: Half Crimp"
+kind: "timed_reps"
+sets: 3
+per_set:
+  - seconds: 3
+  - seconds: 6
+  - seconds: 9
+rep_rest_seconds: 60
+```
+
+An earlier draft moved the ladder to the block that uses it. **That was wrong.** The name, the
+slug and the notes of those three files all describe the ladder, so moving it out would leave
+three movements named after a shape they no longer held, and no movement could ever be a
+ladder again.
+
+`per_set` rows land in `content_set`, a table added for this. Research first: seven other apps
+keep their movement library plain and put non-uniform sets in the workout. They can, because
+they also ship a library of named protocols — Crimpd has 200 of them. Here that would need a
+block inside a block, and the schema forbids it on purpose, because the fixed chain is what
+makes a loop impossible.
+
+A block that uses a ladder writes only `- ref: "hangboard_ladder_half_crimp"` and inherits the
+shape, the same way it inherits `sets`. It can still override with its own `per_set`.
 
 ---
 

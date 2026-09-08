@@ -61,6 +61,7 @@ CREATE TABLE content (
   source         VARCHAR(64)  NOT NULL DEFAULT '',
   retired_on     VARCHAR(10),
   movement_kind  VARCHAR(32),
+  per_side       BOOLEAN      NOT NULL DEFAULT FALSE,
   d_sets         INTEGER,
   d_reps         INTEGER,
   d_weight_kg    NUMERIC(6,2),
@@ -160,6 +161,20 @@ CREATE TABLE content_item_set (
   PRIMARY KEY (content_item_id, set_index, rep_index),
   CONSTRAINT ck_set_index CHECK (set_index >= 1),
   CONSTRAINT ck_rep_index CHECK (rep_index >= 0)
+);
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+CREATE TABLE content_set (
+  content_id BIGINT  NOT NULL REFERENCES content(id) ON DELETE CASCADE,
+  set_index  INTEGER NOT NULL,
+  rep_index  INTEGER NOT NULL DEFAULT 0,
+  reps       INTEGER,
+  weight_kg  NUMERIC(6,2),
+  seconds    INTEGER,
+  PRIMARY KEY (content_id, set_index, rep_index),
+  CONSTRAINT ck_content_set_index CHECK (set_index >= 1),
+  CONSTRAINT ck_content_rep_index CHECK (rep_index >= 0)
 );
 -- +goose StatementEnd
 

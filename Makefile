@@ -45,11 +45,19 @@ test:
 test-all: pg-up
 	PASSION_TEST_POSTGRES="$(PG_DSN)" go test ./store/... ./config/... ./web/... -count=1
 
+# Checks whether the container is RUNNING, not merely whether it exists. `docker inspect`
+# succeeds for an exited container, so the old test left a stopped container stopped and
+# then waited 40s for a database that was never going to answer.
 pg-up:
-	@docker inspect $(PG_CONTAINER) >/dev/null 2>&1 || \
+	@if [ "$$(docker inspect -f '{{.State.Running}}' $(PG_CONTAINER) 2>/dev/null)" = "true" ]; then \
+		:; \
+	elif docker inspect $(PG_CONTAINER) >/dev/null 2>&1; then \
+		docker start $(PG_CONTAINER) >/dev/null; \
+	else \
 		docker run -d --name $(PG_CONTAINER) \
 			-e POSTGRES_PASSWORD=passion -e POSTGRES_DB=passion_test \
-			-p $(PG_PORT):5432 postgres:17-alpine >/dev/null
+			-p $(PG_PORT):5432 postgres:17-alpine >/dev/null; \
+	fi
 	@printf 'waiting for postgres'
 	@for i in $$(seq 1 40); do \
 		docker exec $(PG_CONTAINER) psql -U postgres -d passion_test -c 'SELECT 1' >/dev/null 2>&1 && \
