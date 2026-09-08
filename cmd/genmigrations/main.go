@@ -22,7 +22,7 @@ const (
 	// The counts the schema is known to hold. They are asserted rather than reported,
 	// because a parse that silently loses a table would generate a migration that boots
 	// and is missing something.
-	wantTables   = 19
+	wantTables   = 20
 	wantIdentity = 13
 )
 

@@ -95,7 +95,7 @@ func TestMigrateCreatesEveryTable(t *testing.T) {
 	eachEngine(t, func(t *testing.T, s *Store) {
 		want := []string{
 			"account", "body_measurement", "grade_milestone",
-			"content", "content_item", "content_item_set", "content_media",
+			"content", "content_set", "content_item", "content_item_set", "content_media",
 			"tag", "content_tag",
 			"plan", "plan_slot", "plan_target", "scheduled", "calendar_event",
 			"place",
@@ -614,6 +614,78 @@ func TestPlanTargetRefusesTwoWholeCycleRows(t *testing.T) {
 
 // A ladder's rungs are reps inside one set, not sets of their own. Without rep_index in
 // the key, 3s / 6s / 9s could not be stored at all.
+// The reason content_set exists. "Hangboard Ladder: Half Crimp" is a 3s, then 6s, then 9s
+// hang, and that shape is what the movement IS -- its name, slug and notes all say so.
+// Before this table a ladder could only be written inside one block, so the library could
+// not hold one and three movements carried names describing a shape they did not have.
+func TestAMovementCanBeALadder(t *testing.T) {
+	eachEngine(t, func(t *testing.T, s *Store) {
+		seedContent(t, s, 10, KindMovement, "hangboard_ladder_half_crimp", nil)
+		mustExec(t, s, `UPDATE content SET d_sets=3, movement_kind='timed_reps' WHERE id=10`)
+
+		// One set of three reps, each a different length. rep_index carries the rung.
+		for i, secs := range []int{3, 6, 9} {
+			mustExec(t, s, `INSERT INTO content_set (content_id,set_index,rep_index,seconds)
+			                VALUES (10,1,?,?)`, i, secs)
+		}
+
+		rows, err := s.read(context.Background()).Raw(
+			`SELECT seconds FROM content_set WHERE content_id=10 AND set_index=1
+			 ORDER BY rep_index`).Rows()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer rows.Close()
+		var got []int
+		for rows.Next() {
+			var n int
+			if err := rows.Scan(&n); err != nil {
+				t.Fatal(err)
+			}
+			got = append(got, n)
+		}
+		if len(got) != 3 || got[0] != 3 || got[1] != 6 || got[2] != 9 {
+			t.Fatalf("the ladder read back as %v, want [3 6 9]", got)
+		}
+
+		// A block that uses it carries no rows of its own; it inherits the shape.
+		seedContent(t, s, 20, KindBlock, "integrated_strength_a", nil)
+		mustExec(t, s, `INSERT INTO content_item (parent_id,parent_kind,child_id,child_kind,position)
+		                VALUES (20,'block',10,'movement',0)`)
+		if n := count(t, s, `SELECT count(*) FROM content_item_set`); n != 0 {
+			t.Errorf("the block carried %d per-set rows; it should inherit the movement's", n)
+		}
+
+		// Deleting the movement takes its ladder with it.
+		mustExec(t, s, `DELETE FROM content_item WHERE parent_id=20`)
+		mustExec(t, s, `DELETE FROM content WHERE id=10`)
+		if n := count(t, s, `SELECT count(*) FROM content_set WHERE content_id=10`); n != 0 {
+			t.Errorf("%d ladder rows outlived their movement", n)
+		}
+	})
+}
+
+// per_side exists because 24 movements say "per side" in prose only, so the app undercounts
+// them. It defaults to false, which is what every other movement needs.
+func TestPerSideDefaultsToFalse(t *testing.T) {
+	eachEngine(t, func(t *testing.T, s *Store) {
+		seedContent(t, s, 10, KindMovement, "bulgarian_split_squats", nil)
+		mustExec(t, s, `UPDATE content SET d_sets=1, d_reps=6, per_side=true WHERE id=10`)
+		seedContent(t, s, 11, KindMovement, "bench_press", nil)
+
+		var rows []Content
+		if err := s.read(context.Background()).Order("id").Find(&rows).Error; err != nil {
+			t.Fatal(err)
+		}
+		if !rows[0].PerSide {
+			t.Error("per_side did not survive a write")
+		}
+		if rows[1].PerSide {
+			t.Error("per_side defaulted to true; it must default to false")
+		}
+	})
+}
+
 func TestLadderRungsFitInsideOneSet(t *testing.T) {
 	eachEngine(t, func(t *testing.T, s *Store) {
 		seedContent(t, s, 20, KindBlock, "blk", nil)
