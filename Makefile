@@ -5,7 +5,7 @@ PASSION_ADDR ?= :$(PORT)
 
 DB_PATH ?= passion.db
 
-.PHONY: run run-v2 watch build reseed test test-all pg-up pg-down migrations
+.PHONY: run run-v2 watch build reseed test test-all pg-up pg-down migrations catalog-lint catalog-ids
 
 run:
 	PASSION_ADDR="$(PASSION_ADDR)" go run ./cmd/passion
@@ -79,3 +79,13 @@ pg-down:
 # Both dialect migrations are generated from docs/SCHEMA_V2.sql so they cannot drift.
 migrations:
 	go run ./cmd/genmigrations
+
+# Check the catalog trees without a database or a server. PRIVATE_CATALOG points at the
+# other repository; the shipped tree comes first so its rows can be named with app:<slug>.
+PRIVATE_CATALOG ?= ../passion-private-catalog
+catalog-lint:
+	go run . catalog lint catalog $(wildcard $(PRIVATE_CATALOG))
+
+# Write an id into every catalog file that has none. Commit what it changes.
+catalog-ids:
+	go run . catalog lint --fix catalog $(wildcard $(PRIVATE_CATALOG))

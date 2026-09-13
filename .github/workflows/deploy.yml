@@ -28,6 +28,12 @@ jobs:
         with:
           go-version-file: go.mod
 
+      # A catalog file with no id cannot be imported, and the shipped tree is embedded in
+      # the binary, so the server could never fix one itself. Catching it here stops the
+      # deploy instead of stopping the server after the binary is already copied.
+      - name: Check the catalog trees
+        run: go run . catalog lint catalog catalog-private
+
       - name: Build
         run: CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o passion ./cmd/passion
 
