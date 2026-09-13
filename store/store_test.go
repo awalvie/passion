@@ -96,7 +96,7 @@ func TestMigrateCreatesEveryTable(t *testing.T) {
 		want := []string{
 			"account", "body_measurement", "grade_milestone",
 			"content", "content_set", "content_item", "content_item_set", "content_media",
-			"tag", "content_tag",
+			"tag", "content_tag", "movement_pref",
 			"plan", "plan_slot", "plan_target", "scheduled", "calendar_event",
 			"place",
 			"log", "log_entry", "log_set", "log_climb",
@@ -476,6 +476,15 @@ func TestDeletingAnAccountTakesItsDataAndLeavesTheCatalog(t *testing.T) {
 		                VALUES (1,5,11,'2026-01-06',?)`, time.Now())
 		mustExec(t, s, `INSERT INTO place (account_id,kind,name) VALUES (1,'gym','The Castle')`)
 		mustExec(t, s, `INSERT INTO body_measurement (account_id,taken_on) VALUES (1,'2026-01-01')`)
+		mustExec(t, s, `INSERT INTO grade_milestone (account_id,discipline,taken_on,grade,grade_ordinal)
+		                VALUES (1,'boulder','2026-01-02','7A',21)`)
+		mustExec(t, s, `INSERT INTO calendar_event (account_id,from_date,to_date,title,kind)
+		                VALUES (1,'2026-02-01','2026-02-08','Trip','trip')`)
+
+		// A pref on a row account 1 does not own, which is the case the column exists for.
+		seedContent(t, s, 13, KindMovement, "hang", nil)
+		mustExec(t, s, `INSERT INTO movement_pref (account_id,movement_id,movement_kind,created_at,updated_at)
+		                VALUES (1,13,'movement',?,?)`, time.Now(), time.Now())
 
 		logID, entryID := uuid.NewString(), uuid.NewString()
 		mustExec(t, s, `INSERT INTO log (id,account_id,on_date,state,created_at,updated_at)
@@ -500,6 +509,9 @@ func TestDeletingAnAccountTakesItsDataAndLeavesTheCatalog(t *testing.T) {
 			{"their scheduled rows", `SELECT count(*) FROM scheduled WHERE account_id=1`},
 			{"their places", `SELECT count(*) FROM place WHERE account_id=1`},
 			{"their measurements", `SELECT count(*) FROM body_measurement WHERE account_id=1`},
+			{"their grades", `SELECT count(*) FROM grade_milestone WHERE account_id=1`},
+			{"their calendar events", `SELECT count(*) FROM calendar_event WHERE account_id=1`},
+			{"their movement prefs", `SELECT count(*) FROM movement_pref WHERE account_id=1`},
 			{"their logs", `SELECT count(*) FROM log WHERE account_id=1`},
 			{"their log entries", `SELECT count(*) FROM log_entry e JOIN log l ON l.id = e.log_id WHERE l.account_id=1`},
 			{"their log sets", `SELECT count(*) FROM log_set`},
