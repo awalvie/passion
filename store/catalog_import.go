@@ -57,15 +57,23 @@ func (s *Store) ImportShipped(ctx context.Context, t *Tree) (ImportResult, error
 // ImportOwned writes a tree as one account's own content. Configuration names the owner by
 // email, not id: an id goes stale when the account is deleted.
 func (s *Store) ImportOwned(ctx context.Context, t *Tree, ownerEmail string) (ImportResult, error) {
-	var a Account
-	err := s.read(ctx).Where("email = ?", normalizeEmail(ownerEmail)).First(&a).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ImportResult{Tree: t.Name}, fmt.Errorf("%w: %q", ErrNoSuchOwner, ownerEmail)
-	}
+	id, err := s.ownerID(ctx, ownerEmail)
 	if err != nil {
 		return ImportResult{Tree: t.Name}, err
 	}
-	return s.importTree(ctx, t, &a.ID)
+	return s.importTree(ctx, t, &id)
+}
+
+func (s *Store) ownerID(ctx context.Context, email string) (int64, error) {
+	var a Account
+	err := s.read(ctx).Where("email = ?", normalizeEmail(email)).First(&a).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return 0, fmt.Errorf("%w: %q", ErrNoSuchOwner, email)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return a.ID, nil
 }
 
 // TreeMenu is one menu in a tree, with the slug it will hold. A menu has no file, so its

@@ -12,6 +12,36 @@ import (
 	"gorm.io/gorm"
 )
 
+type TreeSummary struct {
+	Name     string
+	Owner    string // empty when the app ships it
+	RowCount int
+}
+
+func (s *Store) Trees(ctx context.Context) ([]TreeSummary, error) {
+	var out []TreeSummary
+	err := s.read(ctx).Raw(`
+		SELECT c.source_tree AS name, COALESCE(a.email, '') AS owner, COUNT(*) AS row_count
+		FROM content c
+		LEFT JOIN account a ON a.id = c.author_id
+		WHERE c.source_tree IS NOT NULL
+		GROUP BY c.source_tree, a.email
+		ORDER BY c.source_tree, owner`).Scan(&out).Error
+	return out, err
+}
+
+func (s *Store) ExportShipped(ctx context.Context, name string) (map[string][]byte, error) {
+	return s.ExportTree(ctx, name, nil)
+}
+
+func (s *Store) ExportOwned(ctx context.Context, name, ownerEmail string) (map[string][]byte, error) {
+	id, err := s.ownerID(ctx, ownerEmail)
+	if err != nil {
+		return nil, err
+	}
+	return s.ExportTree(ctx, name, &id)
+}
+
 // ExportTree returns one tree's rows as files, keyed by path. Nothing is written to disk.
 // authorID is nil for the shipped tree, the owning account for a private one.
 func (s *Store) ExportTree(ctx context.Context, name string, authorID *int64) (map[string][]byte, error) {

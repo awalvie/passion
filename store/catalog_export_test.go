@@ -1,8 +1,11 @@
 package store
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -231,6 +234,53 @@ func TestExportOmitsWhatWasNeverSet(t *testing.T) {
 	})
 }
 
+func TestTreesNamesEveryTreeAndItsOwner(t *testing.T) {
+	eachEngine(t, func(t *testing.T, s *Store) {
+		ctx := context.Background()
+		seedAccount(t, s, 1, "a@b.c")
+		if _, err := s.ImportShipped(ctx, loadGood(t, shippedOnly(), ShippedTree)); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.ImportOwned(ctx, loadGood(t, goodTree(), "private"), "a@b.c"); err != nil {
+			t.Fatal(err)
+		}
+
+		trees, err := s.Trees(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := map[string]TreeSummary{}
+		for _, tr := range trees {
+			got[tr.Name] = tr
+		}
+		if len(got) != 2 {
+			t.Fatalf("want two trees, got %v", trees)
+		}
+		if got[ShippedTree].Owner != "" {
+			t.Errorf("the shipped tree reports owner %q", got[ShippedTree].Owner)
+		}
+		if got["private"].Owner != "a@b.c" {
+			t.Errorf("the private tree reports owner %q", got["private"].Owner)
+		}
+		if got["private"].RowCount == 0 {
+			t.Error("the private tree reports no rows")
+		}
+	})
+}
+
+func TestExportingAnUnknownOwnerIsRefused(t *testing.T) {
+	eachEngine(t, func(t *testing.T, s *Store) {
+		ctx := context.Background()
+		seedAccount(t, s, 1, "a@b.c")
+		if _, err := s.ImportOwned(ctx, loadGood(t, goodTree(), "private"), "a@b.c"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.ExportOwned(ctx, "private", "nobody@b.c"); !errors.Is(err, ErrNoSuchOwner) {
+			t.Errorf("want ErrNoSuchOwner, got %v", err)
+		}
+	})
+}
+
 // An export holds one tree's own rows and nothing else.
 func TestExportingAPrivateTreeHoldsOnlyItsOwnRows(t *testing.T) {
 	eachEngine(t, func(t *testing.T, s *Store) {
@@ -269,4 +319,40 @@ func dumpFiles(files map[string][]byte) string {
 		fmt.Fprintf(&b, "--- %s\n%s\n", p, files[p])
 	}
 	return b.String()
+}
+
+// The shipped tree on disk must be byte-for-byte what the exporter writes. Otherwise
+// `passion catalog export` into a scratch directory reports a diff on every file, and the
+// one tool for seeing what the app holds is drowned in key-order noise.
+func TestTheShippedTreeIsWrittenTheWayTheExporterWritesIt(t *testing.T) {
+	const dir = "../catalog"
+	if _, err := os.Stat(dir); err != nil {
+		t.Skip("no shipped tree beside this package")
+	}
+
+	ctx := context.Background()
+	s := freshSQLite(t)
+	tree, err := Load(os.DirFS(dir), ShippedTree, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ImportShipped(ctx, tree); err != nil {
+		t.Fatal(err)
+	}
+	files, err := s.ExportShipped(ctx, ShippedTree)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for name, want := range files {
+		have, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(name)))
+		if err != nil {
+			t.Errorf("%s: the exporter writes this file and the tree does not hold it", name)
+			continue
+		}
+		if !bytes.Equal(have, want) {
+			t.Errorf("%s: on disk differs from what the exporter writes. "+
+				"Run `make catalog-export` and commit the result", name)
+		}
+	}
 }
