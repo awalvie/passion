@@ -23,3 +23,6 @@ passion.yaml
 *.exe
 *.out
 
+
+# Compiled one-off tools
+/convertcatalog
