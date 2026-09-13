@@ -1,0 +1,21 @@
+id: 269f31be-eed1-4f38-9e50-4f21451f373e
+name: Seated Hamstring Hold
+style: timed_reps
+tags:
+    - cooldown
+    - mobility
+per_side: true
+sets: 1
+reps: 2
+rep_seconds: 45
+set_rest_seconds: 0
+prep_seconds: 10
+media:
+    - url: https://www.youtube.com/watch?v=_Ivm4C53zBQ
+      thumb_url: https://i.ytimg.com/vi/_Ivm4C53zBQ/maxresdefault.jpg
+notes: |-
+    One leg straight, the other tucked in. Fold from the hips, chest toward
+    the shin.
+
+    A slight knee bend is fine — a long spine matters more than a straight
+    leg. 45s each side.

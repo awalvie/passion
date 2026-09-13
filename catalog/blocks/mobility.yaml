@@ -1,0 +1,13 @@
+id: b58c0b55-7cbe-4a82-8a25-7d0a550fdf8e
+name: Mobility
+tags:
+    - mobility
+    - strength
+items:
+    - movement: cossack_squat
+    - movement: horse_stance_squats
+    - movement: tailors_pose
+    - movement: active_90_90
+    - movement: kneeling_tilt
+    - movement: copenhagen_adduction
+    - movement: knee_to_wall_ankle

@@ -1,0 +1,9 @@
+id: a97066ed-016b-45a2-b767-303a1d04a71d
+name: Hangs
+items:
+    - movement: isometric_hang
+    - movement: isometric_hang_front_3_open
+    - movement: isometric_hang_front_2_open
+    - movement: isometric_hang_middle_2_open
+    - movement: isometric_hang_front_2_half_crimp
+    - movement: isometric_hang_middle_2_half_crimp

@@ -1,0 +1,19 @@
+id: aad06d04-64b0-48c3-969d-de674bc94265
+name: Lizard Pose
+style: timed_reps
+tags:
+    - cooldown
+    - mobility
+per_side: true
+sets: 1
+reps: 2
+rep_seconds: 60
+set_rest_seconds: 0
+prep_seconds: 10
+media:
+    - url: https://www.youtube.com/watch?v=14rq7Gfm4aM
+      thumb_url: https://i.ytimg.com/vi/14rq7Gfm4aM/maxresdefault.jpg
+notes: |-
+    Long lunge, both hands inside the front foot. Back knee down or up.
+
+    Let the back hip sink toward the floor. 60s each side.

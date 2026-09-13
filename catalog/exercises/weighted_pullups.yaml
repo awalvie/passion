@@ -1,9 +1,0 @@
-name: "Weighted Pull-ups"
-slug: "weighted_pull_ups"
-label: "strength, power"
-kind: "reps_and_sets"
-sets: 5
-reps: 5
-set_rest_seconds: 120
-weight_kg: 10
-notes: "Controlled tempo"

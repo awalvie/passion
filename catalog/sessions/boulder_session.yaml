@@ -1,0 +1,15 @@
+id: bfbfa010-1020-4c47-85ce-38d8cfec9ae0
+name: Boulder Session
+color: '#ef4444'
+tags:
+    - boulder
+    - power
+    - technique
+needs: bouldering wall
+items:
+    - block: warm_up
+    - block: drills
+    - block: bouldering
+    - block: antagonist_prehab
+    - block: cooldown_stretch
+    - block: journal
