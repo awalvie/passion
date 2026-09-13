@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -34,6 +35,10 @@ var staticFS embed.FS
 var catalogFS embed.FS
 
 func main() {
+	// Checked before the server's flags are parsed. It reads files and nothing else.
+	if len(os.Args) > 1 && os.Args[1] == "catalog" {
+		os.Exit(runCatalog(os.Args[2:]))
+	}
 	if err := run(); err != nil {
 		fmt.Fprintln(os.Stderr, "passion:", err)
 		os.Exit(1)
@@ -86,6 +91,12 @@ func run() error {
 	}
 	if *migrateOnly {
 		return nil
+	}
+
+	if cfg.Catalog.Import {
+		if err := importCatalog(ctx, st, cfg, log); err != nil {
+			return err
+		}
 	}
 
 	// Sub the embedded trees so a template path is "login.html" rather than
@@ -153,7 +164,7 @@ func newLogger(cfg config.LogCfg) *slog.Logger {
 }
 
 // warnAboutFootguns says once, loudly, when something is on that must not be on in
-// production. Both are refused outright in the configurations where they would be worst.
+// production.
 func warnAboutFootguns(log *slog.Logger, cfg config.App) {
 	if cfg.Auth.DevAuthBypass {
 		log.Warn("auth.dev_auth_bypass is on: every request is authenticated as the first account")
@@ -163,15 +174,79 @@ func warnAboutFootguns(log *slog.Logger, cfg config.App) {
 	}
 }
 
-// catalogTrees is what phase 2 will pass to the importer: the embedded tree first, then
-// any extra on-disk trees from configuration. Referenced here so the embed is not unused
-// before the importer exists.
-func catalogTrees(cfg config.App) (fs.FS, []string) {
-	sub, err := fs.Sub(catalogFS, "catalog")
+// importCatalog brings every tree into the database, shipped first. A private tree names
+// shipped rows with app:<slug>, so those rows have to exist before it is read.
+func importCatalog(ctx context.Context, st *store.Store, cfg config.App, log *slog.Logger) error {
+	shipped, err := fs.Sub(catalogFS, "catalog")
 	if err != nil {
-		return nil, cfg.Catalog.Dirs
+		return err
 	}
-	return sub, cfg.Catalog.Dirs
+	// The shipped tree is embedded, so nothing can write an id into it at run time. A file
+	// with no id there is a build fault, caught in CI.
+	app, err := store.Load(shipped, store.ShippedTree, nil)
+	if err != nil {
+		return fmt.Errorf("the catalog built into this binary does not load: %w.\n"+
+			"Run `passion catalog lint --fix ./catalog` and rebuild", err)
+	}
+	res, err := st.ImportShipped(ctx, app)
+	if err != nil {
+		return err
+	}
+	logImport(log, res)
+
+	known := app.Index(true)
+	for _, pt := range cfg.Catalog.Private {
+		if err := importPrivate(ctx, st, pt, known, log); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-var _ = catalogTrees
+func importPrivate(ctx context.Context, st *store.Store, pt config.PrivateTree,
+	known map[store.Ref]bool, log *slog.Logger) error {
+
+	// Only write when something is missing, so an ordinary boot never touches the tree.
+	missing, err := store.MissingIDs(pt.Dir)
+	if err != nil {
+		return fmt.Errorf("reading %s: %w", pt.Dir, err)
+	}
+	if len(missing) > 0 {
+		wrote, err := store.MintIDs(pt.Dir)
+		if err != nil {
+			return fmt.Errorf("%s has %d files with no id and cannot be written: %w.\n"+
+				"Run `passion catalog lint --fix %s` where the tree can be written, and "+
+				"commit the result. The first is %s",
+				pt.Dir, len(missing), err, pt.Dir, missing[0])
+		}
+		log.Info("wrote ids into a catalog tree", "tree", pt.Dir, "files", len(wrote))
+	}
+
+	tree, err := store.Load(os.DirFS(pt.Dir), filepath.Base(pt.Dir), known)
+	if err != nil {
+		return fmt.Errorf("catalog tree %s: %w", pt.Dir, err)
+	}
+
+	res, err := st.ImportOwned(ctx, tree, pt.Owner)
+	if errors.Is(err, store.ErrNoSuchOwner) {
+		log.Warn("skipping a private catalog tree: no account holds its owner email",
+			"tree", pt.Dir, "owner", pt.Owner)
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	logImport(log, res)
+	return nil
+}
+
+func logImport(log *slog.Logger, res store.ImportResult) {
+	log.Info("catalog imported",
+		"tree", res.Tree, "inserted", res.Inserted, "updated", res.Updated,
+		"unchanged", res.Unchanged, "retired", res.Retired, "skipped", len(res.Skipped))
+	// Named one by one: nothing else says that the file has stopped having any effect.
+	for _, f := range res.Skipped {
+		log.Warn("a catalog file is ignored: its row was edited in the app",
+			"tree", res.Tree, "file", f)
+	}
+}
