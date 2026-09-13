@@ -31,6 +31,7 @@ CREATE TABLE body_measurement (
   account_id BIGINT      NOT NULL REFERENCES account(id) ON DELETE CASCADE,
   taken_on   VARCHAR(10) NOT NULL,
   weight_kg  NUMERIC(5,2),
+  CONSTRAINT ck_body_taken_on    CHECK (length(taken_on) = 10),
   CONSTRAINT ux_body_measurement UNIQUE (account_id, taken_on)
 );
 -- +goose StatementEnd
@@ -44,6 +45,7 @@ CREATE TABLE grade_milestone (
   grade         VARCHAR(32) NOT NULL,
   grade_ordinal INTEGER     NOT NULL,
   CONSTRAINT ck_grade_discipline CHECK (discipline IN ('boulder','route')),
+  CONSTRAINT ck_grade_taken_on   CHECK (length(taken_on) = 10),
   CONSTRAINT ux_grade_milestone  UNIQUE (account_id, discipline, taken_on)
 );
 -- +goose StatementEnd
@@ -51,17 +53,17 @@ CREATE TABLE grade_milestone (
 -- +goose StatementBegin
 CREATE TABLE content (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  uuid           VARCHAR(36)  NOT NULL,
+  family         VARCHAR(36)  NOT NULL,
   kind           VARCHAR(16)  NOT NULL,
   slug           VARCHAR(128) NOT NULL,
   name           VARCHAR(255) NOT NULL,
-  content_key    CHAR(36)     NOT NULL,
   source_tree    VARCHAR(64),
   author_id      BIGINT       REFERENCES account(id) ON DELETE CASCADE,
-  forked_from_id BIGINT,
   notes          TEXT         NOT NULL DEFAULT '',
   source         VARCHAR(64)  NOT NULL DEFAULT '',
   retired_on     VARCHAR(10),
-  movement_kind  VARCHAR(32),
+  movement_style VARCHAR(32),
   per_side       BOOLEAN      NOT NULL DEFAULT FALSE,
   d_sets         INTEGER,
   d_reps         INTEGER,
@@ -80,10 +82,15 @@ CREATE TABLE content (
   CONSTRAINT ck_content_kind       CHECK (kind IN ('movement','menu','block','session')),
   CONSTRAINT ck_content_block_kind CHECK (block_kind IS NULL
                                           OR block_kind IN ('warmup','main','cooldown')),
-  CONSTRAINT ck_content_pick       CHECK (pick_count IS NULL OR pick_count >= 1),
-  CONSTRAINT ck_content_not_self   CHECK (forked_from_id IS NULL OR forked_from_id <> id),
-  CONSTRAINT fk_content_forked FOREIGN KEY (forked_from_id, kind)
-    REFERENCES content (id, kind) ON DELETE RESTRICT,
+  CONSTRAINT ck_content_style       CHECK (movement_style IS NULL
+    OR movement_style IN ('climbing','open','reps_and_sets','timed_reps')),
+  CONSTRAINT ck_content_pick       CHECK (
+       (kind =  'menu' AND pick_count IS NOT NULL AND pick_count >= 0)
+    OR (kind <> 'menu' AND pick_count IS NULL)),
+  CONSTRAINT ck_content_slug       CHECK (slug NOT LIKE '%:%'),
+  CONSTRAINT ck_content_retired    CHECK (retired_on IS NULL OR length(retired_on) = 10),
+  CONSTRAINT ck_content_uuid       CHECK (length(uuid) = 36),
+  CONSTRAINT ck_content_family     CHECK (length(family) = 36),
   CONSTRAINT ux_content_id_kind    UNIQUE (id, kind)
 );
 -- +goose StatementEnd
@@ -97,15 +104,23 @@ CREATE UNIQUE INDEX ux_content_mine    ON content (author_id, kind, slug) WHERE 
 -- +goose StatementEnd
 
 -- +goose StatementBegin
+CREATE UNIQUE INDEX ux_content_uuid_shipped ON content (uuid)            WHERE author_id IS NULL;
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+CREATE UNIQUE INDEX ux_content_uuid_mine    ON content (author_id, uuid) WHERE author_id IS NOT NULL;
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+CREATE INDEX ix_content_family ON content (family);
+-- +goose StatementEnd
+
+-- +goose StatementBegin
 CREATE INDEX ix_content_author ON content (author_id);
 -- +goose StatementEnd
 
 -- +goose StatementBegin
 CREATE INDEX ix_content_kind   ON content (kind);
--- +goose StatementEnd
-
--- +goose StatementBegin
-CREATE INDEX ix_content_forked ON content (forked_from_id);
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -139,6 +154,7 @@ CREATE TABLE content_item (
     OR (parent_kind = 'menu'    AND child_kind = 'movement')
   ),
   CONSTRAINT ck_item_not_self CHECK (parent_id <> child_id),
+  CONSTRAINT ck_item_position  CHECK (position >= 0),
   CONSTRAINT ux_item_edge UNIQUE (parent_id, child_id)
 );
 -- +goose StatementEnd
@@ -176,6 +192,28 @@ CREATE TABLE content_set (
   PRIMARY KEY (content_id, set_index, rep_index),
   CONSTRAINT ck_content_set_index CHECK (set_index >= 1),
   CONSTRAINT ck_content_rep_index CHECK (rep_index >= 0)
+);
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+CREATE TABLE movement_pref (
+  account_id    BIGINT      NOT NULL REFERENCES account(id) ON DELETE CASCADE,
+  movement_id   BIGINT      NOT NULL,
+  movement_kind VARCHAR(16) NOT NULL DEFAULT 'movement',
+  sets              INTEGER,
+  reps              INTEGER,
+  weight_kg         NUMERIC(6,2),
+  rep_seconds       INTEGER,
+  rep_rest_seconds  INTEGER,
+  set_rest_seconds  INTEGER,
+  prep_seconds      INTEGER,
+  seconds           INTEGER,
+  created_at    TIMESTAMP   NOT NULL,
+  updated_at    TIMESTAMP   NOT NULL,
+  PRIMARY KEY (account_id, movement_id),
+  CONSTRAINT ck_pref_kind CHECK (movement_kind = 'movement'),
+  CONSTRAINT fk_pref_movement FOREIGN KEY (movement_id, movement_kind)
+    REFERENCES content (id, kind) ON DELETE CASCADE
 );
 -- +goose StatementEnd
 
@@ -227,7 +265,8 @@ CREATE TABLE plan (
   goals_json TEXT         NOT NULL DEFAULT '[]',
   created_at TIMESTAMP    NOT NULL,
   updated_at TIMESTAMP    NOT NULL,
-  CONSTRAINT ck_plan_weeks CHECK (weeks >= 1)
+  CONSTRAINT ck_plan_weeks     CHECK (weeks >= 1),
+  CONSTRAINT ck_plan_starts_on CHECK (length(starts_on) = 10)
 );
 -- +goose StatementEnd
 
@@ -283,7 +322,8 @@ CREATE TABLE scheduled (
   created_at   TIMESTAMP   NOT NULL,
   CONSTRAINT fk_sched_session FOREIGN KEY (session_id, session_kind)
     REFERENCES content (id, kind) ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED,
-  CONSTRAINT ck_sched_session_kind CHECK (session_kind = 'session')
+  CONSTRAINT ck_sched_session_kind CHECK (session_kind = 'session'),
+  CONSTRAINT ck_sched_on_date      CHECK (length(on_date) = 10)
 );
 -- +goose StatementEnd
 
@@ -307,6 +347,8 @@ CREATE TABLE calendar_event (
   blocks     BOOLEAN      NOT NULL DEFAULT TRUE,
   notes      TEXT         NOT NULL DEFAULT '',
   CONSTRAINT ck_event_kind  CHECK (kind IN ('trip','injury','rest','competition','other')),
+  CONSTRAINT ck_event_from  CHECK (length(from_date) = 10),
+  CONSTRAINT ck_event_to    CHECK (length(to_date)   = 10),
   CONSTRAINT ck_event_range CHECK (to_date >= from_date)
 );
 -- +goose StatementEnd
@@ -333,13 +375,14 @@ CREATE INDEX ix_place_account ON place (account_id);
 
 -- +goose StatementBegin
 CREATE TABLE log (
-  id           CHAR(36)     PRIMARY KEY,
+  id           VARCHAR(36)  PRIMARY KEY NOT NULL,
   account_id   BIGINT       NOT NULL REFERENCES account(id) ON DELETE CASCADE,
   on_date      VARCHAR(10)  NOT NULL,
   scheduled_id BIGINT       REFERENCES scheduled(id) ON DELETE SET NULL,
-  session_id   BIGINT       REFERENCES content(id)   ON DELETE SET NULL,
-  session_slug VARCHAR(128) NOT NULL DEFAULT '',
-  session_name VARCHAR(255) NOT NULL DEFAULT '',
+  session_id     BIGINT       REFERENCES content(id) ON DELETE SET NULL,
+  session_family VARCHAR(36)  NOT NULL DEFAULT '',
+  session_slug   VARCHAR(128) NOT NULL DEFAULT '',
+  session_name   VARCHAR(255) NOT NULL DEFAULT '',
   color        VARCHAR(16)  NOT NULL DEFAULT '',
   place_id     BIGINT       REFERENCES place(id) ON DELETE SET NULL,
   place_name   VARCHAR(128) NOT NULL DEFAULT '',
@@ -358,7 +401,8 @@ CREATE TABLE log (
   created_at   TIMESTAMP    NOT NULL,
   updated_at   TIMESTAMP    NOT NULL,
   CONSTRAINT ck_log_state CHECK (state IN ('draft','active','done','abandoned')),
-  CONSTRAINT ux_log_identity UNIQUE (id, account_id, on_date)
+  CONSTRAINT ck_log_on_date CHECK (length(on_date) = 10),
+  CONSTRAINT ck_log_session_family CHECK (session_family = '' OR length(session_family) = 36)
 );
 -- +goose StatementEnd
 
@@ -379,17 +423,21 @@ CREATE INDEX ix_log_state   ON log (account_id, state);
 -- +goose StatementEnd
 
 -- +goose StatementBegin
+CREATE INDEX ix_log_family  ON log (session_family, account_id) WHERE session_family <> '';
+-- +goose StatementEnd
+
+-- +goose StatementBegin
 CREATE TABLE log_entry (
-  id            CHAR(36)     PRIMARY KEY,
-  log_id        CHAR(36)     NOT NULL,
-  account_id    BIGINT       NOT NULL,
-  on_date       VARCHAR(10)  NOT NULL,
+  id            VARCHAR(36)  PRIMARY KEY NOT NULL,
+  log_id        VARCHAR(36)  NOT NULL REFERENCES log(id) ON DELETE CASCADE,
   position      INTEGER      NOT NULL,
   block_name    VARCHAR(255) NOT NULL DEFAULT '',
   block_kind    VARCHAR(16)  NOT NULL DEFAULT '',
-  movement_key  CHAR(36)     NOT NULL,
-  movement_name VARCHAR(255) NOT NULL,
-  movement_kind VARCHAR(32)  NOT NULL DEFAULT '',
+  movement_id     BIGINT       REFERENCES content(id) ON DELETE SET NULL,
+  movement_family VARCHAR(36)  NOT NULL,
+  movement_slug   VARCHAR(128) NOT NULL,
+  movement_name   VARCHAR(255) NOT NULL,
+  movement_style VARCHAR(32) NOT NULL DEFAULT '',
   t_sets        INTEGER,
   t_reps        INTEGER,
   t_weight_kg   NUMERIC(6,2),
@@ -406,29 +454,24 @@ CREATE TABLE log_entry (
   notes           TEXT        NOT NULL DEFAULT '',
   created_at    TIMESTAMP    NOT NULL,
   updated_at    TIMESTAMP    NOT NULL,
-  CONSTRAINT fk_entry_log FOREIGN KEY (log_id, account_id, on_date)
-    REFERENCES log (id, account_id, on_date) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT ck_entry_state    CHECK (state IN ('pending','done','skipped')),
-  CONSTRAINT ck_entry_set_mode CHECK (set_mode IN ('simple','per_set'))
+  CONSTRAINT ck_entry_set_mode CHECK (set_mode IN ('simple','per_set')),
+  CONSTRAINT ck_entry_family   CHECK (length(movement_family) = 36)
 );
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-CREATE INDEX ix_entry_progression ON log_entry (account_id, movement_key, on_date DESC);
+CREATE INDEX ix_entry_movement ON log_entry (movement_family, log_id);
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-CREATE INDEX ix_entry_log         ON log_entry (log_id, position);
--- +goose StatementEnd
-
--- +goose StatementBegin
-CREATE INDEX ix_content_key       ON content (content_key);
+CREATE INDEX ix_entry_log      ON log_entry (log_id, position);
 -- +goose StatementEnd
 
 -- +goose StatementBegin
 CREATE TABLE log_set (
-  id              CHAR(36) PRIMARY KEY,
-  log_entry_id    CHAR(36) NOT NULL REFERENCES log_entry(id) ON DELETE CASCADE,
+  id              VARCHAR(36) PRIMARY KEY NOT NULL,
+  log_entry_id    VARCHAR(36) NOT NULL REFERENCES log_entry(id) ON DELETE CASCADE,
   set_index       INTEGER  NOT NULL,
   rep_index       INTEGER  NOT NULL DEFAULT 0,
   target_reps     INTEGER,
@@ -446,8 +489,8 @@ CREATE TABLE log_set (
 
 -- +goose StatementBegin
 CREATE TABLE log_climb (
-  id           CHAR(36)    PRIMARY KEY,
-  log_entry_id CHAR(36)    NOT NULL REFERENCES log_entry(id) ON DELETE CASCADE,
+  id           VARCHAR(36) PRIMARY KEY NOT NULL,
+  log_entry_id VARCHAR(36) NOT NULL REFERENCES log_entry(id) ON DELETE CASCADE,
   position     INTEGER     NOT NULL DEFAULT 0,
   kind         VARCHAR(16) NOT NULL,
   setting      VARCHAR(16) NOT NULL DEFAULT '',
