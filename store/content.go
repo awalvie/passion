@@ -28,14 +28,6 @@ func (s *Store) ContentByID(ctx context.Context, accountID, id int64) (Content, 
 	return c, err
 }
 
-func (s *Store) ContentBySlug(ctx context.Context, accountID int64, kind, slug string) (Content, error) {
-	var c Content
-	// Own rows first, so a copy shadows the app's row of the same slug.
-	err := visible(s.read(ctx).Where("kind = ? AND slug = ?", kind, slug), accountID).
-		Order("author_id IS NULL").First(&c).Error
-	return c, err
-}
-
 // Node is one row as its parent asks for it: the row itself, plus the numbers and notes that
 // belong to this use of it rather than to the row.
 type Node struct {
