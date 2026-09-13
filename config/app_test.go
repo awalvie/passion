@@ -109,3 +109,41 @@ func TestASeedAccountIsOffByDefault(t *testing.T) {
 		t.Error("an account is seeded by default")
 	}
 }
+
+func TestTwoPrivateTreesMayNotShareAnOwner(t *testing.T) {
+	_, err := LoadApp(writeApp(t, `
+auth:
+  jwt_secret: "a-secret-long-enough-to-pass-validation-0123456789"
+catalog:
+  private:
+    - dir: /a/one
+      owner: me@example.test
+    - dir: /b/two
+      owner: ME@example.test
+`))
+	if err == nil {
+		t.Fatal("two trees under one owner were accepted")
+	}
+	if !strings.Contains(err.Error(), "overwrite") {
+		t.Errorf("the error does not say what goes wrong: %v", err)
+	}
+}
+
+func TestTwoPrivateTreesMayNotShareADirectoryName(t *testing.T) {
+	_, err := LoadApp(writeApp(t, `
+auth:
+  jwt_secret: "a-secret-long-enough-to-pass-validation-0123456789"
+catalog:
+  private:
+    - dir: /a/catalog
+      owner: one@example.test
+    - dir: /b/catalog
+      owner: two@example.test
+`))
+	if err == nil {
+		t.Fatal("two trees with one name were accepted")
+	}
+	if !strings.Contains(err.Error(), "catalog") {
+		t.Errorf("the error does not name the clash: %v", err)
+	}
+}
