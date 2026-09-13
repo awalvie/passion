@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -225,6 +226,8 @@ func (a App) Validate() error {
 		return fmt.Errorf("defaults.time_zone %q is not a known zone: %w", a.Defaults.TimeZone, err)
 	}
 
+	owners := map[string]string{}
+	names := map[string]string{}
 	for i, t := range a.Catalog.Private {
 		if strings.TrimSpace(t.Dir) == "" {
 			return fmt.Errorf("catalog.private[%d].dir must not be empty", i)
@@ -233,6 +236,23 @@ func (a App) Validate() error {
 			return fmt.Errorf("catalog.private[%d].owner must not be empty: it is the email of "+
 				"the account that owns every row %s writes", i, t.Dir)
 		}
+
+		// Two trees under one account share a slug namespace, so the second would shadow the
+		// first's rows rather than adding to them.
+		owner := strings.ToLower(strings.TrimSpace(t.Owner))
+		if was, dup := owners[owner]; dup {
+			return fmt.Errorf("catalog.private[%d]: %s and %s both import as %s, and one would "+
+				"overwrite the other", i, was, t.Dir, t.Owner)
+		}
+		owners[owner] = t.Dir
+
+		// The tree name is the directory's base name, and it is what a re-import matches on.
+		name := filepath.Base(strings.TrimRight(t.Dir, string(filepath.Separator)))
+		if was, dup := names[name]; dup {
+			return fmt.Errorf("catalog.private[%d]: %s and %s are both called %q, and a tree is "+
+				"matched by that name", i, was, t.Dir, name)
+		}
+		names[name] = t.Dir
 	}
 	return nil
 }
