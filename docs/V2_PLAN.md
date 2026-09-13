@@ -714,10 +714,16 @@ deadlift be a deadlift. The other 24 of the 29 public exercises missing a source
 
 # Part 4 — the phases
 
-19, not 13. Four of the original thirteen were two phases wearing one row, and phase 4's
-question could not be answered where it sat.
+20, not 13. Four of the original thirteen were two phases wearing one row, phase 4's
+question could not be answered where it sat, and 2b was split on 2026-09-13.
 
 Sizing is relative. Handler LOC is what that phase replaces, measured non-test.
+
+**Every phase from 2b on ends with something you can click**, not only with a passing test.
+Phases 0 to 2a did not, which is why nothing built so far can be looked at: the V2 home page
+is one sentence of HTML. A phase that cannot end on a screen is too big and gets split.
+`passion catalog export` is the stopgap for what has no screen yet — it writes the database
+back out as files, so a diff against the tree says what the app actually holds.
 
 ### Phase 0 — foundations · **L**
 
@@ -830,32 +836,52 @@ converter takes them with `-names`.
 `catalog/activity_templates` are gone, and `cmd/passion` reads all three. Nothing to fix —
 V1 dies at phase 12 — but master must not take this branch before then.
 
-### Phase 2b — the private tree, content reads, the library · **XL**
+### Phase 2b — the private tree and a read-only library · **L**
 
-The private tree imported **as one account's own content** per 1.10, `store/content.go` (the one
-visibility function, tree read, copy), and the library pages.
+Split out of the old XL 2b on 2026-09-13, so there is something to look at before the
+editors exist. Everything here is read-only: the private tree imported **as one account's
+own content** per 1.10, the visibility function and the tree read in `store/content.go`, and
+library pages that list and open content without changing any of it.
 
-**Gate, revised 2026-09-10.**
+**Gate.**
 
+- **You can open `/library`, click a session, and see its blocks, movements, menus and
+  numbers, against the real imported trees.** This is the phase's point: every phase after
+  it ends with something on a screen.
 - The public count does not move when the private tree imports. That is what proves the private
   tree did not leak into shipped.
 - A second account sees the public tree and none of the private one.
-- `CopyToMine` leaves the original row byte-identical, copies its blocks and edges, **keeps the
-  slug**, and creates **zero** new movement rows. Per 1.11 there is no `forked_from_id` to set.
-- `slug='silent_feet'` is one row while its `content_item` count is greater than one.
 - Per 1.10 items 1 and 6: an owned session holds edges to shipped children, and deleting the
   owner removes the session and its edges while every shipped child survives.
-- Per 1.11: a progression query spanning a copy returns one series rather than two, and two
-  unrelated movements with different names do not merge.
-- Per 1.13: editing a row with `source_tree` set **succeeds**, sets `source_tree` to NULL, keeps
-  the row's id and slug, and the next import names that file in its skipped list. The library
-  badges the row as detached from its file.
-- Per 1.13: `movement_pref` resolves in the documented order, and a pref on a row the person does
-  not own shows up inside a session the app ships.
 - **A regression test asserts the content picker never returns another account's private
   content** — `content_item` has no author-comparing constraint, so nothing in the database will
   catch that if the picker regresses. The exporter refuses such an edge rather than writing it,
   which is the second half of the same guard.
+- `passion catalog export <tree> <dir>` over each imported tree leaves the files unchanged.
+  A diff here is a bug in the importer or the exporter, and this is the phase where that
+  becomes checkable by hand rather than only in a test.
+
+### Phase 2c — copying, editing, and a person's own numbers · **L**
+
+The write half of the old 2b: `CopyToMine`, detaching a row from its file, and
+`movement_pref`.
+
+**Gate, revised 2026-09-10.**
+
+- `CopyToMine` leaves the original row byte-identical, copies its blocks and edges, **keeps the
+  slug**, and creates **zero** new movement rows. Per 1.11 there is no `forked_from_id` to set.
+- `slug='silent_feet'` is one row while its `content_item` count is greater than one.
+- Per 1.11: a progression query spanning a copy returns one series rather than two, and two
+  unrelated movements with different names do not merge.
+- Per 1.13: editing a row with `source_tree` set **succeeds**, sets `source_tree` to NULL, keeps
+  the row's id and slug, and the next import names that file in its skipped list.
+
+  **No badge for this, decided 2026-09-13.** Only someone keeping a catalog repository edits
+  YAML, and the import log already warns them by name on every boot. A badge would put an
+  implementation detail on screen for every other user, who never sees a file. This also
+  means no `detached_on` column: nothing needs to tell a detached row from a hand-typed one.
+- Per 1.13: `movement_pref` resolves in the documented order, and a pref on a row the person does
+  not own shows up inside a session the app ships.
 
 ### Phase 3 — run and log · **XL**
 
@@ -957,7 +983,7 @@ exists. Every Make target runs.
 | **The tag vocabulary is five axes in one flat list** — body part, equipment, discipline, quality, session role, skill — with 10 tokens used once or twice, and hard validation would freeze `hinge` and `squat` as permanent vocabulary | **Closed 2026-09-13 by removing the vocabulary.** The conversion still applies the 2026-09-08 merges and drops, so the shipped tree carries 21 tags, but nothing enforces a list any more. See 1.16 |
 | **The `web/` file list is a guess** | Expected to move at phase 4. Not a commitment |
 | **Two rounds of redesign landed on the identity and reference scheme** (1.11 to 1.14), and the second round deleted most of the first. Design churn on the schema is expensive once anything has shipped | **All of it is inside migration 001, where a CHECK, a UNIQUE and a primary key are still free to change on SQLite.** That window closes at the first real boot on real data. Anything after this is a new migration and a data move |
-| **A person hand-edits a file, restarts, and nothing happens** — because the row was edited in the app once and is detached from its file for good (1.13) | The import result names every skipped file, and the library badges the row. This is the failure mode the reporting exists for, and it is certain rather than hypothetical: hand-editing YAML is how this project is worked on |
+| **A person hand-edits a file, restarts, and nothing happens** — because the row was edited in the app once and is detached from its file for good (1.13) | The import result names every skipped file, on every boot. That is the whole mitigation, decided 2026-09-13: the only person who edits YAML is the one keeping a catalog repository, and they read that log. No badge, because every other user never sees a file |
 | **A person's history for a movement merges with the app's**, when they hold a movement with the same name as one the app ships and run both (1.11) | **Accepted.** It is almost always the same exercise, copied down to be edited. The merge is a read-time grouping over frozen columns, so a chart can always split it apart again. Guard: warn once when a name that already has logged history is created |
 | **A future release adds `weight_kg` to a slot in a shipped file**, silently overriding every account's own saved weight for that movement (1.13) | The importer refuses it for the shipped tree. Measured as zero occurrences today, and turned into a rule so it stays that way |
 
