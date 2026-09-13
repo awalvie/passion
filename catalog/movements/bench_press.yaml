@@ -4,11 +4,6 @@ style: reps_and_sets
 tags:
     - antagonist
     - strength
-sets: 1
-reps: 6
-media:
-    - url: https://www.youtube.com/watch?v=9FImGAOPysY
-      thumb_url: https://i.ytimg.com/vi/9FImGAOPysY/maxresdefault.jpg
 notes: |-
     Use 85% of 1RM. Can be performed with barbell or dumbbells.
 
@@ -52,3 +47,8 @@ notes: |-
     - Feet lifting or shifting during the press
 
     This should support climbing, not interfere with it. Err on the side of leaving reps in reserve unless specifically prescribed otherwise.
+media:
+    - url: https://www.youtube.com/watch?v=9FImGAOPysY
+      thumb_url: https://i.ytimg.com/vi/9FImGAOPysY/maxresdefault.jpg
+sets: 1
+reps: 6

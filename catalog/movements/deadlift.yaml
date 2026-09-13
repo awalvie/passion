@@ -3,9 +3,9 @@ name: Deadlift
 style: reps_and_sets
 tags:
     - strength
-sets: 3
-reps: 3
-set_rest_seconds: 90
 notes: |-
     Hip hinge. Heavy, low reps, form first — this is where hip and core tension
     comes from.
+sets: 3
+reps: 3
+set_rest_seconds: 90

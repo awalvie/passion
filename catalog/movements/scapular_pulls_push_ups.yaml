@@ -5,12 +5,6 @@ tags:
     - antagonist
     - shoulder
     - warmup
-sets: 2
-reps: 2
-rep_seconds: 40
-rep_rest_seconds: 20
-set_rest_seconds: 30
-prep_seconds: 5
 notes: |-
     Two stations, 40s each, twice through. Easy effort.
 
@@ -19,3 +13,9 @@ notes: |-
     2. Push-ups, slow. Knees down when the reps get ugly.
 
     Stop each station with reps in the bank.
+sets: 2
+reps: 2
+rep_seconds: 40
+rep_rest_seconds: 20
+set_rest_seconds: 30
+prep_seconds: 5

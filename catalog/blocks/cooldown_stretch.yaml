@@ -12,10 +12,10 @@ items:
     - movement: doorway_shoulder_opener
     - menu:
         name: Deep hip pick
-        pick: 1
         notes: |-
             One of these, whichever you feel like. They all train the same deep hip
             range, so rotating never leaves a gap.
+        pick: 1
         of:
             - middle_splits_hold
             - frog_stretch

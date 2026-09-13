@@ -4,15 +4,6 @@ style: timed_reps
 tags:
     - mobility
     - strength
-sets: 2
-reps: 6
-rep_seconds: 6
-rep_rest_seconds: 3
-set_rest_seconds: 30
-prep_seconds: 5
-media:
-    - url: https://www.youtube.com/watch?v=RAfCOcAaBSs
-      thumb_url: https://i.ytimg.com/vi/RAfCOcAaBSs/maxresdefault.jpg
 notes: |-
     **Intent of This Drill**
 
@@ -85,3 +76,12 @@ notes: |-
     **When This Drill Has Worked**
 
     You will notice: deeper horse stance comfort, more stable drop stance, less groin tightness during wide climbing, improved control in side split holds.
+media:
+    - url: https://www.youtube.com/watch?v=RAfCOcAaBSs
+      thumb_url: https://i.ytimg.com/vi/RAfCOcAaBSs/maxresdefault.jpg
+sets: 2
+reps: 6
+rep_seconds: 6
+rep_rest_seconds: 3
+set_rest_seconds: 30
+prep_seconds: 5

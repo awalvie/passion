@@ -5,12 +5,6 @@ tags:
     - core
     - strength
     - tension
-sets: 3
-reps: 6
-set_rest_seconds: 90
-media:
-    - url: https://www.youtube.com/watch?v=5AeKcMpqK2g
-      thumb_url: https://i.ytimg.com/vi/5AeKcMpqK2g/maxresdefault.jpg
 notes: |-
     Use 85% of max effort. Feet in TRX straps or rings, hands on floor under shoulders, strong high-plank (hollow-body) position.
 
@@ -33,3 +27,9 @@ notes: |-
     - Increasing range before earning control
 
     Progress by increasing range and control, not speed or reps. Regress to elbows or shorter range if position breaks down.
+media:
+    - url: https://www.youtube.com/watch?v=5AeKcMpqK2g
+      thumb_url: https://i.ytimg.com/vi/5AeKcMpqK2g/maxresdefault.jpg
+sets: 3
+reps: 6
+set_rest_seconds: 90

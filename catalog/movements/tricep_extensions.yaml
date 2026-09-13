@@ -4,12 +4,6 @@ style: reps_and_sets
 tags:
     - antagonist
     - strength
-sets: 3
-reps: 10
-set_rest_seconds: 60
-media:
-    - url: https://www.youtube.com/watch?v=TQbUBGWrL_k
-      thumb_url: https://i.ytimg.com/vi/TQbUBGWrL_k/maxresdefault.jpg
 notes: |-
     Use 85% of 1RM. Can be performed with cable, dumbbell, or band (overhead or pushdown-style).
 
@@ -39,3 +33,9 @@ notes: |-
     - Letting wrists collapse
 
     Overhead variations emphasize the long head and are excellent for mantle-specific strength. Pushdown-style variations are more elbow-friendly and easier to control during high climbing volume weeks.
+media:
+    - url: https://www.youtube.com/watch?v=TQbUBGWrL_k
+      thumb_url: https://i.ytimg.com/vi/TQbUBGWrL_k/maxresdefault.jpg
+sets: 3
+reps: 10
+set_rest_seconds: 60

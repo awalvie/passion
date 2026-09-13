@@ -4,12 +4,6 @@ style: reps_and_sets
 tags:
     - mobility
     - strength
-per_side: true
-sets: 1
-reps: 6
-media:
-    - url: https://www.youtube.com/watch?v=hBN0V2WMXhE
-      thumb_url: https://i.ytimg.com/vi/hBN0V2WMXhE/maxresdefault.jpg
 notes: |-
     6 reps per side. Use 85% of 1RM.
 
@@ -43,3 +37,9 @@ notes: |-
     - Letting the weight drift away from the leg
 
     If balance limits hinge quality, regress the stance before increasing load. Use a kickstand or slider-assisted variation as a regression.
+per_side: true
+media:
+    - url: https://www.youtube.com/watch?v=hBN0V2WMXhE
+      thumb_url: https://i.ytimg.com/vi/hBN0V2WMXhE/maxresdefault.jpg
+sets: 1
+reps: 6
