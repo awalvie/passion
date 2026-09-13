@@ -60,10 +60,23 @@ type Catalog struct {
 	// author, so there is nothing to protect against by leaving it off.
 	Import bool `yaml:"import"`
 
-	// Dirs are extra on-disk trees merged before the embedded catalog, with refs resolving
-	// across all of them. This is how the private catalog loads: it is a separate
-	// repository and cannot be embedded from this one.
-	Dirs []string `yaml:"dirs"`
+	// Private are on-disk trees owned by one account each. This is how a private catalog
+	// loads: it is a separate repository and cannot be embedded from this one.
+	//
+	// Imported after the shipped tree, which is load-bearing: a private tree refers to
+	// shipped slugs with app:<slug>, so those rows have to exist first.
+	Private []PrivateTree `yaml:"private"`
+}
+
+// PrivateTree is one on-disk tree and the account that owns every row it writes.
+type PrivateTree struct {
+	Dir string `yaml:"dir"`
+
+	// Owner is an EMAIL, never an id. The dead config named an id, the account it named was
+	// deleted, and the import went on writing rows under an id nothing pointed at. An email
+	// cannot go stale in silence: the importer resolves it at boot and says so when it
+	// cannot.
+	Owner string `yaml:"owner"`
 }
 
 type LogCfg struct {
@@ -193,6 +206,16 @@ func (a App) Validate() error {
 
 	if _, err := time.LoadLocation(a.Defaults.TimeZone); err != nil {
 		return fmt.Errorf("defaults.time_zone %q is not a known zone: %w", a.Defaults.TimeZone, err)
+	}
+
+	for i, t := range a.Catalog.Private {
+		if strings.TrimSpace(t.Dir) == "" {
+			return fmt.Errorf("catalog.private[%d].dir must not be empty", i)
+		}
+		if strings.TrimSpace(t.Owner) == "" {
+			return fmt.Errorf("catalog.private[%d].owner must not be empty: it is the email of "+
+				"the account that owns every row %s writes", i, t.Dir)
+		}
 	}
 	return nil
 }
