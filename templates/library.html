@@ -1,0 +1,34 @@
+{{ define "content" }}
+<section>
+  <h1 class="text-xl font-bold">Library</h1>
+  <p class="text-sm muted mt-1">Everything the app ships, plus your own.</p>
+
+  <nav class="mt-4 flex gap-1" aria-label="Library sections">
+    {{ range .Tabs }}
+      <a href="/library?kind={{ .Kind }}"
+         class="site-header-link{{ if .Active }} site-header-link-primary{{ end }}">{{ .Label }}</a>
+    {{ end }}
+  </nav>
+
+  {{ if not .Items }}
+    <p class="card card-pad mt-4 text-sm muted">Nothing here yet.</p>
+  {{ else }}
+    <ul class="mt-4 space-y-2 list-none p-0">
+      {{ range .Items }}
+        <li class="card card-pad">
+          <a href="/library/{{ .ID }}" class="flex items-center justify-between gap-3 no-underline">
+            <span class="min-w-0">
+              <span class="font-medium block truncate">{{ .Name }}</span>
+              {{ if .Notes }}<span class="text-xs muted block truncate">{{ .Notes }}</span>{{ end }}
+            </span>
+            {{ if .Mine }}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0"
+                    style="background:var(--accent-bg);color:var(--accent)">Yours</span>
+            {{ end }}
+          </a>
+        </li>
+      {{ end }}
+    </ul>
+  {{ end }}
+</section>
+{{ end }}

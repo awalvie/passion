@@ -1,0 +1,67 @@
+{{ define "content" }}
+<section>
+  <a href="/library?kind={{ .Node.Kind }}" class="text-xs muted no-underline">&larr; Library</a>
+
+  <div class="mt-2 flex items-center gap-2 flex-wrap">
+    <h1 class="text-xl font-bold m-0">{{ .Node.Name }}</h1>
+    {{ if .Node.Mine }}
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
+            style="background:var(--accent-bg);color:var(--accent)">Yours</span>
+    {{ end }}
+  </div>
+
+  {{ if .Node.Source }}<p class="text-xs muted mt-1">{{ .Node.Source }}</p>{{ end }}
+  {{ if .Node.Notes }}<p class="text-sm mt-3 whitespace-pre-line">{{ .Node.Notes }}</p>{{ end }}
+
+  {{ if .Node.Children }}
+    <div class="mt-4 space-y-3">
+      {{ range .Node.Children }}
+        <div class="card card-pad">
+          <div class="flex items-center justify-between gap-3">
+            <span class="font-medium">{{ .Name }}</span>
+            {{ template "library/dose" . }}
+          </div>
+          {{ if .EdgeNotes }}<p class="text-xs muted mt-1">{{ .EdgeNotes }}</p>{{ end }}
+
+          {{ if .Children }}
+            <ul class="mt-2 space-y-1 list-none p-0">
+              {{ range .Children }}
+                <li class="flex items-center justify-between gap-3 text-sm">
+                  <span class="min-w-0 truncate">
+                    {{ if eq .Kind "menu" }}Pick from:{{ end }} {{ .Name }}
+                  </span>
+                  {{ template "library/dose" . }}
+                </li>
+                {{ if .Children }}
+                  <ul class="ml-4 space-y-1 list-none p-0">
+                    {{ range .Children }}
+                      <li class="flex items-center justify-between gap-3 text-sm muted">
+                        <span class="min-w-0 truncate">{{ .Name }}</span>
+                        {{ template "library/dose" . }}
+                      </li>
+                    {{ end }}
+                  </ul>
+                {{ end }}
+              {{ end }}
+            </ul>
+          {{ end }}
+        </div>
+      {{ end }}
+    </div>
+  {{ end }}
+</section>
+{{ end }}
+
+{{/* dose prints the numbers a slot asks for, falling back to the row's own defaults. */}}
+{{ define "library/dose" }}
+  <span class="inline-flex items-center gap-2 text-[11px] shrink-0" style="color:var(--muted)">
+    {{ $sets := or .Sets .DSets }}
+    {{ $reps := or .Reps .DReps }}
+    {{ $secs := or .Seconds .DSeconds }}
+    {{ $kg := or .WeightKg .DWeightKg }}
+    {{ if $sets }}<span class="tabular-nums">{{ $sets }}&times;</span>{{ end }}
+    {{ if $reps }}<span class="tabular-nums">{{ $reps }}</span>{{ end }}
+    {{ if $secs }}<span class="tabular-nums">{{ $secs }}s</span>{{ end }}
+    {{ if $kg }}<span class="tabular-nums">{{ $kg }}kg</span>{{ end }}
+  </span>
+{{ end }}

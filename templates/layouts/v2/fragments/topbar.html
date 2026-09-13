@@ -1,0 +1,38 @@
+{{ define "layouts/fragments/topbar" }}
+{{/* Only routes V2 actually serves. A phase adds its link when it adds its page. */}}
+<header class="site-header">
+  <div class="site-header-top">
+    <div class="site-header-brand min-w-0 flex-1">
+      <a href="/" class="site-header-logo">
+        <img src="/static/logo.svg" alt="Passion" class="h-9 w-9 md:h-14 md:w-14" style="filter: var(--logo-filter);" />
+        Passion
+      </a>
+    </div>
+
+    <div class="site-header-actions flex shrink-0 items-center gap-2">
+      <div class="theme-toggle">
+        <label class="theme-switch" title="Toggle light/dark theme">
+          <input id="theme-toggle" type="checkbox" />
+          <span class="theme-slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  {{ if not .IsAuthPage }}
+    <nav class="site-header-nav mt-2 flex items-center justify-end gap-1 border-t pt-3 md:mt-0 md:border-t-0 md:pt-2"
+         style="border-color: var(--border)"
+         aria-label="Main navigation">
+      {{ if .Authenticated }}
+        <a class="site-header-link" href="/library">Library</a>
+        <form method="post" action="/logout">
+          <button type="submit" class="site-header-link">Log out</button>
+        </form>
+      {{ else }}
+        <a class="site-header-link" href="/login">Log in</a>
+        <a class="site-header-link site-header-link-primary" href="/signup">Sign up</a>
+      {{ end }}
+    </nav>
+  {{ end }}
+</header>
+{{ end }}
