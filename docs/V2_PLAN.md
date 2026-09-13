@@ -78,6 +78,11 @@ already works by clearing the cookie.
 | `YAMLImport.*Dir` (three keys) | die. One directory per kind was a consequence of the old three-table split |
 | `YAMLImport.OwnerID` | **replaced, not dropped** → `Catalog.Private[].Owner`, an email. See 1.10 |
 
+**A private tree has no `Name`**, corrected 2026-09-13. An earlier draft gave one; as built,
+`PrivateTree` is `{Dir, Owner}` and the tree name is the directory's base name. Two trees
+whose directories share a base name would therefore claim one `source_tree`, and two trees
+under one owner would share a slug namespace — both are now refused by `Validate`.
+
 New: `Database.Engine` (`sqlite` \| `postgres`, anything else refuses to boot),
 `Database.DSN`, `Database.MaxOpenConns` (forced to 1 on SQLite),
 `Migrate` (`up` \| `off`), `Catalog.Private` (a list of `{dir, owner}` — **this is how the
@@ -87,7 +92,15 @@ private catalog loads**, since a second repository cannot be embedded; see 1.10)
 `Catalog.Private` is a list of structs, so it has no `PASSION_*` env override. Env overrides
 stay for scalars only; a private tree is declared in the file.
 
-`DevAuthBypass` refuses to boot when `Engine = postgres`.
+**Added 2026-09-13:** `Auth.DevSeedAccount` and `Auth.DevSeedPassword`. On a boot that finds
+no accounts, the named email is created. A private tree names its owner by email, so without
+this a fresh clone imports the shipped tree, skips the private one, and needs a signup and a
+second boot before it lands.
+
+`DevAuthBypass` and `DevSeedAccount` both refuse to boot when `Engine = postgres` — the
+bypass short-circuits token verification, and the seed password is written in a config file.
+Postgres is the shape a hosted instance takes. `DevSeedAccount` also fires only on an empty
+database: once anyone has signed up, a config file must not be able to mint a login.
 
 ## 1.4 When migrations run
 
@@ -103,23 +116,31 @@ stay for scalars only; a private tree is declared in the file.
 
 ## 1.5 What `main.go` does, in order
 
-1. Parse flags: `-config`, `-migrate-status`, `-migrate-only`, `-import-catalog`, `-seed`,
-   `-version`. **16 of today's 17 flags die** — every `-purge-*`, `-backfill-*`,
-   `-publish-catalog`, `-delete-users-except`, `-mint-invites` and the rest exist to repair
-   data that is being discarded. `make reseed` calls `--exit-after-seed` and needs updating.
+0. Dispatch `passion catalog ...` before any flag is parsed. It reads files and nothing else:
+   no config, no database, no network. See 1.15.
+1. Parse flags. **As built 2026-09-13, four: `-config`, `-migrate-status`, `-migrate-only`,
+   `-version`.** `-import-catalog` and `-seed` were planned and are not there: the import is
+   driven by `Catalog.Import`, and seeding is `Auth.DevSeedAccount`. **16 of today's 17 flags
+   die** — every `-purge-*`, `-backfill-*`, `-publish-catalog`, `-delete-users-except`,
+   `-mint-invites` and the rest exist to repair data that is being discarded. `make reseed`
+   calls `--exit-after-seed` and needs updating.
 2. Load config, apply env overrides, validate. Exit non-zero naming the offending setting.
 3. Set up `slog` from `Log.Level` / `Log.Format`.
 4. `//go:embed templates static catalog` — here, because embed patterns cannot contain `..`.
 5. `store.Open(ctx, cfg.Database)`.
 6. Migrate per 1.4, or print status and exit.
+6b. Create `Auth.DevSeedAccount` when it is set and no account exists. **Before the import,
+   not after**, so a private tree naming that owner lands on the first boot. See 1.3.
 7. Import the catalog when `Catalog.Import`, **shipped tree first, then each private tree**:
    `ImportShipped(ctx, embedded)`, then `ImportOwned(ctx, tree.Dir, tree.Owner)` per entry.
    The order is load-bearing, not cosmetic — 39 of the private tree's refs resolve to public
    slugs, so the shipped rows must exist first. A private tree whose owner email matches no
    account logs a warning naming both and is skipped; it imports on a later boot. See 1.10.
-8. Compute the static asset checksum for cache-busting.
+8. ~~Compute the static asset checksum for cache-busting.~~ **Not at boot, as built.** The
+   renderer hashes each asset on its first use and remembers it, so a file nothing links to
+   is never read.
 9. `web.New(...)` — parse templates once, build the router.
-10. Warn once per enabled footgun: `InsecureCookies`, `DevAuthBypass`.
+10. Warn once per enabled footgun: `InsecureCookies`, `DevAuthBypass`, `DevSeedAccount`.
 11. Start `http.Server` with the existing 15s / 60s / 120s timeouts.
 12. `signal.Notify` on SIGINT/SIGTERM, `Shutdown` with a 10s context, close the store.
 
@@ -130,7 +151,10 @@ read on demand. Nobody should build a job runner.
 
 1. No `store/` signature names an HTTP type, and no error it returns carries a status code or
    user-facing prose. Store returns `gorm.ErrRecordNotFound`, `gorm.ErrDuplicatedKey` (via
-   `TranslateError: true`) and its own sentinels: `store.ErrNotYours`, `store.ErrShipped`.
+   `TranslateError: true`) and its own sentinels. **As built: `store.ErrNotFound`, not
+   `ErrNotYours`** — "not yours" is answered with not-found, because a 403 confirms the row
+   exists. Also `store.ErrShipped`, `store.ErrNotCopyable`, `store.ErrNoSuchOwner`,
+   `store.ErrEmailTaken`, `store.ErrBadCredentials`.
 2. **One function maps error to status**, in `web/render.go`. Not found → 404, duplicate →
    409, not yours → **404, never 403** (a 403 confirms the row exists), else 500.
 3. Every error is handled exactly once. A function logs it or returns it, never both.
@@ -159,7 +183,7 @@ Removal is a feature change. These are deliberate, not oversights.
 
 | Feature | V2 |
 |---|---|
-| Invite-only signup | **Dropped, and 1.10 is the reason.** The gate existed because the catalog held paid-programme content; under 1.10 it does not — a new account sees the 102 public slugs and nothing else. The invite table and both flags go. `signup.html` carries an invite field and the line "Passion is invite-only for now" — **the template must be edited in phase 1**, contradicting the first draft's "reuse as-is" |
+| Invite-only signup | **Dropped, and 1.10 is the reason.** The gate existed because the catalog held paid-programme content; under 1.10 it does not — a new account sees the public slugs and nothing else (102 when measured; **105 after the conversion**). The invite table and both flags go. `signup.html` carries an invite field and the line "Passion is invite-only for now". **As built, the template was not edited**: V1 serves the same file, so the invite block stays behind `{{ if .InviteRequired }}`, which V2 never sets. Phase 12 deletes it with V1 |
 | `save-as-mine` on all three kinds | **Kept, and it is the whole story now.** Revised 2026-09-10: 1.13 replaced fork-on-edit with an explicit "Copy to my content" button, which is what these three routes already were |
 | `reset-catalog` | **Kept**, as "delete your copy". Needs no provenance column: per 1.11 a copy keeps its name, so it and the row it came from are found by `(kind, slug)` across the two unique indexes |
 | Per-use warmup/cooldown labelling | **Lost by design.** `block_kind` is on the block, not the use |
@@ -213,6 +237,12 @@ Counted 2026-09-08 across both trees:
 | ...dangling | 0 |
 | Refs the public tree makes into the private tree | 0 |
 
+**Re-measured 2026-09-13, after the conversion**, because the shape of the trees changed:
+105 public slugs and 144 private ones, and the cross-tree references are **38 distinct app:
+slugs across 64 edges**. The conclusion the table was taken for is unchanged — the two trees
+still share no slug, nothing dangles, and the public tree still names nothing private — so
+every decision resting on it stands.
+
 ### What follows from it
 
 | # | Implication | Lands in |
@@ -228,9 +258,11 @@ Counted 2026-09-08 across both trees:
 | 9 | **Every content read carries `WHERE author_id IS NULL OR author_id = ?`.** Index `content (author_id, kind, name)` will not serve both arms of that `OR` well. At a couple of hundred rows per account it does not matter; written down so it is not met later as a mystery | 2b, schema review |
 
 Mechanical changes this implies: `Catalog.Dirs []string` becomes `Catalog.Private
-[]PrivateTree{Name, Dir, Owner}` — **`Name` as well as `Dir`, because `source_tree` stores it
-and a filesystem path is not stable across machines**; `ImportCatalog` splits into
-`ImportShipped` and `ImportOwned`; `main.go`'s `catalogTrees()` returns the typed list.
+[]PrivateTree{Dir, Owner}` — **as built 2026-09-13, no `Name`.** The draft added one because
+`source_tree` stores a name and a path is not stable across machines; the base name of the
+directory already satisfies that, so the field was redundant and `Validate` refuses the one
+case it guarded against. `ImportCatalog` splits into `ImportShipped` and `ImportOwned`;
+`main.go`'s `catalogTrees()` returns the typed list.
 
 **`content.source_tree VARCHAR(64) NULL`.** NULL means a person made this row in the app, or
 it is a copy — either way the importer never touches it. Non-NULL is the tree name that owns
@@ -249,8 +281,8 @@ times. The record of all three is at the end, because the same mistake caused th
 | Column | Job |
 |---|---|
 | `content.id BIGINT` | The local key. Every foreign key in this schema points here. It may differ between two installs of the app, and it never leaves the machine |
-| `content.uuid CHAR(36)` | The global key. It is written in the YAML file. The importer matches a file to a row on it. It is never a foreign key target |
-| `content.family CHAR(36)` | Which family of rows this one belongs to. Read by history and by nothing else. Flat, and never followed |
+| `content.uuid VARCHAR(36)` | The global key. It is written in the YAML file. The importer matches a file to a row on it. It is never a foreign key target |
+| `content.family VARCHAR(36)` | Which family of rows this one belongs to. Read by history and by nothing else. Flat, and never followed |
 
 `log_entry` mirrors the last one. `movement_family` is what a progression chart groups on, and
 `ix_entry_movement (movement_family, log_id)` answers it.
@@ -397,10 +429,14 @@ Three cases, three answers. None of them makes a hidden copy.
 | Only the numbers on a movement the app ships | `movement_pref`, a per-account override. No new row, no new identity |
 | The structure of something the app ships | An explicit **"Copy to my content"** button. The copy **keeps the name** |
 
-**A detached row is reported, twice.** The import result names every file it skipped, and the
-library badges the row. Without that, a person edits the YAML, restarts, sees no change, and is
-told nothing — and hand-editing those files is this project's main way of working, so that
-failure is certain rather than hypothetical.
+**A detached row is reported in the import log**, which names every file it skipped, on every
+boot. Without that, a person edits the YAML, restarts, sees no change, and is told nothing —
+and hand-editing those files is this project's main way of working, so that failure is certain
+rather than hypothetical.
+
+**No badge for it, decided 2026-09-13.** The only person who edits YAML is the one keeping a
+catalog repository, and they read that log. Every other user never sees a file, so a badge
+would put an implementation detail on their screen.
 
 **Why in-place editing is right.** R1 is that an edit must not change a row *for anybody else*. A
 row with `author_id = you` is shared with nobody, so copy-on-write protected no one. All the edit
@@ -475,8 +511,19 @@ It reads a directory. No database, no server, no config.
 | A `family:` naming nothing in the trees given | `movements/front_lever.yaml: family 3f2a… matches no id in this tree` |
 | Everything `Load` already refuses | An unknown key, a menu with no pick count, a slug holding a colon |
 
-Run against one tree, an `app:` reference is accepted without being checked, because the app's
-tree is not there to check it against. Pass both trees and it is checked.
+**Corrected 2026-09-13.** An earlier draft said a lone tree accepts `app:` references without
+checking them. It does not, and it must not: accepting them unchecked means a real typo passes
+the linter and fails at boot instead. A tree that names `app:<slug>` is checked against the
+app's catalog or not at all, and the message says which command to run:
+
+```
+blocks/campus.yaml: items[0]: movement "app:easy_campus_ladderng" names the app's catalog,
+which was not given. Check this tree against it:
+passion catalog lint <passion>/catalog <this tree>
+```
+
+So deployment point 3 below passes **both** trees, which is what the private repository's
+workflow already does.
 
 This lands on code that exists. `Load(fsys, name, known map[Ref]bool)` in `store/catalog.go`
 already takes the set of references another tree provides, which is the two-tree case.
@@ -487,8 +534,9 @@ already takes the set of references another tree provides, which is the two-tree
    already refuses everything else in the table. The command is for checking without booting.
 2. `deploy.yml`, before Build, over `catalog` and `catalog-private`. A bad file stops the deploy
    instead of stopping the server after the binary is already copied.
-3. `passion-private-catalog`, its own new workflow, over one tree. That repo is where the file is
-   written, so that is where the mistake is made.
+3. `passion-private-catalog`, its own new workflow. That repo is where the file is written, so
+   that is where the mistake is made. It checks out `awalvie/passion` alongside and passes both
+   trees, per the correction above.
 
 **Boot refuses when it cannot fix.** If a file has no id and the directory cannot be written, the
 app does not start, and the error names the file. In practice this never fires, because you boot
@@ -499,6 +547,30 @@ Two different messages, because two different things are wrong. A writable priva
 somehow could not be fixed names `passion catalog lint --fix`. The shipped tree is embedded with
 `//go:embed`, so it can never be written at runtime and `--fix` is not an answer for it — a
 missing id there is a build fault, caught by item 2 above, and the message says so.
+
+### `passion catalog export`
+
+**Added 2026-09-13**, because phases 0 to 2a produced nothing anyone could look at. It writes
+a tree back out of the database as files, so a diff says what the app actually holds.
+
+```
+passion catalog export shipped /tmp/out                 # then diff -r catalog /tmp/out
+passion catalog export --owner me@x.com my-tree ~/tree  # one account's rows
+```
+
+Unlike `lint` it needs the database, so it takes a config. Name a tree that does not exist
+and it lists the trees that do, with row counts — a tree name is not guessable, being
+`shipped` for the app and the directory's own name for a private one.
+
+It never deletes. A `.yaml` already in the directory that the export did not write is
+reported, because only a person can say whether it is a leftover or a file the database has
+never seen.
+
+**The files it writes are the format's canonical form,** and both trees are now stored that
+way. They were not: `cmd/convertcatalog` wrote keys in a different order, so the first export
+of either tree reported a diff on every file. A test asserts `catalog/` stays canonical and
+names `make catalog-export` as the fix. Without this the tool is unusable — real changes
+would be buried in key-order noise.
 
 ### What the review pass settled, and what is still open
 
@@ -744,8 +816,8 @@ Three more decisions that reach every file written after them, and were missing:
   "not asked" and `0` is a real value (0 kg is bodyweight), so a non-pointer int cannot tell
   them apart.
 
-Then `store/models.go` (19 structs), `store/migrations/{sqlite,postgres}/001_init.sql` with
-**all nine of 1.1's changes**, `store/store.go` with per-engine DSN and `WithTx`, and the
+Then `store/models.go` (**21 structs as built**), `store/migrations/{sqlite,postgres}/001_init.sql`
+with **all 21 of 1.1's rows** (nine when this was written), `store/store.go` with per-engine DSN and `WithTx`, and the
 ported behaviour suite.
 
 Store helpers inside the package are **package-level functions taking `tx *gorm.DB`, not
@@ -784,8 +856,10 @@ because inline movements became files.
 - Import twice; **every table's checksum unchanged.** This is what proves a menu is matched by
   its derived slug rather than deleted and rebuilt, which is the obvious implementation and the
   wrong one.
-- Import a tree with an unknown tag, one with a `menus/` directory, one with `format_version: 1`,
-  and one with a key the spec does not list. All four fail loudly, naming the file.
+- Import a tree with a `menus/` directory, one with `format_version: 1`, and one with a key the
+  spec does not list. All three fail loudly, naming the file. **The unknown-tag case was struck
+  on 2026-09-13**: per 1.16 a tag nothing has used before is created on import, so there is
+  nothing to fail on. A tag that is not a slug is still refused.
 - Export the tree, load the export, import it into an empty database: the catalog means exactly
   the same thing. Compared as meaning — slugs, names, numbers, tags and edges named by the slugs
   at each end — not as rows, because a fresh database issues new row ids.
@@ -820,7 +894,7 @@ Verified on the real converted tree: 108 rows in, a second import writes nothing
 round-trips, and every identity survives an export into an empty database. Whole suite green
 on SQLite and Postgres 17.
 
-**Both trees are written.** `catalog/` now holds 107 files — 89 movements, 12 blocks, 4
+**Both trees are written.** `catalog/` now holds 106 files — 89 movements, 12 blocks, 4
 sessions and `catalog.yaml` — and `passion-private-catalog` holds 145 in the
 same shape, plus a `block_names.yaml` the converter reads and a workflow that runs
 `passion catalog lint` on push. Measured on a boot with both: 108 shipped rows, 164 owned
@@ -860,6 +934,16 @@ library pages that list and open content without changing any of it.
 - `passion catalog export <tree> <dir>` over each imported tree leaves the files unchanged.
   A diff here is a bug in the importer or the exporter, and this is the phase where that
   becomes checkable by hand rather than only in a test.
+
+**Status: done 2026-09-13.** Verified on the real trees: a first boot seeds the owner, imports
+108 shipped rows and 164 owned ones, and `/library` lists both with a "Yours" chip on the
+owned ones only. `catalog export` over each tree now leaves the files unchanged.
+
+**V2 has its own layout**, `templates/layouts/v2/`, decided here rather than at phase 11. V1
+renders the same `layouts/base` name from `templates/layouts/`, so sharing it would mean every
+change to the V2 nav also changing V1's. V1's nav also links to routes V2 does not serve, and
+its shell loads about 200 lines of JavaScript for editors and pickers no V2 page uses. The V2
+nav carries only routes V2 actually serves, and a phase adds its link when it adds its page.
 
 ### Phase 2c — copying, editing, and a person's own numbers · **L**
 
@@ -957,8 +1041,11 @@ and `place_id` is NULL. A tick with no grade is accepted and stays out of the py
 ### Phase 11 — markdown preview and remaining fragments · **S**
 ### Phase 12 — switch over · **M**
 
-**Gate.** `grep -rn 'passion/db|passion/pages|http/server' --include='*.go' .` returns
-nothing. `go build ./...` and the full suite pass. `cmd/passion/` is gone.
+**Gate.** `grep -rnE 'passion/db|passion/pages|http/server' --include='*.go' .` returns
+nothing — **`-E`, corrected 2026-09-13.** Without it `grep` reads `|` literally and the check
+passes today, against a tree where all three still exist. `go build ./...` and the full suite
+pass. `cmd/passion/` is gone, and with it `templates/layouts/` and the invite block in
+`signup.html`, which V1 is the only reason to keep.
 
 ### Phase 13 — docs · **M**
 
@@ -972,8 +1059,8 @@ exists. Every Make target runs.
 | Risk | What I do |
 |---|---|
 | **`run.html`'s 1,021 lines of timer JavaScript.** A mistake does not throw; the timer just counts wrong, mid-session | Freeze the field contract in phase 3 before touching the template. One test per timer phase |
-| **cgo vs pure-Go SQLite.** The two drivers spell DSN parameters differently and **an unknown parameter is accepted silently** — the wrong name gives a database with no foreign keys and a green suite | Decide in 0.1. Test it with a bad-parent insert |
-| **The Postgres suite is aspirational.** No driver in `go.mod`, no container library, no compose file | Add the driver in 0.1. Make the suite fail, not skip, when the container is unreachable |
+| ~~**cgo vs pure-Go SQLite.**~~ **SETTLED.** The two drivers spell DSN parameters differently and **an unknown parameter is accepted silently** — the wrong name gives a database with no foreign keys and a green suite | Pure-Go `github.com/glebarez/sqlite`, so the modernc `_pragma(...)` spellings. `verifyForeignKeys` reads the pragma back at open and refuses to boot when it is off, so a wrong name can never pass silently |
+| ~~**The Postgres suite is aspirational.**~~ **SETTLED.** No driver in `go.mod`, no container library, no compose file | `gorm.io/driver/postgres` is in use, `make pg-up` / `pg-down` run the container, and `eachEngine` fails rather than skips when `PASSION_TEST_POSTGRES` is set and unreachable. Part 3's "prints a skip count" is not what was built: it logs one line per test |
 | **The private catalog is a second repository.** Two trees, one format, no shared CI | Convert both in the same week. `format_version` at each tree root, so a stale tree fails loudly on the next boot |
 | **Two live databases while I train.** Master runs production; V2 runs alongside from phase 3 | Decide which is the real log during the build. If it is V2's, "old data is disposable" stops being true from phase 3, and the SQLite file needs a backup story |
 | **Feature loss by omission.** 37 sub-actions hide behind 7 catch-all route patterns; a route dropped by accident looks identical to one dropped on purpose | Enumerate all 37 with a phase or the word "drop" beside each. `V2_PLAN_REVIEW.md` §7 is the start |
