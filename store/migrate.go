@@ -70,6 +70,17 @@ func (s *Store) Migrate(ctx context.Context) error {
 	return nil
 }
 
+// TargetVersion is the newest migration this binary carries. A package function, not a
+// method: -version answers it with no config, no database and no connection.
+func TargetVersion(engine string) (int64, error) {
+	dir, err := migrationDir(engine)
+	if err != nil {
+		return 0, err
+	}
+	goose.SetBaseFS(migrationsFS)
+	return latestVersion(dir)
+}
+
 // SchemaVersion reports the applied migration version, for /healthz and -migrate-status.
 func (s *Store) SchemaVersion(ctx context.Context) (int64, error) {
 	db, err := s.sqlDB()

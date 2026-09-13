@@ -48,11 +48,20 @@ func main() {
 func run() error {
 	var (
 		configPath    = flag.String("config", "", "path to a passion.yaml")
-		migrateStatus = flag.Bool("migrate-status", false, "print the schema version and exit")
+		migrateStatus = flag.Bool("migrate-status", false, "print the applied and target schema versions, and exit")
 		migrateOnly   = flag.Bool("migrate-only", false, "apply migrations and exit")
 		showVersion   = flag.Bool("version", false, "print the schema version this binary carries and exit")
 	)
 	flag.Parse()
+
+	if *showVersion {
+		v, err := store.TargetVersion(store.EngineSQLite)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("schema_version=%d\n", v)
+		return nil
+	}
 
 	cfg, err := config.LoadApp(*configPath)
 	if err != nil {
@@ -67,18 +76,23 @@ func run() error {
 		Engine:       cfg.Database.Engine,
 		DSN:          cfg.Database.DSN,
 		MaxOpenConns: cfg.Database.MaxOpenConns,
+		Log:          log,
 	})
 	if err != nil {
 		return err
 	}
 	defer func() { _ = st.Close() }()
 
-	if *migrateStatus || *showVersion {
-		v, err := st.SchemaVersion(ctx)
+	if *migrateStatus {
+		target, err := store.TargetVersion(cfg.Database.Engine)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("engine=%s schema_version=%d\n", cfg.Database.Engine, v)
+		applied, err := st.SchemaVersion(ctx)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("engine=%s applied=%d target=%d\n", cfg.Database.Engine, applied, target)
 		return nil
 	}
 
