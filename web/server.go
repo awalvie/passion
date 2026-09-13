@@ -51,6 +51,8 @@ func (s *Server) Routes() http.Handler {
 	r.Group(func(pr chi.Router) {
 		pr.Use(s.requireActor)
 		pr.Get("/", s.handleHome)
+		pr.Get("/library", s.handleLibrary)
+		pr.Get("/library/{id}", s.handleLibraryItem)
 		pr.Post("/profile/password", s.handleChangePassword)
 	})
 

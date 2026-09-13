@@ -1,0 +1,61 @@
+{{ define "layouts/base" }}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ .Title }}</title>
+
+    <script src="/static/htmx.min.js"></script>
+    <script src="/static/tailwind.min.js"></script>
+    <script src="/static/lucide.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+      (function () {
+        var t = localStorage.getItem("passion-theme") ||
+          (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", t);
+      })();
+    </script>
+    <link rel="stylesheet" href="{{ asset "/static/passion.css" }}">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        window.__passionRenderIcons = function () {
+          if (window.lucide && typeof window.lucide.createIcons === "function") {
+            window.lucide.createIcons();
+          }
+        };
+        window.__passionRenderIcons();
+        document.body.addEventListener("htmx:afterSwap", window.__passionRenderIcons);
+
+        var toggle = document.getElementById("theme-toggle");
+        if (toggle) {
+          toggle.checked = document.documentElement.getAttribute("data-theme") === "dark";
+          toggle.addEventListener("change", function () {
+            var next = toggle.checked ? "dark" : "light";
+            document.documentElement.setAttribute("data-theme", next);
+            localStorage.setItem("passion-theme", next);
+          });
+        }
+      });
+    </script>
+  </head>
+
+  <body class="min-h-screen">
+    <div class="{{ if .WideLayout }}passion-container passion-container-wide{{ else }}passion-container{{ end }}">
+      {{ template "layouts/fragments/topbar" . }}
+
+      <main class="mt-4 md:mt-6">
+        {{ template "content" . }}
+      </main>
+
+      {{ template "layouts/fragments/footer" . }}
+    </div>
+  </body>
+</html>
+{{ end }}

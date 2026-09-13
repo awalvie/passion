@@ -87,6 +87,8 @@ func pageNames() []string {
 	return []string{
 		// phase 1
 		"login", "signup",
+		// phase 2b
+		"home", "library", "library_item",
 	}
 }
 
@@ -96,11 +98,14 @@ var pageFragments = map[string][]string{}
 
 func sharedTemplateNames(templatesFS fs.FS) ([]string, error) {
 	var out []string
-	// Only the layout shell. fragments/ is deliberately excluded: those templates call the
-	// 29 template functions that arrive with later phases, and parsing them alongside every
-	// page would make the whole tree a dependency of the login screen. A page that needs a
-	// fragment names it in pageFragments.
-	for _, dir := range []string{"layouts", "layouts/fragments"} {
+	// layouts/v2 is V2's own shell, not the one V1 renders. Sharing it would mean every
+	// change to the V2 nav also changing V1's, and V1 links to routes V2 does not serve.
+	//
+	// fragments/ is deliberately excluded: those templates call the 29 template functions
+	// that arrive with later phases, and parsing them alongside every page would make the
+	// whole tree a dependency of the login screen. A page names what it needs in
+	// pageFragments.
+	for _, dir := range []string{"layouts/v2", "layouts/v2/fragments"} {
 		entries, err := fs.ReadDir(templatesFS, dir)
 		if errors.Is(err, fs.ErrNotExist) {
 			continue
