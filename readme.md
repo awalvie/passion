@@ -182,105 +182,122 @@ See [docs/SHIP_1_RUNBOOK.md](docs/SHIP_1_RUNBOOK.md) for switching this on.
 
 ## YAML catalog
 
-Training plans live in version-controlled YAML files under `catalog/`. On startup (when
-import is enabled), Passion upserts exercises and templates **by slug**, once, into the
-account that holds the catalog.
+Training content lives in version-controlled YAML files under `catalog/`, in the format
+[docs/CATALOG_FORMAT.md](docs/CATALOG_FORMAT.md) specifies. Three directories, one row per
+file:
 
-Every entry needs an explicit `slug:`. It is the row's identity, so the display `name:` is
-free to change without the row being deleted and recreated. A missing slug is a hard error
-rather than something derived from the name — deriving it would mean the first rename
-silently produced a new slug, deleted the row and created another. `ref:` names its target
-by slug for the same reason.
+```
+catalog/movements/    one exercise per file
+catalog/blocks/       one block per file. A menu is written inside the block that holds it
+catalog/sessions/     one session per file
+```
 
-Each directory is scanned recursively, so files can be grouped into subfolders however you like — `catalog/exercises/` uses one folder per program (`ondra/`, `emil/`, `bechtel/`, `nelson/`) with unsourced and one-off entries at the top level. Layout is purely for humans: an entry's identity is its `name`, not its path, so moving a file between folders changes nothing in the database.
+**Every file carries an `id:`,** and the app matches a file to its row on that id. So a file
+can be renamed or moved and it still owns the same row. You never type the id: booting the
+app writes one into every file that has none, and so does `make catalog-ids`.
 
-Each of the three settings takes one directory or a list of them, so the catalog can span
-several trees and `ref:` resolves across all of them. Content from paid programmes is not
-ours to redistribute, so it lives in a separate private repository and is shipped to the
-server alongside this tree (see `.github/workflows/deploy.yml`). A name defined in two
-trees is a hard error rather than a silent shadow.
+A reference is written bare to name something in the same tree, and `app:<slug>` to name
+something the app ships. There is no fallback between the two, so adding a file can never
+change what an existing reference means.
+
+Check a tree without a database or a server:
+
+```
+make catalog-lint
+```
+
+Content from paid programmes is not ours to redistribute, so it lives in a separate private
+repository and is shipped to the server alongside this tree (see
+`.github/workflows/deploy.yml`). Configure it as:
+
+```yaml
+catalog:
+  import: true
+  private:
+    - dir: /opt/passion/catalog-private
+      owner: you@example.com
+```
+
+`owner:` is an email, not an id. A tree whose owner has no account is skipped with a warning
+and imports on a later boot.
 
 ### Editing a catalog item in the app
 
-The importer overwrites the row it matches by name, and for blocks and sessions it
-replaces the child rows outright. So editing a catalog item in the UI would be undone on
-the next restart, and renaming one would delete it.
+Three cases, three answers. None of them makes a hidden copy.
 
-Editing one now stamps `CatalogEditedAt` on it. From that point the importer skips the row
-completely and never prunes it, the lists show an **Edited** chip, and the edit page offers
-**Reset to catalog** — which clears the stamp and re-imports, restoring the original.
+**Your own numbers on a movement the app ships.** Saved against your account and applied
+every time you run it. No new row, and the app's improvements still reach you.
 
-An edited row stops receiving catalog fixes. That is the trade, and the chip is there to
-say so.
+**A row of yours that came from a file.** Edited in place: same row, same id. The row is
+detached from its file for good, and every later import names that file in its report and
+badges the row in the library. Without that, you edit the YAML, restart, see no change, and
+are told nothing.
 
-Two things this deliberately does not cover. Per-cycle numbers already have their own
-place — `CycleExerciseOverride` and `CycleExerciseWeekOverride` hold your sets, reps,
-weight and rep seconds for a cycle or a single week, and the importer never touches them,
-so changing your numbers needs no stamp at all. And **deleting** a catalog item leaves no
-row to carry a stamp, so the next import recreates it.
+**The structure of something the app ships.** An explicit "copy to my content" action, never
+an implicit one. The copy gets a new id and keeps the family of the row it came from, so one
+progression chart still covers both.
 
 <details>
-<summary>Exercise example</summary>
+<summary>Movement example</summary>
 
 ```yaml
-# catalog/exercises/pullups.yaml
-name: "Weighted Pull-ups"
-source: "Power Company Climbing"   # optional: program or coach it comes from
-label: "strength, pulling"          # optional: comma-separated tags shown as chips
-kind: "reps_and_sets"
+# catalog/movements/weighted_pull_ups.yaml
+id: 3f2a91c4-7b6e-4d15-9a03-1e8c5f2d4b7a
+name: Weighted Pull-ups
+style: reps_and_sets
+source: Power Company Climbing   # optional: the programme or coach the method is known by
+tags: [strength, pulling]
 sets: 5
 reps: 5
 rep_seconds: 5
 set_rest_seconds: 120
 weight_kg: 10
-notes: "Controlled tempo"
+notes: Controlled tempo
 ```
 
 </details>
 
 <details>
-<summary>Session template example</summary>
+<summary>Block example, with a menu</summary>
 
 ```yaml
-# catalog/session_templates/strength_base.yaml
-name: "Strength Base Session"
-source: "Power Company Climbing"   # optional: program or coach it comes from
-label: "strength, bouldering"       # optional: comma-separated tags shown as chips
+# catalog/blocks/fingers.yaml
+id: a97066ed-016b-45a2-b767-303a1d04a71d
+name: Fingers
+role: main
+items:
+  - movement: app:half_crimp_hang
+    sets: 4
+  - menu:
+      name: Pick a hang
+      pick: 1
+      of: [half_crimp_hang, hangboard_ladder]
+```
+
+`pick: 0` means the menu may be skipped. That is where optionality lives, so no display name
+ever has to end in "(optional)".
+
+</details>
+
+<details>
+<summary>Session example</summary>
+
+```yaml
+# catalog/sessions/finger_day.yaml
+id: c81d4f70-2f6a-4b8e-9d1c-0a4e7b3f5c21
+name: Finger Day
 color: "#ef4444"
-activities:
-  - type: "warmup"
-    exercises:
-      - name: "Row + Band Prep"
-        sets: 2
-        reps: 12
-        rep_seconds: 4
-        rep_rest_seconds: 30
-        set_rest_seconds: 30
-  - type: "activity"
-    exercises:
-      - ref: "Weighted Pull-ups"    # references a library exercise by name
-      - name: "Ring Rows"
-        sets: 4
-        reps: 10
-        rep_seconds: 4
-        set_rest_seconds: 90
+needs: hangboard
+items:
+  - block: warm_up
+  - block: fingers
 ```
 
 </details>
 
-Import behavior:
-
-- Runs on startup only when `PASSION_YAML_IMPORT_ENABLED` is set
-- Refuses to run if the owner does not exist, or if its catalog rows have no slug
-- Upserts by `owner_id + slug` — safe to re-run
-- Template updates replace activities/exercises to preserve ordering
-- Skips any row a user has edited in the app (`catalog_edited_at` set) — neither
-  overwritten nor pruned
-- Prunes catalog rows that dropped out of the YAML (e.g. after a rename): only rows the
-  importer created are removed, the system open-session template is left alone, and
-  nothing is deleted while run history, a scheduled session or a cycle mapping still
-  points at it (so logged runs are never orphaned)
-- Unknown `ref` or invalid YAML fails startup fast
+Anything the format cannot express fails at boot, naming the file: an unknown key, a
+reference to nothing, a tag that is not a slug, a file with no id, or two files
+holding one id.
 
 ---
 
@@ -292,13 +309,14 @@ store/                 V2 data layer — models, goose migrations, one store per
 web/                   V2 handlers, middleware and template rendering
 cmd/passion/           V1 entry point — config loading, DB init, server startup
 cmd/genmigrations/     Writes both dialects' migrations from docs/SCHEMA_V2.sql
+cmd/convertcatalog/    One-time: rewrites a catalog tree into the V2 format
 config/                12-factor config (YAML + env vars)
 db/                    V1 GORM models, SQLite store, seed data, YAML importer
 http/server/           V1 Chi router, all HTTP handlers, middleware
 pages/                 V1 template compiling and rendering
 templates/             Go HTML templates — pages, fragments, layouts
 static/                CSS, JS (HTMX, Tailwind, Lucide), icons
-catalog/               YAML exercise and template definitions
+catalog/               YAML movements, blocks and sessions — one row per file
 docs/                  Screenshots, design documents, the canonical schema
 scripts/               Utility scripts
 ```
