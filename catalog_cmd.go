@@ -25,8 +25,8 @@ else: no database, no server, no config. Exits 1 when anything is wrong.
   --fix   write an id into every file that has none, then check
 
 Give more than one directory and the first is treated as the app's catalog, so the others
-may reference it with app:<slug>. With one directory an app: reference is accepted without
-being checked, because there is nothing to check it against.
+may reference it with app:<slug>. A tree that names app:<slug> cannot be checked on its own:
+pass the app's catalog first, or those references are reported as unresolved.
 
 export writes a tree back out of the database as files, so you can diff what the app holds
 against what your files say. <tree> is the tree name an import logged. Without --owner it
