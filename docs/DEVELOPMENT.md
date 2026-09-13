@@ -13,6 +13,24 @@
 | `make run` | Run without hot-reload |
 | `make build` | Compile all packages |
 | `make reseed` | Delete `passion.db` and re-initialize with seed data |
+| `make test` | Run the V2 suite on SQLite |
+| `make test-all` | Run it on SQLite and PostgreSQL. Starts a Postgres container first |
+| `make migrations` | Regenerate both dialects from `docs/SCHEMA_V2.sql` |
+| `make catalog-lint` | Check the catalog trees. No database, no server |
+| `make catalog-ids` | Write an id into every catalog file that has none. Commit the result |
+
+### Catalog ids
+
+Every catalog file carries an `id:`, and the importer matches a file to its row on that id.
+So a file can be renamed or moved and it still owns the same row.
+
+You do not type the id. `make catalog-ids` writes one into any file that has none, and
+booting the app does the same for a private tree it can write to. The shipped tree is
+embedded in the binary, so a file with no id there is caught by `make catalog-lint` and by
+CI, not at run time.
+
+Copying a file means changing the id. `make catalog-lint` refuses two files claiming one id
+and names both. See [CATALOG_FORMAT.md](CATALOG_FORMAT.md).
 
 ## Adding a feature
 
