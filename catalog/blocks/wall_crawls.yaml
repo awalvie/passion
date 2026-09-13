@@ -1,0 +1,23 @@
+id: 354f340f-6263-4d3c-add8-2aad3a69e0f2
+name: Wall Crawls
+tags:
+    - board
+    - fingers
+    - strength
+source: Tyler Nelson
+items:
+    - menu:
+        name: Wall Crawls
+        pick: 0
+        notes: |-
+            Optional. Pick one. Once or twice a week, warm but before the real session.
+
+            Teaches your fingers to apply strength on the wall rather than on a
+            hangboard. Quality over quantity — move slow, rest 5 min, never feel
+            desperate. The point is to own the holds.
+
+            Fine to keep the same crawls for months.
+        of:
+            - wall_crawl_slow_boulder
+            - wall_crawl_static_holds
+            - wall_crawl_project

@@ -1,0 +1,23 @@
+id: dc3de4a4-fb56-4cf3-800f-78892ce1a0ac
+name: Cooldown Stretch
+tags:
+    - cooldown
+    - mobility
+items:
+    - movement: forearms_fingers
+    - movement: deep_wide_squat
+    - movement: lizard_pose
+    - movement: seated_hamstring_hold
+    - movement: butcher_block
+    - movement: doorway_shoulder_opener
+    - menu:
+        name: Deep hip pick
+        pick: 1
+        notes: |-
+            One of these, whichever you feel like. They all train the same deep hip
+            range, so rotating never leaves a gap.
+        of:
+            - middle_splits_hold
+            - frog_stretch
+            - pigeon_pose
+            - 90_90_hold

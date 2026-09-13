@@ -1,0 +1,15 @@
+id: adb444e4-6e73-48ae-a0fd-a8c538a5a5a9
+name: Fingers & Strength
+color: '#2563eb'
+tags:
+    - board
+    - fingers
+    - strength
+needs: hangboard, bouldering wall
+items:
+    - block: warm_up
+    - block: finger_warm_up
+    - block: wall_crawls
+    - block: antagonist_prehab
+    - block: mobility
+    - block: journal
