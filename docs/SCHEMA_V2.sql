@@ -138,8 +138,9 @@ CREATE TABLE content (
   -- in the app.
   --
   -- Editing a file-owned row in the app sets this to NULL, which detaches the row from its
-  -- file for good. The file then has no effect and the app says so, both in the import
-  -- report and on the row in the library.
+  -- file for good. The file then has no effect, and the import report names it on every
+  -- boot. Nothing shows it in the library: once this is NULL a detached row and a
+  -- hand-typed one are the same thing, and only a person keeping a catalog cares.
   --
   -- A tree NAME, not its path: paths differ between machines. One nullable column instead
   -- of a boolean plus a name, because two columns can disagree and one cannot.
@@ -807,9 +808,10 @@ CREATE INDEX ix_climb_entry ON log_climb (log_entry_id, position);
 --    edit, and it detaches the row from its file for good. Nothing about your history
 --    changes, because the slug did not move.
 --
---    The import report names every row it skipped this way, and the library badges them.
---    Without that, a person edits the YAML file, restarts, sees no change, and is told
---    nothing -- and this project's owner hand-edits those files as his main way of working.
+--    The import report names every row it skipped this way, on every boot. Without that, a
+--    person edits the YAML file, restarts, sees no change, and is told nothing -- and this
+--    project's owner hand-edits those files as his main way of working. No badge in the
+--    library: only someone keeping a catalog repository edits YAML, and they read that log.
 --
 -- 2. Only the numbers on a movement the app ships. That is movement_pref, not an edit.
 --    No new row, no new identity, nothing to reconcile later.
