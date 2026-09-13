@@ -495,7 +495,7 @@ func Tables() []any {
 	return []any{
 		&Account{}, &BodyMeasurement{}, &GradeMilestone{},
 		&Content{}, &ContentSet{}, &ContentItem{}, &ContentItemSet{}, &ContentMedia{},
-		&Tag{}, &ContentTag{},
+		&Tag{}, &ContentTag{}, &MovementPref{},
 		&Plan{}, &PlanSlot{}, &PlanTarget{}, &Scheduled{}, &CalendarEvent{},
 		&Place{},
 		&Log{}, &LogEntry{}, &LogSet{}, &LogClimb{},
