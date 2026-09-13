@@ -4,11 +4,10 @@ style: reps_and_sets
 tags:
     - antagonist
     - strength
-sets: 3
-reps: 12
-set_rest_seconds: 60
+notes: Use 80% of 1RM.
 media:
     - url: https://www.youtube.com/watch?v=Ck5vdTf0W30
       thumb_url: https://i.ytimg.com/vi/Ck5vdTf0W30/maxresdefault.jpg
-notes: |-
-    Use 80% of 1RM.
+sets: 3
+reps: 12
+set_rest_seconds: 60

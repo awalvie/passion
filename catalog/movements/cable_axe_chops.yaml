@@ -4,13 +4,6 @@ style: reps_and_sets
 tags:
     - core
     - strength
-per_side: true
-sets: 3
-reps: 10
-set_rest_seconds: 60
-media:
-    - url: https://www.youtube.com/watch?v=Gwcf4TOj1hc
-      thumb_url: https://i.ytimg.com/vi/Gwcf4TOj1hc/maxresdefault.jpg
 notes: |-
     Cable set high, rope or single handle. Chop down and across the body,
     finishing at the opposite hip. 10 each side.
@@ -19,3 +12,10 @@ notes: |-
     your arms are moving, drop the weight.
 
     A band anchored high does the same job away from the gym.
+per_side: true
+media:
+    - url: https://www.youtube.com/watch?v=Gwcf4TOj1hc
+      thumb_url: https://i.ytimg.com/vi/Gwcf4TOj1hc/maxresdefault.jpg
+sets: 3
+reps: 10
+set_rest_seconds: 60

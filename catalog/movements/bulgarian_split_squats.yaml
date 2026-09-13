@@ -4,15 +4,6 @@ style: timed_reps
 tags:
     - mobility
     - strength
-per_side: true
-sets: 1
-reps: 6
-rep_seconds: 6
-rep_rest_seconds: 3
-prep_seconds: 5
-media:
-    - url: https://www.youtube.com/watch?v=1-GzXim_jtw
-      thumb_url: https://i.ytimg.com/vi/1-GzXim_jtw/maxresdefault.jpg
 notes: |-
     6 reps per side. Use 85% of 1RM. Tempo: 3–1–1–1 (3s descent, 1s pause at bottom, 1s ascent, 1s reset at top).
 
@@ -48,3 +39,12 @@ notes: |-
     - Knee collapsing inward
     - Excessive forward torso lean
     - Rushing tempo
+per_side: true
+media:
+    - url: https://www.youtube.com/watch?v=1-GzXim_jtw
+      thumb_url: https://i.ytimg.com/vi/1-GzXim_jtw/maxresdefault.jpg
+sets: 1
+reps: 6
+rep_seconds: 6
+rep_rest_seconds: 3
+prep_seconds: 5

@@ -5,12 +5,6 @@ tags:
     - endurance
     - fingers
     - hangboard
-sets: 4
-reps: 6
-rep_seconds: 7
-rep_rest_seconds: 3
-set_rest_seconds: 180
-prep_seconds: 10
 notes: |-
     Strength-endurance protocol: 6 reps of 7s-on / 3s-off per set, 4 sets, 3 min
     rest between sets. Classic "repeater" timing.
@@ -26,3 +20,9 @@ notes: |-
     Drop to 3 sets if grip quality falls off.
 
     **Stop** on sharp pain or if you can't keep the grip position clean.
+sets: 4
+reps: 6
+rep_seconds: 7
+rep_rest_seconds: 3
+set_rest_seconds: 180
+prep_seconds: 10

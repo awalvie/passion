@@ -7,7 +7,6 @@ tags:
 items:
     - menu:
         name: Drills
-        pick: 1
         notes: |-
             One drill per session. Carry it through the whole warm-up ladder —
             easiest grades first, about 10-15 min.
@@ -16,6 +15,7 @@ items:
 
             Do it warm and fresh, before the hard climbing. Rotate the drill each
             session.
+        pick: 1
         of:
             - silent_feet
             - eyes_feet_hips_hands

@@ -5,16 +5,6 @@ tags:
     - footwork
     - mobility
     - strength
-per_side: true
-sets: 3
-reps: 5
-rep_seconds: 7
-rep_rest_seconds: 3
-set_rest_seconds: 300
-prep_seconds: 5
-media:
-    - url: https://www.youtube.com/watch?v=CTFPbhPWVOk
-      thumb_url: https://i.ytimg.com/vi/CTFPbhPWVOk/maxresdefault.jpg
 notes: |-
     5 reps per side. Tempo: 2–3–2–0 (2s pulling in, 3s holding end range, 2s returning).
 
@@ -62,3 +52,13 @@ notes: |-
     - Letting the cable yank the leg back
     - Rushing the eccentric
     - Treating this like a stretch
+per_side: true
+media:
+    - url: https://www.youtube.com/watch?v=CTFPbhPWVOk
+      thumb_url: https://i.ytimg.com/vi/CTFPbhPWVOk/maxresdefault.jpg
+sets: 3
+reps: 5
+rep_seconds: 7
+rep_rest_seconds: 3
+set_rest_seconds: 300
+prep_seconds: 5

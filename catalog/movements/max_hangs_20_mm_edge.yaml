@@ -5,11 +5,6 @@ tags:
     - fingers
     - hangboard
     - strength
-sets: 5
-reps: 1
-rep_seconds: 10
-set_rest_seconds: 180
-prep_seconds: 10
 notes: |-
     Maximal-strength protocol: 5 hangs of ~10s on a 20mm edge, 3 min rest between.
 
@@ -27,3 +22,8 @@ notes: |-
 
     **Stop immediately** on any sharp finger, pulley, or joint pain. Skip if
     fingers are still sore from a previous session.
+sets: 5
+reps: 1
+rep_seconds: 10
+set_rest_seconds: 180
+prep_seconds: 10

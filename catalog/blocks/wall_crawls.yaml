@@ -8,7 +8,6 @@ source: Tyler Nelson
 items:
     - menu:
         name: Wall Crawls
-        pick: 0
         notes: |-
             Optional. Pick one. Once or twice a week, warm but before the real session.
 
@@ -17,6 +16,7 @@ items:
             desperate. The point is to own the holds.
 
             Fine to keep the same crawls for months.
+        pick: 0
         of:
             - wall_crawl_slow_boulder
             - wall_crawl_static_holds
