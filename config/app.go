@@ -53,6 +53,11 @@ type AuthCfg struct {
 	JWTTTLHours     int    `yaml:"jwt_ttl_hours"`
 	DevAuthBypass   bool   `yaml:"dev_auth_bypass"`
 	InsecureCookies bool   `yaml:"insecure_cookies"`
+
+	// DevSeedAccount is an email to create on a boot that finds no accounts, so a private
+	// catalog tree naming that owner imports on a fresh clone. Local dev only.
+	DevSeedAccount  string `yaml:"dev_seed_account"`
+	DevSeedPassword string `yaml:"dev_seed_password"`
 }
 
 type Catalog struct {
@@ -153,6 +158,8 @@ func applyAppEnv(c *App) {
 	num("PASSION_JWT_TTL_HOURS", &c.Auth.JWTTTLHours)
 	flag("PASSION_DEV_AUTH_BYPASS", &c.Auth.DevAuthBypass)
 	flag("PASSION_INSECURE_COOKIES", &c.Auth.InsecureCookies)
+	str("PASSION_DEV_SEED_ACCOUNT", &c.Auth.DevSeedAccount)
+	str("PASSION_DEV_SEED_PASSWORD", &c.Auth.DevSeedPassword)
 	flag("PASSION_CATALOG_IMPORT", &c.Catalog.Import)
 	str("PASSION_LOG_LEVEL", &c.Log.Level)
 	str("PASSION_LOG_FORMAT", &c.Log.Format)
@@ -186,6 +193,16 @@ func (a App) Validate() error {
 	// deployment — that is the shape a hosted instance takes.
 	if a.Auth.DevAuthBypass && a.Database.Engine == "postgres" {
 		return fmt.Errorf("auth.dev_auth_bypass must not be set with database.engine=postgres")
+	}
+
+	// A seeded account has a password written in a config file, so it must never reach a
+	// Postgres deployment for the same reason the bypass must not.
+	if a.Auth.DevSeedAccount != "" && a.Database.Engine == "postgres" {
+		return fmt.Errorf("auth.dev_seed_account must not be set with database.engine=postgres")
+	}
+	if a.Auth.DevSeedAccount != "" && len(a.Auth.DevSeedPassword) < 8 {
+		return fmt.Errorf("auth.dev_seed_password must be at least 8 characters when " +
+			"auth.dev_seed_account is set")
 	}
 
 	if strings.TrimSpace(a.Auth.JWTSecret) == "" && !a.Auth.DevAuthBypass {

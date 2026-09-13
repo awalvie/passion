@@ -69,3 +69,43 @@ func TestTheCatalogImportsByDefault(t *testing.T) {
 		t.Error("the catalog import is off by default")
 	}
 }
+
+func TestASeedAccountNeedsAPassword(t *testing.T) {
+	_, err := LoadApp(writeApp(t, `
+auth:
+  jwt_secret: "a-secret-long-enough-to-pass-validation-0123456789"
+  dev_seed_account: dev@localhost
+`))
+	if err == nil {
+		t.Fatal("a seed account with no password was accepted")
+	}
+	if !strings.Contains(err.Error(), "dev_seed_password") {
+		t.Errorf("the error does not name the missing setting: %v", err)
+	}
+}
+
+// The seeded password is written in a config file, so it must not reach the shape a hosted
+// instance takes.
+func TestASeedAccountIsRefusedOnPostgres(t *testing.T) {
+	_, err := LoadApp(writeApp(t, `
+database:
+  engine: postgres
+  dsn: postgres://localhost/passion
+auth:
+  jwt_secret: "a-secret-long-enough-to-pass-validation-0123456789"
+  dev_seed_account: dev@localhost
+  dev_seed_password: localdevpassword
+`))
+	if err == nil {
+		t.Fatal("a seed account was accepted alongside postgres")
+	}
+	if !strings.Contains(err.Error(), "dev_seed_account") {
+		t.Errorf("the error does not name the setting: %v", err)
+	}
+}
+
+func TestASeedAccountIsOffByDefault(t *testing.T) {
+	if DefaultApp().Auth.DevSeedAccount != "" {
+		t.Error("an account is seeded by default")
+	}
+}

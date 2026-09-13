@@ -93,6 +93,12 @@ func run() error {
 		return nil
 	}
 
+	// Before the import, so a private tree naming the seeded owner lands on the first boot
+	// rather than the second.
+	if err := seedDevAccount(ctx, st, cfg, log); err != nil {
+		return err
+	}
+
 	if cfg.Catalog.Import {
 		if err := importCatalog(ctx, st, cfg, log); err != nil {
 			return err
@@ -172,6 +178,32 @@ func warnAboutFootguns(log *slog.Logger, cfg config.App) {
 	if cfg.Auth.InsecureCookies {
 		log.Warn("auth.insecure_cookies is on: the session cookie will be sent over plain HTTP")
 	}
+	if cfg.Auth.DevSeedAccount != "" {
+		log.Warn("auth.dev_seed_account is set: an account is created from the config file "+
+			"when the database is empty", "email", cfg.Auth.DevSeedAccount)
+	}
+}
+
+// seedDevAccount creates the configured account on a boot that finds none. Only on an empty
+// database: once anyone has signed up, a config file must not be able to mint a login.
+func seedDevAccount(ctx context.Context, st *store.Store, cfg config.App, log *slog.Logger) error {
+	if cfg.Auth.DevSeedAccount == "" {
+		return nil
+	}
+	n, err := st.AccountCount(ctx)
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		return nil
+	}
+	if _, err := st.CreateAccount(ctx, cfg.Auth.DevSeedAccount,
+		cfg.Auth.DevSeedPassword, cfg.Defaults.TimeZone); err != nil {
+		return fmt.Errorf("seeding %s: %w", cfg.Auth.DevSeedAccount, err)
+	}
+	log.Warn("auth.dev_seed_account created an account from the config file",
+		"email", cfg.Auth.DevSeedAccount)
+	return nil
 }
 
 // importCatalog brings every tree into the database, shipped first. A private tree names
