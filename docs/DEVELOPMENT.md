@@ -18,6 +18,7 @@
 | `make migrations` | Regenerate both dialects from `docs/SCHEMA_V2.sql` |
 | `make catalog-lint` | Check the catalog trees. No database, no server |
 | `make catalog-ids` | Write an id into every catalog file that has none. Commit the result |
+| `make catalog-export` | Write the shipped tree out of the database, over `catalog/` |
 
 ### Catalog ids
 
@@ -31,6 +32,26 @@ CI, not at run time.
 
 Copying a file means changing the id. `make catalog-lint` refuses two files claiming one id
 and names both. See [CATALOG_FORMAT.md](CATALOG_FORMAT.md).
+
+### Seeing what the app actually holds
+
+`passion catalog export` writes a tree back out of the database as files. Point it at a
+scratch directory and diff, and you see what the importer made of your files:
+
+```
+go run . catalog export shipped /tmp/out
+diff -r catalog /tmp/out
+```
+
+An empty diff means the files and the database agree. Anything else is a bug in the importer
+or the exporter, or an edit made in the app.
+
+`--owner <email>` exports that account's rows instead of the app's. Name a tree that does not
+exist and the command lists the trees that do, with their row counts.
+
+The files the exporter writes are the format's canonical form. `make catalog-export` writes
+them over `catalog/` itself, which is how that tree is kept canonical, so a later diff is
+signal rather than key-order noise.
 
 ## Adding a feature
 

@@ -5,7 +5,9 @@ PASSION_ADDR ?= :$(PORT)
 
 DB_PATH ?= passion.db
 
-.PHONY: run run-v2 watch build reseed test test-all pg-up pg-down migrations catalog-lint catalog-ids
+V2_DB ?= tmp/passion-v2.db
+
+.PHONY: run run-v2 watch build reseed test test-all pg-up pg-down migrations catalog-lint catalog-ids catalog-export
 
 run:
 	PASSION_ADDR="$(PASSION_ADDR)" go run ./cmd/passion
@@ -15,11 +17,16 @@ run:
 # Supplies a throwaway secret and allows plain-HTTP cookies, so `make run-v2` works from a
 # fresh clone with no config file. Both are local-dev only, and the binary already warns
 # loudly on start when insecure cookies are on. A real deployment passes -config.
+DEV_EMAIL ?= dev@localhost
+DEV_PASSWORD ?= localdevpassword
+
 run-v2:
 	PASSION_ADDR="$(PASSION_ADDR)" \
 	PASSION_JWT_SECRET="local-dev-only-not-a-real-secret-000000" \
 	PASSION_INSECURE_COOKIES=true \
-	PASSION_DB_DSN="tmp/passion-v2.db" \
+	PASSION_DB_DSN="$(V2_DB)" \
+	PASSION_DEV_SEED_ACCOUNT="$(DEV_EMAIL)" \
+	PASSION_DEV_SEED_PASSWORD="$(DEV_PASSWORD)" \
 	go run .
 
 build:
@@ -89,3 +96,10 @@ catalog-lint:
 # Write an id into every catalog file that has none. Commit what it changes.
 catalog-ids:
 	go run . catalog lint --fix catalog $(wildcard $(PRIVATE_CATALOG))
+
+# Write the shipped tree out of the database over catalog/, which is what keeps that tree in
+# the exporter's canonical key order. Needs a database the app has already imported into.
+catalog-export:
+	PASSION_JWT_SECRET="local-dev-only-not-a-real-secret-000000" \
+	PASSION_DB_DSN="$(V2_DB)" \
+	go run . catalog export shipped catalog

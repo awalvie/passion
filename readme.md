@@ -206,6 +206,13 @@ Check a tree without a database or a server:
 make catalog-lint
 ```
 
+See what the app made of your files, by writing the database back out and diffing it:
+
+```
+go run . catalog export shipped /tmp/out
+diff -r catalog /tmp/out
+```
+
 Content from paid programmes is not ours to redistribute, so it lives in a separate private
 repository and is shipped to the server alongside this tree (see
 `.github/workflows/deploy.yml`). Configure it as:
