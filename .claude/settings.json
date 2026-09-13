@@ -5,8 +5,12 @@
       "Bash(go test *)",
       "Bash(go vet *)",
       "Bash(go run . catalog lint *)",
+      "Bash(go run . catalog export *)",
+      "Bash(gofmt *)",
       "Bash(make test)",
-      "Bash(make test-all)"
+      "Bash(make test-all)",
+      "Bash(make catalog-lint)",
+      "Bash(make build)"
     ]
   }
 }
