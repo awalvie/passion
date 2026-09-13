@@ -30,9 +30,9 @@ func shape(t *testing.T, s *Store) string {
 			t.Fatal(err)
 		}
 		out = append(out, fmt.Sprintf(
-			"content %s/%s name=%q notes=%q source=%q per_side=%v kind=%v color=%q needs=%q pick=%v role=%v "+
+			"content %s/%s name=%q notes=%q source=%q per_side=%v style=%v color=%q needs=%q pick=%v role=%v "+
 				"sets=%v reps=%v kg=%v reps_s=%v rep_rest=%v set_rest=%v prep=%v secs=%v tags=%v",
-			r.Kind, r.Slug, r.Name, r.Notes, r.Source, r.PerSide, deref(r.MovementKind),
+			r.Kind, r.Slug, r.Name, r.Notes, r.Source, r.PerSide, deref(r.MovementStyle),
 			r.Color, r.Needs, derefI(r.PickCount), deref(r.BlockKind),
 			derefI(r.DSets), derefI(r.DReps), derefF(r.DWeightKg), derefI(r.DRepSeconds),
 			derefI(r.DRepRestSeconds), derefI(r.DSetRestSeconds), derefI(r.DPrepSeconds),
@@ -140,13 +140,22 @@ func TestExportAndReimportMeansTheSameThing(t *testing.T) {
 			t.Fatalf("exporting: %v", err)
 		}
 		for _, want := range []string{
-			"catalog.yaml", "tags.yaml",
+			"catalog.yaml",
 			"movements/half_crimp_hang.yaml", "movements/hangboard_ladder.yaml",
-			"menus/hang_choice.yaml", "blocks/warm_up.yaml", "sessions/finger_day.yaml",
+			"blocks/fingers.yaml", "blocks/warm_up.yaml", "sessions/finger_day.yaml",
 		} {
 			if _, ok := files[want]; !ok {
 				t.Errorf("the export is missing %s", want)
 			}
+		}
+		for p := range files {
+			if strings.HasPrefix(p, "menus/") {
+				t.Errorf("the export wrote %s, and a menu has no file of its own", p)
+			}
+		}
+		// The menu came out inside the block that holds it.
+		if got := string(files["blocks/fingers.yaml"]); !strings.Contains(got, "menu:") {
+			t.Errorf("the block did not carry its menu:\n%s", got)
 		}
 
 		// Straight back in, to a database that has never seen this tree.
@@ -204,14 +213,17 @@ func TestExportOmitsWhatWasNeverSet(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// general_warmup carries a kind and tags and nothing else.
+		// general_warmup carries a style and tags and nothing else.
 		got := string(files["movements/general_warmup.yaml"])
-		for _, absent := range []string{"sets:", "reps:", "weight_kg:", "media:", "per_side:", "source:"} {
+		// family: is absent because this row heads its own series. Writing it on every file
+		// would be noise, and the importer reads a file with no family line as its own.
+		for _, absent := range []string{"sets:", "reps:", "weight_kg:", "media:", "per_side:",
+			"source:", "slug:", "aliases:", "family:"} {
 			if strings.Contains(got, absent) {
 				t.Errorf("the export wrote %s for a movement that never had it:\n%s", absent, got)
 			}
 		}
-		for _, present := range []string{"name:", "slug:", "kind:", "tags:"} {
+		for _, present := range []string{"id:", "name:", "style:", "tags:"} {
 			if !strings.Contains(got, present) {
 				t.Errorf("the export dropped %s:\n%s", present, got)
 			}
@@ -219,9 +231,8 @@ func TestExportOmitsWhatWasNeverSet(t *testing.T) {
 	})
 }
 
-// A private tree exports without a tags.yaml, because the vocabulary belongs to the shipped
-// tree. An export that carried a copy would be a second list to keep in step.
-func TestExportingAPrivateTreeLeavesTheVocabularyAlone(t *testing.T) {
+// An export holds one tree's own rows and nothing else.
+func TestExportingAPrivateTreeHoldsOnlyItsOwnRows(t *testing.T) {
 	eachEngine(t, func(t *testing.T, s *Store) {
 		ctx := context.Background()
 		seedAccount(t, s, 1, "a@b.c")
@@ -236,9 +247,6 @@ func TestExportingAPrivateTreeLeavesTheVocabularyAlone(t *testing.T) {
 		files, err := s.ExportTree(ctx, "private", &one)
 		if err != nil {
 			t.Fatal(err)
-		}
-		if _, ok := files["tags.yaml"]; ok {
-			t.Error("the private tree exported a copy of the vocabulary")
 		}
 		if _, ok := files["movements/half_crimp_hang.yaml"]; !ok {
 			t.Error("the private tree's own movements did not export")
