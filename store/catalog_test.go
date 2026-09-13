@@ -361,6 +361,23 @@ items:
 	}
 }
 
+func TestATreeCheckedAloneSaysToPassTheAppsCatalog(t *testing.T) {
+	fsys := with(goodTree(), "blocks/warm_up.yaml", `
+name: "Warm-up"
+items:
+  - movement: "app:bench_press"
+`)
+	_, err := Load(fsys, "private", nil)
+	if err == nil {
+		t.Fatal("an unchecked app: reference was accepted")
+	}
+	for _, want := range []string{"was not given", "passion catalog lint"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("the error does not contain %q: %v", want, err)
+		}
+	}
+}
+
 // The other direction of the same message. A prefix on something only this tree has is
 // just as wrong, and just as fixable.
 func TestAnAppRefToYourOwnThingSaysToDropThePrefix(t *testing.T) {

@@ -545,11 +545,25 @@ func missing(r Ref, refs map[Ref]bool) string {
 	case refs[other]:
 		return fmt.Sprintf("no %s %q in this tree. The app's catalog has one — write %q",
 			r.Kind, r.Slug, AppPrefix+r.Slug)
+	// Not accepted unchecked: a typo would then pass the linter and fail at boot.
+	case r.App && !anyApp(refs):
+		return fmt.Sprintf("%s %q names the app's catalog, which was not given. "+
+			"Check this tree against it: passion catalog lint <passion>/catalog <this tree>",
+			r.Kind, AppPrefix+r.Slug)
 	case r.App:
 		return fmt.Sprintf("no %s %q in the app's catalog", r.Kind, r.Slug)
 	default:
 		return fmt.Sprintf("no %s %q in this tree", r.Kind, r.Slug)
 	}
+}
+
+func anyApp(refs map[Ref]bool) bool {
+	for r := range refs {
+		if r.App {
+			return true
+		}
+	}
+	return false
 }
 
 func checkMenu(at string, m MenuBody, refs map[Ref]bool,
