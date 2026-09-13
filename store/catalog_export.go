@@ -1,13 +1,7 @@
 package store
 
-// Turning rows back into files.
-//
-// The export uses the same structs the loader parses, on purpose. One definition of the
-// format means a key cannot exist on the way in and be forgotten on the way out. What the
-// round trip then proves is the part that can actually go wrong: that no column is dropped
-// between the database and a file.
-//
-// It is also how something built in the app becomes a file that can be kept in a tree.
+// Turning rows back into files. The same structs the loader parses, so a key cannot exist
+// on the way in and be forgotten on the way out.
 
 import (
 	"context"
@@ -18,12 +12,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// ExportTree writes every row belonging to one tree back out as files, keyed by the path
-// each belongs at. Nothing is written to disk here, so a caller can compare the result or
-// save it wherever it wants.
-//
-// authorID must match the import that wrote the tree: nil for the shipped tree, the owning
-// account for a private one.
+// ExportTree returns one tree's rows as files, keyed by path. Nothing is written to disk.
+// authorID is nil for the shipped tree, the owning account for a private one.
 func (s *Store) ExportTree(ctx context.Context, name string, authorID *int64) (map[string][]byte, error) {
 	db := s.read(ctx)
 
@@ -49,26 +39,6 @@ func (s *Store) ExportTree(ctx context.Context, name string, authorID *int64) (m
 	}
 	out["catalog.yaml"] = meta
 
-	// The vocabulary belongs to the shipped tree. A private tree that carries no tags of
-	// its own gets no tags.yaml, which is what the loader expects.
-	if authorID == nil {
-		var tags []Tag
-		if err := db.Order("slug").Find(&tags).Error; err != nil {
-			return nil, err
-		}
-		if len(tags) > 0 {
-			defs := make([]TagDef, 0, len(tags))
-			for _, t := range tags {
-				defs = append(defs, TagDef{Slug: t.Slug, Name: t.Name})
-			}
-			b, err := yaml.Marshal(defs)
-			if err != nil {
-				return nil, err
-			}
-			out["tags.yaml"] = b
-		}
-	}
-
 	for _, r := range rows {
 		var (
 			file any
@@ -79,15 +49,15 @@ func (s *Store) ExportTree(ctx context.Context, name string, authorID *int64) (m
 		case KindMovement:
 			dir = "movements"
 			file, err = movementFileFrom(db, r)
-		case KindMenu:
-			dir = "menus"
-			file, err = menuFileFrom(db, r)
 		case KindBlock:
 			dir = "blocks"
 			file, err = blockFileFrom(db, r)
 		case KindSession:
 			dir = "sessions"
 			file, err = sessionFileFrom(db, r)
+		case KindMenu:
+			// blockFileFrom writes it inside its block.
+			continue
 		default:
 			return nil, fmt.Errorf("store: row %d has kind %q", r.ID, r.Kind)
 		}
@@ -103,16 +73,26 @@ func (s *Store) ExportTree(ctx context.Context, name string, authorID *int64) (m
 	return out, nil
 }
 
+// fileIDOf writes a row's identity back out. Family only when it differs from the id: the
+// importer reads a file with no family line as its own family.
+func fileIDOf(r Content) FileID {
+	f := FileID{ID: r.UUID}
+	if r.Family != r.UUID {
+		f.Family = r.Family
+	}
+	return f
+}
+
 func movementFileFrom(db *gorm.DB, r Content) (MovementFile, error) {
 	f := MovementFile{
+		FileID:  fileIDOf(r),
 		Name:    r.Name,
-		Slug:    r.Slug,
 		Notes:   r.Notes,
 		Source:  r.Source,
 		PerSide: r.PerSide,
 	}
-	if r.MovementKind != nil {
-		f.Kind = *r.MovementKind
+	if r.MovementStyle != nil {
+		f.Style = *r.MovementStyle
 	}
 	tags, err := tagSlugs(db, r.ID)
 	if err != nil {
@@ -121,7 +101,7 @@ func movementFileFrom(db *gorm.DB, r Content) (MovementFile, error) {
 	f.Tags = tags
 
 	var media []ContentMedia
-	if err := db.Where("content_id = ?", r.ID).Order("position").Find(&media).Error; err != nil {
+	if err := db.Where("content_id = ?", r.ID).Order("position, id").Find(&media).Error; err != nil {
 		return f, err
 	}
 	for _, m := range media {
@@ -150,23 +130,8 @@ func movementFileFrom(db *gorm.DB, r Content) (MovementFile, error) {
 	return f, nil
 }
 
-func menuFileFrom(db *gorm.DB, r Content) (MenuFile, error) {
-	f := MenuFile{Name: r.Name, Slug: r.Slug, Notes: r.Notes, Pick: r.PickCount}
-	tags, err := tagSlugs(db, r.ID)
-	if err != nil {
-		return f, err
-	}
-	f.Tags = tags
-	items, err := itemsFrom(db, r.ID)
-	if err != nil {
-		return f, err
-	}
-	f.Options = items
-	return f, nil
-}
-
 func blockFileFrom(db *gorm.DB, r Content) (BlockFile, error) {
-	f := BlockFile{Name: r.Name, Slug: r.Slug, Notes: r.Notes, Source: r.Source}
+	f := BlockFile{FileID: fileIDOf(r), Name: r.Name, Notes: r.Notes, Source: r.Source}
 	if r.BlockKind != nil {
 		f.Role = *r.BlockKind
 	}
@@ -175,7 +140,7 @@ func blockFileFrom(db *gorm.DB, r Content) (BlockFile, error) {
 		return f, err
 	}
 	f.Tags = tags
-	items, err := itemsFrom(db, r.ID)
+	items, err := itemsFrom(db, r)
 	if err != nil {
 		return f, err
 	}
@@ -185,7 +150,8 @@ func blockFileFrom(db *gorm.DB, r Content) (BlockFile, error) {
 
 func sessionFileFrom(db *gorm.DB, r Content) (SessionFile, error) {
 	f := SessionFile{
-		Name: r.Name, Slug: r.Slug, Notes: r.Notes,
+		FileID: fileIDOf(r),
+		Name:   r.Name, Notes: r.Notes,
 		Source: r.Source, Color: r.Color, Needs: r.Needs,
 	}
 	tags, err := tagSlugs(db, r.ID)
@@ -193,7 +159,7 @@ func sessionFileFrom(db *gorm.DB, r Content) (SessionFile, error) {
 		return f, err
 	}
 	f.Tags = tags
-	items, err := itemsFrom(db, r.ID)
+	items, err := itemsFrom(db, r)
 	if err != nil {
 		return f, err
 	}
@@ -210,21 +176,38 @@ func tagSlugs(db *gorm.DB, contentID int64) ([]string, error) {
 	return slugs, err
 }
 
-// itemsFrom reads one parent's children back as references, in position order.
-func itemsFrom(db *gorm.DB, parentID int64) ([]Item, error) {
+// itemsFrom reads one parent's children back as items, in position order.
+func itemsFrom(db *gorm.DB, parent Content) ([]Item, error) {
 	var edges []ContentItem
-	if err := db.Where("parent_id = ?", parentID).Order("position").Find(&edges).Error; err != nil {
+	if err := db.Where("parent_id = ?", parent.ID).Order("position, id").
+		Find(&edges).Error; err != nil {
 		return nil, err
 	}
 
 	out := make([]Item, 0, len(edges))
 	for _, e := range edges {
 		var child Content
-		if err := db.Select("slug").Where("id = ?", e.ChildID).First(&child).Error; err != nil {
+		if err := db.Where("id = ?", e.ChildID).First(&child).Error; err != nil {
 			return nil, err
 		}
+
+		// No spelling in the format means "another account's row": bare means this tree,
+		// app: means the app's.
+		if child.AuthorID != nil && (parent.AuthorID == nil || *child.AuthorID != *parent.AuthorID) {
+			return nil, fmt.Errorf("%s %q holds %s %q, which belongs to another account. "+
+				"The format cannot name it", parent.Kind, parent.Slug, child.Kind, child.Slug)
+		}
+
+		if child.Kind == KindMenu {
+			body, err := menuBodyFrom(db, child)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, Item{Menu: body})
+			continue
+		}
+
 		it := Item{
-			Ref:   child.Slug,
 			Notes: e.Notes,
 			Dose: Dose{
 				Sets: e.Sets, Reps: e.Reps, WeightKg: e.WeightKg,
@@ -233,18 +216,105 @@ func itemsFrom(db *gorm.DB, parentID int64) ([]Item, error) {
 				Seconds: e.Seconds,
 			},
 		}
-		var sets []ContentItemSet
-		if err := db.Where("content_item_id = ?", e.ID).Order("set_index, rep_index").
-			Find(&sets).Error; err != nil {
+		switch child.Kind {
+		case KindMovement:
+			it.Movement = writeRef(parent, child)
+		case KindBlock:
+			it.Block = writeRef(parent, child)
+		default:
+			return nil, fmt.Errorf("%s %q holds a %s, which the format cannot express",
+				parent.Kind, parent.Slug, child.Kind)
+		}
+
+		sets, err := itemSets(db, e.ID)
+		if err != nil {
 			return nil, err
 		}
-		for _, cs := range sets {
-			it.PerSet = append(it.PerSet, SetEntry{Reps: cs.Reps, WeightKg: cs.WeightKg, Seconds: cs.Seconds})
-		}
+		it.PerSet = sets
 		if len(it.PerSet) > 0 {
 			it.Reps = nil
 		}
 		out = append(out, it)
 	}
 	return out, nil
+}
+
+// writeRef spells a child the way a file has to name it. Bare means the tree this file is
+// in, so the app: prefix goes on only when the reference leaves its tree.
+func writeRef(parent, child Content) string {
+	if parent.AuthorID != nil && child.AuthorID == nil {
+		return AppPrefix + child.Slug
+	}
+	return child.Slug
+}
+
+func menuBodyFrom(db *gorm.DB, menu Content) (*MenuBody, error) {
+	body := &MenuBody{Name: menu.Name, Notes: menu.Notes, Pick: menu.PickCount}
+	tags, err := tagSlugs(db, menu.ID)
+	if err != nil {
+		return nil, err
+	}
+	body.Tags = tags
+
+	var edges []ContentItem
+	if err := db.Where("parent_id = ?", menu.ID).Order("position, id").
+		Find(&edges).Error; err != nil {
+		return nil, err
+	}
+	for _, e := range edges {
+		var child Content
+		if err := db.Where("id = ?", e.ChildID).First(&child).Error; err != nil {
+			return nil, err
+		}
+		if child.AuthorID != nil && (menu.AuthorID == nil || *child.AuthorID != *menu.AuthorID) {
+			return nil, fmt.Errorf("menu %q holds movement %q, which belongs to another "+
+				"account. The format cannot name it", menu.Slug, child.Slug)
+		}
+		o := Option{
+			Movement: writeRef(menu, child),
+			Notes:    e.Notes,
+			Dose: Dose{
+				Sets: e.Sets, Reps: e.Reps, WeightKg: e.WeightKg,
+				RepSeconds: e.RepSeconds, RepRestSeconds: e.RepRestSeconds,
+				SetRestSeconds: e.SetRestSeconds, PrepSeconds: e.PrepSeconds,
+				Seconds: e.Seconds,
+			},
+		}
+		sets, err := itemSets(db, e.ID)
+		if err != nil {
+			return nil, err
+		}
+		o.PerSet = sets
+		if len(o.PerSet) > 0 {
+			o.Reps = nil
+		}
+		body.Of = append(body.Of, o)
+	}
+	return body, nil
+}
+
+func itemSets(db *gorm.DB, itemID int64) ([]SetEntry, error) {
+	var sets []ContentItemSet
+	if err := db.Where("content_item_id = ?", itemID).Order("set_index, rep_index").
+		Find(&sets).Error; err != nil {
+		return nil, err
+	}
+	out := make([]SetEntry, 0, len(sets))
+	for _, cs := range sets {
+		out = append(out, SetEntry{Reps: cs.Reps, WeightKg: cs.WeightKg, Seconds: cs.Seconds})
+	}
+	return out, nil
+}
+
+// MarshalYAML writes an option as a bare slug when it carries nothing else, which keeps a
+// menu readable.
+func (o Option) MarshalYAML() (any, error) {
+	bare := o.Notes == "" && o.Sets == nil && o.Reps == nil && o.WeightKg == nil &&
+		o.RepSeconds == nil && o.RepRestSeconds == nil && o.SetRestSeconds == nil &&
+		o.PrepSeconds == nil && o.Seconds == nil && len(o.PerSet) == 0
+	if bare {
+		return o.Movement, nil
+	}
+	type plain Option
+	return plain(o), nil
 }

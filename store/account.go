@@ -20,9 +20,8 @@ var (
 	ErrBadCredentials = errors.New("store: email or password is wrong")
 )
 
-// normalizeEmail folds case and trims. Done here rather than left to the database, because
-// MySQL's default collation compares case-insensitively and Postgres' does not — the same
-// schema would accept different data on different engines.
+// normalizeEmail folds case and trims. Done here and not in the database, whose collations
+// disagree about case between engines.
 func normalizeEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
 }
@@ -92,11 +91,8 @@ func (s *Store) AccountByID(ctx context.Context, id int64) (Account, error) {
 	return a, nil
 }
 
-// ChangePassword replaces the hash and bumps TokenEpoch in one transaction.
-//
-// The bump is the point. Tokens are stateless, so there is no session row to delete, and
-// the default lifetime is a week — without an epoch, "change password" would leave every
-// cookie issued before it working until it expired. One integer is the whole mechanism.
+// ChangePassword replaces the hash and bumps TokenEpoch in one transaction. Tokens are
+// stateless, so the bump is the only thing that revokes a cookie issued before the change.
 func (s *Store) ChangePassword(ctx context.Context, id int64, current, next string) error {
 	if len(next) < 8 {
 		return fmt.Errorf("store: password must be at least 8 characters")
@@ -162,10 +158,8 @@ type ProfileUpdate struct {
 	TimeZone           string
 }
 
-// DeleteAccount removes an account and everything it owns, by cascade.
-//
-// Shipped content cannot be reached from here: it has no author, so there is no row for a
-// cascade to follow. That is the whole reason the catalog has no owner.
+// DeleteAccount removes an account and everything it owns, by cascade. Shipped content has
+// no author, so there is no row for the cascade to follow.
 func (s *Store) DeleteAccount(ctx context.Context, id int64) error {
 	return s.read(ctx).Delete(&Account{}, id).Error
 }
@@ -177,9 +171,8 @@ func (s *Store) AccountCount(ctx context.Context) (int64, error) {
 	return n, err
 }
 
-// FirstAccount resolves the lowest account id. It exists only for the dev auth bypass,
-// which cannot assume id 1 exists: identity columns make no promise about which number a
-// row gets, and the first account may since have been deleted.
+// FirstAccount resolves the lowest account id, for the dev auth bypass. Id 1 may never have
+// existed, or may have been deleted since.
 func (s *Store) FirstAccount(ctx context.Context) (Account, error) {
 	var a Account
 	if err := s.read(ctx).Order("id").First(&a).Error; err != nil {

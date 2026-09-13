@@ -1,25 +1,19 @@
 package store
 
-// Writing a checked tree into the database. The rules are set out in docs/V2_PLAN.md 1.10.
+// Writing a checked tree into the database. Three rules shape this file:
 //
-// Three of them shape this file:
-//
-//   - A row remembers which tree it came from, in source_tree. A re-import rewrites exactly
-//     the rows whose source_tree matches the tree being imported, and touches nothing else.
-//     Without that, a file would stop meaning anything after its first import, and an edit
-//     made in the app would be undone by the next start.
-//   - A second import of an unchanged tree writes nothing at all, so every write here is
-//     preceded by a comparison. Delete-then-reinsert would be far shorter, and it would
-//     issue new row ids and move every updated_at. content_key in particular must survive,
-//     because finished runs point at it.
-//   - The shipped tree lands with author_id NULL, so no account's deletion can reach it. A
-//     private tree lands owned by one account, named by email rather than by id: an id in
-//     configuration goes stale when the account is deleted, and an email cannot.
+//   - A row whose source_tree is NULL was edited in the app. It is skipped, not refused:
+//     one edit must not stop the whole tree importing on every start from then on.
+//   - A second import of an unchanged tree writes nothing, so every write is preceded by a
+//     comparison. Row ids have to survive a re-import; movement_pref points at one.
+//   - The whole tree is one transaction.
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,37 +21,41 @@ import (
 )
 
 // ErrNoSuchOwner means a private tree names an owner email that no account holds. The
-// caller logs it and carries on: a first boot has no accounts at all, and refusing to boot
-// would leave nobody able to sign up.
+// caller logs it and carries on: a first boot has no accounts at all.
 var ErrNoSuchOwner = errors.New("store: no account holds that owner email")
 
 // ShippedTree is the source_tree value for content the app ships.
 const ShippedTree = "shipped"
 
-// ImportResult is what one import did, for the log line. On a second run of an unchanged
-// tree, Unchanged is the whole count and everything else is zero.
+// ImportResult is what one import did, for the log line.
 type ImportResult struct {
 	Tree      string
 	Inserted  int
 	Updated   int
 	Unchanged int
 	Retired   int
+
+	// Skipped names every file whose row was edited in the app, so the file no longer has
+	// any effect. Reported, because otherwise the edit is silently ignored.
+	Skipped []string
 }
 
 func (r ImportResult) String() string {
-	return fmt.Sprintf("tree=%s inserted=%d updated=%d unchanged=%d retired=%d",
+	s := fmt.Sprintf("tree=%s inserted=%d updated=%d unchanged=%d retired=%d",
 		r.Tree, r.Inserted, r.Updated, r.Unchanged, r.Retired)
+	if len(r.Skipped) > 0 {
+		s += fmt.Sprintf(" skipped=%d", len(r.Skipped))
+	}
+	return s
 }
 
-// ImportShipped writes a tree as content the app ships: no author, so no account's deletion
-// can reach it.
+// ImportShipped writes a tree with author_id NULL, so no account's deletion can reach it.
 func (s *Store) ImportShipped(ctx context.Context, t *Tree) (ImportResult, error) {
 	return s.importTree(ctx, t, nil)
 }
 
-// ImportOwned writes a tree as one account's own content. The email is resolved here rather
-// than in configuration, so a name that matches nothing is an error with something useful
-// in it instead of rows under an id nothing points at.
+// ImportOwned writes a tree as one account's own content. Configuration names the owner by
+// email, not id: an id goes stale when the account is deleted.
 func (s *Store) ImportOwned(ctx context.Context, t *Tree, ownerEmail string) (ImportResult, error) {
 	var a Account
 	err := s.read(ctx).Where("email = ?", normalizeEmail(ownerEmail)).First(&a).Error
@@ -70,80 +68,178 @@ func (s *Store) ImportOwned(ctx context.Context, t *Tree, ownerEmail string) (Im
 	return s.importTree(ctx, t, &a.ID)
 }
 
+// TreeMenu is one menu in a tree, with the slug it will hold. A menu has no file, so its
+// slug is derived from where it sits. It is never typed or shown, only stored.
+type TreeMenu struct {
+	Slug  string
+	Block string
+	Body  MenuBody
+}
+
+// Menus is every menu in the tree, in a settled order.
+func (t *Tree) Menus() []TreeMenu {
+	var out []TreeMenu
+	for _, b := range t.Blocks {
+		for i, it := range b.Items {
+			if it.Menu != nil {
+				out = append(out, TreeMenu{
+					Slug:  b.Slug + "_" + strconv.Itoa(i),
+					Block: b.Slug,
+					Body:  *it.Menu,
+				})
+			}
+		}
+	}
+	return out
+}
+
+// importer carries the state one import needs across its passes.
+type importer struct {
+	tx       *gorm.DB
+	tree     *Tree
+	authorID *int64
+	res      *ImportResult
+
+	// ids is every row this tree settled on, so the edge pass resolves without a query.
+	ids map[Ref]int64
+
+	// detached is every slug this tree owns whose row was edited in the app. Its edges and
+	// its menus are left alone too, or the edit would be half kept.
+	detached map[Ref]bool
+
+	// keep is every row this import decided about, including the ones it skipped. What is
+	// NOT in here is what the tree no longer holds, which is what reapMissing acts on.
+	keep map[Ref]bool
+
+	// keepID is keep addressed by row id, which reapMissing needs: a (kind, slug) pair
+	// moves when a file is renamed, a row id does not.
+	keepID map[int64]bool
+}
+
 func (s *Store) importTree(ctx context.Context, t *Tree, authorID *int64) (ImportResult, error) {
 	res := ImportResult{Tree: t.Name}
-	err := s.WithTx(ctx, func(tx *gorm.DB) error {
-		if err := syncTags(tx, t.Tags); err != nil {
-			return err
-		}
 
-		// Movements first, then menus, blocks and sessions. A child must exist before an
-		// edge can point at it, and the four kinds nest in exactly that order.
-		//
-		ids := map[string]int64{}
+	// A slot's weight beats a person's own saved number, so a shipped file carrying one
+	// would override every account.
+	if authorID == nil {
+		if err := refuseShippedWeights(t); err != nil {
+			return res, err
+		}
+	}
+
+	err := s.WithTx(ctx, func(tx *gorm.DB) error {
+		im := &importer{
+			tx: tx, tree: t, authorID: authorID, res: &res,
+			ids:      map[Ref]int64{},
+			detached: map[Ref]bool{},
+			keep:     map[Ref]bool{},
+			keepID:   map[int64]bool{},
+		}
+		// Rows first, in nesting order, so a child exists before an edge points at it.
 		for _, m := range t.Movements {
-			if err := upsertOne(tx, t, authorID, contentFromMovement(m), m.Tags, m.Media, m.PerSet, ids, &res); err != nil {
+			if err := im.upsert("movements/"+m.Slug+".yaml", contentFromMovement(m),
+				m.Tags, m.Media, m.PerSet); err != nil {
 				return err
 			}
 		}
-		for _, m := range t.Menus {
-			if err := upsertOne(tx, t, authorID, contentFromMenu(m), m.Tags, nil, nil, ids, &res); err != nil {
+		for _, mn := range t.Menus() {
+			if im.detached[Ref{Kind: KindBlock, Slug: mn.Block}] {
+				im.keep[Ref{Kind: KindMenu, Slug: mn.Slug}] = true
+				continue
+			}
+			where := fmt.Sprintf("blocks/%s.yaml: the menu at %s", mn.Block, mn.Slug)
+			if err := im.upsert(where, contentFromMenu(mn), mn.Body.Tags, nil, nil); err != nil {
 				return err
 			}
 		}
 		for _, b := range t.Blocks {
-			if err := upsertOne(tx, t, authorID, contentFromBlock(b), b.Tags, nil, nil, ids, &res); err != nil {
+			if err := im.upsert("blocks/"+b.Slug+".yaml", contentFromBlock(b),
+				b.Tags, nil, nil); err != nil {
 				return err
 			}
 		}
 		for _, sn := range t.Sessions {
-			if err := upsertOne(tx, t, authorID, contentFromSession(sn), sn.Tags, nil, nil, ids, &res); err != nil {
+			if err := im.upsert("sessions/"+sn.Slug+".yaml", contentFromSession(sn),
+				sn.Tags, nil, nil); err != nil {
 				return err
 			}
 		}
 
-		// Edges last, once every slug in the tree has a row.
-		for _, m := range t.Menus {
-			if err := syncEdges(tx, authorID, ids[m.Slug], KindMenu, m.Options, ids); err != nil {
-				return fmt.Errorf("menus/%s.yaml: %w", m.Slug, err)
+		// Blocks come before menus here only because a menu's slug names its block, and a
+		// detached block takes its menus with it.
+		for _, mn := range t.Menus() {
+			ref := Ref{Kind: KindMenu, Slug: mn.Slug}
+			if im.detached[Ref{Kind: KindBlock, Slug: mn.Block}] || im.detached[ref] {
+				continue
+			}
+			items := make([]Item, 0, len(mn.Body.Of))
+			for _, o := range mn.Body.Of {
+				items = append(items, Item{Movement: o.Movement, Notes: o.Notes, Dose: o.Dose})
+			}
+			if err := im.syncEdges(ref, items); err != nil {
+				return fmt.Errorf("blocks/%s.yaml: the menu at %s: %w", mn.Block, mn.Slug, err)
 			}
 		}
 		for _, b := range t.Blocks {
-			if err := syncEdges(tx, authorID, ids[b.Slug], KindBlock, b.Items, ids); err != nil {
+			ref := Ref{Kind: KindBlock, Slug: b.Slug}
+			if im.detached[ref] {
+				continue
+			}
+			if err := im.syncEdges(ref, b.Items); err != nil {
 				return fmt.Errorf("blocks/%s.yaml: %w", b.Slug, err)
 			}
 		}
 		for _, sn := range t.Sessions {
-			if err := syncEdges(tx, authorID, ids[sn.Slug], KindSession, sn.Items, ids); err != nil {
+			ref := Ref{Kind: KindSession, Slug: sn.Slug}
+			if im.detached[ref] {
+				continue
+			}
+			if err := im.syncEdges(ref, sn.Items); err != nil {
 				return fmt.Errorf("sessions/%s.yaml: %w", sn.Slug, err)
 			}
 		}
 
-		n, err := retireMissing(tx, t, authorID, ids)
-		res.Retired = n
-		return err
+		return im.reapMissing()
 	})
 	return res, err
 }
 
-// syncTags writes the vocabulary. A tag is matched by slug, and only a changed display
-// name is written, so an unchanged tree leaves the table alone.
-func syncTags(tx *gorm.DB, tags []TagDef) error {
-	for _, td := range tags {
-		var existing Tag
-		err := tx.Where("slug = ?", td.Slug).First(&existing).Error
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if err := tx.Create(&Tag{Slug: td.Slug, Name: td.Name}).Error; err != nil {
-				return fmt.Errorf("tags.yaml: creating %q: %w", td.Slug, err)
+// refuseShippedWeights is the rule that keeps movement_pref meaningful. See the comment on
+// the movement_pref table in docs/SCHEMA_V2.sql.
+func refuseShippedWeights(t *Tree) error {
+	bad := func(where string, d Dose) error {
+		if d.WeightKg != nil {
+			return fmt.Errorf("%s: a shipped file may not set weight_kg on a slot. A slot "+
+				"beats a person's own saved weight, so this would override every account. "+
+				"Put the weight on the movement's own defaults instead", where)
+		}
+		for i, e := range d.PerSet {
+			if e.WeightKg != nil {
+				return fmt.Errorf("%s: per_set[%d] sets weight_kg, and a shipped file may not "+
+					"set a weight on a slot", where, i)
 			}
-			continue
 		}
-		if err != nil {
-			return err
+		return nil
+	}
+	for _, b := range t.Blocks {
+		for i, it := range b.Items {
+			where := fmt.Sprintf("blocks/%s.yaml: items[%d]", b.Slug, i)
+			if it.Menu != nil {
+				for j, o := range it.Menu.Of {
+					if err := bad(fmt.Sprintf("%s: of[%d]", where, j), o.Dose); err != nil {
+						return err
+					}
+				}
+				continue
+			}
+			if err := bad(where, it.Dose); err != nil {
+				return err
+			}
 		}
-		if existing.Name != td.Name {
-			if err := tx.Model(&Tag{}).Where("id = ?", existing.ID).
-				Update("name", td.Name).Error; err != nil {
+	}
+	for _, sn := range t.Sessions {
+		for i, it := range sn.Items {
+			if err := bad(fmt.Sprintf("sessions/%s.yaml: items[%d]", sn.Slug, i), it.Dose); err != nil {
 				return err
 			}
 		}
@@ -151,100 +247,172 @@ func syncTags(tx *gorm.DB, tags []TagDef) error {
 	return nil
 }
 
-// upsertOne is the whole per-row decision. It records the id it settled on in ids, so the
-// edge pass can resolve a ref without a second query.
-func upsertOne(tx *gorm.DB, t *Tree, authorID *int64, want Content,
-	tags []string, media []Media, perSet []SetEntry,
-	ids map[string]int64, res *ImportResult) error {
+// tagName is the label a new tag gets. A person can rename it afterwards, and nothing here
+// overwrites a name that is already there.
+func tagName(slug string) string {
+	words := strings.Split(slug, "_")
+	for i, w := range words {
+		if w != "" {
+			words[i] = strings.ToUpper(w[:1]) + w[1:]
+		}
+	}
+	return strings.Join(words, " ")
+}
 
-	where := fmt.Sprintf("%ss/%s.yaml", want.Kind, want.Slug)
-	want.AuthorID = authorID
-	tree := t.Name
+// scope narrows a query to the rows this import may touch: the app's, or one account's.
+func (im *importer) scope(q *gorm.DB) *gorm.DB {
+	if im.authorID == nil {
+		return q.Where("author_id IS NULL")
+	}
+	return q.Where("author_id = ?", *im.authorID)
+}
+
+// upsert is the whole per-row decision. The match key is the uuid the file carries, scoped
+// to the author, which is what makes a rename free. A menu has no file, so it is matched by
+// its derived slug and keeps the uuid it was minted at insert.
+func (im *importer) upsert(where string, want Content,
+	tags []string, media []Media, perSet []SetEntry) error {
+
+	tree := im.tree.Name
+	want.AuthorID = im.authorID
 	want.SourceTree = &tree
+	ref := Ref{Kind: want.Kind, Slug: want.Slug}
 
 	var have Content
-	q := tx.Where("kind = ? AND slug = ?", want.Kind, want.Slug)
-	if authorID == nil {
-		q = q.Where("author_id IS NULL")
+	var err error
+	if want.Kind == KindMenu {
+		err = im.scope(im.tx.Where("kind = ? AND slug = ?", want.Kind, want.Slug)).
+			First(&have).Error
 	} else {
-		q = q.Where("author_id = ?", *authorID)
+		err = im.scope(im.tx.Where("uuid = ?", want.UUID)).First(&have).Error
 	}
-	err := q.First(&have).Error
 
 	switch {
 	case errors.Is(err, gorm.ErrRecordNotFound):
-		want.ContentKey = uuid.NewString()
+		if want.Kind == KindMenu {
+			want.UUID = uuid.NewString()
+			want.Family = want.UUID
+		}
+		if err := im.refuseSlugClash(where, want, 0); err != nil {
+			return err
+		}
 		want.CreatedAt = time.Now()
 		want.UpdatedAt = want.CreatedAt
-		if err := tx.Create(&want).Error; err != nil {
+		if err := im.tx.Create(&want).Error; err != nil {
 			return fmt.Errorf("%s: %w", where, err)
 		}
-		ids[want.Slug] = want.ID
-		res.Inserted++
+		im.ids[ref] = want.ID
+		im.keep[ref] = true
+		im.keepID[want.ID] = true
+		im.res.Inserted++
+		return im.syncChildren(where, want.ID, tags, media, perSet)
 
 	case err != nil:
 		return err
 
-	// A row a person made, or a fork, holding the slug this file wants. Refused rather than
-	// worked around. The importer must not overwrite it, and it must not quietly leave it
-	// either: every other file pointing at this slug would then get that row instead of the
-	// one described here, so the tree would import "successfully" and mean something else.
+	// Edited in the app, which detached it from this file.
 	case have.SourceTree == nil:
-		return fmt.Errorf("%s: you already have a %s called %q that you made yourself. "+
-			"Rename yours, or rename this file", where, want.Kind, want.Slug)
+		im.ids[ref] = have.ID
+		im.keep[ref] = true
+		im.keepID[have.ID] = true
+		im.detached[ref] = true
+		im.res.Skipped = append(im.res.Skipped, where)
+		return nil
 
-	// Two trees claiming one slug for one owner. Nothing can resolve that, so it stops here
-	// rather than letting the last tree imported win.
+	// Two trees claiming one row for one owner. Only a person can resolve that.
 	case *have.SourceTree != tree:
-		return fmt.Errorf("%s: slug %q already belongs to tree %q, and tree %q also claims it",
-			where, want.Slug, *have.SourceTree, tree)
+		return fmt.Errorf("%s: id %s already belongs to tree %q, and tree %q also claims it",
+			where, have.UUID, *have.SourceTree, tree)
+	}
 
-	default:
-		ids[have.Slug] = have.ID
-		want.ID = have.ID
-		want.ContentKey = have.ContentKey // survives a refresh; history hangs off it
-		want.CreatedAt = have.CreatedAt
-		if sameContent(have, want) {
-			res.Unchanged++
-		} else {
-			want.UpdatedAt = time.Now()
-			if err := tx.Model(&Content{}).Where("id = ?", have.ID).
-				Select(contentColumns).Updates(&want).Error; err != nil {
-				return fmt.Errorf("%s: %w", where, err)
+	im.ids[ref] = have.ID
+	im.keep[ref] = true
+	im.keepID[have.ID] = true
+	want.ID = have.ID
+	want.UUID = have.UUID
+	want.CreatedAt = have.CreatedAt
+	if want.Kind == KindMenu {
+		want.Family = have.Family
+	}
+	// A file that came back un-retires its row.
+	want.RetiredOn = nil
+	if sameContent(have, want) {
+		im.res.Unchanged++
+	} else {
+		if have.Slug != want.Slug {
+			if err := im.refuseSlugClash(where, want, have.ID); err != nil {
+				return err
 			}
-			res.Updated++
 		}
+		want.UpdatedAt = time.Now()
+		if err := im.tx.Model(&Content{}).Where("id = ?", have.ID).
+			Select(contentColumns).Updates(&want).Error; err != nil {
+			return fmt.Errorf("%s: %w", where, err)
+		}
+		im.res.Updated++
 	}
+	return im.syncChildren(where, have.ID, tags, media, perSet)
+}
 
-	id := ids[want.Slug]
-	if err := syncTagLinks(tx, id, tags); err != nil {
+// refuseSlugClash names the two things that wanted one slug, rather than letting the unique
+// index fail with a constraint name and nothing else. Only a person can say which keeps it.
+func (im *importer) refuseSlugClash(where string, want Content, exceptID int64) error {
+	q := im.scope(im.tx.Model(&Content{}).
+		Where("kind = ? AND slug = ?", want.Kind, want.Slug))
+	if exceptID != 0 {
+		q = q.Where("id <> ?", exceptID)
+	}
+	var other Content
+	err := q.First(&other).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	held := "a row edited in the app"
+	if other.SourceTree != nil {
+		held = fmt.Sprintf("a row from tree %q", *other.SourceTree)
+	}
+	return fmt.Errorf("%s: the %s slug %q is already held by %s (id %s). "+
+		"Rename one of them", where, want.Kind, want.Slug, held, other.UUID)
+}
+
+func (im *importer) syncChildren(where string, id int64,
+	tags []string, media []Media, perSet []SetEntry) error {
+
+	if err := syncTagLinks(im.tx, id, tags); err != nil {
 		return fmt.Errorf("%s: %w", where, err)
 	}
-	if err := syncMedia(tx, id, media); err != nil {
+	if err := syncMedia(im.tx, id, media); err != nil {
 		return fmt.Errorf("%s: %w", where, err)
 	}
-	return syncContentSets(tx, id, perSet)
+	return syncContentSets(im.tx, id, perSet)
 }
 
 // contentColumns is what an import owns on a row. Named so Updates cannot reach a column
-// the file has no opinion about — content_key and created_at especially, and retired_on,
-// which is cleared by name below rather than by accident.
+// the file has no opinion about, created_at especially.
 var contentColumns = []string{
+	// slug is here because the match key is the uuid: a rename is exactly the case where
+	// the two differ, and leaving slug out would keep the old one.
+	"slug", "family",
 	"name", "notes", "source", "source_tree", "retired_on",
-	"movement_kind", "per_side",
+	"movement_style", "per_side",
 	"d_sets", "d_reps", "d_weight_kg", "d_rep_seconds", "d_rep_rest_seconds",
 	"d_set_rest_seconds", "d_prep_seconds", "d_seconds",
 	"block_kind", "pick_count", "color", "needs", "updated_at",
 }
 
 // sameContent compares only what a file decides. A difference here is the only reason to
-// write, which is what makes a second import a no-op rather than a rewrite.
+// write.
 func sameContent(a, b Content) bool {
-	return a.Name == b.Name &&
+	return a.Slug == b.Slug &&
+		a.Family == b.Family &&
+		a.Name == b.Name &&
 		a.Notes == b.Notes &&
 		a.Source == b.Source &&
 		eqStr(a.RetiredOn, b.RetiredOn) &&
-		eqStr(a.MovementKind, b.MovementKind) &&
+		eqStr(a.MovementStyle, b.MovementStyle) &&
 		a.PerSide == b.PerSide &&
 		eqInt(a.DSets, b.DSets) &&
 		eqInt(a.DReps, b.DReps) &&
@@ -284,9 +452,6 @@ func eqFloat(a, b *float64) bool {
 // ---------------------------------------------------------------------------
 // One file becomes one row
 // ---------------------------------------------------------------------------
-//
-// Nothing here reads or writes. It is the mapping from the format to the columns, kept in
-// one place so a new key has exactly one home.
 
 func doseToContent(c *Content, d Dose) {
 	c.DSets = d.Sets
@@ -299,34 +464,52 @@ func doseToContent(c *Content, d Dose) {
 	c.DSeconds = d.Seconds
 }
 
+// familyOf reads the family a file declares. A file with no family line is the head of its
+// own series.
+func familyOf(f FileID) string {
+	if f.Family != "" {
+		return f.Family
+	}
+	return f.ID
+}
+
 func contentFromMovement(m MovementFile) Content {
-	kind := m.Kind
+	style := m.Style
 	c := Content{
-		Kind:         KindMovement,
-		Slug:         m.Slug,
-		Name:         m.Name,
-		Notes:        m.Notes,
-		Source:       m.Source,
-		MovementKind: &kind,
-		PerSide:      m.PerSide,
+		Kind:          KindMovement,
+		UUID:          m.ID,
+		Family:        familyOf(m.FileID),
+		Slug:          m.Slug,
+		Name:          m.Name,
+		Notes:         m.Notes,
+		Source:        m.Source,
+		MovementStyle: &style,
+		PerSide:       m.PerSide,
 	}
 	doseToContent(&c, m.Dose)
 	return c
 }
 
-func contentFromMenu(m MenuFile) Content {
+// contentFromMenu falls back to "Pick N" for a menu with no name of its own.
+func contentFromMenu(mn TreeMenu) Content {
+	name := mn.Body.Name
+	if name == "" {
+		name = "Pick " + strconv.Itoa(*mn.Body.Pick)
+	}
 	return Content{
 		Kind:      KindMenu,
-		Slug:      m.Slug,
-		Name:      m.Name,
-		Notes:     m.Notes,
-		PickCount: m.Pick,
+		Slug:      mn.Slug,
+		Name:      name,
+		Notes:     mn.Body.Notes,
+		PickCount: mn.Body.Pick,
 	}
 }
 
 func contentFromBlock(b BlockFile) Content {
 	c := Content{
 		Kind:   KindBlock,
+		UUID:   b.ID,
+		Family: familyOf(b.FileID),
 		Slug:   b.Slug,
 		Name:   b.Name,
 		Notes:  b.Notes,
@@ -342,6 +525,8 @@ func contentFromBlock(b BlockFile) Content {
 func contentFromSession(s SessionFile) Content {
 	return Content{
 		Kind:   KindSession,
+		UUID:   s.ID,
+		Family: familyOf(s.FileID),
 		Slug:   s.Slug,
 		Name:   s.Name,
 		Notes:  s.Notes,
@@ -355,16 +540,20 @@ func contentFromSession(s SessionFile) Content {
 // The child tables
 // ---------------------------------------------------------------------------
 //
-// Each of these compares before it writes, for the same reason as the content row: an
-// unchanged tree must leave the tables byte for byte alone. Deleting and reinserting would
-// be shorter and would issue new row ids every time.
+// Each of these compares before it writes, so an unchanged tree leaves the tables alone.
 
 func syncTagLinks(tx *gorm.DB, contentID int64, tags []string) error {
 	var want []int64
 	for _, slug := range tags {
 		var t Tag
-		if err := tx.Where("slug = ?", slug).First(&t).Error; err != nil {
-			return fmt.Errorf("tag %q is not in tags.yaml: %w", slug, err)
+		err := tx.Where("slug = ?", slug).First(&t).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			t = Tag{Slug: slug, Name: tagName(slug)}
+			if err := tx.Create(&t).Error; err != nil {
+				return fmt.Errorf("creating tag %q: %w", slug, err)
+			}
+		} else if err != nil {
+			return err
 		}
 		want = append(want, t.ID)
 	}
@@ -400,11 +589,10 @@ func syncTagLinks(tx *gorm.DB, contentID int64, tags []string) error {
 	return nil
 }
 
-// syncMedia keeps the list in file order. Matched by position, so an unchanged list keeps
-// its row ids and a reordered one is rewritten in place rather than deleted and recreated.
+// syncMedia keeps the list in file order, matched by position so row ids survive.
 func syncMedia(tx *gorm.DB, contentID int64, media []Media) error {
 	var have []ContentMedia
-	if err := tx.Where("content_id = ?", contentID).Order("position").Find(&have).Error; err != nil {
+	if err := tx.Where("content_id = ?", contentID).Order("position, id").Find(&have).Error; err != nil {
 		return err
 	}
 
@@ -481,11 +669,10 @@ func syncContentSets(tx *gorm.DB, contentID int64, perSet []SetEntry) error {
 
 // syncEdges writes one parent's children. An edge is matched by (parent, child), which is
 // what ux_item_edge makes unique, so position and the per-use numbers are updated in place.
-func syncEdges(tx *gorm.DB, authorID *int64, parentID int64, parentKind string,
-	items []Item, ids map[string]int64) error {
-
+func (im *importer) syncEdges(parent Ref, items []Item) error {
+	parentID := im.ids[parent]
 	var have []ContentItem
-	if err := tx.Where("parent_id = ?", parentID).Order("position").Find(&have).Error; err != nil {
+	if err := im.tx.Where("parent_id = ?", parentID).Order("position, id").Find(&have).Error; err != nil {
 		return err
 	}
 	haveByChild := map[int64]ContentItem{}
@@ -495,44 +682,65 @@ func syncEdges(tx *gorm.DB, authorID *int64, parentID int64, parentKind string,
 
 	keep := map[int64]bool{}
 	for i, it := range items {
-		childID, childKind, err := resolveRef(tx, authorID, it.Ref, ids)
+		kind, written, err := it.what()
 		if err != nil {
 			return err
+		}
+
+		var (
+			childID   int64
+			childKind = kind
+			dose      = it.Dose
+			notes     = it.Notes
+		)
+		if kind == KindMenu {
+			// The menu row's slug names its parent and this position, so it is already
+			// known and needs no reference to resolve.
+			childID = im.ids[Ref{Kind: KindMenu, Slug: parent.Slug + "_" + strconv.Itoa(i)}]
+			if childID == 0 {
+				return fmt.Errorf("items[%d]: the menu row is missing", i)
+			}
+			dose, notes = Dose{}, ""
+		} else {
+			childID, err = im.resolve(splitRef(kind, written))
+			if err != nil {
+				return fmt.Errorf("items[%d]: %w", i, err)
+			}
 		}
 		keep[childID] = true
 
 		want := ContentItem{
-			ParentID: parentID, ParentKind: parentKind,
+			ParentID: parentID, ParentKind: parent.Kind,
 			ChildID: childID, ChildKind: childKind,
-			Position: i, Notes: it.Notes,
+			Position: i, Notes: notes,
 		}
-		itemDose(&want, it.Dose)
+		itemDose(&want, dose)
 
 		old, exists := haveByChild[childID]
 		if !exists {
-			if err := tx.Create(&want).Error; err != nil {
+			if err := im.tx.Create(&want).Error; err != nil {
 				return err
 			}
-			if err := syncItemSets(tx, want.ID, it.PerSet); err != nil {
+			if err := syncItemSets(im.tx, want.ID, dose.PerSet); err != nil {
 				return err
 			}
 			continue
 		}
 		want.ID = old.ID
 		if !sameItem(old, want) {
-			if err := tx.Model(&ContentItem{}).Where("id = ?", old.ID).
+			if err := im.tx.Model(&ContentItem{}).Where("id = ?", old.ID).
 				Select(itemColumns).Updates(&want).Error; err != nil {
 				return err
 			}
 		}
-		if err := syncItemSets(tx, old.ID, it.PerSet); err != nil {
+		if err := syncItemSets(im.tx, old.ID, dose.PerSet); err != nil {
 			return err
 		}
 	}
 
 	for _, e := range have {
 		if !keep[e.ChildID] {
-			if err := tx.Where("id = ?", e.ID).Delete(&ContentItem{}).Error; err != nil {
+			if err := im.tx.Where("id = ?", e.ID).Delete(&ContentItem{}).Error; err != nil {
 				return err
 			}
 		}
@@ -540,45 +748,34 @@ func syncEdges(tx *gorm.DB, authorID *int64, parentID int64, parentKind string,
 	return nil
 }
 
-// resolveRef turns a slug into the row an edge should point at, and its kind. The kind is
-// needed as well as the id because the foreign key in content_item names both, which is
-// what pins an edge to one kind and makes a cycle impossible.
-//
-// It looks in this tree first, then at content already in the database. A private tree
-// leans heavily on the second case: it references shipped movements rather than carrying
-// copies of them.
-//
-// Order within the database is your own content, then the app's. So a movement you own
-// shadows a shipped one of the same slug, which is the same order the loader validates in.
-func resolveRef(tx *gorm.DB, authorID *int64, ref string, ids map[string]int64) (int64, string, error) {
-	if id, ok := ids[ref]; ok && id != 0 {
-		var c Content
-		if err := tx.Select("kind").Where("id = ?", id).First(&c).Error; err != nil {
-			return 0, "", err
-		}
-		return id, c.Kind, nil
+// resolve turns a reference into the row an edge should point at. Two namespaces, with no
+// fallback between them: bare is this account's, app: is the app's.
+func (im *importer) resolve(r Ref) (int64, error) {
+	if id, ok := im.ids[r]; ok && id != 0 {
+		return id, nil
+	}
+
+	q := im.tx.Select("id").Where("kind = ? AND slug = ?", r.Kind, r.Slug)
+	if r.App {
+		q = q.Where("author_id IS NULL")
+	} else if im.authorID != nil {
+		q = q.Where("author_id = ?", *im.authorID)
+	} else {
+		q = q.Where("author_id IS NULL")
 	}
 
 	var c Content
-	if authorID != nil {
-		err := tx.Select("id", "kind").
-			Where("slug = ? AND author_id = ?", ref, *authorID).First(&c).Error
-		if err == nil {
-			return c.ID, c.Kind, nil
-		}
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return 0, "", err
-		}
-	}
-	err := tx.Select("id", "kind").
-		Where("slug = ? AND author_id IS NULL", ref).First(&c).Error
+	err := q.First(&c).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return 0, "", fmt.Errorf("ref %q names nothing in this tree and nothing already imported", ref)
+		if r.App {
+			return 0, fmt.Errorf("no %s %q in the app's catalog", r.Kind, r.Slug)
+		}
+		return 0, fmt.Errorf("no %s %q in this tree or already in the database", r.Kind, r.Slug)
 	}
 	if err != nil {
-		return 0, "", err
+		return 0, err
 	}
-	return c.ID, c.Kind, nil
+	return c.ID, nil
 }
 
 var itemColumns = []string{
@@ -651,40 +848,39 @@ func syncItemSets(tx *gorm.DB, itemID int64, perSet []SetEntry) error {
 	return nil
 }
 
-// retireMissing marks a row whose file has left the tree, rather than deleting it. A plan
-// or a finished run may still point at it. The library hides a retired row, and everything
-// else keeps resolving.
-func retireMissing(tx *gorm.DB, t *Tree, authorID *int64, ids map[string]int64) (int, error) {
-	q := tx.Model(&Content{}).Where("source_tree = ?", t.Name)
-	if authorID == nil {
-		q = q.Where("author_id IS NULL")
-	} else {
-		q = q.Where("author_id = ?", *authorID)
-	}
+// reapMissing handles a row whose file has left the tree. A movement, block or session is
+// retired, not deleted: a plan or a finished run may still point at it. A menu is deleted,
+// because nothing can reference one, and a retired menu would hold its derived slug against
+// the next import of a reordered block.
+func (im *importer) reapMissing() error {
 	var rows []Content
-	if err := q.Find(&rows).Error; err != nil {
-		return 0, err
+	if err := im.scope(im.tx.Where("source_tree = ?", im.tree.Name)).Find(&rows).Error; err != nil {
+		return err
 	}
 
 	today := time.Now().Format("2006-01-02")
-	n := 0
 	for _, r := range rows {
-		_, present := ids[r.Slug]
-		switch {
-		case !present && r.RetiredOn == nil:
+		if im.keepID[r.ID] {
+			continue
+		}
+		if r.Kind == KindMenu {
+			if err := im.tx.Where("parent_id = ? OR child_id = ?", r.ID, r.ID).
+				Delete(&ContentItem{}).Error; err != nil {
+				return err
+			}
+			if err := im.tx.Where("id = ?", r.ID).Delete(&Content{}).Error; err != nil {
+				return err
+			}
+			continue
+		}
+		if r.RetiredOn == nil {
 			d := Date(today)
-			if err := tx.Model(&Content{}).Where("id = ?", r.ID).
+			if err := im.tx.Model(&Content{}).Where("id = ?", r.ID).
 				Update("retired_on", &d).Error; err != nil {
-				return n, err
+				return err
 			}
-			n++
-		case present && r.RetiredOn != nil:
-			// The file came back. Un-retire it so the library shows it again.
-			if err := tx.Model(&Content{}).Where("id = ?", r.ID).
-				Update("retired_on", nil).Error; err != nil {
-				return n, err
-			}
+			im.res.Retired++
 		}
 	}
-	return n, nil
+	return nil
 }

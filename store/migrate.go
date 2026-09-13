@@ -15,10 +15,9 @@ import (
 //go:embed migrations
 var migrationsFS embed.FS
 
-// One directory per dialect, one numbering across both. goose's dialect is a process-wide
-// setting and a .sql file has no per-dialect branch, but goose.Up takes a directory — so
-// two directories is the mechanism. Both are generated from docs/SCHEMA_V2.sql, and
-// MigrationVersions exists so a test can assert they have not drifted apart.
+// One directory per dialect, one numbering across both. A .sql file has no per-dialect
+// branch, so two directories is the only seam goose gives. Both are generated from
+// docs/SCHEMA_V2.sql.
 func migrationDir(engine string) (string, error) {
 	switch engine {
 	case EngineSQLite, EnginePostgres:
@@ -28,12 +27,10 @@ func migrationDir(engine string) (string, error) {
 	}
 }
 
-// Migrate applies every pending migration. It is called at boot before the listener opens,
-// so a self-hoster runs one binary and never has to remember a second command.
+// Migrate applies every pending migration, at boot and before the listener opens.
 //
-// There is no Down. Migrations are append-only after the first boot: SQLite can neither
-// drop a CHECK nor alter a primary key, so a down migration could not honestly reverse the
-// initial schema. Rolling back means restoring a backup.
+// There is no Down. SQLite can neither drop a CHECK nor alter a primary key, so a down
+// migration could not honestly reverse this schema. Rolling back means restoring a backup.
 func (s *Store) Migrate(ctx context.Context) error {
 	dir, err := migrationDir(s.engine)
 	if err != nil {
@@ -59,9 +56,8 @@ func (s *Store) Migrate(ctx context.Context) error {
 		return err
 	}
 
-	// A database newer than the binary is a rolled-back deploy meeting a migrated
-	// database. Running on would write rows this code cannot read back, so refuse and name
-	// both versions.
+	// A database newer than the binary is a rolled-back deploy. Running on would write rows
+	// this code cannot read back.
 	if have > want {
 		return fmt.Errorf(
 			"store: database schema is version %d but this binary only knows %d — "+
@@ -87,8 +83,7 @@ func (s *Store) SchemaVersion(ctx context.Context) (int64, error) {
 }
 
 // MigrationVersions lists the version numbers embedded for one engine. A test asserts both
-// engines carry the same list, so a migration added to one dialect and forgotten in the
-// other fails the suite instead of failing a deploy.
+// engines carry the same list, so a migration written for one dialect only fails the suite.
 func MigrationVersions(engine string) ([]string, error) {
 	dir, err := migrationDir(engine)
 	if err != nil {
