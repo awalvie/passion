@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/url"
 	"os"
 	"strings"
@@ -35,6 +36,17 @@ type Config struct {
 	DSN          string
 	MaxOpenConns int
 	LogLevel     logger.LogLevel
+
+	// Log is where GORM's slow-query and error lines go. Nil sends them to stderr in GORM's
+	// own format, which ignores the app's level and format settings.
+	Log *slog.Logger
+}
+
+// gormLog carries GORM's own logger output into slog, so one setting governs both.
+type gormLog struct{ to *slog.Logger }
+
+func (g gormLog) Printf(format string, args ...any) {
+	g.to.Warn(strings.TrimSpace(fmt.Sprintf(format, args...)), "source", "gorm")
 }
 
 // Store owns the only database handle in the process. The field is unexported and there is
@@ -42,6 +54,13 @@ type Config struct {
 type Store struct {
 	db     *gorm.DB
 	engine string
+}
+
+func gormWriter(to *slog.Logger) logger.Writer {
+	if to == nil {
+		return log.New(os.Stderr, "\r\n", log.LstdFlags)
+	}
+	return gormLog{to: to}
 }
 
 func Open(ctx context.Context, cfg Config) (*Store, error) {
@@ -70,11 +89,11 @@ func Open(ctx context.Context, cfg Config) (*Store, error) {
 		TranslateError: true,
 		// "record not found" is a normal answer here: every upsert asks whether a row exists
 		// before it writes. Left on, a first boot prints one per row.
-		Logger: logger.New(log.New(os.Stderr, "\r\n", log.LstdFlags), logger.Config{
+		Logger: logger.New(gormWriter(cfg.Log), logger.Config{
 			SlowThreshold:             200 * time.Millisecond,
 			LogLevel:                  lvl,
 			IgnoreRecordNotFoundError: true,
-			Colorful:                  true,
+			Colorful:                  cfg.Log == nil,
 		}),
 	})
 	if err != nil {
