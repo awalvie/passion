@@ -168,14 +168,30 @@ read on demand. Nobody should build a job runner.
 A menu has `pick_count` and nothing records which option was chosen. Three of the four
 shipped public sessions contain a menu, so this blocks phase 3.
 
-**The design:** a menu freezes at run start as one `log_entry` with
-`movement_style = 'menu'`, `movement_slug` = the menu's derived slug, `state = 'pending'`. When the
-runner chooses, that row is deleted and one row per chosen movement is inserted at the same
-`position`, with targets resolved **at choose time**.
+**Revised 2026-09-13. Nothing about a menu is ever written to the log.** The log records the
+movements that were done, and a menu is not one of them.
 
-Two consequences to write down: `position` is not unique on `log_entry`, so every read is
-`ORDER BY position, id`; and the schema's "frozen at run creation" sentence gains this
-exception.
+The earlier design froze the menu itself as a placeholder `log_entry` with
+`movement_style = 'menu'`, deleted on choosing. That cannot be written: `log_entry.movement_family`
+is `NOT NULL` with `CHECK (length(...) = 36)`, so the placeholder needs a family, and a menu's
+uuid is the one id 1.15 records as **unstable** — inserting a movement above a menu renumbers
+its derived slug, so it is deleted and recreated with a fresh uuid. A placeholder carrying that
+uuid would either break the CHECK or group history on a value that changes when you reorder a
+block you never touched.
+
+**The design:** a run holds no row for a menu at all. The runner is shown the menu from the
+session it is running, and choosing inserts one `log_entry` per chosen movement at the menu's
+position, with targets resolved **at choose time**. An unresolved menu is simply an absence.
+
+Three consequences to write down:
+
+- `position` is not unique on `log_entry`, so every read is `ORDER BY position, id`.
+- The schema's "frozen at run creation" sentence gains this exception: these rows are frozen
+  when the choice is made, not when the run starts.
+- **A run in progress needs the session to render its menus**, which is the one place the
+  runner reads `content`. A finished run never does, so 3's "drop every content table and
+  history still renders" gate is unaffected. A run whose session was deleted mid-run loses
+  only the menus it had not yet chosen.
 
 ## 1.8 Features removed on purpose
 
@@ -791,6 +807,14 @@ question could not be answered where it sat, and 2b was split on 2026-09-13.
 
 Sizing is relative. Handler LOC is what that phase replaces, measured non-test.
 
+**V2 looks like V1. Decided 2026-09-16.** The owner likes the current UI and wants it kept.
+V2 already uses V1's stylesheet, colour tokens, card, badge and button classes, and
+`docs/DESIGN.md` governs both. A phase rebuilding a page reproduces V1's page rather than
+redesigning it; a deliberate change is raised first, per CLAUDE.md's rule on design questions.
+
+Two things are not held to this. `/library` in 2b is a scaffold, replaced by 5a and 5b. The
+V2 top bar carries only routes V2 serves, and grows back to V1's shape as phases land.
+
 **Every phase from 2b on ends with something you can click**, not only with a passing test.
 Phases 0 to 2a did not, which is why nothing built so far can be looked at: the V2 home page
 is one sentence of HTML. A phase that cannot end on a screen is too big and gets split.
@@ -950,6 +974,45 @@ nav carries only routes V2 actually serves, and a phase adds its link when it ad
 The write half of the old 2b: `CopyToMine`, detaching a row from its file, and
 `movement_pref`.
 
+**Detail written 2026-09-13**, before building the rest of it.
+
+**1. `CopyToMine(ctx, accountID, id)` — built.** Structure is copied, movements are not: a
+copied session holds new block rows, and those blocks point at the same movement rows. So a
+copy costs three rows rather than three hundred, and a later release improving a movement
+still reaches you. A menu is copied with its block, because a menu belongs to one block and
+cannot be shared.
+
+Each new row gets a fresh uuid and **inherits the source row's family**, which is what keeps
+history one series across the copy. Tags are copied; `source_tree` is cleared, so a copy is
+never claimed by a re-import. Only a block or a session can be copied — `ErrNotCopyable`
+otherwise, because a movement has no structure and its numbers are what `movement_pref` is
+for. A second copy is refused by name rather than by a constraint, since your own namespace
+already holds that slug.
+
+**2. Detaching.** One store method, `UpdateContent`, and the detach is a consequence rather
+than a separate call: any successful write to a row whose `source_tree` is set clears it in
+the same statement. Two rules it enforces: a row the app ships is never written (`ErrShipped`,
+the app offers a copy instead), and a row belonging to another account answers not-found.
+
+**3. `movement_pref`.** One row per account per movement, every number nullable, NULL meaning
+"no opinion". `SetMovementPref` writes one; a pref whose every field is NULL is deleted rather
+than stored, so "reset to the default" needs no separate call.
+
+Resolution belongs in **one** function, so the order cannot drift between the library, the run
+screen and the targets page:
+
+```
+ResolveDose(movement Content, pref *MovementPref, slot *ContentItem) Dose
+```
+
+weakest first: the movement's `d_*`, then the pref, then the slot. What the person types while
+running is phase 3's and never reaches here. Per field, not per struct — a pref that sets only
+`weight_kg` must not wipe the movement's `sets`.
+
+**Not in this phase:** editing through the web. 2c is the store layer and its tests; 5a and 5b
+build the editors. `/library` gains a copy button only, because a copy with nowhere to edit it
+is still useful and proves the store method end to end.
+
 **Gate, revised 2026-09-10.**
 
 - `CopyToMine` leaves the original row byte-identical, copies its blocks and edges, **keeps the
@@ -966,6 +1029,11 @@ The write half of the old 2b: `CopyToMine`, detaching a row from its file, and
   means no `detached_on` column: nothing needs to tell a detached row from a hand-typed one.
 - Per 1.13: `movement_pref` resolves in the documented order, and a pref on a row the person does
   not own shows up inside a session the app ships.
+- A pref setting one field leaves the movement's other defaults standing.
+- A pref with every field NULL is deleted, not stored.
+- Writing to a row the app ships is refused with `ErrShipped`; writing to another account's
+  row answers not-found, never 403.
+- A copy is refused a second time by name, not by a constraint violation.
 
 ### Phase 3 — run and log · **XL**
 
