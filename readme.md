@@ -228,6 +228,18 @@ catalog:
 `owner:` is an email, not an id. A tree whose owner has no account is skipped with a warning
 and imports on a later boot.
 
+### Logs
+
+```yaml
+log:
+  level: info     # debug, info, warn, error
+  format: pretty  # pretty, text, json
+```
+
+`pretty` is the default: one readable line, message first, coloured when the output is a
+terminal and plain when it is a file or a pipe. `text` and `json` are Go's own structured
+handlers, for anything that parses the output. `NO_COLOR` turns the colour off.
+
 ### Editing a catalog item in the app
 
 Three cases, three answers. None of them makes a hidden copy.
@@ -236,9 +248,8 @@ Three cases, three answers. None of them makes a hidden copy.
 every time you run it. No new row, and the app's improvements still reach you.
 
 **A row of yours that came from a file.** Edited in place: same row, same id. The row is
-detached from its file for good, and every later import names that file in its report and
-badges the row in the library. Without that, you edit the YAML, restart, see no change, and
-are told nothing.
+detached from its file for good, and every later import names that file in its log line.
+Without that, you edit the YAML, restart, see no change, and are told nothing.
 
 **The structure of something the app ships.** An explicit "copy to my content" action, never
 an implicit one. The copy gets a new id and keeps the family of the row it came from, so one
