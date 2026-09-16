@@ -177,10 +177,15 @@ func newLogger(cfg config.LogCfg) *slog.Logger {
 		level = slog.LevelInfo
 	}
 	opts := &slog.HandlerOptions{Level: level}
-	if strings.ToLower(cfg.Format) == "json" {
+	switch strings.ToLower(cfg.Format) {
+	case "json":
 		return slog.New(slog.NewJSONHandler(os.Stderr, opts))
+	case "text":
+		return slog.New(slog.NewTextHandler(os.Stderr, opts))
+	default:
+		// Colour only when stderr is a terminal, so a log file or a pipe stays clean.
+		return slog.New(newPrettyHandler(os.Stderr, level))
 	}
-	return slog.New(slog.NewTextHandler(os.Stderr, opts))
 }
 
 // warnAboutFootguns says once, loudly, when something is on that must not be on in

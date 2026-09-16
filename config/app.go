@@ -102,7 +102,7 @@ func DefaultApp() App {
 		Database: Database{Engine: "sqlite", DSN: "passion.db"},
 		Auth:     AuthCfg{JWTTTLHours: 168},
 		Catalog:  Catalog{Import: true},
-		Log:      LogCfg{Level: "info", Format: "text"},
+		Log:      LogCfg{Level: "info", Format: "pretty"},
 		Defaults: Defaults{TimeZone: "UTC"},
 		Migrate:  "up",
 	}
