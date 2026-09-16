@@ -53,6 +53,7 @@ func (s *Server) Routes() http.Handler {
 		pr.Get("/", s.handleHome)
 		pr.Get("/library", s.handleLibrary)
 		pr.Get("/library/{id}", s.handleLibraryItem)
+		pr.Post("/library/{id}/copy", s.handleLibraryCopy)
 		pr.Post("/profile/password", s.handleChangePassword)
 	})
 
