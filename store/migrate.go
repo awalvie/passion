@@ -67,6 +67,35 @@ func (s *Store) Migrate(ctx context.Context) error {
 	if err := goose.UpContext(ctx, db, dir); err != nil {
 		return fmt.Errorf("store: migrate %s: %w", s.engine, err)
 	}
+	return s.verifySchema(ctx)
+}
+
+// verifySchema catches a database whose recorded version is current but whose tables are not.
+// Migration 001 is still edited in place while nothing has shipped, so a database created
+// before the latest edit records "001 applied" and never receives it.
+//
+// Delete this with the first migration 002.
+func (s *Store) verifySchema(ctx context.Context) error {
+	// The model, not the table name: with a bare string GORM cannot resolve the column and
+	// answers false on PostgreSQL for a column that is there.
+	m := s.db.WithContext(ctx).Migrator()
+	for _, want := range []struct {
+		model  any
+		table  string
+		column string
+	}{
+		{&Content{}, "content", "uuid"},
+		{&Content{}, "content", "family"},
+		{&Log{}, "log", "session_family"},
+		{&LogEntry{}, "log_entry", "movement_family"},
+	} {
+		if !m.HasColumn(want.model, want.column) {
+			return fmt.Errorf("store: this database is older than the schema: %s.%s is missing "+
+				"while the migration is recorded as applied. Migration 001 is still edited in "+
+				"place, so delete the database and boot again (make reseed-v2)",
+				want.table, want.column)
+		}
+	}
 	return nil
 }
 

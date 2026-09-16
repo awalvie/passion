@@ -39,13 +39,21 @@ func eachEngine(t *testing.T, fn func(t *testing.T, s *Store)) {
 		return
 	}
 	t.Run("postgres", func(t *testing.T) {
-		s := open(t, Config{Engine: EnginePostgres, DSN: dsn, LogLevel: logger.Silent})
-		// Each test gets a clean schema. Postgres is a shared server, unlike a temp file.
-		if err := s.read(context.Background()).Exec(
-			`DROP SCHEMA public CASCADE; CREATE SCHEMA public`).Error; err != nil {
+		ctx := context.Background()
+
+		// Reset BEFORE migrating. Postgres is a shared server whose volume outlives the
+		// container, so whatever the last run left is still there — and while migration 001
+		// is edited in place, that can be an older 001 recorded as applied.
+		s, err := Open(ctx, Config{Engine: EnginePostgres, DSN: dsn, LogLevel: logger.Silent})
+		if err != nil {
+			t.Fatalf("Open(postgres): %v", err)
+		}
+		t.Cleanup(func() { _ = s.Close() })
+
+		if err := s.read(ctx).Exec(`DROP SCHEMA public CASCADE; CREATE SCHEMA public`).Error; err != nil {
 			t.Fatalf("resetting the postgres schema: %v", err)
 		}
-		if err := s.Migrate(context.Background()); err != nil {
+		if err := s.Migrate(ctx); err != nil {
 			t.Fatalf("migrate after reset: %v", err)
 		}
 		fn(t, s)
