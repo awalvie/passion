@@ -7,7 +7,7 @@ DB_PATH ?= passion.db
 
 V2_DB ?= tmp/passion-v2.db
 
-.PHONY: run run-v2 watch build reseed test test-all pg-up pg-down migrations catalog-lint catalog-ids catalog-export
+.PHONY: run run-v2 reseed-v2 watch build reseed test test-all pg-up pg-down migrations catalog-lint catalog-ids catalog-export
 
 run:
 	PASSION_ADDR="$(PASSION_ADDR)" go run ./cmd/passion
@@ -96,6 +96,12 @@ catalog-lint:
 # Write an id into every catalog file that has none. Commit what it changes.
 catalog-ids:
 	go run . catalog lint --fix catalog $(wildcard $(PRIVATE_CATALOG))
+
+# Throw the dev database away and boot fresh. Migration 001 is still edited in place, so a
+# database created before the latest edit records "001 applied" and never gets the change.
+reseed-v2:
+	rm -f $(V2_DB) $(V2_DB)-wal $(V2_DB)-shm
+	$(MAKE) run-v2
 
 # Write the shipped tree out of the database over catalog/, which is what keeps that tree in
 # the exporter's canonical key order. Needs a database the app has already imported into.
