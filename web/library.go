@@ -24,7 +24,9 @@ type libraryTab struct {
 
 type libraryItemParams struct {
 	BaseParams
-	Node store.Node
+	Node     store.Node
+	CanCopy  bool
+	CopyNote string
 }
 
 var libraryTabs = []libraryTab{
@@ -78,7 +80,28 @@ func (s *Server) handleLibraryItem(w http.ResponseWriter, r *http.Request) {
 	s.render.page(w, http.StatusOK, "library_item", libraryItemParams{
 		BaseParams: BaseParams{Title: node.Name, Authenticated: true},
 		Node:       node,
+		CanCopy:    !node.Mine() && (node.Kind == store.KindSession || node.Kind == store.KindBlock),
+		// Per 1.13: your files still say app:<slug>, and there is no fallback, so a session
+		// you run from a file keeps using the app's row.
+		CopyNote: "Your copy is yours to change. Catalog files that name this by app: keep " +
+			"using the app's version.",
 	})
+}
+
+func (s *Server) handleLibraryCopy(w http.ResponseWriter, r *http.Request) {
+	actor, _ := actorFrom(r.Context())
+
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	copied, err := s.store.CopyToMine(r.Context(), actor.ID, id)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	http.Redirect(w, r, "/library/"+strconv.FormatInt(copied.ID, 10), http.StatusSeeOther)
 }
 
 func knownKind(kind string) bool {

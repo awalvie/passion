@@ -128,3 +128,53 @@ func TestAMissingItemIs404(t *testing.T) {
 		t.Fatalf("want 404, got %d", rec.Code)
 	}
 }
+
+func TestCopyingASessionLandsOnYourOwn(t *testing.T) {
+	srv, st := newTestServer(t)
+	cookie, id := signIn(t, srv, "a@b.c")
+	importTrees(t, st, "a@b.c")
+
+	sessions, err := st.ListContent(context.Background(), id, store.KindSession)
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := sessions[0]
+
+	rec := post(t, srv.Routes(), "/library/"+strconv.FormatInt(src.ID, 10)+"/copy", nil, cookie)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("want a redirect, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	loc := rec.Header().Get("Location")
+	page := get(t, srv.Routes(), loc, cookie)
+	if page.Code != http.StatusOK {
+		t.Fatalf("the copy does not render: %d", page.Code)
+	}
+	if !strings.Contains(page.Body.String(), "Yours") {
+		t.Error("the copy is not badged as yours")
+	}
+	if !strings.Contains(page.Body.String(), html.EscapeString(src.Name)) {
+		t.Errorf("the copy does not keep the name %q", src.Name)
+	}
+}
+
+// A row you already own has nothing to copy to.
+func TestYourOwnRowOffersNoCopyButton(t *testing.T) {
+	srv, st := newTestServer(t)
+	cookie, id := signIn(t, srv, "a@b.c")
+	importTrees(t, st, "a@b.c")
+
+	sessions, err := st.ListContent(context.Background(), id, store.KindSession)
+	if err != nil {
+		t.Fatal(err)
+	}
+	copied, err := st.CopyToMine(context.Background(), id, sessions[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := get(t, srv.Routes(), "/library/"+strconv.FormatInt(copied.ID, 10), cookie)
+	if strings.Contains(rec.Body.String(), "Copy to my content") {
+		t.Error("a row you own offers a copy button")
+	}
+}
