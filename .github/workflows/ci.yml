@@ -14,6 +14,9 @@ jobs:
 
       - uses: cachix/install-nix-action@v31
 
+      - name: Start postgres
+        run: nix develop -c make db-up
+
       - name: Vet
         run: nix develop -c go vet ./...
 
