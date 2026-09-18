@@ -1,0 +1,43 @@
+-- +goose Up
+CREATE TABLE account (
+    id            uuid        PRIMARY KEY DEFAULT uuidv7(),
+    email         text        NOT NULL,
+    password_hash text        NOT NULL,
+    display_name  text        NOT NULL,
+    timezone      text        NOT NULL,
+    created_at    timestamptz NOT NULL DEFAULT now(),
+    updated_at    timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX account_email_key ON account (lower(email));
+
+CREATE TABLE session (
+    id         uuid        PRIMARY KEY DEFAULT uuidv7(),
+    account_id uuid        NOT NULL REFERENCES account (id) ON DELETE CASCADE,
+    token_hash bytea       NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    expires_at timestamptz NOT NULL,
+    CONSTRAINT session_expires_after_created CHECK (expires_at > created_at)
+);
+
+CREATE UNIQUE INDEX session_token_hash_key ON session (token_hash);
+CREATE        INDEX session_account_idx    ON session (account_id);
+
+-- Without an ORM there is no single place in Go that every UPDATE passes through,
+-- so the database keeps updated_at honest.
+-- +goose StatementBegin
+CREATE FUNCTION touch_updated_at() RETURNS trigger AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+-- +goose StatementEnd
+
+CREATE TRIGGER account_touch BEFORE UPDATE ON account
+    FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
+
+-- +goose Down
+DROP TABLE session;
+DROP TABLE account;
+DROP FUNCTION touch_updated_at;
