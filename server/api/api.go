@@ -45,6 +45,16 @@ func (s *Server) Routes(client http.Handler) http.Handler {
 	return mux
 }
 
+// swagger:route GET /healthz health healthz
+//
+// # Liveness
+//
+// Answers 200 when the database answers, and nothing else.
+//
+//	Security: []
+//	Responses:
+//	  200: description: The database answered
+//	  503: description: The database did not answer
 func (s *Server) healthz(w http.ResponseWriter, r *http.Request) {
 	if err := s.pool.Ping(r.Context()); err != nil {
 		http.Error(w, "database unavailable", http.StatusServiceUnavailable)
