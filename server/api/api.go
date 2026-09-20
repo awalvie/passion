@@ -37,6 +37,7 @@ func (s *Server) Routes(client http.Handler) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/", client)
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) { writeNotFound(w) })
+	mux.HandleFunc("GET /api/openapi.json", s.openapi)
 	mux.HandleFunc("GET /healthz", s.healthz)
 	mux.HandleFunc("POST /api/v1/accounts", s.signUp)
 	mux.HandleFunc("POST /api/v1/tokens", s.signIn)
