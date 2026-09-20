@@ -26,7 +26,7 @@ func TestMigrateIsRepeatable(t *testing.T) {
 	}
 	defer pool.Close()
 
-	for _, table := range []string{"account", "session"} {
+	for _, table := range []string{"account", "auth_token"} {
 		var exists bool
 		err := pool.QueryRow(ctx,
 			"SELECT to_regclass('public.'||$1) IS NOT NULL", table).Scan(&exists)
