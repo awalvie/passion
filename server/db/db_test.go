@@ -2,26 +2,15 @@ package db_test
 
 import (
 	"context"
-	"os"
 	"strings"
 	"testing"
 
 	"passion/server/db"
+	"passion/server/db/dbtest"
 )
 
-// dsn fails the run rather than skipping it. A skipped database test is a test
-// nobody notices has stopped running.
-func dsn(t *testing.T) string {
-	t.Helper()
-	v := os.Getenv("TEST_DATABASE_URL")
-	if v == "" {
-		t.Fatal("TEST_DATABASE_URL is not set: run inside the nix shell, after `make db-up`")
-	}
-	return v
-}
-
 func TestOpen(t *testing.T) {
-	pool, err := db.Open(context.Background(), dsn(t))
+	pool, err := db.Open(context.Background(), dbtest.DSN(t))
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}

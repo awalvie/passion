@@ -6,11 +6,12 @@ import (
 	"testing"
 
 	"passion/server/db"
+	"passion/server/db/dbtest"
 )
 
 func TestMigrateIsRepeatable(t *testing.T) {
 	ctx := context.Background()
-	d := dsn(t)
+	d := dbtest.DSN(t)
 
 	if err := db.Migrate(ctx, d); err != nil {
 		t.Fatalf("first migrate: %v", err)
@@ -42,7 +43,7 @@ func TestMigrateIsRepeatable(t *testing.T) {
 // Starting from an empty schema is the point: every racer has real work to do.
 func TestMigrateIsSafeInParallel(t *testing.T) {
 	ctx := context.Background()
-	d := dsn(t)
+	d := dbtest.DSN(t)
 
 	pool, err := db.Open(ctx, d)
 	if err != nil {
