@@ -4,8 +4,11 @@ IMAGE ?= passion:dev
 
 .PHONY: client db-up db-down image run test watch
 
+# LC_ALL=C is set here rather than in the shell: initdb reads the ambient
+# locale and a mismatched glibc locale archive makes it refuse to run, but
+# forcing C on the whole shell breaks unicode in the prompt.
 $(PGDATA):
-	initdb --locale=C --encoding=UTF8 -D $(PGDATA)
+	LC_ALL=C initdb --locale=C --encoding=UTF8 -D $(PGDATA)
 
 # pg_ctl status exits 0 when running, 3 when stopped, 4 when there is no cluster.
 db-up: $(PGDATA)

@@ -11,6 +11,8 @@
     {
       devShells = forAllSystems (pkgs: {
         default = pkgs.mkShell {
+          name = "passion";
+
           packages = [
             pkgs.go
             pkgs.nodejs_22
@@ -22,10 +24,6 @@
           shellHook = ''
             # Go must use the toolchain nix provides, not one it downloads itself.
             export GOTOOLCHAIN=local
-
-            # initdb inherits the ambient locale, and a mismatched glibc locale
-            # archive makes it refuse to run.
-            export LC_ALL=C
 
             export PGDATA="$PWD/.pgdata"
             export PGHOST="$PGDATA"
