@@ -10,22 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-
+	"passion/server/api"
 	"passion/server/db"
 )
-
-func newMux(pool *pgxpool.Pool) *http.ServeMux {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		if err := pool.Ping(r.Context()); err != nil {
-			http.Error(w, "database unavailable", http.StatusServiceUnavailable)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-	})
-	return mux
-}
 
 func main() {
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
@@ -60,7 +47,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           newMux(pool),
+		Handler:           api.New(pool, log).Routes(),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,

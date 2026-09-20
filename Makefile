@@ -2,7 +2,7 @@ PGDATA ?= $(CURDIR)/.pgdata
 
 IMAGE ?= passion:dev
 
-.PHONY: db-up db-down image
+.PHONY: db-up db-down image test
 
 $(PGDATA):
 	initdb --locale=C --encoding=UTF8 -D $(PGDATA)
@@ -19,3 +19,8 @@ db-down:
 
 image:
 	docker build -t $(IMAGE) .
+
+# -p 1 runs one package at a time. Every package shares the one test database
+# and empties it between tests, so two packages at once wipe each other.
+test:
+	go test ./... -count=1 -p 1
