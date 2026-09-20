@@ -255,7 +255,9 @@ func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
 
 // swagger:route GET /api/v1/accounts/me accounts readAccount
 //
-// Read the signed-in account
+// # Read the signed-in account
+//
+// Answers with the account the bearer token belongs to.
 //
 //	Security:
 //	  bearer:
