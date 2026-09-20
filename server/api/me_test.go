@@ -3,20 +3,8 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 )
-
-func get(t *testing.T, h http.Handler, path, bearer string) *httptest.ResponseRecorder {
-	t.Helper()
-	r := httptest.NewRequest(http.MethodGet, path, nil)
-	if bearer != "" {
-		r.Header.Set("Authorization", bearer)
-	}
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, r)
-	return rec
-}
 
 func TestMe(t *testing.T) {
 	h := newTestServer(t)

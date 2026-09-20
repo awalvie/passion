@@ -24,6 +24,28 @@ func post(t *testing.T, h http.Handler, path, body string) *httptest.ResponseRec
 	return rec
 }
 
+// request sends a bodyless request, with a bearer header when one is given.
+func request(t *testing.T, h http.Handler, method, path, bearer string) *httptest.ResponseRecorder {
+	t.Helper()
+	r := httptest.NewRequest(method, path, nil)
+	if bearer != "" {
+		r.Header.Set("Authorization", bearer)
+	}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, r)
+	return rec
+}
+
+func get(t *testing.T, h http.Handler, path, bearer string) *httptest.ResponseRecorder {
+	t.Helper()
+	return request(t, h, http.MethodGet, path, bearer)
+}
+
+func del(t *testing.T, h http.Handler, path, bearer string) *httptest.ResponseRecorder {
+	t.Helper()
+	return request(t, h, http.MethodDelete, path, bearer)
+}
+
 const goodSignUp = `{"email":"ada@example.com","password":"correct horse battery",` +
 	`"display_name":"Ada","timezone":"Europe/Oslo"}`
 
