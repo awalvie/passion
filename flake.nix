@@ -16,6 +16,7 @@
             pkgs.nodejs_22
             pkgs.pnpm
             pkgs.postgresql_18
+            pkgs.air
           ];
 
           shellHook = ''
