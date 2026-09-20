@@ -14,25 +14,57 @@ import (
 
 const maxDisplayName = 64
 
+// swagger:model signUpRequest
 type signUpRequest struct {
-	Email       string `json:"email"`
-	Password    string `json:"password"`
+	// required: true
+	// example: ada@example.com
+	Email string `json:"email"`
+
+	// Between 8 and 128 characters.
+	//
+	// required: true
+	// example: correct horse battery
+	Password string `json:"password"`
+
+	// The name shown in the app.
+	//
+	// required: true
+	// example: Ada
 	DisplayName string `json:"display_name"`
-	Timezone    string `json:"timezone"`
+
+	// A zone name Postgres knows. It decides which local date a record counts
+	// as, so a session finished before midnight stays on that day.
+	//
+	// required: true
+	// example: Europe/Oslo
+	Timezone string `json:"timezone"`
 }
 
+// swagger:model accountResponse
 type accountResponse struct {
-	ID          string `json:"id"`
-	Email       string `json:"email"`
+	// example: 01a0bf77-d7e8-76ea-96cc-f09cbca175a3
+	ID string `json:"id"`
+
+	// example: ada@example.com
+	Email string `json:"email"`
+
+	// example: Ada
 	DisplayName string `json:"display_name"`
-	Timezone    string `json:"timezone"`
+
+	// example: Europe/Oslo
+	Timezone string `json:"timezone"`
 }
 
+// swagger:model tokenResponse
 type tokenResponse struct {
-	Token     string    `json:"token"`
+	// Send as "Authorization: Bearer <token>". Shown once and never again.
+	Token string `json:"token"`
+
+	// Thirty days out. Using the token pushes this forward.
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
+// swagger:model signUpResponse
 type signUpResponse struct {
 	Account accountResponse `json:"account"`
 	Token   tokenResponse   `json:"token"`
@@ -151,8 +183,14 @@ func validateSignUp(req signUpRequest) map[string]string {
 	return fields
 }
 
+// swagger:model signInRequest
 type signInRequest struct {
-	Email    string `json:"email"`
+	// required: true
+	// example: ada@example.com
+	Email string `json:"email"`
+
+	// required: true
+	// example: correct horse battery
 	Password string `json:"password"`
 }
 
