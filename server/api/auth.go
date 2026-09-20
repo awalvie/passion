@@ -187,6 +187,15 @@ func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, issued)
 }
 
+func (s *Server) me(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
+	writeJSON(w, http.StatusOK, accountResponse{
+		ID:          who.AccountID,
+		Email:       who.Email,
+		DisplayName: who.DisplayName,
+		Timezone:    who.Timezone,
+	})
+}
+
 // verify runs one comparison, waiting for a free hashing slot first.
 func (s *Server) verify(encoded, plain string) error {
 	s.hashing <- struct{}{}
