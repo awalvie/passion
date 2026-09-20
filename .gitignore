@@ -30,3 +30,8 @@ result
 
 # Local postgres cluster
 .pgdata/
+
+# The client build. Vite writes it here because go:embed cannot reach above its
+# own package.
+/server/web/dist/*
+!/server/web/dist/.gitkeep

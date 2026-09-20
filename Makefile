@@ -2,7 +2,7 @@ PGDATA ?= $(CURDIR)/.pgdata
 
 IMAGE ?= passion:dev
 
-.PHONY: db-up db-down image test
+.PHONY: client db-up db-down image test
 
 $(PGDATA):
 	initdb --locale=C --encoding=UTF8 -D $(PGDATA)
@@ -16,6 +16,10 @@ db-up: $(PGDATA)
 
 db-down:
 	@pg_ctl -D $(PGDATA) status >/dev/null 2>&1 && pg_ctl -D $(PGDATA) -w stop || true
+
+client:
+	pnpm --dir client install --frozen-lockfile
+	pnpm --dir client build
 
 image:
 	docker build -t $(IMAGE) .
