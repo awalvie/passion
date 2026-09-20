@@ -39,7 +39,8 @@ watch: db-up
 	@trap 'kill 0' EXIT; \
 		pnpm --dir client dev & \
 		air --build.cmd "go build -o ./tmp/passion ./server/cmd/passion" \
-			--build.bin ./tmp/passion
+			--build.bin ./tmp/passion \
+			--build.include_ext go,tpl,tmpl,html,json
 
 # --scan-models is required: a swagger:model that no route references is
 # silently left out of the spec without it.
