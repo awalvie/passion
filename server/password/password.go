@@ -95,11 +95,14 @@ func decode(encoded string) (p params, salt, key []byte, err error) {
 		return p, nil, nil, errMalformed
 	}
 
+	// Sscanf stops when the format runs out and ignores whatever follows, so
+	// each field is rendered back and compared. Without that, "v=19junk" reads
+	// as 19.
 	var version int
 	if _, err := fmt.Sscanf(fields[2], "v=%d", &version); err != nil {
 		return p, nil, nil, errMalformed
 	}
-	if version != argon2.Version {
+	if version != argon2.Version || fields[2] != fmt.Sprintf("v=%d", version) {
 		return p, nil, nil, errMalformed
 	}
 
@@ -107,6 +110,9 @@ func decode(encoded string) (p params, salt, key []byte, err error) {
 		return p, nil, nil, errMalformed
 	}
 	if p.memory == 0 || p.time == 0 || p.threads == 0 {
+		return p, nil, nil, errMalformed
+	}
+	if fields[3] != fmt.Sprintf("m=%d,t=%d,p=%d", p.memory, p.time, p.threads) {
 		return p, nil, nil, errMalformed
 	}
 

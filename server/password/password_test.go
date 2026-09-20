@@ -84,6 +84,11 @@ func TestVerifyRefusesMalformedHashes(t *testing.T) {
 		"salt not base64":   strings.Replace(good, parts[4], "!!!!", 1),
 		"key not base64":    strings.Replace(good, parts[5], "!!!!", 1),
 		"empty key":         strings.Replace(good, parts[5], "", 1),
+
+		// Sscanf ignores whatever follows the format it was given.
+		"junk after version":    strings.Replace(good, "v=19", "v=19junk", 1),
+		"junk after parameters": strings.Replace(good, "p=4", "p=4junk", 1),
+		"padded version":        strings.Replace(good, "v=19", "v=019", 1),
 	}
 
 	for name, encoded := range cases {
