@@ -2,7 +2,7 @@ PGDATA ?= $(CURDIR)/.pgdata
 
 IMAGE ?= passion:dev
 
-.PHONY: client db-up db-down image test
+.PHONY: client db-up db-down image run test watch
 
 $(PGDATA):
 	initdb --locale=C --encoding=UTF8 -D $(PGDATA)
@@ -24,6 +24,19 @@ client:
 	pnpm --dir client install --frozen-lockfile
 	pnpm --dir client build
 	touch server/web/dist/.gitkeep
+
+# One command to a working app on http://localhost:8080.
+run: db-up client
+	go run ./server/cmd/passion
+
+# Both halves reload: vite rebuilds the client, air rebuilds and restarts the
+# server. Open http://localhost:5173 — vite serves the client there and proxies
+# /api to the go server on 8080. Ctrl-C stops both.
+watch: db-up
+	@trap 'kill 0' EXIT; \
+		pnpm --dir client dev & \
+		air --build.cmd "go build -o ./tmp/passion ./server/cmd/passion" \
+			--build.bin ./tmp/passion
 
 image:
 	docker build -t $(IMAGE) .
