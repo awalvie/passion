@@ -196,6 +196,16 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request, who db.Authenticated
 	})
 }
 
+// signOut deletes the token that authenticated this request, so it signs out
+// the one device and leaves the others alone.
+func (s *Server) signOut(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
+	if err := db.DeleteAuthToken(r.Context(), s.pool, who.TokenID); err != nil {
+		writeInternal(w, s.log, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // verify runs one comparison, waiting for a free hashing slot first.
 func (s *Server) verify(encoded, plain string) error {
 	s.hashing <- struct{}{}
