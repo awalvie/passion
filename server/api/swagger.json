@@ -1,0 +1,316 @@
+{
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "description": "Training app for climbers. Sign up, sign in on several devices at once, and\nsign each one out on its own.\n\nEvery failure answers with the same shape: an error object carrying a code,\na human message, and on a validation failure a fields map naming what to\nfix.",
+    "title": "Passion",
+    "version": "1"
+  },
+  "basePath": "/",
+  "paths": {
+    "/api/v1/accounts": {
+      "post": {
+        "description": "Answers with the account and a token, so the client signs up and signs in\nwith one call.\n\nAn address that is already registered answers invalid_credentials, the same\nas a wrong password. Telling them apart would let anyone ask the API who has\nan account.",
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Create an account",
+        "operationId": "signUp",
+        "parameters": [
+          {
+            "x-go-name": "Body",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/signUpRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/signUpResponse"
+          },
+          "401": {
+            "$ref": "#/responses/invalidCredentials"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/accounts/me": {
+      "get": {
+        "description": "Read the signed-in account",
+        "tags": [
+          "accounts"
+        ],
+        "operationId": "readAccount",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/accountResponse"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tokens": {
+      "post": {
+        "description": "Each sign-in mints a separate token, so a phone and a laptop hold different\nones and signing out of either leaves the other working.",
+        "tags": [
+          "tokens"
+        ],
+        "summary": "Sign in",
+        "operationId": "signIn",
+        "parameters": [
+          {
+            "x-go-name": "Body",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/signInRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/tokenResponse"
+          },
+          "401": {
+            "$ref": "#/responses/invalidCredentials"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/tokens/current": {
+      "delete": {
+        "description": "Deletes the token that authenticated the request. Signing out twice with the\nsame token answers 401 the second time, because the route authenticates\nbefore it deletes.",
+        "tags": [
+          "tokens"
+        ],
+        "summary": "Sign out this device",
+        "operationId": "signOut",
+        "responses": {
+          "204": {
+            "description": "Signed out"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/healthz": {
+      "get": {
+        "description": "Answers 200 when the database answers, and nothing else.",
+        "tags": [
+          "health"
+        ],
+        "summary": "Liveness",
+        "operationId": "healthz",
+        "responses": {
+          "200": {
+            "description": "The database answered"
+          },
+          "503": {
+            "description": "The database did not answer"
+          }
+        },
+        "security": []
+      }
+    }
+  },
+  "definitions": {
+    "accountResponse": {
+      "type": "object",
+      "properties": {
+        "display_name": {
+          "type": "string",
+          "x-go-name": "DisplayName"
+        },
+        "email": {
+          "type": "string",
+          "x-go-name": "Email"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "timezone": {
+          "type": "string",
+          "x-go-name": "Timezone"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "errorBody": {
+      "description": "{ \"error\": { \"code\": \"...\", \"message\": \"...\", \"fields\": { ... } } }",
+      "type": "object",
+      "title": "Every failure the API returns carries this shape.",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/errorDetail"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "errorDetail": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "x-go-name": "Code"
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Fields"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "signInRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "x-go-name": "Email"
+        },
+        "password": {
+          "type": "string",
+          "x-go-name": "Password"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "signUpRequest": {
+      "type": "object",
+      "properties": {
+        "display_name": {
+          "type": "string",
+          "x-go-name": "DisplayName"
+        },
+        "email": {
+          "type": "string",
+          "x-go-name": "Email"
+        },
+        "password": {
+          "type": "string",
+          "x-go-name": "Password"
+        },
+        "timezone": {
+          "type": "string",
+          "x-go-name": "Timezone"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "signUpResponse": {
+      "type": "object",
+      "properties": {
+        "account": {
+          "$ref": "#/definitions/accountResponse"
+        },
+        "token": {
+          "$ref": "#/definitions/tokenResponse"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "tokenResponse": {
+      "type": "object",
+      "properties": {
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "ExpiresAt"
+        },
+        "token": {
+          "type": "string",
+          "x-go-name": "Token"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    }
+  },
+  "responses": {
+    "accountResponse": {
+      "description": "An account.",
+      "schema": {
+        "$ref": "#/definitions/accountResponse"
+      }
+    },
+    "invalidCredentials": {
+      "description": "The address and password do not match an account.",
+      "schema": {
+        "$ref": "#/definitions/errorBody"
+      }
+    },
+    "signUpResponse": {
+      "description": "The account and its first token.",
+      "schema": {
+        "$ref": "#/definitions/signUpResponse"
+      }
+    },
+    "tokenResponse": {
+      "description": "A new token.",
+      "schema": {
+        "$ref": "#/definitions/tokenResponse"
+      }
+    },
+    "unauthenticated": {
+      "description": "No live bearer token.",
+      "schema": {
+        "$ref": "#/definitions/errorBody"
+      }
+    },
+    "validationFailed": {
+      "description": "Something in the body needs fixing.",
+      "schema": {
+        "$ref": "#/definitions/errorBody"
+      }
+    }
+  },
+  "securityDefinitions": {
+    "bearer": {
+      "description": "The token from a sign-up or sign-in response, sent as \"Bearer \u003ctoken\u003e\". It lasts thirty days and slides forward on use.",
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    }
+  }
+}

@@ -38,6 +38,22 @@ type signUpResponse struct {
 	Token   tokenResponse   `json:"token"`
 }
 
+// swagger:route POST /api/v1/accounts accounts signUp
+//
+// # Create an account
+//
+// Answers with the account and a token, so the client signs up and signs in
+// with one call.
+//
+// An address that is already registered answers invalid_credentials, the same
+// as a wrong password. Telling them apart would let anyone ask the API who has
+// an account.
+//
+//	Security: []
+//	Responses:
+//	  201: signUpResponse
+//	  401: invalidCredentials
+//	  422: validationFailed
 func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 	var req signUpRequest
 	if err := decodeJSON(w, r, &req); err != nil {
@@ -151,6 +167,18 @@ var unknownAddressHash = func() string {
 	return h
 }()
 
+// swagger:route POST /api/v1/tokens tokens signIn
+//
+// # Sign in
+//
+// Each sign-in mints a separate token, so a phone and a laptop hold different
+// ones and signing out of either leaves the other working.
+//
+//	Security: []
+//	Responses:
+//	  201: tokenResponse
+//	  401: invalidCredentials
+//	  422: validationFailed
 func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
 	var req signInRequest
 	if err := decodeJSON(w, r, &req); err != nil {
@@ -187,6 +215,15 @@ func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, issued)
 }
 
+// swagger:route GET /api/v1/accounts/me accounts readAccount
+//
+// Read the signed-in account
+//
+//	Security:
+//	  bearer:
+//	Responses:
+//	  200: accountResponse
+//	  401: unauthenticated
 func (s *Server) me(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	writeJSON(w, http.StatusOK, accountResponse{
 		ID:          who.AccountID,
@@ -198,6 +235,19 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request, who db.Authenticated
 
 // signOut deletes the token that authenticated this request, so it signs out
 // the one device and leaves the others alone.
+// swagger:route DELETE /api/v1/tokens/current tokens signOut
+//
+// # Sign out this device
+//
+// Deletes the token that authenticated the request. Signing out twice with the
+// same token answers 401 the second time, because the route authenticates
+// before it deletes.
+//
+//	Security:
+//	  bearer:
+//	Responses:
+//	  204: description: Signed out
+//	  401: unauthenticated
 func (s *Server) signOut(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	if err := db.DeleteAuthToken(r.Context(), s.pool, who.TokenID); err != nil {
 		writeInternal(w, s.log, err)
