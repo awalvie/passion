@@ -1,7 +1,8 @@
 package api
 
 import (
-	_ "embed"
+	"embed"
+	"io/fs"
 	"net/http"
 )
 
@@ -10,6 +11,22 @@ import (
 //
 //go:embed swagger.json
 var swaggerJSON []byte
+
+// The docs page and the Scalar bundle it loads. Both are served from this
+// binary so an install with no internet still gets browsable, runnable docs.
+//
+//go:embed docs
+var docsFS embed.FS
+
+// docsHandler serves the page at /api/docs and its script beside it.
+func docsHandler() http.Handler {
+	docs, err := fs.Sub(docsFS, "docs")
+	if err != nil {
+		// The directory is embedded at compile time, so this cannot fail.
+		panic(err)
+	}
+	return http.StripPrefix("/api/docs", http.FileServer(http.FS(docs)))
+}
 
 func (s *Server) openapi(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
