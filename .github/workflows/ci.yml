@@ -23,5 +23,12 @@ jobs:
       - name: Vet
         run: nix develop -c go vet ./...
 
+      # The spec is generated from annotations, so a handler change without a
+      # regenerate leaves the docs describing an API that no longer exists.
+      - name: Check the openapi spec is current
+        run: |
+          nix develop -c make openapi
+          git diff --exit-code server/api/swagger.json
+
       - name: Test
         run: nix develop -c make test
