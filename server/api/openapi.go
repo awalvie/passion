@@ -1,5 +1,21 @@
 package api
 
+import (
+	_ "embed"
+	"net/http"
+)
+
+// The spec is generated from the annotations below by `make openapi`, and CI
+// fails when the committed copy is out of date.
+//
+//go:embed swagger.json
+var swaggerJSON []byte
+
+func (s *Server) openapi(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(swaggerJSON)
+}
+
 // Passion
 //
 // Training app for climbers. Sign up, sign in on several devices at once, and
