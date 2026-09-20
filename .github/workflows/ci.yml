@@ -17,6 +17,9 @@ jobs:
       - name: Start postgres
         run: nix develop -c make db-up
 
+      - name: Check formatting
+        run: nix develop -c sh -c 'test -z "$(gofmt -l server)"'
+
       - name: Vet
         run: nix develop -c go vet ./...
 
