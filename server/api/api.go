@@ -30,8 +30,13 @@ func New(pool *pgxpool.Pool, log *slog.Logger) *Server {
 	}
 }
 
-func (s *Server) Routes() http.Handler {
+// Routes serves the API, and hands everything else to client. An unknown path
+// under /api answers in the API's error shape rather than the app shell, so a
+// mistyped endpoint cannot look like a working one.
+func (s *Server) Routes(client http.Handler) http.Handler {
 	mux := http.NewServeMux()
+	mux.Handle("/", client)
+	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) { writeNotFound(w) })
 	mux.HandleFunc("GET /healthz", s.healthz)
 	mux.HandleFunc("POST /api/v1/accounts", s.signUp)
 	mux.HandleFunc("POST /api/v1/tokens", s.signIn)

@@ -17,9 +17,13 @@ db-up: $(PGDATA)
 db-down:
 	@pg_ctl -D $(PGDATA) status >/dev/null 2>&1 && pg_ctl -D $(PGDATA) -w stop || true
 
+# adapter-static empties its output directory, which takes .gitkeep with it.
+# That file is what makes //go:embed match on a clone that has never built the
+# client, so it has to come back.
 client:
 	pnpm --dir client install --frozen-lockfile
 	pnpm --dir client build
+	touch server/web/dist/.gitkeep
 
 image:
 	docker build -t $(IMAGE) .

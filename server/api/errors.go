@@ -25,6 +25,7 @@ const (
 	CodeValidationFailed   = "validation_failed"
 	CodeInvalidCredentials = "invalid_credentials"
 	CodeUnauthenticated    = "unauthenticated"
+	CodeNotFound           = "not_found"
 	CodeInternal           = "internal"
 )
 
@@ -63,6 +64,10 @@ func writeInvalidCredentials(w http.ResponseWriter) {
 
 func writeUnauthenticated(w http.ResponseWriter) {
 	writeError(w, http.StatusUnauthorized, CodeUnauthenticated, "Sign in first.")
+}
+
+func writeNotFound(w http.ResponseWriter) {
+	writeError(w, http.StatusNotFound, CodeNotFound, "There is nothing at that address.")
 }
 
 // writeInternal keeps the reason in the log and out of the response.

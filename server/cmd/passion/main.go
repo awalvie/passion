@@ -12,6 +12,7 @@ import (
 
 	"passion/server/api"
 	"passion/server/db"
+	"passion/server/web"
 )
 
 func main() {
@@ -47,7 +48,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           api.New(pool, log).Routes(),
+		Handler:           api.New(pool, log).Routes(web.Handler()),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,

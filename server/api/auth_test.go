@@ -14,7 +14,16 @@ import (
 
 func newTestServer(t *testing.T) http.Handler {
 	t.Helper()
-	return New(dbtest.Pool(t), slog.New(slog.NewTextHandler(io.Discard, nil))).Routes()
+	return New(dbtest.Pool(t), slog.New(slog.NewTextHandler(io.Discard, nil))).
+		Routes(stubClient())
+}
+
+// stubClient stands in for the built Svelte app, which the api package knows
+// nothing about. Its body is the proof that a request fell through to it.
+func stubClient() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "the client", http.StatusNotFound)
+	})
 }
 
 func post(t *testing.T, h http.Handler, path, body string) *httptest.ResponseRecorder {
