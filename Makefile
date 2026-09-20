@@ -1,6 +1,8 @@
 PGDATA ?= $(CURDIR)/.pgdata
 
-.PHONY: db-up db-down
+IMAGE ?= passion:dev
+
+.PHONY: db-up db-down image
 
 $(PGDATA):
 	initdb --locale=C --encoding=UTF8 -D $(PGDATA)
@@ -14,3 +16,6 @@ db-up: $(PGDATA)
 
 db-down:
 	@pg_ctl -D $(PGDATA) status >/dev/null 2>&1 && pg_ctl -D $(PGDATA) -w stop || true
+
+image:
+	docker build -t $(IMAGE) .
