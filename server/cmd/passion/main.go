@@ -44,6 +44,13 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// Rule 51: upgrading must never require a second command, so the binary
+	// migrates itself on the way up.
+	if err := db.Migrate(ctx, dsn); err != nil {
+		log.Error("migrate", "err", err)
+		os.Exit(1)
+	}
+
 	pool, err := db.Open(ctx, dsn)
 	if err != nil {
 		log.Error("database", "err", err)
