@@ -2,7 +2,7 @@ PGDATA ?= $(CURDIR)/.pgdata
 
 IMAGE ?= passion:dev
 
-.PHONY: client db-up db-down image run test watch
+.PHONY: client db-up db-down image openapi run test watch
 
 # LC_ALL=C is set here rather than in the shell: initdb reads the ambient
 # locale and a mismatched glibc locale archive makes it refuse to run, but
@@ -40,6 +40,11 @@ watch: db-up
 		pnpm --dir client dev & \
 		air --build.cmd "go build -o ./tmp/passion ./server/cmd/passion" \
 			--build.bin ./tmp/passion
+
+# --scan-models is required: a swagger:model that no route references is
+# silently left out of the spec without it.
+openapi:
+	swagger generate spec --scan-models -o server/api/swagger.json
 
 image:
 	docker build -t $(IMAGE) .

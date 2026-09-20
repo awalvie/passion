@@ -19,6 +19,7 @@
             pkgs.pnpm
             pkgs.postgresql_18
             pkgs.air
+            pkgs.go-swagger
           ];
 
           shellHook = ''
