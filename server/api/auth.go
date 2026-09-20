@@ -134,3 +134,62 @@ func validateSignUp(req signUpRequest) map[string]string {
 
 	return fields
 }
+
+type signInRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+// unknownAddressHash is a real hash of a value nobody has. Verifying against
+// it makes an unknown address cost the same as a wrong password, so the clock
+// does not answer "does this person have an account".
+var unknownAddressHash = func() string {
+	h, err := password.Hash("no account has this password")
+	if err != nil {
+		panic(err)
+	}
+	return h
+}()
+
+func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
+	var req signInRequest
+	if err := decodeJSON(w, r, &req); err != nil {
+		writeFieldErrors(w, map[string]string{"body": "could not be read as JSON"})
+		return
+	}
+
+	account, err := db.AccountByEmail(r.Context(), s.pool, req.Email)
+	switch {
+	case errors.Is(err, db.ErrNoAccount):
+		s.verify(unknownAddressHash, req.Password)
+		writeInvalidCredentials(w)
+		return
+	case err != nil:
+		writeInternal(w, s.log, err)
+		return
+	}
+
+	err = s.verify(account.PasswordHash, req.Password)
+	switch {
+	case errors.Is(err, password.ErrMismatch):
+		writeInvalidCredentials(w)
+		return
+	case err != nil:
+		writeInternal(w, s.log, err)
+		return
+	}
+
+	issued, err := s.issueToken(r, account.ID)
+	if err != nil {
+		writeInternal(w, s.log, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, issued)
+}
+
+// verify runs one comparison, waiting for a free hashing slot first.
+func (s *Server) verify(encoded, plain string) error {
+	s.hashing <- struct{}{}
+	defer func() { <-s.hashing }()
+	return password.Verify(encoded, plain)
+}
