@@ -44,7 +44,7 @@ watch: db-up
 # --scan-models is required: a swagger:model that no route references is
 # silently left out of the spec without it.
 openapi:
-	swagger generate spec --scan-models -o server/api/swagger.json
+	swagger generate spec --scan-models -i server/api/openapi-base.yml -o server/api/swagger.json
 
 image:
 	docker build -t $(IMAGE) .

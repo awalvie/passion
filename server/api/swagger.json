@@ -52,10 +52,11 @@
     },
     "/api/v1/accounts/me": {
       "get": {
-        "description": "Read the signed-in account",
+        "description": "Answers with the account the bearer token belongs to.",
         "tags": [
           "accounts"
         ],
+        "summary": "Read the signed-in account",
         "operationId": "readAccount",
         "responses": {
           "200": {
@@ -341,5 +342,19 @@
       "name": "Authorization",
       "in": "header"
     }
-  }
+  },
+  "tags": [
+    {
+      "description": "Creating an account and reading the one you are signed in as. An account owns everything else: sessions, records and any catalog items you edit.",
+      "name": "accounts"
+    },
+    {
+      "description": "Signing in and out. Each sign-in mints one token for one device, so a phone and a laptop hold different ones and signing out of either leaves the other working. A token lasts thirty days and slides forward on use.",
+      "name": "tokens"
+    },
+    {
+      "description": "Whether the server and its database are answering.",
+      "name": "health"
+    }
+  ]
 }

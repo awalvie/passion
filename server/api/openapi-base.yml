@@ -1,0 +1,16 @@
+# Merged into the generated spec by `make openapi`. It holds what the route
+# annotations cannot express — go-swagger has no annotation for tag
+# descriptions.
+swagger: "2.0"
+tags:
+  - name: accounts
+    description: >-
+      Creating an account and reading the one you are signed in as. An account
+      owns everything else: sessions, records and any catalog items you edit.
+  - name: tokens
+    description: >-
+      Signing in and out. Each sign-in mints one token for one device, so a
+      phone and a laptop hold different ones and signing out of either leaves
+      the other working. A token lasts thirty days and slides forward on use.
+  - name: health
+    description: Whether the server and its database are answering.
