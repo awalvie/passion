@@ -154,19 +154,23 @@
       "properties": {
         "display_name": {
           "type": "string",
-          "x-go-name": "DisplayName"
+          "x-go-name": "DisplayName",
+          "example": "Ada"
         },
         "email": {
           "type": "string",
-          "x-go-name": "Email"
+          "x-go-name": "Email",
+          "example": "ada@example.com"
         },
         "id": {
           "type": "string",
-          "x-go-name": "ID"
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
         },
         "timezone": {
           "type": "string",
-          "x-go-name": "Timezone"
+          "x-go-name": "Timezone",
+          "example": "Europe/Oslo"
         }
       },
       "x-go-package": "passion/server/api"
@@ -186,10 +190,13 @@
       "type": "object",
       "properties": {
         "code": {
+          "description": "One of validation_failed, invalid_credentials, unauthenticated,\nnot_found or internal.",
           "type": "string",
-          "x-go-name": "Code"
+          "x-go-name": "Code",
+          "example": "validation_failed"
         },
         "fields": {
+          "description": "What to fix, keyed by field name. Present only on validation_failed.",
           "type": "object",
           "additionalProperties": {
             "type": "string"
@@ -198,43 +205,63 @@
         },
         "message": {
           "type": "string",
-          "x-go-name": "Message"
+          "x-go-name": "Message",
+          "example": "Some of what you typed needs fixing"
         }
       },
       "x-go-package": "passion/server/api"
     },
     "signInRequest": {
       "type": "object",
+      "required": [
+        "email",
+        "password"
+      ],
       "properties": {
         "email": {
           "type": "string",
-          "x-go-name": "Email"
+          "x-go-name": "Email",
+          "example": "ada@example.com"
         },
         "password": {
           "type": "string",
-          "x-go-name": "Password"
+          "x-go-name": "Password",
+          "example": "correct horse battery"
         }
       },
       "x-go-package": "passion/server/api"
     },
     "signUpRequest": {
       "type": "object",
+      "required": [
+        "email",
+        "password",
+        "display_name",
+        "timezone"
+      ],
       "properties": {
         "display_name": {
+          "description": "The name shown in the app.",
           "type": "string",
-          "x-go-name": "DisplayName"
+          "x-go-name": "DisplayName",
+          "example": "Ada"
         },
         "email": {
           "type": "string",
-          "x-go-name": "Email"
+          "x-go-name": "Email",
+          "example": "ada@example.com"
         },
         "password": {
+          "description": "Between 8 and 128 characters.",
           "type": "string",
-          "x-go-name": "Password"
+          "x-go-name": "Password",
+          "example": "correct horse battery"
         },
         "timezone": {
+          "description": "A zone name Postgres knows. It decides which local date a record counts\nas, so a session finished before midnight stays on that day.",
           "type": "string",
-          "x-go-name": "Timezone"
+          "x-go-name": "Timezone",
+          "example": "Europe/Oslo"
         }
       },
       "x-go-package": "passion/server/api"
@@ -255,11 +282,13 @@
       "type": "object",
       "properties": {
         "expires_at": {
+          "description": "Thirty days out. Using the token pushes this forward.",
           "type": "string",
           "format": "date-time",
           "x-go-name": "ExpiresAt"
         },
         "token": {
+          "description": "Send as \"Authorization: Bearer \u003ctoken\u003e\". Shown once and never again.",
           "type": "string",
           "x-go-name": "Token"
         }

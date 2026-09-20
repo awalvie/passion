@@ -11,14 +11,25 @@ import (
 // Every failure the API returns carries this shape.
 //
 //	{ "error": { "code": "...", "message": "...", "fields": { ... } } }
+//
+// swagger:model errorBody
 type errorBody struct {
 	Error errorDetail `json:"error"`
 }
 
+// swagger:model errorDetail
 type errorDetail struct {
-	Code    string            `json:"code"`
-	Message string            `json:"message"`
-	Fields  map[string]string `json:"fields,omitempty"`
+	// One of validation_failed, invalid_credentials, unauthenticated,
+	// not_found or internal.
+	//
+	// example: validation_failed
+	Code string `json:"code"`
+
+	// example: Some of what you typed needs fixing.
+	Message string `json:"message"`
+
+	// What to fix, keyed by field name. Present only on validation_failed.
+	Fields map[string]string `json:"fields,omitempty"`
 }
 
 const (
