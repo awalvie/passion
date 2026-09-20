@@ -1,1 +1,5 @@
 @import 'tailwindcss';
+
+/* The design system, carried over from v1 unchanged. It defines the colour
+   tokens, the card, button and input classes, and both themes. */
+@import './passion.css';

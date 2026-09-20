@@ -1,0 +1,4397 @@
+/* Exercise editor: ensure [hidden] wins over Tailwind display utilities on wrappers */
+[data-exercise-reps-fields][hidden],
+[data-exercise-session-fields][hidden],
+[data-exercise-media-fields][hidden],
+[data-catalog-options-panel][hidden],
+[data-catalog-library-hint][hidden] {
+  display: none !important;
+}
+
+:root {
+  --bg: #f9fafb;
+  --panel: #ffffff;
+  --border: #e5e7eb;
+
+  --text: #111827;
+  --muted: #6b7280;
+
+  --btn-primary: #111827;
+  --btn-primary-hover: #0b1220;
+  --btn-fg: #ffffff;
+
+  --link: #111827;
+  --link-hover: #0b1220;
+
+  --card-muted: #f9fafb;
+
+  /* UI accents (used for calendar/cycle states) */
+  --accent: #2563eb;
+  --accent-bg: rgba(37, 99, 235, 0.06);
+  --accent-border: rgba(37, 99, 235, 0.35);
+
+  --destructive: #dc2626;
+  --destructive-hover: #b91c1c;
+
+  --logo-filter: none;
+
+  /* Climbing tick badge palette (light) — pale tint bg + saturated fg */
+  --tick-green-bg: #dcfce7;   --tick-green-fg: #16a34a;
+  --tick-amber-bg: #fef9c3;   --tick-amber-fg: #a16207;
+  --tick-red-bg: #fee2e2;     --tick-red-fg: #dc2626;
+  --tick-sky-bg: #e0f2fe;     --tick-sky-fg: #0369a1;
+  --tick-violet-bg: #ede9fe;  --tick-violet-fg: #7c3aed;
+  --tick-blue-bg: #dbeafe;    --tick-blue-fg: #2563eb;
+  --tick-cyan-bg: #e0f2fe;    --tick-cyan-fg: #0891b2;
+  --tick-star: #f59e0b;
+  --tick-sent-accent: #16a34a;
+  --tick-working-accent: #d97706;
+
+  /* Warning / amber semantic tokens */
+  --warn-bg: #fef3c7;
+  --warn-fg: #92400e;
+  --warn-border: #f59e0b;
+
+  /* Heatmap tier tokens (history / activity heatmap) */
+  --heatmap-empty: var(--border);
+  --heatmap-1: rgba(79, 70, 229, 0.08);
+  --heatmap-2: rgba(79, 70, 229, 0.30);
+  --heatmap-3: rgba(79, 70, 229, 0.55);
+  --heatmap-4: rgba(79, 70, 229, 0.85);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161f2e;
+    --panel: #1e2a3a;
+    --border: #2d3a4e;
+
+    --text: #d1d5db;
+    --muted: #8d96a6;
+
+    --btn-primary: #d1d5db;
+    --btn-primary-hover: #e5e7eb;
+    --btn-fg: #111827;
+
+    --link: #d1d5db;
+    --link-hover: #f3f4f6;
+
+    --card-muted: #161f2e;
+
+    --accent: #60a5fa;
+    --accent-bg: rgba(96, 165, 250, 0.12);
+    --accent-border: rgba(147, 197, 253, 0.4);
+
+    --destructive: #f87171;
+    --destructive-hover: #ef4444;
+
+    --logo-filter: invert(1);
+
+    /* Climbing tick badge palette (dark) — low-alpha hue bg + bright fg */
+    --tick-green-bg: rgba(34, 197, 94, 0.18);   --tick-green-fg: #4ade80;
+    --tick-amber-bg: rgba(245, 158, 11, 0.18);  --tick-amber-fg: #fbbf24;
+    --tick-red-bg: rgba(248, 113, 113, 0.18);   --tick-red-fg: #f87171;
+    --tick-sky-bg: rgba(56, 189, 248, 0.24);    --tick-sky-fg: #7dd3fc;
+    --tick-violet-bg: rgba(167, 139, 250, 0.22);--tick-violet-fg: #c4b5fd;
+    --tick-blue-bg: rgba(96, 165, 250, 0.24);   --tick-blue-fg: #93c5fd;
+    --tick-cyan-bg: rgba(34, 211, 238, 0.24);   --tick-cyan-fg: #67e8f9;
+    --tick-star: #fbbf24;
+    --tick-sent-accent: #22c55e;
+    --tick-working-accent: #f59e0b;
+
+    /* Warning / amber semantic tokens (dark) */
+    --warn-bg: rgba(245, 158, 11, 0.15);
+    --warn-fg: #fbbf24;
+    --warn-border: #f59e0b;
+
+    /* Heatmap tier tokens (dark) */
+    --heatmap-empty: var(--border);
+    --heatmap-1: rgba(129, 140, 248, 0.15);
+    --heatmap-2: rgba(129, 140, 248, 0.40);
+    --heatmap-3: rgba(129, 140, 248, 0.65);
+    --heatmap-4: rgba(129, 140, 248, 0.90);
+  }
+}
+
+html[data-theme="light"] {
+  --bg: #f9fafb;
+  --panel: #ffffff;
+  --border: #e5e7eb;
+
+  --text: #111827;
+  --muted: #6b7280;
+
+  --btn-primary: #111827;
+  --btn-primary-hover: #0b1220;
+  --btn-fg: #ffffff;
+
+  --link: #111827;
+  --link-hover: #0b1220;
+
+  --card-muted: #f9fafb;
+
+  --accent: #2563eb;
+  --accent-bg: rgba(37, 99, 235, 0.06);
+  --accent-border: rgba(37, 99, 235, 0.35);
+
+  --destructive: #dc2626;
+  --destructive-hover: #b91c1c;
+
+  --logo-filter: none;
+
+  --tick-green-bg: #dcfce7;   --tick-green-fg: #16a34a;
+  --tick-amber-bg: #fef9c3;   --tick-amber-fg: #a16207;
+  --tick-red-bg: #fee2e2;     --tick-red-fg: #dc2626;
+  --tick-sky-bg: #e0f2fe;     --tick-sky-fg: #0369a1;
+  --tick-violet-bg: #ede9fe;  --tick-violet-fg: #7c3aed;
+  --tick-blue-bg: #dbeafe;    --tick-blue-fg: #2563eb;
+  --tick-cyan-bg: #e0f2fe;    --tick-cyan-fg: #0891b2;
+  --tick-star: #f59e0b;
+  --tick-sent-accent: #16a34a;
+  --tick-working-accent: #d97706;
+
+  /* Warning / amber semantic tokens */
+  --warn-bg: #fef3c7;
+  --warn-fg: #92400e;
+  --warn-border: #f59e0b;
+
+  /* Heatmap tier tokens */
+  --heatmap-empty: var(--border);
+  --heatmap-1: rgba(79, 70, 229, 0.08);
+  --heatmap-2: rgba(79, 70, 229, 0.30);
+  --heatmap-3: rgba(79, 70, 229, 0.55);
+  --heatmap-4: rgba(79, 70, 229, 0.85);
+}
+
+html[data-theme="dark"] {
+  --bg: #161f2e;
+  --panel: #1e2a3a;
+  --border: #2d3a4e;
+
+  --text: #d1d5db;
+  --muted: #8d96a6;
+
+  --btn-primary: #d1d5db;
+  --btn-primary-hover: #e5e7eb;
+  --btn-fg: #111827;
+
+  --link: #d1d5db;
+  --link-hover: #f3f4f6;
+
+  --card-muted: #161f2e;
+
+  --accent: #60a5fa;
+  --accent-bg: rgba(96, 165, 250, 0.12);
+  --accent-border: rgba(147, 197, 253, 0.4);
+
+  --destructive: #f87171;
+  --destructive-hover: #ef4444;
+
+  --logo-filter: invert(1);
+
+  --tick-green-bg: rgba(34, 197, 94, 0.18);   --tick-green-fg: #4ade80;
+  --tick-amber-bg: rgba(245, 158, 11, 0.18);  --tick-amber-fg: #fbbf24;
+  --tick-red-bg: rgba(248, 113, 113, 0.18);   --tick-red-fg: #f87171;
+  --tick-sky-bg: rgba(56, 189, 248, 0.18);    --tick-sky-fg: #7dd3fc;
+  --tick-violet-bg: rgba(167, 139, 250, 0.18);--tick-violet-fg: #c4b5fd;
+  --tick-blue-bg: rgba(96, 165, 250, 0.18);   --tick-blue-fg: #93c5fd;
+  --tick-cyan-bg: rgba(34, 211, 238, 0.18);   --tick-cyan-fg: #67e8f9;
+  --tick-star: #fbbf24;
+  --tick-sent-accent: #22c55e;
+  --tick-working-accent: #f59e0b;
+
+  /* Warning / amber semantic tokens (dark) */
+  --warn-bg: rgba(245, 158, 11, 0.15);
+  --warn-fg: #fbbf24;
+  --warn-border: #f59e0b;
+
+  /* Heatmap tier tokens (dark) */
+  --heatmap-empty: var(--border);
+  --heatmap-1: rgba(129, 140, 248, 0.15);
+  --heatmap-2: rgba(129, 140, 248, 0.40);
+  --heatmap-3: rgba(129, 140, 248, 0.65);
+  --heatmap-4: rgba(129, 140, 248, 0.90);
+}
+
+html {
+  background: var(--bg);
+  color: var(--text);
+  touch-action: manipulation;
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Clamp the page to the viewport so nothing wider than the screen lets the
+   whole page pan sideways. `clip` (not `hidden`) doesn't create a scroll
+   container, so it leaves position: sticky elements working. overscroll-behavior-x
+   kills the horizontal rubber-band on touch devices. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+}
+
+/* Layout primitives */
+.passion-container {
+  /* Single source of truth for the page gutter. .site-header cancels it with a
+     negative margin, so the two must never drift — read it, don't restate it. */
+  --container-pad: 1rem;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 72rem; /* ~6xl */
+  padding-left: var(--container-pad);
+  padding-right: var(--container-pad);
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.passion-container-wide {
+  max-width: 84rem;
+  width: 100%;
+}
+
+/* Components */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem; /* ~rounded-lg */
+}
+
+.card-muted {
+  background: var(--card-muted);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.card-pad {
+  padding: 1rem; /* ~p-4 */
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.95rem;
+  border: 1px solid transparent;
+  border-radius: 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.08s ease;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:focus {
+  outline: none;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent-border);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background: var(--btn-primary);
+  color: var(--btn-fg);
+  border-color: transparent;
+}
+.btn-primary:hover {
+  background: var(--btn-primary-hover);
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--border));
+}
+
+.btn-accent:hover {
+  background: color-mix(in srgb, var(--accent) 88%, #000000);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  font-weight: 500;
+}
+.btn-ghost:hover {
+  background: var(--card-muted);
+}
+
+.link {
+  color: var(--link);
+}
+.link:hover {
+  color: var(--link-hover);
+}
+
+.template-color-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.template-color-choice {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  background: var(--choice-color, var(--card-muted));
+  box-shadow: 0 0 0 1px var(--border);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.template-color-choice:hover {
+  transform: scale(1.12);
+}
+
+.template-color-choice.is-selected {
+  box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent);
+  transform: scale(1.05);
+}
+
+.template-color-choice-custom {
+  background: conic-gradient(#ef4444, #f59e0b, #10b981, #3b82f6, #8b5cf6, #ec4899, #ef4444);
+}
+
+.template-color-none-btn.is-selected {
+  background: var(--card-muted);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.input {
+  width: 100%;
+  /* A long <option> must not be able to widen the select past its container. */
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--panel);
+  color: var(--text);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+/* Native date input: theme the calendar-picker glyph to match the site. It's a
+   dark icon by default, so it disappears on the dark theme's input background. */
+input[type="date"].input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.12s ease;
+}
+input[type="date"].input:hover::-webkit-calendar-picker-indicator {
+  opacity: 1;
+}
+:root[data-theme="dark"] input[type="date"].input::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(0.9);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) input[type="date"].input::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(0.9);
+  }
+}
+
+.divider {
+  border-top: 1px solid var(--border);
+}
+
+.cell-base {
+  border: 1px solid var(--border);
+  border-radius: 0.375rem; /* ~rounded-md but a touch tighter */
+  position: relative;
+}
+
+.calendar-cell-selected {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.cell-in {
+  background: var(--card-muted);
+}
+
+.cell-dim {
+  background: transparent;
+  opacity: 0.6;
+}
+
+/* Dashboard month grid: accent bar (positioned at bottom of cell in template via flex) */
+.calendar-session-dash {
+  height: 4px;
+  width: 100%;
+  border-radius: 0 0 0.375rem 0.375rem;
+}
+
+.cell-drop-active {
+  /* keep the cell border neutral; show a dashed ring overlay instead */
+  border-color: var(--border);
+}
+
+/* dashed ring overlay for drag/drop targets */
+.cell-drop-active::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 0.25rem;
+  border: 1px dashed var(--accent-border);
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+/* Kanban-like scheduled cell */
+.cell-scheduled {
+  background: transparent;
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+/* Draggable session card */
+.session-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  cursor: grab;
+  transition: transform 0.08s ease, opacity 0.08s ease;
+}
+.session-card:hover {
+  opacity: 0.98;
+}
+.session-card:active {
+  cursor: grabbing;
+}
+.session-dragging {
+  opacity: 0.85;
+  transform: scale(0.99);
+}
+
+/* Shared drag/drop primitives */
+.dnd-item {
+  position: relative;
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease, transform 80ms ease, opacity 80ms ease;
+}
+
+.dnd-item-dragging {
+  opacity: 0.86;
+  transform: scale(0.995);
+}
+
+.dnd-handle {
+  user-select: none;
+  cursor: grab;
+  letter-spacing: -1px;
+  line-height: 1;
+  color: var(--muted);
+  opacity: 0.5;
+  transition: opacity 150ms;
+}
+
+.dnd-handle:hover {
+  opacity: 1;
+}
+
+.dnd-handle:active {
+  cursor: grabbing;
+}
+
+/* Manual exercise list: hide grip when exercise is open (avoids scroll conflicts) */
+.manual-exercises-list details[open] .dnd-handle {
+  display: none;
+}
+
+.dnd-drop-target {
+  border-color: var(--accent-border);
+  background: color-mix(in srgb, var(--accent-bg) 55%, var(--panel));
+}
+
+.dnd-drop-before::before,
+.dnd-drop-after::after {
+  content: "";
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  height: 3px;
+  border-radius: 9999px;
+  background: var(--accent);
+  pointer-events: none;
+}
+
+.dnd-drop-before::before {
+  top: 0.35rem;
+}
+
+.dnd-drop-after::after {
+  bottom: 0.35rem;
+}
+
+/* Template edit: draggable activities */
+.activity-card {
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease, transform 80ms ease;
+}
+
+.activity-card:hover {
+  border-color: color-mix(in srgb, var(--accent-border) 45%, var(--border));
+}
+
+.activity-card .activity-drag-handle {
+  user-select: none;
+}
+
+.activity-card-dragging {
+  opacity: 0.86;
+  transform: scale(0.995);
+}
+
+.activity-drop-active {
+  border-color: var(--accent-border);
+  background: color-mix(in srgb, var(--accent-bg) 55%, var(--panel));
+  box-shadow: inset 3px 0 0 var(--accent-border);
+}
+
+/* Exercise drag/drop preview (template edit) */
+.exercise-card-dragging {
+  opacity: 0.86;
+  transform: scale(0.995);
+}
+
+.exercise-drop-active {
+  border-color: var(--accent-border);
+  background: color-mix(in srgb, var(--accent-bg) 55%, var(--card-muted));
+  box-shadow: inset 3px 0 0 var(--accent-border);
+}
+
+/* Keep <details><summary> looking like a normal button */
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Site header (mobile-friendly nav) */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  margin-left: calc(-1 * var(--container-pad, 1rem));
+  margin-right: calc(-1 * var(--container-pad, 1rem));
+  margin-bottom: 0.25rem;
+  padding: calc(0.75rem + env(safe-area-inset-top, 0px)) var(--container-pad, 1rem) 0.5rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+@media (min-width: 768px) {
+  .site-header {
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+.site-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.site-header-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  text-decoration: none;
+}
+.site-header-logo:hover {
+  color: var(--link-hover);
+}
+
+.site-header-title {
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.3;
+  max-width: 100%;
+}
+
+.site-header-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.site-header-menu-btn:hover {
+  background: var(--card-muted);
+  border-color: color-mix(in srgb, var(--accent-border) 45%, var(--border));
+}
+
+.site-header-menu-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.site-header-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  /* Own stacking layer above the header's backdrop-filter, so pointer hit-testing
+     doesn't lag behind the composited blur (Chromium quirk). */
+  position: relative;
+  z-index: 1;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.site-header-link:hover {
+  background: var(--card-muted);
+  border-color: var(--border);
+}
+
+@media (min-width: 768px) {
+  .site-header-link {
+    min-height: 2.25rem;
+    padding: 0.35rem 0.65rem;
+  }
+}
+
+.site-header-link-primary {
+  background: var(--btn-primary);
+  color: var(--btn-fg);
+  border-color: transparent;
+  font-weight: 600;
+}
+.site-header-link-primary:hover {
+  background: var(--btn-primary-hover);
+  color: var(--btn-fg);
+}
+
+/* Nav separator (vertical bar between groups on desktop) */
+.site-nav-separator {
+  width: 1px;
+  height: 1.25rem;
+  background: var(--border);
+  margin: 0 0.25rem;
+}
+
+/* Nav dropdown (account menu) */
+.site-nav-dropdown {
+  position: relative;
+}
+
+.site-nav-dropdown-toggle {
+  gap: 0.35rem;
+  cursor: pointer;
+  background: none;
+}
+
+@media (min-width: 768px) {
+  .site-nav-dropdown-toggle::after {
+    content: "";
+    display: inline-block;
+    margin-left: 0.2rem;
+    border: 0.28rem solid transparent;
+    border-top-color: currentColor;
+    border-bottom: none;
+    vertical-align: 0.1rem;
+    opacity: 0.6;
+  }
+  .site-nav-dropdown-toggle-no-icon::after {
+    display: none;
+  }
+}
+
+.site-nav-dropdown-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 0.35rem;
+  min-width: 10rem;
+  padding: 0.35rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  z-index: 60;
+  flex-direction: column;
+}
+
+.site-nav-dropdown-menu::before {
+  content: "";
+  position: absolute;
+  top: -1rem;
+  left: -0.5rem;
+  right: -0.5rem;
+  height: 1rem;
+}
+
+.site-nav-dropdown:focus-within .site-nav-dropdown-menu,
+.site-nav-dropdown:hover .site-nav-dropdown-menu {
+  display: flex;
+}
+
+.site-nav-dropdown-menu-left {
+  left: 0;
+  right: auto;
+}
+
+.site-nav-dropdown-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+  text-decoration: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.site-nav-dropdown-item:hover {
+  background: var(--card-muted);
+}
+
+.site-nav-dropdown-item-form {
+  display: contents;
+}
+
+/* History/Cycles pill row — transparent to desktop flex, pill row on mobile */
+.site-nav-pill-row {
+  display: contents;
+}
+
+@media (max-width: 767px) {
+  .site-nav-pill-row {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .site-nav-pill-row .site-header-link {
+    flex: 1;
+    min-height: 2rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--card-muted);
+    border-radius: 9999px;
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+/* Start session button in header (mobile only) — matches the 44px menu button */
+.site-header-start-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  background: var(--btn-primary);
+  color: var(--btn-fg);
+  border: none;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.site-header-start-btn:hover {
+  background: var(--btn-primary-hover);
+}
+
+/* Divider between nav sections (mobile only) */
+.site-nav-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0.35rem 0.75rem;
+}
+
+/* Nav group label (visible only on mobile, replaces the dropdown toggle) */
+.site-nav-group-label {
+  display: none;
+  margin: 0.5rem 0 0.15rem;
+  padding: 0 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* On mobile, show dropdown items inline (no floating menu) */
+@media (max-width: 767px) {
+  .site-nav-group-label {
+    display: block;
+  }
+
+  .site-nav-dropdown-toggle {
+    display: none;
+  }
+
+  /* Library pills row */
+  .site-nav-dropdown-menu-pills {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.1rem 0;
+  }
+
+  .site-nav-dropdown-menu-pills .site-nav-group-label {
+    width: 100%;
+    margin-bottom: 0;
+  }
+
+  .site-nav-dropdown-menu-pills .site-nav-dropdown-item {
+    flex: 1;
+    min-height: 2rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--card-muted);
+    border-radius: 9999px;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .site-nav-dropdown-menu {
+    display: flex;
+    position: static;
+    margin-top: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    min-width: 0;
+  }
+
+  .site-nav-dropdown-item {
+    justify-content: center;
+    min-height: 2.75rem;
+    border-radius: 0.5rem;
+  }
+}
+
+/* Single-row header on large screens: logo left, nav (links + account + Start) right.
+   Below 1024px the header stays stacked (top row + collapsible nav) to avoid crowding. */
+@media (min-width: 1024px) {
+  .site-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+  }
+  .site-header-top {
+    flex: 0 0 auto;
+    align-items: center;
+  }
+  .site-header-nav {
+    flex: 1 1 auto;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+  /* Auth pages (login/signup) render no nav, so let the top row span the header
+     width — its own space-between then keeps the theme toggle right-aligned
+     instead of collapsing it next to the logo. */
+  .site-header:not(:has(.site-header-nav)) .site-header-top {
+    flex: 1 1 auto;
+  }
+}
+
+/* Page-level actions kebab (e.g. cycle detail header). Self-contained <details>
+   dropdown so it isn't affected by the mobile nav-dropdown open-inline rules. */
+.cycle-actions {
+  position: relative;
+}
+.cycle-actions > summary {
+  list-style: none;
+}
+.cycle-actions > summary::-webkit-details-marker {
+  display: none;
+}
+.cycle-actions-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  min-width: 11rem;
+  padding: 0.35rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  z-index: 60;
+}
+
+/* Theme row inside the account dropdown menu (label + switch, full-width). */
+.site-nav-theme-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* Theme toggle */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.theme-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+
+.theme-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.theme-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.theme-slider::before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  top: 2px;
+  background: var(--btn-primary);
+  border-radius: 9999px;
+  transition: transform 0.15s ease;
+}
+
+/* checked => dark */
+.theme-switch input:checked + .theme-slider::before {
+  transform: translateX(20px);
+}
+
+/* Flow-chart style preview (template edit) */
+.preview-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.preview-flow-item {
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
+  column-gap: 0.75rem;
+  align-items: flex-start;
+  position: relative;
+}
+
+/* Grid items default to min-width:auto, so a long exercise name made this column
+   wider than its track and spilled off the side of a phone. */
+.preview-flow-content {
+  min-width: 0;
+}
+
+.preview-flow-marker {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 9999px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  margin-top: 0.15rem;
+  position: relative;
+}
+
+.preview-flow-marker::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 0.85rem;
+  bottom: -0.85rem;
+  width: 1px;
+  background: var(--accent-border);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.preview-flow-item:last-child .preview-flow-marker::after {
+  display: none;
+}
+
+.preview-flow-activity-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.preview-flow-exercises {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.preview-flow-exercise {
+  background: var(--card-muted);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-border);
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.preview-flow-exercise-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.preview-flow-exercise-meta {
+  line-height: 1.25;
+}
+
+/* Run UI */
+.run-shell {
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.run-layout {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.run-playlist-toggle {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+.run-playlist-toggle .run-icon { width: 1rem; height: 1rem; }
+
+.run-playlist-toggle:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--muted) 50%, var(--border));
+}
+
+.run-playlist-panel {
+  display: none;
+}
+
+.run-playlist-panel.run-playlist-open {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 55; /* above site-header (z-index: 50) */
+  background: var(--bg);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: calc(1rem + env(safe-area-inset-top, 0px)) 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .run-playlist-panel.run-playlist-open {
+    position: static;
+    inset: auto;
+    z-index: auto;
+    background: transparent;
+    overflow-y: visible;
+    overscroll-behavior: auto;
+    padding: 0;
+  }
+}
+
+.run-playlist-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.run-playlist-head-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.run-playlist-head .text-sm {
+  font-size: 0.82rem;
+}
+
+.run-playlist-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+/* --- Activity group in sidebar --- */
+.run-playlist-group {
+  border-radius: 0.375rem;
+}
+
+.run-playlist-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 0.375rem;
+  transition: background 120ms ease;
+}
+
+.run-playlist-group-header:hover {
+  background: var(--accent-bg);
+}
+
+.run-playlist-group-chevron {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--muted);
+  transition: transform 150ms ease;
+}
+
+.run-playlist-group--collapsed .run-playlist-group-chevron {
+  transform: rotate(-90deg);
+}
+
+.run-playlist-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-top: 0.25rem;
+}
+
+.run-playlist-group--collapsed .run-playlist-group-body {
+  display: none;
+}
+
+.run-playlist-row {
+  display: grid;
+  grid-template-columns: 0.35rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: var(--card-muted);
+  padding: 0.45rem 0.55rem;
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+}
+
+.run-playlist-marker {
+  width: 0.22rem;
+  height: 1.9rem;
+  border-radius: 9999px;
+  background: var(--border);
+}
+
+.run-playlist-body {
+  min-width: 0;
+}
+
+.run-playlist-row-pending .run-playlist-marker {
+  background: var(--border);
+}
+
+.run-playlist-row-completed .run-playlist-marker {
+  background: var(--accent);
+}
+
+.run-playlist-row-skipped .run-playlist-marker {
+  background: var(--muted);
+}
+
+.run-playlist-row-current {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.run-playlist-row-pending {
+  cursor: pointer;
+}
+
+.run-playlist-row:hover {
+  border-color: color-mix(in srgb, var(--accent-border) 55%, var(--border));
+  background: color-mix(in srgb, var(--accent-bg) 45%, var(--card-muted));
+}
+
+.run-playlist-row:focus-within {
+  outline: 1px solid var(--accent-border);
+  outline-offset: 1px;
+}
+
+.run-playlist-row-completed .run-step-status {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--text);
+}
+
+.run-playlist-row-skipped .run-step-status {
+  background: transparent;
+  border-style: dashed;
+}
+
+.run-header {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 20;
+}
+
+.run-status-chip {
+  border: 1px solid var(--border);
+  background: var(--card-muted);
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1;
+  padding: 0.32rem 0.5rem;
+}
+
+.run-status-chip-complete {
+  border-color: var(--accent-border);
+  color: var(--text);
+  background: var(--accent-bg);
+}
+
+.run-progress-track {
+  width: 100%;
+  height: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: var(--card-muted);
+  overflow: hidden;
+}
+
+.run-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 9999px;
+}
+
+.run-metric-pill {
+  border: 1px solid var(--border);
+  background: var(--card-muted);
+  border-radius: 9999px;
+  padding: 0.25rem 0.5rem;
+  color: var(--text);
+}
+
+.run-plan-notes {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--card-muted);
+  padding: 0.625rem 0.75rem;
+}
+
+.run-timer-panel {
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.run-submit-row {
+  padding-top: 0.25rem;
+}
+
+/* Merged drill nav: ‹ Done  Skip › on one row, centred */
+/* Drill nav — [‹] [ Done ] [ Skip ] [›] fill the row evenly, equal gaps.
+   Arrows fixed-width; Done + Skip grow to share the remaining space. */
+.run-nav-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  width: 100%;
+}
+.run-nav-row .run-nav-arrow {
+  flex: 0 0 auto;
+}
+.run-nav-row .run-complete-btn,
+.run-nav-row .run-skip-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+/* Consistent tier rhythm + hairline separators in the control zone */
+.run-tier {
+  padding: 0.6rem 0 0;
+  margin-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+.run-nav-arrow {
+  flex: 0 0 auto;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+.run-nav-arrow:not(:disabled):hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--muted) 50%, var(--border));
+}
+.run-nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+.run-nav-arrow .run-icon { width: 1.1rem; height: 1.1rem; }
+
+
+.run-exercise-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.run-exercise-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.run-exercise-nav-btn .run-exercise-nav-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.run-exercise-nav-btn:not(:disabled):hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--muted) 50%, var(--border));
+}
+
+.run-exercise-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Collapsible sections (shared) */
+.run-collapse-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  padding: 0.3rem 0;
+  transition: color 0.15s;
+}
+.run-collapse-toggle:hover {
+  color: var(--text);
+}
+.run-collapse-toggle::marker,
+.run-collapse-toggle::-webkit-details-marker {
+  display: none;
+}
+.run-collapse-toggle .run-collapse-chevron {
+  width: 0.8rem;
+  height: 0.8rem;
+  transition: transform 0.15s ease;
+}
+details[open] > .run-collapse-toggle .run-collapse-chevron {
+  transform: rotate(90deg);
+}
+
+/* User notes (input) */
+.run-notes-collapse {
+  padding: 0.35rem 0 0.15rem;
+}
+
+/* Always-visible in-session notes: a clean, roomy writing surface (Apple Notes
+   feel). No label — the placeholder carries it. A divider above separates it
+   from the set/log controls so it doesn't read as cramped. */
+.run-notes-field {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+.run-notes-textarea {
+  display: block;
+  width: 100%;
+  min-height: 6rem;
+  resize: none;
+  overflow: hidden;
+  line-height: 1.55;
+  padding: 0.35rem 0.15rem;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  /* 16px prevents iOS Safari from zooming in on focus. */
+  font-size: 1rem;
+}
+.run-notes-textarea:focus {
+  outline: none;
+}
+.run-notes-textarea::placeholder {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Exercise/template notes card */
+.run-notes-card {
+  background: var(--card-muted);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+}
+
+/* Progress bar */
+.run-progress {
+  height: 3px;
+  background: var(--border);
+  overflow: hidden;
+  margin: -1rem -1rem 0;
+  border-radius: 0;
+}
+
+.run-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+/* Session strip right group */
+.run-session-strip-right {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.run-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.run-session-timer-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+}
+
+.run-session-timer-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.run-session-timer {
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+/* Mute button */
+.run-mute-btn {
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--muted);
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 0;
+}
+.run-mute-btn .run-icon {
+  width: 0.78rem;
+  height: 0.78rem;
+}
+
+/* Auto-advance banner */
+.run-auto-advance {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.35rem;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  font-size: 0.78rem;
+  color: var(--text);
+  margin-bottom: 0.3rem;
+}
+
+.run-auto-advance-cancel {
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 0.12rem 0.55rem;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.run-complete {
+  border-color: var(--accent-border);
+}
+
+.run-player {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+/* Grid/flex children must be allowed to shrink below content width so an
+   overflow-x child (e.g. the grade chip strip) scrolls instead of widening
+   the whole player column. */
+.run-player > * {
+  min-width: 0;
+}
+
+.run-hero {
+  position: relative;
+  border-radius: 0.2rem;
+  overflow: hidden;
+  min-height: 15rem;
+  background: var(--panel);
+}
+
+.run-hero-media,
+.run-hero-accent {
+  width: 100%;
+  height: 16rem;
+  object-fit: cover;
+  display: block;
+}
+
+iframe.run-hero-media.run-hero-youtube {
+  border: 0;
+  object-fit: unset;
+}
+
+/* Multi-media carousel */
+.run-hero-carousel {
+  position: relative;
+  width: 100%;
+  height: 16rem;
+}
+.run-hero-slide {
+  width: 100%;
+  height: 100%;
+}
+.run-hero-slide .run-hero-media {
+  height: 100%;
+}
+.run-hero-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  background: rgba(17, 24, 39, 0.55);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 9999px;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 0;
+}
+.run-hero-nav--prev { left: 0.5rem; }
+.run-hero-nav--next { right: 0.5rem; }
+.run-hero-dots {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  gap: 0.35rem;
+}
+.run-hero-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.4);
+  transition: background 0.15s;
+}
+.run-hero-dot--active {
+  background: #fff;
+}
+
+/* No video/image: stable accent from template (--hero-accent) */
+.run-hero-accent {
+  background-color: var(--hero-accent, #2563eb);
+  background-image: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--hero-accent, #2563eb) 88%, #ffffff),
+    color-mix(in srgb, var(--hero-accent, #2563eb) 55%, #0f172a)
+  );
+  box-shadow: inset 0 -40px 60px rgba(0, 0, 0, 0.2);
+}
+
+.run-hero-accent-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.run-hero-accent-name {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.run-hero-accent-meta {
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  opacity: 0.8;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.run-hero-accent-activity {
+  margin-top: 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.55;
+}
+
+.run-hero-top,
+.run-hero-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 0.75rem;
+}
+
+.run-hero-top {
+  top: 0;
+}
+
+.run-hero-bottom {
+  bottom: 0;
+  align-items: flex-end;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0));
+}
+
+.run-hero-icon {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(17, 24, 39, 0.6);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 0;
+}
+button.run-hero-icon {
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s;
+}
+button.run-hero-icon:hover {
+  background: rgba(17, 24, 39, 0.85);
+}
+
+.run-hero-title {
+  color: #fff;
+  font-weight: 600;
+  font-size: 2rem;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  padding: 0.15rem 0.25rem;
+}
+
+.run-media-pill {
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  min-width: 2.8rem;
+  height: 2rem;
+  background: var(--panel);
+  color: var(--text);
+  padding: 0 0.6rem;
+  font-size: 0.72rem;
+}
+
+.run-media-content {
+  width: 100%;
+  text-align: left;
+}
+
+.run-player-main {
+  text-align: center;
+}
+
+.run-big-timer {
+  font-size: 3rem;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.run-session-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.05rem 0.2rem 0;
+}
+
+.run-session-back {
+  color: var(--accent);
+  text-decoration: none;
+}
+.run-session-back:hover { text-decoration: underline; }
+
+.run-session-label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  font-size: 0.65rem;
+}
+
+.run-main-timer {
+  margin-top: 0.22rem;
+  text-align: center;
+  font-size: clamp(3.5rem, 18vw, 7rem);
+  line-height: 0.96;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+}
+
+.run-timer-frac {
+  font-size: 0.28em;
+  font-weight: 400;
+  letter-spacing: 0;
+  margin-left: 0.06em;
+  vertical-align: baseline;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* --- Timer phase feedback -------------------------------------------------
+   The four states have to be tellable apart at a glance, mid-exercise, on a
+   phone — so colour carries them, not just the label text. Traffic-light
+   order: idle grey, prep amber ("not yet"), work green ("go"), rest blue.
+   All from existing token families so both themes invert correctly. */
+.run-phase-text {
+  text-align: center;
+  font-size: 0.8rem;
+  width: fit-content;
+  margin-inline: auto;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: color 120ms ease, background-color 120ms ease, border-color 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run-phase-text {
+    transition: none;
+  }
+}
+
+.run-phase-text[data-phase="idle"] {
+  color: var(--muted);
+}
+
+.run-phase-text[data-phase="prep"] {
+  color: var(--warn-fg);
+  background: var(--warn-bg);
+  border-color: var(--warn-border);
+}
+
+.run-phase-text[data-phase="work"] {
+  color: var(--tick-green-fg);
+  background: var(--tick-green-bg);
+  border-color: color-mix(in srgb, var(--tick-green-fg) 45%, transparent);
+}
+
+.run-phase-text[data-phase="rest"] {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+
+.run-main-timer[data-phase="prep"] {
+  color: var(--warn-fg);
+}
+
+.run-main-timer[data-phase="work"] {
+  color: var(--tick-green-fg);
+}
+
+.run-main-timer[data-phase="rest"] {
+  color: var(--accent);
+}
+
+.run-up-next-row {
+  display: grid;
+  grid-template-columns: 2rem 1fr 2rem;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.run-up-next-arrow {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+
+.run-up-next-arrow:disabled {
+  opacity: 0.45;
+}
+
+.run-up-next {
+  text-align: center;
+  margin-top: 0;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.run-counter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.run-counter-box {
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--panel);
+  padding: 0.55rem 0.45rem;
+  text-align: center;
+}
+
+.run-counter-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+.run-counter-value {
+  margin-top: 0.06rem;
+  font-size: 2rem;
+  font-weight: 500;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.run-transport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Only play/pause (session exercise): already centered via flex */
+
+.run-transport-btn {
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: var(--panel);
+  color: var(--text);
+  width: 2.8rem;
+  height: 2.8rem;
+  padding: 0;
+  font-size: 0;
+  transition: opacity 120ms ease, transform 120ms ease, border-color 120ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.run-transport-btn:not(:disabled) {
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--accent-border) 50%, var(--border));
+}
+
+.run-start-btn {
+  border: 1px solid var(--accent-border);
+  border-radius: 0.4rem;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  justify-self: center;
+  margin-top: 0.1rem;
+}
+
+.run-transport-play {
+  border: 0;
+  border-radius: 9999px;
+  min-width: 3.2rem;
+  width: 3.2rem;
+  height: 3.2rem;
+  margin: 0;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.02rem;
+  font-weight: 700;
+  place-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Avoid double-ring artifacts: border + backdrop-filter on parent used to look like a halo */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.run-transport-play:focus {
+  outline: none;
+}
+
+.run-transport-play:focus-visible {
+  outline: 2px solid var(--accent-border);
+  outline-offset: 2px;
+}
+
+.run-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  stroke-width: 2;
+}
+
+.run-transport-play .run-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.run-submit-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.run-transport-btn:disabled,
+.run-transport-play:disabled,
+#btn-complete-step:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.run-step-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: var(--card-muted);
+  padding: 0.45rem 0.6rem;
+}
+
+.run-step-status {
+  border-radius: 9999px;
+  padding: 0.12rem 0.42rem;
+  font-size: 0.66rem;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  text-transform: lowercase;
+}
+
+.run-step-status-pending {
+  background: var(--card-muted);
+}
+
+.run-step-status-completed {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--text);
+}
+
+.run-step-status-skipped {
+  background: transparent;
+  color: var(--muted);
+}
+
+.run-sticky-controls {
+  position: sticky;
+  bottom: 0;
+  z-index: 15;
+  border-radius: 0;
+  border-top: 1px solid var(--border);
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  background: var(--panel);
+  padding: 0.45rem 0.25rem calc(0.45rem + env(safe-area-inset-bottom));
+}
+
+/* Resting uses the accent family here too, so "rest" reads the same in the
+   playlist as it does on the timer. */
+.run-playlist-row-resting {
+  border-color: var(--accent-border);
+  background: color-mix(in srgb, var(--accent) 12%, var(--card-muted));
+}
+
+.run-playlist-row-resting .run-playlist-marker {
+  background: var(--accent);
+}
+
+.run-collapse {
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: var(--card-muted);
+  padding: 0.35rem 0.55rem;
+}
+
+.run-collapse summary {
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: var(--muted);
+  user-select: none;
+}
+
+.run-skip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  min-height: 2.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+.run-skip-btn:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+.run-step-row-current {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+/* Two classes so overtime still wins over the [data-phase] colour below. */
+.run-main-timer.run-timer-panel-overtime {
+  color: var(--warn-fg);
+}
+
+.run-feedback {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 1rem;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 9999px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.76rem;
+}
+
+.run-feedback-undo {
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 0.1rem 0.55rem;
+  background: var(--card-muted);
+  color: var(--text);
+  font-size: 0.72rem;
+}
+
+@media (min-width: 768px) {
+  .run-layout {
+    grid-template-columns: minmax(36rem, 1.6fr) minmax(20rem, 1fr);
+    grid-template-areas: "player playlist";
+    align-items: start;
+  }
+
+  .run-playlist-toggle {
+    display: none;
+  }
+
+  .run-sidebar {
+    grid-area: playlist;
+    position: sticky;
+    top: 0.75rem;
+  }
+
+  .run-playlist-panel {
+    display: block;
+  }
+
+  .run-player {
+    grid-area: player;
+    min-width: 0;
+  }
+
+  .run-hero,
+  .run-hero-media,
+  .run-hero-accent {
+    height: 20rem;
+  }
+
+  .run-main-timer {
+    font-size: 5.4rem;
+  }
+
+  .run-playlist-row {
+    min-height: 3rem;
+  }
+
+  .run-playlist-close {
+    display: none;
+  }
+
+  .run-sticky-controls {
+    position: static;
+    border: 0;
+    background: transparent;
+    backdrop-filter: none;
+    padding: 0;
+  }
+}
+
+/* Markdown (exercise notes) */
+.notes-tab {
+  border-bottom: 2px solid transparent;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.notes-tab:hover {
+  color: var(--text);
+}
+
+.notes-tab-active {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.notes-preview-panel {
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.5rem;
+  min-height: 3rem;
+  background: var(--panel);
+}
+
+.markdown-body {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.markdown-body p {
+  margin: 0 0 0.5rem 0;
+}
+
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0.5rem 0 0.25rem 0;
+}
+
+.markdown-body h1:first-child,
+.markdown-body h2:first-child,
+.markdown-body h3:first-child {
+  margin-top: 0;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0.25rem 0 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.markdown-body ul {
+  list-style-type: disc;
+}
+
+.markdown-body ol {
+  list-style-type: decimal;
+}
+
+.markdown-body li {
+  margin: 0.125rem 0;
+}
+
+.markdown-body a {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.markdown-body a:hover {
+  color: var(--link-hover);
+}
+
+.markdown-body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.7rem;
+  background: var(--card-muted);
+  padding: 0.1rem 0.25rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--border);
+}
+
+.markdown-body pre {
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  overflow: auto;
+  background: var(--card-muted);
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  font-size: 0.7rem;
+}
+
+.markdown-body pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+.markdown-body blockquote {
+  margin: 0.5rem 0;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+
+.run-template-notes .markdown-body {
+  font-size: 0.8125rem;
+}
+
+/* Collapsible sections: obvious affordance (chevron + hover target) */
+details.passion-disclosure > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.3rem;
+  border: 1px solid transparent;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+
+details.passion-disclosure > summary:hover {
+  border-color: var(--border);
+  background: var(--card-muted);
+}
+
+/* Inside a card/card-muted, summaries go full-bleed — no border-radius */
+.card details.passion-disclosure > summary,
+.card-muted details.passion-disclosure > summary {
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  border-bottom-color: transparent;
+}
+
+.card details.passion-disclosure > summary:hover,
+.card-muted details.passion-disclosure > summary:hover {
+  border-color: transparent;
+}
+
+details.passion-disclosure > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+details.passion-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.passion-disclosure > summary::before {
+  content: "";
+  flex-shrink: 0;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-right: 0.3rem;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+details.passion-disclosure[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+/* Activity cards: use lucide chevron icon instead of ::before */
+details.activity-card > summary::before {
+  display: none;
+}
+
+details[open] > summary .disclosure-chevron {
+  transform: rotate(90deg);
+}
+
+/* Exercise row: title can wrap; keep chevron aligned to first line */
+details.passion-disclosure--summary-top > summary {
+  align-items: flex-start;
+}
+
+details.passion-disclosure--summary-top > summary::before {
+  margin-top: 0.35em;
+}
+
+details.passion-disclosure--summary-top[open] > summary::before {
+  margin-top: 0.45em;
+}
+
+/* Button-style / inline disclosure (add exercise, library, cycle +) */
+details.passion-disclosure--inline > summary {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+}
+
+details.passion-disclosure--inline > summary::before {
+  margin-top: 0;
+}
+
+/* Nested (e.g. notes under an exercise card) */
+details.passion-disclosure--nested > summary {
+  align-items: center;
+}
+
+details.passion-disclosure--nested > summary::before {
+  width: 0.38rem;
+  height: 0.38rem;
+  margin-top: 0.1em;
+}
+
+details.passion-disclosure--nested[open] > summary::before {
+  margin-top: 0.2em;
+}
+
+/* Compact (training cycle “+” cells) */
+details.passion-disclosure--compact > summary {
+  padding: 0.15rem 0.35rem;
+  min-width: 2rem;
+  justify-content: center;
+}
+
+details.passion-disclosure--compact > summary::before {
+  margin-top: 0;
+}
+
+/* Run player: extra padding so disclosure hit area is obvious */
+details.run-template-notes > summary,
+details.run-collapse > summary,
+details.run-notes-collapse > summary {
+  padding: 0.35rem 0.5rem;
+}
+
+details.run-template-notes > summary,
+details.run-collapse > summary,
+details.run-notes-collapse > summary {
+  align-items: center;
+}
+
+details.run-template-notes > summary::before,
+details.run-collapse > summary::before,
+details.run-notes-collapse > summary::before {
+  margin-top: 0;
+}
+
+details.run-template-notes[open] > summary::before,
+details.run-collapse[open] > summary::before,
+details.run-notes-collapse[open] > summary::before {
+  margin-top: 0;
+}
+
+/* Catalog menu (run) */
+.run-player--catalog {
+  max-width: 32rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.catalog-instructions-body {
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.catalog-card-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.catalog-card {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  background: var(--panel);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.catalog-card:hover {
+  background: var(--card-muted);
+  border-color: var(--muted);
+}
+
+/* Multi-select checkbox card styling */
+.catalog-card--selectable {
+  position: relative;
+}
+.catalog-card-checkbox {
+  position: absolute;
+  top: 50%;
+  right: 3rem;
+  transform: translateY(-50%);
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--accent, #2563eb);
+  cursor: pointer;
+  z-index: 1;
+}
+.catalog-card--selected {
+  border-color: var(--accent, #2563eb);
+  background: color-mix(in srgb, var(--accent, #2563eb) 8%, var(--panel));
+  box-shadow: 0 0 0 1px var(--accent, #2563eb);
+}
+.catalog-card-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 0.35rem;
+  align-self: center;
+}
+.catalog-card-info-btn:hover {
+  background: var(--card-muted);
+  color: var(--text);
+}
+
+.catalog-card-thumb {
+  width: 4.5rem;
+  height: 4.5rem;
+  flex-shrink: 0;
+  border-radius: 0.45rem;
+  overflow: hidden;
+  background: var(--card-muted);
+}
+
+.catalog-card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.catalog-card-thumb-fallback {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--thumb-accent, #2563eb), color-mix(in srgb, var(--thumb-accent, #2563eb) 55%, #0f172a));
+}
+
+.catalog-card-body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.catalog-card-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.catalog-dur-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--tick-amber-fg);
+  background: var(--tick-amber-bg);
+  border-radius: 0.3rem;
+  padding: 0.15rem 0.45rem;
+  width: fit-content;
+}
+
+.catalog-dialog {
+  max-width: min(100vw - 2rem, 26rem);
+  width: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 0.75rem;
+  background: transparent;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+}
+
+.catalog-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.catalog-dialog-panel {
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.catalog-dialog-hero {
+  position: relative;
+  background: var(--card-muted);
+}
+
+.catalog-dialog-media {
+  display: block;
+  width: 100%;
+  max-height: min(45vh, 320px);
+  object-fit: cover;
+  background: var(--card-muted);
+}
+
+iframe.catalog-dialog-media {
+  min-height: 180px;
+  border: 0;
+}
+
+.catalog-dialog-media--accent {
+  min-height: 160px;
+  background: linear-gradient(135deg, var(--hero-accent, #2563eb), #0f172a);
+}
+
+.catalog-dialog-back {
+  position: absolute;
+  top: 0.65rem;
+  left: 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  /* Floats over hero media, so keep it translucent — but theme it via tokens. */
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.catalog-dialog-body {
+  padding: 1rem 1rem 1.25rem;
+}
+
+.catalog-dialog-actions form[method="dialog"] button {
+  border: 1px solid color-mix(in srgb, var(--tick-amber-fg) 55%, transparent);
+  color: var(--tick-amber-fg);
+  background: transparent;
+}
+
+/* ─── Run player: kebab overflow menu ─── */
+
+/* ─── Run player: full-width Complete button ─── */
+.run-complete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  background: var(--btn-primary);
+  color: var(--btn-fg);
+  border: none;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.run-complete-btn:hover {
+  background: var(--btn-primary-hover);
+}
+.run-complete-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+.run-complete-btn .run-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* ─── Run player: Skip exercise text link ─── */
+.run-skip-link {
+  display: block;
+  margin: 0.5rem auto 0;
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: color 0.12s;
+}
+.run-skip-link:hover {
+  color: var(--text);
+}
+
+.run-finish-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+.run-finish-btn:hover {
+  border-color: var(--fg);
+  color: var(--fg);
+}
+
+/* Session lifecycle — [Finish (accent, flex-1)] [Steps] [Discard (text)] */
+.run-session-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+/* Finish / Steps / Discard share the row width evenly */
+.run-session-actions > .run-playlist-toggle,
+.run-session-actions > form { flex: 1 1 0; min-height: 2.75rem; display: flex; }
+.run-session-actions > .run-playlist-toggle { min-width: 0; }
+.run-session-actions .run-finish-btn {
+  width: 100%;
+  min-height: 2.75rem;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.run-session-actions .run-discard-link { min-height: 2.75rem; }
+.run-session-actions .run-finish-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.run-discard-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background: none;
+  border: 1px solid var(--destructive);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--destructive);
+  padding: 0.5rem 0.9rem;
+  white-space: nowrap;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.run-discard-link:hover {
+  color: var(--destructive-hover);
+  border-color: var(--destructive-hover);
+  background: color-mix(in srgb, var(--destructive) 12%, transparent);
+}
+
+/* ─── Run player: notes icon differentiation ─── */
+.run-collapse-icon {
+  width: 0.8rem;
+  height: 0.8rem;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+/* ─── Mobile responsiveness fixes ─── */
+@media (max-width: 767px) {
+  /* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */
+  .input,
+  select,
+  textarea,
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="email"],
+  input[type="password"] {
+    font-size: 1rem;
+  }
+
+  /* Slightly tighter container padding on small screens. The header follows via
+     --container-pad; it used to hardcode -1rem and hung 4px off both edges. */
+  .passion-container {
+    --container-pad: 0.75rem;
+  }
+}
+
+/* Heatmap scroll affordance */
+.heatmap-scroll {
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+}
+
+.heatmap-scroll::after {
+  content: "";
+  position: sticky;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 24px;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--panel));
+  display: block;
+  float: right;
+  height: 100%;
+  margin-top: -100%;
+}
+
+/* ─── Run summary dialog ─── */
+.run-summary-dialog {
+  max-width: min(100vw - 1.5rem, 28rem);
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--panel);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+}
+
+.run-summary-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.run-summary-dialog-inner {
+  overflow-y: auto;
+  max-height: 80vh;
+}
+
+.run-summary {
+  display: flex;
+  flex-direction: column;
+}
+
+.run-summary-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.run-summary-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.run-summary-meta {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.run-summary-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.run-summary-close:hover {
+  background: var(--card-muted);
+}
+
+.run-summary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.run-summary-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+}
+
+.run-summary-chip--done {
+  background: var(--tick-green-bg);
+  color: var(--tick-green-fg);
+  border: 1px solid color-mix(in srgb, var(--tick-green-fg) 30%, transparent);
+}
+
+.run-summary-chip--skipped {
+  background: var(--card-muted);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.run-summary-group {
+  padding: 0.65rem 1rem 0.25rem;
+}
+
+.run-summary-group + .run-summary-group {
+  border-top: 1px solid var(--border);
+}
+
+.run-summary-group:last-child {
+  padding-bottom: 1rem;
+}
+
+.run-summary-group-label {
+  margin: 0 0 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.run-summary-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.35rem 0;
+}
+
+.run-summary-status-icon {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.run-summary-row--completed .run-summary-status-icon { color: var(--tick-sent-accent); }
+.run-summary-row--skipped .run-summary-status-icon  { color: var(--muted); }
+.run-summary-row--pending .run-summary-status-icon  { color: var(--border); }
+
+.run-summary-row-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.run-summary-row-name {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.run-summary-row-name--skipped {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--border);
+}
+
+.run-summary-row-detail {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.run-summary-row-notes {
+  margin: 0.2rem 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+
+/* Read-only logged climbs under a climbing exercise in the run summary.
+   A light "list entry inside a list entry" — subtle fill + the sent/working
+   left accent, NOT a full nested card (avoids bordered-box-in-bordered-box). */
+.run-summary-ticks {
+  margin-top: 0.2rem;
+}
+.run-summary-tick {
+  background: var(--card-muted);
+  border-radius: 0.375rem;
+  border-left: 3px solid var(--border);
+}
+
+/* Dialog footer link */
+.run-summary-footer {
+  padding: 0.65rem 1rem 0.85rem;
+  border-top: 1px solid var(--border);
+  text-align: right;
+}
+
+.run-summary-full-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.run-summary-full-link:hover { text-decoration: underline; }
+
+/* ─── Run summary full page ─── */
+.run-summary-page {
+  max-width: 36rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.run-summary-page-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  text-decoration: none;
+  margin-bottom: 1.25rem;
+}
+
+.run-summary-page-back:hover { color: var(--text); }
+
+.run-summary-page-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.run-summary-page-section-heading {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0.85rem 1rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Previous runs bars */
+.prev-run-row {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.78rem;
+}
+
+.prev-run-row + .prev-run-row {
+  border-top: 1px solid var(--border);
+}
+
+.prev-run-bar-track {
+  height: 0.4rem;
+  background: var(--card-muted);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.prev-run-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 9999px;
+  opacity: 0.65;
+}
+
+.prev-run-meta {
+  color: var(--muted);
+  white-space: nowrap;
+  font-size: 0.72rem;
+}
+
+/* ─── Run page: actual values section ─── */
+.run-actual-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.run-actual-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: 0.2rem;
+}
+
+.run-actual-input {
+  width: 100%;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* ─── Run page: history hint ─── */
+.run-history-hint {
+  display: flex;
+  justify-content: center;
+  padding: 0 0 0.5rem;
+}
+
+.run-history-hint-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+  background: var(--card-muted);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.run-history-hint-btn:hover {
+  background: var(--panel);
+  color: var(--text);
+}
+
+.run-history-hint--empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+/* ─── Exercise history popup (inside run-summary-dialog) ─── */
+.exhist-popup-list {
+  padding: 0.25rem 0;
+}
+
+.exhist-popup-row {
+  padding: 0.55rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.exhist-popup-row + .exhist-popup-row {
+  border-top: 1px solid var(--border);
+}
+
+.exhist-popup-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.exhist-popup-date {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.exhist-popup-template {
+  font-size: 0.72rem;
+}
+
+.exhist-popup-values {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.exhist-popup-val {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.exhist-popup-notes {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ─── Exercise history full page ─── */
+.exhist-page-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.55rem 1rem;
+}
+
+.exhist-page-row + .exhist-page-row {
+  border-top: 1px solid var(--border);
+}
+
+.exhist-page-left {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.exhist-page-date {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.exhist-page-template {
+  font-size: 0.72rem;
+}
+
+.exhist-page-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.exhist-page-val {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.exhist-page-val--weight {
+  color: var(--accent);
+}
+
+.exhist-page-notes {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ─── Divergence hint on template edit ─── */
+.exdiv-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+
+/* ─── Cycle exercise targets ─── */
+/* Phone week cards. One week open at a time, so the page is readable at 390px instead
+   of ~4000px of dashed Add buttons. */
+.cycle-week > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.85rem;
+  cursor: pointer;
+  list-style: none;
+}
+.cycle-week > summary::-webkit-details-marker { display: none; }
+.cycle-week-chevron {
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+.cycle-week[open] .cycle-week-chevron { transform: rotate(180deg); }
+.cycle-week-now {
+  margin-left: 0.15rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.25rem;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.cycle-week-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 0.85rem 0.85rem;
+}
+.cycle-week-rest {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.cycle-week-add {
+  align-self: flex-start;
+  padding: 0.55rem 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.cycle-week-add:hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+/* Cycle grid completion marks. A run that happened gets a tick; a planned session that
+   did not get dimmed, never coloured as an error — the plan is a suggestion. */
+.cycle-session-tick {
+  flex-shrink: 0;
+  color: var(--tick-sent-accent);
+  font-weight: 700;
+  line-height: 1;
+}
+.cycle-session-missed {
+  opacity: 0.45;
+  border-style: dashed;
+}
+
+/* Cycle goals, read mode. before → after on one line, the "how" dim beneath, so a
+   goal scans in one pass on a phone. */
+.cycle-goal + .cycle-goal {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+.cycle-goal-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+}
+.cycle-goal-from { color: var(--muted); }
+.cycle-goal-arrow { color: var(--muted); }
+.cycle-goal-to { font-weight: 600; }
+.cycle-goal-how {
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.cycle-targets-details {
+  padding: 0.85rem 1rem;
+}
+.cycle-targets-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  user-select: none;
+}
+.cycle-targets-summary::-webkit-details-marker { display: none; }
+details[open] .cycle-targets-chevron { transform: rotate(180deg); }
+.cycle-targets-chevron { transition: transform 0.15s; }
+
+.cycle-targets-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Each exercise row: name column | steppers | vary toggle — all bottom-aligned */
+.cycle-target-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.cycle-target-row:last-child { border-bottom: none; }
+
+/* Left: name + tiny defaults stacked */
+.cycle-target-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1 1 9rem;
+  min-width: 9rem;
+}
+.cycle-target-name-text {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.cycle-target-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 9999px;
+  padding: 0.1rem 0.45rem;
+}
+.cycle-target-defaults {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+/* Right: vary toggle pill */
+.cycle-target-vary-btn {
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.12s, color 0.12s;
+  align-self: flex-end;
+}
+.cycle-target-vary-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cycle-target-vary-btn--active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+/* Stepper */
+/* Connected number stepper: − [ input ] + as one bordered control. */
+.stepper {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: var(--panel);
+}
+.stepper-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s, color 0.1s;
+}
+.stepper-btn:hover { background: var(--card-muted); color: var(--accent); }
+.stepper-btn:active { background: var(--accent-bg); }
+.stepper-input {
+  width: 2.6rem;
+  height: 1.9rem;
+  padding: 0 0.2rem;
+  font-size: 0.8125rem;
+  border: none;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  text-align: center;
+  -moz-appearance: textfield;
+}
+.stepper-input::-webkit-inner-spin-button,
+.stepper-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.stepper-input:focus { outline: none; background: var(--card-muted); }
+.stepper-input--modified { background: var(--accent-bg); color: var(--accent); font-weight: 600; }
+
+/* Target field group (label + stepper) */
+.cycle-target-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+.cycle-target-field-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Row of steppers */
+.cycle-target-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+.cycle-target-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem 0.45rem;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  align-self: flex-end;
+}
+.cycle-target-clear-btn:hover { color: var(--text); border-color: var(--text); }
+
+/* Per-week rows — flex: 1 1 100% pushes them onto their own line in the parent flex row */
+.cycle-target-week-rows { display: flex; flex-direction: column; gap: 0.4rem; flex: 1 1 100%; padding-top: 0.4rem; }
+.cycle-target-week-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.cycle-target-week-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+  min-width: 2.8rem;
+  padding-bottom: 0.35rem;
+}
+
+/* ── Exercise Library Edit: two-column layout ── */
+.lib-edit-grid {
+  display: grid;
+  gap: 1.5rem;
+  max-width: 64rem;
+  margin: 0 auto;
+}
+@media (min-width: 1024px) {
+  .lib-edit-grid {
+    grid-template-columns: minmax(0, 1fr) 20rem;
+  }
+}
+
+/* Below the two-column breakpoint the preview goes above the form rather than below a
+   long field list. */
+@media (max-width: 1023px) {
+  .lib-edit-side {
+    order: -1;
+  }
+}
+
+/* Grid items default to min-width:auto, so a card could not shrink below its widest
+   child and pushed past the viewport on a phone. */
+.lib-edit-grid > * {
+  min-width: 0;
+}
+
+/* The markdown editor ships a single non-wrapping toolbar row with a min-content
+   width of ~396px. Inside a 390px viewport that made every card containing it wider
+   than the screen, which is what cut the form fields off. Let it wrap instead. */
+.toastui-editor-defaultUI,
+.toastui-editor-defaultUI .toastui-editor-toolbar,
+.toastui-editor-defaultUI-toolbar {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.toastui-editor-defaultUI-toolbar {
+  flex-wrap: wrap;
+  height: auto;
+}
+
+.lib-edit-media-preview {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  background: var(--card-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lib-edit-media-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.lib-edit-media-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.lib-edit-sticky-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem -1rem -1rem;
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+/* ── Exercise library: mobile card rows ──
+   Below md the page renders cards, not the table: two lines, name then labels. The
+   desktop layout is a real <table> in the template — see exercise_library.html. */
+.lib-row {
+  display: grid;
+  align-items: center;
+  gap: 0.1875rem 0.5rem;
+  grid-template-columns: 1.125rem minmax(0, 1fr);
+  grid-template-areas:
+    "glyph name"
+    ".     labels";
+}
+.lib-row-glyph  { grid-area: glyph; align-self: start; margin-top: 0.1875rem; }
+.lib-row-name   { grid-area: name; min-width: 0; }
+.lib-row-labels { grid-area: labels; min-width: 0; }
+
+/* ── Activity Template Edit: constrained layout ── */
+.at-edit-container {
+  max-width: 52rem;
+  margin: 0 auto;
+}
+.at-edit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.at-edit-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  min-width: 0;
+}
+.at-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Exercise card summary line */
+.ex-card-summary {
+  font-size: 0.6875rem;
+  color: var(--muted);
+  margin-top: 0.125rem;
+}
+
+/* Row-level remove button in the open-session overview list */
+.ex-row-delete {
+  color: var(--muted);
+  min-width: 2rem;
+  min-height: 2rem;
+}
+.ex-row-delete:hover,
+.ex-row-delete:focus-visible {
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 12%, transparent);
+}
+
+/* Open-session overview: run progress bar */
+.run-overview-progress { margin-bottom: 0.25rem; }
+.run-overview-progress-track {
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: var(--card-muted);
+  overflow: hidden;
+}
+.run-overview-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+/* Current drill highlight in the overview list */
+.ex-card--current {
+  border: 1px solid var(--accent);
+  background: var(--accent-bg);
+}
+/* Completed drills get a green left accent */
+.ex-card--completed {
+  border-left: 3px solid var(--tick-sent-accent);
+}
+/* Done/skipped status badge next to the delete button in the open-session list */
+.ex-card-badge {
+  flex-shrink: 0;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.3rem;
+  line-height: 1.5;
+}
+.ex-card-badge--done {
+  color: var(--tick-sent-accent);
+  background: color-mix(in srgb, var(--tick-sent-accent) 14%, transparent);
+}
+.ex-card-badge--skipped {
+  color: var(--muted);
+  background: var(--card-muted);
+}
+.ex-card-current-tag {
+  flex-shrink: 0;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+  border-radius: 9999px;
+  padding: 0.05rem 0.4rem;
+}
+
+/* Drag handle dots */
+.dnd-handle-dots {
+  display: inline-grid;
+  grid-template-columns: repeat(2, 4px);
+  gap: 3px;
+  cursor: grab;
+  padding: 4px;
+}
+.dnd-handle-dots::before,
+.dnd-handle-dots::after,
+.dnd-handle-dots span,
+.dnd-handle-dots i {
+  display: block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+/* We use 6 dots via pseudo-elements + child elements */
+
+/* ── Session Journal ────────────────────────────────────────────────────────── */
+
+/* Dot selector (sleep / energy / RPE) */
+.journal-dot-label {
+  cursor: pointer;
+}
+
+.journal-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1.5px solid var(--border);
+  color: var(--muted);
+  background: var(--panel);
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  user-select: none;
+}
+
+.journal-dot--clear {
+  font-size: 0.7rem;
+  opacity: 0.5;
+}
+
+.journal-dot-label input:checked ~ .journal-dot {
+  background: var(--accent, #2563eb);
+  border-color: var(--accent, #2563eb);
+  color: #fff;
+  opacity: 1;
+}
+
+.journal-dot-label:hover .journal-dot {
+  border-color: var(--accent, #2563eb);
+  color: var(--accent, #2563eb);
+}
+
+/* Toggle selector (focus / location) */
+.journal-toggle-label {
+  cursor: pointer;
+}
+
+.journal-toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border: 1.5px solid var(--border);
+  color: var(--muted);
+  background: var(--panel);
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  user-select: none;
+}
+
+.journal-toggle-label input:checked ~ .journal-toggle {
+  background: var(--accent, #2563eb);
+  border-color: var(--accent, #2563eb);
+  color: #fff;
+}
+
+.journal-toggle-label:hover .journal-toggle {
+  border-color: var(--accent, #2563eb);
+  color: var(--accent, #2563eb);
+}
+
+/* ---------------------------------------------------------------------------
+   Climbing ticks
+--------------------------------------------------------------------------- */
+
+.tick-kind {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tick-sent-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  background: var(--tick-green-bg);
+  color: var(--tick-green-fg);
+}
+
+.tick-style {
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+.tick-style--onsight  { background: var(--tick-green-bg); color: var(--tick-green-fg); }
+.tick-style--flash    { background: var(--tick-amber-bg); color: var(--tick-amber-fg); }
+.tick-style--redpoint { background: var(--tick-red-bg); color: var(--tick-red-fg); }
+.tick-style--hangdog  { background: var(--tick-sky-bg); color: var(--tick-sky-fg); }
+.tick-style--repeat   { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+.tick-style--attempt  { background: var(--card-muted); color: var(--muted); }
+.tick-style--project  { background: var(--card-muted); color: var(--muted); } /* compat alias */
+
+.tick-rope-style {
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+.tick-rope-style--lead       { background: var(--tick-violet-bg); color: var(--tick-violet-fg); }
+.tick-rope-style--top-rope   { background: var(--tick-blue-bg); color: var(--tick-blue-fg); }
+.tick-rope-style--auto-belay { background: var(--tick-cyan-bg); color: var(--tick-cyan-fg); }
+.tick-rope-style--follow     { background: var(--tick-blue-bg); color: var(--tick-blue-fg); }
+.tick-rope-style--second     { background: var(--card-muted); color: var(--muted); } /* legacy */
+.tick-rope-style--free-solo  { background: var(--tick-red-bg); color: var(--tick-red-fg); }
+
+/* Style toggle pills in tick add form */
+.tick-style-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.45rem 0.7rem;
+  min-height: 2.75rem;
+  border: 1.5px solid var(--border);
+  color: var(--muted);
+  background: var(--panel);
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  user-select: none;
+}
+/* Outcome row uses <button>, not <label>+radio — same look, no input */
+button.tick-style-toggle { font-family: inherit; }
+.tick-style-toggle.is-selected,
+.tick-style-toggle:has(input:checked) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* Stars selector */
+.tick-stars { display: inline-flex; gap: 0.2rem; }
+.tick-stars button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--border);
+  padding: 0.6rem 0.4rem;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  line-height: 1;
+}
+.tick-stars button.active { color: var(--tick-star); }
+
+/* Tick card left-border accent by send status */
+.tick-card--sent    { border-left: 3px solid var(--tick-sent-accent); }
+.tick-card--working { border-left: 3px solid var(--tick-working-accent); }
+
+/* Grade prominence in summary row */
+.tick-grade-primary { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+
+/* Live session header above the tick list */
+.tick-session-header { padding: 0 0.15rem 0.25rem; }
+
+/* Tick summary icon buttons (log-again, delete) — 44px tap target,
+   hover-revealed on desktop, always shown for keyboard focus */
+.tick-icon-btn {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  margin-top: -0.15rem;
+}
+.tick-icon-btn:focus-visible { opacity: 1 !important; }
+
+/* Constants disclosure (collapsed type/setting/venue/method) */
+.tick-constants-summary { padding: 0.15rem 0; }
+
+/* Grade chip strip — horizontal scroll, selected chip centred via JS */
+.tick-grade-strip {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  max-width: 100%;
+  min-width: 0;
+  padding-bottom: 0.25rem;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.tick-grade-chip {
+  flex: 0 0 auto;
+  cursor: pointer;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 0.4rem 0.7rem;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  border: 1.5px solid var(--border);
+  color: var(--muted);
+  background: var(--panel);
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.tick-grade-chip.is-selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.tick-grade-more {
+  border-style: dashed;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* Attempts stepper */
+.tick-stepper { display: inline-flex; align-items: center; gap: 0.4rem; }
+.tick-stepper-btn {
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1.5px solid var(--border);
+  border-radius: 9999px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.tick-stepper-btn:hover { border-color: var(--accent); }
+.tick-stepper-input {
+  width: 3rem;
+  height: 2.75rem;
+  text-align: center;
+  border: 1.5px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.9rem;
+  -moz-appearance: textfield;
+}
+.tick-stepper-input::-webkit-outer-spin-button,
+.tick-stepper-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Divider between the "climb" fields and the "reflection" fields in the tick form */
+.tick-form-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 0.25rem -0.25rem;
+}
+
+/* Theme native selects: strip OS chrome and supply a consistent caret so every
+   .input select matches the design system (not browser-default). */
+select.input {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%236b7280' stroke-width='1.5'%3E%3Cpath d='M5 7l5 5 5-5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  background-size: 0.9rem;
+}
+:root[data-theme="dark"] select.input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%238d96a6' stroke-width='1.5'%3E%3Cpath d='M5 7l5 5 5-5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) select.input {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%238d96a6' stroke-width='1.5'%3E%3Cpath d='M5 7l5 5 5-5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Venue / board badges
+--------------------------------------------------------------------------- */
+
+.venue-badge {
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+.venue-badge--commercial { background: var(--accent-bg); color: var(--accent); }
+.venue-badge--outdoor    { background: var(--tick-green-bg); color: var(--tick-green-fg); }
+.venue-badge--board      { background: var(--tick-amber-bg); color: var(--tick-amber-fg); }
+
+/* ---------------------------------------------------------------------------
+   Mobile calendar agenda view
+--------------------------------------------------------------------------- */
+
+.mobile-agenda-row {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr;
+  gap: 0.75rem;
+  padding: 0.625rem 0;
+  align-items: start;
+}
+.mobile-agenda-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding-top: 0.2rem;
+}
+.mobile-agenda-row--today {
+  background: var(--card-muted);
+  border-radius: 0.5rem;
+  margin: 0 -0.5rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+.mobile-agenda-session {
+  border-radius: 0.375rem;
+  padding: 0.45rem 0.625rem;
+  cursor: pointer;
+  transition: opacity 100ms;
+  margin-bottom: 0.25rem;
+}
+.mobile-agenda-session:last-child { margin-bottom: 0; }
+.mobile-agenda-session:active { opacity: 0.65; }
+.mobile-agenda-event {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3rem 0;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+/* Move-session dialog mini-grid */
+.move-mini-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.move-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.move-mini-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 2px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 100ms;
+}
+.move-mini-cell--today { background: var(--card-muted); }
+.move-mini-cell--current { border-color: var(--accent); }
+.move-mini-cell--selected { background: var(--accent-bg); border-color: var(--accent); }
+.move-mini-cell--dim { opacity: 0.3; cursor: default; }
+.move-mini-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+/* Global htmx error toast (see layouts/base.html passionToast).
+   Fixed bottom-right, theme-aware via tokens, fades in/out. */
+.passion-toast {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 100;
+  max-width: 22rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.5rem;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--destructive);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  font-size: 0.85rem;
+  opacity: 0;
+  transform: translateY(0.5rem);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+.passion-toast--show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Guided cycle builder (/training-cycles/new/guided) ──────────────────── */
+/* Chip toggles: native checkbox/radio hidden, label styled as a Passion chip. */
+.gc-chip { position: relative; display: inline-flex; }
+.gc-chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.gc-chip span {
+  display: flex; align-items: center; justify-content: center; width: 100%; min-height: 2.25rem;
+  text-align: center; cursor: pointer; font-size: 0.8125rem;
+  border: 1px solid var(--border); background: var(--card-muted); color: var(--text);
+  border-radius: 0.5rem; padding: 0.3rem 0.6rem; transition: all 0.12s ease; user-select: none;
+}
+.gc-chip input:hover + span { border-color: var(--accent-border); }
+/* Selected = quiet accent tint (not a solid billboard) so many selected chips
+   don't overwhelm the page. */
+.gc-chip input:checked + span { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.gc-chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Ensure [hidden] wins over Tailwind display utilities (flex) on toggled wrappers. */
+#gc-weeks-wrap[hidden], #gc-date-wrap[hidden], #gc-rest-range[hidden] { display: none !important; }
+.gc-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.35rem; }
+@media (max-width: 480px) { .gc-days { grid-template-columns: repeat(4, 1fr); } }
+.gc-days .gc-chip { display: flex; }
+.gc-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.gc-help { font-size: 0.75rem; color: var(--muted); margin-top: 0.15rem; }
+.gc-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.35rem; }
+.gc-cell { border: 1px solid var(--border); border-radius: 0.5rem; min-height: 4rem; padding: 0.4rem; background: var(--card-muted); display: flex; flex-direction: column; gap: 0.25rem; }
+.gc-cell.rest { opacity: 0.5; }
+.gc-dow { font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.gc-tag { font-size: 0.6875rem; font-weight: 600; border-radius: 0.35rem; padding: 0.2rem 0.35rem; background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); line-height: 1.25; word-break: break-word; }
+/* Per-day session assignment: one row per chosen training day. */
+.gc-day-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.gc-day-row .gc-day-name { flex: 0 0 3rem; font-size: 0.8125rem; font-weight: 600; color: var(--muted); }
+.gc-day-view { flex: 0 0 auto; font-size: 0.7rem; font-weight: 500; color: var(--muted); text-decoration: none; white-space: nowrap; }
+.gc-day-view:hover { color: var(--accent); }
+.gc-day-row select { flex: 1 1 12rem; min-width: 10rem; }
+/* Energy as a connected segmented control (one control, not 3 loose buttons). */
+/* Effort selector: a small "Effort" label + the energy segmented control. */
+.gc-effort { display: flex; align-items: center; gap: 0.4rem; flex: 0 0 auto; }
+.gc-effort-label { flex: 0 0 auto; font-size: 0.7rem; font-weight: 600; color: var(--muted); }
+.gc-energy { display: inline-flex; flex: 0 0 auto; border: 1px solid var(--border); border-radius: 0.4rem; overflow: hidden; }
+.gc-energy .gc-chip span {
+  border: none; border-left: 1px solid var(--border); border-radius: 0;
+  background: var(--panel); color: var(--muted); min-height: 1.9rem; padding: 0.2rem 0.55rem; font-size: 0.7rem; font-weight: 500;
+}
+.gc-energy .gc-chip:first-child span { border-left: none; }
+.gc-energy .gc-chip input:hover + span { background: var(--card-muted); }
+/* Hide the selected segment's own divider so its tint reads as a clean block
+   (no stray grey edge on the left when Moderate/Hard are active). */
+.gc-energy .gc-chip input:checked + span { background: var(--accent-bg); color: var(--accent); font-weight: 600; border-left-color: transparent; }
+
+/* De-clutter helpers: section card titles, heading info-hover tooltip. */
+.gc-card-title { margin: 0; font-size: 0.9375rem; font-weight: 700; letter-spacing: -0.01em; }
+.gc-field-head { display: flex; align-items: center; gap: 0.35rem; }
+.gc-info { position: relative; display: inline-flex; align-items: center; color: var(--muted); cursor: help; }
+.gc-info:hover, .gc-info:focus-visible { color: var(--accent); }
+.gc-tip {
+  position: absolute; left: 0; top: calc(100% + 0.4rem); z-index: 40;
+  width: max-content; max-width: 15rem; padding: 0.4rem 0.6rem;
+  font-size: 0.75rem; font-weight: 400; text-transform: none; letter-spacing: normal; line-height: 1.35;
+  color: var(--text); background: var(--panel); border: 1px solid var(--border);
+  border-radius: 0.375rem; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  opacity: 0; visibility: hidden; transition: opacity 0.12s ease;
+}
+.gc-info:hover .gc-tip, .gc-info:focus .gc-tip, .gc-info:focus-within .gc-tip { opacity: 1; visibility: visible; }
+/* Compact chip variant for the advisory per-day energy selector. */
+.gc-chip-sm span { min-height: 2rem; padding: 0.2rem 0.5rem; font-size: 0.75rem; }
+
+/* Goal rows: each goal is a small card — before → after on top, an optional
+   "how" line below — so the three fields read as one unit (builder + detail). */
+.gc-goal-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr 2.75rem;
+  grid-template-areas: "before arrow after remove" "how how how how";
+  align-items: center;
+  column-gap: 0.4rem;
+  row-gap: 0.4rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--card-muted);
+}
+.gc-goal-row input[name="goal_before"] { grid-area: before; min-width: 0; }
+.gc-goal-arrow { grid-area: arrow; color: var(--muted); }
+.gc-goal-row input[name="goal_after"] { grid-area: after; min-width: 0; }
+/* The goal's strategy line: an input GROUP — a "How" prefix inside the field's
+   own box, so it reads as one editable control (no label floating in a gutter). */
+.gc-goal-how-row {
+  grid-area: how;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--panel);
+}
+.gc-goal-how-row:focus-within { border-color: var(--accent); }
+.gc-goal-how-label {
+  flex: 0 0 auto; color: var(--muted); font-size: 0.75rem; font-weight: 600;
+  padding-right: 0.5rem; border-right: 1px solid var(--border);
+}
+.gc-goal-how {
+  flex: 1 1 0; min-width: 0; font-size: 0.8125rem;
+  border: none; background: transparent; padding: 0; border-radius: 0;
+}
+.gc-goal-how:focus { outline: none; }
+.gc-goal-remove {
+  grid-area: remove; align-self: stretch; width: 2.75rem; min-height: 2.75rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); background: var(--panel); color: var(--muted); border-radius: 0.375rem;
+  cursor: pointer; font-size: 1rem; line-height: 1;
+}
+.gc-goal-remove:hover { color: var(--text); border-color: var(--accent-border); }
+/* Stack before/after on narrow screens so placeholders don't truncate. */
+@media (max-width: 480px) {
+  .gc-goal-row {
+    grid-template-columns: 1fr 2.75rem;
+    grid-template-areas: "before remove" "after remove" "how how";
+  }
+  .gc-goal-arrow { display: none; }
+}
+.gc-goal-add { margin-top: 0.5rem; font-size: 0.8125rem; font-weight: 600; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0.25rem 0; }
+.gc-goal-add:disabled { opacity: 0.4; cursor: not-allowed; }
+/* Equipment tag input */
+.gc-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; padding: 0.35rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--panel); }
+.gc-tags:focus-within { border-color: var(--accent); }
+.gc-tag-chip { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.8125rem; padding: 0.25rem 0.35rem 0.25rem 0.6rem; border-radius: 9999px; background: var(--card-muted); border: 1px solid var(--border); color: var(--text); }
+.gc-tag-chip button { display: inline-flex; align-items: center; justify-content: center; width: 1.1rem; height: 1.1rem; border: none; background: none; color: var(--muted); cursor: pointer; border-radius: 9999px; font-size: 0.9rem; line-height: 1; }
+.gc-tag-chip button:hover { color: var(--text); background: var(--border); }
+.gc-tag-field { flex: 1 1 8rem; min-width: 8rem; border: none; background: none; color: var(--text); font-size: 0.875rem; padding: 0.35rem 0.25rem; outline: none; }
+#gc-generate:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Guided builder: mobile (≤480px) overrides, consolidated after all base
+      rules so they win by source order (earlier attempts lost to later bases). ── */
+@media (max-width: 480px) {
+  /* Per-day session card: [day · View] header, full-width select, full-width
+     energy — every row fills its width, so all days read consistently. */
+  .gc-day-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "name view" "select select" "energy energy";
+    column-gap: 0.5rem;
+    row-gap: 0.4rem;
+    align-items: center;
+  }
+  .gc-day-row .gc-day-name { grid-area: name; }
+  .gc-day-view { grid-area: view; justify-self: end; }
+  .gc-day-row select { grid-area: select; width: 100%; min-width: 0; }
+  .gc-day-row .gc-effort { grid-area: energy; width: 100%; }
+  .gc-day-row .gc-effort .gc-energy { flex: 1 1 auto; }
+  .gc-day-row .gc-effort .gc-energy .gc-chip { flex: 1; }
+
+  /* Your-week preview: a readable vertical day list, not a cramped 4-col grid. */
+  .gc-week { display: flex; flex-direction: column; }
+  .gc-cell { flex-direction: row; align-items: center; justify-content: space-between; min-height: 2.5rem; gap: 0.6rem; }
+  .gc-cell .gc-dow { flex: 0 0 3rem; }
+  .gc-cell .gc-tag { white-space: normal; text-align: right; }
+
+  /* Info tooltips: grow leftward + clamp so they stay on-screen. */
+  .gc-info .gc-tip { left: auto; right: 0; max-width: min(15rem, calc(100vw - 2.5rem)); }
+
+  /* Primary chips to a 44px touch target (energy segmented keeps its size). */
+  .gc-chip span { min-height: 2.75rem; }
+}
