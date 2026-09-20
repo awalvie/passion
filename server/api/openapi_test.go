@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -38,5 +39,25 @@ func TestOpenAPIIsServed(t *testing.T) {
 		if _, ok := spec.Paths[path]; !ok {
 			t.Errorf("%s is missing from the spec", path)
 		}
+	}
+}
+
+// The docs page is worth a test only because it is embedded: a renamed file or
+// a changed route breaks it silently otherwise.
+func TestDocsAreServed(t *testing.T) {
+	h := newTestServer(t)
+
+	page := get(t, h, "/api/docs/", "")
+	if page.Code != http.StatusOK {
+		t.Fatalf("status %d", page.Code)
+	}
+	for _, want := range []string{"scalar.js", "/api/openapi.json", "withDefaultFonts: false"} {
+		if !strings.Contains(page.Body.String(), want) {
+			t.Errorf("the page does not mention %q", want)
+		}
+	}
+
+	if js := get(t, h, "/api/docs/scalar.js", ""); js.Code != http.StatusOK {
+		t.Fatalf("the script is not served: %d", js.Code)
 	}
 }
