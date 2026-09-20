@@ -1,8 +1,10 @@
 // Package dbtest hands a test a migrated, empty database.
 //
-// Tests share one database and run serially, truncating between them. Copying
-// a template database per test is faster and brings real failure modes with
-// it, and this suite is nowhere near slow enough to want them.
+// Every package shares the one test database and empties it between tests, so
+// packages must not run at once: use `make test`, which passes -p 1. Copying a
+// template database per test would remove that constraint, and it brings real
+// failure modes of its own. This suite is nowhere near slow enough to want
+// them.
 package dbtest
 
 import (
