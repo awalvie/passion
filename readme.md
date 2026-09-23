@@ -18,8 +18,8 @@ what the app will do and how the data is arranged. This file says what works tod
 
 ## What works today
 
-Accounts, authentication and an exercise library, through the API. The client has only the
-sign-in screen so far.
+Accounts, authentication, an exercise library and session templates, through the API. The
+client has only the sign-in screen so far.
 
 - Sign up with an email address and a password, hashed with argon2id.
 - Sign in. Each sign-in mints its own bearer token, so a phone and a laptop hold different
@@ -31,6 +31,9 @@ sign-in screen so far.
 - The shipped exercises load at startup, and so does any private catalog in the config. A
   start writes only the files that changed. If you edit an exercise from your catalog in the
   app, the edit stays until its file changes, and then the file wins. Edit the file instead.
+- List session templates, and create, edit and retire your own. A session holds named
+  sections of exercises and choices such as "pick 1 of these 3". Each step keeps its own copy
+  of the exercise, so you can change its numbers for that session only.
 
 The Go binary serves everything: the API, the Svelte client, and browsable API
 documentation. It migrates its own database on the way up, so an upgrade never needs a
@@ -66,6 +69,11 @@ the handlers and the OpenAPI document is at `/api/openapi.json`.
 | `GET` | `/api/v1/exercises/{id}` | One exercise, retired ones included |
 | `PUT` | `/api/v1/exercises/{id}` | Replace every field of one of your own |
 | `POST` | `/api/v1/exercises/{id}/retire` | Take one of your own out of your library |
+| `GET` | `/api/v1/session-templates` | Shipped session templates and your own, not retired |
+| `POST` | `/api/v1/session-templates` | Create a session template of your own |
+| `GET` | `/api/v1/session-templates/{id}` | One session template, retired ones included |
+| `PUT` | `/api/v1/session-templates/{id}` | Replace every field of one of your own, sections included |
+| `POST` | `/api/v1/session-templates/{id}/retire` | Take one of your own out of your list |
 | `GET` | `/healthz` | Liveness, and whether the database answers |
 
 Authenticate with `Authorization: Bearer <token>`.

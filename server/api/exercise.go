@@ -256,7 +256,9 @@ func readExerciseRequest(w http.ResponseWriter, r *http.Request) (db.ExerciseFie
 		return db.ExerciseFields{}, false
 	}
 
-	fields, problems := req.fields()
+	// Clean names each problem by its column, and every column is spelt the
+	// same as its JSON field.
+	fields, problems := req.fields().Clean()
 	if len(problems) > 0 {
 		writeFieldErrors(w, problems)
 		return db.ExerciseFields{}, false
@@ -264,9 +266,7 @@ func readExerciseRequest(w http.ResponseWriter, r *http.Request) (db.ExerciseFie
 	return fields, true
 }
 
-// fields names each problem by its column, and every column is spelt the same
-// as its JSON field.
-func (req exerciseRequest) fields() (db.ExerciseFields, map[string]string) {
+func (req exerciseRequest) fields() db.ExerciseFields {
 	media := make([]db.Media, 0, len(req.Media))
 	for _, m := range req.Media {
 		media = append(media, db.Media{URL: m.URL, ThumbURL: m.ThumbURL})
@@ -285,14 +285,18 @@ func (req exerciseRequest) fields() (db.ExerciseFields, map[string]string) {
 		PrepSeconds:     req.PrepSeconds,
 		DurationSeconds: req.DurationSeconds,
 		Media:           media,
-	}.Clean()
+	}
+}
+
+func toMediaBodies(media []db.Media) []mediaBody {
+	out := make([]mediaBody, 0, len(media))
+	for _, m := range media {
+		out = append(out, mediaBody{URL: m.URL, ThumbURL: m.ThumbURL})
+	}
+	return out
 }
 
 func toExerciseResponse(e db.Exercise) exerciseResponse {
-	media := make([]mediaBody, 0, len(e.Media))
-	for _, m := range e.Media {
-		media = append(media, mediaBody{URL: m.URL, ThumbURL: m.ThumbURL})
-	}
 	return exerciseResponse{
 		ID:              e.ID,
 		Shipped:         e.Owner == nil,
@@ -308,7 +312,7 @@ func toExerciseResponse(e db.Exercise) exerciseResponse {
 		RepRestSeconds:  e.RepRestSeconds,
 		PrepSeconds:     e.PrepSeconds,
 		DurationSeconds: e.DurationSeconds,
-		Media:           media,
+		Media:           toMediaBodies(e.Media),
 		RetiredAt:       e.RetiredAt,
 	}
 }
