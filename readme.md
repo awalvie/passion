@@ -24,7 +24,7 @@ sign-in screen so far.
 - Sign up with an email address and a password, hashed with argon2id.
 - Sign in. Each sign-in mints its own bearer token, so a phone and a laptop hold different
   ones and signing out of either leaves the other working.
-- A token lasts thirty days and slides forward when it is used.
+- A token lasts thirty days by default and slides forward when it is used.
 - Read your own account.
 - Sign out one device.
 - List your exercise library, and create, edit and retire exercises of your own. The shipped
@@ -73,12 +73,25 @@ validation failure a `fields` map that names what to fix.
 
 ## Configuration
 
-Two environment variables, both read at startup.
+Settings come from an optional YAML file, read at startup. Set `PASSION_CONFIG` to its
+path. [passion.example.yaml](passion.example.yaml) lists every key with its default. A
+misspelt key or a bad value stops the server and names the line.
 
-| Variable | Default | Description |
+| Key | Default | Description |
 |---|---|---|
-| `DATABASE_URL` | none, required | Postgres connection string. The server exits without it |
-| `PASSION_ADDR` | `:8080` | Listen address |
+| `server.addr` | `:8080` | Listen address |
+| `database.url` | none, required | Postgres connection string. The server exits without it |
+| `auth.token_life` | `720h` | How long a sign-in lasts unused. Must be longer than `24h` |
+| `log.level` | `info` | `debug`, `info`, `warn` or `error` |
+| `log.format` | `text` | `text` or `json` |
+| `catalog.private` | none | Catalog trees of your own, each a `location` and a list of `owner` emails. Checked, not loaded yet |
+
+Two environment variables win over the file, so a deploy can set them and need no file.
+
+| Variable | Sets |
+|---|---|
+| `DATABASE_URL` | `database.url` |
+| `PASSION_ADDR` | `server.addr` |
 
 The nix shell sets `DATABASE_URL` and `TEST_DATABASE_URL` to a cluster in `.pgdata`, so
 local development needs no configuration at all.
@@ -100,6 +113,7 @@ CI checks formatting, `go vet`, that the OpenAPI document is not stale, and the 
 
 ```
 server/api/         handlers, routing, middleware, the openapi spec and the docs page
+server/config/      the YAML config file and the environment variables that override it
 server/db/          pgx queries and goose migrations
 server/password/    argon2id hashing
 server/token/       opaque bearer tokens
@@ -111,7 +125,8 @@ docs/               design and requirements
 ```
 
 The stack is deliberately small: `net/http` with no router library, `pgx` with no ORM,
-`goose` for migrations, and `golang.org/x/crypto` for argon2id. Three direct dependencies.
+`goose` for migrations, `golang.org/x/crypto` for argon2id, and `go.yaml.in/yaml/v3` for
+the config file. Four direct dependencies.
 
 ## Docker
 

@@ -1,0 +1,25 @@
+# Copy this to passion.yaml and set PASSION_CONFIG to its path. Every key is
+# optional, and the values shown are the defaults. The exception is
+# database.url, which is required here or as DATABASE_URL. DATABASE_URL and
+# PASSION_ADDR win over this file.
+
+server:
+  addr: ":8080"
+
+database:
+  url: postgres://passion@localhost/passion
+
+auth:
+  # How long a sign-in lasts unused. Use slides it forward. Longer than 24h.
+  token_life: 720h
+
+log:
+  level: info    # debug, info, warn or error
+  format: text   # text or json
+
+# Catalog trees of your own. Each owner gets their own copy, and nobody else
+# sees it. Read and checked, but not loaded yet.
+# catalog:
+#   private:
+#     - location: /srv/catalogs/example
+#       owner: [you@example.com]
