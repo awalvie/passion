@@ -262,6 +262,20 @@ func TestExerciseSlugs(t *testing.T) {
 	})
 }
 
+// The same content must always clean to the same fields, whichever way it was
+// written, because the catalog loader hashes the result.
+func TestCleanExerciseFields(t *testing.T) {
+	a, _ := db.ExerciseFields{Name: " Hang ", Kind: "open", Notes: ptr("  "), Tags: nil}.Clean()
+	b, _ := db.ExerciseFields{Name: "Hang", Kind: "open", Tags: []string{"", " "}}.Clean()
+
+	if a.Name != "Hang" || a.Notes != nil {
+		t.Fatalf("got name %q, notes %v", a.Name, a.Notes)
+	}
+	if a.Tags == nil || len(a.Tags) != 0 || b.Tags == nil || len(b.Tags) != 0 {
+		t.Fatalf("tags %#v and %#v, want both empty and not nil", a.Tags, b.Tags)
+	}
+}
+
 // insertFromFile writes a row as the loader will, with the id from its file.
 func insertFromFile(ctx context.Context, pool *pgxpool.Pool, owner, slug, fileID string) error {
 	_, err := pool.Exec(ctx, `
