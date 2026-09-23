@@ -44,6 +44,10 @@ const (
 // nobody can make the server hash a megabyte.
 const maxBodyBytes = 64 << 10
 
+// A session template copies every exercise's notes into its steps. The
+// largest private session measured about 32 KB of exercise files.
+const maxSessionBodyBytes = 256 << 10
+
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -90,7 +94,11 @@ func writeInternal(w http.ResponseWriter, log *slog.Logger, err error) {
 // decodeJSON reads one JSON object, capped, and refuses anything it does not
 // recognise so a typo in a field name is an error rather than silence.
 func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) error {
-	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+	return decodeJSONUpTo(w, r, dst, maxBodyBytes)
+}
+
+func decodeJSONUpTo(w http.ResponseWriter, r *http.Request, dst any, limit int64) error {
+	r.Body = http.MaxBytesReader(w, r.Body, limit)
 
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()

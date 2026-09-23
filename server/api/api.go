@@ -49,6 +49,11 @@ func (s *Server) Routes(client http.Handler) http.Handler {
 	mux.HandleFunc("GET /api/v1/exercises/{id}", s.authenticated(s.readExercise))
 	mux.HandleFunc("PUT /api/v1/exercises/{id}", s.authenticated(s.updateExercise))
 	mux.HandleFunc("POST /api/v1/exercises/{id}/retire", s.authenticated(s.retireExercise))
+	mux.HandleFunc("GET /api/v1/session-templates", s.authenticated(s.listSessionTemplates))
+	mux.HandleFunc("POST /api/v1/session-templates", s.authenticated(s.createSessionTemplate))
+	mux.HandleFunc("GET /api/v1/session-templates/{id}", s.authenticated(s.readSessionTemplate))
+	mux.HandleFunc("PUT /api/v1/session-templates/{id}", s.authenticated(s.updateSessionTemplate))
+	mux.HandleFunc("POST /api/v1/session-templates/{id}/retire", s.authenticated(s.retireSessionTemplate))
 	return mux
 }
 

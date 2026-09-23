@@ -249,6 +249,144 @@
         ]
       }
     },
+    "/api/v1/session-templates": {
+      "get": {
+        "description": "The ones the app ships and the ones you wrote, sorted by name. Retired ones\nare left out.",
+        "tags": [
+          "session-templates"
+        ],
+        "summary": "List your session templates",
+        "operationId": "listSessionTemplates",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/sessionTemplateListResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "description": "A field left out or sent as null is not set. A problem inside a section is\nnamed by its path, such as sections[0].items[2].choice.pick.",
+        "tags": [
+          "session-templates"
+        ],
+        "summary": "Create a session template",
+        "operationId": "createSessionTemplate",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/sessionTemplateResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/session-templates/{id}": {
+      "get": {
+        "description": "One the app ships or one of yours. A retired one still reads.",
+        "tags": [
+          "session-templates"
+        ],
+        "summary": "Read a session template",
+        "operationId": "readSessionTemplate",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/sessionTemplateResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "description": "Sets every field of one of your own, sections included. A field left out or\nsent as null is cleared. A shipped session template, or someone else's,\nanswers 404.",
+        "tags": [
+          "session-templates"
+        ],
+        "summary": "Replace a session template",
+        "operationId": "updateSessionTemplate",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/sessionTemplateResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/session-templates/{id}/retire": {
+      "post": {
+        "description": "Takes one of your own out of your list. It still reads by id. Retiring it\ntwice keeps the first date. A shipped session template, or someone else's,\nanswers 404.",
+        "tags": [
+          "session-templates"
+        ],
+        "summary": "Retire a session template",
+        "operationId": "retireSessionTemplate",
+        "responses": {
+          "204": {
+            "description": "Retired"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/tokens": {
       "post": {
         "description": "Each sign-in mints a separate token, so a phone and a laptop hold different\nones and signing out of either leaves the other working.",
@@ -348,6 +486,42 @@
           "type": "string",
           "x-go-name": "Timezone",
           "example": "Europe/Oslo"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "choiceBody": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "description": "Up to 200 characters.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Shoulders"
+        },
+        "notes": {
+          "type": "string",
+          "x-go-name": "Notes",
+          "example": "Pick what feels good today"
+        },
+        "options": {
+          "description": "At least one.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/stepBody"
+          },
+          "x-go-name": "Options"
+        },
+        "pick": {
+          "description": "The fewest options to do. 0 lets the whole choice be skipped. It cannot\nbe more than the options.",
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0,
+          "x-go-name": "Pick",
+          "example": 1
         }
       },
       "x-go-package": "passion/server/api"
@@ -585,6 +759,19 @@
       },
       "x-go-package": "passion/server/api"
     },
+    "itemBody": {
+      "type": "object",
+      "title": "An item holds a step or a choice. Send exactly one.",
+      "properties": {
+        "choice": {
+          "$ref": "#/definitions/choiceBody"
+        },
+        "step": {
+          "$ref": "#/definitions/stepBody"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
     "mediaBody": {
       "type": "object",
       "properties": {
@@ -599,6 +786,160 @@
           "type": "string",
           "x-go-name": "URL",
           "example": "https://www.youtube.com/watch?v=9FImGAOPysY"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "sectionBody": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "items": {
+          "description": "The section's steps and choices, in order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/itemBody"
+          },
+          "x-go-name": "Items"
+        },
+        "name": {
+          "description": "Up to 200 characters.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Warm-up"
+        },
+        "notes": {
+          "type": "string",
+          "x-go-name": "Notes",
+          "example": "Go slow, it is cold"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "sessionTemplateListResponse": {
+      "type": "object",
+      "properties": {
+        "session_templates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/sessionTemplateResponse"
+          },
+          "x-go-name": "SessionTemplates"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "sessionTemplateRequest": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "color": {
+          "description": "A colour for the session, written #rrggbb.",
+          "type": "string",
+          "x-go-name": "Color",
+          "example": "#5d86c9"
+        },
+        "name": {
+          "description": "Up to 200 characters.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Power"
+        },
+        "needs": {
+          "description": "What the session needs to run.",
+          "type": "string",
+          "x-go-name": "Needs",
+          "example": "a hangboard and a bar"
+        },
+        "notes": {
+          "type": "string",
+          "x-go-name": "Notes",
+          "example": "Warm up well. The hangs come first"
+        },
+        "sections": {
+          "description": "The session's parts, in order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/sectionBody"
+          },
+          "x-go-name": "Sections"
+        },
+        "source": {
+          "description": "Who or what the session is known by.",
+          "type": "string",
+          "x-go-name": "Source"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Tags",
+          "example": [
+            "power",
+            "fingers"
+          ]
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "sessionTemplateResponse": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string",
+          "x-go-name": "Color"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Power"
+        },
+        "needs": {
+          "type": "string",
+          "x-go-name": "Needs"
+        },
+        "notes": {
+          "type": "string",
+          "x-go-name": "Notes"
+        },
+        "retired_at": {
+          "description": "When it left the list. A retired session template still reads.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "RetiredAt"
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/sectionBody"
+          },
+          "x-go-name": "Sections"
+        },
+        "shipped": {
+          "description": "True when the app ships it. Nobody can change a shipped session template.",
+          "type": "boolean",
+          "x-go-name": "Shipped"
+        },
+        "source": {
+          "type": "string",
+          "x-go-name": "Source"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Tags"
         }
       },
       "x-go-package": "passion/server/api"
@@ -666,6 +1007,110 @@
         },
         "token": {
           "$ref": "#/definitions/tokenResponse"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "stepBody": {
+      "description": "The session shows the copy, so edit it to change the numbers for this\nsession only.",
+      "type": "object",
+      "title": "A step is a library exercise and its own copy of that exercise's fields.",
+      "required": [
+        "name",
+        "kind",
+        "exercise"
+      ],
+      "properties": {
+        "duration_seconds": {
+          "description": "For an open block: how long it runs.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "DurationSeconds",
+          "example": 180
+        },
+        "exercise": {
+          "description": "A shipped exercise or one of yours. A retired one is allowed.",
+          "type": "string",
+          "x-go-name": "Exercise",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "kind": {
+          "description": "Which player screen runs it: reps_and_sets, timed_reps, climbing or open.",
+          "type": "string",
+          "x-go-name": "Kind",
+          "example": "timed_reps"
+        },
+        "media": {
+          "description": "Clips of the exercise, in order. An entry with neither link is dropped.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/mediaBody"
+          },
+          "x-go-name": "Media"
+        },
+        "name": {
+          "description": "Up to 200 characters.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Repeaters 7:3"
+        },
+        "notes": {
+          "type": "string",
+          "x-go-name": "Notes",
+          "example": "7 seconds on, 3 off. Stop when the grip goes"
+        },
+        "prep_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "PrepSeconds",
+          "example": 10
+        },
+        "rep_rest_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepRestSeconds",
+          "example": 3
+        },
+        "rep_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepSeconds",
+          "example": 7
+        },
+        "reps": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Reps",
+          "example": 6
+        },
+        "set_rest_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "SetRestSeconds",
+          "example": 180
+        },
+        "sets": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Sets",
+          "example": 4
+        },
+        "source": {
+          "description": "Who or what the method is known by.",
+          "type": "string",
+          "x-go-name": "Source",
+          "example": "Eva López"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Tags",
+          "example": [
+            "hangboard",
+            "fingers"
+          ]
         }
       },
       "x-go-package": "passion/server/api"

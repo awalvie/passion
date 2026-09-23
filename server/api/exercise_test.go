@@ -41,8 +41,7 @@ func createExercise(t *testing.T, h http.Handler, bearer, body string) exerciseR
 	return decodeExercise(t, rec)
 }
 
-// insertShipped writes a shipped row directly, because only the catalog loader
-// will write them and it does not exist yet.
+// insertShipped writes a shipped row directly, as the catalog loader does.
 func insertShipped(t *testing.T, pool *pgxpool.Pool, name string) string {
 	t.Helper()
 	var id string
