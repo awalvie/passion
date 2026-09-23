@@ -80,11 +80,23 @@ func TestMigrateIsSafeInParallel(t *testing.T) {
 	}
 	defer pool.Close()
 
-	var applied int
-	if err := pool.QueryRow(ctx, "SELECT count(*) FROM goose_db_version WHERE version_id > 0").Scan(&applied); err != nil {
+	rows, err := pool.Query(ctx, `
+		SELECT version_id, count(*) FROM goose_db_version
+		WHERE version_id > 0
+		GROUP BY version_id
+		HAVING count(*) > 1`)
+	if err != nil {
 		t.Fatalf("count applied migrations: %v", err)
 	}
-	if applied != 1 {
-		t.Fatalf("migration applied %d times, want exactly 1", applied)
+	defer rows.Close()
+	for rows.Next() {
+		var version, applied int64
+		if err := rows.Scan(&version, &applied); err != nil {
+			t.Fatalf("read applied migrations: %v", err)
+		}
+		t.Errorf("migration %d applied %d times, want exactly 1", version, applied)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("read applied migrations: %v", err)
 	}
 }
