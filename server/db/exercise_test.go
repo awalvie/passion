@@ -54,6 +54,7 @@ func TestCreateExercise(t *testing.T) {
 		Sets:           ptr(4),
 		RepSeconds:     ptr(7),
 		RepRestSeconds: ptr(0),
+		PerSide:        true,
 	})
 	if err != nil {
 		t.Fatalf("create: %v", err)
@@ -73,6 +74,9 @@ func TestCreateExercise(t *testing.T) {
 	}
 	if created.Reps != nil {
 		t.Fatalf("reps %v, want not set", *created.Reps)
+	}
+	if !created.PerSide {
+		t.Fatal("per side is false, want true")
 	}
 	if created.Tags == nil || len(created.Tags) != 0 {
 		t.Fatalf("tags %#v, want an empty list", created.Tags)
@@ -162,8 +166,9 @@ func TestUpdateExercise(t *testing.T) {
 		Name: "Bench Press",
 		Kind: "reps_and_sets",
 		Sets: ptr(5),
-		Reps: ptr(5),
-		Tags: []string{"strength"},
+		Reps:    ptr(5),
+		Tags:    []string{"strength"},
+		PerSide: true,
 	}
 
 	got, err := db.UpdateExercise(ctx, pool, ada, own, fields)
@@ -172,6 +177,9 @@ func TestUpdateExercise(t *testing.T) {
 	}
 	if got.Kind != "reps_and_sets" || got.Sets == nil || *got.Sets != 5 {
 		t.Fatalf("kind %q, sets %v, want reps_and_sets and 5", got.Kind, got.Sets)
+	}
+	if !got.PerSide {
+		t.Fatal("per side is false, want true")
 	}
 	if len(got.Tags) != 1 || got.Tags[0] != "strength" {
 		t.Fatalf("tags %q", got.Tags)

@@ -36,6 +36,7 @@ type Exercise struct {
 	RepRestSeconds  *int `db:"rep_rest_seconds"`
 	PrepSeconds     *int `db:"prep_seconds"`
 	DurationSeconds *int `db:"duration_seconds"`
+	PerSide         bool `db:"per_side"`
 
 	Media []Media `db:"media"`
 
@@ -60,6 +61,7 @@ type ExerciseFields struct {
 	RepRestSeconds  *int `json:"rep_rest_seconds"`
 	PrepSeconds     *int `json:"prep_seconds"`
 	DurationSeconds *int `json:"duration_seconds"`
+	PerSide         bool `json:"per_side"`
 
 	Media []Media `json:"media"`
 }
@@ -204,6 +206,7 @@ func (f ExerciseFields) args() pgx.NamedArgs {
 		"rep_rest_seconds": f.RepRestSeconds,
 		"prep_seconds":     f.PrepSeconds,
 		"duration_seconds": f.DurationSeconds,
+		"per_side":         f.PerSide,
 		"media":            media,
 	}
 }
@@ -216,11 +219,11 @@ func CreateExercise(ctx context.Context, pool *pgxpool.Pool, owner string, f Exe
 		INSERT INTO exercise (
 			owner, name, kind, notes, source, tags,
 			sets, reps, set_rest_seconds, rep_seconds, rep_rest_seconds, prep_seconds,
-			duration_seconds, media)
+			duration_seconds, per_side, media)
 		VALUES (
 			@owner, @name, @kind, @notes, @source, @tags,
 			@sets, @reps, @set_rest_seconds, @rep_seconds, @rep_rest_seconds, @prep_seconds,
-			@duration_seconds, @media)
+			@duration_seconds, @per_side, @media)
 		RETURNING *`, args)
 	if err != nil {
 		return Exercise{}, fmt.Errorf("insert exercise: %w", err)
@@ -271,7 +274,7 @@ func UpdateExercise(ctx context.Context, pool *pgxpool.Pool, owner, id string, f
 			sets = @sets, reps = @reps, set_rest_seconds = @set_rest_seconds,
 			rep_seconds = @rep_seconds, rep_rest_seconds = @rep_rest_seconds,
 			prep_seconds = @prep_seconds, duration_seconds = @duration_seconds,
-			media = @media
+			per_side = @per_side, media = @media
 		WHERE id = @id AND owner = @owner
 		RETURNING *`, args)
 	if err != nil {
