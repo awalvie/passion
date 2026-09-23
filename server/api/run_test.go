@@ -38,7 +38,7 @@ func runRequestFrom(t *testing.T, run runResponse, edit func(map[string]any)) st
 	if err := json.Unmarshal(raw, &body); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"id", "template", "plan", "timezone", "finished_at", "sets"} {
+	for _, key := range []string{"id", "template", "plan", "timezone", "finished_at", "sets", "climbs"} {
 		delete(body, key)
 	}
 	edit(body)
@@ -285,6 +285,59 @@ func TestReplaceSets(t *testing.T) {
 	}
 }
 
+func TestClimbs(t *testing.T) {
+	h := newTestServer(t)
+	ada := signedIn(t, h, "ada@example.com")
+	bob := signedIn(t, h, "bob@example.com")
+	run, hang, climb := runWithSteps(t, h, ada)
+	path := "/api/v1/runs/" + run.ID + "/climbs/0199c3a0-0000-7000-8000-0000000000c1"
+	flash := `{"step": "` + climb + `", "discipline": "boulder", "setting": "indoor", "grade": "6c", "grade_system": "font", "outcome": "flash"}`
+
+	for range 2 {
+		rec := send(t, h, http.MethodPut, path, ada, flash)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status %d: %s", rec.Code, rec.Body)
+		}
+		var got climbBody
+		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+			t.Fatal(err)
+		}
+		if !got.Sent || got.Grade == nil || *got.Grade != "6c" {
+			t.Fatalf("climb %+v, want a sent 6c", got)
+		}
+	}
+	read := decodeRun(t, send(t, h, http.MethodGet, "/api/v1/runs/"+run.ID, ada, ""))
+	if len(read.Climbs) != 1 || *read.Sections[0].Items[1].Step.Status != "done" {
+		t.Fatalf("run reads %d climbs and status %v, want one after a retry, and done", len(read.Climbs), read.Sections[0].Items[1].Step.Status)
+	}
+
+	for name, c := range map[string]struct {
+		who, path, body, field string
+		status                 int
+	}{
+		"a grade off its scale": {ada, path, `{"step": "` + climb + `", "discipline": "boulder", "setting": "indoor", "grade": "V4", "grade_system": "font"}`, "grade", http.StatusUnprocessableEntity},
+		"a step that logs sets": {ada, path, `{"step": "` + hang + `", "discipline": "boulder", "setting": "indoor"}`, "step", http.StatusUnprocessableEntity},
+		"someone else's run":    {bob, path, flash, "", http.StatusNotFound},
+	} {
+		t.Run(name, func(t *testing.T) {
+			rec := send(t, h, http.MethodPut, c.path, c.who, c.body)
+			if rec.Code != c.status {
+				t.Fatalf("status %d, want %d: %s", rec.Code, c.status, rec.Body)
+			}
+			if c.field != "" && decodeBody(t, rec).Error.Fields[c.field] == "" {
+				t.Fatalf("fields %s, want %s named", rec.Body, c.field)
+			}
+		})
+	}
+
+	if rec := send(t, h, http.MethodDelete, path, ada, ""); rec.Code != http.StatusNoContent {
+		t.Fatalf("delete: status %d: %s", rec.Code, rec.Body)
+	}
+	if rec := send(t, h, http.MethodDelete, path, ada, ""); rec.Code != http.StatusNotFound {
+		t.Fatalf("delete twice: status %d, want 404", rec.Code)
+	}
+}
+
 func TestRunsNeedSignIn(t *testing.T) {
 	h := newTestServer(t)
 	id := "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
@@ -297,6 +350,8 @@ func TestRunsNeedSignIn(t *testing.T) {
 		{http.MethodPost, "/api/v1/runs/" + id + "/finish"},
 		{http.MethodDelete, "/api/v1/runs/" + id},
 		{http.MethodPut, "/api/v1/runs/" + id + "/steps/" + id + "/sets"},
+		{http.MethodPut, "/api/v1/runs/" + id + "/climbs/" + id},
+		{http.MethodDelete, "/api/v1/runs/" + id + "/climbs/" + id},
 	} {
 		t.Run(route.method+" "+route.path, func(t *testing.T) {
 			if rec := send(t, h, route.method, route.path, "", ""); rec.Code != http.StatusUnauthorized {

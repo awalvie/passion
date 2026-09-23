@@ -175,7 +175,7 @@ type runBodyParams struct {
 	Body runRequest `json:"body"`
 }
 
-// swagger:parameters readRun updateRun finishRun deleteRun replaceSets
+// swagger:parameters readRun updateRun finishRun deleteRun replaceSets putClimb deleteClimb
 type runIDParams struct {
 	// The run's id.
 	//
@@ -195,4 +195,20 @@ type setParams struct {
 	// in:body
 	// required:true
 	Body setRequest `json:"body"`
+}
+
+// swagger:parameters putClimb deleteClimb
+type climbIDParams struct {
+	// The id the client chose for the climb.
+	//
+	// in: path
+	// required: true
+	Climb string `json:"climb"`
+}
+
+// swagger:parameters putClimb
+type climbParams struct {
+	// in:body
+	// required:true
+	Body climbRequest `json:"body"`
 }
