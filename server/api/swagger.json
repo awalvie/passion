@@ -73,6 +73,42 @@
         ]
       }
     },
+    "/api/v1/accounts/me/grades": {
+      "put": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Choose your grade scales",
+        "operationId": "setGrades",
+        "parameters": [
+          {
+            "x-go-name": "Body",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/gradesBody"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/accountResponse"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/exercises": {
       "get": {
         "description": "The exercises the app ships and the ones you wrote, sorted by name. Retired\nones are left out.",
@@ -875,7 +911,17 @@
   "definitions": {
     "accountResponse": {
       "type": "object",
+      "required": [
+        "boulder_grades",
+        "route_grades"
+      ],
       "properties": {
+        "boulder_grades": {
+          "description": "font or v.",
+          "type": "string",
+          "x-go-name": "BoulderGrades",
+          "example": "font"
+        },
         "display_name": {
           "type": "string",
           "x-go-name": "DisplayName",
@@ -890,6 +936,12 @@
           "type": "string",
           "x-go-name": "ID",
           "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "route_grades": {
+          "description": "french or yds.",
+          "type": "string",
+          "x-go-name": "RouteGrades",
+          "example": "french"
         },
         "timezone": {
           "type": "string",
@@ -1433,6 +1485,29 @@
           "type": "string",
           "x-go-name": "System",
           "example": "font"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "gradesBody": {
+      "description": "The scales the client offers first. A climb keeps the scale it was logged\nin, so changing these rewrites nothing.",
+      "type": "object",
+      "required": [
+        "boulder_grades",
+        "route_grades"
+      ],
+      "properties": {
+        "boulder_grades": {
+          "description": "font or v.",
+          "type": "string",
+          "x-go-name": "BoulderGrades",
+          "example": "font"
+        },
+        "route_grades": {
+          "description": "french or yds.",
+          "type": "string",
+          "x-go-name": "RouteGrades",
+          "example": "french"
         }
       },
       "x-go-package": "passion/server/api"

@@ -22,6 +22,34 @@ func TestMe(t *testing.T) {
 	if got.Email != "ada@example.com" || got.DisplayName != "Ada" {
 		t.Fatalf("wrong account: %+v", got)
 	}
+	if got.BoulderGrades != "font" || got.RouteGrades != "french" {
+		t.Fatalf("grades %+v, want the French scales by default", got.gradesBody)
+	}
+}
+
+func TestSetGrades(t *testing.T) {
+	h := newTestServer(t)
+	ada := signedIn(t, h, "ada@example.com")
+
+	rec := send(t, h, http.MethodPut, "/api/v1/accounts/me/grades", ada, `{"boulder_grades": "v", "route_grades": "yds"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body)
+	}
+	var got accountResponse
+	if err := json.Unmarshal(get(t, h, "/api/v1/accounts/me", "Bearer "+ada).Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.BoulderGrades != "v" || got.RouteGrades != "yds" {
+		t.Fatalf("grades %+v, want V and YDS", got.gradesBody)
+	}
+
+	rec = send(t, h, http.MethodPut, "/api/v1/accounts/me/grades", ada, `{"boulder_grades": "french", "route_grades": "v"}`)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status %d, want 422: %s", rec.Code, rec.Body)
+	}
+	if fields := decodeBody(t, rec).Error.Fields; fields["boulder_grades"] == "" || fields["route_grades"] == "" {
+		t.Fatalf("fields %v, want both scales named", fields)
+	}
 }
 
 // Token-to-account mix-up is the classic auth bug.

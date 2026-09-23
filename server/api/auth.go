@@ -53,6 +53,26 @@ type accountResponse struct {
 
 	// example: Europe/Oslo
 	Timezone string `json:"timezone"`
+
+	gradesBody
+}
+
+// The scales the client offers first. A climb keeps the scale it was logged
+// in, so changing these rewrites nothing.
+//
+// swagger:model gradesBody
+type gradesBody struct {
+	// font or v.
+	//
+	// required: true
+	// example: font
+	BoulderGrades string `json:"boulder_grades"`
+
+	// french or yds.
+	//
+	// required: true
+	// example: french
+	RouteGrades string `json:"route_grades"`
 }
 
 // swagger:model tokenResponse
@@ -153,6 +173,7 @@ func toAccountResponse(a db.Account) accountResponse {
 		Email:       a.Email,
 		DisplayName: a.DisplayName,
 		Timezone:    a.Timezone,
+		gradesBody:  gradesBody{BoulderGrades: a.Boulder, RouteGrades: a.Route},
 	}
 }
 
@@ -271,7 +292,38 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request, who db.Authenticated
 		Email:       who.Email,
 		DisplayName: who.DisplayName,
 		Timezone:    who.Timezone,
+		gradesBody:  gradesBody{BoulderGrades: who.Boulder, RouteGrades: who.Route},
 	})
+}
+
+// swagger:route PUT /api/v1/accounts/me/grades accounts setGrades
+//
+// # Choose your grade scales
+//
+//	Security:
+//	  bearer:
+//	Responses:
+//	  200: accountResponse
+//	  401: unauthenticated
+//	  422: validationFailed
+func (s *Server) setGrades(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
+	var req gradesBody
+	if err := decodeJSON(w, r, &req); err != nil {
+		writeFieldErrors(w, map[string]string{"body": "could not be read as JSON"})
+		return
+	}
+	g := db.Grades{Boulder: req.BoulderGrades, Route: req.RouteGrades}
+	if problems := g.Check(); len(problems) > 0 {
+		writeFieldErrors(w, problems)
+		return
+	}
+
+	account, err := db.SetGrades(r.Context(), s.pool, who.AccountID, g)
+	if err != nil {
+		writeInternal(w, s.log, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, toAccountResponse(account))
 }
 
 // signOut deletes the token that authenticated this request, so it signs out

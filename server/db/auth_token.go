@@ -19,6 +19,8 @@ type Authenticated struct {
 	Timezone       string    `db:"timezone"`
 	TokenID        string    `db:"token_id"`
 	TokenExpiresAt time.Time `db:"token_expires_at"`
+
+	Grades
 }
 
 // ErrNoAuthToken covers a token that does not exist and one that has expired.
@@ -41,7 +43,7 @@ func CreateAuthToken(ctx context.Context, pool *pgxpool.Pool, accountID string, 
 // SQL so no caller can forget to check it.
 func AuthenticateByToken(ctx context.Context, pool *pgxpool.Pool, hash []byte) (Authenticated, error) {
 	rows, err := pool.Query(ctx, `
-		SELECT a.id, a.email, a.display_name, a.timezone,
+		SELECT a.id, a.email, a.display_name, a.timezone, a.boulder_grades, a.route_grades,
 		       t.id AS token_id, t.expires_at AS token_expires_at
 		FROM auth_token t
 		JOIN account a ON a.id = t.account_id
