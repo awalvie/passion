@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
-	import { kindOf, kinds } from '$lib/exercise';
+	import { distinct, kindOf, kinds, sourcesOf } from '$lib/exercise';
 	import Icon from '$lib/Icon.svelte';
 
 	let { data } = $props();
@@ -14,7 +14,7 @@
 	let source = $state(query.get('source') ?? '');
 	let tag = $state(query.get('tag') ?? '');
 
-	const sources = $derived(distinct(data.exercises.flatMap((e) => (e.source ? [e.source] : []))));
+	const sources = $derived(sourcesOf(data.exercises));
 	const tags = $derived(distinct(data.exercises.flatMap((e) => e.tags)));
 
 	const shown = $derived.by(() => {
@@ -44,10 +44,6 @@
 			if (value) params.set(key, value);
 		}
 		return params.size ? `?${params}` : '';
-	}
-
-	function distinct(values: string[]) {
-		return [...new Set(values)].sort((a, b) => a.localeCompare(b));
 	}
 
 	function clear() {
