@@ -536,8 +536,8 @@ func (s *Server) updateRun(w http.ResponseWriter, r *http.Request, who db.Authen
 //
 // # Finish a run
 //
-// Every step still null becomes skipped. Finishing twice keeps the first
-// time.
+// Every step still null becomes skipped, or done if it has sets or climbs.
+// Finishing twice keeps the first time.
 //
 //	Security:
 //	  bearer:

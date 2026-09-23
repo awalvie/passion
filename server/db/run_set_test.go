@@ -157,6 +157,30 @@ func TestUpdateRunDropsSetsOfStepsItNoLongerKeeps(t *testing.T) {
 	}
 }
 
+// A step with sets but no status was reached. Skipping it on finish would let
+// the next body write drop its sets.
+func TestFinishRunKeepsLoggedStepsDone(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	run := runWith(t, ctx, pool, ada, runStep(s1, e1, "Hang"))
+	if _, err := db.ReplaceSets(ctx, pool, ada, run.ID, s1, []db.SetFields{{Seconds: ptr(10)}}); err != nil {
+		t.Fatal(err)
+	}
+	run = putBody(t, ctx, pool, ada, run, runStep(s1, e1, "Hang"))
+
+	finished, err := db.FinishRun(ctx, pool, ada, run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st := finished.Body.Sections[0].Items[0].Step.Status; st == nil || *st != db.StepDone {
+		t.Fatalf("status %v, want a step with sets done", st)
+	}
+	if len(finished.Sets) != 1 {
+		t.Fatalf("%d sets after the finish, want 1", len(finished.Sets))
+	}
+}
+
 func TestCheckSets(t *testing.T) {
 	problems := db.CheckSets([]db.SetFields{{Reps: ptr(-1)}, {WeightKG: ptr(12000.0)}, {Seconds: ptr(10)}})
 	want := []string{"sets[0].reps", "sets[1].weight_kg"}

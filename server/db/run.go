@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 	"time"
 
@@ -422,7 +423,8 @@ func UpdateRun(ctx context.Context, pool *pgxpool.Pool, owner, id string, f RunF
 }
 
 // FinishRun keeps the first finish time. Every step the run never reached
-// counts as skipped, as V1 did when a run finished early.
+// counts as skipped, as V1 did when a run finished early. A step with sets or
+// climbs was reached, so it counts as done and keeps them.
 func FinishRun(ctx context.Context, pool *pgxpool.Pool, owner, id string) (Run, error) {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
@@ -434,17 +436,29 @@ func FinishRun(ctx context.Context, pool *pgxpool.Pool, owner, id string) (Run, 
 	if err != nil {
 		return Run{}, err
 	}
+	rows, err := tx.Query(ctx, `SELECT step FROM run_set WHERE run = $1 UNION SELECT step FROM climb WHERE run = $1`, id)
+	if err != nil {
+		return Run{}, fmt.Errorf("select logged steps: %w", err)
+	}
+	logged, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return Run{}, fmt.Errorf("read logged steps: %w", err)
+	}
 
-	skipped := StepSkipped
+	done, skipped := StepDone, StepSkipped
 	for _, s := range body.Sections {
 		for _, item := range s.Items {
-			if item.Step != nil && item.Step.Status == nil {
-				item.Step.Status = &skipped
+			switch st := item.Step; {
+			case st == nil || st.Status != nil:
+			case slices.Contains(logged, st.ID):
+				st.Status = &done
+			default:
+				st.Status = &skipped
 			}
 		}
 	}
 
-	rows, err := tx.Query(ctx, `
+	rows, err = tx.Query(ctx, `
 		UPDATE run SET body = $3, finished_at = coalesce(finished_at, now())
 		WHERE owner = $1 AND id = $2
 		RETURNING *`, owner, id, body)
