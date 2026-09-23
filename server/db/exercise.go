@@ -17,6 +17,8 @@ type Exercise struct {
 	Slug   *string `db:"slug"`
 	FileID *string `db:"file_id"`
 
+	LoadedHash *string `db:"loaded_hash"`
+
 	Name   string   `db:"name"`
 	Kind   string   `db:"kind"`
 	Notes  *string  `db:"notes"`

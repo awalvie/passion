@@ -72,6 +72,7 @@ CREATE TABLE exercise (
     owner             uuid        NULL REFERENCES account (id) ON DELETE CASCADE,
     slug              text        NULL,
     file_id           uuid        NULL,
+    loaded_hash       text        NULL,
 
     name              text        NOT NULL,
     kind              text        NOT NULL
@@ -116,6 +117,8 @@ CREATE TRIGGER exercise_touch BEFORE UPDATE ON exercise
 - `file_id` is the `id:` line inside the file. The loader uses it to find the row it wrote
   last time, so renaming a file keeps its row (rule 19). An exercise typed into the app has
   none.
+- `loaded_hash` is a hash of what the loader last wrote to the row. A start where no file
+  changed writes nothing, so `updated_at` still tells an edit apart.
 - A file id is unique per owner, not overall. Two people who load the same tree each get a
   row of their own (rule 20).
 - Slug and file id uniqueness each take two partial indexes, because Postgres treats NULLs as
