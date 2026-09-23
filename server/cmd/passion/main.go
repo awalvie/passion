@@ -10,7 +10,9 @@ import (
 	"syscall"
 	"time"
 
+	shipped "passion/catalog"
 	"passion/server/api"
+	"passion/server/catalog"
 	"passion/server/config"
 	"passion/server/db"
 	"passion/server/web"
@@ -42,6 +44,11 @@ func main() {
 		os.Exit(1)
 	}
 	defer pool.Close()
+
+	if err := catalog.LoadAll(ctx, pool, log, shipped.Files, cfg.Catalog.Private); err != nil {
+		log.Error("catalog", "err", err)
+		os.Exit(1)
+	}
 
 	srv := &http.Server{
 		Addr:              addr,
