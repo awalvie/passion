@@ -93,6 +93,7 @@ CREATE TABLE exercise (
     rep_rest_seconds  int,
     prep_seconds      int,
     duration_seconds  int,
+    per_side          boolean     NOT NULL DEFAULT false,
 
     media             jsonb       NOT NULL DEFAULT '[]',
 
@@ -134,6 +135,8 @@ CREATE TRIGGER exercise_touch BEFORE UPDATE ON exercise
 - The numbers are the protocol, the same for everyone. NULL means not set. Climbing has none,
   because each climb is logged on its own.
 - No weight. What you lift belongs to the plan or the log, not the shared definition.
+- `per_side` says that the numbers count for each side, as in 6 reps per side. A step copies
+  it with the other fields and can change it, so the player knows to count each side.
 - `media` is a list of `{url, thumb_url}`, because a private tree gives some exercises several
   clips, and one an image with no video. Nothing queries a clip on its own, so it isn't a table.
 - Exercises are retired with `retired_at`, never deleted.
@@ -143,8 +146,6 @@ Left for later, because nothing needs it yet:
 - Your own version of a shipped exercise that keeps one history. An override table or a
   lineage column would both add to this table without changing it.
 - A re-import that skips rows you edited by hand.
-- Whether a number counts per side. Decided on 2026-09-23: one yes/no on the exercise and on
-  the step, so that the player counts each side.
 - Ladders: several timings inside one set, such as 3s, 6s then 9s. A catalog file can say so
   with `per_set`, which is read but not stored.
 - A careful pass over every shipped exercise's notes and numbers.
