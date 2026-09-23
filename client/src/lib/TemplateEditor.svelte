@@ -137,7 +137,7 @@
 				</a>
 			</div>
 
-			<details class="passion-disclosure mt-3 border-t pt-3" style="border-color:var(--border)" open={!template}>
+			<details class="passion-disclosure mt-3 pt-3 divider" open={!template}>
 				<summary class="text-xs font-medium muted px-1 py-1">
 					<Icon name="pencil" size="0.75rem" />
 					Settings
