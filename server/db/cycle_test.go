@@ -1,0 +1,227 @@
+package db_test
+
+import (
+	"context"
+	"errors"
+	"maps"
+	"slices"
+	"testing"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"passion/server/db"
+	"passion/server/db/dbtest"
+)
+
+const (
+	y1 = "0199c3a0-0000-7000-8000-0000000000e1"
+	y2 = "0199c3a0-0000-7000-8000-0000000000e2"
+)
+
+func day(s string) time.Time {
+	d, err := time.Parse(time.DateOnly, s)
+	if err != nil {
+		panic(err)
+	}
+	return d
+}
+
+// cycleFields is a cleaned cycle. Its days lie far ahead, so every one is
+// built whatever today is.
+func cycleFields(t *testing.T, blockDays int, days ...db.CycleDay) db.CycleFields {
+	t.Helper()
+	f, problems := db.CycleFields{
+		Name:      "Spring fingers",
+		Starts:    day("2100-01-05"),
+		Ends:      day("2100-01-18"),
+		BlockDays: blockDays,
+		Body:      db.CycleBody{Days: days},
+	}.Clean()
+	if len(problems) != 0 {
+		t.Fatalf("problems %v", problems)
+	}
+	return f
+}
+
+// scheduled lists the person's rows as "date template".
+func scheduled(t *testing.T, pool *pgxpool.Pool, owner string) []string {
+	t.Helper()
+	rows, err := pool.Query(context.Background(), `
+		SELECT to_char(local_date, 'YYYY-MM-DD') || ' ' || template FROM scheduled_session
+		WHERE owner = $1 ORDER BY local_date, template`, owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out []string
+	for rows.Next() {
+		var s string
+		if err := rows.Scan(&s); err != nil {
+			t.Fatal(err)
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+func TestPutCycle(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	hang := insertSessionTemplate(t, pool, ada, "Hang")
+	boulder := insertSessionTemplate(t, pool, "", "Boulder")
+
+	f := cycleFields(t, 7, db.CycleDay{Day: 1, Template: hang}, db.CycleDay{Day: 3, Template: boulder})
+	want := []string{"2100-01-05 " + hang, "2100-01-07 " + boulder, "2100-01-12 " + hang, "2100-01-14 " + boulder}
+
+	// A retry builds the same days.
+	for range 2 {
+		cycle, leftOut, err := db.PutCycle(ctx, pool, ada, y1, f)
+		if err != nil {
+			t.Fatalf("put: %v", err)
+		}
+		if cycle.ID != y1 || len(leftOut) != 0 {
+			t.Fatalf("cycle %+v, left out %v, want the id the client chose and nothing left out", cycle, leftOut)
+		}
+		if got := scheduled(t, pool, ada); !slices.Equal(got, want) {
+			t.Fatalf("scheduled %v, want %v", got, want)
+		}
+	}
+
+	// A rename keeps a day the person moved.
+	if _, err := pool.Exec(ctx, `UPDATE scheduled_session SET local_date = '2100-01-06' WHERE local_date = '2100-01-05'`); err != nil {
+		t.Fatal(err)
+	}
+	f.Name = "Spring fingers, again"
+	if _, _, err := db.PutCycle(ctx, pool, ada, y1, f); err != nil {
+		t.Fatal(err)
+	}
+	if got := scheduled(t, pool, ada); got[0] != "2100-01-06 "+hang {
+		t.Fatalf("scheduled %v, want the moved day kept", got)
+	}
+
+	// A new shape builds again, and leaves out a day that already holds the
+	// session.
+	if _, err := pool.Exec(ctx, `INSERT INTO scheduled_session (owner, template, local_date) VALUES ($1, $2, '2100-01-15')`,
+		ada, hang); err != nil {
+		t.Fatal(err)
+	}
+	f = cycleFields(t, 10, db.CycleDay{Day: 1, Template: hang})
+	_, leftOut, err := db.PutCycle(ctx, pool, ada, y1, f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(leftOut) != 1 || !leftOut[0].LocalDate.Equal(day("2100-01-15")) {
+		t.Fatalf("left out %v, want the 15th", leftOut)
+	}
+	if got := scheduled(t, pool, ada); !slices.Equal(got, []string{"2100-01-05 " + hang, "2100-01-15 " + hang}) {
+		t.Fatalf("scheduled %v, want the new shape beside the one-off", got)
+	}
+}
+
+func TestPutCycleNeverPlansThePast(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	hang := insertSessionTemplate(t, pool, ada, "Hang")
+
+	f := cycleFields(t, 1, db.CycleDay{Day: 1, Template: hang})
+	f.Starts, f.Ends = day("2020-01-01"), day("2020-01-10")
+	if _, _, err := db.PutCycle(ctx, pool, ada, y1, f); err != nil {
+		t.Fatal(err)
+	}
+	if got := scheduled(t, pool, ada); len(got) != 0 {
+		t.Fatalf("scheduled %v, want nothing for days gone", got)
+	}
+}
+
+func TestPutCycleRefuses(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	bob := newAccount(t, pool, "bob@example.com")
+	bobs := insertSessionTemplate(t, pool, bob, "Bob's")
+	if _, _, err := db.PutCycle(ctx, pool, bob, y1, cycleFields(t, 7)); err != nil {
+		t.Fatal(err)
+	}
+
+	var unknown *db.UnknownTemplatesError
+	for name, c := range map[string]struct {
+		id   string
+		f    db.CycleFields
+		want func(error) bool
+	}{
+		"someone else's template": {y2, cycleFields(t, 7, db.CycleDay{Day: 1, Template: bobs}), func(err error) bool { return errors.As(err, &unknown) }},
+		"someone else's cycle id": {y1, cycleFields(t, 7), func(err error) bool { return errors.Is(err, db.ErrNoCycle) }},
+		"an id that is not uuid":  {"nope", cycleFields(t, 7), func(err error) bool { return errors.Is(err, db.ErrNoCycle) }},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, _, err := db.PutCycle(ctx, pool, ada, c.id, c.f); !c.want(err) {
+				t.Fatalf("got %v", err)
+			}
+		})
+	}
+	if got, err := db.GetCycle(ctx, pool, bob, y1); err != nil || got.Name != "Spring fingers" {
+		t.Fatalf("bob's cycle %+v, %v, want it untouched", got, err)
+	}
+}
+
+func TestDeleteCycle(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	hang := insertSessionTemplate(t, pool, ada, "Hang")
+	if _, _, err := db.PutCycle(ctx, pool, ada, y1, cycleFields(t, 7, db.CycleDay{Day: 1, Template: hang})); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO scheduled_session (owner, template, local_date) VALUES ($1, $2, '2100-01-06')`,
+		ada, hang); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := db.DeleteCycle(ctx, pool, ada, y1); err != nil {
+		t.Fatal(err)
+	}
+	if got := scheduled(t, pool, ada); !slices.Equal(got, []string{"2100-01-06 " + hang}) {
+		t.Fatalf("scheduled %v, want only the one-off", got)
+	}
+	if err := db.DeleteCycle(ctx, pool, ada, y1); !errors.Is(err, db.ErrNoCycle) {
+		t.Fatalf("deleted twice: %v", err)
+	}
+	if list, err := db.ListCycles(ctx, pool, ada); err != nil || len(list) != 0 {
+		t.Fatalf("list %v, %v, want none", list, err)
+	}
+}
+
+func TestCleanCycleFields(t *testing.T) {
+	for name, c := range map[string]struct {
+		f    db.CycleFields
+		want []string
+	}{
+		"ends before it starts": {
+			db.CycleFields{Name: "C", Starts: day("2026-03-10"), Ends: day("2026-03-09"), BlockDays: 1},
+			[]string{"ends"},
+		},
+		"longer than a year": {
+			db.CycleFields{Name: "C", Starts: day("2026-01-01"), Ends: day("2027-01-02"), BlockDays: 7},
+			[]string{"ends"},
+		},
+		"a block longer than the cycle": {
+			db.CycleFields{Name: "C", Starts: day("2026-03-01"), Ends: day("2026-03-05"), BlockDays: 7},
+			[]string{"block_days"},
+		},
+		"bad days": {
+			db.CycleFields{Name: "", Starts: day("2026-03-01"), Ends: day("2026-03-28"), BlockDays: 7, Body: db.CycleBody{Days: []db.CycleDay{
+				{Day: 8, Template: e1}, {Day: 1, Template: "nope"}, {Day: 2, Template: e1}, {Day: 2, Template: e1},
+			}}},
+			[]string{"days[0].day", "days[1].template", "days[3]", "name"},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, problems := c.f.Clean()
+			if got := slices.Sorted(maps.Keys(problems)); !slices.Equal(got, c.want) {
+				t.Fatalf("problems %v, want %v", problems, c.want)
+			}
+		})
+	}
+}
