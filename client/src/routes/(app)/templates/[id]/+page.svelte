@@ -1,18 +1,44 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { describe, request } from '$lib/api';
+	import { fieldLabel } from '$lib/exercise';
+	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import Notes from '$lib/Notes.svelte';
-	import { choiceMeta, stepMeta } from '$lib/template';
+	import { choiceMeta, stepMeta, type SessionTemplate } from '$lib/template';
 
 	let { data } = $props();
 
 	const t = $derived(data.template);
 	const locked = $derived(
 		t.shipped
-			? 'The app ships this session, so it cannot be changed.'
+			? 'The app ships this template, so it cannot be changed. Duplicate it to make your own.'
 			: t.retired_at
-				? 'You retired this session.'
+				? 'You retired this template.'
 				: ''
 	);
+
+	let error = $state('');
+	let busy = $state(false);
+
+	// A copy is a new template of your own. Its steps keep the exercise ids, so
+	// both copies still count toward the same exercises.
+	async function duplicate() {
+		error = '';
+		busy = true;
+		try {
+			const { id, shipped, retired_at, ...fields } = t;
+			const copy = await request<SessionTemplate>('POST', '/api/v1/session-templates', {
+				...fields,
+				name: `${t.name} (copy)`
+			});
+			await goto(`/templates/${copy.id}`);
+		} catch (e) {
+			error = describe(e, fieldLabel);
+		} finally {
+			busy = false;
+		}
+	}
 </script>
 
 <svelte:head><title>{t.name}</title></svelte:head>
@@ -29,19 +55,31 @@
 					<div class="mt-1 text-[11px] muted">{t.tags.join(' · ')}</div>
 				{/if}
 			</div>
-			<a
-				class="rounded-md btn-ghost p-2 inline-flex items-center justify-center shrink-0"
-				href="/templates"
-				title="Back to templates"
-				aria-label="Back to templates"
-			>
-				<Icon name="arrow-left" />
-			</a>
+			<div class="flex shrink-0 items-center gap-1">
+				<button
+					type="button"
+					class="rounded-md btn-ghost px-3 py-2 text-sm inline-flex items-center gap-1.5"
+					disabled={busy}
+					onclick={duplicate}
+				>
+					<Icon name="copy" size="0.875rem" />
+					Duplicate
+				</button>
+				<a
+					class="rounded-md btn-ghost p-2 inline-flex items-center justify-center"
+					href="/templates"
+					title="Back to templates"
+					aria-label="Back to templates"
+				>
+					<Icon name="arrow-left" />
+				</a>
+			</div>
 		</div>
 
 		{#if locked}
 			<p class="mt-2 text-xs muted">{locked}</p>
 		{/if}
+		<FormError message={error} />
 
 		{#if t.source || t.needs}
 			<div class="mt-3 flex flex-wrap items-center gap-2 text-[11px] muted">
