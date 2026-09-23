@@ -531,8 +531,8 @@ Left for later, because nothing needs it yet and each one adds without a rewrite
 
 ### Steps
 
-1. Agree the cycle table.
-2. Build cycles: create one, place sessions in its block, and schedule them.
+1. Agree the cycle tables. They are built, below, and wait for the owner's review.
+2. Agree targets, then build them. See "Targets, not built" below.
 
 ### What a cycle is
 
@@ -543,20 +543,90 @@ Exercises can scale over a cycle. By default one setting covers the whole cycle.
 week on its own, but a week carries a whole setting, not a patch on a few fields. Nothing
 merges field by field, so nothing can half-override.
 
-### Proposal, not agreed
+### The cycle tables
 
-```
-cycle(id, owner, name, starts, weeks, body jsonb)
+```sql
+CREATE TABLE cycle (
+    id          uuid        PRIMARY KEY,           -- chosen by the client
+    owner       uuid        NOT NULL REFERENCES account (id) ON DELETE CASCADE,
+    name        text        NOT NULL,
+    starts      date        NOT NULL,
+    ends        date        NOT NULL,              -- the last day, included
+    block_days  int         NOT NULL CHECK (block_days >= 1),
+    body        jsonb       NOT NULL,              -- {"days": [{"day": 1, "template": "…"}]}
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (id, owner),
+    CHECK (ends >= starts AND ends - starts < 366)
+);
+
+CREATE TABLE scheduled_session (
+    id          uuid        PRIMARY KEY DEFAULT uuidv7(),
+    owner       uuid        NOT NULL REFERENCES account (id) ON DELETE CASCADE,
+    cycle       uuid        NULL,                  -- NULL for a one-off
+    template    uuid        NOT NULL,              -- no FK: templates are retired, never deleted
+    local_date  date        NOT NULL,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (id, owner),
+    UNIQUE (owner, local_date, template),
+    FOREIGN KEY (cycle, owner) REFERENCES cycle (id, owner) ON DELETE CASCADE
+);
+
+ALTER TABLE run ADD COLUMN scheduled uuid NULL,
+    ADD FOREIGN KEY (scheduled, owner) REFERENCES scheduled_session (id, owner)
+        ON DELETE SET NULL (scheduled);
 ```
 
-```json
-{
-  "block_days": 7,
-  "days": [ { "day": 1, "template": "T1" }, { "day": 4, "template": "T2" } ],
-  "scaling": [ { "exercise": "E1", "week": 1, "weight": 20 },
-               { "exercise": "E1", "week": 3, "weight": 25 } ]
-}
-```
+Indexes: `cycle (owner, starts DESC)`, `scheduled_session (cycle, local_date)` and
+`run (scheduled)`. Both new tables carry the `touch_updated_at` trigger.
+
+- **Building.** Block day d lands on `starts + d - 1`, then every `block_days` after it,
+  while the date is on or before `ends`. A build writes rows from today, in the person's zone,
+  to `ends`. A past day is what the runs recorded, so it is never planned again.
+- **Rebuilding.** Only a change to the dates, the block or the days builds again. It deletes
+  the cycle's rows from today on that no run was started from, then writes the new ones. A
+  rename keeps the rows, and so keeps any the person moved.
+- **Rule 37.** The client chooses the cycle id, so a retried create is one cycle. A day holds
+  each session once, by the unique key: a build leaves a taken day out and answers it in
+  `left_out`, and a one-off on a taken day answers 422.
+- **Done, missed.** A row is `done` when a finished run points at it, `started` when an
+  unfinished one does, `missed` when its day is before today in the person's zone, and
+  `planned` otherwise. Worked out when read.
+- **Deleting** a cycle deletes its rows and clears the link on the runs, which stay with
+  their plan copies (rule 4). One-off rows stay.
+- A future row names a template, not a copy, so editing the template tonight changes what
+  tomorrow asks (rule 5). The copy is taken when a run starts from the row.
+- 366 days and a block no longer than the cycle are the limits. A year bounds the rows one
+  build writes.
+
+**The API.**
+
+- `GET /api/v1/cycles`, `GET`, `PUT` and `DELETE /api/v1/cycles/{id}`. `PUT` creates or
+  replaces, and answers `left_out`.
+- `GET /api/v1/scheduled-sessions?from=&to=` lists the days with the template's name, the
+  run and the status.
+- `POST /api/v1/scheduled-sessions` schedules a one-off. `PUT …/{id}` moves it to another
+  day. `DELETE …/{id}` takes it out.
+- `POST /api/v1/runs` takes `scheduled` in place of `template`.
+
+Left for later, because each one adds without a rewrite:
+
+- Calendar events (trips, injuries, deloads) and the warning when a cycle runs across one.
+  The warning needs a dry run of the same `PUT`, so the form is not lost.
+- Purpose, tags, notes and goals on a cycle. Each is a column or a key in the body.
+
+### Targets, not built
+
+A target is what the cycle asks of one exercise: a whole setting for the cycle, and a whole
+setting for any stretch that differs. A run started from a row applies it to the plan copy,
+so a deleted cycle still shows what it asked (rule 4). Two things need the owner first:
+
+- **A planned weight.** A step has sets, reps and seconds but no weight, so "7.5 kg on the
+  external rotations" has nowhere to live. Rule 28 needs one on the step, not only on the
+  cycle.
+- **How a stretch is named.** By week number from `starts`, or by a deload on the calendar,
+  which does not exist yet. Weeks work today.
 
 ### Decided on 2026-09-23
 
