@@ -61,6 +61,8 @@ func (s *Server) Routes(client http.Handler) http.Handler {
 	mux.HandleFunc("POST /api/v1/runs/{id}/finish", s.authenticated(s.finishRun))
 	mux.HandleFunc("DELETE /api/v1/runs/{id}", s.authenticated(s.deleteRun))
 	mux.HandleFunc("PUT /api/v1/runs/{id}/steps/{step}/sets", s.authenticated(s.replaceSets))
+	mux.HandleFunc("PUT /api/v1/runs/{id}/climbs/{climb}", s.authenticated(s.putClimb))
+	mux.HandleFunc("DELETE /api/v1/runs/{id}/climbs/{climb}", s.authenticated(s.deleteClimb))
 	return mux
 }
 

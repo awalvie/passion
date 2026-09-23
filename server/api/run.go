@@ -213,6 +213,9 @@ type runResponse struct {
 
 	// Every set logged in the run, by step.
 	Sets []setBody `json:"sets"`
+
+	// Every climb logged in the run, in the order they were climbed.
+	Climbs []climbBody `json:"climbs"`
 }
 
 // swagger:model setRequest
@@ -262,6 +265,96 @@ type setBody struct {
 // swagger:model setListResponse
 type setListResponse struct {
 	Sets []setBody `json:"sets"`
+}
+
+// What one climb was. A grade from a scale needs its grade_system: font or v
+// for a boulder, french or yds for a route.
+//
+// swagger:model climbRequest
+type climbRequest struct {
+	// The climbing step it was climbed under.
+	//
+	// required: true
+	// example: 01a0bf77-d7e8-76ea-96cc-f09cbca175a3
+	Step string `json:"step"`
+
+	// The order it was climbed in, from 0.
+	//
+	// example: 0
+	Position int `json:"position"`
+
+	// boulder, sport or trad.
+	//
+	// required: true
+	// example: boulder
+	Discipline string `json:"discipline"`
+
+	// indoor or outdoor.
+	//
+	// required: true
+	// example: indoor
+	Setting string `json:"setting"`
+
+	// A board, for a boulder: kilter, moon, tension, spray or custom.
+	//
+	// example: moon
+	Board *string `json:"board"`
+
+	// For a route: lead, top_rope, auto_belay or follow.
+	//
+	// example: lead
+	RopeStyle *string `json:"rope_style"`
+
+	// As logged. With no grade_system it can be an ungraded label, Rainbow or
+	// Traverse.
+	//
+	// example: 6c
+	Grade *string `json:"grade"`
+
+	// font, v, french or yds.
+	//
+	// example: font
+	GradeSystem *string `json:"grade_system"`
+
+	// onsight, flash, redpoint, hangdog or working.
+	//
+	// example: flash
+	Outcome *string `json:"outcome"`
+
+	// 1 or more.
+	//
+	// example: 3
+	Attempts *int `json:"attempts"`
+
+	// How long it took.
+	//
+	// example: 240
+	Seconds *int `json:"seconds"`
+
+	// 1 to 3.
+	//
+	// example: 2
+	Stars *int `json:"stars"`
+
+	// What you meant to work on, set before the climb.
+	//
+	// example: Heel hooks
+	Focus *string `json:"focus"`
+
+	Notes *string `json:"notes"`
+}
+
+// swagger:model climbBody
+type climbBody struct {
+	// The id the client chose.
+	//
+	// example: 01a0bf77-d7e8-76ea-96cc-f09cbca175a3
+	ID string `json:"id"`
+
+	climbRequest
+
+	// True for a graded onsight, flash or redpoint.
+	Sent bool `json:"sent"`
 }
 
 // swagger:model runSummaryBody
@@ -536,6 +629,114 @@ func (s *Server) replaceSets(w http.ResponseWriter, r *http.Request, who db.Auth
 	writeJSON(w, http.StatusOK, setListResponse{Sets: toSetBodies(written)})
 }
 
+// swagger:route PUT /api/v1/runs/{id}/climbs/{climb} runs putClimb
+//
+// # Write a climb
+//
+// Creates the climb under the id you chose, or replaces it, so a retry writes
+// one climb. Its step must be a climbing step the run holds and has not
+// skipped. A step with a climb counts as done.
+//
+//	Security:
+//	  bearer:
+//	Responses:
+//	  200: climbBody
+//	  401: unauthenticated
+//	  404: notFound
+//	  422: validationFailed
+func (s *Server) putClimb(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
+	var req climbRequest
+	if err := decodeJSON(w, r, &req); err != nil {
+		writeFieldErrors(w, map[string]string{"body": "could not be read as JSON"})
+		return
+	}
+	f, problems := req.fields().Clean()
+	if len(problems) > 0 {
+		writeFieldErrors(w, problems)
+		return
+	}
+
+	climb, err := db.PutClimb(r.Context(), s.pool, who.AccountID, r.PathValue("id"), r.PathValue("climb"), f)
+	var problem db.StepProblem
+	switch {
+	case errors.Is(err, db.ErrNoRun), errors.Is(err, db.ErrNoClimb):
+		writeNotFound(w)
+		return
+	case errors.As(err, &problem):
+		writeFieldErrors(w, map[string]string{"step": string(problem)})
+		return
+	case err != nil:
+		writeInternal(w, s.log, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, toClimbBody(climb))
+}
+
+// swagger:route DELETE /api/v1/runs/{id}/climbs/{climb} runs deleteClimb
+//
+// # Delete a climb
+//
+//	Security:
+//	  bearer:
+//	Responses:
+//	  204: description: Deleted
+//	  401: unauthenticated
+//	  404: notFound
+func (s *Server) deleteClimb(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
+	err := db.DeleteClimb(r.Context(), s.pool, who.AccountID, r.PathValue("id"), r.PathValue("climb"))
+	switch {
+	case errors.Is(err, db.ErrNoClimb):
+		writeNotFound(w)
+		return
+	case err != nil:
+		writeInternal(w, s.log, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (req climbRequest) fields() db.ClimbFields {
+	return db.ClimbFields{
+		Step:        req.Step,
+		Position:    req.Position,
+		Discipline:  req.Discipline,
+		Setting:     req.Setting,
+		Board:       req.Board,
+		RopeStyle:   req.RopeStyle,
+		Grade:       req.Grade,
+		GradeSystem: req.GradeSystem,
+		Outcome:     req.Outcome,
+		Attempts:    req.Attempts,
+		Seconds:     req.Seconds,
+		Stars:       req.Stars,
+		Focus:       req.Focus,
+		Notes:       req.Notes,
+	}
+}
+
+func toClimbBody(c db.Climb) climbBody {
+	return climbBody{
+		ID: c.ID,
+		climbRequest: climbRequest{
+			Step:        c.Step,
+			Position:    c.Position,
+			Discipline:  c.Discipline,
+			Setting:     c.Setting,
+			Board:       c.Board,
+			RopeStyle:   c.RopeStyle,
+			Grade:       c.Grade,
+			GradeSystem: c.GradeSystem,
+			Outcome:     c.Outcome,
+			Attempts:    c.Attempts,
+			Seconds:     c.Seconds,
+			Stars:       c.Stars,
+			Focus:       c.Focus,
+			Notes:       c.Notes,
+		},
+		Sent: c.Sent(),
+	}
+}
+
 func toSetBodies(sets []db.Set) []setBody {
 	out := make([]setBody, 0, len(sets))
 	for _, set := range sets {
@@ -681,6 +882,15 @@ func toRunResponse(run db.Run) runResponse {
 			WentWell:  j.WentWell,
 			NextFocus: j.NextFocus,
 		},
-		Sets: toSetBodies(run.Sets),
+		Sets:   toSetBodies(run.Sets),
+		Climbs: toClimbBodies(run.Climbs),
 	}
+}
+
+func toClimbBodies(climbs []db.Climb) []climbBody {
+	out := make([]climbBody, 0, len(climbs))
+	for _, c := range climbs {
+		out = append(out, toClimbBody(c))
+	}
+	return out
 }
