@@ -236,3 +236,19 @@ type climbParams struct {
 	// required:true
 	Body climbRequest `json:"body"`
 }
+
+// swagger:parameters readCycle putCycle deleteCycle
+type cycleIDParams struct {
+	// The cycle's id. The client chooses it when it creates the cycle.
+	//
+	// in: path
+	// required: true
+	ID string `json:"id"`
+}
+
+// swagger:parameters putCycle
+type cycleParams struct {
+	// in:body
+	// required:true
+	Body cycleRequest `json:"body"`
+}

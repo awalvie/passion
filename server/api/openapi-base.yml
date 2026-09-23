@@ -28,6 +28,11 @@ tags:
       Sessions as you did them. A run copies its template when it starts, so a
       later edit to the template never reaches it. An unfinished run counts for
       nothing, and a finished one can still be changed.
+  - name: cycles
+    description: >-
+      A plan that repeats a block of days from one date to another, and places
+      its sessions on the days they fall. Deleting a cycle keeps every run done
+      under it.
   - name: grades
     description: >-
       The scales a climb's grade is logged in, the same list the server checks

@@ -109,6 +109,153 @@
         ]
       }
     },
+    "/api/v1/cycles": {
+      "get": {
+        "description": "Latest start first.",
+        "tags": [
+          "cycles"
+        ],
+        "summary": "List your cycles",
+        "operationId": "listCycles",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/cycleListResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/cycles/{id}": {
+      "get": {
+        "tags": [
+          "cycles"
+        ],
+        "summary": "Read a cycle",
+        "operationId": "readCycle",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The cycle's id. The client chooses it when it creates the cycle.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/cycleResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "description": "Creates the cycle under the id you chose, or replaces it, so a retry makes\none cycle. When the dates, the block or the days change, it places the\nsessions again from today on: a past day, and a day a run was started from,\nstay as they are, and so do the days you moved unless the shape changed. A\nday that already holds the session is left out and listed.",
+        "tags": [
+          "cycles"
+        ],
+        "summary": "Create or replace a cycle",
+        "operationId": "putCycle",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The cycle's id. The client chooses it when it creates the cycle.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "x-go-name": "Body",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/cycleRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/cyclePutResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "description": "Removes the plan and every day it placed. The runs done under it stay, and\nso do the days you scheduled by hand.",
+        "tags": [
+          "cycles"
+        ],
+        "summary": "Delete a cycle",
+        "operationId": "deleteCycle",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The cycle's id. The client chooses it when it creates the cycle.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/exercises": {
       "get": {
         "description": "The exercises the app ships and the ones you wrote, sorted by name. Retired\nones are left out.",
@@ -1245,6 +1392,197 @@
           "type": "string",
           "x-go-name": "Step",
           "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "cycleDayBody": {
+      "type": "object",
+      "required": [
+        "day",
+        "template"
+      ],
+      "properties": {
+        "day": {
+          "description": "From 1 to block_days.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Day",
+          "example": 1
+        },
+        "template": {
+          "description": "A session template you can see.",
+          "type": "string",
+          "x-go-name": "Template",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "cycleListResponse": {
+      "type": "object",
+      "properties": {
+        "cycles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/cycleResponse"
+          },
+          "x-go-name": "Cycles"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "cyclePutResponse": {
+      "type": "object",
+      "required": [
+        "name",
+        "starts",
+        "ends",
+        "block_days"
+      ],
+      "properties": {
+        "block_days": {
+          "description": "How long the repeating block is. Seven lands the sessions on the same\nweekdays every time.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "BlockDays",
+          "example": 7
+        },
+        "days": {
+          "description": "Which session falls on which day of the block.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/cycleDayBody"
+          },
+          "x-go-name": "Days"
+        },
+        "ends": {
+          "description": "The last day, included. Within a year of starts.",
+          "type": "string",
+          "x-go-name": "Ends",
+          "example": "2026-04-13"
+        },
+        "id": {
+          "description": "The id the client chose.",
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "left_out": {
+          "description": "The days the cycle did not place a session on, because that day already\nheld it.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/slotBody"
+          },
+          "x-go-name": "LeftOut"
+        },
+        "name": {
+          "description": "Up to 200 characters.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Spring fingers"
+        },
+        "starts": {
+          "description": "The first day, written YYYY-MM-DD.",
+          "type": "string",
+          "x-go-name": "Starts",
+          "example": "2026-03-03"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "cycleRequest": {
+      "type": "object",
+      "required": [
+        "name",
+        "starts",
+        "ends",
+        "block_days"
+      ],
+      "properties": {
+        "block_days": {
+          "description": "How long the repeating block is. Seven lands the sessions on the same\nweekdays every time.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "BlockDays",
+          "example": 7
+        },
+        "days": {
+          "description": "Which session falls on which day of the block.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/cycleDayBody"
+          },
+          "x-go-name": "Days"
+        },
+        "ends": {
+          "description": "The last day, included. Within a year of starts.",
+          "type": "string",
+          "x-go-name": "Ends",
+          "example": "2026-04-13"
+        },
+        "name": {
+          "description": "Up to 200 characters.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Spring fingers"
+        },
+        "starts": {
+          "description": "The first day, written YYYY-MM-DD.",
+          "type": "string",
+          "x-go-name": "Starts",
+          "example": "2026-03-03"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "cycleResponse": {
+      "type": "object",
+      "required": [
+        "name",
+        "starts",
+        "ends",
+        "block_days"
+      ],
+      "properties": {
+        "block_days": {
+          "description": "How long the repeating block is. Seven lands the sessions on the same\nweekdays every time.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "BlockDays",
+          "example": 7
+        },
+        "days": {
+          "description": "Which session falls on which day of the block.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/cycleDayBody"
+          },
+          "x-go-name": "Days"
+        },
+        "ends": {
+          "description": "The last day, included. Within a year of starts.",
+          "type": "string",
+          "x-go-name": "Ends",
+          "example": "2026-04-13"
+        },
+        "id": {
+          "description": "The id the client chose.",
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "name": {
+          "description": "Up to 200 characters.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Spring fingers"
+        },
+        "starts": {
+          "description": "The first day, written YYYY-MM-DD.",
+          "type": "string",
+          "x-go-name": "Starts",
+          "example": "2026-03-03"
         }
       },
       "x-go-package": "passion/server/api"
@@ -2512,6 +2850,22 @@
       },
       "x-go-package": "passion/server/api"
     },
+    "slotBody": {
+      "type": "object",
+      "properties": {
+        "local_date": {
+          "type": "string",
+          "x-go-name": "LocalDate",
+          "example": "2026-03-10"
+        },
+        "template": {
+          "type": "string",
+          "x-go-name": "Template",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
     "stepBody": {
       "description": "The session shows the copy, so edit it to change the numbers for this\nsession only.",
       "type": "object",
@@ -2723,6 +3077,10 @@
     {
       "description": "Sessions as you did them. A run copies its template when it starts, so a later edit to the template never reaches it. An unfinished run counts for nothing, and a finished one can still be changed.",
       "name": "runs"
+    },
+    {
+      "description": "A plan that repeats a block of days from one date to another, and places its sessions on the days they fall. Deleting a cycle keeps every run done under it.",
+      "name": "cycles"
     },
     {
       "description": "The scales a climb's grade is logged in, the same list the server checks against.",
