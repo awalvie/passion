@@ -12,6 +12,7 @@
 {#key data.template.id}
 	<TemplateEditor
 		template={data.template}
+		exercises={data.exercises}
 		sources={data.sources}
 		cancel="/templates/{data.template.id}"
 		save={async (body) => {

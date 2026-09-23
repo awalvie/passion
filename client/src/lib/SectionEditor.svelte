@@ -1,16 +1,25 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import ChoiceEditor from '$lib/ChoiceEditor.svelte';
+	import type { Exercise } from '$lib/exercise';
+	import ExercisePicker from '$lib/ExercisePicker.svelte';
 	import RowActions from '$lib/RowActions.svelte';
 	import StepEditor from '$lib/StepEditor.svelte';
-	import { moveEntry, type Section } from '$lib/template';
+	import { moveEntry, toStep, type Section } from '$lib/template';
 
 	let {
 		section = $bindable(),
 		id,
 		open = false,
+		library,
 		actions
-	}: { section: Section; id: string; open?: boolean; actions: Snippet } = $props();
+	}: {
+		section: Section;
+		id: string;
+		open?: boolean;
+		library: Exercise[];
+		actions: Snippet;
+	} = $props();
 </script>
 
 <details class="card overflow-hidden passion-disclosure" {open}>
@@ -54,5 +63,7 @@
 				<div class="card-muted p-3 text-xs muted">No exercises yet.</div>
 			{/each}
 		</div>
+
+		<ExercisePicker exercises={library} id="{id}-add" pick={(e) => section.items.push({ step: toStep(e) })} />
 	</div>
 </details>

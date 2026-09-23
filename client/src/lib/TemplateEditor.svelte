@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { describe } from '$lib/api';
+	import { describe, request } from '$lib/api';
+	import type { Exercise } from '$lib/exercise';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import RowActions from '$lib/RowActions.svelte';
@@ -16,17 +17,30 @@
 
 	let {
 		template,
+		exercises,
 		sources,
 		save,
 		cancel
 	}: {
 		template?: SessionTemplate;
+		exercises: Exercise[];
 		sources: string[];
 		save: (body: ReturnType<typeof toTemplateBody>) => Promise<void>;
 		cancel: string;
 	} = $props();
 
 	let draft = $state(untrack(() => toTemplateDraft(template)));
+
+	// A missing exercise is made in another tab, so the list reloads when the
+	// user comes back to this one.
+	let library = $state(untrack(() => exercises));
+	async function reload() {
+		try {
+			library = (await request<{ exercises: Exercise[] }>('GET', '/api/v1/exercises')).exercises;
+		} catch {
+			/* keep the list it has */
+		}
+	}
 	let newSection = $state('');
 	let error = $state('');
 	let busy = $state(false);
@@ -84,6 +98,8 @@
 		}
 	}
 </script>
+
+<svelte:window onfocus={reload} />
 
 <form onsubmit={submit} oninvalidcapture={reveal}>
 	<div class="space-y-4">
@@ -207,7 +223,13 @@
 							remove={() => removeSection(i)}
 						/>
 					{/snippet}
-					<SectionEditor bind:section={draft.sections[i]} id="sec{i}" open={i === 0} actions={sectionActions} />
+					<SectionEditor
+						bind:section={draft.sections[i]}
+						id="sec{i}"
+						open={i === 0}
+						{library}
+						actions={sectionActions}
+					/>
 				{:else}
 					<div class="card-muted p-4 text-sm muted">No sections yet. Add one below.</div>
 				{/each}
