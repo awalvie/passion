@@ -28,7 +28,8 @@ and the open decisions that come due there. Part 1 is built. Part 2 is next.
 4. Cycles
 5. History and metrics
 
-**What's agreed.** The behaviour in every part, and in the schema only the exercise table.
+**What's agreed.** The behaviour in every part, and in the schema only the exercise and
+session template tables.
 Every other table below is a proposal nobody signed off. Don't write a migration from one.
 
 **How to work here.** Agree a plan before each step, then write only that. One change per
@@ -167,54 +168,114 @@ decided.
 
 ### Steps
 
-1. Agree the session template table. Decisions 3, 4, 7 and 8 come due here.
-2. Rewrite the catalog's session templates to fit it. They `ref:` activity templates, which V2
-   doesn't have.
-3. Build the session template editor, with sections.
+1. Agree the session template table. Done.
+2. Migrate the session template table.
+3. Write its queries and their tests: create, list, get, update, retire.
+4. Add the API routes for the same.
+5. Rewrite the shipped session files as `blocks/` and `sessions/`, then load them and the
+   private ones.
+6. Build the session template editor, with sections.
 
 ### What a session is
 
-A session is a list of exercises. That's it.
+A session is a list of exercises in named sections: warm-up, drills, main, cooldown.
 
-**Sections.** A session splits into named parts: warm-up, drills, main, cooldown. A section
-isn't a library item. It lives inside its session, and has a name, a position, and room for a
-note or a target time.
+**Sections.** A section lives inside its session. It has a name and notes. Two sessions never
+share one. To reuse a warm-up, copy the session and change the copy.
 
-**Choices.** A session can offer a choice: "pick two of these five". Not designed yet.
+**Choices.** A session can offer a choice: "pick 1 of these 3". A choice has a name, notes, a
+pick count and a list of exercises. A pick count of 0 means that you can skip the whole
+choice. A choice never holds another choice (rule 33). When you pick is a player question for
+Part 3.
 
-### Proposal, not agreed
+**Copies.** A copied session is a new session. It has its own "times completed" and its own
+history (rule 48).
 
-A session is one thing, so it's one row with a `jsonb` body. Sections nest inside the body.
-There's no table of sections and no table of steps.
+**Library changes.** A session keeps what it copied from the library. Later, the app will mark
+a session when one of its exercises changes, and you decide whether to update it. That mark
+is not in Part 2.
 
+### The session template table
+
+Agreed. A session is always read and written whole, so it is one row with a `jsonb` body.
+
+```sql
+CREATE TABLE session_template (
+    id           uuid        PRIMARY KEY DEFAULT uuidv7(),
+    owner        uuid        NULL REFERENCES account (id) ON DELETE CASCADE,
+    slug         text        NULL,
+    file_id      uuid        NULL,
+    loaded_hash  text        NULL,
+
+    name         text        NOT NULL,
+    notes        text,
+    source       text,
+    color        text,
+    needs        text,
+    tags         text[]      NOT NULL DEFAULT '{}',
+    body         jsonb       NOT NULL,
+
+    retired_at   timestamptz,
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    updated_at   timestamptz NOT NULL DEFAULT now()
+);
 ```
-session_template(id, owner, name, body jsonb)
-```
+
+The slug and file id indexes, the owner index and the `touch_updated_at` trigger are the same
+as on `exercise`.
 
 ```json
 {
   "sections": [
-    { "name": "Warm-up", "note": "go slow, it is cold",
-      "steps": [
-        { "exercise": "E3", "name": "Pulse raiser", "seconds": 300 },
-        { "exercise": "E9", "name": "Shoulder circles", "sets": 2, "reps": 10 }
-      ] },
-    { "name": "Main",
-      "steps": [ { "exercise": "E2", "name": "Limit boulders", "seconds": 3600 } ] }
+    { "name": "Warm-up", "notes": "go slow, it is cold",
+      "items": [
+        { "step": { "exercise": "0199…", "name": "Pulse raiser", "kind": "open",
+                    "duration_seconds": 300 } },
+        { "choice": { "name": "Shoulders", "notes": "pick what feels good", "pick": 1,
+                      "options": [
+                        { "exercise": "0199…", "name": "Cuban press", "kind": "reps_and_sets",
+                          "sets": 2, "reps": 10 },
+                        { "exercise": "0199…", "name": "Y raises", "kind": "reps_and_sets",
+                          "sets": 2, "reps": 10 } ] } }
+      ] }
   ]
 }
 ```
 
-### Open decisions
+- A step, and an option in a choice, is an exercise id plus a copy of every field of that
+  exercise, taken when it was added. Go checks the copy with the same `ExerciseFields.Clean()`
+  as the exercise table.
+- The exercise id is the identity that charts group on later. The copy is what the session
+  shows.
+- A reorder is one write of the body, so nothing is lost or doubled (rule 35).
+- No foreign key reaches from a step to `exercise`. Exercises are retired, never deleted, so
+  the id stays valid.
+- `color`, `needs`, `tags` and `source` come from the catalog files. `color` is the colour V1
+  shows for a session.
 
-3. **Does a copied session template keep its identity?** If it does, your version and the
-   shipped one share one "times completed" count.
-4. **How does an improvement to a shipped exercise reach someone already using it?** Sessions
-   hold copies, so nothing arrives by itself. A prompt, a manual sync, or nothing.
-7. **Choices inside a session** are core and not designed yet. "Pick two of these five."
-8. **Is `jsonb` the right home for sessions, cycles and runs?** The proposal assumes it. Plain
-   tables for sections and steps are the other way. This decides the table count, so settle it
-   together with decision 1.
+Left for later, because nothing needs it yet:
+
+- An index for "which sessions use exercise X", for the library mark. A GIN index on
+  `body jsonb_path_ops` answers it.
+- Rounds: "3 rounds of A, B and C".
+- A target time on a section.
+- A check that stops two devices from overwriting each other's edits to one session.
+
+### Loading sessions from a catalog
+
+- A tree adds `blocks/<slug>.yaml` and `sessions/<slug>.yaml`. A session holds blocks. A block
+  holds exercises and choices.
+- Blocks exist only in files, so that ten sessions can share one warm-up. The loader copies
+  each block into each session that uses it, as a section. Edit the block file, and all ten
+  change on the next start.
+- A bare name means the tree of the file that holds it. `app:<slug>` means the shipped tree.
+  So the exercises in a shipped block resolve against the shipped tree.
+- References resolve against the files, not the database. If a file names an exercise or a
+  block that no file holds, the load stops and names that file.
+- An item's own numbers go over the copied exercise fields.
+- `loaded_hash` covers the resolved body. A change to a block file or an exercise file
+  rewrites every session that uses it. A second load with no file changes writes nothing.
+- Sessions load after exercises, in the same transaction per owner.
 
 ---
 
@@ -222,7 +283,7 @@ session_template(id, owner, name, body jsonb)
 
 ### Steps
 
-1. Agree the run table. Decisions 1 and 5 come due here.
+1. Agree the run table. Decisions 1, 5 and 8 come due here.
 2. Build the player: port the V1 behaviour below, and add swap, add, reorder and go back.
 
 ### What a run is
@@ -279,6 +340,8 @@ starts.
    set reads across every session, which the body can't do cheaply. The last five times can
    come straight from the body.
 5. **Can a session run with numbers left empty?**
+8. **Is `jsonb` the right home for runs and cycles?** Session templates use it. Plain tables
+   are the other way. Settle it together with decision 1.
 
 ---
 
