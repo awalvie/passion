@@ -4,7 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
+	"net/url"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -59,6 +63,93 @@ type ExerciseFields struct {
 
 	VideoURL     *string
 	ThumbnailURL *string
+}
+
+const maxExerciseName = 200
+
+var exerciseKinds = map[string]bool{
+	"reps_and_sets": true,
+	"timed_reps":    true,
+	"climbing":      true,
+	"open":          true,
+}
+
+// Clean trims and checks the fields, and names each problem by its column.
+// The API and the catalog loader both use it, so the same content always
+// comes out the same, which the loader's hash depends on.
+func (f ExerciseFields) Clean() (ExerciseFields, map[string]string) {
+	problems := map[string]string{}
+
+	f.Name = strings.TrimSpace(f.Name)
+	switch {
+	case f.Name == "":
+		problems["name"] = "is required"
+	case utf8.RuneCountInString(f.Name) > maxExerciseName:
+		problems["name"] = "is too long"
+	}
+
+	if !exerciseKinds[f.Kind] {
+		problems["kind"] = "must be reps_and_sets, timed_reps, climbing or open"
+	}
+
+	// The table checks none of these, and a column holds at most a 32-bit int.
+	for column, n := range map[string]*int{
+		"sets":             f.Sets,
+		"reps":             f.Reps,
+		"set_rest_seconds": f.SetRestSeconds,
+		"rep_seconds":      f.RepSeconds,
+		"rep_rest_seconds": f.RepRestSeconds,
+		"prep_seconds":     f.PrepSeconds,
+		"duration_seconds": f.DurationSeconds,
+	} {
+		switch {
+		case n == nil:
+		case *n < 0:
+			problems[column] = "cannot be negative"
+		case *n > math.MaxInt32:
+			problems[column] = "is too large"
+		}
+	}
+
+	f.Notes = optional(f.Notes)
+	f.Source = optional(f.Source)
+	f.VideoURL = optional(f.VideoURL)
+	f.ThumbnailURL = optional(f.ThumbnailURL)
+	for column, link := range map[string]*string{"video_url": f.VideoURL, "thumbnail_url": f.ThumbnailURL} {
+		if link != nil && !isWebLink(*link) {
+			problems[column] = "must be an http or https link"
+		}
+	}
+
+	tags := []string{}
+	for _, tag := range f.Tags {
+		if tag = strings.TrimSpace(tag); tag != "" {
+			tags = append(tags, tag)
+		}
+	}
+	f.Tags = tags
+
+	return f, problems
+}
+
+// optional trims a text field, and treats a blank one as not set, so a form
+// that sends "" for an empty box stores nothing.
+func optional(s *string) *string {
+	if s == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*s)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
+}
+
+// isWebLink keeps javascript: and similar links out of anything the client
+// renders as an href.
+func isWebLink(s string) bool {
+	u, err := url.Parse(s)
+	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
 }
 
 // ErrNoExercise covers an exercise that does not exist and one this person

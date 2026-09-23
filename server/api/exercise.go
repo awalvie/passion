@@ -2,24 +2,11 @@ package api
 
 import (
 	"errors"
-	"math"
 	"net/http"
-	"net/url"
-	"strings"
 	"time"
-	"unicode/utf8"
 
 	"passion/server/db"
 )
-
-const maxExerciseName = 200
-
-var exerciseKinds = map[string]bool{
-	"reps_and_sets": true,
-	"timed_reps":    true,
-	"climbing":      true,
-	"open":          true,
-}
 
 // swagger:model exerciseRequest
 type exerciseRequest struct {
@@ -272,61 +259,15 @@ func readExerciseRequest(w http.ResponseWriter, r *http.Request) (db.ExerciseFie
 	return fields, true
 }
 
+// fields names each problem by its column, and every column is spelt the same
+// as its JSON field.
 func (req exerciseRequest) fields() (db.ExerciseFields, map[string]string) {
-	problems := map[string]string{}
-
-	name := strings.TrimSpace(req.Name)
-	switch {
-	case name == "":
-		problems["name"] = "is required"
-	case utf8.RuneCountInString(name) > maxExerciseName:
-		problems["name"] = "is too long"
-	}
-
-	if !exerciseKinds[req.Kind] {
-		problems["kind"] = "must be reps_and_sets, timed_reps, climbing or open"
-	}
-
-	// The table checks none of these, and a column holds at most a 32-bit int.
-	for field, n := range map[string]*int{
-		"sets":             req.Sets,
-		"reps":             req.Reps,
-		"set_rest_seconds": req.SetRestSeconds,
-		"rep_seconds":      req.RepSeconds,
-		"rep_rest_seconds": req.RepRestSeconds,
-		"prep_seconds":     req.PrepSeconds,
-		"duration_seconds": req.DurationSeconds,
-	} {
-		switch {
-		case n == nil:
-		case *n < 0:
-			problems[field] = "cannot be negative"
-		case *n > math.MaxInt32:
-			problems[field] = "is too large"
-		}
-	}
-
-	videoURL := optional(req.VideoURL)
-	thumbnailURL := optional(req.ThumbnailURL)
-	for field, link := range map[string]*string{"video_url": videoURL, "thumbnail_url": thumbnailURL} {
-		if link != nil && !isWebLink(*link) {
-			problems[field] = "must be an http or https link"
-		}
-	}
-
-	var tags []string
-	for _, tag := range req.Tags {
-		if tag = strings.TrimSpace(tag); tag != "" {
-			tags = append(tags, tag)
-		}
-	}
-
 	return db.ExerciseFields{
-		Name:            name,
+		Name:            req.Name,
 		Kind:            req.Kind,
-		Notes:           optional(req.Notes),
-		Source:          optional(req.Source),
-		Tags:            tags,
+		Notes:           req.Notes,
+		Source:          req.Source,
+		Tags:            req.Tags,
 		Sets:            req.Sets,
 		Reps:            req.Reps,
 		SetRestSeconds:  req.SetRestSeconds,
@@ -334,29 +275,9 @@ func (req exerciseRequest) fields() (db.ExerciseFields, map[string]string) {
 		RepRestSeconds:  req.RepRestSeconds,
 		PrepSeconds:     req.PrepSeconds,
 		DurationSeconds: req.DurationSeconds,
-		VideoURL:        videoURL,
-		ThumbnailURL:    thumbnailURL,
-	}, problems
-}
-
-// optional trims a text field, and treats a blank one as not set, so a form
-// that sends "" for an empty box stores nothing.
-func optional(s *string) *string {
-	if s == nil {
-		return nil
-	}
-	trimmed := strings.TrimSpace(*s)
-	if trimmed == "" {
-		return nil
-	}
-	return &trimmed
-}
-
-// isWebLink keeps javascript: and similar links out of anything the client
-// renders as an href.
-func isWebLink(s string) bool {
-	u, err := url.Parse(s)
-	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
+		VideoURL:        req.VideoURL,
+		ThumbnailURL:    req.ThumbnailURL,
+	}.Clean()
 }
 
 func toExerciseResponse(e db.Exercise) exerciseResponse {
