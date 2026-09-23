@@ -57,6 +57,15 @@
 				{/if}
 			</div>
 			<div class="flex shrink-0 items-center gap-1">
+				{#if !locked}
+					<a
+						class="rounded-md btn-ghost px-3 py-2 text-sm inline-flex items-center gap-1.5"
+						href="/templates/{t.id}/edit"
+					>
+						<Icon name="pencil" size="0.875rem" />
+						Edit
+					</a>
+				{/if}
 				<button
 					type="button"
 					class="rounded-md btn-ghost px-3 py-2 text-sm inline-flex items-center gap-1.5"
