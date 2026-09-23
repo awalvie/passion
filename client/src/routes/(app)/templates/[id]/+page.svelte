@@ -40,6 +40,20 @@
 			busy = false;
 		}
 	}
+
+	async function retire() {
+		if (!confirm(`Retire “${t.name}”? It leaves your list of session templates.`)) return;
+		error = '';
+		busy = true;
+		try {
+			await request('POST', `/api/v1/session-templates/${t.id}/retire`);
+			await goto('/templates');
+		} catch (e) {
+			error = describe(e, fieldLabel);
+		} finally {
+			busy = false;
+		}
+	}
 </script>
 
 <svelte:head><title>{t.name}</title></svelte:head>
@@ -110,6 +124,18 @@
 				<Icon name="copy" size="0.875rem" />
 				Duplicate
 			</button>
+			{#if !locked}
+				<button
+					type="button"
+					class="rounded-md btn-ghost px-3 py-2 text-sm inline-flex items-center gap-1.5"
+					style="color:var(--destructive)"
+					disabled={busy}
+					onclick={retire}
+				>
+					<Icon name="archive" size="0.875rem" />
+					Retire
+				</button>
+			{/if}
 		</div>
 		<FormError message={error} />
 	</div>
