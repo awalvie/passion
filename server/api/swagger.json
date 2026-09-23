@@ -249,6 +249,32 @@
         ]
       }
     },
+    "/api/v1/grades": {
+      "get": {
+        "description": "Every scale a climb can be logged in, so the client offers the grades the\nserver accepts.",
+        "tags": [
+          "grades"
+        ],
+        "summary": "List the grade scales",
+        "operationId": "listGrades",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/gradeListResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/runs": {
       "get": {
         "description": "Finished or not, newest day first.",
@@ -1353,6 +1379,60 @@
             "type": "string"
           },
           "x-go-name": "Tags"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "gradeListResponse": {
+      "type": "object",
+      "properties": {
+        "scales": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/gradeScaleBody"
+          },
+          "x-go-name": "Scales"
+        },
+        "ungraded": {
+          "description": "Labels for climbing with no grade, such as a lap. A climb with one has\nno grade_system and is never a send.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Ungraded",
+          "example": [
+            "Rainbow",
+            "Traverse"
+          ]
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "gradeScaleBody": {
+      "type": "object",
+      "properties": {
+        "boulder": {
+          "description": "True for a scale that grades boulders. The others grade sport and trad\nroutes.",
+          "type": "boolean",
+          "x-go-name": "Boulder"
+        },
+        "grades": {
+          "description": "Easiest first.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Grades",
+          "example": [
+            "6a",
+            "6a+",
+            "6b"
+          ]
+        },
+        "system": {
+          "type": "string",
+          "x-go-name": "System",
+          "example": "font"
         }
       },
       "x-go-package": "passion/server/api"
@@ -2497,6 +2577,10 @@
     {
       "description": "Sessions as you did them. A run copies its template when it starts, so a later edit to the template never reaches it. An unfinished run counts for nothing, and a finished one can still be changed.",
       "name": "runs"
+    },
+    {
+      "description": "The scales a climb's grade is logged in, the same list the server checks against.",
+      "name": "grades"
     },
     {
       "description": "Whether the server and its database are answering.",
