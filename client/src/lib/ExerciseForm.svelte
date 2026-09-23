@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DurationInput from '$lib/DurationInput.svelte';
 	import { allCounts, countLabels, kindOf, kinds, type Count, type Draft } from '$lib/exercise';
 
 	let {
@@ -9,19 +10,6 @@
 	}: { draft: Draft; shown: (c: Count) => boolean; sources: string[]; disabled?: boolean } = $props();
 
 	const counts = $derived(allCounts.filter((c) => c !== 'duration_seconds' && shown(c)));
-
-	// The three boxes keep what was typed, so 90 minutes stays 90 minutes until
-	// the page reloads, rather than jumping to 1 hour 30.
-	const d = draft.duration_seconds;
-	let hours = $state(d == null ? null : Math.floor(d / 3600));
-	let minutes = $state(d == null ? null : Math.floor((d % 3600) / 60));
-	let seconds = $state(d == null ? null : d % 60);
-	$effect(() => {
-		draft.duration_seconds =
-			hours == null && minutes == null && seconds == null
-				? null
-				: (hours ?? 0) * 3600 + (minutes ?? 0) * 60 + (seconds ?? 0);
-	});
 </script>
 
 <fieldset {disabled} class="min-w-0">
@@ -91,34 +79,7 @@
 	{#if shown('duration_seconds')}
 		<div class="mt-5 pt-5 divider">
 			<div class="text-xs font-semibold muted uppercase tracking-widest mb-3">Duration</div>
-			<div class="grid grid-cols-3 gap-2">
-				<div>
-					<label class="text-xs font-medium" for="ex-hours">Hours</label>
-					<input id="ex-hours" type="number" min="0" step="1" class="mt-1 w-full input" bind:value={hours} />
-				</div>
-				<div>
-					<label class="text-xs font-medium" for="ex-minutes">Minutes</label>
-					<input
-						id="ex-minutes"
-						type="number"
-						min="0"
-						step="1"
-						class="mt-1 w-full input"
-						bind:value={minutes}
-					/>
-				</div>
-				<div>
-					<label class="text-xs font-medium" for="ex-seconds">Seconds</label>
-					<input
-						id="ex-seconds"
-						type="number"
-						min="0"
-						step="1"
-						class="mt-1 w-full input"
-						bind:value={seconds}
-					/>
-				</div>
-			</div>
+			<DurationInput bind:seconds={draft.duration_seconds} id="ex" />
 		</div>
 	{/if}
 
