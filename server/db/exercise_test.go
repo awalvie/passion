@@ -23,8 +23,8 @@ func newAccount(t *testing.T, pool *pgxpool.Pool, email string) string {
 	return account.ID
 }
 
-// insertExercise writes a row directly, because only the catalog loader will
-// write shipped rows and it does not exist yet. An empty owner means shipped.
+// insertExercise writes a row directly, as the catalog loader does. An empty
+// owner means shipped.
 func insertExercise(ctx context.Context, pool *pgxpool.Pool, owner, slug, name string) (string, error) {
 	var id string
 	err := pool.QueryRow(ctx, `
