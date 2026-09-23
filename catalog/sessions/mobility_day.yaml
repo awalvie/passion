@@ -1,0 +1,9 @@
+id: 9040e4fd-e955-432f-aa67-46e1a74e3a0d
+name: Mobility Day
+color: '#16a34a'
+tags:
+    - mobility
+items:
+    - block: mobility
+    - block: cooldown_stretch
+    - block: journal
