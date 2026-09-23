@@ -56,40 +56,19 @@
 					<div class="mt-1 text-[11px] muted">{t.tags.join(' · ')}</div>
 				{/if}
 			</div>
-			<div class="flex shrink-0 items-center gap-1">
-				{#if !locked}
-					<a
-						class="rounded-md btn-ghost px-3 py-2 text-sm inline-flex items-center gap-1.5"
-						href="/templates/{t.id}/edit"
-					>
-						<Icon name="pencil" size="0.875rem" />
-						Edit
-					</a>
-				{/if}
-				<button
-					type="button"
-					class="rounded-md btn-ghost px-3 py-2 text-sm inline-flex items-center gap-1.5"
-					disabled={busy}
-					onclick={duplicate}
-				>
-					<Icon name="copy" size="0.875rem" />
-					Duplicate
-				</button>
-				<a
-					class="rounded-md btn-ghost p-2 inline-flex items-center justify-center"
-					href="/templates"
-					title="Back to templates"
-					aria-label="Back to templates"
-				>
-					<Icon name="arrow-left" />
-				</a>
-			</div>
+			<a
+				class="rounded-md btn-ghost p-2 inline-flex items-center justify-center shrink-0"
+				href="/templates"
+				title="Back to templates"
+				aria-label="Back to templates"
+			>
+				<Icon name="arrow-left" />
+			</a>
 		</div>
 
 		{#if locked}
 			<p class="mt-2 text-xs muted">{locked}</p>
 		{/if}
-		<FormError message={error} />
 
 		{#if t.source || t.needs}
 			<div class="mt-3 flex flex-wrap items-center gap-2 text-[11px] muted">
@@ -110,6 +89,29 @@
 		{#if t.notes}
 			<Notes text={t.notes} class="mt-3 text-sm" />
 		{/if}
+
+		<!-- Beside the title, these would squeeze a long name onto several lines on a phone. -->
+		<div class="mt-3 pt-3 divider flex flex-wrap items-center gap-2">
+			{#if !locked}
+				<a
+					class="rounded-md btn-ghost px-3 py-2 text-sm inline-flex items-center gap-1.5"
+					href="/templates/{t.id}/edit"
+				>
+					<Icon name="pencil" size="0.875rem" />
+					Edit
+				</a>
+			{/if}
+			<button
+				type="button"
+				class="rounded-md btn-ghost px-3 py-2 text-sm inline-flex items-center gap-1.5"
+				disabled={busy}
+				onclick={duplicate}
+			>
+				<Icon name="copy" size="0.875rem" />
+				Duplicate
+			</button>
+		</div>
+		<FormError message={error} />
 	</div>
 
 	<TemplatePlan sections={t.sections} />
