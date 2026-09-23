@@ -261,3 +261,50 @@ func TestExerciseSlugs(t *testing.T) {
 		mustInsertExercise(t, pool, ada, "", "Hang")
 	})
 }
+
+// insertFromFile writes a row as the loader will, with the id from its file.
+func insertFromFile(ctx context.Context, pool *pgxpool.Pool, owner, slug, fileID string) error {
+	_, err := pool.Exec(ctx, `
+		INSERT INTO exercise (owner, slug, file_id, name, kind)
+		VALUES (nullif($1, '')::uuid, $2, $3, $2, 'open')`, owner, slug, fileID)
+	return err
+}
+
+func TestExerciseFileIDs(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	bob := newAccount(t, pool, "bob@example.com")
+
+	const hang = "9555c81a-ce5e-4b30-8a0a-159d5852b976"
+
+	if err := insertFromFile(ctx, pool, "", "hang", hang); err != nil {
+		t.Fatalf("shipped: %v", err)
+	}
+
+	t.Run("two shipped files cannot share an id", func(t *testing.T) {
+		err := insertFromFile(ctx, pool, "", "hang_copy", hang)
+		var pgErr *pgconn.PgError
+		if !errors.As(err, &pgErr) || pgErr.ConstraintName != "exercise_shipped_file_id" {
+			t.Fatalf("got %v, want the shipped file id index to refuse it", err)
+		}
+	})
+
+	// Two people who load the same tree each get a row of their own.
+	t.Run("each person can load the same file", func(t *testing.T) {
+		if err := insertFromFile(ctx, pool, ada, "hang", hang); err != nil {
+			t.Fatalf("ada: %v", err)
+		}
+		if err := insertFromFile(ctx, pool, bob, "hang", hang); err != nil {
+			t.Fatalf("bob: %v", err)
+		}
+	})
+
+	t.Run("one person cannot hold a file id twice", func(t *testing.T) {
+		err := insertFromFile(ctx, pool, ada, "hang_copy", hang)
+		var pgErr *pgconn.PgError
+		if !errors.As(err, &pgErr) || pgErr.ConstraintName != "exercise_owner_file_id" {
+			t.Fatalf("got %v, want the owner file id index to refuse it", err)
+		}
+	})
+}

@@ -12,9 +12,10 @@ import (
 )
 
 type Exercise struct {
-	ID    string  `db:"id"`
-	Owner *string `db:"owner"`
-	Slug  *string `db:"slug"`
+	ID     string  `db:"id"`
+	Owner  *string `db:"owner"`
+	Slug   *string `db:"slug"`
+	FileID *string `db:"file_id"`
 
 	Name   string   `db:"name"`
 	Kind   string   `db:"kind"`
