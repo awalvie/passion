@@ -158,3 +158,28 @@ type exerciseListResponseWrapper struct {
 	// in:body
 	Body exerciseListResponse
 }
+
+// The body of a new run.
+// swagger:parameters startRun
+type runStartParams struct {
+	// in:body
+	// required:true
+	Body runStartRequest `json:"body"`
+}
+
+// The body of a replaced run.
+// swagger:parameters updateRun
+type runBodyParams struct {
+	// in:body
+	// required:true
+	Body runRequest `json:"body"`
+}
+
+// swagger:parameters readRun updateRun finishRun deleteRun
+type runIDParams struct {
+	// The run's id.
+	//
+	// in: path
+	// required: true
+	ID string `json:"id"`
+}

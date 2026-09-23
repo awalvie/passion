@@ -54,6 +54,12 @@ func (s *Server) Routes(client http.Handler) http.Handler {
 	mux.HandleFunc("GET /api/v1/session-templates/{id}", s.authenticated(s.readSessionTemplate))
 	mux.HandleFunc("PUT /api/v1/session-templates/{id}", s.authenticated(s.updateSessionTemplate))
 	mux.HandleFunc("POST /api/v1/session-templates/{id}/retire", s.authenticated(s.retireSessionTemplate))
+	mux.HandleFunc("GET /api/v1/runs", s.authenticated(s.listRuns))
+	mux.HandleFunc("POST /api/v1/runs", s.authenticated(s.startRun))
+	mux.HandleFunc("GET /api/v1/runs/{id}", s.authenticated(s.readRun))
+	mux.HandleFunc("PUT /api/v1/runs/{id}", s.authenticated(s.updateRun))
+	mux.HandleFunc("POST /api/v1/runs/{id}/finish", s.authenticated(s.finishRun))
+	mux.HandleFunc("DELETE /api/v1/runs/{id}", s.authenticated(s.deleteRun))
 	return mux
 }
 
