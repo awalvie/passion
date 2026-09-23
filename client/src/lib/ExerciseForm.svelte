@@ -68,7 +68,7 @@
 	</div>
 
 	{#if counts.length}
-		<div class="mt-5 pt-5 border-t" style="border-color: var(--border)">
+		<div class="mt-5 pt-5 divider">
 			<div class="text-xs font-semibold muted uppercase tracking-widest mb-3">Configuration</div>
 			<div class="grid gap-2 grid-cols-3">
 				{#each counts as c (c)}
@@ -89,7 +89,7 @@
 	{/if}
 
 	{#if shown('duration_seconds')}
-		<div class="mt-5 pt-5 border-t" style="border-color: var(--border)">
+		<div class="mt-5 pt-5 divider">
 			<div class="text-xs font-semibold muted uppercase tracking-widest mb-3">Duration</div>
 			<div class="grid grid-cols-3 gap-2">
 				<div>
@@ -122,12 +122,12 @@
 		</div>
 	{/if}
 
-	<div class="mt-5 pt-5 border-t" style="border-color: var(--border)">
+	<div class="mt-5 pt-5 divider">
 		<label class="text-sm font-medium" for="ex-notes">Notes</label>
 		<textarea id="ex-notes" class="mt-1 w-full input" rows="4" bind:value={draft.notes}></textarea>
 	</div>
 
-	<div class="mt-5 pt-5 border-t" style="border-color: var(--border)">
+	<div class="mt-5 pt-5 divider">
 		<span class="block text-sm font-medium">Media</span>
 		{#if draft.media.length}
 			<div class="space-y-2 mt-2">
