@@ -27,8 +27,10 @@ sign-in screen so far.
 - A token lasts thirty days by default and slides forward when it is used.
 - Read your own account.
 - Sign out one device.
-- List your exercise library, and create, edit and retire exercises of your own. The shipped
-  catalog isn't loaded yet.
+- List your exercise library, and create, edit and retire exercises of your own.
+- The shipped exercises load at startup, and so does any private catalog in the config. A
+  start writes only the files that changed. If you edit an exercise from your catalog in the
+  app, the edit stays until its file changes, and then the file wins. Edit the file instead.
 
 The Go binary serves everything: the API, the Svelte client, and browsable API
 documentation. It migrates its own database on the way up, so an upgrade never needs a
@@ -84,7 +86,7 @@ misspelt key or a bad value stops the server and names the line.
 | `auth.token_life` | `720h` | How long a sign-in lasts unused. Must be longer than `24h` |
 | `log.level` | `info` | `debug`, `info`, `warn` or `error` |
 | `log.format` | `text` | `text` or `json` |
-| `catalog.private` | none | Catalog trees of your own, each a `location` and a list of `owner` emails. Checked, not loaded yet |
+| `catalog.private` | none | Catalog trees of your own, each a `location` and a list of `owner` emails. An owner with no account yet is skipped until the next start |
 
 Two environment variables win over the file, so a deploy can set them and need no file.
 
@@ -122,7 +124,7 @@ server/token/       opaque bearer tokens
 server/web/         serves the client, embedded with //go:embed
 server/cmd/         passion, the server, and catalogid, which gives catalog files an id
 client/             sveltekit, built into server/web/dist
-catalog/            the shipped catalog. movements/ is embedded in the binary, not loaded yet
+catalog/            the shipped catalog. movements/ is embedded in the binary and loads at startup
 docs/               design and requirements
 ```
 

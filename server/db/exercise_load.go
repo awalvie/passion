@@ -22,6 +22,23 @@ type LoadResult struct {
 	Retired int
 }
 
+// OwnersWithLoadedExercises lists the accounts that hold rows a catalog load
+// wrote and has not retired, so that an owner dropped from the config can
+// have theirs retired.
+func OwnersWithLoadedExercises(ctx context.Context, pool *pgxpool.Pool) ([]string, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT DISTINCT owner FROM exercise
+		WHERE owner IS NOT NULL AND file_id IS NOT NULL AND loaded_hash IS NOT NULL`)
+	if err != nil {
+		return nil, fmt.Errorf("select loaded owners: %w", err)
+	}
+	owners, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return nil, fmt.Errorf("read loaded owners: %w", err)
+	}
+	return owners, nil
+}
+
 // LoadExercises makes one owner's rows match their catalog files, in one
 // transaction. owner is nil for the catalog the app ships. A file whose hash
 // matches its row's loaded_hash is skipped, so a start with no edited files

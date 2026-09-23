@@ -17,8 +17,8 @@ log:
   level: info    # debug, info, warn or error
   format: text   # text or json
 
-# Catalog trees of your own. Each owner gets their own copy, and nobody else
-# sees it. Read and checked, but not loaded yet.
+# Catalog trees of your own, loaded at every start. Each owner gets their own
+# copy, and nobody else sees it. An owner with no account yet is skipped.
 # catalog:
 #   private:
 #     - location: /srv/catalogs/example
