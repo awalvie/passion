@@ -159,6 +159,23 @@ type exerciseListResponseWrapper struct {
 	Body exerciseListResponse
 }
 
+// The body of a new or replaced session template.
+// swagger:parameters createSessionTemplate updateSessionTemplate
+type sessionTemplateBodyParams struct {
+	// in:body
+	// required:true
+	Body sessionTemplateRequest `json:"body"`
+}
+
+// swagger:parameters readSessionTemplate updateSessionTemplate retireSessionTemplate
+type sessionTemplateIDParams struct {
+	// The session template's id.
+	//
+	// in: path
+	// required: true
+	ID string `json:"id"`
+}
+
 // The body of a new run.
 // swagger:parameters startRun
 type runStartParams struct {
