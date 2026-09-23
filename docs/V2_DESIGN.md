@@ -447,7 +447,7 @@ Indexes: `run (owner, local_date DESC)`, `run (owner, template)`,
 - Every step and every choice has an `id`, unique in the body. The server writes them when it
   copies a template. The client writes them for anything it adds.
 - `status` is null (not reached), `done` or `skipped`. Finishing turns every null into
-  `skipped`, as V1 did.
+  `skipped`, as V1 did, unless the step has sets or climbs. Then it is `done`.
 - A choice in a run body is an offer nobody has taken. A pick replaces it with ordinary step
   items. Each picked step keeps the offer in `from_choice`, so picking again swaps the steps
   back. Nothing ever logs against a choice (rule 34).
@@ -487,6 +487,8 @@ results for a skipped step. So "what you last did" reads `run_set` alone (rule 4
 - `POST /api/v1/runs/{id}/finish` keeps the first finish time. `DELETE /api/v1/runs/{id}`
   deletes the owner's own run with everything in it.
 - `GET /api/v1/grades` lists each scale in order, so the client and the server share one list.
+- `PUT /api/v1/accounts/me/grades` sets the two grade settings. `GET /api/v1/accounts/me`
+  reads them.
 
 A set or a climb is written only against a step that the body holds at that moment, checked
 in the same transaction.
