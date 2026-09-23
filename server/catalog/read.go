@@ -1,20 +1,16 @@
 package catalog
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"path"
 	"regexp"
 	"sort"
 	"strings"
-
-	"go.yaml.in/yaml/v3"
 
 	"passion/server/db"
 )
@@ -89,20 +85,12 @@ func Read(trees ...Tree) ([]Exercise, []string, error) {
 	var problems []error
 
 	for _, tree := range trees {
-		entries, err := fs.ReadDir(tree.FS, "movements")
+		entries, err := readDir(tree, "movements")
 		if err != nil {
-			problems = append(problems, fmt.Errorf("%s: %w", tree.Name, err))
+			problems = append(problems, err)
 			continue
 		}
-		for _, entry := range entries {
-			rel := path.Join("movements", entry.Name())
-			if entry.IsDir() {
-				problems = append(problems, fmt.Errorf("%s: %s: a directory. Every file sits in movements/ itself", tree.Name, rel))
-				continue
-			}
-			if !strings.HasSuffix(entry.Name(), ".yaml") {
-				continue
-			}
+		for _, rel := range entries {
 			e, warn, err := readFile(tree, rel)
 			if err != nil {
 				problems = append(problems, fmt.Errorf("%s: %s: %w", tree.Name, rel, err))
@@ -124,39 +112,15 @@ func Read(trees ...Tree) ([]Exercise, []string, error) {
 
 func readFile(tree Tree, rel string) (Exercise, []string, error) {
 	slug := strings.TrimSuffix(path.Base(rel), ".yaml")
-	if !slugPattern.MatchString(slug) {
-		return Exercise{}, nil, errors.New("a file name holds only lower case letters, digits and underscores")
-	}
-
-	body, err := fs.ReadFile(tree.FS, rel)
-	if err != nil {
-		return Exercise{}, nil, err
-	}
 
 	var f movementFile
-	dec := yaml.NewDecoder(bytes.NewReader(body))
-	dec.KnownFields(true)
-	if err := dec.Decode(&f); err != nil {
-		if errors.Is(err, io.EOF) {
-			return Exercise{}, nil, errors.New("the file is empty")
-		}
+	if err := decodeFile(tree, rel, &f); err != nil {
 		return Exercise{}, nil, err
 	}
-	var extra yaml.Node
-	if err := dec.Decode(&extra); !errors.Is(err, io.EOF) {
-		if err != nil {
-			return Exercise{}, nil, fmt.Errorf("after the first document: %w", err)
-		}
-		return Exercise{}, nil, errors.New("more than one document. Delete the second --- and everything after it")
+	if err := checkID(f.ID); err != nil {
+		return Exercise{}, nil, err
 	}
-
 	id := strings.ToLower(f.ID)
-	switch {
-	case f.ID == "":
-		return Exercise{}, nil, errors.New("no id:. Run make catalog-ids")
-	case !uuidPattern.MatchString(id):
-		return Exercise{}, nil, fmt.Errorf("id: %q is not a uuid", f.ID)
-	}
 
 	fields := db.ExerciseFields{
 		Name:            f.Name,
