@@ -202,15 +202,18 @@ func sameShape(a, b Cycle) bool {
 }
 
 // build replaces the cycle's rows from today on. A past day is what the runs
-// recorded, so it is never planned again.
+// recorded, so it is never planned again, and a row a run was started from
+// stays.
 func build(ctx context.Context, tx pgx.Tx, c Cycle) ([]Slot, error) {
 	var today time.Time
 	if err := tx.QueryRow(ctx, `SELECT (now() AT TIME ZONE timezone)::date FROM account WHERE id = $1`,
 		c.Owner).Scan(&today); err != nil {
 		return nil, fmt.Errorf("select today: %w", err)
 	}
-	if _, err := tx.Exec(ctx, `DELETE FROM scheduled_session WHERE cycle = $1 AND local_date >= $2`,
-		c.ID, today); err != nil {
+	if _, err := tx.Exec(ctx, `
+		DELETE FROM scheduled_session s
+		WHERE s.cycle = $1 AND s.local_date >= $2
+			AND NOT EXISTS (SELECT 1 FROM run WHERE run.scheduled = s.id)`, c.ID, today); err != nil {
 		return nil, fmt.Errorf("clear the cycle's days: %w", err)
 	}
 
@@ -221,16 +224,22 @@ func build(ctx context.Context, tx pgx.Tx, c Cycle) ([]Slot, error) {
 		dates = append(dates, s.LocalDate)
 		templates = append(templates, s.Template)
 	}
-	rows, err := tx.Query(ctx, `
+	if _, err := tx.Exec(ctx, `
 		INSERT INTO scheduled_session (owner, cycle, template, local_date)
 		SELECT $1, $2, s.template, s.local_date
 		FROM unnest($3::date[], $4::uuid[]) AS s (local_date, template)
-		ON CONFLICT (owner, local_date, template) DO NOTHING
-		RETURNING local_date, template::text`, c.Owner, c.ID, dates, templates)
-	if err != nil {
+		ON CONFLICT (owner, local_date, template) DO NOTHING`, c.Owner, c.ID, dates, templates); err != nil {
 		return nil, fmt.Errorf("write the cycle's days: %w", err)
 	}
-	written, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (Slot, error) {
+
+	// A slot is left out when a row of another cycle, or a one-off, holds it.
+	rows, err := tx.Query(ctx, `
+		SELECT local_date, template::text FROM scheduled_session
+		WHERE cycle = $1 AND local_date >= $2`, c.ID, today)
+	if err != nil {
+		return nil, fmt.Errorf("select the cycle's days: %w", err)
+	}
+	held, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (Slot, error) {
 		var s Slot
 		err := row.Scan(&s.LocalDate, &s.Template)
 		return s, err
@@ -241,7 +250,7 @@ func build(ctx context.Context, tx pgx.Tx, c Cycle) ([]Slot, error) {
 
 	leftOut := []Slot{}
 	for _, s := range slots {
-		if !slices.ContainsFunc(written, func(w Slot) bool { return w.LocalDate.Equal(s.LocalDate) && w.Template == s.Template }) {
+		if !slices.ContainsFunc(held, func(w Slot) bool { return w.LocalDate.Equal(s.LocalDate) && w.Template == s.Template }) {
 			leftOut = append(leftOut, s)
 		}
 	}

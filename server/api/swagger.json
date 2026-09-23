@@ -1893,6 +1893,11 @@
           "x-go-name": "RPE",
           "example": 7
         },
+        "scheduled": {
+          "description": "The scheduled session it was started from, if any.",
+          "type": "string",
+          "x-go-name": "Scheduled"
+        },
         "sections": {
           "description": "The working list.",
           "type": "array",
@@ -1987,6 +1992,12 @@
           "type": "string",
           "x-go-name": "Name",
           "example": "Open session"
+        },
+        "scheduled": {
+          "description": "A scheduled session to run. Its template is copied now, and the day\ncounts as done once the run is finished. Send it instead of template.",
+          "type": "string",
+          "x-go-name": "Scheduled",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
         },
         "started_at": {
           "description": "When it started. Defaults to now.",
