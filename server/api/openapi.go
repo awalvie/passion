@@ -175,11 +175,24 @@ type runBodyParams struct {
 	Body runRequest `json:"body"`
 }
 
-// swagger:parameters readRun updateRun finishRun deleteRun
+// swagger:parameters readRun updateRun finishRun deleteRun replaceSets
 type runIDParams struct {
 	// The run's id.
 	//
 	// in: path
 	// required: true
 	ID string `json:"id"`
+}
+
+// swagger:parameters replaceSets
+type setParams struct {
+	// The step's id in the run's body.
+	//
+	// in: path
+	// required: true
+	Step string `json:"step"`
+
+	// in:body
+	// required:true
+	Body setRequest `json:"body"`
 }

@@ -38,7 +38,7 @@ func runRequestFrom(t *testing.T, run runResponse, edit func(map[string]any)) st
 	if err := json.Unmarshal(raw, &body); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"id", "template", "plan", "timezone", "finished_at"} {
+	for _, key := range []string{"id", "template", "plan", "timezone", "finished_at", "sets"} {
 		delete(body, key)
 	}
 	edit(body)
@@ -217,6 +217,74 @@ func TestListAndDeleteRuns(t *testing.T) {
 	}
 }
 
+// runWithSteps starts an open run holding one hang, typed in with an
+// exercise id of its own, and one climbing step.
+func runWithSteps(t *testing.T, h http.Handler, bearer string) (runResponse, string, string) {
+	t.Helper()
+	const hang, climb = "0199c3a0-0000-7000-8000-0000000000a1", "0199c3a0-0000-7000-8000-0000000000a2"
+	run := startRunFor(t, h, bearer, `{"name": "Open"}`)
+	body := runRequestFrom(t, run, func(b map[string]any) {
+		b["sections"] = []any{map[string]any{"name": "Main", "items": []any{
+			map[string]any{"step": map[string]any{"id": hang, "exercise": "0199c3a0-0000-7000-8000-0000000000b1", "name": "Hang", "kind": "timed_reps"}},
+			map[string]any{"step": map[string]any{"id": climb, "exercise": "0199c3a0-0000-7000-8000-0000000000b2", "name": "Bouldering", "kind": "climbing"}},
+		}}}
+	})
+	rec := send(t, h, http.MethodPut, "/api/v1/runs/"+run.ID, bearer, body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("put body: status %d: %s", rec.Code, rec.Body)
+	}
+	return decodeRun(t, rec), hang, climb
+}
+
+func TestReplaceSets(t *testing.T) {
+	h := newTestServer(t)
+	ada := signedIn(t, h, "ada@example.com")
+	run, hang, climb := runWithSteps(t, h, ada)
+	path := "/api/v1/runs/" + run.ID + "/steps/" + hang + "/sets"
+
+	rec := send(t, h, http.MethodPut, path, ada, `{"sets": [{"seconds": 10, "weight_kg": -5}, {"seconds": 8}]}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body)
+	}
+	var written setListResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &written); err != nil {
+		t.Fatal(err)
+	}
+	if len(written.Sets) != 2 || written.Sets[1].Number != 2 || *written.Sets[0].WeightKG != -5 {
+		t.Fatalf("sets %+v", written.Sets)
+	}
+
+	read := decodeRun(t, send(t, h, http.MethodGet, "/api/v1/runs/"+run.ID, ada, ""))
+	if len(read.Sets) != 2 || *read.Sections[0].Items[0].Step.Status != "done" {
+		t.Fatalf("run reads %d sets and status %v, want 2 and done", len(read.Sets), read.Sections[0].Items[0].Step.Status)
+	}
+
+	for name, c := range map[string]struct {
+		path, body string
+		status     int
+	}{
+		"a bad number":              {path, `{"sets": [{"reps": -1}]}`, http.StatusUnprocessableEntity},
+		"a climbing step":           {"/api/v1/runs/" + run.ID + "/steps/" + climb + "/sets", `{"sets": []}`, http.StatusUnprocessableEntity},
+		"a step the run lacks":      {"/api/v1/runs/" + run.ID + "/steps/0199c3a0-0000-7000-8000-0000000000ff/sets", `{"sets": []}`, http.StatusNotFound},
+		"a run that does not exist": {"/api/v1/runs/0199c3a0-0000-7000-8000-0000000000ff/steps/" + hang + "/sets", `{"sets": []}`, http.StatusNotFound},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if rec := send(t, h, http.MethodPut, c.path, ada, c.body); rec.Code != c.status {
+				t.Fatalf("status %d, want %d: %s", rec.Code, c.status, rec.Body)
+			}
+		})
+	}
+
+	// Skipping the step drops its sets.
+	skip := runRequestFrom(t, read, func(b map[string]any) {
+		step := b["sections"].([]any)[0].(map[string]any)["items"].([]any)[0].(map[string]any)["step"].(map[string]any)
+		step["status"] = "skipped"
+	})
+	if got := decodeRun(t, send(t, h, http.MethodPut, "/api/v1/runs/"+run.ID, ada, skip)); len(got.Sets) != 0 {
+		t.Fatalf("%d sets after the step was skipped, want none", len(got.Sets))
+	}
+}
+
 func TestRunsNeedSignIn(t *testing.T) {
 	h := newTestServer(t)
 	id := "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
@@ -228,6 +296,7 @@ func TestRunsNeedSignIn(t *testing.T) {
 		{http.MethodPut, "/api/v1/runs/" + id},
 		{http.MethodPost, "/api/v1/runs/" + id + "/finish"},
 		{http.MethodDelete, "/api/v1/runs/" + id},
+		{http.MethodPut, "/api/v1/runs/" + id + "/steps/" + id + "/sets"},
 	} {
 		t.Run(route.method+" "+route.path, func(t *testing.T) {
 			if rec := send(t, h, route.method, route.path, "", ""); rec.Code != http.StatusUnauthorized {
