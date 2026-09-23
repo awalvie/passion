@@ -3,6 +3,7 @@
 !go.sum
 !server
 !client
+!catalog
 
 # Built or installed locally; the image builds its own.
 client/node_modules
