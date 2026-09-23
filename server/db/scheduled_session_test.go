@@ -179,3 +179,62 @@ func TestListScheduledSessions(t *testing.T) {
 		t.Fatalf("run %v, want the finished one", list[1].Run)
 	}
 }
+
+// A rebuild that meets a run starting from one of its days, in flight, must
+// wait for it and keep the day.
+func TestPutCycleWaitsForARunStarting(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	hang := insertSessionTemplate(t, pool, ada, "Hang")
+	if _, _, err := db.PutCycle(ctx, pool, ada, y1, cycleFields(t, 7, db.CycleDay{Day: 1, Template: hang})); err != nil {
+		t.Fatal(err)
+	}
+	var day string
+	if err := pool.QueryRow(ctx, `SELECT id FROM scheduled_session WHERE local_date = '2100-01-05'`).Scan(&day); err != nil {
+		t.Fatal(err)
+	}
+
+	starting, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer starting.Rollback(ctx)
+	var run string
+	if err := starting.QueryRow(ctx, `
+		INSERT INTO run (owner, scheduled, name, body, started_at, timezone, local_date)
+		VALUES ($1, $2, 'Hang', '{"sections": []}', now(), 'UTC', '2100-01-05')
+		RETURNING id`, ada, day).Scan(&run); err != nil {
+		t.Fatal(err)
+	}
+
+	rebuilt := make(chan error, 1)
+	go func() {
+		_, _, err := db.PutCycle(ctx, pool, ada, y1, cycleFields(t, 14, db.CycleDay{Day: 1, Template: hang}))
+		rebuilt <- err
+	}()
+	for waiting := 0; waiting == 0; {
+		if err := pool.QueryRow(ctx, `SELECT count(*) FROM pg_stat_activity WHERE wait_event_type = 'Lock'`).Scan(&waiting); err != nil {
+			t.Fatal(err)
+		}
+		select {
+		case err := <-rebuilt:
+			t.Fatalf("the rebuild finished before the run did: %v", err)
+		case <-time.After(10 * time.Millisecond):
+		}
+	}
+	if err := starting.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-rebuilt; err != nil {
+		t.Fatal(err)
+	}
+
+	var scheduled *string
+	if err := pool.QueryRow(ctx, `SELECT scheduled::text FROM run WHERE id = $1`, run).Scan(&scheduled); err != nil {
+		t.Fatal(err)
+	}
+	if scheduled == nil || *scheduled != day {
+		t.Fatalf("the run points at %v, want the day it started from kept", scheduled)
+	}
+}

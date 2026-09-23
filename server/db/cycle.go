@@ -210,6 +210,14 @@ func build(ctx context.Context, tx pgx.Tx, c Cycle) ([]Slot, error) {
 		c.Owner).Scan(&today); err != nil {
 		return nil, fmt.Errorf("select today: %w", err)
 	}
+	// A run starting from one of these rows holds a key lock on it. Taking the
+	// rows first waits for that run, and the delete, a new statement, then
+	// sees it. One statement would test for runs before the wait, and drop
+	// the row.
+	if _, err := tx.Exec(ctx, `SELECT FROM scheduled_session WHERE cycle = $1 AND local_date >= $2 FOR UPDATE`,
+		c.ID, today); err != nil {
+		return nil, fmt.Errorf("lock the cycle's days: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `
 		DELETE FROM scheduled_session s
 		WHERE s.cycle = $1 AND s.local_date >= $2
