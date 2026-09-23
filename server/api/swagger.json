@@ -473,6 +473,65 @@
         ]
       }
     },
+    "/api/v1/runs/{id}/steps/{step}/sets": {
+      "put": {
+        "description": "Writes the whole list, so a retry writes the same sets. A step with sets\ncounts as done. A skipped step keeps no sets, and a climbing step logs\nclimbs instead. A step the run does not hold answers 404.",
+        "tags": [
+          "runs"
+        ],
+        "summary": "Replace a step's sets",
+        "operationId": "replaceSets",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The run's id.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Step",
+            "description": "The step's id in the run's body.",
+            "name": "step",
+            "in": "path",
+            "required": true
+          },
+          {
+            "x-go-name": "Body",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/setRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/setListResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/session-templates": {
       "get": {
         "description": "The ones the app ships and the ones you wrote, sorted by name. Retired ones\nare left out.",
@@ -1317,6 +1376,14 @@
           },
           "x-go-name": "Sections"
         },
+        "sets": {
+          "description": "Every set logged in the run, by step.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/setBody"
+          },
+          "x-go-name": "Sets"
+        },
         "setting": {
           "description": "indoor or outdoor.",
           "type": "string",
@@ -1739,6 +1806,105 @@
             "type": "string"
           },
           "x-go-name": "Tags"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "setBody": {
+      "type": "object",
+      "properties": {
+        "exercise": {
+          "description": "The exercise the step pointed at when the set was written.",
+          "type": "string",
+          "x-go-name": "Exercise",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "number": {
+          "description": "From 1.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Number",
+          "example": 1
+        },
+        "reps": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Reps",
+          "example": 5
+        },
+        "seconds": {
+          "description": "How long it was held or ran.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Seconds",
+          "example": 10
+        },
+        "step": {
+          "description": "The step's id.",
+          "type": "string",
+          "x-go-name": "Step",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "weight_kg": {
+          "description": "Added weight. Below zero is assistance, and zero is bodyweight.",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "WeightKG",
+          "example": 12.5
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "setFieldsBody": {
+      "type": "object",
+      "title": "What one set did. Every number is optional.",
+      "properties": {
+        "reps": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Reps",
+          "example": 5
+        },
+        "seconds": {
+          "description": "How long it was held or ran.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Seconds",
+          "example": 10
+        },
+        "weight_kg": {
+          "description": "Added weight. Below zero is assistance, and zero is bodyweight.",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "WeightKG",
+          "example": 12.5
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "setListResponse": {
+      "type": "object",
+      "properties": {
+        "sets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/setBody"
+          },
+          "x-go-name": "Sets"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "setRequest": {
+      "type": "object",
+      "properties": {
+        "sets": {
+          "description": "A step's sets, in order. An empty list removes them all.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/setFieldsBody"
+          },
+          "x-go-name": "Sets"
         }
       },
       "x-go-package": "passion/server/api"
