@@ -50,6 +50,7 @@ The client has sign-in, the exercise library and the session template screens so
   days. The app places each session on the dates it falls, from today on. Move one day, take
   one out, or schedule a one-off by hand. A day gone by with no run shows as missed.
 - Start a run from a scheduled day, and the day counts as done once the run is finished.
+- Read an exercise's history: every finished run that logged it, with its sets or climbs.
 
 The Go binary serves everything: the API, the Svelte client, and browsable API
 documentation. It migrates its own database on the way up, so an upgrade never needs a
@@ -86,6 +87,7 @@ the handlers and the OpenAPI document is at `/api/openapi.json`.
 | `GET` | `/api/v1/exercises/{id}` | One exercise, retired ones included |
 | `PUT` | `/api/v1/exercises/{id}` | Replace every field of one of your own |
 | `POST` | `/api/v1/exercises/{id}/retire` | Take one of your own out of your library |
+| `GET` | `/api/v1/exercises/{id}/history` | Every finished run that logged it, newest first |
 | `GET` | `/api/v1/session-templates` | Shipped session templates and your own, not retired |
 | `POST` | `/api/v1/session-templates` | Create a session template of your own |
 | `GET` | `/api/v1/session-templates/{id}` | One session template, retired ones included |
