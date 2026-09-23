@@ -258,15 +258,9 @@ func checkTemplates(ctx context.Context, tx pgx.Tx, owner string, body CycleBody
 	for _, d := range body.Days {
 		ids = append(ids, d.Template)
 	}
-	rows, err := tx.Query(ctx, `
-		SELECT id::text FROM session_template
-		WHERE id = ANY($1::uuid[]) AND (owner IS NULL OR owner = $2)`, ids, owner)
+	found, err := visibleTemplates(ctx, tx, owner, ids)
 	if err != nil {
-		return fmt.Errorf("select cycle templates: %w", err)
-	}
-	found, err := pgx.CollectRows(rows, pgx.RowTo[string])
-	if err != nil {
-		return fmt.Errorf("read cycle templates: %w", err)
+		return err
 	}
 
 	problems := map[string]string{}
@@ -279,6 +273,22 @@ func checkTemplates(ctx context.Context, tx pgx.Tx, owner string, body CycleBody
 		return &UnknownTemplatesError{Problems: problems}
 	}
 	return nil
+}
+
+// visibleTemplates keeps the ids of templates the person can see: shipped
+// ones and their own, retired ones included.
+func visibleTemplates(ctx context.Context, q querier, owner string, ids []string) ([]string, error) {
+	rows, err := q.Query(ctx, `
+		SELECT id::text FROM session_template
+		WHERE id = ANY($1::uuid[]) AND (owner IS NULL OR owner = $2)`, ids, owner)
+	if err != nil {
+		return nil, fmt.Errorf("select session templates: %w", err)
+	}
+	found, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return nil, fmt.Errorf("read session templates: %w", err)
+	}
+	return found, nil
 }
 
 // ListCycles is every cycle of the person's, latest start first.
