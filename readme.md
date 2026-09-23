@@ -124,7 +124,7 @@ server/token/       opaque bearer tokens
 server/web/         serves the client, embedded with //go:embed
 server/cmd/         passion, the server, and catalogid, which gives catalog files an id
 client/             sveltekit, built into server/web/dist
-catalog/            the shipped catalog. movements/ is embedded in the binary and loads at startup
+catalog/            the shipped catalog, embedded and loaded at startup. See docs/CATALOG_FORMAT.md
 docs/               design and requirements
 ```
 
