@@ -1,0 +1,10 @@
+id: 92e626ba-36ec-4ba3-be88-63551de00f85
+name: Antagonist & Prehab
+tags:
+    - antagonist
+    - strength
+items:
+    - movement: external_rotations
+    - movement: lateral_raise
+    - movement: tricep_extensions
+    - movement: overhead_press
