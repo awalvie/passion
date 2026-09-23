@@ -18,7 +18,7 @@
 	const locked = saved.shipped
 		? 'The app ships this exercise, so it cannot be changed.'
 		: saved.retired_at
-			? 'You retired this exercise. Sessions that use it keep their copy.'
+			? 'You retired this exercise. Session templates that use it keep their copy.'
 			: '';
 
 	// A number the exercise already holds stays on screen whatever its type, so
@@ -43,7 +43,7 @@
 	}
 
 	async function retire() {
-		if (!confirm(`Retire “${saved.name}”? It leaves your library. Sessions that use it keep their copy.`))
+		if (!confirm(`Retire “${saved.name}”? It leaves your library. Session templates that use it keep their copy.`))
 			return;
 		error = '';
 		busy = true;
@@ -66,7 +66,7 @@
 			<div>
 				<h1 class="text-xl font-bold">{locked ? saved.name : 'Edit exercise'}</h1>
 				<p class="mt-1 text-xs muted">
-					{locked || 'Changes here do not change sessions that already use it.'}
+					{locked || 'Changes here do not affect session templates that already use it.'}
 				</p>
 			</div>
 			<a

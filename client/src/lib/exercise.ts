@@ -72,7 +72,7 @@ export const kinds: { kind: Kind; label: string; icon: IconName; hint: string; c
 		kind: 'open',
 		label: 'Open',
 		icon: 'layers',
-		hint: 'A stopwatch or countdown for an open block. No sets or reps.',
+		hint: 'A stopwatch or countdown for an open block.',
 		counts: ['duration_seconds']
 	}
 ];
