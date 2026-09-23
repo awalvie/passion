@@ -4,5 +4,5 @@ package catalog
 
 import "embed"
 
-//go:embed movements
+//go:embed movements blocks sessions
 var Files embed.FS
