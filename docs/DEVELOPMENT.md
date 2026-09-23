@@ -68,6 +68,20 @@ See `account_test.go`.
 Test handlers with `httptest` against `newTestServer(t)`, from `auth_test.go`. See
 `api_test.go`.
 
+## Add a screen
+
+1. Put a page that needs sign-in under `client/src/routes/(app)/`. Its layout sends a
+   signed-out visitor to `/login`.
+2. Call the API with `request` from `client/src/lib/api.ts`. A failure throws
+   `RequestFailed`, and `describe` turns it into one line for a form.
+3. For filters a list keeps in the URL, use `urlFilters` from `client/src/lib/filters.svelte.ts`.
+4. Follow [DESIGN.md](DESIGN.md) for colours, type, cards and buttons.
+5. Run `pnpm --dir client check`.
+
+Under `make watch`, a class used for the first time in a new file can be missing from the dev
+stylesheet. Run `touch client/src/app.css` and Vite rebuilds it. The production build is not
+affected.
+
 ## Before you commit
 
 - `make db-up`, then `make test`. Tests share one database, so they run one package at a time.
