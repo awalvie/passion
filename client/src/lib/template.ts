@@ -1,4 +1,4 @@
-import { fieldLabel, formatDuration, kindOf, summary, type Exercise } from './exercise';
+import { fieldLabel, kindOf, summary, type Exercise } from './exercise';
 
 // The shapes of server/api/session_template.go's responses.
 export type SessionTemplate = {
@@ -26,9 +26,7 @@ export type Choice = { name: string; notes: string | null; pick: number; options
 // stepMeta is the one muted line under a step's name, as V1's preview wrote it.
 export function stepMeta(s: Step): string {
 	const kind = kindOf(s.kind).label;
-	if (s.kind === 'open') {
-		return `${kind} · ${s.duration_seconds ? formatDuration(s.duration_seconds) : 'Open-ended'}`;
-	}
+	if (s.kind === 'open') return `${kind} · ${summary(s) || 'Open-ended'}`;
 	return [kind, summary(s), s.rep_seconds ? `${s.rep_seconds}s rep` : ''].filter(Boolean).join(' · ');
 }
 

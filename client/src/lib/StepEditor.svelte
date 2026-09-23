@@ -43,6 +43,12 @@
 		{#if shown.includes('duration_seconds')}
 			<DurationInput bind:seconds={step.duration_seconds} id="{id}-duration" small />
 		{/if}
+		{#if shown.length}
+			<label class="flex items-center gap-2 text-xs font-medium cursor-pointer">
+				<input type="checkbox" class="rounded" bind:checked={step.per_side} />
+				Per side
+			</label>
+		{/if}
 		<div>
 			<label class="text-xs font-medium" for="{id}-notes">Notes</label>
 			<textarea id="{id}-notes" rows="3" class="mt-1 w-full input text-xs" bind:value={step.notes}></textarea>
