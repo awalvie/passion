@@ -20,6 +20,16 @@
 		library: Exercise[];
 		actions: Snippet;
 	} = $props();
+
+	let newChoice = $state('');
+
+	// A new choice opens empty; it needs an option before the template saves.
+	function addChoice() {
+		const name = newChoice.trim();
+		if (!name) return;
+		section.items.push({ choice: { name, notes: null, pick: 1, options: [] } });
+		newChoice = '';
+	}
 </script>
 
 <details class="card overflow-hidden passion-disclosure" {open}>
@@ -57,7 +67,7 @@
 				{#if item.step}
 					<StepEditor bind:step={item.step} id="{id}-item{j}" actions={itemActions} />
 				{:else}
-					<ChoiceEditor choice={item.choice} actions={itemActions} />
+					<ChoiceEditor bind:choice={item.choice} id="{id}-item{j}" {library} actions={itemActions} />
 				{/if}
 			{:else}
 				<div class="card-muted p-3 text-xs muted">No exercises yet.</div>
@@ -65,5 +75,26 @@
 		</div>
 
 		<ExercisePicker exercises={library} id="{id}-add" pick={(e) => section.items.push({ step: toStep(e) })} />
+
+		<div class="grid gap-2 grid-cols-[1fr_auto] items-end">
+			<div>
+				<label class="text-xs font-medium" for="{id}-choice">Add choice</label>
+				<input
+					id="{id}-choice"
+					class="mt-1 w-full input text-sm"
+					placeholder="e.g., Drills, Stretches"
+					bind:value={newChoice}
+					onkeydown={(e) => {
+						if (e.key === 'Enter') {
+							e.preventDefault();
+							addChoice();
+						}
+					}}
+				/>
+			</div>
+			<button type="button" class="rounded-md btn-ghost px-3 py-2 text-sm font-medium" onclick={addChoice}>
+				+ Add
+			</button>
+		</div>
 	</div>
 </details>
