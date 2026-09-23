@@ -200,7 +200,8 @@ type Run struct {
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
 
-	Sets []Set `db:"-"`
+	Sets   []Set   `db:"-"`
+	Climbs []Climb `db:"-"`
 }
 
 // RunSummary is a run as a list shows it.
@@ -278,7 +279,7 @@ func StartRun(ctx context.Context, pool *pgxpool.Pool, owner string, s RunStart)
 	if err != nil {
 		return Run{}, err
 	}
-	run.Sets = []Set{}
+	run.Sets, run.Climbs = []Set{}, []Climb{}
 	return run, nil
 }
 
@@ -405,7 +406,13 @@ func UpdateRun(ctx context.Context, pool *pgxpool.Pool, owner, id string, f RunF
 	if err := pruneSets(ctx, tx, run.ID, run.Body); err != nil {
 		return Run{}, err
 	}
+	if err := pruneClimbs(ctx, tx, run.ID, run.Body); err != nil {
+		return Run{}, err
+	}
 	if run.Sets, err = runSets(ctx, tx, run.ID, nil); err != nil {
+		return Run{}, err
+	}
+	if run.Climbs, err = runClimbs(ctx, tx, run.ID); err != nil {
 		return Run{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -477,6 +484,9 @@ func withLog(ctx context.Context, q querier, rows pgx.Rows) (Run, error) {
 		return Run{}, err
 	}
 	if run.Sets, err = runSets(ctx, q, run.ID, nil); err != nil {
+		return Run{}, err
+	}
+	if run.Climbs, err = runClimbs(ctx, q, run.ID); err != nil {
 		return Run{}, err
 	}
 	return run, nil
