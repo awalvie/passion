@@ -82,7 +82,7 @@
 				<input
 					id="{id}-choice"
 					class="mt-1 w-full input text-sm"
-					placeholder="e.g., Drills, Stretches"
+					placeholder="e.g. Drills, Stretches"
 					bind:value={newChoice}
 					onkeydown={(e) => {
 						if (e.key === 'Enter') {
@@ -93,7 +93,7 @@
 				/>
 			</div>
 			<button type="button" class="rounded-md btn-ghost px-3 py-2 text-sm font-medium" onclick={addChoice}>
-				+ Add
+				+ Add choice
 			</button>
 		</div>
 	</div>
