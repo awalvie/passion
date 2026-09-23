@@ -1,53 +1,30 @@
 <script lang="ts">
-	import { replaceState } from '$app/navigation';
-	import { page } from '$app/state';
 	import { distinct, kindOf, kinds, sourcesOf } from '$lib/exercise';
+	import { urlFilters } from '$lib/filters.svelte';
 	import Icon from '$lib/Icon.svelte';
 
 	let { data } = $props();
 
-	// The filters live in the query string, so Back from an exercise finds them
-	// as they were. Keys are V1's.
-	const query = page.url.searchParams;
-	let q = $state(query.get('q') ?? '');
-	let kind = $state(query.get('kind') ?? '');
-	let source = $state(query.get('source') ?? '');
-	let tag = $state(query.get('tag') ?? '');
+	const f = urlFilters('/exercises', ['q', 'kind', 'source', 'tag']);
 
 	const sources = $derived(sourcesOf(data.exercises));
 	const tags = $derived(distinct(data.exercises.flatMap((e) => e.tags)));
 
 	const shown = $derived.by(() => {
-		const needle = q.trim().toLowerCase();
+		const needle = f.q.trim().toLowerCase();
 		return data.exercises.filter(
 			(e) =>
 				e.name.toLowerCase().includes(needle) &&
-				(!kind || e.kind === kind) &&
-				(!source || e.source === source) &&
-				(!tag || e.tags.includes(tag))
+				(!f.kind || e.kind === f.kind) &&
+				(!f.source || e.source === f.source) &&
+				(!f.tag || e.tags.includes(f.tag))
 		);
 	});
 
-	const filtered = $derived(Boolean(q || kind || source || tag));
-
-	let written = search();
-	$effect(() => {
-		const next = search();
-		if (next === written) return;
-		written = next;
-		replaceState(`/exercises${next}`, {});
-	});
-
-	function search() {
-		const params = new URLSearchParams();
-		for (const [key, value] of Object.entries({ q, kind, source, tag })) {
-			if (value) params.set(key, value);
-		}
-		return params.size ? `?${params}` : '';
-	}
+	const filtered = $derived(Boolean(f.q || f.kind || f.source || f.tag));
 
 	function clear() {
-		q = kind = source = tag = '';
+		f.q = f.kind = f.source = f.tag = '';
 	}
 </script>
 
@@ -73,7 +50,7 @@
 		<div class="w-full sm:flex-1" style="min-width:10rem">
 			<input
 				type="search"
-				bind:value={q}
+				bind:value={f.q}
 				placeholder="Search exercises..."
 				aria-label="Search exercises"
 				class="input text-sm"
@@ -81,7 +58,7 @@
 			/>
 		</div>
 		<select
-			bind:value={kind}
+			bind:value={f.kind}
 			aria-label="Type"
 			class="input text-sm w-[calc(50%-0.25rem)] min-w-0 sm:w-auto sm:min-w-[8rem]"
 		>
@@ -92,7 +69,7 @@
 		</select>
 		{#if sources.length}
 			<select
-				bind:value={source}
+				bind:value={f.source}
 				aria-label="Source"
 				class="input text-sm w-[calc(50%-0.25rem)] min-w-0 sm:w-auto sm:min-w-[8rem]"
 			>
@@ -104,7 +81,7 @@
 		{/if}
 		{#if tags.length}
 			<select
-				bind:value={tag}
+				bind:value={f.tag}
 				aria-label="Labels"
 				class="input text-sm w-[calc(50%-0.25rem)] min-w-0 sm:w-auto sm:min-w-[8rem]"
 			>
