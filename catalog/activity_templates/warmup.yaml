@@ -1,8 +1,0 @@
-name: "Warm Up"
-slug: "warm_up"
-label: "warmup, mobility, fingers"
-exercises:
-  - ref: "pulse_raiser"
-  - ref: "joint_circles"
-  - ref: "scapular_pulls_push_ups"
-  - ref: "warmup_pulls"

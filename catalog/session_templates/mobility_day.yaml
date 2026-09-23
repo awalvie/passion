@@ -1,8 +1,0 @@
-name: "Mobility Day"
-slug: "mobility_day"
-color: "#16a34a"
-label: "mobility, stretching, rest"
-activities:
-  - ref: "mobility"
-  - ref: "cooldown_stretch"
-  - ref: "journal"

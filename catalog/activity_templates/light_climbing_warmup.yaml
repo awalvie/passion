@@ -1,6 +1,0 @@
-name: "Light Climbing Warmup"
-slug: "light_climbing_warmup"
-label: "warmup, footwork"
-exercises:
-  - ref: "general_warmup"
-  - ref: "silent_feet"
