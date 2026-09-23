@@ -396,6 +396,45 @@
         ]
       }
     },
+    "/api/v1/exercises/{id}/history": {
+      "get": {
+        "description": "Every finished run that logged the exercise, newest day first, with what\nwas logged for it. An unfinished run is left out, and a skipped step logs\nnothing. The id need not be in your library: an exercise typed into a run\nhas its own id and its own history.",
+        "tags": [
+          "exercises"
+        ],
+        "summary": "An exercise's history",
+        "operationId": "exerciseHistory",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The exercise's id.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/exerciseHistoryResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/exercises/{id}/retire": {
       "post": {
         "description": "Takes one of your own out of your library. It still reads by id. Retiring it\ntwice keeps the first date. A shipped exercise, or someone else's, answers\n404.",
@@ -1791,6 +1830,19 @@
       },
       "x-go-package": "passion/server/api"
     },
+    "exerciseHistoryResponse": {
+      "type": "object",
+      "properties": {
+        "sessions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/historySessionBody"
+          },
+          "x-go-name": "Sessions"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
     "exerciseListResponse": {
       "type": "object",
       "properties": {
@@ -2070,6 +2122,44 @@
           "type": "string",
           "x-go-name": "RouteGrades",
           "example": "french"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "historySessionBody": {
+      "type": "object",
+      "properties": {
+        "climbs": {
+          "description": "The exercise's climbs in this run, in the order they were climbed.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/climbBody"
+          },
+          "x-go-name": "Climbs"
+        },
+        "local_date": {
+          "type": "string",
+          "x-go-name": "LocalDate",
+          "example": "2026-03-07"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Power"
+        },
+        "run": {
+          "description": "The run's id.",
+          "type": "string",
+          "x-go-name": "Run",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "sets": {
+          "description": "The exercise's sets in this run, by step.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/setBody"
+          },
+          "x-go-name": "Sets"
         }
       },
       "x-go-package": "passion/server/api"
