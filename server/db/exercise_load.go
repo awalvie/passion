@@ -3,6 +3,9 @@ package db
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -39,13 +42,32 @@ func OwnersWithLoadedExercises(ctx context.Context, pool *pgxpool.Pool) ([]strin
 	return owners, nil
 }
 
-// LoadExercises makes one owner's rows match their catalog files, in one
+// LoadExercises makes one owner's exercise rows match their catalog files.
+func LoadExercises(ctx context.Context, pool *pgxpool.Pool, owner *string, files []FileExercise) (LoadResult, error) {
+	rows := make([]fileRow, 0, len(files))
+	for _, f := range files {
+		rows = append(rows, fileRow{FileID: f.FileID, Slug: f.Slug, Hash: f.Hash, Args: f.Fields.args()})
+	}
+	return loadFiles(ctx, pool, "exercise", owner, rows)
+}
+
+// fileRow is one catalog file for any table the loader writes. Args holds the
+// table's own columns, and every row of one load holds the same keys.
+type fileRow struct {
+	FileID string
+	Slug   string
+	Hash   string
+	Args   pgx.NamedArgs
+}
+
+// loadFiles makes one owner's rows in table match their catalog files, in one
 // transaction. owner is nil for the catalog the app ships. A file whose hash
 // matches its row's loaded_hash is skipped, so a start with no edited files
 // writes nothing, and a row edited or retired in the app keeps that until its
 // file changes. Rows made in the app have no file_id and are never touched.
 // No two files may share a file id or a slug, which catalog.Read makes sure of.
-func LoadExercises(ctx context.Context, pool *pgxpool.Pool, owner *string, files []FileExercise) (LoadResult, error) {
+// table is always a constant, never input.
+func loadFiles(ctx context.Context, pool *pgxpool.Pool, table string, owner *string, files []fileRow) (LoadResult, error) {
 	// The file id indexes are partial, so each statement names the owner the
 	// way one of them does.
 	scope := "owner = @owner"
@@ -66,10 +88,10 @@ func LoadExercises(ctx context.Context, pool *pgxpool.Pool, owner *string, files
 		return LoadResult{}, fmt.Errorf("lock load: %w", err)
 	}
 
-	rows, err := tx.Query(ctx, `SELECT file_id, loaded_hash FROM exercise WHERE `+scope+` AND file_id IS NOT NULL`,
+	rows, err := tx.Query(ctx, `SELECT file_id, loaded_hash FROM `+table+` WHERE `+scope+` AND file_id IS NOT NULL`,
 		pgx.NamedArgs{"owner": owner})
 	if err != nil {
-		return LoadResult{}, fmt.Errorf("select loaded exercises: %w", err)
+		return LoadResult{}, fmt.Errorf("select loaded %s rows: %w", table, err)
 	}
 	loaded := map[string]*string{}
 	var fileID string
@@ -78,10 +100,10 @@ func LoadExercises(ctx context.Context, pool *pgxpool.Pool, owner *string, files
 		loaded[fileID] = hash
 		return nil
 	}); err != nil {
-		return LoadResult{}, fmt.Errorf("read loaded exercises: %w", err)
+		return LoadResult{}, fmt.Errorf("read loaded %s rows: %w", table, err)
 	}
 
-	var changed []FileExercise
+	var changed []fileRow
 	var touched []string
 	seen := map[string]bool{}
 	for _, f := range files {
@@ -104,46 +126,44 @@ func LoadExercises(ctx context.Context, pool *pgxpool.Pool, owner *string, files
 	// A gone row gives up its slug, so a new file can take the name, and its
 	// hash, so the file counts as changed if it comes back.
 	tag, err := tx.Exec(ctx, `
-		UPDATE exercise SET retired_at = coalesce(retired_at, now()), slug = NULL, loaded_hash = NULL
+		UPDATE `+table+` SET retired_at = coalesce(retired_at, now()), slug = NULL, loaded_hash = NULL
 		WHERE `+scope+` AND file_id = ANY(@gone) AND loaded_hash IS NOT NULL`,
 		pgx.NamedArgs{"owner": owner, "gone": gone})
 	if err != nil {
-		return LoadResult{}, fmt.Errorf("retire gone exercises: %w", err)
+		return LoadResult{}, fmt.Errorf("retire gone %s rows: %w", table, err)
 	}
 	result := LoadResult{Retired: int(tag.RowsAffected())}
 
 	// The slug indexes check each statement on its own, so two files that
 	// swap names would clash half way. Clearing first lets any order work.
-	if _, err := tx.Exec(ctx, `UPDATE exercise SET slug = NULL WHERE `+scope+` AND file_id = ANY(@touched)`,
+	if _, err := tx.Exec(ctx, `UPDATE `+table+` SET slug = NULL WHERE `+scope+` AND file_id = ANY(@touched)`,
 		pgx.NamedArgs{"owner": owner, "touched": touched}); err != nil {
-		return LoadResult{}, fmt.Errorf("clear slugs: %w", err)
+		return LoadResult{}, fmt.Errorf("clear %s slugs: %w", table, err)
 	}
 
-	upsert := `
-		INSERT INTO exercise (
-			owner, file_id, slug, loaded_hash, name, kind, notes, source, tags,
-			sets, reps, set_rest_seconds, rep_seconds, rep_rest_seconds, prep_seconds,
-			duration_seconds, media)
-		VALUES (
-			@owner, @file_id, @slug, @loaded_hash, @name, @kind, @notes, @source, @tags,
-			@sets, @reps, @set_rest_seconds, @rep_seconds, @rep_rest_seconds, @prep_seconds,
-			@duration_seconds, @media)
-		ON CONFLICT ` + conflict + ` DO UPDATE SET
-			slug = excluded.slug, loaded_hash = excluded.loaded_hash,
-			name = excluded.name, kind = excluded.kind, notes = excluded.notes,
-			source = excluded.source, tags = excluded.tags, sets = excluded.sets,
-			reps = excluded.reps, set_rest_seconds = excluded.set_rest_seconds,
-			rep_seconds = excluded.rep_seconds, rep_rest_seconds = excluded.rep_rest_seconds,
-			prep_seconds = excluded.prep_seconds, duration_seconds = excluded.duration_seconds,
-			media = excluded.media, retired_at = NULL`
-	for _, f := range changed {
-		args := f.Fields.args()
-		args["owner"] = owner
-		args["file_id"] = f.FileID
-		args["slug"] = f.Slug
-		args["loaded_hash"] = f.Hash
-		if _, err := tx.Exec(ctx, upsert, args); err != nil {
-			return LoadResult{}, fmt.Errorf("write %s: %w", f.Slug, err)
+	if len(changed) > 0 {
+		columns := slices.Sorted(maps.Keys(changed[0].Args))
+		var params, updates []string
+		for _, c := range columns {
+			params = append(params, "@"+c)
+			updates = append(updates, c+" = excluded."+c)
+		}
+		upsert := `
+			INSERT INTO ` + table + ` (owner, file_id, slug, loaded_hash, ` + strings.Join(columns, ", ") + `)
+			VALUES (@owner, @file_id, @slug, @loaded_hash, ` + strings.Join(params, ", ") + `)
+			ON CONFLICT ` + conflict + ` DO UPDATE SET
+				slug = excluded.slug, loaded_hash = excluded.loaded_hash, ` + strings.Join(updates, ", ") + `,
+				retired_at = NULL`
+
+		for _, f := range changed {
+			args := maps.Clone(f.Args)
+			args["owner"] = owner
+			args["file_id"] = f.FileID
+			args["slug"] = f.Slug
+			args["loaded_hash"] = f.Hash
+			if _, err := tx.Exec(ctx, upsert, args); err != nil {
+				return LoadResult{}, fmt.Errorf("write %s %s: %w", table, f.Slug, err)
+			}
 		}
 	}
 	result.Written = len(changed)
