@@ -46,19 +46,19 @@
 
 <header class="site-header">
 	<div class="site-header-top">
-		<div class="site-header-brand min-w-0 flex-1">
+		<div class="min-w-0 flex-1">
 			<a href="/" class="site-header-logo">
 				<img src={logo} alt="" class="h-9 w-9 md:h-14 md:w-14" style="filter: var(--logo-filter)" />
 				Passion
 			</a>
 		</div>
 
-		<div class="site-header-actions flex shrink-0 items-center gap-2">
+		<div class="flex shrink-0 items-center gap-2">
 			{#if authPage}
 				<div class="theme-toggle">
-					<span class="theme-toggle-label muted hidden sm:inline">Light</span>
+					<span class="muted hidden sm:inline">Light</span>
 					{@render themeSwitch()}
-					<span class="theme-toggle-label muted hidden sm:inline">Dark</span>
+					<span class="muted hidden sm:inline">Dark</span>
 				</div>
 			{:else}
 				<label for="site-nav-toggle" class="site-header-menu-btn md:hidden" title="Menu">
@@ -73,7 +73,7 @@
 		<input
 			type="checkbox"
 			id="site-nav-toggle"
-			class="site-nav-toggle peer sr-only"
+			class="peer sr-only"
 			bind:checked={menuOpen}
 		/>
 
