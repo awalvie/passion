@@ -1,8 +1,0 @@
-name: "Antagonist & Prehab"
-slug: "antagonist_prehab"
-label: "antagonist, strength"
-exercises:
-  - ref: "external_rotations"
-  - ref: "lateral_raise"
-  - ref: "tricep_extensions"
-  - ref: "overhead_press"
