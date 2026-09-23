@@ -156,6 +156,7 @@ Always `aria-hidden="true"` on decorative icons. Add `aria-label` on icon-only b
 - `clock` → duration
 - `pencil` → edit
 - `trash-2` → delete
+- `archive` → retire
 - `plus` → add action
 - `copy-plus` → log again / duplicate a prior entry
 - `sliders-horizontal` → refine / advanced options
