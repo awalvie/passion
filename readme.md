@@ -46,6 +46,10 @@ The client has sign-in, the exercise library and the session template screens so
   A climb is a send when it is graded and was an onsight, flash or redpoint.
 - Grades come in Font and V for boulders, French and YDS for routes. Your account says which
   the client offers first.
+- Plan a cycle: a block of days that repeats between two dates, with sessions on some of its
+  days. The app places each session on the dates it falls, from today on. Move one day, take
+  one out, or schedule a one-off by hand. A day gone by with no run shows as missed.
+- Start a run from a scheduled day, and the day counts as done once the run is finished.
 
 The Go binary serves everything: the API, the Svelte client, and browsable API
 documentation. It migrates its own database on the way up, so an upgrade never needs a
@@ -97,6 +101,14 @@ the handlers and the OpenAPI document is at `/api/openapi.json`.
 | `PUT` | `/api/v1/runs/{id}/climbs/{climb}` | Write one climb, under an id the client chose |
 | `DELETE` | `/api/v1/runs/{id}/climbs/{climb}` | Remove one climb |
 | `GET` | `/api/v1/grades` | Every grade scale, easiest grade first |
+| `GET` | `/api/v1/cycles` | Your cycles, latest start first |
+| `GET` | `/api/v1/cycles/{id}` | One cycle |
+| `PUT` | `/api/v1/cycles/{id}` | Create or replace a cycle, under an id the client chose |
+| `DELETE` | `/api/v1/cycles/{id}` | Delete a cycle and the days it placed. Runs stay |
+| `GET` | `/api/v1/scheduled-sessions?from=&to=` | Your calendar, with each day's status |
+| `POST` | `/api/v1/scheduled-sessions` | Schedule a one-off session |
+| `PUT` | `/api/v1/scheduled-sessions/{id}` | Move a session to another day |
+| `DELETE` | `/api/v1/scheduled-sessions/{id}` | Take a session off its day |
 | `GET` | `/healthz` | Liveness, and whether the database answers |
 
 Authenticate with `Authorization: Bearer <token>`.
