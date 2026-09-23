@@ -140,7 +140,6 @@ Left for later, because nothing needs it yet:
 `catalog/movements/` is in the same format as a private tree: one file per exercise, the file
 name as its slug, and an `id:` line. Before loading it:
 
-- `weight_kg` comes out of `weighted_pull_ups.yaml`.
 - About ten files sit in the wrong kind. For example, `traverse_circuit` is `climbing` but logs
   time, and `wall_crawl_static_holds` is `climbing` but is timed holds.
 - Check that `max_lifts_power` doesn't copy a paid programme's weekly structure.
