@@ -143,7 +143,8 @@ Left for later, because nothing needs it yet:
 - Your own version of a shipped exercise that keeps one history. An override table or a
   lineage column would both add to this table without changing it.
 - A re-import that skips rows you edited by hand.
-- Whether a number counts per side.
+- Whether a number counts per side. Decided on 2026-09-23: one yes/no on the exercise and on
+  the step, so that the player counts each side.
 - Ladders: several timings inside one set, such as 3s, 6s then 9s. A catalog file can say so
   with `per_set`, which is read but not stored.
 - A careful pass over every shipped exercise's notes and numbers.
@@ -291,7 +292,7 @@ The file format is in [CATALOG_FORMAT.md](CATALOG_FORMAT.md).
 
 ### Steps
 
-1. Agree the run table. Decisions 1, 5 and 8 come due here.
+1. Agree the run table. Decisions 1, 5 and 8 are answered below.
 2. Build the player: port the V1 behaviour below, and add swap, add, reorder and go back.
 
 ### What a run is
@@ -341,15 +342,24 @@ run(id, owner, template, date, started, finished, body jsonb)
 The run body is the session template body plus results and timings, copied when the run
 starts.
 
-### Open decisions
+### Decided on 2026-09-23
 
-1. **Where do logged results live?** In the run body, or in a flat `exercise_log` table with
-   one row per set. What the exercise page shows decides it. A six-month chart of the heaviest
-   set reads across every session, which the body can't do cheaply. The last five times can
-   come straight from the body.
-5. **Can a session run with numbers left empty?**
-8. **Is `jsonb` the right home for runs and cycles?** Session templates use it. Plain tables
-   are the other way. Settle it together with decision 1.
+- **Results live in a log table, one row per set.** For example "set 3, 10 s, +12 kg". The
+  run keeps its copy of the plan in `jsonb`. A six-month chart then reads one table.
+  (Decisions 1 and 8.)
+- **A run can start with numbers left empty.** The player counts up, and you type what you
+  did. (Decision 5.)
+- **A logged climb holds what V1's tick holds:** indoor or outdoor, board and which board,
+  rope style, grade, outcome (flash, onsight, redpoint, attempt), attempts, stars and notes.
+- **Grades default to the French scales**: Font for boulders, French for routes. The profile
+  can switch boulders to V and routes to YDS. A climb stores the grade as logged, plus a
+  number for sorting.
+- **No bodyweight for now.** Hangboard percent comes later.
+- **The end-of-run journal is V1's**: sleep, energy, RPE, focus, location, what went well and
+  what to focus on next. Every score has a short description of what each number means, so
+  that a 6 means the same thing every time.
+- **A choice is picked when the player reaches it**, or earlier from the run preview. A pick
+  is stored as an ordinary step. The choice itself is never logged (rule 34).
 
 ---
 
@@ -383,6 +393,14 @@ cycle(id, owner, name, starts, weeks, body jsonb)
                { "exercise": "E1", "week": 3, "weight": 25 } ]
 }
 ```
+
+### Decided on 2026-09-23
+
+- **Each scheduled session is its own row**, one per date, written when the cycle is built.
+  Moving Tuesday's session to Wednesday changes one row.
+- **A missed session stays on its day** and shows as missed. It does not slide forward.
+- **Weight, sets, reps and seconds can scale** for each exercise. A week that differs carries
+  a whole setting.
 
 ---
 
@@ -438,7 +456,8 @@ Full notes in `.claude/agent-memory/scout/project_person_model_v2.md`.
   Never a unit column per row: it breaks every sort and every total.
 - **Hangboard load is signed.** A band-assisted hang is negative added weight, and that's where
   most people start.
-- **Snapshot whatever a past number was worked out from.** Bodyweight goes on the hang row.
+- **Snapshot whatever a past number was worked out from.** Bodyweight is left out for now.
+  When it comes, it goes on the hang row.
   Otherwise weighing yourself today quietly rewrites last year's percentages. TrainingPeaks and
   Garmin users complain about exactly this when they change FTP.
 - **Never store a best as a profile column.** A best is a query over the log, and it depends on
