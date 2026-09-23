@@ -122,6 +122,8 @@ CREATE TRIGGER exercise_touch BEFORE UPDATE ON exercise
   distinct. One `UNIQUE (owner, slug)` would let the shipped catalog hold the same slug twice.
 - No unique index on `name`. Two unrelated exercises can share one (rule 8).
 - `kind` picks the player screen. The numbers aren't tied to kind yet.
+- `climbing` covers anything done on the wall: routes, boulders and drills. Logging the climbs
+  is optional, so a drill can be done and nothing written down.
 - The numbers are the protocol, the same for everyone. NULL means not set. Climbing has none,
   because each climb is logged on its own.
 - No weight. What you lift belongs to the plan or the log, not the shared definition.
@@ -140,8 +142,6 @@ Left for later, because nothing needs it yet:
 `catalog/movements/` is in the same format as a private tree: one file per exercise, the file
 name as its slug, and an `id:` line. Before loading it:
 
-- About ten files sit in the wrong kind. For example, `traverse_circuit` is `climbing` but logs
-  time, and `wall_crawl_static_holds` is `climbing` but is timed holds.
 - Check that `max_lifts_power` doesn't copy a paid programme's weekly structure.
 
 14 files say `per_side: true`. The loader reads it and stores nothing, until per side is
