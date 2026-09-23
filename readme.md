@@ -18,8 +18,8 @@ what the app will do and how the data is arranged. This file says what works tod
 
 ## What works today
 
-Accounts, authentication, an exercise library and session templates, through the API. The
-client has only the sign-in screen so far.
+Accounts, authentication, an exercise library, session templates and runs, through the API.
+The client has sign-in, the exercise library and the session template screens so far.
 
 - Sign up with an email address and a password, hashed with argon2id.
 - Sign in. Each sign-in mints its own bearer token, so a phone and a laptop hold different
@@ -36,6 +36,16 @@ client has only the sign-in screen so far.
   of the exercise, so you can change its numbers for that session only.
 - The shipped session templates and any private ones load at startup too, from `blocks/` and
   `sessions/` beside `movements/`. See [docs/CATALOG_FORMAT.md](docs/CATALOG_FORMAT.md).
+- Start a run from a session template, or an open run that starts empty. The run copies the
+  template when it starts, so a later edit to the template never reaches it. A write-up of a
+  day already gone names that day.
+- Change anything in a run while you train or long after: its steps, their order, a pick from
+  a choice, notes and the end-of-run journal. Finish it, and every step not reached counts as
+  skipped.
+- Log a step's sets, and a climbing step's climbs one at a time. A retried write counts once.
+  A climb is a send when it is graded and was an onsight, flash or redpoint.
+- Grades come in Font and V for boulders, French and YDS for routes. Your account says which
+  the client offers first.
 
 The Go binary serves everything: the API, the Svelte client, and browsable API
 documentation. It migrates its own database on the way up, so an upgrade never needs a
@@ -65,6 +75,7 @@ the handlers and the OpenAPI document is at `/api/openapi.json`.
 | `POST` | `/api/v1/accounts` | Sign up. Returns the account and its first token |
 | `POST` | `/api/v1/tokens` | Sign in. Returns a new token |
 | `GET` | `/api/v1/accounts/me` | The signed-in account |
+| `PUT` | `/api/v1/accounts/me/grades` | Choose the grade scales the client offers first |
 | `DELETE` | `/api/v1/tokens/current` | Sign out this device |
 | `GET` | `/api/v1/exercises` | Your library: shipped exercises and your own, not retired |
 | `POST` | `/api/v1/exercises` | Create an exercise of your own |
@@ -76,6 +87,16 @@ the handlers and the OpenAPI document is at `/api/openapi.json`.
 | `GET` | `/api/v1/session-templates/{id}` | One session template, retired ones included |
 | `PUT` | `/api/v1/session-templates/{id}` | Replace every field of one of your own, sections included |
 | `POST` | `/api/v1/session-templates/{id}/retire` | Take one of your own out of your list |
+| `GET` | `/api/v1/runs` | Your runs, newest day first |
+| `POST` | `/api/v1/runs` | Start a run from a template, or an open run |
+| `GET` | `/api/v1/runs/{id}` | One run with its sets and climbs |
+| `PUT` | `/api/v1/runs/{id}` | Replace everything but the plan, the template and the finish |
+| `POST` | `/api/v1/runs/{id}/finish` | Finish a run. Steps not reached count as skipped |
+| `DELETE` | `/api/v1/runs/{id}` | Delete one of your runs with everything in it |
+| `PUT` | `/api/v1/runs/{id}/steps/{step}/sets` | Replace one step's sets |
+| `PUT` | `/api/v1/runs/{id}/climbs/{climb}` | Write one climb, under an id the client chose |
+| `DELETE` | `/api/v1/runs/{id}/climbs/{climb}` | Remove one climb |
+| `GET` | `/api/v1/grades` | Every grade scale, easiest grade first |
 | `GET` | `/healthz` | Liveness, and whether the database answers |
 
 Authenticate with `Authorization: Bearer <token>`.
