@@ -73,6 +73,182 @@
         ]
       }
     },
+    "/api/v1/exercises": {
+      "get": {
+        "description": "The exercises the app ships and the ones you wrote, sorted by name. Retired\nones are left out.",
+        "tags": [
+          "exercises"
+        ],
+        "summary": "List your library",
+        "operationId": "listExercises",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/exerciseListResponse"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "description": "Adds one to your library. A field left out or sent as null is not set.",
+        "tags": [
+          "exercises"
+        ],
+        "summary": "Create an exercise",
+        "operationId": "createExercise",
+        "parameters": [
+          {
+            "x-go-name": "Body",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/exerciseRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/exerciseResponse"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/exercises/{id}": {
+      "get": {
+        "description": "One the app ships or one of yours. A retired one still reads.",
+        "tags": [
+          "exercises"
+        ],
+        "summary": "Read an exercise",
+        "operationId": "readExercise",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The exercise's id.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/exerciseResponse"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "description": "Sets every field of one of your own. A field left out or sent as null is\ncleared. A shipped exercise, or someone else's, answers 404.",
+        "tags": [
+          "exercises"
+        ],
+        "summary": "Replace an exercise",
+        "operationId": "updateExercise",
+        "parameters": [
+          {
+            "x-go-name": "Body",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/exerciseRequest"
+            }
+          },
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The exercise's id.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/exerciseResponse"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/exercises/{id}/retire": {
+      "post": {
+        "description": "Takes one of your own out of your library. It still reads by id. Retiring it\ntwice keeps the first date. A shipped exercise, or someone else's, answers\n404.",
+        "tags": [
+          "exercises"
+        ],
+        "summary": "Retire an exercise",
+        "operationId": "retireExercise",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The exercise's id.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Retired"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/tokens": {
       "post": {
         "description": "Each sign-in mints a separate token, so a phone and a laptop hold different\nones and signing out of either leaves the other working.",
@@ -212,6 +388,208 @@
       },
       "x-go-package": "passion/server/api"
     },
+    "exerciseListResponse": {
+      "type": "object",
+      "properties": {
+        "exercises": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/exerciseResponse"
+          },
+          "x-go-name": "Exercises"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "exerciseRequest": {
+      "type": "object",
+      "required": [
+        "name",
+        "kind"
+      ],
+      "properties": {
+        "duration_seconds": {
+          "description": "For an open block: how long it runs.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "DurationSeconds",
+          "example": 180
+        },
+        "kind": {
+          "description": "Which player screen runs it: reps_and_sets, timed_reps, climbing or open.",
+          "type": "string",
+          "x-go-name": "Kind",
+          "example": "timed_reps"
+        },
+        "name": {
+          "description": "Up to 200 characters.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Repeaters 7:3"
+        },
+        "notes": {
+          "type": "string",
+          "x-go-name": "Notes",
+          "example": "7 seconds on, 3 off. Stop when the grip goes"
+        },
+        "prep_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "PrepSeconds",
+          "example": 10
+        },
+        "rep_rest_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepRestSeconds",
+          "example": 3
+        },
+        "rep_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepSeconds",
+          "example": 7
+        },
+        "reps": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Reps",
+          "example": 6
+        },
+        "set_rest_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "SetRestSeconds",
+          "example": 180
+        },
+        "sets": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Sets",
+          "example": 4
+        },
+        "source": {
+          "description": "Who or what the method is known by.",
+          "type": "string",
+          "x-go-name": "Source",
+          "example": "Eva López"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Tags",
+          "example": [
+            "hangboard",
+            "fingers"
+          ]
+        },
+        "thumbnail_url": {
+          "description": "An http or https link to a still image for the video.",
+          "type": "string",
+          "x-go-name": "ThumbnailURL",
+          "example": "https://i.ytimg.com/vi/9FImGAOPysY/maxresdefault.jpg"
+        },
+        "video_url": {
+          "description": "An http or https link to a video of the exercise.",
+          "type": "string",
+          "x-go-name": "VideoURL",
+          "example": "https://www.youtube.com/watch?v=9FImGAOPysY"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "exerciseResponse": {
+      "type": "object",
+      "properties": {
+        "duration_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "DurationSeconds"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "kind": {
+          "type": "string",
+          "x-go-name": "Kind",
+          "example": "timed_reps"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Repeaters 7:3"
+        },
+        "notes": {
+          "type": "string",
+          "x-go-name": "Notes"
+        },
+        "prep_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "PrepSeconds"
+        },
+        "rep_rest_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepRestSeconds"
+        },
+        "rep_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepSeconds"
+        },
+        "reps": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Reps"
+        },
+        "retired_at": {
+          "description": "When it left the library. A retired exercise still reads, because\nsessions that used it still point at it.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "RetiredAt"
+        },
+        "set_rest_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "SetRestSeconds"
+        },
+        "sets": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Sets"
+        },
+        "shipped": {
+          "description": "True when the app ships it. Nobody can change a shipped exercise.",
+          "type": "boolean",
+          "x-go-name": "Shipped"
+        },
+        "source": {
+          "type": "string",
+          "x-go-name": "Source"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Tags"
+        },
+        "thumbnail_url": {
+          "type": "string",
+          "x-go-name": "ThumbnailURL"
+        },
+        "video_url": {
+          "type": "string",
+          "x-go-name": "VideoURL"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
     "signInRequest": {
       "type": "object",
       "required": [
@@ -304,8 +682,26 @@
         "$ref": "#/definitions/accountResponse"
       }
     },
+    "exerciseListResponse": {
+      "description": "Your library.",
+      "schema": {
+        "$ref": "#/definitions/exerciseListResponse"
+      }
+    },
+    "exerciseResponse": {
+      "description": "An exercise.",
+      "schema": {
+        "$ref": "#/definitions/exerciseResponse"
+      }
+    },
     "invalidCredentials": {
       "description": "The address and password do not match an account.",
+      "schema": {
+        "$ref": "#/definitions/errorBody"
+      }
+    },
+    "notFound": {
+      "description": "Nothing you can see or change has that id.",
       "schema": {
         "$ref": "#/definitions/errorBody"
       }
@@ -351,6 +747,10 @@
     {
       "description": "Signing in and out. Each sign-in mints one token for one device, so a phone and a laptop hold different ones and signing out of either leaves the other working. A token lasts thirty days and slides forward on use.",
       "name": "tokens"
+    },
+    {
+      "description": "Your library: the exercises the app ships and the ones you wrote. You can change and retire only your own. A retired exercise leaves the library but still reads by id.",
+      "name": "exercises"
     },
     {
       "description": "Whether the server and its database are answering.",
