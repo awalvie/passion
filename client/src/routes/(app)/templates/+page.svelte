@@ -39,6 +39,12 @@
 			<h1 class="text-xl font-bold">Your session templates</h1>
 			<p class="mt-1 text-sm muted">Plan a session (warm-up, exercises, cool-down) and reuse it.</p>
 		</div>
+		<a
+			class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md btn-primary px-4 py-2 text-sm font-medium"
+			href="/templates/new"
+		>
+			New session template
+		</a>
 	</div>
 
 	<div class="mt-4 flex flex-wrap items-center gap-2">
