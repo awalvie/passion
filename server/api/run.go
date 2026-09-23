@@ -154,7 +154,7 @@ type runStepBody struct {
 	stepBody
 
 	// null until the run reaches it, then done or skipped. Finishing the run
-	// skips every step still null.
+	// skips every step still null that has nothing logged.
 	//
 	// example: done
 	Status *string `json:"status"`
