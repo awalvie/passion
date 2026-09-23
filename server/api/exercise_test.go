@@ -65,6 +65,7 @@ func TestCreateExercise(t *testing.T) {
 		"sets": 4,
 		"rep_seconds": 7,
 		"rep_rest_seconds": 0,
+		"per_side": true,
 		"media": [
 			{"url": "https://www.youtube.com/watch?v=abc", "thumb_url": "https://i.ytimg.com/vi/abc/0.jpg"},
 			{"url": " "},
@@ -89,6 +90,9 @@ func TestCreateExercise(t *testing.T) {
 	}
 	if got.Reps != nil {
 		t.Fatalf("reps %v, want not set", *got.Reps)
+	}
+	if !got.PerSide {
+		t.Fatal("per side is false, want true")
 	}
 	if got.RetiredAt != nil {
 		t.Fatal("a new exercise is retired")
