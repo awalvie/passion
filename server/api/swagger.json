@@ -421,6 +421,14 @@
           "x-go-name": "Kind",
           "example": "timed_reps"
         },
+        "media": {
+          "description": "Clips of the exercise, in order. An entry with neither link is dropped.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/mediaBody"
+          },
+          "x-go-name": "Media"
+        },
         "name": {
           "description": "Up to 200 characters.",
           "type": "string",
@@ -484,18 +492,6 @@
             "hangboard",
             "fingers"
           ]
-        },
-        "thumbnail_url": {
-          "description": "An http or https link to a still image for the video.",
-          "type": "string",
-          "x-go-name": "ThumbnailURL",
-          "example": "https://i.ytimg.com/vi/9FImGAOPysY/maxresdefault.jpg"
-        },
-        "video_url": {
-          "description": "An http or https link to a video of the exercise.",
-          "type": "string",
-          "x-go-name": "VideoURL",
-          "example": "https://www.youtube.com/watch?v=9FImGAOPysY"
         }
       },
       "x-go-package": "passion/server/api"
@@ -517,6 +513,13 @@
           "type": "string",
           "x-go-name": "Kind",
           "example": "timed_reps"
+        },
+        "media": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/mediaBody"
+          },
+          "x-go-name": "Media"
         },
         "name": {
           "type": "string",
@@ -578,14 +581,24 @@
             "type": "string"
           },
           "x-go-name": "Tags"
-        },
-        "thumbnail_url": {
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "mediaBody": {
+      "type": "object",
+      "properties": {
+        "thumb_url": {
+          "description": "An http or https link to a still image, for the video or on its own.",
           "type": "string",
-          "x-go-name": "ThumbnailURL"
+          "x-go-name": "ThumbURL",
+          "example": "https://i.ytimg.com/vi/9FImGAOPysY/maxresdefault.jpg"
         },
-        "video_url": {
+        "url": {
+          "description": "An http or https link to a video.",
           "type": "string",
-          "x-go-name": "VideoURL"
+          "x-go-name": "URL",
+          "example": "https://www.youtube.com/watch?v=9FImGAOPysY"
         }
       },
       "x-go-package": "passion/server/api"

@@ -66,7 +66,11 @@ func TestCreateExercise(t *testing.T) {
 		"sets": 4,
 		"rep_seconds": 7,
 		"rep_rest_seconds": 0,
-		"video_url": "https://www.youtube.com/watch?v=abc"
+		"media": [
+			{"url": "https://www.youtube.com/watch?v=abc", "thumb_url": "https://i.ytimg.com/vi/abc/0.jpg"},
+			{"url": " "},
+			{"thumb_url": "https://example.com/grip.jpg"}
+		]
 	}`)
 
 	if got.ID == "" || got.Shipped {
@@ -90,6 +94,14 @@ func TestCreateExercise(t *testing.T) {
 	if got.RetiredAt != nil {
 		t.Fatal("a new exercise is retired")
 	}
+
+	// The blank entry goes, and an image with no video stays.
+	if len(got.Media) != 2 || got.Media[1].URL != nil || got.Media[1].ThumbURL == nil {
+		t.Fatalf("media %+v, want the clip and the image, in order", got.Media)
+	}
+	if *got.Media[0].URL != "https://www.youtube.com/watch?v=abc" || *got.Media[1].ThumbURL != "https://example.com/grip.jpg" {
+		t.Fatalf("media %+v", got.Media)
+	}
 }
 
 func TestExerciseValidation(t *testing.T) {
@@ -106,9 +118,10 @@ func TestExerciseValidation(t *testing.T) {
 		"unknown kind":      {`{"name":"Hang","kind":"session"}`, "kind"},
 		"negative sets":     {`{"name":"Hang","kind":"open","sets":-1}`, "sets"},
 		"huge duration":     {`{"name":"Hang","kind":"open","duration_seconds":3000000000}`, "duration_seconds"},
-		"javascript video":  {`{"name":"Hang","kind":"open","video_url":"javascript:alert(1)"}`, "video_url"},
-		"ftp thumbnail":     {`{"name":"Hang","kind":"open","thumbnail_url":"ftp://example.com/a.jpg"}`, "thumbnail_url"},
-		"link with no host": {`{"name":"Hang","kind":"open","video_url":"https://"}`, "video_url"},
+		"javascript video":  {`{"name":"Hang","kind":"open","media":[{"url":"javascript:alert(1)"}]}`, "media[0]"},
+		"ftp thumbnail":     {`{"name":"Hang","kind":"open","media":[{"url":"https://a.example"},{"thumb_url":"ftp://example.com/a.jpg"}]}`, "media[1]"},
+		"link with no host": {`{"name":"Hang","kind":"open","media":[{"url":"https://"}]}`, "media[0]"},
+		"old video field":   {`{"name":"Hang","kind":"open","video_url":"https://example.com"}`, "body"},
 		"unknown field":     {`{"name":"Hang","kind":"open","weight_kg":10}`, "body"},
 		"not json":          {`hunter2`, "body"},
 	}

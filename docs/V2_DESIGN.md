@@ -89,8 +89,7 @@ CREATE TABLE exercise (
     prep_seconds      int,
     duration_seconds  int,
 
-    video_url         text,
-    thumbnail_url     text,
+    media             jsonb       NOT NULL DEFAULT '[]',
 
     retired_at        timestamptz,
     created_at        timestamptz NOT NULL DEFAULT now(),
@@ -130,7 +129,8 @@ CREATE TRIGGER exercise_touch BEFORE UPDATE ON exercise
 - The numbers are the protocol, the same for everyone. NULL means not set. Climbing has none,
   because each climb is logged on its own.
 - No weight. What you lift belongs to the plan or the log, not the shared definition.
-- One clip per exercise, because no catalog file has more.
+- `media` is a list of `{url, thumb_url}`, because a private tree gives some exercises several
+  clips, and one an image with no video. Nothing queries a clip on its own, so it isn't a table.
 - Exercises are retired with `retired_at`, never deleted.
 
 Left for later, because nothing needs it yet:
