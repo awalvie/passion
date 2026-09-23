@@ -129,6 +129,7 @@ server/api/         handlers, routing, middleware, the openapi spec and the docs
 server/catalog/     catalog trees. Gives each file the id the loader will match it on
 server/config/      the YAML config file and the environment variables that override it
 server/db/          pgx queries and goose migrations
+server/grades/      the grade scales a climb is logged in
 server/password/    argon2id hashing
 server/token/       opaque bearer tokens
 server/web/         serves the client, embedded with //go:embed
