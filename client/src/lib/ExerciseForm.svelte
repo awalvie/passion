@@ -160,7 +160,7 @@
 				{/each}
 			</div>
 		{:else if disabled}
-			<p class="mt-1 text-sm muted">None</p>
+			<p class="mt-1 text-sm muted">No media added</p>
 		{/if}
 		{#if !disabled}
 			<button

@@ -66,7 +66,7 @@
 		{#if tags.length}
 			<select
 				bind:value={f.tag}
-				aria-label="Label"
+				aria-label="Labels"
 				class="input text-sm flex-1 min-w-0 sm:flex-none sm:w-auto sm:min-w-[9rem]"
 			>
 				<option value="">All labels</option>
