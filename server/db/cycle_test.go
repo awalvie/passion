@@ -225,3 +225,57 @@ func TestCleanCycleFields(t *testing.T) {
 		})
 	}
 }
+
+// A second create of one id, sent while the first is in flight, waits for it
+// and keeps the days it wrote.
+func TestPutCycleTwiceAtOnce(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	hang := insertSessionTemplate(t, pool, ada, "Hang")
+	f := cycleFields(t, 7, db.CycleDay{Day: 1, Template: hang})
+
+	first, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer first.Rollback(ctx)
+	if _, err := first.Exec(ctx, `
+		INSERT INTO cycle (id, owner, name, starts, ends, block_days, body)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`, y1, ada, f.Name, f.Starts, f.Ends, f.BlockDays, f.Body); err != nil {
+		t.Fatal(err)
+	}
+	var day string
+	if err := first.QueryRow(ctx, `
+		INSERT INTO scheduled_session (owner, cycle, template, local_date) VALUES ($1, $2, $3, '2100-01-05')
+		RETURNING id`, ada, y1, hang).Scan(&day); err != nil {
+		t.Fatal(err)
+	}
+
+	second := make(chan error, 1)
+	go func() {
+		_, _, err := db.PutCycle(ctx, pool, ada, y1, f)
+		second <- err
+	}()
+	for waiting := 0; waiting == 0; {
+		if err := pool.QueryRow(ctx, `SELECT count(*) FROM pg_stat_activity WHERE wait_event_type = 'Lock'`).Scan(&waiting); err != nil {
+			t.Fatal(err)
+		}
+		select {
+		case err := <-second:
+			t.Fatalf("the second create finished before the first: %v", err)
+		case <-time.After(10 * time.Millisecond):
+		}
+	}
+	if err := first.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-second; err != nil {
+		t.Fatal(err)
+	}
+
+	var kept bool
+	if err := pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM scheduled_session WHERE id = $1)`, day).Scan(&kept); err != nil || !kept {
+		t.Fatalf("the first create's day is gone (%v), want it kept", err)
+	}
+}

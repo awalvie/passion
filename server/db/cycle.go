@@ -148,26 +148,18 @@ func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cycle
 		return Cycle{}, nil, err
 	}
 
-	rows, err := tx.Query(ctx, `SELECT * FROM cycle WHERE id = $1 AND owner = $2 FOR UPDATE`, id, owner)
-	if err != nil {
-		return Cycle{}, nil, fmt.Errorf("select cycle: %w", err)
-	}
-	old, err := oneCycle(rows)
-	if err != nil && !errors.Is(err, ErrNoCycle) {
-		return Cycle{}, nil, err
-	}
-	built := err == nil
-
 	// An id another account holds matches no row here, so it reads as a
-	// cycle that does not exist.
-	rows, err = tx.Query(ctx, `
+	// cycle that does not exist. old is the row as it stood before, even when
+	// a second create of the same id waited on the first.
+	rows, err := tx.Query(ctx, `
 		INSERT INTO cycle (id, owner, name, starts, ends, block_days, body)
 		VALUES (@id, @owner, @name, @starts, @ends, @block_days, @body)
 		ON CONFLICT (id) DO UPDATE SET
 			name = excluded.name, starts = excluded.starts, ends = excluded.ends,
 			block_days = excluded.block_days, body = excluded.body
 		WHERE cycle.owner = excluded.owner
-		RETURNING *`, pgx.NamedArgs{
+		RETURNING new.*, old.starts AS old_starts, old.ends AS old_ends,
+			old.block_days AS old_block_days, old.body AS old_body`, pgx.NamedArgs{
 		"id":         id,
 		"owner":      owner,
 		"name":       f.Name,
@@ -179,13 +171,24 @@ func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cycle
 	if err != nil {
 		return Cycle{}, nil, fmt.Errorf("write cycle: %w", err)
 	}
-	cycle, err := oneCycle(rows)
-	if err != nil {
-		return Cycle{}, nil, err
+	type upserted struct {
+		Cycle
+		OldStarts    *time.Time `db:"old_starts"`
+		OldEnds      *time.Time `db:"old_ends"`
+		OldBlockDays *int       `db:"old_block_days"`
+		OldBody      *CycleBody `db:"old_body"`
 	}
+	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[upserted])
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Cycle{}, nil, ErrNoCycle
+	}
+	if err != nil {
+		return Cycle{}, nil, fmt.Errorf("read cycle: %w", err)
+	}
+	cycle := row.Cycle
 
 	leftOut := []Slot{}
-	if !built || !sameShape(old, cycle) {
+	if row.OldStarts == nil || !sameShape(Cycle{Starts: *row.OldStarts, Ends: *row.OldEnds, BlockDays: *row.OldBlockDays, Body: *row.OldBody}, cycle) {
 		if leftOut, err = build(ctx, tx, cycle); err != nil {
 			return Cycle{}, nil, err
 		}
