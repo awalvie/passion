@@ -163,9 +163,9 @@ func TestUpdateExercise(t *testing.T) {
 	bobs := mustInsertExercise(t, pool, bob, "", "Bob's Squat")
 
 	fields := db.ExerciseFields{
-		Name: "Bench Press",
-		Kind: "reps_and_sets",
-		Sets: ptr(5),
+		Name:    "Bench Press",
+		Kind:    "reps_and_sets",
+		Sets:    ptr(5),
 		Reps:    ptr(5),
 		Tags:    []string{"strength"},
 		PerSide: true,
