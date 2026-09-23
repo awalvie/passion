@@ -137,19 +137,16 @@ Left for later, because nothing needs it yet:
 
 ### Catalog cleanup
 
-The catalog files are in V1's format. Before loading them:
+`catalog/movements/` is in the same format as a private tree: one file per exercise, the file
+name as its slug, and an `id:` line. Before loading it:
 
-- `kind: "session"` becomes `kind: "open"`, in 10 files.
-- `label`, a comma-separated string, becomes a `tags` list.
-- `session_duration_seconds` becomes `duration_seconds`, in `pulse_raiser.yaml`.
-- `weight_kg` comes out of `weighted_pullups.yaml`.
-- `media:` splits into `video_url` and `thumbnail_url`.
+- `weight_kg` comes out of `weighted_pull_ups.yaml`.
 - About ten files sit in the wrong kind. For example, `traverse_circuit` is `climbing` but logs
-  time, and `nelson/wall_crawl_static` is `climbing` but is timed holds.
-- Per side is written three ways: only in the notes, in `reps`, or in `sets`. Pick one.
-- The coach sources for the `ondra/`, `emil/` and `nelson/` files live only in the activity
-  templates. Move them onto the exercises before the templates go.
+  time, and `wall_crawl_static_holds` is `climbing` but is timed holds.
 - Check that `max_lifts_power` doesn't copy a paid programme's weekly structure.
+
+14 files say `per_side: true`. The loader reads it and stores nothing, until per side is
+decided.
 
 ### Open decisions
 

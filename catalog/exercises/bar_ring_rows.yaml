@@ -1,9 +1,0 @@
-name: "Bar/Ring Rows"
-slug: "bar_ring_rows"
-label: "strength, power"
-kind: "reps_and_sets"
-sets: 5
-reps: 6
-set_rest_seconds: 300
-notes: |
-  Move as explosively as possible for every rep. Use 80% of 1RM.
