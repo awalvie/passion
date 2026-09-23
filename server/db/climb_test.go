@@ -15,6 +15,7 @@ const (
 	k1 = "0199c3a0-0000-7000-8000-0000000000c1"
 	k2 = "0199c3a0-0000-7000-8000-0000000000c2"
 	k3 = "0199c3a0-0000-7000-8000-0000000000c3"
+	k4 = "0199c3a0-0000-7000-8000-0000000000c4"
 )
 
 func climb(t *testing.T, f db.ClimbFields) db.ClimbFields {
@@ -42,8 +43,8 @@ func TestPutClimb(t *testing.T) {
 	if err != nil {
 		t.Fatalf("put: %v", err)
 	}
-	if got.ID != k1 || got.GradeRank == nil || !got.Sent() {
-		t.Fatalf("climb %+v, want a ranked send under the id the client chose", got)
+	if got.ID != k1 || got.Exercise != e1 || got.GradeRank == nil || !got.Sent() {
+		t.Fatalf("climb %+v, want a ranked send of the step's exercise, under the id the client chose", got)
 	}
 
 	// A retry writes the same climb.
@@ -147,8 +148,9 @@ func TestUpdateRunDropsClimbsOfStepsItNoLongerKeeps(t *testing.T) {
 	run := runWith(t, ctx, pool, ada,
 		kinded(runStep(s1, e1, "Bouldering"), "climbing"),
 		kinded(runStep(s2, e1, "Limit"), "climbing"),
-		kinded(runStep(s3, e1, "Routes"), "climbing"))
-	for step, id := range map[string]string{s1: k1, s2: k2, s3: k3} {
+		kinded(runStep(s3, e1, "Routes"), "climbing"),
+		kinded(runStep(c1, e1, "Board"), "climbing"))
+	for step, id := range map[string]string{s1: k1, s2: k2, s3: k3, c1: k4} {
 		if _, err := db.PutClimb(ctx, pool, ada, run.ID, id, climb(t, boulder(step, "6a"))); err != nil {
 			t.Fatal(err)
 		}
@@ -158,13 +160,15 @@ func TestUpdateRunDropsClimbsOfStepsItNoLongerKeeps(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Keep s1, skip s2, and make s3 a step that logs sets.
+	// Keep s1, skip s2, make s3 a step that logs sets, and point a fourth at
+	// another exercise.
 	skipped := db.StepSkipped
 	items := run.Body.Sections[0].Items
-	keep, skip, sets := *items[0].Step, *items[1].Step, *items[2].Step
+	keep, skip, sets, swap := *items[0].Step, *items[1].Step, *items[2].Step, *items[3].Step
 	skip.Status = &skipped
 	sets.Kind = "open"
-	got := putBody(t, ctx, pool, ada, run, keep, skip, sets)
+	swap.Exercise = e2
+	got := putBody(t, ctx, pool, ada, run, keep, skip, sets, swap)
 
 	if len(got.Climbs) != 1 || got.Climbs[0].Step != s1 {
 		t.Fatalf("climbs %+v, want only the kept step's", got.Climbs)

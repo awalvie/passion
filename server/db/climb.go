@@ -18,6 +18,7 @@ import (
 type Climb struct {
 	ID          string    `db:"id"`
 	Step        string    `db:"step"`
+	Exercise    string    `db:"exercise"`
 	Position    int       `db:"position"`
 	Discipline  string    `db:"discipline"`
 	Setting     string    `db:"setting"`
@@ -150,7 +151,7 @@ func (f ClimbFields) Clean() (ClimbFields, map[string]string) {
 // see.
 var ErrNoClimb = errors.New("no such climb")
 
-const climbColumns = `id, step, position, discipline, setting, board, rope_style, grade, grade_system,
+const climbColumns = `id, step, exercise, position, discipline, setting, board, rope_style, grade, grade_system,
 	grade_rank, outcome, attempts, seconds, stars, focus, notes, created_at, updated_at`
 
 // PutClimb writes one climb by the id the client picked, so a retry writes
@@ -185,12 +186,13 @@ func PutClimb(ctx context.Context, pool *pgxpool.Pool, owner, runID, climbID str
 	// An id already used in another run or by another account matches no
 	// row here, so it reads as a climb that does not exist.
 	rows, err := tx.Query(ctx, `
-		INSERT INTO climb (id, run, owner, step, position, discipline, setting, board, rope_style,
+		INSERT INTO climb (id, run, owner, step, exercise, position, discipline, setting, board, rope_style,
 			grade, grade_system, grade_rank, outcome, attempts, seconds, stars, focus, notes)
-		VALUES (@id, @run, @owner, @step, @position, @discipline, @setting, @board, @rope_style,
+		VALUES (@id, @run, @owner, @step, @exercise, @position, @discipline, @setting, @board, @rope_style,
 			@grade, @grade_system, @grade_rank, @outcome, @attempts, @seconds, @stars, @focus, @notes)
 		ON CONFLICT (id) DO UPDATE SET
-			step = excluded.step, position = excluded.position, discipline = excluded.discipline,
+			step = excluded.step, exercise = excluded.exercise, position = excluded.position,
+			discipline = excluded.discipline,
 			setting = excluded.setting, board = excluded.board, rope_style = excluded.rope_style,
 			grade = excluded.grade, grade_system = excluded.grade_system,
 			grade_rank = excluded.grade_rank, outcome = excluded.outcome,
@@ -202,6 +204,7 @@ func PutClimb(ctx context.Context, pool *pgxpool.Pool, owner, runID, climbID str
 		"run":          runID,
 		"owner":        owner,
 		"step":         f.Step,
+		"exercise":     step.Exercise,
 		"position":     f.Position,
 		"discipline":   f.Discipline,
 		"setting":      f.Setting,
@@ -257,18 +260,24 @@ func DeleteClimb(ctx context.Context, pool *pgxpool.Pool, owner, runID, climbID 
 }
 
 // pruneClimbs deletes the climbs of every step the body no longer holds, now
-// skips, or no longer counts as climbing.
+// skips, no longer counts as climbing, or now points at another exercise, as
+// pruneSets does.
 func pruneClimbs(ctx context.Context, tx pgx.Tx, runID string, body RunBody) error {
-	var steps []string
+	var steps, exercises []string
 	for _, s := range body.Sections {
 		for _, item := range s.Items {
 			if st := item.Step; st != nil && st.Kind == "climbing" && (st.Status == nil || *st.Status != StepSkipped) {
 				steps = append(steps, st.ID)
+				exercises = append(exercises, st.Exercise)
 			}
 		}
 	}
-	if _, err := tx.Exec(ctx, `DELETE FROM climb WHERE run = $1 AND NOT step = ANY(coalesce($2::uuid[], '{}'))`,
-		runID, steps); err != nil {
+	_, err := tx.Exec(ctx, `
+		DELETE FROM climb c
+		WHERE c.run = $1 AND NOT EXISTS (
+			SELECT 1 FROM unnest($2::uuid[], $3::uuid[]) AS keep (step, exercise)
+			WHERE keep.step = c.step AND keep.exercise = c.exercise)`, runID, steps, exercises)
+	if err != nil {
 		return fmt.Errorf("prune climbs: %w", err)
 	}
 	return nil

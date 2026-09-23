@@ -385,6 +385,7 @@ CREATE TABLE climb (
     run           uuid        NOT NULL,
     owner         uuid        NOT NULL,
     step          uuid        NOT NULL,
+    exercise      uuid        NOT NULL,
     position      int         NOT NULL,
     discipline    text        NOT NULL CHECK (discipline IN ('boulder', 'sport', 'trad')),
     setting       text        NOT NULL CHECK (setting IN ('indoor', 'outdoor')),
@@ -415,7 +416,7 @@ ALTER TABLE account
 ```
 
 Indexes: `run (owner, local_date DESC)`, `run (owner, template)`,
-`run_set (owner, exercise)`, `climb (run)` and `climb (owner)`. `run` and `climb` carry the
+`run_set (owner, exercise)`, `climb (run)` and `climb (owner, exercise)`. `run` and `climb` carry the
 `touch_updated_at` trigger.
 
 **The run.**
@@ -469,6 +470,8 @@ results for a skipped step. So "what you last did" reads `run_set` alone (rule 4
 
 - The client picks the id, so a retry writes one climb (rule 36). `position` is the order it
   was climbed in.
+- `exercise` is copied from the step, as on `run_set`, so history finds a climbing exercise's
+  climbs without reading run bodies. A swap drops a step's climbs as it drops its sets.
 - `grade` is what was logged. An ungraded climb has no `grade_system` and may hold V1's
   ungraded labels, Rainbow or Traverse. `grade_rank` sorts within the system.
 - A send is `grade_system IS NOT NULL AND outcome IN ('onsight', 'flash', 'redpoint')`,

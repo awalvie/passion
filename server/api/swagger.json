@@ -1064,6 +1064,12 @@
           "x-go-name": "Discipline",
           "example": "boulder"
         },
+        "exercise": {
+          "description": "The exercise the step pointed at when the climb was written.",
+          "type": "string",
+          "x-go-name": "Exercise",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
         "focus": {
           "description": "What you meant to work on, set before the climb.",
           "type": "string",
