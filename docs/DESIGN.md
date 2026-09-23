@@ -218,7 +218,9 @@ For secondary/destructive page actions that shouldn't sit inline in the main flo
 ## Forms
 
 - All inputs and selects: `class="input text-sm"`. Never leave browser-default styling.
-- Labels: `text-xs font-semibold muted mb-1` (uppercase, tracked).
+- Field labels: `text-xs font-medium`, with `mt-1` on the input below.
+- Group headings inside a form, such as Configuration: `text-xs font-semibold muted uppercase
+  tracking-widest mb-3`.
 - Textareas: `rows="3" class="w-full input text-sm"`.
 - Inline steppers (cycle targets): `.stepper-btn` / `.stepper-input`, highlight modified state with `.stepper-input--modified`.
 
