@@ -290,7 +290,7 @@ The file format is in [CATALOG_FORMAT.md](CATALOG_FORMAT.md).
 
 ### Steps
 
-1. Agree the run table. Decisions 1, 5 and 8 are answered below.
+1. Agree the run tables. They are built, below, and wait for the owner's review.
 2. Build the player: port the V1 behaviour below, and add swap, add, reorder and go back.
 
 ### What a run is
@@ -331,14 +331,175 @@ Five step kinds: picker, sets and reps, timer-driven reps, open timed block, cli
 session timer, runs you can resume, notes per step, and an end-of-run journal for sleep,
 energy and RPE.
 
-### Proposal, not agreed
+### The run tables
 
-```
-run(id, owner, template, date, started, finished, body jsonb)
+Built, and waiting for the owner to agree them. A run is one row with its plan and its working
+list in `jsonb`. Results are rows: one per set, one per climb.
+
+```sql
+CREATE TABLE run (
+    id              uuid        PRIMARY KEY DEFAULT uuidv7(),
+    owner           uuid        NOT NULL REFERENCES account (id) ON DELETE CASCADE,
+    template        uuid        NULL,
+    name            text        NOT NULL,
+    plan            jsonb       NULL,
+    body            jsonb       NOT NULL,
+
+    started_at      timestamptz NOT NULL,
+    timezone        text        NOT NULL,
+    local_date      date        NOT NULL,
+    finished_at     timestamptz NULL,
+    elapsed_seconds int         NULL CHECK (elapsed_seconds >= 0),
+    place           text        NULL,
+    notes           text        NULL,
+
+    sleep           smallint    NULL CHECK (sleep BETWEEN 1 AND 5),
+    energy          smallint    NULL CHECK (energy BETWEEN 1 AND 5),
+    rpe             smallint    NULL CHECK (rpe BETWEEN 1 AND 10),
+    focus           text        NULL
+        CHECK (focus IN ('strength', 'endurance', 'technique', 'projects', 'general')),
+    setting         text        NULL CHECK (setting IN ('indoor', 'outdoor')),
+    went_well       text        NULL,
+    next_focus      text        NULL,
+
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (id, owner)
+);
+
+CREATE TABLE run_set (
+    run        uuid         NOT NULL,
+    owner      uuid         NOT NULL,
+    step       uuid         NOT NULL,
+    number     int          NOT NULL CHECK (number >= 1),
+    exercise   uuid         NOT NULL,
+    reps       int          NULL CHECK (reps >= 0),
+    seconds    int          NULL CHECK (seconds >= 0),
+    weight_kg  numeric(6,2) NULL,
+    PRIMARY KEY (run, step, number),
+    FOREIGN KEY (run, owner) REFERENCES run (id, owner) ON DELETE CASCADE
+);
+
+CREATE TABLE climb (
+    id            uuid        PRIMARY KEY,
+    run           uuid        NOT NULL,
+    owner         uuid        NOT NULL,
+    step          uuid        NOT NULL,
+    position      int         NOT NULL,
+    discipline    text        NOT NULL CHECK (discipline IN ('boulder', 'sport', 'trad')),
+    setting       text        NOT NULL CHECK (setting IN ('indoor', 'outdoor')),
+    board         text        NULL
+        CHECK (board IN ('kilter', 'moon', 'tension', 'spray', 'custom')),
+    rope_style    text        NULL
+        CHECK (rope_style IN ('lead', 'top_rope', 'auto_belay', 'follow')),
+    grade         text        NULL,
+    grade_system  text        NULL CHECK (grade_system IN ('font', 'v', 'french', 'yds')),
+    grade_rank    int         NULL,
+    outcome       text        NULL
+        CHECK (outcome IN ('onsight', 'flash', 'redpoint', 'hangdog', 'working')),
+    attempts      int         NULL CHECK (attempts >= 1),
+    seconds       int         NULL CHECK (seconds >= 0),
+    stars         smallint    NULL CHECK (stars BETWEEN 1 AND 3),
+    focus         text        NULL,
+    notes         text        NULL,
+    created_at    timestamptz NOT NULL DEFAULT now(),
+    updated_at    timestamptz NOT NULL DEFAULT now(),
+    FOREIGN KEY (run, owner) REFERENCES run (id, owner) ON DELETE CASCADE,
+    CHECK ((grade_system IS NULL) = (grade_rank IS NULL)),
+    CHECK (grade_system IS NULL OR grade IS NOT NULL)
+);
+
+ALTER TABLE account
+    ADD COLUMN boulder_grades text NOT NULL DEFAULT 'font' CHECK (boulder_grades IN ('font', 'v')),
+    ADD COLUMN route_grades   text NOT NULL DEFAULT 'french' CHECK (route_grades IN ('french', 'yds'));
 ```
 
-The run body is the session template body plus results and timings, copied when the run
-starts.
+Indexes: `run (owner, local_date DESC)`, `run (owner, template)`,
+`run_set (owner, exercise)`, `climb (run)` and `climb (owner)`. `run` and `climb` carry the
+`touch_updated_at` trigger.
+
+**The run.**
+
+- `plan` is the template's body, copied when the run starts (rule 5). Nothing writes it again.
+  An open run has none. It is what was asked, kept for planned against actual.
+- `body` is the working list: the plan as the person changes it. Swaps, adds, reorders, picks
+  and each step's state live here. One write replaces it, like a template.
+- `name` copies the template's name, or is typed for an open run. `place` is a name, copied,
+  so renaming a gym later changes no past run (rule 41).
+- `local_date` is worked out by Postgres from `started_at` and the account's zone, unless the
+  write-up names a day. It is never recomputed (rule 43). `timezone` keeps the zone it used.
+- `finished_at` is NULL until the run is finished. An unfinished run counts for nothing
+  (rule 45). A finished run can still be edited, for ever (rule 6).
+- No foreign key reaches `session_template`. Templates are retired, never deleted.
+- The journal is V1's. The words that explain each score belong to the client.
+
+**The body.** The session body, with run fields on each step:
+
+```json
+{ "sections": [ { "name": "Fingers", "notes": null, "items": [
+  { "step": { "id": "0199…", "exercise": "0199…", "name": "Max hang", "kind": "timed_reps",
+              "sets": 3, "status": "done", "run_notes": "right shoulder tight",
+              "elapsed_seconds": 412 } },
+  { "choice": { "id": "0199…", "name": "Shoulders", "pick": 1, "options": [ … ] } }
+] } ] }
+```
+
+- Every step and every choice has an `id`, unique in the body. The server writes them when it
+  copies a template. The client writes them for anything it adds.
+- `status` is null (not reached), `done` or `skipped`. Finishing turns every null into
+  `skipped`, as V1 did.
+- A choice in a run body is an offer nobody has taken. A pick replaces it with ordinary step
+  items. Each picked step keeps the offer in `from_choice`, so picking again swaps the steps
+  back. Nothing ever logs against a choice (rule 34).
+- A step needs no library row. An exercise typed in mid-run gets a new id of its own, so it
+  charts on its own (rule 12). A run never checks the library, unlike a template.
+
+**Sets.** One row per set. Only a step in the body that is not skipped has sets. Writing a
+body deletes the sets of every step it no longer holds or now marks skipped, as V1 kept no
+results for a skipped step. So "what you last did" reads `run_set` alone (rule 47).
+
+- `exercise` is copied from the step when the set is written. It is the identity charts group
+  on.
+- `weight_kg` is signed. Below zero is assistance, and zero is bodyweight (rule 29).
+- `owner` is the run's. The foreign key on `(run, owner)` keeps the two the same.
+- A step's sets are written whole: the rows past the new count go, and the rest are upserted.
+  A retry or a double tap writes the same rows (rule 36).
+
+**Climbs.** One row per climb, under a climbing step.
+
+- The client picks the id, so a retry writes one climb (rule 36). `position` is the order it
+  was climbed in.
+- `grade` is what was logged. An ungraded climb has no `grade_system` and may hold V1's
+  ungraded labels, Rainbow or Traverse. `grade_rank` sorts within the system.
+- A send is `grade_system IS NOT NULL AND outcome IN ('onsight', 'flash', 'redpoint')`,
+  worked out when read, never asked (rules 38 and 39). V1's hangdog and working are its two
+  kinds of attempt.
+
+**The API.**
+
+- `POST /api/v1/runs` starts a run from a template, or an open run with a name. A write-up
+  sends the day it happened.
+- `GET /api/v1/runs` lists summaries, newest day first. `GET /api/v1/runs/{id}` returns the
+  run with its sets and climbs.
+- `PUT /api/v1/runs/{id}` replaces everything but the plan, the template and the finish.
+- `PUT /api/v1/runs/{id}/steps/{step}/sets` replaces one step's sets.
+- `PUT` and `DELETE /api/v1/runs/{id}/climbs/{climb}` write or remove one climb.
+- `POST /api/v1/runs/{id}/finish` keeps the first finish time. `DELETE /api/v1/runs/{id}`
+  deletes the owner's own run with everything in it.
+- `GET /api/v1/grades` lists each scale in order, so the client and the server share one list.
+
+A set or a climb is written only against a step that the body holds at that moment, checked
+in the same transaction.
+
+Left for later, because nothing needs it yet and each one adds without a rewrite:
+
+- A table of places, as V1's venues. It can be filled from the names runs already hold.
+- A list of your own boards, and a board's angle.
+- A time for each rep inside a set, `per_set` ladders, and a side on a set.
+- A run id chosen by the client, so a retried start makes one run.
+- Journal entries with no training behind them (rule 46).
+- A check that stops two tabs overwriting one body. One device records a run, so last write
+  wins today.
 
 ### Decided on 2026-09-23
 
