@@ -69,6 +69,10 @@ func (s *Server) Routes(client http.Handler) http.Handler {
 	mux.HandleFunc("GET /api/v1/cycles/{id}", s.authenticated(s.readCycle))
 	mux.HandleFunc("PUT /api/v1/cycles/{id}", s.authenticated(s.putCycle))
 	mux.HandleFunc("DELETE /api/v1/cycles/{id}", s.authenticated(s.deleteCycle))
+	mux.HandleFunc("GET /api/v1/scheduled-sessions", s.authenticated(s.listScheduledSessions))
+	mux.HandleFunc("POST /api/v1/scheduled-sessions", s.authenticated(s.scheduleSession))
+	mux.HandleFunc("PUT /api/v1/scheduled-sessions/{id}", s.authenticated(s.moveScheduledSession))
+	mux.HandleFunc("DELETE /api/v1/scheduled-sessions/{id}", s.authenticated(s.deleteScheduledSession))
 	return mux
 }
 

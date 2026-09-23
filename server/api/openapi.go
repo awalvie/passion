@@ -252,3 +252,39 @@ type cycleParams struct {
 	// required:true
 	Body cycleRequest `json:"body"`
 }
+
+// swagger:parameters listScheduledSessions
+type scheduleRangeParams struct {
+	// The first day, written YYYY-MM-DD.
+	//
+	// in: query
+	// required: true
+	From string `json:"from"`
+
+	// The last day, included.
+	//
+	// in: query
+	// required: true
+	To string `json:"to"`
+}
+
+// swagger:parameters scheduleSession
+type scheduleParams struct {
+	// in:body
+	// required:true
+	Body scheduleRequest `json:"body"`
+}
+
+// swagger:parameters moveScheduledSession deleteScheduledSession
+type scheduledSessionIDParams struct {
+	// in: path
+	// required: true
+	ID string `json:"id"`
+}
+
+// swagger:parameters moveScheduledSession
+type moveParams struct {
+	// in:body
+	// required:true
+	Body moveRequest `json:"body"`
+}

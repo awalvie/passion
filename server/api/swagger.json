@@ -841,6 +841,174 @@
         ]
       }
     },
+    "/api/v1/scheduled-sessions": {
+      "get": {
+        "description": "Every session planned from one day to another, both included, in date\norder. A day before today in your time zone with no run is missed.",
+        "tags": [
+          "scheduled-sessions"
+        ],
+        "summary": "List your schedule",
+        "operationId": "listScheduledSessions",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "From",
+            "description": "The first day, written YYYY-MM-DD.",
+            "name": "from",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "To",
+            "description": "The last day, included.",
+            "name": "to",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/scheduledDayListResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "description": "A one-off, with no cycle behind it. A day holds each session once.",
+        "tags": [
+          "scheduled-sessions"
+        ],
+        "summary": "Schedule a session",
+        "operationId": "scheduleSession",
+        "parameters": [
+          {
+            "x-go-name": "Body",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/scheduleRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/scheduledSessionBody"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/scheduled-sessions/{id}": {
+      "put": {
+        "description": "Puts it on another day and leaves every other day alone.",
+        "tags": [
+          "scheduled-sessions"
+        ],
+        "summary": "Move a scheduled session",
+        "operationId": "moveScheduledSession",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "x-go-name": "Body",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/moveRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/scheduledSessionBody"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "description": "A run started from it stays.",
+        "tags": [
+          "scheduled-sessions"
+        ],
+        "summary": "Take a session off its day",
+        "operationId": "deleteScheduledSession",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/session-templates": {
       "get": {
         "description": "The ones the app ships and the ones you wrote, sorted by name. Retired ones\nare left out.",
@@ -1987,6 +2155,21 @@
       },
       "x-go-package": "passion/server/api"
     },
+    "moveRequest": {
+      "type": "object",
+      "required": [
+        "local_date"
+      ],
+      "properties": {
+        "local_date": {
+          "description": "The new day, written YYYY-MM-DD.",
+          "type": "string",
+          "x-go-name": "LocalDate",
+          "example": "2026-03-11"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
     "runChoiceBody": {
       "type": "object",
       "title": "A choice nobody has picked from yet. A pick replaces it with steps.",
@@ -2526,6 +2709,110 @@
         "template": {
           "type": "string",
           "x-go-name": "Template"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "scheduleRequest": {
+      "type": "object",
+      "required": [
+        "template",
+        "local_date"
+      ],
+      "properties": {
+        "local_date": {
+          "description": "The day, written YYYY-MM-DD.",
+          "type": "string",
+          "x-go-name": "LocalDate",
+          "example": "2026-03-10"
+        },
+        "template": {
+          "description": "A session template you can see.",
+          "type": "string",
+          "x-go-name": "Template",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "scheduledDayBody": {
+      "type": "object",
+      "properties": {
+        "cycle": {
+          "description": "The cycle that placed it. null for a session you scheduled by hand.",
+          "type": "string",
+          "x-go-name": "Cycle"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "local_date": {
+          "type": "string",
+          "x-go-name": "LocalDate",
+          "example": "2026-03-10"
+        },
+        "run": {
+          "description": "The run started from it, a finished one first. null before it starts.",
+          "type": "string",
+          "x-go-name": "Run"
+        },
+        "status": {
+          "description": "done (a finished run), started (a run not finished yet), missed (a day\ngone with no run), or planned.",
+          "type": "string",
+          "x-go-name": "Status",
+          "example": "planned"
+        },
+        "template": {
+          "type": "string",
+          "x-go-name": "Template",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "template_name": {
+          "description": "The template's name today. A future session follows its template.",
+          "type": "string",
+          "x-go-name": "TemplateName",
+          "example": "Power"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "scheduledDayListResponse": {
+      "type": "object",
+      "properties": {
+        "days": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/scheduledDayBody"
+          },
+          "x-go-name": "Days"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "scheduledSessionBody": {
+      "type": "object",
+      "properties": {
+        "cycle": {
+          "description": "The cycle that placed it. null for a session you scheduled by hand.",
+          "type": "string",
+          "x-go-name": "Cycle"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "local_date": {
+          "type": "string",
+          "x-go-name": "LocalDate",
+          "example": "2026-03-10"
+        },
+        "template": {
+          "type": "string",
+          "x-go-name": "Template",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
         }
       },
       "x-go-package": "passion/server/api"
@@ -3081,6 +3368,10 @@
     {
       "description": "A plan that repeats a block of days from one date to another, and places its sessions on the days they fall. Deleting a cycle keeps every run done under it.",
       "name": "cycles"
+    },
+    {
+      "description": "Your calendar: one row per session per day, placed by a cycle or by you. A future one follows its template until you start it.",
+      "name": "scheduled-sessions"
     },
     {
       "description": "The scales a climb's grade is logged in, the same list the server checks against.",
