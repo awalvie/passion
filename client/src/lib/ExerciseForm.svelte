@@ -83,6 +83,16 @@
 		</div>
 	{/if}
 
+	{#if allCounts.some(shown)}
+		<div class="mt-3">
+			<label class="flex items-center gap-2 text-xs font-medium cursor-pointer">
+				<input type="checkbox" class="rounded" bind:checked={draft.per_side} />
+				Per side
+			</label>
+			<p class="text-[10px] muted mt-0.5 mb-0">The numbers are for each side, as in 6 reps per side.</p>
+		</div>
+	{/if}
+
 	<div class="mt-5 pt-5 divider">
 		<label class="text-sm font-medium" for="ex-notes">Notes</label>
 		<textarea id="ex-notes" class="mt-1 w-full input" rows="4" bind:value={draft.notes}></textarea>

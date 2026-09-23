@@ -16,6 +16,7 @@ export type Exercise = {
 	rep_rest_seconds: number | null;
 	prep_seconds: number | null;
 	duration_seconds: number | null;
+	per_side: boolean;
 	media: Media[];
 	retired_at: string | null;
 };
@@ -82,7 +83,7 @@ export function kindOf(kind: Kind) {
 }
 
 // A Draft is an exercise as the form holds it: text boxes hold strings, never null.
-export type Draft = Pick<Exercise, 'name' | 'kind' | Count> & {
+export type Draft = Pick<Exercise, 'name' | 'kind' | 'per_side' | Count> & {
 	notes: string;
 	source: string;
 	tags: string;
@@ -103,6 +104,7 @@ export function toDraft(e?: Exercise): Draft {
 		set_rest_seconds: e?.set_rest_seconds ?? null,
 		prep_seconds: e?.prep_seconds ?? null,
 		duration_seconds: e?.duration_seconds ?? null,
+		per_side: e?.per_side ?? false,
 		// A new exercise starts with one empty row, as V1's form did.
 		media: (e?.media ?? [{ url: null, thumb_url: null }]).map((m) => ({
 			url: m.url ?? '',
@@ -112,8 +114,8 @@ export function toDraft(e?: Exercise): Draft {
 }
 
 // toBody sends a count only when the form shows it, so switching the type
-// drops the numbers the old type used. The server trims the text and drops
-// empty media rows.
+// drops the numbers the old type used, and per side goes with them. The server
+// trims the text and drops empty media rows.
 export function toBody(d: Draft, shown: (c: Count) => boolean) {
 	const counts = Object.fromEntries(allCounts.map((c) => [c, shown(c) ? d[c] : null]));
 	return {
@@ -123,6 +125,7 @@ export function toBody(d: Draft, shown: (c: Count) => boolean) {
 		source: d.source,
 		tags: d.tags.split(','),
 		...counts,
+		per_side: allCounts.some(shown) && d.per_side,
 		media: d.media
 	};
 }
@@ -152,7 +155,12 @@ export function sourcesOf(exercises: Exercise[]) {
 	return distinct(exercises.flatMap((e) => (e.source ? [e.source] : [])));
 }
 
-export function summary(d: Pick<Exercise, 'kind' | Count>): string {
+export function summary(d: Pick<Exercise, 'kind' | 'per_side' | Count>): string {
+	const numbers = countSummary(d);
+	return numbers && d.per_side ? `${numbers} per side` : numbers;
+}
+
+function countSummary(d: Pick<Exercise, 'kind' | Count>): string {
 	if (d.kind === 'open') return d.duration_seconds ? formatDuration(d.duration_seconds) : '';
 	if (d.sets && d.reps) return `${d.sets}×${d.reps}`;
 	if (d.sets) return `${d.sets} sets`;
