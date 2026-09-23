@@ -2,7 +2,9 @@ PGDATA ?= $(CURDIR)/.pgdata
 
 IMAGE ?= passion:dev
 
-.PHONY: client db-up db-down image openapi run test watch
+CATALOG_DIR ?= catalog
+
+.PHONY: catalog-ids client db-up db-down image openapi run test watch
 
 # LC_ALL=C is set here rather than in the shell: initdb reads the ambient
 # locale and a mismatched glibc locale archive makes it refuse to run, but
@@ -49,6 +51,11 @@ openapi:
 
 image:
 	docker build -t $(IMAGE) .
+
+# Run on a new catalog file before it is committed. CATALOG_DIR=../other-tree
+# for another tree.
+catalog-ids:
+	go run ./server/cmd/catalogid $(CATALOG_DIR)
 
 # -p 1 runs one package at a time. Every package shares the one test database
 # and empties it between tests, so two packages at once wipe each other.

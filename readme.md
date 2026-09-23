@@ -106,6 +106,7 @@ local development needs no configuration at all.
 | `make openapi` | Regenerate `server/api/swagger.json` from the handler annotations |
 | `make db-up` / `make db-down` | Start or stop the local postgres cluster |
 | `make image` | Build the docker image |
+| `make catalog-ids` | Give each file in `catalog/` that has no `id:` one of its own. `CATALOG_DIR=<tree>` for another tree |
 
 CI checks formatting, `go vet`, that the OpenAPI document is not stale, and the tests.
 
