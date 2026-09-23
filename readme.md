@@ -113,12 +113,13 @@ CI checks formatting, `go vet`, that the OpenAPI document is not stale, and the 
 
 ```
 server/api/         handlers, routing, middleware, the openapi spec and the docs page
+server/catalog/     catalog trees. Gives each file the id the loader will match it on
 server/config/      the YAML config file and the environment variables that override it
 server/db/          pgx queries and goose migrations
 server/password/    argon2id hashing
 server/token/       opaque bearer tokens
 server/web/         serves the client, embedded with //go:embed
-server/cmd/passion/ entry point
+server/cmd/         passion, the server, and catalogid, which gives catalog files an id
 client/             sveltekit, built into server/web/dist
 catalog/            exercise and session YAML. Not imported yet
 docs/               design and requirements
