@@ -120,7 +120,7 @@
 				disabled={busy}
 				onclick={duplicate}
 			>
-				<Icon name="copy" size="0.875rem" />
+				<Icon name="copy-plus" size="0.875rem" />
 				Duplicate
 			</button>
 			{#if !locked}
