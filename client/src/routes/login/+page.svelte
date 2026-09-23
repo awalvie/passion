@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { RequestFailed, request } from '$lib/api';
+	import FormError from '$lib/FormError.svelte';
 	import { setToken } from '$lib/session';
 
 	type Issued = { token: string; expires_at: string };
@@ -34,15 +35,7 @@
 	<h1 class="text-xl font-bold">Log in</h1>
 	<p class="text-sm muted mt-1">Sign in to access your workouts.</p>
 
-	{#if error}
-		<div
-			class="mt-3 rounded-md border px-3 py-2 text-sm"
-			style="border-color: var(--destructive); color: var(--destructive)"
-			role="alert"
-		>
-			{error}
-		</div>
-	{/if}
+	<FormError message={error} />
 
 	<form class="mt-4 space-y-3" onsubmit={signIn}>
 		<div>
