@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
 /* The design system, carried over from v1 unchanged. It defines the colour
-   tokens, the card, button and input classes, and both themes. */
-@import './passion.css';
+   tokens, the card, button and input classes, and both themes. V1 loaded
+   Tailwind after it, so a utility such as w-auto beat .input's width. Outside
+   a layer it would beat every utility instead. */
+@import './passion.css' layer(components);
