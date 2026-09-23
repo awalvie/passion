@@ -60,7 +60,8 @@ type tokenResponse struct {
 	// Send as "Authorization: Bearer <token>". Shown once and never again.
 	Token string `json:"token"`
 
-	// Thirty days out. Using the token pushes this forward.
+	// Thirty days out, unless the server sets another length. Using the token
+	// pushes this forward.
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
@@ -139,7 +140,7 @@ func (s *Server) issueToken(r *http.Request, accountID string) (tokenResponse, e
 		return tokenResponse{}, err
 	}
 
-	expires := time.Now().Add(tokenLife)
+	expires := time.Now().Add(s.tokenLife)
 	if _, err := db.CreateAuthToken(r.Context(), s.pool, accountID, hash, expires); err != nil {
 		return tokenResponse{}, err
 	}

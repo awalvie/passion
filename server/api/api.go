@@ -9,24 +9,24 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// tokenLife is thirty days, which is the longest a reauthentication timeout
-// should be at this assurance level. It slides forward on use.
-const tokenLife = 30 * 24 * time.Hour
-
 type Server struct {
 	pool *pgxpool.Pool
 	log  *slog.Logger
+
+	// tokenLife is how long a token lasts unused. It slides forward on use.
+	tokenLife time.Duration
 
 	// Each argon2id hash costs 64 MiB, so unbounded concurrency on the two
 	// endpoints anyone can call is a way to exhaust the machine's memory.
 	hashing chan struct{}
 }
 
-func New(pool *pgxpool.Pool, log *slog.Logger) *Server {
+func New(pool *pgxpool.Pool, log *slog.Logger, tokenLife time.Duration) *Server {
 	return &Server{
-		pool:    pool,
-		log:     log,
-		hashing: make(chan struct{}, runtime.GOMAXPROCS(0)),
+		pool:      pool,
+		log:       log,
+		tokenLife: tokenLife,
+		hashing:   make(chan struct{}, runtime.GOMAXPROCS(0)),
 	}
 }
 

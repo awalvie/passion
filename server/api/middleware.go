@@ -53,12 +53,12 @@ func bearerToken(r *http.Request) (string, bool) {
 // so reading does not become writing on every request.
 //
 // A failure here is logged and ignored: the request is still authenticated,
-// and the token still has most of a month left.
+// and the token still has all but a day of its life left.
 func (s *Server) slide(r *http.Request, who db.Authenticated) {
-	if time.Until(who.TokenExpiresAt) > tokenLife-24*time.Hour {
+	if time.Until(who.TokenExpiresAt) > s.tokenLife-24*time.Hour {
 		return
 	}
-	if err := db.SlideAuthToken(r.Context(), s.pool, who.TokenID, time.Now().Add(tokenLife)); err != nil {
+	if err := db.SlideAuthToken(r.Context(), s.pool, who.TokenID, time.Now().Add(s.tokenLife)); err != nil {
 		s.log.Error("could not slide the token expiry", "err", err)
 	}
 }

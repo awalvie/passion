@@ -57,7 +57,8 @@ func (s *Server) openapi(w http.ResponseWriter, r *http.Request) {
 //	    in: header
 //	    description: >-
 //	      The token from a sign-up or sign-in response, sent as
-//	      "Bearer <token>". It lasts thirty days and slides forward on use.
+//	      "Bearer <token>". It lasts thirty days, unless the server sets another
+//	      length, and slides forward on use.
 //
 // swagger:meta
 type swaggerMeta struct{}

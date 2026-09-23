@@ -11,7 +11,8 @@ tags:
     description: >-
       Signing in and out. Each sign-in mints one token for one device, so a
       phone and a laptop hold different ones and signing out of either leaves
-      the other working. A token lasts thirty days and slides forward on use.
+      the other working. A token lasts thirty days, unless the server sets
+      another length, and slides forward on use.
   - name: exercises
     description: >-
       Your library: the exercises the app ships and the ones you wrote. You can

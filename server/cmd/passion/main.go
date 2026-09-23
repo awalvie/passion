@@ -11,23 +11,20 @@ import (
 	"time"
 
 	"passion/server/api"
+	"passion/server/config"
 	"passion/server/db"
 	"passion/server/web"
 )
 
 func main() {
-	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
-
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		log.Error("DATABASE_URL is not set")
+	cfg, err := config.Load(os.Getenv("PASSION_CONFIG"))
+	if err != nil {
+		slog.Error("config", "err", err)
 		os.Exit(1)
 	}
-
-	addr := os.Getenv("PASSION_ADDR")
-	if addr == "" {
-		addr = ":8080"
-	}
+	log := slog.New(logHandler(cfg.Log))
+	dsn := cfg.Database.URL
+	addr := cfg.Server.Addr
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -48,7 +45,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           api.New(pool, log).Routes(web.Handler()),
+		Handler:           api.New(pool, log, cfg.Auth.TokenLife).Routes(web.Handler()),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,
@@ -72,4 +69,12 @@ func main() {
 		log.Error("shutdown failed", "err", err)
 		os.Exit(1)
 	}
+}
+
+func logHandler(c config.Log) slog.Handler {
+	opts := &slog.HandlerOptions{Level: c.Level}
+	if c.Format == "json" {
+		return slog.NewJSONHandler(os.Stderr, opts)
+	}
+	return slog.NewTextHandler(os.Stderr, opts)
 }

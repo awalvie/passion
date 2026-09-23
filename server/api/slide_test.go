@@ -3,8 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"io"
-	"log/slog"
 	"net/http"
 	"testing"
 	"time"
@@ -20,7 +18,7 @@ import (
 func serverOn(t *testing.T) (http.Handler, *pgxpool.Pool) {
 	t.Helper()
 	pool := dbtest.Pool(t)
-	return New(pool, slog.New(slog.NewTextHandler(io.Discard, nil))).Routes(stubClient()), pool
+	return newAPI(pool).Routes(stubClient()), pool
 }
 
 func expiryOf(t *testing.T, pool *pgxpool.Pool, bearer string) time.Time {
