@@ -13,13 +13,14 @@ work, are the target. See "The frontend follows V1".
 
 ## Start here
 
-**What works.** Sign up, sign in on several devices, see your account, sign out. The Go binary
-serves the Svelte client. API docs are at `/api/docs/`, generated from the handlers, and CI
-fails if the spec goes stale. `make run` to try it, `make watch` to develop. There's nothing
-about training yet.
+**What works.** Sign up, sign in on several devices, see your account, sign out. An exercise
+library through the API: the shipped catalog and any private ones load at startup, and you can
+add, edit and retire your own. The Go binary serves the Svelte client. API docs are at
+`/api/docs/`, generated from the handlers, and CI fails if the spec goes stale. `make run` to
+try it, `make watch` to develop.
 
 **How it's built.** In five parts, in order. Each part holds everything needed to build it,
-and the open decisions that come due there. We're on part 1.
+and the open decisions that come due there. Part 1 is built. Part 2 is next.
 
 1. Exercises
 2. Session templates
@@ -56,11 +57,14 @@ pyramid.
 
 ### Steps
 
+All four are built.
+
 1. Migrate the exercise table.
 2. Write the exercise queries and their tests: create, list, get, update, retire. A list
    holds the shipped rows and your own, and leaves out retired ones.
 3. Add the API routes for the same.
-4. Clean up the catalog files, as listed below, then load them.
+4. Clean up the catalog files, as listed below, then load them, and load the private
+   catalogs that the config names. See [CATALOG_FORMAT.md](CATALOG_FORMAT.md).
 
 ### The exercise table
 
@@ -139,6 +143,9 @@ Left for later, because nothing needs it yet:
   lineage column would both add to this table without changing it.
 - A re-import that skips rows you edited by hand.
 - Whether a number counts per side.
+- Ladders: several timings inside one set, such as 3s, 6s then 9s. A catalog file can say so
+  with `per_set`, which is read but not stored.
+- A careful pass over every shipped exercise's notes and numbers.
 
 ### Catalog cleanup
 

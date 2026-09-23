@@ -8,6 +8,14 @@ For what to build, see [V2_DESIGN.md](V2_DESIGN.md).
 - `server/db/` holds every SQL statement. It writes no JSON.
 - `server/api/` holds the handlers. It writes no SQL.
 - `server/db/migrations/` holds the schema, one goose file per change.
+- `server/catalog/` reads catalog files and loads them through `db`. It writes no SQL.
+- `server/config/` reads the config file.
+
+## Add an exercise to the catalog
+
+1. Write `catalog/movements/<slug>.yaml`. The keys are in [CATALOG_FORMAT.md](CATALOG_FORMAT.md).
+2. Run `make catalog-ids` to give it an id.
+3. Run `make test`. `TestShippedCatalogReads` fails on a bad file, before any server does.
 
 ## Add a table
 
