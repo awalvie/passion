@@ -71,6 +71,7 @@ CREATE TABLE exercise (
     id                uuid        PRIMARY KEY DEFAULT uuidv7(),
     owner             uuid        NULL REFERENCES account (id) ON DELETE CASCADE,
     slug              text        NULL,
+    file_id           uuid        NULL,
 
     name              text        NOT NULL,
     kind              text        NOT NULL
@@ -99,6 +100,10 @@ CREATE UNIQUE INDEX exercise_shipped_slug ON exercise (slug)
     WHERE owner IS NULL AND slug IS NOT NULL;
 CREATE UNIQUE INDEX exercise_owner_slug ON exercise (owner, slug)
     WHERE owner IS NOT NULL AND slug IS NOT NULL;
+CREATE UNIQUE INDEX exercise_shipped_file_id ON exercise (file_id)
+    WHERE owner IS NULL AND file_id IS NOT NULL;
+CREATE UNIQUE INDEX exercise_owner_file_id ON exercise (owner, file_id)
+    WHERE owner IS NOT NULL AND file_id IS NOT NULL;
 CREATE INDEX exercise_owner_idx ON exercise (owner);
 
 CREATE TRIGGER exercise_touch BEFORE UPDATE ON exercise
@@ -106,10 +111,15 @@ CREATE TRIGGER exercise_touch BEFORE UPDATE ON exercise
 ```
 
 - `owner NULL` means the app ships the row.
-- `slug` is the key inside a catalog file: `bench_press` in `bench_press.yaml`. The loader uses
-  it to find the row it wrote last time. An exercise typed into the app has none.
-- Slug uniqueness takes two partial indexes, because Postgres treats NULLs as distinct. One
-  `UNIQUE (owner, slug)` would let the shipped catalog hold the same slug twice.
+- `slug` is the catalog file's name: `bench_press` in `bench_press.yaml`. A private file names
+  a shipped exercise by it, as `app:bench_press`. An exercise typed into the app has none.
+- `file_id` is the `id:` line inside the file. The loader uses it to find the row it wrote
+  last time, so renaming a file keeps its row (rule 19). An exercise typed into the app has
+  none.
+- A file id is unique per owner, not overall. Two people who load the same tree each get a
+  row of their own (rule 20).
+- Slug and file id uniqueness each take two partial indexes, because Postgres treats NULLs as
+  distinct. One `UNIQUE (owner, slug)` would let the shipped catalog hold the same slug twice.
 - No unique index on `name`. Two unrelated exercises can share one (rule 8).
 - `kind` picks the player screen. The numbers aren't tied to kind yet.
 - The numbers are the protocol, the same for everyone. NULL means not set. Climbing has none,
