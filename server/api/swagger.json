@@ -598,7 +598,7 @@
     },
     "/api/v1/runs/{id}/finish": {
       "post": {
-        "description": "Every step still null becomes skipped. Finishing twice keeps the first\ntime.",
+        "description": "Every step still null becomes skipped, or done if it has sets or climbs.\nFinishing twice keeps the first time.",
         "tags": [
           "runs"
         ],
