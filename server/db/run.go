@@ -199,6 +199,8 @@ type Run struct {
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
+
+	Sets []Set `db:"-"`
 }
 
 // RunSummary is a run as a list shows it.
@@ -272,7 +274,12 @@ func StartRun(ctx context.Context, pool *pgxpool.Pool, owner string, s RunStart)
 	if err != nil {
 		return Run{}, fmt.Errorf("insert run: %w", err)
 	}
-	return oneRun(rows)
+	run, err := oneRun(rows)
+	if err != nil {
+		return Run{}, err
+	}
+	run.Sets = []Set{}
+	return run, nil
 }
 
 // runBody copies a template's body for a new run, with an id on every step
@@ -320,12 +327,13 @@ func ListRuns(ctx context.Context, pool *pgxpool.Pool, owner string) ([]RunSumma
 	return list, nil
 }
 
+// GetRun reads a run with everything logged in it.
 func GetRun(ctx context.Context, pool *pgxpool.Pool, owner, id string) (Run, error) {
 	rows, err := pool.Query(ctx, `SELECT * FROM run WHERE owner = $1 AND id = $2`, owner, id)
 	if err != nil {
 		return Run{}, fmt.Errorf("select run: %w", err)
 	}
-	return oneRun(rows)
+	return withLog(ctx, pool, rows)
 }
 
 // RunFields is what the person changes on a run. The plan, the template and
@@ -352,10 +360,17 @@ func (f RunFields) Clean() (RunFields, map[string]string) {
 	return f, problems
 }
 
-// UpdateRun replaces what the person can change on one of their runs. It
-// takes fields that went through Clean.
+// UpdateRun replaces what the person can change on one of their runs, and
+// drops what was logged against steps the body no longer keeps. It takes
+// fields that went through Clean.
 func UpdateRun(ctx context.Context, pool *pgxpool.Pool, owner, id string, f RunFields) (Run, error) {
-	rows, err := pool.Query(ctx, `
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return Run{}, fmt.Errorf("begin update: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	rows, err := tx.Query(ctx, `
 		UPDATE run SET
 			name = @name, body = @body, started_at = @started_at, local_date = @local_date,
 			elapsed_seconds = @elapsed_seconds, place = @place, notes = @notes,
@@ -383,7 +398,20 @@ func UpdateRun(ctx context.Context, pool *pgxpool.Pool, owner, id string, f RunF
 	if err != nil {
 		return Run{}, fmt.Errorf("update run: %w", err)
 	}
-	return oneRun(rows)
+	run, err := oneRun(rows)
+	if err != nil {
+		return Run{}, err
+	}
+	if err := pruneSets(ctx, tx, run.ID, run.Body); err != nil {
+		return Run{}, err
+	}
+	if run.Sets, err = runSets(ctx, tx, run.ID, nil); err != nil {
+		return Run{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Run{}, fmt.Errorf("commit update: %w", err)
+	}
+	return run, nil
 }
 
 // FinishRun keeps the first finish time. Every step the run never reached
@@ -395,13 +423,9 @@ func FinishRun(ctx context.Context, pool *pgxpool.Pool, owner, id string) (Run, 
 	}
 	defer tx.Rollback(ctx)
 
-	var body RunBody
-	err = tx.QueryRow(ctx, `SELECT body FROM run WHERE owner = $1 AND id = $2 FOR UPDATE`, owner, id).Scan(&body)
-	if errors.Is(err, pgx.ErrNoRows) || isInvalidText(err) {
-		return Run{}, ErrNoRun
-	}
+	body, err := lockRunBody(ctx, tx, owner, id)
 	if err != nil {
-		return Run{}, fmt.Errorf("select run: %w", err)
+		return Run{}, err
 	}
 
 	skipped := StepSkipped
@@ -420,7 +444,7 @@ func FinishRun(ctx context.Context, pool *pgxpool.Pool, owner, id string) (Run, 
 	if err != nil {
 		return Run{}, fmt.Errorf("finish run: %w", err)
 	}
-	run, err := oneRun(rows)
+	run, err := withLog(ctx, tx, rows)
 	if err != nil {
 		return Run{}, err
 	}
@@ -444,6 +468,18 @@ func DeleteRun(ctx context.Context, pool *pgxpool.Pool, owner, id string) error 
 		return ErrNoRun
 	}
 	return nil
+}
+
+// withLog reads one run from rows, then what was logged in it.
+func withLog(ctx context.Context, q querier, rows pgx.Rows) (Run, error) {
+	run, err := oneRun(rows)
+	if err != nil {
+		return Run{}, err
+	}
+	if run.Sets, err = runSets(ctx, q, run.ID, nil); err != nil {
+		return Run{}, err
+	}
+	return run, nil
 }
 
 func oneRun(rows pgx.Rows) (Run, error) {
