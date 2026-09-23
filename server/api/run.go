@@ -351,6 +351,11 @@ type climbBody struct {
 	// example: 01a0bf77-d7e8-76ea-96cc-f09cbca175a3
 	ID string `json:"id"`
 
+	// The exercise the step pointed at when the climb was written.
+	//
+	// example: 01a0bf77-d7e8-76ea-96cc-f09cbca175a3
+	Exercise string `json:"exercise"`
+
 	climbRequest
 
 	// True for a graded onsight, flash or redpoint.
@@ -716,7 +721,8 @@ func (req climbRequest) fields() db.ClimbFields {
 
 func toClimbBody(c db.Climb) climbBody {
 	return climbBody{
-		ID: c.ID,
+		ID:       c.ID,
+		Exercise: c.Exercise,
 		climbRequest: climbRequest{
 			Step:        c.Step,
 			Position:    c.Position,
