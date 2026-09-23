@@ -2,8 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"io"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -26,7 +24,7 @@ func TestHealthzReportsALostDatabase(t *testing.T) {
 	pool.Close()
 
 	rec := httptest.NewRecorder()
-	routes := New(pool, slog.New(slog.NewTextHandler(io.Discard, nil))).Routes(stubClient())
+	routes := newAPI(pool).Routes(stubClient())
 	routes.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
 
 	if rec.Code != http.StatusServiceUnavailable {

@@ -661,7 +661,7 @@
       "type": "object",
       "properties": {
         "expires_at": {
-          "description": "Thirty days out. Using the token pushes this forward.",
+          "description": "Thirty days out, unless the server sets another length. Using the token\npushes this forward.",
           "type": "string",
           "format": "date-time",
           "x-go-name": "ExpiresAt"
@@ -733,7 +733,7 @@
   },
   "securityDefinitions": {
     "bearer": {
-      "description": "The token from a sign-up or sign-in response, sent as \"Bearer \u003ctoken\u003e\". It lasts thirty days and slides forward on use.",
+      "description": "The token from a sign-up or sign-in response, sent as \"Bearer \u003ctoken\u003e\". It lasts thirty days, unless the server sets another length, and slides forward on use.",
       "type": "apiKey",
       "name": "Authorization",
       "in": "header"
@@ -745,7 +745,7 @@
       "name": "accounts"
     },
     {
-      "description": "Signing in and out. Each sign-in mints one token for one device, so a phone and a laptop hold different ones and signing out of either leaves the other working. A token lasts thirty days and slides forward on use.",
+      "description": "Signing in and out. Each sign-in mints one token for one device, so a phone and a laptop hold different ones and signing out of either leaves the other working. A token lasts thirty days, unless the server sets another length, and slides forward on use.",
       "name": "tokens"
     },
     {

@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -25,7 +26,13 @@ func newTestServer(t *testing.T) http.Handler {
 func newTestServerWithPool(t *testing.T) (http.Handler, *pgxpool.Pool) {
 	t.Helper()
 	pool := dbtest.Pool(t)
-	return New(pool, slog.New(slog.NewTextHandler(io.Discard, nil))).Routes(stubClient()), pool
+	return newAPI(pool).Routes(stubClient()), pool
+}
+
+// newAPI uses thirty days, the default token life, which the slide tests
+// count on.
+func newAPI(pool *pgxpool.Pool) *Server {
+	return New(pool, slog.New(slog.NewTextHandler(io.Discard, nil)), 30*24*time.Hour)
 }
 
 // stubClient stands in for the built Svelte app, which the api package knows
