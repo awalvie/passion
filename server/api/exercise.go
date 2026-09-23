@@ -56,6 +56,9 @@ type exerciseRequest struct {
 	// example: 180
 	DurationSeconds *int `json:"duration_seconds"`
 
+	// True when the numbers count for each side, as in 6 reps per side.
+	PerSide bool `json:"per_side"`
+
 	// Clips of the exercise, in order. An entry with neither link is dropped.
 	Media []mediaBody `json:"media"`
 }
@@ -98,6 +101,7 @@ type exerciseResponse struct {
 	RepRestSeconds  *int `json:"rep_rest_seconds"`
 	PrepSeconds     *int `json:"prep_seconds"`
 	DurationSeconds *int `json:"duration_seconds"`
+	PerSide         bool `json:"per_side"`
 
 	Media []mediaBody `json:"media"`
 
@@ -284,6 +288,7 @@ func (req exerciseRequest) fields() db.ExerciseFields {
 		RepRestSeconds:  req.RepRestSeconds,
 		PrepSeconds:     req.PrepSeconds,
 		DurationSeconds: req.DurationSeconds,
+		PerSide:         req.PerSide,
 		Media:           media,
 	}
 }
@@ -312,6 +317,7 @@ func toExerciseResponse(e db.Exercise) exerciseResponse {
 		RepRestSeconds:  e.RepRestSeconds,
 		PrepSeconds:     e.PrepSeconds,
 		DurationSeconds: e.DurationSeconds,
+		PerSide:         e.PerSide,
 		Media:           toMediaBodies(e.Media),
 		RetiredAt:       e.RetiredAt,
 	}

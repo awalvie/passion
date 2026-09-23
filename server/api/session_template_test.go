@@ -52,7 +52,7 @@ func sessionBody(name, stepExercise, optionExercise string) string {
 			"items": [
 				{"step": {"exercise": %q, "name": "Max Hangs", "kind": "timed_reps", "sets": 5, "notes": " Half crimp. "}},
 				{"choice": {"name": "Shoulders", "pick": 1, "options": [
-					{"exercise": %q, "name": "Y raises", "kind": "reps_and_sets", "reps": 10}
+					{"exercise": %q, "name": "Y raises", "kind": "reps_and_sets", "reps": 10, "per_side": true}
 				]}}
 			]
 		}]
@@ -86,6 +86,9 @@ func TestCreateSessionTemplate(t *testing.T) {
 	choice := got.Sections[0].Items[1].Choice
 	if choice == nil || choice.Pick != 1 || len(choice.Options) != 1 || choice.Options[0].Exercise != raise.ID {
 		t.Fatalf("choice %+v, want pick 1 of Y raises", choice)
+	}
+	if !choice.Options[0].PerSide || step.PerSide {
+		t.Fatalf("per side %v on the option and %v on the step, want true and false", choice.Options[0].PerSide, step.PerSide)
 	}
 
 	rec := send(t, h, http.MethodGet, "/api/v1/session-templates/"+got.ID, ada, "")

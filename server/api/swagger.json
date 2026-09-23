@@ -614,6 +614,11 @@
           "x-go-name": "Notes",
           "example": "7 seconds on, 3 off. Stop when the grip goes"
         },
+        "per_side": {
+          "description": "True when the numbers count for each side, as in 6 reps per side.",
+          "type": "boolean",
+          "x-go-name": "PerSide"
+        },
         "prep_seconds": {
           "type": "integer",
           "format": "int64",
@@ -703,6 +708,10 @@
         "notes": {
           "type": "string",
           "x-go-name": "Notes"
+        },
+        "per_side": {
+          "type": "boolean",
+          "x-go-name": "PerSide"
         },
         "prep_seconds": {
           "type": "integer",
@@ -1058,6 +1067,11 @@
           "type": "string",
           "x-go-name": "Notes",
           "example": "7 seconds on, 3 off. Stop when the grip goes"
+        },
+        "per_side": {
+          "description": "True when the numbers count for each side, as in 6 reps per side.",
+          "type": "boolean",
+          "x-go-name": "PerSide"
         },
         "prep_seconds": {
           "type": "integer",
