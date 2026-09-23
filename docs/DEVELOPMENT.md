@@ -11,9 +11,11 @@ For what to build, see [V2_DESIGN.md](V2_DESIGN.md).
 - `server/catalog/` reads catalog files and loads them through `db`. It writes no SQL.
 - `server/config/` reads the config file.
 
-## Add an exercise to the catalog
+## Add to the catalog
 
-1. Write `catalog/movements/<slug>.yaml`. The keys are in [CATALOG_FORMAT.md](CATALOG_FORMAT.md).
+1. Write `catalog/movements/<slug>.yaml` for an exercise, `catalog/blocks/<slug>.yaml` for a
+   block, or `catalog/sessions/<slug>.yaml` for a session. The keys are in
+   [CATALOG_FORMAT.md](CATALOG_FORMAT.md).
 2. Run `make catalog-ids` to give it an id.
 3. Run `make test`. `TestShippedCatalogReads` fails on a bad file, before any server does.
 

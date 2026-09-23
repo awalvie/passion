@@ -1,15 +1,16 @@
 # Catalog format
 
-A catalog is a directory of YAML files, one exercise per file. The app ships one in
-`catalog/`. A private catalog uses the same format, and the config file says who owns it.
+A catalog is a directory of YAML files. The app ships one in `catalog/`. A private catalog
+uses the same format, and the config file says who owns it.
 
 ```
 <tree>/
   movements/<slug>.yaml    one exercise per file
+  blocks/<slug>.yaml       a group of exercises that sessions share
+  sessions/<slug>.yaml     one session template per file
 ```
 
-A directory inside `movements/` stops the load. Anything outside `movements/` is ignored for
-now. `blocks/` and `sessions/` are read from Part 2 of [V2_DESIGN.md](V2_DESIGN.md) onwards.
+A directory inside any of the three stops the load. Anything else in the tree is ignored.
 
 ## A file
 
@@ -49,7 +50,78 @@ a shipped exercise by it.
 | `media` | no | a list of `{url, thumb_url}`. Either may be left out. Links must be http or https |
 | `per_side`, `per_set` | no | read, but not stored yet. A start logs how many files use them |
 
-Any other key stops the load and names its line, so a misspelt key is never dropped.
+Any other key stops the load and names its line, so a misspelt key is never dropped. This
+holds for blocks and sessions too.
+
+## A block
+
+```yaml
+# an example block, built from shipped exercises
+id: 0199c3a0-0000-7000-8000-000000000001
+name: Drills
+items:
+    - movement: silent_feet
+      sets: 2
+    - menu:
+        name: Drills
+        notes: One drill per session.
+        pick: 1
+        of: [soft_hands, down_climbing]
+```
+
+A block exists only in files, so that several sessions can share one warm-up. The loader
+copies it into each session that uses it, as a section. Edit the block file, and every one of
+those sessions changes on the next start.
+
+| Key | Required | Holds |
+|---|---|---|
+| `id` | yes | a uuid. `make catalog-ids` writes it |
+| `name` | yes | the section's name, up to 200 characters |
+| `notes` | no | the section's notes |
+| `items` | yes | at least one `movement:` or `menu:` |
+| `tags`, `source`, `role` | no | read, but not stored. A start logs how many files use them |
+
+A `movement:` item names an exercise. It can also set `sets`, `reps`, `set_rest_seconds`,
+`rep_seconds`, `rep_rest_seconds`, `prep_seconds` or `seconds`, which replace the exercise's
+own for this use.
+
+A `menu:` item is a choice. It has a `name`, optional `notes`, a `pick` and `of`, a list of
+exercises. `pick` is the fewest to do. `pick: 0` means that you can skip the whole choice. A
+menu carries no numbers of its own.
+
+## A session
+
+```yaml
+# catalog/sessions/boulder_session.yaml, shortened
+id: bfbfa010-1020-4c47-85ce-38d8cfec9ae0
+name: Boulder Session
+color: '#ef4444'
+needs: bouldering wall
+items:
+    - block: warm_up
+    - block: drills
+```
+
+| Key | Required | Holds |
+|---|---|---|
+| `id` | yes | a uuid. `make catalog-ids` writes it |
+| `name` | yes | up to 200 characters |
+| `items` | yes | at least one `block:`. A session holds only blocks |
+| `notes`, `source`, `needs` | no | text. `needs` is what the session needs to run |
+| `color` | no | written `'#rrggbb'`. Quote it, or YAML reads it as a comment |
+| `tags` | no | a list of words |
+
+Each step in the session holds its own copy of the exercise, taken from the exercise's file.
+
+## Names
+
+A block names exercises, and a session names blocks, by file name.
+
+- A bare name means the catalog of the file that holds it. So the exercises in a shipped block
+  are shipped ones.
+- `app:<name>` means the catalog the app ships. The shipped catalog itself never uses it.
+- A name that no file holds stops the load and names the file. If the app ships that name,
+  the error says to write `app:<name>`.
 
 ## The id
 
@@ -69,16 +141,18 @@ Every start loads the shipped catalog, then each private catalog in the config f
 owners. All of one owner's catalogs load together, so two of them cannot share a file name or
 an id.
 
-- A file that did not change is not written.
-- A deleted file retires its exercise. It leaves the library, and still works in anything that
-  used it. If the file comes back, so does the exercise.
+- Exercises load first, then sessions.
+- A file that did not change is not written. A session counts as changed when a block or an
+  exercise it copies changes.
+- A deleted file retires its exercise or session. It leaves the library, and still works in
+  anything that used it. If the file comes back, so does the row.
 - One bad file stops the whole load and names every bad file, so a half-loaded catalog never
   happens.
 - An owner with no account yet is skipped until the first start after they sign up.
-- An owner removed from the config has their exercises retired.
+- An owner removed from the config has their exercises and sessions retired.
 
-An edit made in the app to an exercise from a catalog stays until its file changes. Then the
-file wins. Edit the file instead.
+An edit made in the app to an exercise or a session from a catalog stays until its file
+changes. Then the file wins. Edit the file instead.
 
 ## What belongs in `catalog/`
 
