@@ -196,11 +196,11 @@ func clashes(exercises []Exercise) []error {
 
 // Hash is what the loader stores in loaded_hash. It takes cleaned fields, so a
 // row read back from the database hashes the same as the file that wrote it.
-func Hash(slug string, f db.ExerciseFields) string {
+func Hash(slug string, fields any) string {
 	body, _ := json.Marshal(struct {
 		Slug   string
-		Fields db.ExerciseFields
-	}{slug, f})
+		Fields any
+	}{slug, fields})
 	sum := sha256.Sum256(body)
 	return hex.EncodeToString(sum[:])
 }
