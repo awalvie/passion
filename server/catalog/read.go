@@ -53,10 +53,10 @@ type movementFile struct {
 	RepRestSeconds *int `yaml:"rep_rest_seconds"`
 	PrepSeconds    *int `yaml:"prep_seconds"`
 	Seconds        *int `yaml:"seconds"`
+	PerSide        bool `yaml:"per_side"`
 
-	// Read so that a tree using them loads, but not stored yet.
-	PerSide *bool `yaml:"per_side"`
-	PerSet  []struct {
+	// Read so that a tree using it loads, but not stored yet.
+	PerSet []struct {
 		Reps     *int     `yaml:"reps"`
 		WeightKG *float64 `yaml:"weight_kg"`
 		Seconds  *int     `yaml:"seconds"`
@@ -135,6 +135,7 @@ func readFile(tree Tree, rel string) (Exercise, []string, error) {
 		RepRestSeconds:  f.RepRestSeconds,
 		PrepSeconds:     f.PrepSeconds,
 		DurationSeconds: f.Seconds,
+		PerSide:         f.PerSide,
 	}
 	for _, m := range f.Media {
 		fields.Media = append(fields.Media, db.Media{URL: m.URL, ThumbURL: m.ThumbURL})
@@ -155,9 +156,6 @@ func readFile(tree Tree, rel string) (Exercise, []string, error) {
 	}
 
 	var warnings []string
-	if f.PerSide != nil {
-		warnings = append(warnings, "per_side is not stored yet")
-	}
 	if f.PerSet != nil {
 		warnings = append(warnings, "per_set is not stored yet")
 	}

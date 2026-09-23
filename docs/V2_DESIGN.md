@@ -155,9 +155,6 @@ Left for later, because nothing needs it yet:
 `catalog/movements/` is in the same format as a private tree: one file per exercise, the file
 name as its slug, and an `id:` line. It is ready to load.
 
-14 files say `per_side: true`. The loader reads it and stores nothing, until per side is
-decided.
-
 ### Open decisions
 
 2. **One pull-up in the library, or several?** One gives one unbroken chart. Several matches
