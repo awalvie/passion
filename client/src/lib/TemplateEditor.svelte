@@ -130,8 +130,8 @@
 				<a
 					class="rounded-md btn-ghost p-2 inline-flex items-center justify-center shrink-0"
 					href={cancel}
-					title="Back"
-					aria-label="Back"
+					title="Cancel"
+					aria-label="Cancel"
 				>
 					<Icon name="arrow-left" />
 				</a>
@@ -188,7 +188,7 @@
 						<textarea id="tpl-notes" rows="3" class="mt-1 w-full input text-sm" bind:value={draft.notes}></textarea>
 					</div>
 					<div>
-						<span class="text-xs font-medium">Dashboard color</span>
+						<span class="text-xs font-medium">Color</span>
 						<div class="mt-2 flex flex-wrap items-center gap-2">
 							<div class="template-color-row">
 								{#each presets as [color, name] (color)}
@@ -255,7 +255,7 @@
 							<input
 								id="new-section"
 								class="mt-1 w-full input"
-								placeholder="e.g., Warmup, Strength, Cooldown"
+								placeholder="e.g. Warm-up, Strength, Cool-down"
 								bind:value={newSection}
 								onkeydown={(e) => {
 									if (e.key === 'Enter') {

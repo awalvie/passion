@@ -30,7 +30,7 @@
 				<input id="{id}-name" class="mt-1 w-full input text-xs" maxlength="200" required bind:value={choice.name} />
 			</div>
 			<div>
-				<label class="text-xs font-medium" for="{id}-pick">Do at least</label>
+				<label class="text-xs font-medium" for="{id}-pick">Pick at least</label>
 				<input
 					id="{id}-pick"
 					type="number"
