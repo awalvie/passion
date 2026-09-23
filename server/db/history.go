@@ -46,7 +46,6 @@ func ExerciseHistory(ctx context.Context, pool *pgxpool.Pool, owner, exercise st
 	ids := make([]string, 0, len(runs))
 	byID := make(map[string]*HistoryRun, len(runs))
 	for i := range runs {
-		runs[i].Sets, runs[i].Climbs = []Set{}, []Climb{}
 		ids = append(ids, runs[i].Run)
 		byID[runs[i].Run] = &runs[i]
 	}
