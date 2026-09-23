@@ -56,15 +56,21 @@ type exerciseRequest struct {
 	// example: 180
 	DurationSeconds *int `json:"duration_seconds"`
 
-	// An http or https link to a video of the exercise.
+	// Clips of the exercise, in order. An entry with neither link is dropped.
+	Media []mediaBody `json:"media"`
+}
+
+// swagger:model mediaBody
+type mediaBody struct {
+	// An http or https link to a video.
 	//
 	// example: https://www.youtube.com/watch?v=9FImGAOPysY
-	VideoURL *string `json:"video_url"`
+	URL *string `json:"url"`
 
-	// An http or https link to a still image for the video.
+	// An http or https link to a still image, for the video or on its own.
 	//
 	// example: https://i.ytimg.com/vi/9FImGAOPysY/maxresdefault.jpg
-	ThumbnailURL *string `json:"thumbnail_url"`
+	ThumbURL *string `json:"thumb_url"`
 }
 
 // swagger:model exerciseResponse
@@ -93,8 +99,7 @@ type exerciseResponse struct {
 	PrepSeconds     *int `json:"prep_seconds"`
 	DurationSeconds *int `json:"duration_seconds"`
 
-	VideoURL     *string `json:"video_url"`
-	ThumbnailURL *string `json:"thumbnail_url"`
+	Media []mediaBody `json:"media"`
 
 	// When it left the library. A retired exercise still reads, because
 	// sessions that used it still point at it.
@@ -262,6 +267,10 @@ func readExerciseRequest(w http.ResponseWriter, r *http.Request) (db.ExerciseFie
 // fields names each problem by its column, and every column is spelt the same
 // as its JSON field.
 func (req exerciseRequest) fields() (db.ExerciseFields, map[string]string) {
+	media := make([]db.Media, 0, len(req.Media))
+	for _, m := range req.Media {
+		media = append(media, db.Media{URL: m.URL, ThumbURL: m.ThumbURL})
+	}
 	return db.ExerciseFields{
 		Name:            req.Name,
 		Kind:            req.Kind,
@@ -275,12 +284,15 @@ func (req exerciseRequest) fields() (db.ExerciseFields, map[string]string) {
 		RepRestSeconds:  req.RepRestSeconds,
 		PrepSeconds:     req.PrepSeconds,
 		DurationSeconds: req.DurationSeconds,
-		VideoURL:        req.VideoURL,
-		ThumbnailURL:    req.ThumbnailURL,
+		Media:           media,
 	}.Clean()
 }
 
 func toExerciseResponse(e db.Exercise) exerciseResponse {
+	media := make([]mediaBody, 0, len(e.Media))
+	for _, m := range e.Media {
+		media = append(media, mediaBody{URL: m.URL, ThumbURL: m.ThumbURL})
+	}
 	return exerciseResponse{
 		ID:              e.ID,
 		Shipped:         e.Owner == nil,
@@ -296,8 +308,7 @@ func toExerciseResponse(e db.Exercise) exerciseResponse {
 		RepRestSeconds:  e.RepRestSeconds,
 		PrepSeconds:     e.PrepSeconds,
 		DurationSeconds: e.DurationSeconds,
-		VideoURL:        e.VideoURL,
-		ThumbnailURL:    e.ThumbnailURL,
+		Media:           media,
 		RetiredAt:       e.RetiredAt,
 	}
 }

@@ -37,8 +37,7 @@ type Exercise struct {
 	PrepSeconds     *int `db:"prep_seconds"`
 	DurationSeconds *int `db:"duration_seconds"`
 
-	VideoURL     *string `db:"video_url"`
-	ThumbnailURL *string `db:"thumbnail_url"`
+	Media []Media `db:"media"`
 
 	RetiredAt *time.Time `db:"retired_at"`
 	CreatedAt time.Time  `db:"created_at"`
@@ -61,8 +60,14 @@ type ExerciseFields struct {
 	PrepSeconds     *int
 	DurationSeconds *int
 
-	VideoURL     *string
-	ThumbnailURL *string
+	Media []Media
+}
+
+// Media is one clip, or an image with no video. The tags name its keys in the
+// jsonb column.
+type Media struct {
+	URL      *string `json:"url"`
+	ThumbURL *string `json:"thumb_url"`
 }
 
 const maxExerciseName = 200
@@ -113,13 +118,20 @@ func (f ExerciseFields) Clean() (ExerciseFields, map[string]string) {
 
 	f.Notes = optional(f.Notes)
 	f.Source = optional(f.Source)
-	f.VideoURL = optional(f.VideoURL)
-	f.ThumbnailURL = optional(f.ThumbnailURL)
-	for column, link := range map[string]*string{"video_url": f.VideoURL, "thumbnail_url": f.ThumbnailURL} {
-		if link != nil && !isWebLink(*link) {
-			problems[column] = "must be an http or https link"
+	media := []Media{}
+	for i, m := range f.Media {
+		m = Media{URL: optional(m.URL), ThumbURL: optional(m.ThumbURL)}
+		if m.URL == nil && m.ThumbURL == nil {
+			continue
 		}
+		for _, link := range []*string{m.URL, m.ThumbURL} {
+			if link != nil && !isWebLink(*link) {
+				problems[fmt.Sprintf("media[%d]", i)] = "must hold only http or https links"
+			}
+		}
+		media = append(media, m)
 	}
+	f.Media = media
 
 	tags := []string{}
 	for _, tag := range f.Tags {
@@ -163,6 +175,10 @@ func (f ExerciseFields) args() pgx.NamedArgs {
 	if tags == nil {
 		tags = []string{}
 	}
+	media := f.Media
+	if media == nil {
+		media = []Media{}
+	}
 	return pgx.NamedArgs{
 		"name":             f.Name,
 		"kind":             f.Kind,
@@ -176,8 +192,7 @@ func (f ExerciseFields) args() pgx.NamedArgs {
 		"rep_rest_seconds": f.RepRestSeconds,
 		"prep_seconds":     f.PrepSeconds,
 		"duration_seconds": f.DurationSeconds,
-		"video_url":        f.VideoURL,
-		"thumbnail_url":    f.ThumbnailURL,
+		"media":            media,
 	}
 }
 
@@ -189,11 +204,11 @@ func CreateExercise(ctx context.Context, pool *pgxpool.Pool, owner string, f Exe
 		INSERT INTO exercise (
 			owner, name, kind, notes, source, tags,
 			sets, reps, set_rest_seconds, rep_seconds, rep_rest_seconds, prep_seconds,
-			duration_seconds, video_url, thumbnail_url)
+			duration_seconds, media)
 		VALUES (
 			@owner, @name, @kind, @notes, @source, @tags,
 			@sets, @reps, @set_rest_seconds, @rep_seconds, @rep_rest_seconds, @prep_seconds,
-			@duration_seconds, @video_url, @thumbnail_url)
+			@duration_seconds, @media)
 		RETURNING *`, args)
 	if err != nil {
 		return Exercise{}, fmt.Errorf("insert exercise: %w", err)
@@ -244,7 +259,7 @@ func UpdateExercise(ctx context.Context, pool *pgxpool.Pool, owner, id string, f
 			sets = @sets, reps = @reps, set_rest_seconds = @set_rest_seconds,
 			rep_seconds = @rep_seconds, rep_rest_seconds = @rep_rest_seconds,
 			prep_seconds = @prep_seconds, duration_seconds = @duration_seconds,
-			video_url = @video_url, thumbnail_url = @thumbnail_url
+			media = @media
 		WHERE id = @id AND owner = @owner
 		RETURNING *`, args)
 	if err != nil {
