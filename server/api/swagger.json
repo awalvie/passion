@@ -249,6 +249,230 @@
         ]
       }
     },
+    "/api/v1/runs": {
+      "get": {
+        "description": "Finished or not, newest day first.",
+        "tags": [
+          "runs"
+        ],
+        "summary": "List your runs",
+        "operationId": "listRuns",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/runListResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "description": "With a template, the run copies it now, so editing the template later never\nreaches the run. Without one, it is an open run that starts empty. A\nwrite-up of a day already gone sends that day as local_date.",
+        "tags": [
+          "runs"
+        ],
+        "summary": "Start a run",
+        "operationId": "startRun",
+        "parameters": [
+          {
+            "x-go-name": "Body",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/runStartRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/runResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/runs/{id}": {
+      "get": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "Read a run",
+        "operationId": "readRun",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The run's id.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/runResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "description": "Sets everything but the plan, the template and the finish. A field left out\nor sent as null is cleared. A finished run can still be changed.",
+        "tags": [
+          "runs"
+        ],
+        "summary": "Replace a run",
+        "operationId": "updateRun",
+        "parameters": [
+          {
+            "x-go-name": "Body",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/runRequest"
+            }
+          },
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The run's id.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/runResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "description": "Removes one of your runs with everything logged in it.",
+        "tags": [
+          "runs"
+        ],
+        "summary": "Delete a run",
+        "operationId": "deleteRun",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The run's id.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/runs/{id}/finish": {
+      "post": {
+        "description": "Every step still null becomes skipped. Finishing twice keeps the first\ntime.",
+        "tags": [
+          "runs"
+        ],
+        "summary": "Finish a run",
+        "operationId": "finishRun",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The run's id.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/runResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/session-templates": {
       "get": {
         "description": "The ones the app ships and the ones you wrote, sorted by name. Retired ones\nare left out.",
@@ -781,6 +1005,56 @@
       },
       "x-go-package": "passion/server/api"
     },
+    "journalBody": {
+      "type": "object",
+      "title": "V1's end-of-run journal. Every field is optional.",
+      "properties": {
+        "energy": {
+          "description": "Energy before the session, 1 to 5.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Energy",
+          "example": 4
+        },
+        "focus": {
+          "description": "strength, endurance, technique, projects or general.",
+          "type": "string",
+          "x-go-name": "Focus",
+          "example": "technique"
+        },
+        "next_focus": {
+          "type": "string",
+          "x-go-name": "NextFocus",
+          "example": "Start the second set less tired"
+        },
+        "rpe": {
+          "description": "How hard the whole session felt, 1 to 10.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RPE",
+          "example": 7
+        },
+        "setting": {
+          "description": "indoor or outdoor.",
+          "type": "string",
+          "x-go-name": "Setting",
+          "example": "indoor"
+        },
+        "sleep": {
+          "description": "Sleep quality, 1 to 5.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Sleep",
+          "example": 3
+        },
+        "went_well": {
+          "type": "string",
+          "x-go-name": "WentWell",
+          "example": "Left hand felt solid"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
     "mediaBody": {
       "type": "object",
       "properties": {
@@ -795,6 +1069,522 @@
           "type": "string",
           "x-go-name": "URL",
           "example": "https://www.youtube.com/watch?v=9FImGAOPysY"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "runChoiceBody": {
+      "type": "object",
+      "title": "A choice nobody has picked from yet. A pick replaces it with steps.",
+      "required": [
+        "name",
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "description": "A uuid, unique in the run.",
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "name": {
+          "description": "Up to 200 characters.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Shoulders"
+        },
+        "notes": {
+          "type": "string",
+          "x-go-name": "Notes",
+          "example": "Pick what feels good today"
+        },
+        "options": {
+          "description": "At least one.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/stepBody"
+          },
+          "x-go-name": "Options"
+        },
+        "pick": {
+          "description": "The fewest options to do. 0 lets the whole choice be skipped. It cannot\nbe more than the options.",
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0,
+          "x-go-name": "Pick",
+          "example": 1
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "runItemBody": {
+      "type": "object",
+      "title": "An item holds a step or a choice. Send exactly one.",
+      "properties": {
+        "choice": {
+          "$ref": "#/definitions/runChoiceBody"
+        },
+        "step": {
+          "$ref": "#/definitions/runStepBody"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "runListResponse": {
+      "type": "object",
+      "properties": {
+        "runs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/runSummaryBody"
+          },
+          "x-go-name": "Runs"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "runRequest": {
+      "type": "object",
+      "required": [
+        "name",
+        "started_at",
+        "local_date"
+      ],
+      "properties": {
+        "elapsed_seconds": {
+          "description": "What the session timer showed, in seconds.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ElapsedSeconds",
+          "example": 4200
+        },
+        "energy": {
+          "description": "Energy before the session, 1 to 5.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Energy",
+          "example": 4
+        },
+        "focus": {
+          "description": "strength, endurance, technique, projects or general.",
+          "type": "string",
+          "x-go-name": "Focus",
+          "example": "technique"
+        },
+        "local_date": {
+          "description": "The day it counts on, written YYYY-MM-DD.",
+          "type": "string",
+          "x-go-name": "LocalDate",
+          "example": "2026-03-07"
+        },
+        "name": {
+          "description": "Up to 200 characters.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Power"
+        },
+        "next_focus": {
+          "type": "string",
+          "x-go-name": "NextFocus",
+          "example": "Start the second set less tired"
+        },
+        "notes": {
+          "type": "string",
+          "x-go-name": "Notes"
+        },
+        "place": {
+          "description": "Where it happened. A copy of the name, so renaming a gym later changes no\npast run.",
+          "type": "string",
+          "x-go-name": "Place",
+          "example": "The Castle"
+        },
+        "rpe": {
+          "description": "How hard the whole session felt, 1 to 10.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RPE",
+          "example": 7
+        },
+        "sections": {
+          "description": "The working list, in order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/runSectionBody"
+          },
+          "x-go-name": "Sections"
+        },
+        "setting": {
+          "description": "indoor or outdoor.",
+          "type": "string",
+          "x-go-name": "Setting",
+          "example": "indoor"
+        },
+        "sleep": {
+          "description": "Sleep quality, 1 to 5.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Sleep",
+          "example": 3
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "StartedAt"
+        },
+        "went_well": {
+          "type": "string",
+          "x-go-name": "WentWell",
+          "example": "Left hand felt solid"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "runResponse": {
+      "type": "object",
+      "properties": {
+        "elapsed_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ElapsedSeconds"
+        },
+        "energy": {
+          "description": "Energy before the session, 1 to 5.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Energy",
+          "example": 4
+        },
+        "finished_at": {
+          "description": "null until the run is finished. An unfinished run counts for nothing.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "FinishedAt"
+        },
+        "focus": {
+          "description": "strength, endurance, technique, projects or general.",
+          "type": "string",
+          "x-go-name": "Focus",
+          "example": "technique"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "local_date": {
+          "type": "string",
+          "x-go-name": "LocalDate",
+          "example": "2026-03-07"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Power"
+        },
+        "next_focus": {
+          "type": "string",
+          "x-go-name": "NextFocus",
+          "example": "Start the second set less tired"
+        },
+        "notes": {
+          "type": "string",
+          "x-go-name": "Notes"
+        },
+        "place": {
+          "type": "string",
+          "x-go-name": "Place"
+        },
+        "plan": {
+          "description": "The template's sections as they were when the run started. null for an\nopen run. Nothing changes it.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/sectionBody"
+          },
+          "x-go-name": "Plan"
+        },
+        "rpe": {
+          "description": "How hard the whole session felt, 1 to 10.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RPE",
+          "example": 7
+        },
+        "sections": {
+          "description": "The working list.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/runSectionBody"
+          },
+          "x-go-name": "Sections"
+        },
+        "setting": {
+          "description": "indoor or outdoor.",
+          "type": "string",
+          "x-go-name": "Setting",
+          "example": "indoor"
+        },
+        "sleep": {
+          "description": "Sleep quality, 1 to 5.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Sleep",
+          "example": 3
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "StartedAt"
+        },
+        "template": {
+          "description": "The session template it was copied from. null for an open run.",
+          "type": "string",
+          "x-go-name": "Template"
+        },
+        "timezone": {
+          "description": "The time zone the run's day was worked out in.",
+          "type": "string",
+          "x-go-name": "Timezone",
+          "example": "Europe/London"
+        },
+        "went_well": {
+          "type": "string",
+          "x-go-name": "WentWell",
+          "example": "Left hand felt solid"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "runSectionBody": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "items": {
+          "description": "The section's steps and open choices, in order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/runItemBody"
+          },
+          "x-go-name": "Items"
+        },
+        "name": {
+          "description": "Up to 200 characters.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Fingers"
+        },
+        "notes": {
+          "type": "string",
+          "x-go-name": "Notes"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "runStartRequest": {
+      "type": "object",
+      "properties": {
+        "local_date": {
+          "description": "The day it counts on, written YYYY-MM-DD, for a write-up of a day already\ngone. Defaults to the day of started_at in your time zone.",
+          "type": "string",
+          "x-go-name": "LocalDate",
+          "example": "2026-03-07"
+        },
+        "name": {
+          "description": "Required for an open run, up to 200 characters. A planned run takes its\ntemplate's name.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Open session"
+        },
+        "started_at": {
+          "description": "When it started. Defaults to now.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "StartedAt"
+        },
+        "template": {
+          "description": "A session template to copy now. Leave it out for an open run.",
+          "type": "string",
+          "x-go-name": "Template",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "runStepBody": {
+      "type": "object",
+      "title": "A step in a run: an exercise's copy, and what happened to it.",
+      "required": [
+        "name",
+        "kind",
+        "exercise",
+        "id"
+      ],
+      "properties": {
+        "duration_seconds": {
+          "description": "For an open block: how long it runs.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "DurationSeconds",
+          "example": 180
+        },
+        "elapsed_seconds": {
+          "description": "How long the step took.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ElapsedSeconds",
+          "example": 412
+        },
+        "exercise": {
+          "description": "A shipped exercise or one of yours. A retired one is allowed.",
+          "type": "string",
+          "x-go-name": "Exercise",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "from_choice": {
+          "$ref": "#/definitions/runChoiceBody"
+        },
+        "id": {
+          "description": "A uuid, unique in the run. The server writes them for a template's steps.\nWrite one for a step you add.",
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "kind": {
+          "description": "Which player screen runs it: reps_and_sets, timed_reps, climbing or open.",
+          "type": "string",
+          "x-go-name": "Kind",
+          "example": "timed_reps"
+        },
+        "media": {
+          "description": "Clips of the exercise, in order. An entry with neither link is dropped.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/mediaBody"
+          },
+          "x-go-name": "Media"
+        },
+        "name": {
+          "description": "Up to 200 characters.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Repeaters 7:3"
+        },
+        "notes": {
+          "type": "string",
+          "x-go-name": "Notes",
+          "example": "7 seconds on, 3 off. Stop when the grip goes"
+        },
+        "per_side": {
+          "description": "True when the numbers count for each side, as in 6 reps per side.",
+          "type": "boolean",
+          "x-go-name": "PerSide"
+        },
+        "prep_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "PrepSeconds",
+          "example": 10
+        },
+        "rep_rest_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepRestSeconds",
+          "example": 3
+        },
+        "rep_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepSeconds",
+          "example": 7
+        },
+        "reps": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Reps",
+          "example": 6
+        },
+        "run_notes": {
+          "description": "Notes written during the run.",
+          "type": "string",
+          "x-go-name": "RunNotes",
+          "example": "Right shoulder tight"
+        },
+        "set_rest_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "SetRestSeconds",
+          "example": 180
+        },
+        "sets": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Sets",
+          "example": 4
+        },
+        "source": {
+          "description": "Who or what the method is known by.",
+          "type": "string",
+          "x-go-name": "Source",
+          "example": "Eva López"
+        },
+        "status": {
+          "description": "null until the run reaches it, then done or skipped. Finishing the run\nskips every step still null.",
+          "type": "string",
+          "x-go-name": "Status",
+          "example": "done"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Tags",
+          "example": [
+            "hangboard",
+            "fingers"
+          ]
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "runSummaryBody": {
+      "type": "object",
+      "properties": {
+        "elapsed_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ElapsedSeconds"
+        },
+        "finished_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "FinishedAt"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "local_date": {
+          "type": "string",
+          "x-go-name": "LocalDate"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "place": {
+          "type": "string",
+          "x-go-name": "Place"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "StartedAt"
+        },
+        "template": {
+          "type": "string",
+          "x-go-name": "Template"
         }
       },
       "x-go-package": "passion/server/api"
@@ -1223,6 +2013,10 @@
     {
       "description": "Your library: the exercises the app ships and the ones you wrote. You can change and retire only your own. A retired exercise leaves the library but still reads by id.",
       "name": "exercises"
+    },
+    {
+      "description": "Sessions as you did them. A run copies its template when it starts, so a later edit to the template never reaches it. An unfinished run counts for nothing, and a finished one can still be changed.",
+      "name": "runs"
     },
     {
       "description": "Whether the server and its database are answering.",

@@ -18,5 +18,10 @@ tags:
       Your library: the exercises the app ships and the ones you wrote. You can
       change and retire only your own. A retired exercise leaves the library but
       still reads by id.
+  - name: runs
+    description: >-
+      Sessions as you did them. A run copies its template when it starts, so a
+      later edit to the template never reaches it. An unfinished run counts for
+      nothing, and a finished one can still be changed.
   - name: health
     description: Whether the server and its database are answering.
