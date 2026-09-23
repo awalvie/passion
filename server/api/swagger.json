@@ -726,6 +726,17 @@
         ],
         "summary": "Create a session template",
         "operationId": "createSessionTemplate",
+        "parameters": [
+          {
+            "x-go-name": "Body",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/sessionTemplateRequest"
+            }
+          }
+        ],
         "responses": {
           "201": {
             "description": "Created",
@@ -755,6 +766,16 @@
         ],
         "summary": "Read a session template",
         "operationId": "readSessionTemplate",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The session template's id.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -782,6 +803,25 @@
         ],
         "summary": "Replace a session template",
         "operationId": "updateSessionTemplate",
+        "parameters": [
+          {
+            "x-go-name": "Body",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/sessionTemplateRequest"
+            }
+          },
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The session template's id.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -814,6 +854,16 @@
         ],
         "summary": "Retire a session template",
         "operationId": "retireSessionTemplate",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The session template's id.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "204": {
             "description": "Retired"
@@ -2648,6 +2698,10 @@
     {
       "description": "Your library: the exercises the app ships and the ones you wrote. You can change and retire only your own. A retired exercise leaves the library but still reads by id.",
       "name": "exercises"
+    },
+    {
+      "description": "Sessions to run: named sections of exercises, and choices such as \"pick 1 of these 3\". The app ships some, and you can change and retire only your own. Each step keeps its own copy of the exercise's numbers.",
+      "name": "session-templates"
     },
     {
       "description": "Sessions as you did them. A run copies its template when it starts, so a later edit to the template never reaches it. An unfinished run counts for nothing, and a finished one can still be changed.",
