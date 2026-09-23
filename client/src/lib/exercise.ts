@@ -103,7 +103,11 @@ export function toDraft(e?: Exercise): Draft {
 		set_rest_seconds: e?.set_rest_seconds ?? null,
 		prep_seconds: e?.prep_seconds ?? null,
 		duration_seconds: e?.duration_seconds ?? null,
-		media: (e?.media ?? []).map((m) => ({ url: m.url ?? '', thumb_url: m.thumb_url ?? '' }))
+		// A new exercise starts with one empty row, as V1's form did.
+		media: (e?.media ?? [{ url: null, thumb_url: null }]).map((m) => ({
+			url: m.url ?? '',
+			thumb_url: m.thumb_url ?? ''
+		}))
 	};
 }
 
