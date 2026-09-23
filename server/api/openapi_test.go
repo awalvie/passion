@@ -34,6 +34,9 @@ func TestOpenAPIIsServed(t *testing.T) {
 		"/api/v1/accounts/me",
 		"/api/v1/tokens",
 		"/api/v1/tokens/current",
+		"/api/v1/exercises",
+		"/api/v1/exercises/{id}",
+		"/api/v1/exercises/{id}/retire",
 		"/healthz",
 	} {
 		if _, ok := spec.Paths[path]; !ok {

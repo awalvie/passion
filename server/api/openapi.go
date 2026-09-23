@@ -119,3 +119,41 @@ type validationFailedWrapper struct {
 	// in:body
 	Body errorBody
 }
+
+// Nothing you can see or change has that id.
+// swagger:response notFound
+type notFoundWrapper struct {
+	// in:body
+	Body errorBody
+}
+
+// The body of a new or replaced exercise.
+// swagger:parameters createExercise updateExercise
+type exerciseBodyParams struct {
+	// in:body
+	// required:true
+	Body exerciseRequest `json:"body"`
+}
+
+// swagger:parameters readExercise updateExercise retireExercise
+type exerciseIDParams struct {
+	// The exercise's id.
+	//
+	// in: path
+	// required: true
+	ID string `json:"id"`
+}
+
+// An exercise.
+// swagger:response exerciseResponse
+type exerciseResponseWrapper struct {
+	// in:body
+	Body exerciseResponse
+}
+
+// Your library.
+// swagger:response exerciseListResponse
+type exerciseListResponseWrapper struct {
+	// in:body
+	Body exerciseListResponse
+}

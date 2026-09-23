@@ -44,6 +44,11 @@ func (s *Server) Routes(client http.Handler) http.Handler {
 	mux.HandleFunc("POST /api/v1/tokens", s.signIn)
 	mux.HandleFunc("GET /api/v1/accounts/me", s.authenticated(s.me))
 	mux.HandleFunc("DELETE /api/v1/tokens/current", s.authenticated(s.signOut))
+	mux.HandleFunc("GET /api/v1/exercises", s.authenticated(s.listExercises))
+	mux.HandleFunc("POST /api/v1/exercises", s.authenticated(s.createExercise))
+	mux.HandleFunc("GET /api/v1/exercises/{id}", s.authenticated(s.readExercise))
+	mux.HandleFunc("PUT /api/v1/exercises/{id}", s.authenticated(s.updateExercise))
+	mux.HandleFunc("POST /api/v1/exercises/{id}/retire", s.authenticated(s.retireExercise))
 	return mux
 }
 

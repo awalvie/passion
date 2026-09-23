@@ -12,5 +12,10 @@ tags:
       Signing in and out. Each sign-in mints one token for one device, so a
       phone and a laptop hold different ones and signing out of either leaves
       the other working. A token lasts thirty days and slides forward on use.
+  - name: exercises
+    description: >-
+      Your library: the exercises the app ships and the ones you wrote. You can
+      change and retire only your own. A retired exercise leaves the library but
+      still reads by id.
   - name: health
     description: Whether the server and its database are answering.

@@ -9,13 +9,23 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"passion/server/db/dbtest"
 )
 
 func newTestServer(t *testing.T) http.Handler {
 	t.Helper()
-	return New(dbtest.Pool(t), slog.New(slog.NewTextHandler(io.Discard, nil))).
-		Routes(stubClient())
+	h, _ := newTestServerWithPool(t)
+	return h
+}
+
+// newTestServerWithPool also hands back the pool, for a test that must write a
+// row no endpoint can, such as a shipped exercise.
+func newTestServerWithPool(t *testing.T) (http.Handler, *pgxpool.Pool) {
+	t.Helper()
+	pool := dbtest.Pool(t)
+	return New(pool, slog.New(slog.NewTextHandler(io.Discard, nil))).Routes(stubClient()), pool
 }
 
 // stubClient stands in for the built Svelte app, which the api package knows
