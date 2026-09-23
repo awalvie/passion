@@ -1,4 +1,4 @@
-import { replaceState } from '$app/navigation';
+import { afterNavigate, replaceState } from '$app/navigation';
 
 // urlFilters keeps a list page's filters in its query string, so Back from a
 // row finds them as they were. Call it while the page component starts.
@@ -13,6 +13,13 @@ export function urlFilters<K extends string>(path: string, keys: K[]): Record<K,
 		if (next === written) return;
 		written = next;
 		replaceState(`${path}${next}`, {});
+	});
+
+	// A link to this same page keeps the component, so the filters must follow
+	// the URL it opened.
+	afterNavigate(() => {
+		Object.assign(filters, fromURL());
+		written = search();
 	});
 
 	// replaceState is shallow routing, so page.url never holds the filters: on
