@@ -10,7 +10,7 @@ export async function load({ params }) {
 			request<{ exercises: Exercise[] }>('GET', '/api/v1/exercises')
 		]);
 		if (template.shipped || template.retired_at) redirect(307, `/templates/${params.id}`);
-		return { template, sources: sourcesOf(exercises) };
+		return { template, exercises, sources: sourcesOf(exercises) };
 	} catch (e) {
 		if (e instanceof RequestFailed && e.status === 404) error(404, 'Not found');
 		throw e;

@@ -40,6 +40,12 @@ export function choiceMeta(c: Choice): string {
 	return `Pick at least ${c.pick} of ${n}`;
 }
 
+// toStep copies a library exercise into a new step.
+export function toStep(e: Exercise): Step {
+	const { id, shipped, retired_at, ...fields } = e;
+	return { exercise: id, ...fields, tags: [...e.tags], media: e.media.map((m) => ({ ...m })) };
+}
+
 export function moveEntry<T>(list: T[], i: number, by: number) {
 	[list[i], list[i + by]] = [list[i + by], list[i]];
 }
