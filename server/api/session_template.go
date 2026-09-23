@@ -308,12 +308,9 @@ func (req sessionTemplateRequest) fields() db.SessionTemplateFields {
 				step := item.Step.step()
 				out.Step = &step
 			}
-			if c := item.Choice; c != nil {
-				options := make([]db.Step, 0, len(c.Options))
-				for _, option := range c.Options {
-					options = append(options, option.step())
-				}
-				out.Choice = &db.Choice{Name: c.Name, Notes: c.Notes, Pick: c.Pick, Options: options}
+			if item.Choice != nil {
+				choice := item.Choice.choice()
+				out.Choice = &choice
 			}
 			items = append(items, out)
 		}
@@ -333,6 +330,22 @@ func (req sessionTemplateRequest) fields() db.SessionTemplateFields {
 
 func (s stepBody) step() db.Step {
 	return db.Step{Exercise: s.Exercise, ExerciseFields: s.exerciseRequest.fields()}
+}
+
+func (c choiceBody) choice() db.Choice {
+	options := make([]db.Step, 0, len(c.Options))
+	for _, option := range c.Options {
+		options = append(options, option.step())
+	}
+	return db.Choice{Name: c.Name, Notes: c.Notes, Pick: c.Pick, Options: options}
+}
+
+func toChoiceBody(c db.Choice) choiceBody {
+	options := make([]stepBody, 0, len(c.Options))
+	for _, option := range c.Options {
+		options = append(options, toStepBody(option))
+	}
+	return choiceBody{Name: c.Name, Notes: c.Notes, Pick: c.Pick, Options: options}
 }
 
 func toStepBody(s db.Step) stepBody {
@@ -358,9 +371,9 @@ func toStepBody(s db.Step) stepBody {
 	}
 }
 
-func toSessionTemplateResponse(t db.SessionTemplate) sessionTemplateResponse {
-	sections := make([]sectionBody, 0, len(t.Body.Sections))
-	for _, s := range t.Body.Sections {
+func toSectionBodies(b db.SessionBody) []sectionBody {
+	sections := make([]sectionBody, 0, len(b.Sections))
+	for _, s := range b.Sections {
 		items := make([]itemBody, 0, len(s.Items))
 		for _, item := range s.Items {
 			var out itemBody
@@ -368,18 +381,18 @@ func toSessionTemplateResponse(t db.SessionTemplate) sessionTemplateResponse {
 				step := toStepBody(*item.Step)
 				out.Step = &step
 			}
-			if c := item.Choice; c != nil {
-				options := make([]stepBody, 0, len(c.Options))
-				for _, option := range c.Options {
-					options = append(options, toStepBody(option))
-				}
-				out.Choice = &choiceBody{Name: c.Name, Notes: c.Notes, Pick: c.Pick, Options: options}
+			if item.Choice != nil {
+				choice := toChoiceBody(*item.Choice)
+				out.Choice = &choice
 			}
 			items = append(items, out)
 		}
 		sections = append(sections, sectionBody{Name: s.Name, Notes: s.Notes, Items: items})
 	}
+	return sections
+}
 
+func toSessionTemplateResponse(t db.SessionTemplate) sessionTemplateResponse {
 	return sessionTemplateResponse{
 		ID:        t.ID,
 		Shipped:   t.Owner == nil,
@@ -389,7 +402,7 @@ func toSessionTemplateResponse(t db.SessionTemplate) sessionTemplateResponse {
 		Color:     t.Color,
 		Needs:     t.Needs,
 		Tags:      t.Tags,
-		Sections:  sections,
+		Sections:  toSectionBodies(t.Body),
 		RetiredAt: t.RetiredAt,
 	}
 }
