@@ -44,23 +44,24 @@ type Exercise struct {
 	UpdatedAt time.Time  `db:"updated_at"`
 }
 
-// ExerciseFields is what a person sets on an exercise of their own.
+// ExerciseFields is what a person sets on an exercise of their own. The tags
+// name its keys where a session template copies it into its body.
 type ExerciseFields struct {
-	Name   string
-	Kind   string
-	Notes  *string
-	Source *string
-	Tags   []string
+	Name   string   `json:"name"`
+	Kind   string   `json:"kind"`
+	Notes  *string  `json:"notes"`
+	Source *string  `json:"source"`
+	Tags   []string `json:"tags"`
 
-	Sets            *int
-	Reps            *int
-	SetRestSeconds  *int
-	RepSeconds      *int
-	RepRestSeconds  *int
-	PrepSeconds     *int
-	DurationSeconds *int
+	Sets            *int `json:"sets"`
+	Reps            *int `json:"reps"`
+	SetRestSeconds  *int `json:"set_rest_seconds"`
+	RepSeconds      *int `json:"rep_seconds"`
+	RepRestSeconds  *int `json:"rep_rest_seconds"`
+	PrepSeconds     *int `json:"prep_seconds"`
+	DurationSeconds *int `json:"duration_seconds"`
 
-	Media []Media
+	Media []Media `json:"media"`
 }
 
 // Media is one clip, or an image with no video. The tags name its keys in the
@@ -70,7 +71,7 @@ type Media struct {
 	ThumbURL *string `json:"thumb_url"`
 }
 
-const maxExerciseName = 200
+const maxName = 200
 
 var exerciseKinds = map[string]bool{
 	"reps_and_sets": true,
@@ -85,13 +86,7 @@ var exerciseKinds = map[string]bool{
 func (f ExerciseFields) Clean() (ExerciseFields, map[string]string) {
 	problems := map[string]string{}
 
-	f.Name = strings.TrimSpace(f.Name)
-	switch {
-	case f.Name == "":
-		problems["name"] = "is required"
-	case utf8.RuneCountInString(f.Name) > maxExerciseName:
-		problems["name"] = "is too long"
-	}
+	f.Name = cleanName(f.Name, "name", problems)
 
 	if !exerciseKinds[f.Kind] {
 		problems["kind"] = "must be reps_and_sets, timed_reps, climbing or open"
@@ -132,16 +127,33 @@ func (f ExerciseFields) Clean() (ExerciseFields, map[string]string) {
 		media = append(media, m)
 	}
 	f.Media = media
-
-	tags := []string{}
-	for _, tag := range f.Tags {
-		if tag = strings.TrimSpace(tag); tag != "" {
-			tags = append(tags, tag)
-		}
-	}
-	f.Tags = tags
+	f.Tags = cleanTags(f.Tags)
 
 	return f, problems
+}
+
+// cleanName trims a required name and records a problem under key.
+func cleanName(name, key string, problems map[string]string) string {
+	name = strings.TrimSpace(name)
+	switch {
+	case name == "":
+		problems[key] = "is required"
+	case utf8.RuneCountInString(name) > maxName:
+		problems[key] = "is too long"
+	}
+	return name
+}
+
+// cleanTags trims each tag and drops empty ones. The result is never nil, so
+// an empty list always stores and hashes the same way.
+func cleanTags(tags []string) []string {
+	cleaned := []string{}
+	for _, tag := range tags {
+		if tag = strings.TrimSpace(tag); tag != "" {
+			cleaned = append(cleaned, tag)
+		}
+	}
+	return cleaned
 }
 
 // optional trims a text field, and treats a blank one as not set, so a form
