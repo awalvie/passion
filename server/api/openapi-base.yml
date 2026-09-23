@@ -33,6 +33,10 @@ tags:
       A plan that repeats a block of days from one date to another, and places
       its sessions on the days they fall. Deleting a cycle keeps every run done
       under it.
+  - name: scheduled-sessions
+    description: >-
+      Your calendar: one row per session per day, placed by a cycle or by you.
+      A future one follows its template until you start it.
   - name: grades
     description: >-
       The scales a climb's grade is logged in, the same list the server checks
