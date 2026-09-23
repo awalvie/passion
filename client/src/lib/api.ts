@@ -1,4 +1,5 @@
-import { token } from './session';
+import { goto } from '$app/navigation';
+import { clearToken, token } from './session';
 
 // The one shape every failure comes back in. See server/api/errors.go.
 export type APIError = {
@@ -37,6 +38,12 @@ export async function request<T>(method: string, path: string, body?: unknown): 
 			detail = (await res.json()).error ?? detail;
 		} catch {
 			/* keep the fallback */
+		}
+		// A token that expired or was signed out elsewhere. A wrong password at
+		// sign-in answers with another code, so it stays on its own page.
+		if (res.status === 401 && detail.code === 'unauthenticated') {
+			clearToken();
+			await goto('/login');
 		}
 		throw new RequestFailed(res.status, detail);
 	}
