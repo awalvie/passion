@@ -136,7 +136,7 @@ type exerciseBodyParams struct {
 	Body exerciseRequest `json:"body"`
 }
 
-// swagger:parameters readExercise updateExercise retireExercise
+// swagger:parameters readExercise updateExercise retireExercise exerciseHistory
 type exerciseIDParams struct {
 	// The exercise's id.
 	//
