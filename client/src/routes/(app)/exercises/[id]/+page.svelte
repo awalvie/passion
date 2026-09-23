@@ -41,6 +41,21 @@
 			busy = false;
 		}
 	}
+
+	async function retire() {
+		if (!confirm(`Retire “${saved.name}”? It leaves your library. Sessions that use it keep their copy.`))
+			return;
+		error = '';
+		busy = true;
+		try {
+			await request('POST', `/api/v1/exercises/${saved.id}/retire`);
+			await goto('/exercises');
+		} catch (e) {
+			error = describe(e, fieldLabel);
+		} finally {
+			busy = false;
+		}
+	}
 </script>
 
 <svelte:head><title>{saved.name}</title></svelte:head>
@@ -72,6 +87,17 @@
 						{busy ? 'Saving…' : 'Save'}
 					</button>
 					<span class="flex-1"></span>
+					<button
+						type="button"
+						class="rounded-md btn-ghost px-4 py-2 text-sm inline-flex items-center"
+						style="color:var(--destructive)"
+						title="Retire"
+						disabled={busy}
+						onclick={retire}
+					>
+						<Icon name="archive" size="0.875rem" />
+						<span class="ml-1.5 hidden sm:inline">Retire</span>
+					</button>
 					<a class="text-sm muted hover:underline" href="/exercises">Back</a>
 				</div>
 			{/if}
