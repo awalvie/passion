@@ -197,6 +197,13 @@ type setParams struct {
 	Body setRequest `json:"body"`
 }
 
+// swagger:parameters setGrades
+type gradesParams struct {
+	// in:body
+	// required:true
+	Body gradesBody `json:"body"`
+}
+
 // swagger:parameters putClimb deleteClimb
 type climbIDParams struct {
 	// The id the client chose for the climb.

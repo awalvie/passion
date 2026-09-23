@@ -10,6 +10,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"passion/server/grades"
 )
 
 type Account struct {
@@ -20,6 +22,40 @@ type Account struct {
 	Timezone     string    `db:"timezone"`
 	CreatedAt    time.Time `db:"created_at"`
 	UpdatedAt    time.Time `db:"updated_at"`
+
+	Grades
+}
+
+// Grades are the scales the client offers first. A climb keeps the scale it
+// was logged in, so changing them rewrites nothing.
+type Grades struct {
+	Boulder string `db:"boulder_grades"`
+	Route   string `db:"route_grades"`
+}
+
+// Check names each setting that is not a scale for its kind of climb.
+func (g Grades) Check() map[string]string {
+	problems := map[string]string{}
+	if scale, ok := grades.Find(g.Boulder); !ok || !scale.Boulder {
+		problems["boulder_grades"] = "must be font or v"
+	}
+	if scale, ok := grades.Find(g.Route); !ok || scale.Boulder {
+		problems["route_grades"] = "must be french or yds"
+	}
+	return problems
+}
+
+// SetGrades changes the account's grade settings. It takes Grades that
+// passed Check.
+func SetGrades(ctx context.Context, pool *pgxpool.Pool, id string, g Grades) (Account, error) {
+	rows, err := pool.Query(ctx, `
+		UPDATE account SET boulder_grades = $2, route_grades = $3
+		WHERE id = $1
+		RETURNING *`, id, g.Boulder, g.Route)
+	if err != nil {
+		return Account{}, fmt.Errorf("update grades: %w", err)
+	}
+	return oneAccount(rows)
 }
 
 var (
