@@ -82,7 +82,7 @@
 			</select>
 		{/if}
 		{#if filtered}
-			<button type="button" class="text-xs muted hover:underline" onclick={clear}>Clear</button>
+			<button type="button" class="rounded-md px-3 py-2 text-xs muted hover:underline" onclick={clear}>Clear</button>
 		{/if}
 		<span class="text-sm muted">{plural(shown.length, 'template')}</span>
 	</div>
