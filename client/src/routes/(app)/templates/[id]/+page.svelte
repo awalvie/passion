@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { describe, request } from '$lib/api';
-	import { fieldLabel } from '$lib/exercise';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import Notes from '$lib/Notes.svelte';
 	import TemplatePlan from '$lib/TemplatePlan.svelte';
-	import type { SessionTemplate } from '$lib/template';
+	import { templateFieldLabel, type SessionTemplate } from '$lib/template';
 
 	let { data } = $props();
 
@@ -35,7 +34,7 @@
 			});
 			await goto(`/templates/${copy.id}`);
 		} catch (e) {
-			error = describe(e, fieldLabel);
+			error = describe(e, templateFieldLabel);
 		} finally {
 			busy = false;
 		}
@@ -49,7 +48,7 @@
 			await request('POST', `/api/v1/session-templates/${t.id}/retire`);
 			await goto('/templates');
 		} catch (e) {
-			error = describe(e, fieldLabel);
+			error = describe(e, templateFieldLabel);
 		} finally {
 			busy = false;
 		}
