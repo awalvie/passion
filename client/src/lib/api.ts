@@ -50,3 +50,16 @@ export async function request<T>(method: string, path: string, body?: unknown): 
 
 	return res.status === 204 ? (undefined as T) : res.json();
 }
+
+// describe turns a failed request into one line for a form, with one sentence
+// per field that the server named.
+export function describe(e: unknown, label: (field: string) => string): string {
+	if (!(e instanceof RequestFailed)) return 'Could not reach the server. Try again.';
+	const fields = e.error.fields;
+	if (fields) {
+		return Object.entries(fields)
+			.map(([field, problem]) => `${label(field)} ${problem}.`)
+			.join(' ');
+	}
+	return e.error.message;
+}

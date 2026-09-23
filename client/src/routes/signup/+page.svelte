@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { RequestFailed, request } from '$lib/api';
+	import { RequestFailed, describe, request } from '$lib/api';
 	import FormError from '$lib/FormError.svelte';
 	import { setToken } from '$lib/session';
 
@@ -39,24 +39,15 @@
 			setToken(created.token.token);
 			await goto('/');
 		} catch (e) {
-			error = describe(e);
+			// The server answers a taken address the same as any other failure, so
+			// that nobody can ask it who has an account.
+			error =
+				e instanceof RequestFailed && e.status === 401
+					? 'That account could not be created. Check the details, or log in.'
+					: describe(e, (field) => labels[field] ?? field);
 		} finally {
 			busy = false;
 		}
-	}
-
-	function describe(e: unknown): string {
-		if (!(e instanceof RequestFailed)) return 'Could not reach the server. Try again.';
-		const fields = e.error.fields;
-		if (fields) {
-			return Object.entries(fields)
-				.map(([key, problem]) => `${labels[key] ?? key} ${problem}.`)
-				.join(' ');
-		}
-		// The server answers a taken address the same as any other failure, so
-		// that nobody can ask it who has an account.
-		if (e.status === 401) return 'That account could not be created. Check the details, or log in.';
-		return e.error.message;
 	}
 </script>
 
