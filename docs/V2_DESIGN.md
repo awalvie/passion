@@ -140,9 +140,7 @@ Left for later, because nothing needs it yet:
 ### Catalog cleanup
 
 `catalog/movements/` is in the same format as a private tree: one file per exercise, the file
-name as its slug, and an `id:` line. Before loading it:
-
-- Check that `max_lifts_power` doesn't copy a paid programme's weekly structure.
+name as its slug, and an `id:` line. It is ready to load.
 
 14 files say `per_side: true`. The loader reads it and stores nothing, until per side is
 decided.
