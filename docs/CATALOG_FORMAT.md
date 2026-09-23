@@ -48,7 +48,8 @@ a shipped exercise by it.
 | `set_rest_seconds`, `rep_seconds`, `rep_rest_seconds`, `prep_seconds` | no | seconds |
 | `seconds` | no | how long an `open` exercise runs |
 | `media` | no | a list of `{url, thumb_url}`. Either may be left out. Links must be http or https |
-| `per_side`, `per_set` | no | read, but not stored yet. A start logs how many files use them |
+| `per_side` | no | `true` when the numbers count for each side, as in 6 reps per side |
+| `per_set` | no | read, but not stored yet. A start logs how many files use it |
 
 Any other key stops the load and names its line, so a misspelt key is never dropped. This
 holds for blocks and sessions too.

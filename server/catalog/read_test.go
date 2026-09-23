@@ -104,7 +104,7 @@ func TestReadWarnsOnKeysItDoesNotStore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Join(warnings, "\n") != "mine: movements/hang.yaml: per_side is not stored yet\nmine: movements/hang.yaml: per_set is not stored yet" {
+	if strings.Join(warnings, "\n") != "mine: movements/hang.yaml: per_set is not stored yet" {
 		t.Fatalf("warnings %q", warnings)
 	}
 }
