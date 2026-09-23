@@ -38,7 +38,7 @@ func runRequestFrom(t *testing.T, run runResponse, edit func(map[string]any)) st
 	if err := json.Unmarshal(raw, &body); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"id", "template", "plan", "timezone", "finished_at", "sets", "climbs"} {
+	for _, key := range []string{"id", "template", "scheduled", "plan", "timezone", "finished_at", "sets", "climbs"} {
 		delete(body, key)
 	}
 	edit(body)
@@ -108,6 +108,7 @@ func TestStartRunValidation(t *testing.T) {
 		"a bad template":          {`{"template": "nope"}`, "template"},
 		"someone else's template": {`{"template": "` + bobs.ID + `"}`, "template"},
 		"a bad day":               {`{"name": "Open", "local_date": "7 March"}`, "local_date"},
+		"a day that is not yours": {`{"scheduled": "0199c3a0-0000-7000-8000-0000000000ff"}`, "scheduled"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			rec := send(t, h, http.MethodPost, "/api/v1/runs", ada, c.body)

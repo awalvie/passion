@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -188,6 +189,9 @@ type Run struct {
 	Plan     *SessionBody `db:"plan"`
 	Body     RunBody      `db:"body"`
 
+	// The scheduled session it was started from, if any.
+	Scheduled *string `db:"scheduled"`
+
 	StartedAt      time.Time  `db:"started_at"`
 	Timezone       string     `db:"timezone"`
 	LocalDate      time.Time  `db:"local_date"`
@@ -220,11 +224,12 @@ type RunSummary struct {
 // ErrNoRun covers a run that does not exist and one this person cannot see.
 var ErrNoRun = errors.New("no such run")
 
-// RunStart starts a run. With a Template it is a planned run; without one,
-// Name names an open run that starts empty. LocalDate is for a write-up of a
-// day already gone.
+// RunStart starts a run. With a Template it is a planned run, and a
+// Scheduled session names its template. With neither, Name names an open run
+// that starts empty. LocalDate is for a write-up of a day already gone.
 type RunStart struct {
 	Template  *string
+	Scheduled *string
 	Name      string
 	StartedAt time.Time
 	LocalDate *time.Time
@@ -232,6 +237,17 @@ type RunStart struct {
 
 func (s RunStart) Clean() (RunStart, map[string]string) {
 	problems := map[string]string{}
+	if s.Scheduled != nil {
+		id := strings.ToLower(strings.TrimSpace(*s.Scheduled))
+		s.Scheduled = &id
+		if !uuidText.MatchString(id) {
+			problems["scheduled"] = "must be a scheduled session id"
+		}
+		if s.Template != nil {
+			problems["template"] = "comes from the scheduled session, so leave it out"
+		}
+		return s, problems
+	}
 	if s.Template != nil {
 		id := strings.ToLower(strings.TrimSpace(*s.Template))
 		s.Template = &id
@@ -244,9 +260,24 @@ func (s RunStart) Clean() (RunStart, map[string]string) {
 	return s, problems
 }
 
+const foreignKeyViolation = "23503"
+
 // StartRun copies the template now, so that editing it later never reaches
 // the run (rule 5). It takes a RunStart that went through Clean.
 func StartRun(ctx context.Context, pool *pgxpool.Pool, owner string, s RunStart) (Run, error) {
+	if s.Scheduled != nil {
+		var template string
+		err := pool.QueryRow(ctx, `SELECT template::text FROM scheduled_session WHERE owner = $1 AND id = $2`,
+			owner, *s.Scheduled).Scan(&template)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return Run{}, ErrNoScheduledSession
+		}
+		if err != nil {
+			return Run{}, fmt.Errorf("select scheduled session: %w", err)
+		}
+		s.Template = &template
+	}
+
 	name, plan, body := s.Name, (*SessionBody)(nil), RunBody{Sections: []RunSection{}}
 	if s.Template != nil {
 		t, err := GetSessionTemplate(ctx, pool, owner, *s.Template)
@@ -259,14 +290,16 @@ func StartRun(ctx context.Context, pool *pgxpool.Pool, owner string, s RunStart)
 	// Postgres works out the local date, from the zone it checked when the
 	// account was made.
 	rows, err := pool.Query(ctx, `
-		INSERT INTO run (owner, template, name, plan, body, started_at, timezone, local_date)
-		SELECT a.id, @template::uuid, @name::text, @plan::jsonb, @body::jsonb, @started_at::timestamptz,
-			a.timezone, coalesce(@local_date::date, (@started_at::timestamptz AT TIME ZONE a.timezone)::date)
+		INSERT INTO run (owner, template, scheduled, name, plan, body, started_at, timezone, local_date)
+		SELECT a.id, @template::uuid, @scheduled::uuid, @name::text, @plan::jsonb, @body::jsonb,
+			@started_at::timestamptz, a.timezone,
+			coalesce(@local_date::date, (@started_at::timestamptz AT TIME ZONE a.timezone)::date)
 		FROM account a
 		WHERE a.id = @owner
 		RETURNING *`, pgx.NamedArgs{
 		"owner":      owner,
 		"template":   s.Template,
+		"scheduled":  s.Scheduled,
 		"name":       name,
 		"plan":       plan,
 		"body":       body,
@@ -277,6 +310,11 @@ func StartRun(ctx context.Context, pool *pgxpool.Pool, owner string, s RunStart)
 		return Run{}, fmt.Errorf("insert run: %w", err)
 	}
 	run, err := oneRun(rows)
+	// The scheduled session can be taken out between the read and the insert.
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == foreignKeyViolation {
+		return Run{}, ErrNoScheduledSession
+	}
 	if err != nil {
 		return Run{}, err
 	}

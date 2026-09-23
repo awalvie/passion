@@ -17,6 +17,12 @@ type runStartRequest struct {
 	// example: 01a0bf77-d7e8-76ea-96cc-f09cbca175a3
 	Template *string `json:"template"`
 
+	// A scheduled session to run. Its template is copied now, and the day
+	// counts as done once the run is finished. Send it instead of template.
+	//
+	// example: 01a0bf77-d7e8-76ea-96cc-f09cbca175a3
+	Scheduled *string `json:"scheduled"`
+
 	// Required for an open run, up to 200 characters. A planned run takes its
 	// template's name.
 	//
@@ -181,6 +187,9 @@ type runResponse struct {
 
 	// The session template it was copied from. null for an open run.
 	Template *string `json:"template"`
+
+	// The scheduled session it was started from, if any.
+	Scheduled *string `json:"scheduled"`
 
 	// example: Power
 	Name string `json:"name"`
@@ -435,7 +444,7 @@ func (s *Server) startRun(w http.ResponseWriter, r *http.Request, who db.Authent
 	}
 
 	problems := map[string]string{}
-	start := db.RunStart{Template: req.Template, Name: req.Name, StartedAt: time.Now()}
+	start := db.RunStart{Template: req.Template, Scheduled: req.Scheduled, Name: req.Name, StartedAt: time.Now()}
 	if req.StartedAt != nil {
 		start.StartedAt = *req.StartedAt
 	}
@@ -456,6 +465,9 @@ func (s *Server) startRun(w http.ResponseWriter, r *http.Request, who db.Authent
 	switch {
 	case errors.Is(err, db.ErrNoSessionTemplate):
 		writeFieldErrors(w, map[string]string{"template": "is not a session template you can see"})
+		return
+	case errors.Is(err, db.ErrNoScheduledSession):
+		writeFieldErrors(w, map[string]string{"scheduled": "is not a scheduled session of yours"})
 		return
 	case err != nil:
 		writeInternal(w, s.log, err)
@@ -869,6 +881,7 @@ func toRunResponse(run db.Run) runResponse {
 	return runResponse{
 		ID:             run.ID,
 		Template:       run.Template,
+		Scheduled:      run.Scheduled,
 		Name:           run.Name,
 		Plan:           plan,
 		Sections:       toRunSectionBodies(run.Body),
