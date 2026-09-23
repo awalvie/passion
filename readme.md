@@ -18,7 +18,8 @@ what the app will do and how the data is arranged. This file says what works tod
 
 ## What works today
 
-Accounts and authentication, and nothing else yet.
+Accounts, authentication and an exercise library, through the API. The client has only the
+sign-in screen so far.
 
 - Sign up with an email address and a password, hashed with argon2id.
 - Sign in. Each sign-in mints its own bearer token, so a phone and a laptop hold different
@@ -26,6 +27,8 @@ Accounts and authentication, and nothing else yet.
 - A token lasts thirty days and slides forward when it is used.
 - Read your own account.
 - Sign out one device.
+- List your exercise library, and create, edit and retire exercises of your own. The shipped
+  catalog isn't loaded yet.
 
 The Go binary serves everything: the API, the Svelte client, and browsable API
 documentation. It migrates its own database on the way up, so an upgrade never needs a
@@ -56,6 +59,11 @@ the handlers and the OpenAPI document is at `/api/openapi.json`.
 | `POST` | `/api/v1/tokens` | Sign in. Returns a new token |
 | `GET` | `/api/v1/accounts/me` | The signed-in account |
 | `DELETE` | `/api/v1/tokens/current` | Sign out this device |
+| `GET` | `/api/v1/exercises` | Your library: shipped exercises and your own, not retired |
+| `POST` | `/api/v1/exercises` | Create an exercise of your own |
+| `GET` | `/api/v1/exercises/{id}` | One exercise, retired ones included |
+| `PUT` | `/api/v1/exercises/{id}` | Replace every field of one of your own |
+| `POST` | `/api/v1/exercises/{id}/retire` | Take one of your own out of your library |
 | `GET` | `/healthz` | Liveness, and whether the database answers |
 
 Authenticate with `Authorization: Bearer <token>`.
