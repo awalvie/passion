@@ -34,6 +34,8 @@ client has only the sign-in screen so far.
 - List session templates, and create, edit and retire your own. A session holds named
   sections of exercises and choices such as "pick 1 of these 3". Each step keeps its own copy
   of the exercise, so you can change its numbers for that session only.
+- The shipped session templates and any private ones load at startup too, from `blocks/` and
+  `sessions/` beside `movements/`. See [docs/CATALOG_FORMAT.md](docs/CATALOG_FORMAT.md).
 
 The Go binary serves everything: the API, the Svelte client, and browsable API
 documentation. It migrates its own database on the way up, so an upgrade never needs a

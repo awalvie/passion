@@ -14,8 +14,8 @@ work, are the target. See "The frontend follows V1".
 ## Start here
 
 **What works.** Sign up, sign in on several devices, see your account, sign out. An exercise
-library through the API: the shipped catalog and any private ones load at startup, and you can
-add, edit and retire your own. The Go binary serves the Svelte client. API docs are at
+library and session templates through the API: the shipped catalog and any private ones load
+at startup, and you can add, edit and retire your own. The Go binary serves the Svelte client. API docs are at
 `/api/docs/`, generated from the handlers, and CI fails if the spec goes stale. `make run` to
 try it, `make watch` to develop.
 
@@ -168,7 +168,9 @@ decided.
 
 ### Steps
 
-1. Agree the session template table. Done.
+Steps 1 to 5 are built.
+
+1. Agree the session template table.
 2. Migrate the session template table.
 3. Write its queries and their tests: create, list, get, update, retire.
 4. Add the API routes for the same.
@@ -275,7 +277,13 @@ Left for later, because nothing needs it yet:
 - An item's own numbers go over the copied exercise fields.
 - `loaded_hash` covers the resolved body. A change to a block file or an exercise file
   rewrites every session that uses it. A second load with no file changes writes nothing.
-- Sessions load after exercises, in the same transaction per owner.
+- Sessions load after exercises, in a transaction of their own. Every file is checked before
+  either load writes, so only a database error can stop the second one, and the next start
+  repeats it.
+- A block's `tags`, `source` and `role` are read and not stored. A section has only a name and
+  notes.
+
+The file format is in [CATALOG_FORMAT.md](CATALOG_FORMAT.md).
 
 ---
 
@@ -540,9 +548,6 @@ These are out of date and will mislead you. Don't take a data shape from any of 
 - **`CLAUDE.md`**: its HTMX and `<select>` rules are V1, and it lists a `schema` agent that no
   longer exists.
 - **`.claude/agents/qa.md`** writes Go tests against SQLite in a temp folder.
-- **`catalog/`** is 102 YAML files in V1's three-level shape, where a session template has
-  `activities:` that `ref:` an activity template. Part 1 cleans up the exercises, and part 2
-  rewrites the session templates.
 
 ### How to read `docs/REQUIREMENTS.md`
 
