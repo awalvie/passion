@@ -18,6 +18,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY server ./server
+COPY catalog ./catalog
 COPY --from=client /src/server/web/dist ./server/web/dist
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /passion ./server/cmd/passion
 

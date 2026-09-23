@@ -122,7 +122,7 @@ server/token/       opaque bearer tokens
 server/web/         serves the client, embedded with //go:embed
 server/cmd/         passion, the server, and catalogid, which gives catalog files an id
 client/             sveltekit, built into server/web/dist
-catalog/            exercise and session YAML. Not imported yet
+catalog/            the shipped catalog. movements/ is embedded in the binary, not loaded yet
 docs/               design and requirements
 ```
 
