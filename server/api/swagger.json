@@ -2121,7 +2121,7 @@
           "example": "Eva López"
         },
         "status": {
-          "description": "null until the run reaches it, then done or skipped. Finishing the run\nskips every step still null.",
+          "description": "null until the run reaches it, then done or skipped. Finishing the run\nskips every step still null that has nothing logged.",
           "type": "string",
           "x-go-name": "Status",
           "example": "done"
