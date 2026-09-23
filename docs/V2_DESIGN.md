@@ -642,7 +642,8 @@ so a deleted cycle still shows what it asked (rule 4). Two things need the owner
 
 ### Steps
 
-1. Agree what each history screen reads.
+1. Agree what each history screen reads. Exercise history is built, below, and waits for the
+   owner's review.
 2. Build exercise history, then session history.
 
 ### What history shows
@@ -664,6 +665,28 @@ metric toggles that Hevy and Strong have.
 
 Estimated 1RM is out because it drifts at 5 to 10 reps. Total volume is out because it
 rewards junk reps.
+
+### Exercise history, as built
+
+`GET /api/v1/exercises/{id}/history` lists every finished run that logged the exercise,
+newest day first, each with its sets and its whole climbs.
+
+- Only finished runs, in the query itself, so no client can count an unfinished one (rule 45).
+  A skipped step keeps no rows, so rule 47 needs no filter.
+- The id need not be in the library. A step typed into a run has its own id and its own
+  history (rule 12).
+- The player's "what you did the last few times" is the head of this list. The run in
+  progress is unfinished, so it is never in it.
+- Every chart in the table above is worked out by the client from this list. Climbs come
+  whole, because a send and the highest grade are worked out when read.
+- It reads `run_set (owner, exercise)` and `climb (owner, exercise)`. No new index.
+
+Session history needs no route yet. `GET /api/v1/runs` carries each run's template and
+finish, so times completed is a count of finished runs with that template id, and a template
+id is never shared between the person's copy and the app's (rule 48).
+
+Left for later: streaks, the heat map, weekly bars and averages, all read from the run list;
+server-side counts and paging when that list gets too long to send.
 
 ---
 
