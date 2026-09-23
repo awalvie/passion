@@ -25,12 +25,24 @@ type LoadResult struct {
 	Retired int
 }
 
-// OwnersWithLoadedExercises lists the accounts that hold rows a catalog load
-// wrote and has not retired, so that an owner dropped from the config can
-// have theirs retired.
-func OwnersWithLoadedExercises(ctx context.Context, pool *pgxpool.Pool) ([]string, error) {
+// FileSessionTemplate is one sessions/ file, with its blocks copied in and
+// every step's exercise id filled.
+type FileSessionTemplate struct {
+	FileID string
+	Slug   string
+	Hash   string
+	Fields SessionTemplateFields
+}
+
+// OwnersWithLoadedRows lists the accounts that hold rows a catalog load wrote
+// and has not retired, so that an owner dropped from the config can have
+// theirs retired.
+func OwnersWithLoadedRows(ctx context.Context, pool *pgxpool.Pool) ([]string, error) {
 	rows, err := pool.Query(ctx, `
-		SELECT DISTINCT owner FROM exercise
+		SELECT owner FROM exercise
+		WHERE owner IS NOT NULL AND file_id IS NOT NULL AND loaded_hash IS NOT NULL
+		UNION
+		SELECT owner FROM session_template
 		WHERE owner IS NOT NULL AND file_id IS NOT NULL AND loaded_hash IS NOT NULL`)
 	if err != nil {
 		return nil, fmt.Errorf("select loaded owners: %w", err)
@@ -42,6 +54,29 @@ func OwnersWithLoadedExercises(ctx context.Context, pool *pgxpool.Pool) ([]strin
 	return owners, nil
 }
 
+// ExerciseIDsByFileID maps each file id one owner's catalog loaded to its
+// row id, retired rows included. owner is nil for the catalog the app ships.
+func ExerciseIDsByFileID(ctx context.Context, pool *pgxpool.Pool, owner *string) (map[string]string, error) {
+	scope := "owner = @owner"
+	if owner == nil {
+		scope = "owner IS NULL"
+	}
+	rows, err := pool.Query(ctx, `SELECT file_id::text, id::text FROM exercise WHERE `+scope+` AND file_id IS NOT NULL`,
+		pgx.NamedArgs{"owner": owner})
+	if err != nil {
+		return nil, fmt.Errorf("select exercise ids: %w", err)
+	}
+	ids := map[string]string{}
+	var fileID, id string
+	if _, err := pgx.ForEachRow(rows, []any{&fileID, &id}, func() error {
+		ids[fileID] = id
+		return nil
+	}); err != nil {
+		return nil, fmt.Errorf("read exercise ids: %w", err)
+	}
+	return ids, nil
+}
+
 // LoadExercises makes one owner's exercise rows match their catalog files.
 func LoadExercises(ctx context.Context, pool *pgxpool.Pool, owner *string, files []FileExercise) (LoadResult, error) {
 	rows := make([]fileRow, 0, len(files))
@@ -49,6 +84,16 @@ func LoadExercises(ctx context.Context, pool *pgxpool.Pool, owner *string, files
 		rows = append(rows, fileRow{FileID: f.FileID, Slug: f.Slug, Hash: f.Hash, Args: f.Fields.args()})
 	}
 	return loadFiles(ctx, pool, "exercise", owner, rows)
+}
+
+// LoadSessionTemplates makes one owner's session template rows match their
+// catalog files. It runs after LoadExercises, whose ids the steps hold.
+func LoadSessionTemplates(ctx context.Context, pool *pgxpool.Pool, owner *string, files []FileSessionTemplate) (LoadResult, error) {
+	rows := make([]fileRow, 0, len(files))
+	for _, f := range files {
+		rows = append(rows, fileRow{FileID: f.FileID, Slug: f.Slug, Hash: f.Hash, Args: f.Fields.args()})
+	}
+	return loadFiles(ctx, pool, "session_template", owner, rows)
 }
 
 // fileRow is one catalog file for any table the loader writes. Args holds the

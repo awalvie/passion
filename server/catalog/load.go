@@ -42,7 +42,7 @@ func LoadAll(ctx context.Context, pool *pgxpool.Pool, log *slog.Logger, shipped 
 
 	// Anyone who had rows loaded and is no longer in the config gets an empty
 	// load, which retires them.
-	stale, err := db.OwnersWithLoadedExercises(ctx, pool)
+	stale, err := db.OwnersWithLoadedRows(ctx, pool)
 	if err != nil {
 		return err
 	}
