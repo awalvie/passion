@@ -63,6 +63,53 @@ func ScheduleSession(ctx context.Context, pool *pgxpool.Pool, owner, template st
 	return s, err
 }
 
+// ScheduledDay is a scheduled session as a calendar shows it.
+type ScheduledDay struct {
+	ScheduledSession
+
+	// The template's name today, as a future session follows its template.
+	TemplateName string `db:"template_name"`
+
+	// The run started from it, a finished one first.
+	Run *string `db:"run"`
+
+	// done (a finished run), started (a run not finished yet), missed (a day
+	// gone with no run), or planned.
+	Status string `db:"status"`
+}
+
+// ListScheduledSessions lists the person's days from one date to another,
+// both included. "Today" is the person's, in their own zone (rule 43).
+func ListScheduledSessions(ctx context.Context, pool *pgxpool.Pool, owner string, from, to time.Time) ([]ScheduledDay, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT s.*, t.name AS template_name, r.id AS run,
+			CASE
+				WHEN r.finished_at IS NOT NULL THEN 'done'
+				WHEN r.id IS NOT NULL THEN 'started'
+				WHEN s.local_date < (now() AT TIME ZONE a.timezone)::date THEN 'missed'
+				ELSE 'planned'
+			END AS status
+		FROM scheduled_session s
+		JOIN account a ON a.id = s.owner
+		JOIN session_template t ON t.id = s.template
+		LEFT JOIN LATERAL (
+			SELECT id, finished_at FROM run
+			WHERE run.scheduled = s.id
+			ORDER BY finished_at IS NULL, started_at DESC
+			LIMIT 1
+		) r ON true
+		WHERE s.owner = $1 AND s.local_date BETWEEN $2 AND $3
+		ORDER BY s.local_date, lower(t.name), s.id`, owner, from, to)
+	if err != nil {
+		return nil, fmt.Errorf("select scheduled sessions: %w", err)
+	}
+	list, err := pgx.CollectRows(rows, pgx.RowToStructByName[ScheduledDay])
+	if err != nil {
+		return nil, fmt.Errorf("read scheduled sessions: %w", err)
+	}
+	return list, nil
+}
+
 // MoveScheduledSession puts one row on another day and touches no other.
 func MoveScheduledSession(ctx context.Context, pool *pgxpool.Pool, owner, id string, day time.Time) (ScheduledSession, error) {
 	rows, err := pool.Query(ctx, `

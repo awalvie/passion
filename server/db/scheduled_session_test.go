@@ -128,3 +128,54 @@ func TestPutCycleKeepsADayWithARun(t *testing.T) {
 		t.Fatalf("the day with a run is %q (%v), want %q kept", kept, err, first)
 	}
 }
+
+func TestListScheduledSessions(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	bob := newAccount(t, pool, "bob@example.com")
+	hang := insertSessionTemplate(t, pool, ada, "Hang")
+	boulder := insertSessionTemplate(t, pool, "", "Boulder")
+
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	yesterday, tomorrow := today.AddDate(0, 0, -1), today.AddDate(0, 0, 1)
+	schedule := func(template string, d time.Time) db.ScheduledSession {
+		t.Helper()
+		s, err := db.ScheduleSession(ctx, pool, ada, template, d)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	missed := schedule(hang, yesterday.AddDate(0, 0, -1))
+	done := schedule(hang, yesterday)
+	started := schedule(boulder, today)
+	planned := schedule(hang, tomorrow)
+	schedule(hang, tomorrow.AddDate(0, 0, 1))
+	if _, err := db.ScheduleSession(ctx, pool, bob, boulder, today); err != nil {
+		t.Fatal(err)
+	}
+
+	run := startRun(t, ctx, pool, ada, db.RunStart{Scheduled: &done.ID, StartedAt: time.Now()})
+	if _, err := db.FinishRun(ctx, pool, ada, run.ID); err != nil {
+		t.Fatal(err)
+	}
+	startRun(t, ctx, pool, ada, db.RunStart{Scheduled: &started.ID, StartedAt: time.Now()})
+
+	list, err := db.ListScheduledSessions(ctx, pool, ada, missed.LocalDate, planned.LocalDate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, d := range list {
+		got = append(got, d.TemplateName+" "+d.Status)
+	}
+	// The zone is UTC, so today is the server's.
+	want := []string{"Hang missed", "Hang done", "Boulder started", "Hang planned"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("days %v, want %v", got, want)
+	}
+	if list[1].Run == nil || *list[1].Run != run.ID {
+		t.Fatalf("run %v, want the finished one", list[1].Run)
+	}
+}
