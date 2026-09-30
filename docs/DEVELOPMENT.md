@@ -85,5 +85,7 @@ affected.
 ## Before you commit
 
 - `make db-up`, then `make test`. Tests share one database, so they run one package at a time.
+  `make test` also runs the client's `*.test.ts` files with `node --test`. They cover pure
+  modules only, so they need no browser and no extra packages.
 - `gofmt` and `go vet` must be clean. CI checks both.
 - `make openapi`, if you touched a handler or a request or response struct.
