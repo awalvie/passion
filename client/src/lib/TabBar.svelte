@@ -9,7 +9,8 @@
 			label: 'Library',
 			icon: 'book-marked',
 			match: (p) => p.startsWith('/templates') || p.startsWith('/exercises')
-		}
+		},
+		{ href: '/history', label: 'History', icon: 'history', match: (p) => p.startsWith('/history') }
 	];
 </script>
 
