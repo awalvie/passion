@@ -115,6 +115,9 @@ class OpenRun {
 			}
 		} finally {
 			this.#flushing = false;
+			// Another run opened while a write was in flight, and its load could
+			// not start a flush of its own.
+			if (this.run && this.run.id !== runId && this.writes.length) void this.flush();
 		}
 	}
 }
