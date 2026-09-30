@@ -71,12 +71,18 @@ Test handlers with `httptest` against `newTestServer(t)`, from `auth_test.go`. S
 ## Add a screen
 
 1. Put a page that needs sign-in under `client/src/routes/(app)/`. Its layout sends a
-   signed-out visitor to `/login`.
+   signed-out visitor to `/login`. A page with the tab bar goes in `(app)/(tabs)/`, and a
+   Library page in `(app)/(tabs)/(library)/`. None of these groups change the URL.
 2. Call the API with `request` from `client/src/lib/api.ts`. A failure throws
    `RequestFailed`, and `describe` turns it into one line for a form.
-3. For filters a list keeps in the URL, use `urlFilters` from `client/src/lib/filters.svelte.ts`.
-4. Follow [DESIGN.md](DESIGN.md) for colours, type, cards and buttons.
-5. Run `pnpm --dir client check`.
+3. A change to a run goes through `openRun` in `client/src/lib/runState.svelte.ts`, not
+   `request`. It changes the run on the phone first and queues the write, so a gym with no
+   signal loses nothing.
+4. For filters a list keeps in the URL, use `urlFilters` from `client/src/lib/filters.svelte.ts`.
+5. New screens use the colour utilities from `client/src/tokens.css`, such as `bg-surface`
+   and `text-ink-2`. They point at the V1 theme for now, so a new look rewrites that one
+   file. The Library screens still use [DESIGN.md](DESIGN.md)'s classes.
+6. Run `pnpm --dir client check`.
 
 Under `make watch`, a class used for the first time in a new file can be missing from the dev
 stylesheet. Run `touch client/src/app.css` and Vite rebuilds it. The production build is not
