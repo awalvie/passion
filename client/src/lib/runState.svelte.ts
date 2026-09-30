@@ -211,6 +211,17 @@ class OpenRun {
 		}
 	}
 
+	// settle waits for every queued write, and says whether they all went.
+	async settle(): Promise<boolean> {
+		this.stalled = false;
+		for (let tries = 0; this.writes.length && tries < 50; tries++) {
+			await this.flush();
+			if (this.stalled) return false;
+			if (this.writes.length) await new Promise((r) => setTimeout(r, 200));
+		}
+		return !this.writes.length;
+	}
+
 	// flush sends one write at a time, the body first, so a step the body adds
 	// exists before its sets arrive. It stops at the first write that could
 	// not reach the server and tries again on the next trigger.
