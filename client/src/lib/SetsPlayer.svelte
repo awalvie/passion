@@ -1,7 +1,8 @@
 <script lang="ts">
+	import { request } from './api';
 	import Button from './Button.svelte';
 	import RestCard from './RestCard.svelte';
-	import { isFinished, setsOf, type RunStep, type SetFields } from './run';
+	import { isFinished, setsOf, type HistorySession, type RunStep, type SetFields } from './run';
 	import { openRun } from './runState.svelte';
 	import Stepper from './Stepper.svelte';
 
@@ -13,12 +14,29 @@
 
 	let reps = $state<number | null>(null);
 	let weight = $state<number | null>(null);
+	let lastTime = $state<HistorySession | null>(null);
 
-	// A new step starts from its plan, and each set after that from the last one.
+	// The newest finished run that logged this exercise. Without a signal the
+	// sets start from the plan.
+	$effect(() => {
+		const exercise = step.exercise;
+		let current = true;
+		lastTime = null;
+		request<{ sessions: HistorySession[] }>('GET', `/api/v1/exercises/${exercise}/history`)
+			.then((h) => {
+				if (current) lastTime = h.sessions.find((s) => s.sets.length) ?? null;
+			})
+			.catch(() => {});
+		return () => (current = false);
+	});
+
+	// Each set starts from the one before it, the first from the same set last
+	// time, and else from the plan.
 	$effect.pre(() => {
-		const last = logged.at(-1);
-		reps = last?.reps ?? step.reps;
-		weight = last?.weight_kg ?? null;
+		const before = logged.at(-1);
+		const then = lastTime?.sets[logged.length] ?? lastTime?.sets.at(-1);
+		reps = before?.reps ?? then?.reps ?? step.reps;
+		weight = before?.weight_kg ?? then?.weight_kg ?? null;
 	});
 
 	let rest: ReturnType<typeof RestCard>;
@@ -52,9 +70,14 @@
 
 {#if !isFinished(step)}
 	<section class="flex flex-col gap-4 rounded-2xl bg-surface p-4 shadow-sm">
-		<p class="text-center text-base font-semibold">
-			Set {number}{planned ? ` of ${planned}` : ''}
-		</p>
+		<div class="text-center">
+			<p class="text-base font-semibold">Set {number}{planned ? ` of ${planned}` : ''}</p>
+			{#if lastTime}
+				<p class="text-sm text-ink-2">
+					Last time: {lastTime.sets.map(describeSet).filter(Boolean).join(', ')}
+				</p>
+			{/if}
+		</div>
 		<div class="grid grid-cols-2 gap-2">
 			<Stepper label="Reps" bind:value={reps} />
 			<Stepper label="kg" step={2.5} min={-200} placeholder="–" bind:value={weight} />
