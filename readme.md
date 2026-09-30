@@ -75,6 +75,16 @@ Then open <http://localhost:8080/login> to sign up.
 For development, `make watch` reloads both halves. Vite serves the client on
 <http://localhost:5173> and proxies `/api` to the Go server. Open that one, not 8080.
 
+## On an iPhone
+
+1. Serve Passion over HTTPS. Over plain http the app works, but the screen dims during a
+   timer, because Safari keeps the wake lock for secure pages.
+2. Open the address in Safari, tap Share, then Add to Home Screen.
+3. Open Passion from the Home Screen and sign in there. The Home Screen app keeps its own
+   storage, so a sign-in in Safari does not carry over.
+
+Timer tones play once you tap Start. Turn them off in Settings, from the gear on Today.
+
 ## API
 
 Interactive documentation lives at `/api/docs/` on a running server. It is generated from
