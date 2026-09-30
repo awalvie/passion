@@ -33,6 +33,10 @@ class OpenRun {
 	#flushing = false;
 
 	async load(id: string) {
+		if (this.run?.id !== id) {
+			this.refused = '';
+			this.stalled = false;
+		}
 		const stored = readStored(id);
 		if (stored) {
 			const { run, writes } = stored;
@@ -44,6 +48,18 @@ class OpenRun {
 		}
 		this.run = await request<Run>('GET', `/api/v1/runs/${id}`);
 		this.writes = [];
+	}
+
+	// forget drops a deleted run with its unsent writes and its clocks.
+	forget() {
+		if (this.run) {
+			localStorage.removeItem(storageKey(this.run.id));
+			localStorage.removeItem(`passion-timer:${this.run.id}`);
+		}
+		this.run = null;
+		this.writes = [];
+		this.refused = '';
+		this.stalled = false;
 	}
 
 	step(id: string): RunStep | undefined {
@@ -149,7 +165,10 @@ export type StartBody = { scheduled: string } | { template: string } | { name: s
 // startRun is never retried: a second POST would start a second run.
 export async function startRun(body: StartBody): Promise<Run> {
 	const run = await request<Run>('POST', '/api/v1/runs', body);
+	// The last run's unsent writes stay stored, and go when it opens again.
 	openRun.run = run;
 	openRun.writes = [];
+	openRun.refused = '';
+	openRun.stalled = false;
 	return run;
 }
