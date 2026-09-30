@@ -9,6 +9,8 @@
 	import { currentStep, isFinished, secondsSince, stepsOf, type RunStep } from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
 	import { choiceMeta, stepMeta, type Step } from '$lib/template';
+	import type { Exercise } from '$lib/exercise';
+	import ExercisePicker from '$lib/ExercisePicker.svelte';
 
 	const run = $derived(openRun.run!);
 	const steps = $derived(stepsOf(run));
@@ -35,6 +37,18 @@
 	function openChoice(id: string) {
 		choosing = choosing === id ? null : id;
 		picked = [];
+	}
+
+	let library = $state<Exercise[] | null>(null);
+
+	async function openLibrary() {
+		error = '';
+		try {
+			const { exercises } = await request<{ exercises: Exercise[] }>('GET', '/api/v1/exercises');
+			library = exercises.filter((e) => !e.retired_at);
+		} catch (e) {
+			error = describe(e, (f) => f);
+		}
 	}
 
 	function pick(id: string, options: Step[]) {
@@ -167,6 +181,21 @@
 			</ul>
 		</section>
 	{/each}
+
+	{#if library}
+		<div class="rounded-2xl bg-surface p-4 shadow-sm">
+			<ExercisePicker
+				id="add-exercise"
+				exercises={library}
+				pick={(e) => {
+					openRun.addStep(e);
+					library = null;
+				}}
+			/>
+		</div>
+	{:else}
+		<Button variant="secondary" onclick={openLibrary}>Add exercise</Button>
+	{/if}
 </div>
 
 {#if current && !run.finished_at}

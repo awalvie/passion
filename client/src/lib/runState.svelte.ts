@@ -11,7 +11,8 @@ import {
 	type RunStep,
 	type SetFields
 } from './run';
-import type { Step } from './template';
+import type { Exercise } from './exercise';
+import { toStep, type Step } from './template';
 
 // A write waiting for the server. A newer write to the same url replaces an
 // older one, since each carries the whole list or the whole run.
@@ -158,6 +159,16 @@ class OpenRun {
 			this.saveBody();
 			return;
 		}
+	}
+
+	// addStep puts a library exercise at the end of the run. An open run
+	// starts with no sections, so the first exercise makes one.
+	addStep(e: Exercise) {
+		const run = this.run!;
+		if (!run.sections.length) run.sections.push({ name: 'Exercises', notes: null, items: [] });
+		const step: RunStep = { ...toStep(e), id: newId(), status: null, run_notes: null, elapsed_seconds: null };
+		run.sections.at(-1)!.items.push({ step });
+		this.saveBody();
 	}
 
 	// addSet plans one more set, which reopens a finished step.
