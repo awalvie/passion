@@ -58,6 +58,14 @@
 		attempts = c.attempts;
 	}
 
+	// A boulder and a route use different scales, and a boulder has no onsight
+	// or hangdog, so the server would refuse what was picked for the other.
+	function setDiscipline(next: Discipline) {
+		if ((next === 'boulder') !== boulder) grade = '';
+		if (next === 'boulder' && (outcome === 'onsight' || outcome === 'hangdog')) outcome = 'flash';
+		discipline = next;
+	}
+
 	function remove() {
 		openRun.removeClimb(editing!.id);
 		editing = null;
@@ -118,7 +126,7 @@
 			{ value: 'trad', label: 'Trad' }
 		],
 		discipline,
-		(v) => (discipline = v)
+		setDiscipline
 	)}
 	{@render choice(
 		[
