@@ -28,6 +28,7 @@
 		busy = true;
 		error = '';
 		const r = openRun.run!;
+		openRun.logTimer();
 		Object.assign(r, {
 			sleep,
 			energy,
