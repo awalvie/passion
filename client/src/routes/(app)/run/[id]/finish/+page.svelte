@@ -46,7 +46,7 @@
 				return;
 			}
 			await request<Run>('POST', `/api/v1/runs/${r.id}/finish`);
-			await goto('/');
+			await goto(`/history/${r.id}`);
 			openRun.forget();
 		} catch (e) {
 			error = describe(e, (f) => f);
