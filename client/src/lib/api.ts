@@ -57,6 +57,12 @@ export async function request<T>(
 	return res.status === 204 ? (undefined as T) : res.json();
 }
 
+// unreachable says a request never got an answer from Passion: no signal, or
+// a proxy in front of it answering for a server it cannot reach.
+export function unreachable(e: unknown): boolean {
+	return !(e instanceof RequestFailed) || e.status >= 500;
+}
+
 // describe turns a failed request into one line for a form, with one sentence
 // per field that the server named.
 export function describe(e: unknown, label: (field: string) => string): string {

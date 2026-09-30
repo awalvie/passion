@@ -88,7 +88,9 @@
 		</article>
 	{:else}
 		<section class="flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-sm">
-			<p class="text-base">Nothing planned today.</p>
+			<p class="text-base">
+				{data.offline ? 'No signal, so the plan cannot load. A running session still works.' : 'Nothing planned today.'}
+			</p>
 			<Button variant="secondary" href="/templates">Pick a session</Button>
 		</section>
 	{/each}
