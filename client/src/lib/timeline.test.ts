@@ -72,6 +72,12 @@ test('rows count each finished block, and the one in progress only when asked', 
 	assert.deepEqual(rows(p, 10 ** 9, {}), [3, 3]);
 });
 
+test('end set during prep changes nothing', () => {
+	const p = timeline(hang);
+	const c: Clock = { startedAt: 0, pausedAt: null, pausedMs: 0, skipMs: 0 };
+	assert.deepEqual(endSet(p, c, 1000, {}), { clock: c, short: {} });
+});
+
 test('end set keeps the hangs done and moves to the rest after the set', () => {
 	const p = timeline(hang);
 	const c: Clock = { startedAt: 0, pausedAt: null, pausedMs: 0, skipMs: 0 };
