@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Button from '$lib/Button.svelte';
+	import ClimbsPlayer from '$lib/ClimbsPlayer.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import Notes from '$lib/Notes.svelte';
@@ -76,6 +77,8 @@
 			<SetsPlayer {step} />
 		{:else if step.kind === 'open'}
 			<OpenPlayer {step} />
+		{:else if step.kind === 'climbing'}
+			<ClimbsPlayer {step} />
 		{:else}
 			<p class="text-base text-ink-2">This kind of exercise cannot be logged here yet.</p>
 		{/if}
@@ -95,7 +98,7 @@
 			</button>
 			{#if !isFinished(step)}
 				<button type="button" class="ml-auto h-11 rounded-xl px-3 text-base font-semibold text-tint" onclick={skip}>
-					{logged ? 'Skip the sets left' : 'Skip exercise'}
+					{logged ? (step.kind === 'climbing' ? 'Done climbing' : 'Skip the sets left') : 'Skip exercise'}
 				</button>
 			{/if}
 		</div>

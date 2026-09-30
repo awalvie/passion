@@ -1,5 +1,14 @@
 import { RequestFailed, request } from './api';
-import { cleanSet, stepsOf, toRunBody, type Run, type RunStep, type SetFields } from './run';
+import {
+	cleanSet,
+	stepsOf,
+	toRunBody,
+	type Climb,
+	type ClimbFields,
+	type Run,
+	type RunStep,
+	type SetFields
+} from './run';
 
 // A write waiting for the server. A newer write to the same url replaces an
 // older one, since each carries the whole list or the whole run.
@@ -101,6 +110,20 @@ class OpenRun {
 	finish(step: RunStep) {
 		step.elapsed_seconds = this.#elapsed(step.id);
 		this.saveBody();
+	}
+
+	// putClimb writes a climb under an id this phone picks, so a retry
+	// writes the same climb. The server marks the step done at its first climb.
+	putClimb(step: RunStep, id: string, fields: ClimbFields) {
+		const run = this.run!;
+		const sent =
+			fields.grade_system !== null && ['onsight', 'flash', 'redpoint'].includes(fields.outcome ?? '');
+		const climb: Climb = { ...fields, id, exercise: step.exercise, sent };
+		const i = run.climbs.findIndex((c) => c.id === id);
+		if (i >= 0) run.climbs[i] = climb;
+		else run.climbs.push(climb);
+		if (step.status === null) step.status = 'done';
+		this.#queue('PUT', `/api/v1/runs/${run.id}/climbs/${id}`, fields);
 	}
 
 	// addSet plans one more set, which reopens a finished step.
