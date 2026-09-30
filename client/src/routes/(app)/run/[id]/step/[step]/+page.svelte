@@ -23,6 +23,13 @@
 		if (step) openRun.opened(step.id);
 	});
 
+	let noting = $state(false);
+
+	function saveNote(text: string) {
+		step!.run_notes = text.trim() || null;
+		openRun.saveBody();
+	}
+
 	// Skip keeps what is logged and ends the step, or skips a step with nothing.
 	async function skip() {
 		if (!step) return;
@@ -64,12 +71,32 @@
 
 		{#if isFinished(step)}
 			<Button href={nextHref}>{next ? 'Next exercise' : 'Back to session'}</Button>
-		{:else}
-			<div class="flex justify-end">
-				<button type="button" class="h-11 rounded-xl px-4 text-base font-semibold text-tint" onclick={skip}>
+		{/if}
+
+		<div class="flex items-center gap-2">
+			{#if step.kind === 'reps_and_sets' && step.status !== 'skipped'}
+				<button type="button" class="h-11 rounded-xl px-3 text-base font-semibold text-tint" onclick={() => openRun.addSet(step!)}>
+					Add set
+				</button>
+			{/if}
+			<button type="button" class="h-11 rounded-xl px-3 text-base font-semibold text-tint" onclick={() => (noting = !noting)}>
+				Note
+			</button>
+			{#if !isFinished(step)}
+				<button type="button" class="ml-auto h-11 rounded-xl px-3 text-base font-semibold text-tint" onclick={skip}>
 					{logged ? 'Skip the sets left' : 'Skip exercise'}
 				</button>
-			</div>
+			{/if}
+		</div>
+
+		{#if noting || step.run_notes}
+			<textarea
+				class="min-h-24 rounded-2xl bg-surface p-4 text-base shadow-sm outline-none"
+				placeholder="How did it go?"
+				aria-label="Note"
+				value={step.run_notes ?? ''}
+				onchange={(e) => saveNote(e.currentTarget.value)}
+			></textarea>
 		{/if}
 
 		{#if next}

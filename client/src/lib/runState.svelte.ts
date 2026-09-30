@@ -103,6 +103,13 @@ class OpenRun {
 		this.saveBody();
 	}
 
+	// addSet plans one more set, which reopens a finished step.
+	addSet(step: RunStep) {
+		step.sets = (step.sets ?? 0) + 1;
+		step.elapsed_seconds = null;
+		this.saveBody();
+	}
+
 	// skip drops what the step logged, as the server does, and any set write
 	// still waiting, which the server would refuse.
 	skip(step: RunStep) {
