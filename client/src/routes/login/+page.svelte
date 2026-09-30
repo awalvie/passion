@@ -31,7 +31,7 @@
 
 <svelte:head><title>Log in</title></svelte:head>
 
-<section class="card card-pad max-w-md mx-auto">
+<section class="card card-pad mx-4 mt-[calc(env(safe-area-inset-top)+2rem)]">
 	<h1 class="text-xl font-bold">Log in</h1>
 	<p class="text-sm muted mt-1">Sign in to access your workouts.</p>
 
