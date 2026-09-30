@@ -35,6 +35,7 @@
 		try {
 			await request('DELETE', `/api/v1/runs/${run.id}`);
 			await goto('/');
+			openRun.forget();
 		} catch (e) {
 			error = describe(e, (f) => f);
 		}
