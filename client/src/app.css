@@ -21,3 +21,9 @@
 	--color-rest: var(--rest);
 	--color-bad: var(--bad);
 }
+
+/* The library editors save from a bar stuck to the bottom, which must clear the
+   tab bar. */
+.lib-edit-sticky-bar {
+	bottom: calc(3.5rem + env(safe-area-inset-bottom));
+}

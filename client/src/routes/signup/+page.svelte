@@ -53,7 +53,7 @@
 
 <svelte:head><title>Sign up</title></svelte:head>
 
-<section class="card card-pad max-w-md mx-auto">
+<section class="card card-pad mx-4 mt-[calc(env(safe-area-inset-top)+2rem)]">
 	<h1 class="text-xl font-bold">Sign up</h1>
 	<p class="text-sm muted mt-1">Create your account to save personal workouts.</p>
 
