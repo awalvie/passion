@@ -5,6 +5,7 @@
 	import Icon from '$lib/Icon.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import Notes from '$lib/Notes.svelte';
+	import OpenPlayer from '$lib/OpenPlayer.svelte';
 	import SaveStatus from '$lib/SaveStatus.svelte';
 	import SetsPlayer from '$lib/SetsPlayer.svelte';
 	import { canTime } from '$lib/timeline';
@@ -73,6 +74,8 @@
 			<TimerPlayer {step} />
 		{:else if step.kind === 'reps_and_sets' || step.kind === 'timed_reps'}
 			<SetsPlayer {step} />
+		{:else if step.kind === 'open'}
+			<OpenPlayer {step} />
 		{:else}
 			<p class="text-base text-ink-2">This kind of exercise cannot be logged here yet.</p>
 		{/if}
