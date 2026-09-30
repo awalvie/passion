@@ -61,3 +61,4 @@ catalog-ids:
 # and empties it between tests, so two packages at once wipe each other.
 test:
 	go test ./... -count=1 -p 1
+	pnpm --dir client test
