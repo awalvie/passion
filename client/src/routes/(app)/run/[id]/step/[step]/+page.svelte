@@ -9,6 +9,7 @@
 	import SetsPlayer from '$lib/SetsPlayer.svelte';
 	import { canTime } from '$lib/timeline';
 	import TimerPlayer from '$lib/TimerPlayer.svelte';
+	import { keepAwake } from '$lib/wakeLock';
 	import { climbsOf, isFinished, nextStep, setsOf, stepsOf } from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
 	import { stepMeta } from '$lib/template';
@@ -24,6 +25,9 @@
 	$effect(() => {
 		if (step) openRun.opened(step.id);
 	});
+
+	// The phone lies on the floor during a set, with chalky hands.
+	$effect(() => keepAwake());
 
 	let noting = $state(false);
 
