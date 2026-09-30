@@ -6,7 +6,7 @@
 	import { isFinished, setsOf, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
 	import Stepper from './Stepper.svelte';
-	import { at, elapsed, endSet, jump, rows, startOf, timeline, type Clock } from './timeline';
+	import { at, elapsed, endSet, jump, newClock, rows, startOf, timeline, togglePause } from './timeline';
 	import { readTimers, writeTimers, type Timed } from './timerStore';
 
 	let { step }: { step: RunStep } = $props();
@@ -85,7 +85,7 @@
 	function start() {
 		unlock();
 		const t = Date.now();
-		let clock: Clock = { startedAt: t, pausedAt: null, pausedMs: 0, skipMs: 0 };
+		let clock = newClock(t);
 		const first = phases.findIndex((p) => p.block === logged.length && p.kind === 'hang');
 		if (logged.length && first > 0) clock = jump(clock, t, startOf(phases, first));
 		const short = Object.fromEntries(logged.map((s, i) => [i, s.reps ?? 0]));
@@ -93,11 +93,7 @@
 	}
 
 	function pause() {
-		const t = Date.now();
-		const c = timed!.clock;
-		const clock =
-			c.pausedAt === null ? { ...c, pausedAt: t } : { ...c, pausedAt: null, pausedMs: c.pausedMs + t - c.pausedAt };
-		save({ ...timed!, clock });
+		save({ ...timed!, clock: togglePause(timed!.clock, Date.now()) });
 	}
 
 	function skipPhase() {

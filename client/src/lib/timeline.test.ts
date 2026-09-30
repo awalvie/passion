@@ -1,7 +1,17 @@
 // @ts-nocheck: node runs this with `node --test`, and the client has no node types.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { at, elapsed, endSet, rows, timeline, type Clock, type TimedStep } from './timeline.ts';
+import {
+	at,
+	elapsed,
+	endSet,
+	newClock,
+	rows,
+	timeline,
+	togglePause,
+	type Clock,
+	type TimedStep
+} from './timeline.ts';
 
 const hang: TimedStep = {
 	sets: 2,
@@ -39,6 +49,12 @@ test('the clock leaves out pauses and adds skips', () => {
 	const c: Clock = { startedAt: 1000, pausedAt: null, pausedMs: 500, skipMs: 2000 };
 	assert.equal(elapsed(c, 11_000), 11_500);
 	assert.equal(elapsed({ ...c, pausedAt: 6000 }, 99_000), 6500);
+});
+
+test('a pause stops the clock until it is resumed', () => {
+	const paused = togglePause(newClock(0), 4000);
+	assert.equal(elapsed(paused, 60_000), 4000);
+	assert.equal(elapsed(togglePause(paused, 10_000), 11_000), 5000);
 });
 
 test('at finds the phase and the time left in it', () => {

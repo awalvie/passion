@@ -3,7 +3,7 @@
 	import Button from './Button.svelte';
 	import { isFinished, setsOf, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
-	import { elapsed, type Clock } from './timeline';
+	import { elapsed, newClock, togglePause } from './timeline';
 	import { formatClock, readTimers, writeTimers, type Timed } from './timerStore';
 
 	let { step }: { step: RunStep } = $props();
@@ -44,16 +44,11 @@
 
 	function start() {
 		unlock();
-		const clock: Clock = { startedAt: Date.now(), pausedAt: null, pausedMs: 0, skipMs: 0 };
-		save({ step: step.id, clock, short: {}, weight: null });
+		save({ step: step.id, clock: newClock(Date.now()), short: {}, weight: null });
 	}
 
 	function pause() {
-		const t = Date.now();
-		const c = timed!.clock;
-		const clock =
-			c.pausedAt === null ? { ...c, pausedAt: t } : { ...c, pausedAt: null, pausedMs: c.pausedMs + t - c.pausedAt };
-		save({ ...timed!, clock });
+		save({ ...timed!, clock: togglePause(timed!.clock, Date.now()) });
 	}
 
 	function done(spent: number) {
