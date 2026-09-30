@@ -100,7 +100,9 @@
 			['path', { d: 'M20 12h2' }],
 			['path', { d: 'm6.34 17.66-1.41 1.41' }],
 			['path', { d: 'm19.07 4.93-1.41 1.41' }]
-		]
+		],
+		'chevron-right': [['path', { d: 'm9 18 6-6-6-6' }]],
+		check: [['path', { d: 'M20 6 9 17l-5-5' }]]
 	} satisfies Record<string, Shape[]>;
 
 	export type IconName = keyof typeof icons;
