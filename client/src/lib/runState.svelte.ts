@@ -2,6 +2,8 @@ import { RequestFailed, request, unreachable } from './api';
 import { newId } from './id';
 import {
 	cleanSet,
+	isFinished,
+	setsOf,
 	stepsOf,
 	toRunBody,
 	type Climb,
@@ -13,6 +15,8 @@ import {
 } from './run';
 import type { Exercise } from './exercise';
 import { toStep, type Step } from './template';
+import { elapsed, rows, timeline } from './timeline';
+import { readTimers } from './timerStore';
 
 // A write waiting for the server. A newer write to the same url replaces an
 // older one, since each carries the whole list or the whole run.
@@ -185,6 +189,21 @@ class OpenRun {
 		const step: RunStep = { ...toStep(e), id: newId(), status: null, run_notes: null, elapsed_seconds: null };
 		run.sections.at(-1)!.items.push({ step });
 		this.saveBody();
+	}
+
+	// logTimer logs the blocks a running timer finished, including those after
+	// the person left its step.
+	logTimer() {
+		const run = this.run!;
+		const t = readTimers(run.id).timed;
+		const step = t ? this.step(t.step) : undefined;
+		if (!t || !step || isFinished(step)) return;
+		const done = rows(timeline(step), elapsed(t.clock, Date.now()), t.short);
+		if (done.length <= setsOf(run, step.id).length) return;
+		this.setSets(
+			step,
+			done.map((reps) => ({ reps, seconds: step.rep_seconds, weight_kg: t.weight }))
+		);
 	}
 
 	// unskip brings a skipped step back, with nothing logged.
