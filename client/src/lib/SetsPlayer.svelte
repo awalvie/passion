@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from './Button.svelte';
+	import RestCard from './RestCard.svelte';
 	import { setsOf, type RunStep, type SetFields } from './run';
 	import { openRun } from './runState.svelte';
 	import Stepper from './Stepper.svelte';
@@ -20,9 +21,12 @@
 		weight = last?.weight_kg ?? null;
 	});
 
+	let rest: ReturnType<typeof RestCard>;
+
 	function log() {
 		const sets: SetFields[] = logged.map(({ reps, seconds, weight_kg }) => ({ reps, seconds, weight_kg }));
 		openRun.setSets(step, [...sets, { reps, seconds: null, weight_kg: weight }]);
+		if (!planned || sets.length + 1 < planned) rest.start();
 	}
 
 	function describeSet(s: SetFields) {
@@ -31,6 +35,8 @@
 			.join(' · ');
 	}
 </script>
+
+<RestCard bind:this={rest} runId={openRun.run!.id} seconds={step.set_rest_seconds} />
 
 {#if logged.length}
 	<ol class="overflow-hidden rounded-2xl bg-surface shadow-sm">
