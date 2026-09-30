@@ -1,6 +1,10 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
+	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
+	import Menu from '$lib/Menu.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import { currentStep, isFinished, secondsSince, stepsOf, type RunStep } from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
@@ -23,6 +27,19 @@
 		Math.floor((run.finished_at ? (run.elapsed_seconds ?? 0) : secondsSince(run.started_at, now)) / 60)
 	);
 
+	let error = $state('');
+
+	async function discard() {
+		if (!confirm(`Discard “${run.name}”? Everything logged in it is deleted.`)) return;
+		error = '';
+		try {
+			await request('DELETE', `/api/v1/runs/${run.id}`);
+			await goto('/');
+		} catch (e) {
+			error = describe(e, (f) => f);
+		}
+	}
+
 	function mark(s: RunStep): 'done' | 'skipped' | 'now' | 'todo' {
 		if (s.status === 'skipped') return 'skipped';
 		if (isFinished(s)) return 'done';
@@ -32,7 +49,15 @@
 
 <svelte:head><title>{run.name}</title></svelte:head>
 
-<NavBar title={run.name} back={{ href: '/', label: 'Today' }} />
+<NavBar title={run.name} back={{ href: '/', label: 'Today' }}>
+	{#snippet actions()}
+		<Menu items={[{ label: 'Discard session', danger: true, onclick: discard }]} />
+	{/snippet}
+</NavBar>
+
+<div class="px-4">
+	<FormError message={error} />
+</div>
 
 <div class="flex flex-col gap-6 px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+6rem)]">
 	<section class="rounded-2xl bg-surface p-4 shadow-sm">
