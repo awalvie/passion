@@ -1,10 +1,13 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import Button from '$lib/Button.svelte';
+	import Icon from '$lib/Icon.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import Notes from '$lib/Notes.svelte';
 	import SaveStatus from '$lib/SaveStatus.svelte';
 	import SetsPlayer from '$lib/SetsPlayer.svelte';
-	import { stepsOf } from '$lib/run';
+	import { climbsOf, isFinished, nextStep, setsOf, stepsOf } from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
 	import { stepMeta } from '$lib/template';
 
@@ -12,6 +15,21 @@
 	const step = $derived(openRun.step(page.params.step!));
 	const section = $derived(run.sections.find((s) => s.items.some((i) => i.step?.id === step?.id)));
 	const position = $derived(stepsOf(run).findIndex((s) => s.id === step?.id) + 1);
+	const next = $derived(step ? nextStep(run, step.id) : undefined);
+	const nextHref = $derived(next ? `/run/${run.id}/step/${next.id}` : `/run/${run.id}`);
+	const logged = $derived(step ? setsOf(run, step.id).length + climbsOf(run, step.id).length : 0);
+
+	$effect(() => {
+		if (step) openRun.opened(step.id);
+	});
+
+	// Skip keeps what is logged and ends the step, or skips a step with nothing.
+	async function skip() {
+		if (!step) return;
+		if (logged) openRun.finish(step);
+		else openRun.skip(step);
+		await goto(nextHref);
+	}
 </script>
 
 <svelte:head><title>{step?.name ?? run.name}</title></svelte:head>
@@ -42,6 +60,27 @@
 			<SetsPlayer {step} />
 		{:else}
 			<p class="text-base text-ink-2">This kind of exercise cannot be logged here yet.</p>
+		{/if}
+
+		{#if isFinished(step)}
+			<Button href={nextHref}>{next ? 'Next exercise' : 'Back to session'}</Button>
+		{:else}
+			<div class="flex justify-end">
+				<button type="button" class="h-11 rounded-xl px-4 text-base font-semibold text-tint" onclick={skip}>
+					{logged ? 'Skip the sets left' : 'Skip exercise'}
+				</button>
+			</div>
+		{/if}
+
+		{#if next}
+			<a href={nextHref} class="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3 shadow-sm">
+				<span class="min-w-0 flex-1">
+					<span class="block text-sm text-ink-2">Up next</span>
+					<span class="block truncate text-base font-semibold">{next.name}</span>
+					<span class="block truncate text-sm text-ink-2">{stepMeta(next)}</span>
+				</span>
+				<Icon name="chevron-right" size="1rem" />
+			</a>
 		{/if}
 	</div>
 {/if}
