@@ -31,6 +31,7 @@ class OpenRun {
 	stalled = $state(false);
 	#seq = 0;
 	#flushing = false;
+	#openedAt = new Map<string, number>();
 
 	async load(id: string) {
 		if (this.run?.id !== id) {
@@ -85,12 +86,29 @@ class OpenRun {
 		this.#queue('PUT', `/api/v1/runs/${run.id}`, toRunBody($state.snapshot(run) as Run));
 	}
 
+	// opened notes when the person first reached a step on this phone, which is
+	// where the time written when they move on starts.
+	opened(step: string) {
+		if (!this.#openedAt.has(step)) this.#openedAt.set(step, Date.now());
+	}
+
+	#elapsed(step: string) {
+		const at = this.#openedAt.get(step);
+		return at === undefined ? 0 : Math.round((Date.now() - at) / 1000);
+	}
+
+	// finish marks that the person moved on from a step, keeping what it logged.
+	finish(step: RunStep) {
+		step.elapsed_seconds = this.#elapsed(step.id);
+		this.saveBody();
+	}
+
 	// skip drops what the step logged, as the server does, and any set write
 	// still waiting, which the server would refuse.
-	skip(step: RunStep, elapsed: number) {
+	skip(step: RunStep) {
 		const run = this.run!;
 		step.status = 'skipped';
-		step.elapsed_seconds = elapsed;
+		step.elapsed_seconds = this.#elapsed(step.id);
 		run.sets = run.sets.filter((s) => s.step !== step.id);
 		this.writes = this.writes.filter((w) => w.url !== `/api/v1/runs/${run.id}/steps/${step.id}/sets`);
 		this.saveBody();

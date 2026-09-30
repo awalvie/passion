@@ -140,6 +140,14 @@ export function currentStep(r: Pick<Run, 'sections'>): RunStep | undefined {
 	return stepsOf(r).find((s) => !isFinished(s));
 }
 
+// nextStep is the first unfinished step after this one, or else the first
+// unfinished one before it.
+export function nextStep(r: Pick<Run, 'sections'>, after: string): RunStep | undefined {
+	const steps = stepsOf(r);
+	const i = steps.findIndex((s) => s.id === after);
+	return [...steps.slice(i + 1), ...steps.slice(0, i)].find((s) => !isFinished(s));
+}
+
 export function setsOf(r: Pick<Run, 'sets'>, step: string): LoggedSet[] {
 	return r.sets.filter((s) => s.step === step).sort((a, b) => a.number - b.number);
 }

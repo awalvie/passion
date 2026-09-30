@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Button from './Button.svelte';
 	import RestCard from './RestCard.svelte';
-	import { setsOf, type RunStep, type SetFields } from './run';
+	import { isFinished, setsOf, type RunStep, type SetFields } from './run';
 	import { openRun } from './runState.svelte';
 	import Stepper from './Stepper.svelte';
 
@@ -26,7 +26,8 @@
 	function log() {
 		const sets: SetFields[] = logged.map(({ reps, seconds, weight_kg }) => ({ reps, seconds, weight_kg }));
 		openRun.setSets(step, [...sets, { reps, seconds: null, weight_kg: weight }]);
-		if (!planned || sets.length + 1 < planned) rest.start();
+		if (planned && sets.length + 1 >= planned) openRun.finish(step);
+		else rest.start();
 	}
 
 	function describeSet(s: SetFields) {
@@ -49,13 +50,15 @@
 	</ol>
 {/if}
 
-<section class="flex flex-col gap-4 rounded-2xl bg-surface p-4 shadow-sm">
-	<p class="text-center text-base font-semibold">
-		Set {number}{planned ? ` of ${planned}` : ''}
-	</p>
-	<div class="grid grid-cols-2 gap-2">
-		<Stepper label="Reps" bind:value={reps} />
-		<Stepper label="kg" step={2.5} min={-200} placeholder="–" bind:value={weight} />
-	</div>
-	<Button onclick={log}>Log set {number}</Button>
-</section>
+{#if !isFinished(step)}
+	<section class="flex flex-col gap-4 rounded-2xl bg-surface p-4 shadow-sm">
+		<p class="text-center text-base font-semibold">
+			Set {number}{planned ? ` of ${planned}` : ''}
+		</p>
+		<div class="grid grid-cols-2 gap-2">
+			<Stepper label="Reps" bind:value={reps} />
+			<Stepper label="kg" step={2.5} min={-200} placeholder="–" bind:value={weight} />
+		</div>
+		<Button onclick={log}>Log set {number}</Button>
+	</section>
+{/if}
