@@ -8,14 +8,23 @@
 	let { items, label = 'More' }: { items: MenuItem[]; label?: string } = $props();
 
 	let open = $state(false);
+	let root: HTMLDivElement;
 
 	function choose(item: MenuItem) {
 		open = false;
 		item.onclick();
 	}
+
+	// A fixed overlay cannot catch the tap: the nav bar's backdrop blur makes
+	// the bar, not the screen, the box a fixed child fills.
+	function outside(e: PointerEvent) {
+		if (open && !root.contains(e.target as Node)) open = false;
+	}
 </script>
 
-<div class="relative">
+<svelte:window onpointerdown={outside} />
+
+<div class="relative" bind:this={root}>
 	<button
 		type="button"
 		class="flex size-11 items-center justify-center text-tint"
@@ -26,12 +35,6 @@
 		<Icon name="ellipsis" size="1.5rem" />
 	</button>
 	{#if open}
-		<button
-			type="button"
-			class="fixed inset-0 z-40 cursor-default"
-			aria-label="Close menu"
-			onclick={() => (open = false)}
-		></button>
 		<ul class="absolute top-full right-0 z-50 min-w-48 overflow-hidden rounded-xl bg-surface shadow-lg">
 			{#each items as item (item.label)}
 				<li class="border-line [&:not(:first-child)]:border-t">
