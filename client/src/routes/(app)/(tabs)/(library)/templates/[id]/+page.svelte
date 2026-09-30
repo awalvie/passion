@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { describe, request } from '$lib/api';
+	import Button from '$lib/Button.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import Notes from '$lib/Notes.svelte';
 	import TemplatePlan from '$lib/TemplatePlan.svelte';
+	import { startRun } from '$lib/runState.svelte';
 	import { templateFieldLabel, type SessionTemplate } from '$lib/template';
 
 	let { data } = $props();
@@ -33,6 +35,19 @@
 				name: `${t.name} (copy)`
 			});
 			await goto(`/templates/${copy.id}`);
+		} catch (e) {
+			error = describe(e, templateFieldLabel);
+		} finally {
+			busy = false;
+		}
+	}
+
+	async function start() {
+		error = '';
+		busy = true;
+		try {
+			const run = await startRun({ template: t.id });
+			await goto(`/run/${run.id}`);
 		} catch (e) {
 			error = describe(e, templateFieldLabel);
 		} finally {
@@ -138,6 +153,8 @@
 		</div>
 		<FormError message={error} />
 	</div>
+
+	<Button disabled={busy} onclick={start}>Start</Button>
 
 	<TemplatePlan sections={t.sections} />
 </div>
