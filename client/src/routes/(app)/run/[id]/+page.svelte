@@ -8,7 +8,7 @@
 	import NavBar from '$lib/NavBar.svelte';
 	import { currentStep, isFinished, secondsSince, stepsOf, type RunStep } from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
-	import { choiceMeta, stepMeta } from '$lib/template';
+	import { choiceMeta, stepMeta, type Step } from '$lib/template';
 
 	const run = $derived(openRun.run!);
 	const steps = $derived(stepsOf(run));
@@ -28,6 +28,19 @@
 	);
 
 	let error = $state('');
+
+	let choosing = $state<string | null>(null);
+	let picked = $state<number[]>([]);
+
+	function openChoice(id: string) {
+		choosing = choosing === id ? null : id;
+		picked = [];
+	}
+
+	function pick(id: string, options: Step[]) {
+		openRun.pick(id, options);
+		choosing = null;
+	}
 
 	async function discard() {
 		if (!confirm(`Discard “${run.name}”? Everything logged in it is deleted.`)) return;
@@ -114,13 +127,38 @@
 								<Icon name="chevron-right" size="1rem" />
 							</a>
 						{:else}
-							<div class="flex items-center gap-3 px-4 py-3 text-ink-2">
+							{@const c = item.choice}
+							<button
+								type="button"
+								class="flex w-full items-center gap-3 px-4 py-3 text-left"
+								aria-expanded={choosing === c.id}
+								onclick={() => openChoice(c.id)}
+							>
 								<span class="size-6 shrink-0 rounded-full border-2 border-dashed border-line"></span>
 								<span class="min-w-0 flex-1">
-									<span class="block truncate text-base">{item.choice.name}</span>
-									<span class="block truncate text-sm">{choiceMeta(item.choice)} · not picked</span>
+									<span class="block truncate text-base">{c.name}</span>
+									<span class="block truncate text-sm text-ink-2">{choiceMeta(c)} · tap to pick</span>
 								</span>
-							</div>
+							</button>
+							{#if choosing === c.id}
+								<div class="flex flex-col gap-1 px-4 pb-4">
+									{#each c.options as o, k (k)}
+										<label class="flex items-center gap-3 rounded-xl px-2 py-2">
+											<input type="checkbox" class="size-5 accent-tint" bind:group={picked} value={k} />
+											<span class="min-w-0 flex-1">
+												<span class="block text-base">{o.name}</span>
+												<span class="block text-sm text-ink-2">{stepMeta(o)}</span>
+											</span>
+										</label>
+									{/each}
+									<Button
+										disabled={picked.length < Math.max(1, c.pick)}
+										onclick={() => pick(c.id, picked.map((k) => c.options[k]))}
+									>
+										Use {picked.length === 1 ? 'this' : 'these'}
+									</Button>
+								</div>
+							{/if}
 						{/if}
 					</li>
 				{:else}

@@ -1,4 +1,5 @@
 import { RequestFailed, request } from './api';
+import { newId } from './id';
 import {
 	cleanSet,
 	stepsOf,
@@ -6,9 +7,11 @@ import {
 	type Climb,
 	type ClimbFields,
 	type Run,
+	type RunChoice,
 	type RunStep,
 	type SetFields
 } from './run';
+import type { Step } from './template';
 
 // A write waiting for the server. A newer write to the same url replaces an
 // older one, since each carries the whole list or the whole run.
@@ -132,6 +135,29 @@ class OpenRun {
 		const run = this.run!;
 		run.climbs = run.climbs.filter((c) => c.id !== id);
 		this.#queue('DELETE', `/api/v1/runs/${run.id}/climbs/${id}`);
+	}
+
+	// pick puts the chosen options in the choice's place, as new steps that
+	// remember the choice they came from.
+	pick(choiceId: string, options: Step[]) {
+		for (const section of this.run!.sections) {
+			const i = section.items.findIndex((item) => item.choice?.id === choiceId);
+			if (i < 0) continue;
+			const choice = $state.snapshot(section.items[i].choice!) as RunChoice;
+			const steps = options.map((o) => ({
+				step: {
+					...($state.snapshot(o) as Step),
+					id: newId(),
+					status: null,
+					run_notes: null,
+					elapsed_seconds: null,
+					from_choice: choice
+				}
+			}));
+			section.items.splice(i, 1, ...steps);
+			this.saveBody();
+			return;
+		}
 	}
 
 	// addSet plans one more set, which reopens a finished step.
