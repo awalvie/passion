@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { request } from './api';
 	import Button from './Button.svelte';
 	import RestCard from './RestCard.svelte';
@@ -29,7 +30,14 @@
 		lastTime = null;
 		request<{ sessions: HistorySession[] }>('GET', `/api/v1/exercises/${exercise}/history`)
 			.then((h) => {
-				if (current) lastTime = h.sessions.find((s) => s.sets.length) ?? null;
+				if (!current) return;
+				// A late answer fills in only what the person has not changed yet.
+				const untouched = untrack(() => {
+					const [r, w] = prefill();
+					return reps === r && weight === w;
+				});
+				lastTime = h.sessions.find((s) => s.sets.length) ?? null;
+				if (untouched) [reps, weight] = untrack(prefill);
 			})
 			.catch(() => {});
 		return () => (current = false);
@@ -37,11 +45,16 @@
 
 	// Each set starts from the one before it, the first from the same set last
 	// time, and else from the plan.
-	$effect.pre(() => {
+	function prefill(): [number | null, number | null] {
 		const before = logged.at(-1);
 		const then = lastTime?.sets[logged.length] ?? lastTime?.sets.at(-1);
-		reps = before?.reps ?? then?.reps ?? step.reps;
-		weight = before?.weight_kg ?? then?.weight_kg ?? null;
+		return [before?.reps ?? then?.reps ?? step.reps, before?.weight_kg ?? then?.weight_kg ?? null];
+	}
+
+	$effect.pre(() => {
+		void step.id;
+		void logged.length;
+		[reps, weight] = untrack(prefill);
 	});
 
 	let rest: ReturnType<typeof RestCard>;
