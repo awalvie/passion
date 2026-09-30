@@ -47,10 +47,10 @@
 	let rest: ReturnType<typeof RestCard>;
 
 	function log() {
-		const sets: SetFields[] = logged.map(({ reps, seconds, weight_kg }) => ({ reps, seconds, weight_kg }));
-		openRun.setSets(step, [...sets, { reps, seconds: null, weight_kg: weight }]);
-		if (planned && sets.length + 1 >= planned) openRun.finish(step);
-		else if ((sets.length + 1) % sides === 0) rest.start();
+		const rows = logged.length + 1;
+		openRun.setSets(step, [...logged, { reps, seconds: null, weight_kg: weight }]);
+		if (planned && rows >= planned) openRun.finish(step);
+		else if (rows % sides === 0) rest.start();
 	}
 
 	function describeSet(s: SetFields) {
