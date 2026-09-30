@@ -45,24 +45,44 @@
 		{ value: 'working', label: 'Working' }
 	];
 
+	// A logged climb opens in the card, and saving rewrites it under its id.
+	let editing = $state<Climb | null>(null);
+
+	function edit(c: Climb) {
+		editing = c;
+		discipline = c.discipline;
+		setting = c.setting;
+		ropeStyle = c.rope_style ?? 'lead';
+		grade = c.grade ?? '';
+		outcome = c.outcome ?? 'flash';
+		attempts = c.attempts;
+	}
+
+	function remove() {
+		openRun.removeClimb(editing!.id);
+		editing = null;
+	}
+
 	function log() {
 		const ungraded = info?.grades.ungraded.includes(grade);
-		openRun.putClimb(step, newId(), {
+		const position = editing?.position ?? Math.max(-1, ...logged.map((c) => c.position)) + 1;
+		openRun.putClimb(step, editing?.id ?? newId(), {
 			step: step.id,
-			position: logged.length,
+			position,
 			discipline,
 			setting,
-			board: null,
+			board: boulder ? (editing?.board ?? null) : null,
 			rope_style: boulder ? null : ropeStyle,
 			grade: grade || null,
 			grade_system: grade && !ungraded ? (scale?.system ?? null) : null,
 			outcome,
 			attempts: attempts === null ? null : Math.max(1, Math.round(attempts)),
-			seconds: null,
-			stars: null,
-			focus: null,
-			notes: null
+			seconds: editing?.seconds ?? null,
+			stars: editing?.stars ?? null,
+			focus: editing?.focus ?? null,
+			notes: editing?.notes ?? null
 		});
+		editing = null;
 		attempts = 1;
 	}
 
@@ -125,18 +145,25 @@
 {#if logged.length}
 	<ol class="overflow-hidden rounded-2xl bg-surface shadow-sm">
 		{#each logged as c, i (c.id)}
-			<li class="flex items-center justify-between gap-3 border-line px-4 py-3 text-base [&:not(:first-child)]:border-t">
-				<span class="text-ink-2">Climb {i + 1}</span>
-				<span class="font-semibold">{c.grade ?? 'No grade'}</span>
-				<span class="ml-auto text-ink-2">{describe(c)}</span>
+			<li class="border-line [&:not(:first-child)]:border-t">
+				<button
+					type="button"
+					class="flex w-full items-center gap-3 px-4 py-3 text-left text-base {editing?.id === c.id ? 'bg-ground' : ''}"
+					onclick={() => edit(c)}
+				>
+					<span class="text-ink-2">Climb {i + 1}</span>
+					<span class="font-semibold">{c.grade ?? 'No grade'}</span>
+					<span class="ml-auto text-ink-2">{describe(c)}</span>
+				</button>
 			</li>
 		{/each}
 	</ol>
 {/if}
 
-{#if !isFinished(step)}
+{#if editing || !isFinished(step)}
+	{@const number = editing ? logged.findIndex((c) => c.id === editing!.id) + 1 : logged.length + 1}
 	<section class="flex flex-col gap-4 rounded-2xl bg-surface p-4 shadow-sm">
-		<p class="text-center text-base font-semibold">Climb {logged.length + 1}</p>
+		<p class="text-center text-base font-semibold">{editing ? 'Edit climb' : 'Climb'} {number}</p>
 		<div class="flex flex-wrap gap-2">
 			{#each outcomes.filter((o) => !o.route || !boulder) as o (o.value)}
 				<button
@@ -164,6 +191,12 @@
 			</label>
 			<Stepper label="Tries" min={1} bind:value={attempts} />
 		</div>
-		<Button onclick={log}>Log climb {logged.length + 1}</Button>
+		<Button onclick={log}>{editing ? 'Save' : 'Log'} climb {number}</Button>
+		{#if editing}
+			<div class="grid grid-cols-2 gap-2">
+				<Button variant="secondary" onclick={() => (editing = null)}>Cancel</Button>
+				<Button variant="danger" onclick={remove}>Remove</Button>
+			</div>
+		{/if}
 	</section>
 {/if}

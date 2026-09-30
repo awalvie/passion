@@ -126,6 +126,14 @@ class OpenRun {
 		this.#queue('PUT', `/api/v1/runs/${run.id}/climbs/${id}`, fields);
 	}
 
+	// removeClimb replaces an unsent write of the climb, if any. The server
+	// then answers 404, which counts as done.
+	removeClimb(id: string) {
+		const run = this.run!;
+		run.climbs = run.climbs.filter((c) => c.id !== id);
+		this.#queue('DELETE', `/api/v1/runs/${run.id}/climbs/${id}`);
+	}
+
 	// addSet plans one more set, which reopens a finished step.
 	addSet(step: RunStep) {
 		step.sets = (step.sets ?? 0) + 1;
