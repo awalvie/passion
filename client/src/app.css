@@ -5,3 +5,19 @@
    Tailwind after it, so a utility such as w-auto beat .input's width. Outside
    a layer it would beat every utility instead. */
 @import './passion.css' layer(components);
+@import './tokens.css';
+
+@theme inline {
+	--color-ground: var(--ground);
+	--color-surface: var(--surface);
+	--color-line: var(--line);
+	--color-ink: var(--ink);
+	--color-ink-2: var(--ink-2);
+	--color-tint: var(--tint);
+	--color-on-tint: var(--on-tint);
+	--color-live: var(--live);
+	--color-prep: var(--prep);
+	--color-hang: var(--hang);
+	--color-rest: var(--rest);
+	--color-bad: var(--bad);
+}

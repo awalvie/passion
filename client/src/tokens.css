@@ -1,0 +1,17 @@
+/* The V2 screens use only these tokens. They point at the V1 theme for now, so
+   a new look only rewrites this file. Names avoid Tailwind's --spacing and
+   --radius-* and every V1 name. */
+:root {
+	--ground: var(--bg);
+	--surface: var(--panel);
+	--line: var(--border);
+	--ink: var(--text);
+	--ink-2: var(--muted);
+	--tint: var(--accent);
+	--on-tint: #ffffff;
+	--live: var(--tick-working-accent);
+	--prep: var(--tick-sky-fg);
+	--hang: var(--tick-red-fg);
+	--rest: var(--tick-green-fg);
+	--bad: var(--destructive);
+}
