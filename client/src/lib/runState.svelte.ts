@@ -12,3 +12,12 @@ class OpenRun {
 }
 
 export const openRun = new OpenRun();
+
+export type StartBody = { scheduled: string } | { template: string } | { name: string };
+
+// startRun is never retried: a second POST would start a second run.
+export async function startRun(body: StartBody): Promise<Run> {
+	const run = await request<Run>('POST', '/api/v1/runs', body);
+	openRun.run = run;
+	return run;
+}

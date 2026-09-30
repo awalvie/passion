@@ -1,9 +1,32 @@
 <script lang="ts">
+	import { goto, invalidateAll } from '$app/navigation';
+	import { describe } from '$lib/api';
 	import Button from '$lib/Button.svelte';
+	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import type { ScheduledDay } from '$lib/plan';
+	import { startRun } from '$lib/runState.svelte';
 
 	let { data } = $props();
+
+	let starting = $state(false);
+	let error = $state('');
+
+	async function start(d: ScheduledDay) {
+		starting = true;
+		error = '';
+		try {
+			const run = await startRun({ scheduled: d.id });
+			await goto(`/run/${run.id}`);
+		} catch (e) {
+			error = describe(e, (f) => f);
+			// The run can start even when the answer is lost, and then the card
+			// offers Resume.
+			await invalidateAll();
+		} finally {
+			starting = false;
+		}
+	}
 
 	const date = $derived(
 		new Date(`${data.today}T12:00:00`).toLocaleDateString(undefined, {
@@ -34,6 +57,8 @@
 		</a>
 	</header>
 
+	<FormError message={error} />
+
 	{#each data.days as d (d.id)}
 		{@const t = data.templates.get(d.template)}
 		<article class="flex flex-col gap-4 rounded-2xl bg-surface p-4 shadow-sm">
@@ -56,6 +81,8 @@
 				</p>
 			{:else if d.status === 'started' && d.run}
 				<Button variant="live" href="/run/{d.run}">Resume</Button>
+			{:else}
+				<Button disabled={starting} onclick={() => start(d)}>Start</Button>
 			{/if}
 			<a href="/templates/{d.template}" class="text-center text-base text-tint">See the whole session</a>
 		</article>
