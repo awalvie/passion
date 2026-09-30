@@ -17,7 +17,7 @@
 
 	$effect.pre(() => {
 		const stored = readTimers(runId).timed;
-		timed = stored?.step === step.id ? stored : null;
+		timed = stored?.step === step.id && !isFinished(step) ? stored : null;
 	});
 
 	$effect(() => {

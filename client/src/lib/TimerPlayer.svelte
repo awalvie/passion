@@ -21,7 +21,7 @@
 
 	$effect.pre(() => {
 		const stored = readTimers(runId).timed;
-		const mine = stored?.step === step.id ? stored : null;
+		const mine = stored?.step === step.id && !isFinished(step) ? stored : null;
 		timed = mine;
 		weight = mine?.weight ?? untrack(() => logged.at(-1)?.weight_kg) ?? null;
 	});
