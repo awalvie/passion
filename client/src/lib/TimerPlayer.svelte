@@ -20,8 +20,9 @@
 
 	$effect.pre(() => {
 		const stored = readTimers(runId).timed;
-		timed = stored?.step === step.id ? stored : null;
-		weight = timed?.weight ?? untrack(() => logged.at(-1)?.weight_kg) ?? null;
+		const mine = stored?.step === step.id ? stored : null;
+		timed = mine;
+		weight = mine?.weight ?? untrack(() => logged.at(-1)?.weight_kg) ?? null;
 	});
 
 	$effect(() => {
