@@ -96,7 +96,11 @@
 			<button type="button" class="h-11 rounded-xl px-3 text-base font-semibold text-tint" onclick={() => (noting = !noting)}>
 				Note
 			</button>
-			{#if !isFinished(step)}
+			{#if step.status === 'skipped'}
+				<button type="button" class="ml-auto h-11 rounded-xl px-3 text-base font-semibold text-tint" onclick={() => openRun.unskip(step!)}>
+					Undo skip
+				</button>
+			{:else if !isFinished(step)}
 				<button type="button" class="ml-auto h-11 rounded-xl px-3 text-base font-semibold text-tint" onclick={skip}>
 					{logged ? (step.kind === 'climbing' ? 'Done climbing' : 'Skip the sets left') : 'Skip exercise'}
 				</button>

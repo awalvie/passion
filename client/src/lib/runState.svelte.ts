@@ -187,6 +187,13 @@ class OpenRun {
 		this.saveBody();
 	}
 
+	// unskip brings a skipped step back, with nothing logged.
+	unskip(step: RunStep) {
+		step.status = null;
+		step.elapsed_seconds = null;
+		this.saveBody();
+	}
+
 	// addSet plans one more set, which reopens a finished step.
 	addSet(step: RunStep) {
 		step.sets = (step.sets ?? 0) + 1;
