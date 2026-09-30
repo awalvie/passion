@@ -87,6 +87,7 @@ export function jump(c: Clock, now: number, to: number): Clock {
 export function endSet(phases: Phase[], c: Clock, now: number, short: Record<number, number>) {
 	const ms = elapsed(c, now);
 	const { index } = at(phases, ms);
+	if (phases[index]?.kind === 'prep') return { clock: c, short };
 	const block = phases[index]?.block ?? 0;
 	const lastHang = phases.findLastIndex((p) => p.block === block && p.kind === 'hang');
 	return {
