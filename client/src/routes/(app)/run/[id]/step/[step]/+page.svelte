@@ -88,7 +88,7 @@
 		{/if}
 
 		<div class="flex items-center gap-2">
-			{#if step.kind === 'reps_and_sets' && step.status !== 'skipped'}
+			{#if (step.kind === 'reps_and_sets' || step.kind === 'timed_reps') && step.status !== 'skipped'}
 				<button type="button" class="h-11 rounded-xl px-3 text-base font-semibold text-tint" onclick={() => openRun.addSet(step!)}>
 					Add set
 				</button>
