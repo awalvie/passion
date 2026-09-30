@@ -17,7 +17,12 @@ export class RequestFailed extends Error {
 	}
 }
 
-export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+export async function request<T>(
+	method: string,
+	path: string,
+	body?: unknown,
+	signal?: AbortSignal
+): Promise<T> {
 	const headers: Record<string, string> = {};
 	if (body !== undefined) headers['Content-Type'] = 'application/json';
 
@@ -27,7 +32,8 @@ export async function request<T>(method: string, path: string, body?: unknown): 
 	const res = await fetch(path, {
 		method,
 		headers,
-		body: body === undefined ? undefined : JSON.stringify(body)
+		body: body === undefined ? undefined : JSON.stringify(body),
+		signal
 	});
 
 	if (!res.ok) {
