@@ -14,3 +14,11 @@ export function setToken(value: string) {
 export function clearToken() {
 	localStorage.removeItem(key);
 }
+
+// clearRunStorage drops the running timers and unsent writes, which belong to
+// the account that signs out.
+export function clearRunStorage() {
+	for (const k of Object.keys(localStorage)) {
+		if (k.startsWith('passion-timer:') || k.startsWith('passion-pending:')) localStorage.removeItem(k);
+	}
+}
