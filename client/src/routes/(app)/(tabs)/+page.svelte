@@ -5,18 +5,18 @@
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import type { ScheduledDay } from '$lib/plan';
-	import { startRun } from '$lib/runState.svelte';
+	import { startRun, type StartBody } from '$lib/runState.svelte';
 
 	let { data } = $props();
 
 	let starting = $state(false);
 	let error = $state('');
 
-	async function start(d: ScheduledDay) {
+	async function start(body: StartBody) {
 		starting = true;
 		error = '';
 		try {
-			const run = await startRun({ scheduled: d.id });
+			const run = await startRun(body);
 			await goto(`/run/${run.id}`);
 		} catch (e) {
 			error = describe(e, (f) => f);
@@ -82,7 +82,7 @@
 			{:else if d.status === 'started' && d.run}
 				<Button variant="live" href="/run/{d.run}">Resume</Button>
 			{:else}
-				<Button disabled={starting} onclick={() => start(d)}>Start</Button>
+				<Button disabled={starting} onclick={() => start({ scheduled: d.id })}>Start</Button>
 			{/if}
 			<a href="/templates/{d.template}" class="text-center text-base text-tint">See the whole session</a>
 		</article>
@@ -92,4 +92,8 @@
 			<Button variant="secondary" href="/templates">Pick a session</Button>
 		</section>
 	{/each}
+
+	<Button variant="secondary" disabled={starting} onclick={() => start({ name: 'Open session' })}>
+		Open session
+	</Button>
 </div>
