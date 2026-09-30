@@ -50,6 +50,15 @@ export function timeline(s: TimedStep): Phase[] {
 	return out;
 }
 
+export function newClock(now: number): Clock {
+	return { startedAt: now, pausedAt: null, pausedMs: 0, skipMs: 0 };
+}
+
+export function togglePause(c: Clock, now: number): Clock {
+	if (c.pausedAt === null) return { ...c, pausedAt: now };
+	return { ...c, pausedAt: null, pausedMs: c.pausedMs + now - c.pausedAt };
+}
+
 export function elapsed(c: Clock, now: number): number {
 	return (c.pausedAt ?? now) - c.startedAt - c.pausedMs + c.skipMs;
 }
