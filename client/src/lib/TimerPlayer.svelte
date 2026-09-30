@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { tone, unlock } from './audio';
 	import Button from './Button.svelte';
 	import { summary } from './exercise';
 	import { isFinished, setsOf, type RunStep } from './run';
@@ -46,6 +47,21 @@
 		if (pos.index >= phases.length) stop();
 	});
 
+	// A tick in each of the last three seconds of a phase, and a high tone as
+	// a hang starts. A key per sound plays each one once.
+	let played = '';
+	$effect(() => {
+		if (!timed || !phase || timed.clock.pausedAt !== null) return;
+		const secs = Math.ceil(pos.left / 1000);
+		const key = `${pos.index}:${secs}`;
+		if (key === played) return;
+		const fresh = phase.ms - pos.left < 1000;
+		if (fresh && phase.kind === 'hang') tone(1046, 300);
+		else if (fresh) tone(523, 200);
+		else if (secs <= 3) tone(784, 80);
+		played = key;
+	});
+
 	function save(next: Timed | null) {
 		timed = next;
 		now = Date.now();
@@ -67,6 +83,7 @@
 	// A step with rows already logged starts at the block after them, and
 	// keeps the reps those rows logged.
 	function start() {
+		unlock();
 		const t = Date.now();
 		let clock: Clock = { startedAt: t, pausedAt: null, pausedMs: 0, skipMs: 0 };
 		const first = phases.findIndex((p) => p.block === logged.length && p.kind === 'hang');
@@ -122,7 +139,7 @@
 		{/if}
 	</section>
 
-	<div class="grid grid-cols-2 gap-2">
+	<div class="grid grid-cols-2 gap-2" onpointerdown={unlock} role="group" aria-label="Timer">
 		<Button variant="secondary" onclick={pause}>{timed.clock.pausedAt === null ? 'Pause' : 'Resume'}</Button>
 		<Button variant="secondary" onclick={skipPhase}>{skipLabels[phase.kind]}</Button>
 		<Button variant="secondary" onclick={cutSet}>End set</Button>

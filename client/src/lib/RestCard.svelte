@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tone, unlock } from './audio';
 	import { formatClock, readTimers, writeTimers } from './timerStore';
 
 	let { runId, seconds }: { runId: string; seconds: number | null } = $props();
@@ -23,8 +24,20 @@
 	}
 
 	export function start() {
+		unlock();
 		if (seconds) save(Date.now() + seconds * 1000);
 	}
+
+	// Two tones as the rest runs out, once.
+	let rang: number | null = null;
+	$effect(() => {
+		if (endsAt === null || left > 0 || rang === endsAt) return;
+		rang = endsAt;
+		if (now - endsAt < 2000) {
+			tone(784, 150);
+			setTimeout(() => tone(1046, 250), 200);
+		}
+	});
 </script>
 
 {#if endsAt !== null && left > 0}
