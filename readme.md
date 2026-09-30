@@ -149,7 +149,7 @@ local development needs no configuration at all.
 |---|---|
 | `make run` | Build the client and serve on :8080 |
 | `make watch` | Hot reload. Vite on :5173, air rebuilding the server |
-| `make test` | Run the tests. Start the database first with `make db-up` |
+| `make test` | Run the Go tests and the client's unit tests. Start the database first with `make db-up` |
 | `make openapi` | Regenerate `server/api/swagger.json` from the handler annotations |
 | `make db-up` / `make db-down` | Start or stop the local postgres cluster |
 | `make image` | Build the docker image |
