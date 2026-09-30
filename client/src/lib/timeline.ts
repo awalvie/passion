@@ -96,7 +96,7 @@ export function endSet(phases: Phase[], c: Clock, now: number, short: Record<num
 }
 
 // hangsDone counts a block's hangs that ended by a time.
-export function hangsDone(phases: Phase[], ms: number, block: number): number {
+function hangsDone(phases: Phase[], ms: number, block: number): number {
 	let end = 0;
 	let n = 0;
 	for (const p of phases) {
