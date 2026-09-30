@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { request } from '$lib/api';
+	import { setSound, soundOn } from '$lib/audio';
 	import Button from '$lib/Button.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import { clearRunStorage, clearToken } from '$lib/session';
@@ -11,6 +12,8 @@
 		{ value: 'light', label: 'Light' },
 		{ value: 'dark', label: 'Dark' }
 	];
+
+	let sound = $state(soundOn());
 
 	let theme = $state((localStorage.getItem('passion-theme') as Theme | null) ?? 'system');
 
@@ -52,6 +55,16 @@
 			{/each}
 		</div>
 	</section>
+
+	<label class="flex items-center justify-between rounded-xl bg-surface px-4 py-3 text-base shadow-sm">
+		Timer sounds
+		<input
+			type="checkbox"
+			class="size-6 accent-tint"
+			checked={sound}
+			onchange={(e) => setSound((sound = e.currentTarget.checked))}
+		/>
+	</label>
 
 	<Button variant="danger" onclick={signOut}>Log out</Button>
 </div>
