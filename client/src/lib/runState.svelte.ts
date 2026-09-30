@@ -9,6 +9,16 @@ type Stored = { run: Run; writes: Write[] };
 
 const storageKey = (id: string) => `passion-pending:${id}`;
 
+function readStored(id: string): Stored | null {
+	try {
+		const raw = localStorage.getItem(storageKey(id));
+		return raw ? (JSON.parse(raw) as Stored) : null;
+	} catch {
+		localStorage.removeItem(storageKey(id));
+		return null;
+	}
+}
+
 // The run the person has open. The session screen and the player share it.
 // Every change lands here first and reaches the server through the queue, so
 // a gym with no signal loses nothing.
@@ -23,9 +33,9 @@ class OpenRun {
 	#flushing = false;
 
 	async load(id: string) {
-		const stored = localStorage.getItem(storageKey(id));
+		const stored = readStored(id);
 		if (stored) {
-			const { run, writes } = JSON.parse(stored) as Stored;
+			const { run, writes } = stored;
 			this.run = run;
 			this.writes = writes;
 			this.#seq = Math.max(0, ...writes.map((w) => w.seq));
@@ -76,14 +86,19 @@ class OpenRun {
 		void this.flush();
 	}
 
+	// A full or blocked storage only costs the copy that survives a reload.
 	#store() {
 		const run = this.run;
 		if (!run) return;
-		if (this.writes.length) {
-			const stored: Stored = { run: $state.snapshot(run) as Run, writes: $state.snapshot(this.writes) };
-			localStorage.setItem(storageKey(run.id), JSON.stringify(stored));
-		} else {
-			localStorage.removeItem(storageKey(run.id));
+		try {
+			if (this.writes.length) {
+				const stored: Stored = { run: $state.snapshot(run) as Run, writes: $state.snapshot(this.writes) };
+				localStorage.setItem(storageKey(run.id), JSON.stringify(stored));
+			} else {
+				localStorage.removeItem(storageKey(run.id));
+			}
+		} catch {
+			/* the queue in memory still sends */
 		}
 	}
 
