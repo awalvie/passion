@@ -7,6 +7,8 @@
 	import Notes from '$lib/Notes.svelte';
 	import SaveStatus from '$lib/SaveStatus.svelte';
 	import SetsPlayer from '$lib/SetsPlayer.svelte';
+	import { canTime } from '$lib/timeline';
+	import TimerPlayer from '$lib/TimerPlayer.svelte';
 	import { climbsOf, isFinished, nextStep, setsOf, stepsOf } from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
 	import { stepMeta } from '$lib/template';
@@ -63,7 +65,9 @@
 			</details>
 		{/if}
 
-		{#if step.kind === 'reps_and_sets'}
+		{#if step.kind === 'timed_reps' && canTime(step)}
+			<TimerPlayer {step} />
+		{:else if step.kind === 'reps_and_sets' || step.kind === 'timed_reps'}
 			<SetsPlayer {step} />
 		{:else}
 			<p class="text-base text-ink-2">This kind of exercise cannot be logged here yet.</p>
