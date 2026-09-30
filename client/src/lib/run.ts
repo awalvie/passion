@@ -56,6 +56,14 @@ export type SetFields = { reps: number | null; seconds: number | null; weight_kg
 
 export type LoggedSet = SetFields & { step: string; number: number; exercise: string };
 
+// cleanSet keeps a typed number inside what server/db/run_set.go accepts. A
+// refused set write would be resent with every later set, and refused again.
+export function cleanSet(s: SetFields): SetFields {
+	const count = (n: number | null) => (n === null ? null : Math.min(1e6, Math.max(0, Math.round(n))));
+	const weight = s.weight_kg === null ? null : Math.round(Math.min(9999, Math.max(-9999, s.weight_kg)) * 100) / 100;
+	return { reps: count(s.reps), seconds: count(s.seconds), weight_kg: weight };
+}
+
 export type Discipline = 'boulder' | 'sport' | 'trad';
 export type Outcome = 'onsight' | 'flash' | 'redpoint' | 'hangdog' | 'working';
 

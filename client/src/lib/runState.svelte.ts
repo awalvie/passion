@@ -1,5 +1,5 @@
 import { RequestFailed, request } from './api';
-import { stepsOf, toRunBody, type Run, type RunStep, type SetFields } from './run';
+import { cleanSet, stepsOf, toRunBody, type Run, type RunStep, type SetFields } from './run';
 
 // A write waiting for the server. A newer write to the same url replaces an
 // older one, since each carries the whole list or the whole run.
@@ -42,8 +42,9 @@ class OpenRun {
 
 	// setSets replaces a step's sets. The server marks the step done at its
 	// first set, and this mirrors that, so the next body write agrees.
-	setSets(step: RunStep, sets: SetFields[]) {
+	setSets(step: RunStep, typed: SetFields[]) {
 		const run = this.run!;
+		const sets = typed.map(cleanSet);
 		run.sets = [
 			...run.sets.filter((s) => s.step !== step.id),
 			...sets.map((s, i) => ({ ...s, step: step.id, number: i + 1, exercise: step.exercise }))

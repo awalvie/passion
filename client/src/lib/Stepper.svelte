@@ -25,7 +25,7 @@
 		>
 		<input
 			type="number"
-			inputmode="decimal"
+			inputmode={step % 1 ? 'decimal' : 'numeric'}
 			class="w-16 [appearance:textfield] bg-transparent text-center text-3xl font-semibold tabular-nums text-ink outline-none [&::-webkit-inner-spin-button]:appearance-none"
 			aria-label={label}
 			{placeholder}
