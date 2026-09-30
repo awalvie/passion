@@ -29,7 +29,13 @@
 		</header>
 
 		{#if step.notes}
-			<Notes text={step.notes} class="text-base text-ink-2" />
+			<details class="rounded-2xl bg-surface shadow-sm">
+				<summary class="flex cursor-pointer items-center gap-3 px-4 py-3 text-base">
+					<span class="font-semibold">How to</span>
+					<span class="min-w-0 flex-1 truncate text-ink-2">{step.notes.split('\n')[0]}</span>
+				</summary>
+				<Notes text={step.notes} class="px-4 pb-4 text-base text-ink-2" />
+			</details>
 		{/if}
 
 		{#if step.kind === 'reps_and_sets'}
