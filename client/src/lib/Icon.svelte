@@ -7,15 +7,6 @@
 
 	// The shapes of lucide 0.525.0 (ISC licence), the version V1 loaded as a script.
 	const icons = {
-		menu: [
-			['path', { d: 'M4 12h16' }],
-			['path', { d: 'M4 18h16' }],
-			['path', { d: 'M4 6h16' }]
-		],
-		user: [
-			['path', { d: 'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2' }],
-			['circle', { cx: '12', cy: '7', r: '4' }]
-		],
 		'list-checks': [
 			['path', { d: 'm3 17 2 2 4-4' }],
 			['path', { d: 'm3 7 2 2 4-4' }],
