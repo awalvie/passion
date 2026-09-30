@@ -1,4 +1,4 @@
-import { RequestFailed, request } from './api';
+import { RequestFailed, request, unreachable } from './api';
 import { newId } from './id';
 import {
 	cleanSet,
@@ -32,6 +32,15 @@ function readStored(id: string): Stored | null {
 	}
 }
 
+// storedRuns are the unfinished runs this phone holds a copy of, newest first.
+export function storedRuns(): Run[] {
+	return Object.keys(localStorage)
+		.filter((k) => k.startsWith('passion-pending:'))
+		.flatMap((k) => readStored(k.slice('passion-pending:'.length))?.run ?? [])
+		.filter((r) => r.finished_at === null)
+		.sort((a, b) => b.started_at.localeCompare(a.started_at));
+}
+
 // The run the person has open. The session screen and the player share it.
 // Every change lands here first and reaches the server through the queue, so
 // a gym with no signal loses nothing.
@@ -52,16 +61,23 @@ class OpenRun {
 			this.stalled = false;
 		}
 		const stored = readStored(id);
-		if (stored) {
-			const { run, writes } = stored;
-			this.run = run;
-			this.writes = writes;
-			this.#seq = Math.max(0, ...writes.map((w) => w.seq));
+		const useStored = () => {
+			this.run = stored!.run;
+			this.writes = stored!.writes;
+			this.#seq = Math.max(0, ...stored!.writes.map((w) => w.seq));
 			void this.flush();
-			return;
+		};
+		// Unsent writes make the phone's copy newer than the server's.
+		if (stored?.writes.length) return useStored();
+		try {
+			this.run = await request<Run>('GET', `/api/v1/runs/${id}`);
+			this.writes = [];
+			this.#store();
+		} catch (e) {
+			// With no signal, the copy on the phone still runs the session.
+			if (!unreachable(e) || !stored) throw e;
+			useStored();
 		}
-		this.run = await request<Run>('GET', `/api/v1/runs/${id}`);
-		this.writes = [];
 	}
 
 	// forget drops a deleted run with its unsent writes and its clocks.
@@ -195,17 +211,14 @@ class OpenRun {
 		void this.flush();
 	}
 
-	// A full or blocked storage only costs the copy that survives a reload.
+	// The phone keeps the open run until it is finished or discarded, so the
+	// app reopens without a signal. A full or blocked storage only costs that.
 	#store() {
 		const run = this.run;
 		if (!run) return;
 		try {
-			if (this.writes.length) {
-				const stored: Stored = { run: $state.snapshot(run) as Run, writes: $state.snapshot(this.writes) };
-				localStorage.setItem(storageKey(run.id), JSON.stringify(stored));
-			} else {
-				localStorage.removeItem(storageKey(run.id));
-			}
+			const stored: Stored = { run: $state.snapshot(run) as Run, writes: $state.snapshot(this.writes) };
+			localStorage.setItem(storageKey(run.id), JSON.stringify(stored));
 		} catch {
 			/* the queue in memory still sends */
 		}
