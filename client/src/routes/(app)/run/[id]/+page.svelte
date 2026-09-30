@@ -79,7 +79,12 @@
 
 <NavBar title={run.name} back={{ href: '/', label: 'Today' }}>
 	{#snippet actions()}
-		<Menu items={[{ label: 'Discard session', danger: true, onclick: discard }]} />
+		<Menu
+			items={[
+				{ label: 'Finish session', onclick: () => goto(`/run/${run.id}/finish`) },
+				{ label: 'Discard session', danger: true, onclick: discard }
+			]}
+		/>
 	{/snippet}
 </NavBar>
 
@@ -198,8 +203,12 @@
 	{/if}
 </div>
 
-{#if current && !run.finished_at}
+{#if !run.finished_at && (current || steps.length)}
 	<div class="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-[430px] bg-ground/90 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur-md">
-		<Button variant="live" href="/run/{run.id}/step/{current.id}">Continue</Button>
+		{#if current}
+			<Button variant="live" href="/run/{run.id}/step/{current.id}">Continue</Button>
+		{:else}
+			<Button href="/run/{run.id}/finish">Finish session</Button>
+		{/if}
 	</div>
 {/if}
