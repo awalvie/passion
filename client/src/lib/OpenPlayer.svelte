@@ -59,21 +59,36 @@
 </script>
 
 {#if timed}
-	<section class="flex flex-col items-center gap-2 rounded-3xl bg-prep py-8 text-on-tint shadow-sm">
-		<p class="text-xl font-semibold">{target ? 'Left' : 'Time'}</p>
-		<p class="text-7xl font-bold tabular-nums">{formatClock(target ? (target - ms) / 1000 : Math.floor(ms / 1000))}</p>
+	<section class="rounded-3xl bg-surface px-5 pt-4 pb-5 shadow-card">
+		<p class="flex items-center gap-2.5 text-xs font-bold tracking-[0.06em] text-ink-2 uppercase">
+			<i class="size-2.5 rounded-full {timed.clock.pausedAt === null ? 'bg-live shadow-[0_0_0_5px_var(--live-halo)]' : 'bg-ink-3'}"></i>
+			{target ? 'Left' : 'Time'}
+		</p>
+		<p class="mt-2 text-[64px] leading-none font-extrabold tracking-tighter">
+			{formatClock(target ? (target - ms) / 1000 : Math.floor(ms / 1000))}
+		</p>
+		{#if target}
+			<div class="mt-4 h-1.5 overflow-hidden rounded-full bg-well">
+				<i class="block h-full rounded-full bg-live" style="width: {Math.min(100, (ms / target) * 100)}%"></i>
+			</div>
+		{/if}
 	</section>
-	<div class="grid grid-cols-2 gap-2">
+	<div class="grid grid-cols-2 gap-2.5">
 		<Button variant="secondary" onclick={pause}>{timed.clock.pausedAt === null ? 'Pause' : 'Resume'}</Button>
 		<Button onclick={() => done(ms)}>Done</Button>
 	</div>
 {:else if !isFinished(step)}
-	<section class="flex flex-col gap-4 rounded-2xl bg-surface p-4 shadow-sm">
-		<p class="text-center text-base font-semibold">
-			{target ? formatClock(target / 1000) : 'As long as it takes'}
+	<section class="flex flex-col gap-4 rounded-3xl bg-surface p-4 shadow-card">
+		<p class="text-center text-[32px] leading-[1.1] font-extrabold tracking-tight">
+			{#if target}{formatClock(target / 1000)}{:else}<span class="text-xl font-bold">As long as it takes</span>{/if}
 		</p>
 		<Button onclick={start}>Start</Button>
 	</section>
 {:else if logged[0]?.seconds}
-	<p class="rounded-2xl bg-surface px-4 py-3 text-base shadow-sm">Took {formatClock(logged[0].seconds)}</p>
+	<p class="flex h-11 items-center gap-2.5 rounded-3xl bg-surface px-4 text-[15px] font-bold shadow-card">
+		<span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-ink text-ground dark:bg-ink-2">
+			<svg viewBox="0 0 24 24" class="size-3" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" /></svg>
+		</span>
+		Took {formatClock(logged[0].seconds)}
+	</p>
 {/if}

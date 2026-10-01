@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from './Button.svelte';
+	import PlayerStepFrame from './PlayerStepFrame.svelte';
 	import { loadGrades, scaleFor, type Grades } from './grades';
 	import { newId } from './id';
 	import type { Account } from './plan';
@@ -44,6 +45,8 @@
 		{ value: 'hangdog', label: 'Hangdog', route: true },
 		{ value: 'working', label: 'Working' }
 	];
+
+	const shown = $derived(outcomes.filter((o) => !o.route || !boulder));
 
 	// A logged climb opens in the card, and saving rewrites it under its id.
 	let editing = $state<Climb | null>(null);
@@ -94,6 +97,13 @@
 		attempts = 1;
 	}
 
+	const gradeList = $derived(['', ...(scale?.grades ?? []), ...(info?.grades.ungraded ?? [])]);
+
+	function stepGrade(by: number) {
+		const i = Math.max(0, gradeList.indexOf(grade)) + by;
+		grade = gradeList[Math.min(gradeList.length - 1, Math.max(0, i))];
+	}
+
 	function describe(c: Climb) {
 		const label = outcomes.find((o) => o.value === c.outcome)?.label;
 		const tries = c.attempts ? `${c.attempts} ${c.attempts === 1 ? 'try' : 'tries'}` : '';
@@ -101,110 +111,127 @@
 	}
 </script>
 
-{#snippet choice<T extends string>(options: { value: T; label: string }[], value: T, pick: (v: T) => void)}
-	<div class="flex gap-1 rounded-xl bg-surface p-1 shadow-sm">
-		{#each options as o (o.value)}
-			<button
-				type="button"
-				class="h-9 flex-1 rounded-lg text-sm {value === o.value ? 'bg-tint font-semibold text-on-tint' : 'text-ink'}"
-				aria-pressed={value === o.value}
-				onclick={() => pick(o.value)}
-			>
-				{o.label}
-			</button>
-		{/each}
-	</div>
+{#snippet divider()}
+	<i class="h-[22px] w-px shrink-0 bg-ink-3/30"></i>
 {/snippet}
 
-<p class="text-base text-ink-2">{logged.length} {logged.length === 1 ? 'climb' : 'climbs'} logged</p>
+{#snippet outcomeButton(o: { value: Outcome; label: string })}
+	<button
+		type="button"
+		class="h-12 rounded-[14px] text-[15px] font-bold shadow-card-sm {outcome === o.value ? 'bg-ink text-ground' : 'bg-surface text-ink'}"
+		aria-pressed={outcome === o.value}
+		onclick={() => (outcome = o.value)}
+	>
+		{o.label}
+	</button>
+{/snippet}
 
-<div class="flex flex-col gap-2">
-	{@render choice(
-		[
-			{ value: 'boulder', label: 'Boulder' },
-			{ value: 'sport', label: 'Sport' },
-			{ value: 'trad', label: 'Trad' }
-		],
-		discipline,
-		setDiscipline
-	)}
-	{@render choice(
-		[
-			{ value: 'indoor', label: 'Indoor' },
-			{ value: 'outdoor', label: 'Outdoor' }
-		],
-		setting,
-		(v) => (setting = v)
-	)}
+<div class="flex h-12 items-center rounded-full bg-well dark:bg-surface">
+	<select
+		class="input h-full flex-1 rounded-full border-0 bg-transparent bg-[position:right_0.5rem_center] px-2 pr-6 text-center text-[15px] font-bold text-ink"
+		aria-label="Discipline"
+		value={discipline}
+		onchange={(e) => setDiscipline(e.currentTarget.value as Discipline)}
+	>
+		<option value="boulder">Boulder</option>
+		<option value="sport">Sport</option>
+		<option value="trad">Trad</option>
+	</select>
+	{@render divider()}
+	<select
+		class="input h-full flex-1 rounded-full border-0 bg-transparent bg-[position:right_0.5rem_center] px-2 pr-6 text-center text-[15px] font-bold text-ink"
+		aria-label="Indoor or outdoor"
+		bind:value={setting}
+	>
+		<option value="indoor">Indoor</option>
+		<option value="outdoor">Outdoor</option>
+	</select>
 	{#if !boulder}
-		{@render choice(
-			[
-				{ value: 'lead', label: 'Lead' },
-				{ value: 'top_rope', label: 'Top rope' },
-				{ value: 'auto_belay', label: 'Auto belay' },
-				{ value: 'follow', label: 'Follow' }
-			],
-			ropeStyle,
-			(v) => (ropeStyle = v)
-		)}
+		{@render divider()}
+		<select
+			class="input h-full flex-1 rounded-full border-0 bg-transparent bg-[position:right_0.5rem_center] px-2 pr-6 text-center text-[15px] font-bold text-ink"
+			aria-label="Rope"
+			bind:value={ropeStyle}
+		>
+			<option value="lead">Lead</option>
+			<option value="top_rope">Top rope</option>
+			<option value="auto_belay">Auto belay</option>
+			<option value="follow">Follow</option>
+		</select>
 	{/if}
 </div>
 
-{#if logged.length}
-	<ol class="overflow-hidden rounded-2xl bg-surface shadow-sm">
-		{#each logged as c, i (c.id)}
-			<li class="border-line [&:not(:first-child)]:border-t">
-				<button
-					type="button"
-					class="flex w-full items-center gap-3 px-4 py-3 text-left text-base {editing?.id === c.id ? 'bg-ground' : ''}"
-					onclick={() => edit(c)}
-				>
-					<span class="text-ink-2">Climb {i + 1}</span>
-					<span class="font-semibold">{c.grade ?? 'No grade'}</span>
-					<span class="ml-auto text-ink-2">{describe(c)}</span>
-				</button>
-			</li>
-		{/each}
-	</ol>
-{/if}
-
-{#if editing || !isFinished(step)}
-	{@const number = editing ? logged.findIndex((c) => c.id === editing!.id) + 1 : logged.length + 1}
-	<section class="flex flex-col gap-4 rounded-2xl bg-surface p-4 shadow-sm">
-		<p class="text-center text-base font-semibold">{editing ? 'Edit climb' : 'Climb'} {number}</p>
-		<div class="flex flex-wrap gap-2">
-			{#each outcomes.filter((o) => !o.route || !boulder) as o (o.value)}
-				<button
-					type="button"
-					class="h-10 rounded-full px-4 text-base {outcome === o.value ? 'bg-tint font-semibold text-on-tint' : 'bg-ground text-ink'}"
-					aria-pressed={outcome === o.value}
-					onclick={() => (outcome = o.value)}
-				>
-					{o.label}
-				</button>
-			{/each}
-		</div>
-		<div class="grid grid-cols-2 items-end gap-2">
-			<label class="flex flex-col gap-1 text-sm text-ink-2">
-				Grade{scale ? ` (${scale.system})` : ''}
-				<select class="input" bind:value={grade}>
-					<option value="">No grade</option>
-					{#each scale?.grades ?? [] as g (g)}
-						<option value={g}>{g}</option>
-					{/each}
-					{#each info?.grades.ungraded ?? [] as g (g)}
-						<option value={g}>{g}</option>
-					{/each}
-				</select>
-			</label>
-			<Stepper label="Tries" min={1} bind:value={attempts} />
-		</div>
-		<Button onclick={log}>{editing ? 'Save' : 'Log'} climb {number}</Button>
-		{#if editing}
-			<div class="grid grid-cols-2 gap-2">
-				<Button variant="secondary" onclick={() => (editing = null)}>Cancel</Button>
-				<Button variant="danger" onclick={remove}>Remove</Button>
-			</div>
+{#if logged.length || editing || !isFinished(step)}
+	<div class="rounded-3xl bg-surface py-0.5 shadow-card">
+		{#if logged.length}
+			<ol>
+				{#each logged as c, i (c.id)}
+					<li class="border-line [&:not(:first-child)]:border-t">
+						<button
+							type="button"
+							class="flex h-11 w-full items-center gap-2.5 px-4 text-left text-[15px] {editing?.id === c.id ? 'bg-well' : ''}"
+							onclick={() => edit(c)}
+						>
+							<span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-bold text-ground dark:bg-ink-2">
+								<span class="sr-only">Climb</span>{i + 1}
+							</span>
+							<span class="font-bold">{c.grade ?? 'No grade'}</span>
+							<span class="min-w-0 flex-1 truncate font-semibold text-ink-2">{describe(c)}</span>
+							<svg viewBox="0 0 24 24" class="size-4 shrink-0 text-ink-3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+						</button>
+					</li>
+				{/each}
+			</ol>
 		{/if}
-	</section>
+
+		{#if editing || !isFinished(step)}
+			{@const number = editing ? logged.findIndex((c) => c.id === editing!.id) + 1 : logged.length + 1}
+			<section class="mx-1.5 my-0.5 rounded-[20px] bg-well p-2.5 dark:bg-[#1F2721]">
+				<p class="px-1 pb-2 text-[15px] font-bold">{editing ? 'Edit climb' : 'Climb'} {number}</p>
+				<div class="grid grid-cols-3 gap-2">
+					{#each shown.slice(0, 3) as o (o.value)}
+						{@render outcomeButton(o)}
+					{/each}
+				</div>
+				{#if shown.length > 3}
+					<div class="mt-1.5 grid grid-cols-2 gap-2">
+						{#each shown.slice(3) as o (o.value)}
+							{@render outcomeButton(o)}
+						{/each}
+					</div>
+				{/if}
+				<div class="mt-2 grid grid-cols-2 gap-2">
+					<PlayerStepFrame label="Grade{scale ? ` (${scale.system})` : ''}" chars={grade.length || 1} less={() => stepGrade(-1)} more={() => stepGrade(1)}>
+						<span class="relative block w-full text-center">
+							<span class="block truncate leading-[1.05] font-extrabold tracking-tight {grade ? 'text-ink' : 'text-ink-3'}" aria-hidden="true">
+								{grade || '–'}
+							</span>
+							<select class="input absolute inset-0 h-full min-h-0 cursor-pointer opacity-0" aria-label="Grade" bind:value={grade}>
+								<option value="">No grade</option>
+								{#each scale?.grades ?? [] as g (g)}
+									<option value={g}>{g}</option>
+								{/each}
+								{#each info?.grades.ungraded ?? [] as g (g)}
+									<option value={g}>{g}</option>
+								{/each}
+							</select>
+						</span>
+					</PlayerStepFrame>
+					<Stepper label="Tries" min={1} bind:value={attempts} />
+				</div>
+				<div class="mt-2.5">
+					<Button onclick={log}>
+						<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" /></svg>
+						{editing ? 'Save' : 'Log'} climb {number}
+					</Button>
+				</div>
+				{#if editing}
+					<div class="mt-2 grid grid-cols-2 gap-2">
+						<Button variant="secondary" onclick={() => (editing = null)}>Cancel</Button>
+						<Button variant="danger" onclick={remove}>Remove</Button>
+					</div>
+				{/if}
+			</section>
+		{/if}
+	</div>
 {/if}
