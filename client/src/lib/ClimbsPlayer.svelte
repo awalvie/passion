@@ -203,7 +203,7 @@
 
 		{#if editing || !isFinished(step)}
 			{@const number = editing ? logged.findIndex((c) => c.id === editing!.id) + 1 : logged.length + 1}
-			<section class="mx-1.5 my-0.5 rounded-[20px] bg-well p-2.5 dark:bg-[#1F2721]">
+			<section class="mx-1.5 my-0.5 rounded-[20px] bg-inset p-2.5">
 				<p class="px-1 pb-2 text-[15px] font-bold">{editing ? 'Edit climb' : 'Climb'} {number}</p>
 				<div class="grid grid-cols-3 gap-2">
 					{#each shown.slice(0, 3) as o (o.value)}
