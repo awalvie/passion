@@ -39,32 +39,38 @@
 
 <NavBar title="Settings" back={{ href: '/', label: 'Today' }} />
 
-<div class="flex flex-col gap-6 px-4 pt-4 pb-8">
-	<section class="flex flex-col gap-2">
-		<h2 class="px-1 text-sm text-ink-2">Theme</h2>
-		<div class="grid grid-cols-3 gap-1 rounded-xl bg-surface p-1 shadow-sm">
-			{#each themes as t (t.value)}
-				<button
-					type="button"
-					class="h-10 rounded-lg text-base {theme === t.value ? 'bg-tint font-semibold text-on-tint' : 'text-ink'}"
-					aria-pressed={theme === t.value}
-					onclick={() => setTheme(t.value)}
-				>
-					{t.label}
-				</button>
-			{/each}
+<div class="flex flex-col gap-3.5 px-4 pt-2 pb-8">
+	<section class="rounded-3xl bg-surface px-[18px] py-2 shadow-card">
+		<div class="flex flex-col gap-2.5 py-3">
+			<h2 class="text-[15px] font-bold">Theme</h2>
+			<div class="grid grid-cols-3 gap-1 rounded-full bg-well p-1">
+				{#each themes as t (t.value)}
+					<button
+						type="button"
+						class="h-10 rounded-full text-[15px] font-bold {theme === t.value ? 'bg-tint text-on-tint' : 'text-ink-2'}"
+						aria-pressed={theme === t.value}
+						onclick={() => setTheme(t.value)}
+					>
+						{t.label}
+					</button>
+				{/each}
+			</div>
 		</div>
-	</section>
 
-	<label class="flex items-center justify-between rounded-xl bg-surface px-4 py-3 text-base shadow-sm">
-		Timer sounds
-		<input
-			type="checkbox"
-			class="size-6 accent-tint"
-			checked={sound}
-			onchange={(e) => setSound((sound = e.currentTarget.checked))}
-		/>
-	</label>
+		<label class="flex min-h-[58px] cursor-pointer items-center justify-between gap-3 py-2 text-[15px] font-bold shadow-[inset_0_1px_0_var(--line)]">
+			Timer sounds
+			<input
+				type="checkbox"
+				class="peer sr-only"
+				checked={sound}
+				onchange={(e) => setSound((sound = e.currentTarget.checked))}
+			/>
+			<span
+				class="relative h-8 w-[52px] shrink-0 rounded-full bg-well transition-colors peer-checked:bg-tint peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink before:absolute before:top-1 before:left-1 before:size-6 before:rounded-full before:bg-surface before:shadow-card-sm before:transition-transform peer-checked:before:translate-x-5"
+				aria-hidden="true"
+			></span>
+		</label>
+	</section>
 
 	<Button variant="danger" onclick={signOut}>Log out</Button>
 </div>
