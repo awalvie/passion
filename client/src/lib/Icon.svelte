@@ -102,6 +102,10 @@
 		],
 		'chevron-right': [['path', { d: 'm9 18 6-6-6-6' }]],
 		check: [['path', { d: 'M20 6 9 17l-5-5' }]],
+		x: [
+			['path', { d: 'M18 6 6 18' }],
+			['path', { d: 'm6 6 12 12' }]
+		],
 		ellipsis: [
 			['circle', { cx: '12', cy: '12', r: '1' }],
 			['circle', { cx: '19', cy: '12', r: '1' }],
