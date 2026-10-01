@@ -203,6 +203,11 @@ class OpenRun {
 		this.saveBody();
 	}
 
+	addSection(name: string) {
+		this.run!.sections.push({ name, notes: null, items: [] });
+		this.saveBody();
+	}
+
 	// removeStep drops a step nothing was logged against, and any set write
 	// still waiting for it, which the server would refuse.
 	removeStep(id: string) {
