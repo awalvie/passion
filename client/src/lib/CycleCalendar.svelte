@@ -138,7 +138,7 @@
 						data-date={date}
 						class="flex min-h-[64px] flex-col items-center gap-1 rounded-2xl pt-1.5 pb-2 transition-colors
 							{date === over ? 'bg-tint/40' : date === selected && !lifted ? 'bg-well' : ''}
-							{date === today ? 'shadow-[inset_0_0_0_1.5px_var(--tint)]' : ''}
+							{date === today ? 'shadow-[inset_0_0_0_1.5px_var(--ink)]' : ''}
 							{lifted && !target(date) && date !== lifted.local_date ? 'opacity-40' : ''}"
 						disabled={!inCycle(date)}
 						aria-pressed={date === selected}
