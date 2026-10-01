@@ -79,14 +79,43 @@ Test handlers with `httptest` against `newTestServer(t)`, from `auth_test.go`. S
    `request`. It changes the run on the phone first and queues the write, so a gym with no
    signal loses nothing.
 4. For filters a list keeps in the URL, use `urlFilters` from `client/src/lib/filters.svelte.ts`.
-5. New screens use the colour utilities from `client/src/tokens.css`, such as `bg-surface`
-   and `text-ink-2`. They point at the V1 theme for now, so a new look rewrites that one
-   file. The Library screens still use [DESIGN.md](DESIGN.md)'s classes.
+5. Style it with the token utilities. See the next section.
 6. Run `pnpm --dir client check`.
 
 Under `make watch`, a class used for the first time in a new file can be missing from the dev
 stylesheet. Run `touch client/src/app.css` and Vite rebuilds it. The production build is not
 affected.
+
+## Style a screen
+
+The look comes from `passion-design/final/designs/direction`. Every screen, the Library too,
+uses only its tokens. The classes in [DESIGN.md](DESIGN.md) are V1's, and V2 screens do not
+use them.
+
+- `client/src/tokens.css` holds the tokens, light under `:root` and dark under
+  `:root[data-theme='dark']`. `app.html` always sets `data-theme`, so a token needs no media
+  query. A new colour goes in both blocks.
+- `client/src/app.css` maps them into Tailwind in `@theme inline`. A new token needs a line
+  there before it has a utility.
+- Colours: `bg-ground` for the page, `bg-surface` for cards, `bg-well` for fields and
+  wells, `text-ink`, `text-ink-2` and `text-ink-3` for text, `border-line` for hairlines.
+  `bg-tint` with `text-on-tint` is lime, for Start, Log and the active tab. `bg-live` with
+  `text-on-live` is apricot, for a session that is running. `bg-hero` with `text-on-hero`
+  and `text-on-hero-2` is the forest card. `prep`, `hang` and `rest` colour the timer phases.
+  `text-bad` is for errors.
+- `text-tint` is not for text. Lime has too little contrast on a light page. Use
+  `text-link` for a link or a text button. `text-tint` is only for an icon or a mark on a
+  dark ground, such as the forest card.
+- Shadows: `shadow-card` for a card, `shadow-card-sm` for a pill or a small button,
+  `shadow-tint` and `shadow-live` under a lime or an apricot button.
+- Type: `text-xs` (12 px) for labels, `text-[15px]` for body text, `text-xl` (20 px) for
+  card titles and big buttons, `text-[32px]` for the page title. Use weights 600 to 800.
+  `font-sans` asks for Figtree and falls back to the system font, because the font is not
+  self-hosted yet.
+- `dark:` follows `data-theme`, not the system setting. Use it only when a token cannot
+  say it, for example a shadow that differs by theme.
+- Use `Button`, `NavBar`, `Menu`, `TabBar` and `FormError` from `client/src/lib/`, and the
+  `.input` class for every field and `<select>`.
 
 ## Before you commit
 
