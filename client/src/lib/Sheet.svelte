@@ -10,10 +10,24 @@
 	}: { open?: boolean; title: string; eyebrow?: string; children: Snippet } = $props();
 
 	let dialog: HTMLDialogElement;
+	let hidden = $state(true);
+	let closing: ReturnType<typeof setTimeout> | undefined;
 
+	// The sheet starts below the screen and slides up once it is shown, and
+	// leaves the top layer only after it slid down again.
 	$effect(() => {
-		if (open && !dialog.open) dialog.showModal();
-		else if (!open && dialog.open) dialog.close();
+		if (open) {
+			clearTimeout(closing);
+			if (!dialog.open) {
+				dialog.showModal();
+				void dialog.offsetHeight;
+			}
+			hidden = false;
+		} else if (dialog.open) {
+			hidden = true;
+			const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+			closing = setTimeout(() => dialog.close(), still ? 0 : 250);
+		}
 	});
 </script>
 
@@ -21,8 +35,13 @@
 <dialog
 	bind:this={dialog}
 	aria-label={title}
+	data-hidden={hidden || undefined}
 	class="fixed inset-x-0 top-auto bottom-0 m-0 mx-auto max-h-[calc(100dvh-3rem)] w-full max-w-[430px] overflow-y-auto overscroll-contain [scrollbar-width:none] rounded-t-[32px] bg-ground text-ink shadow-[0_-20px_40px_-10px_rgba(0,0,0,0.35)] backdrop:bg-[var(--scrim)]"
 	onclose={() => (open = false)}
+	oncancel={(e) => {
+		e.preventDefault();
+		open = false;
+	}}
 	onclick={(e) => {
 		if (e.target === dialog) open = false;
 	}}
@@ -46,3 +65,24 @@
 		{@render children()}
 	</div>
 </dialog>
+
+<style>
+	dialog {
+		transition: transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
+	}
+	dialog::backdrop {
+		transition: opacity 250ms ease;
+	}
+	dialog[data-hidden] {
+		transform: translateY(100%);
+	}
+	dialog[data-hidden]::backdrop {
+		opacity: 0;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		dialog,
+		dialog::backdrop {
+			transition: none;
+		}
+	}
+</style>
