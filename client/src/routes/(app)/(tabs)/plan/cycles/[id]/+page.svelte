@@ -1,11 +1,16 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { untrack } from 'svelte';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { describe, request } from '$lib/api';
+	import BlockDays from '$lib/BlockDays.svelte';
+	import Button from '$lib/Button.svelte';
 	import { cycleWeek } from '$lib/dates';
 	import FormError from '$lib/FormError.svelte';
 	import Icon, { type IconName } from '$lib/Icon.svelte';
 	import Menu from '$lib/Menu.svelte';
 	import NavBar from '$lib/NavBar.svelte';
+	import { saveCycle, type Cycle } from '$lib/plan';
+	import Sheet from '$lib/Sheet.svelte';
 
 	let { data } = $props();
 
@@ -27,16 +32,58 @@
 		return `Week ${w.week} of ${w.of}`;
 	});
 
-	const rows: { icon: IconName; label: string; value: string }[] = $derived.by(() => {
+	type Editor = 'name' | 'dates' | 'block';
+	const rows: { editor: Editor; icon: IconName; label: string; value: string }[] = $derived.by(() => {
 		const c = data.cycle;
 		const repeats = Math.ceil((span(c.block_from, c.ends) + 1) / c.block_days);
 		const weeks = Math.round((span(c.starts, c.ends) + 1) / 7);
 		return [
-			{ icon: 'pencil', label: 'Name', value: c.name },
-			{ icon: 'calendar', label: 'Dates', value: `${short(c.starts)} – ${short(c.ends)} · ${weeks === 1 ? '1 week' : `${weeks} weeks`}` },
-			{ icon: 'layers2', label: 'Block', value: `${c.block_days === 1 ? '1 day' : `${c.block_days} days`}, repeats ${repeats === 1 ? 'once' : `${repeats} times`}` }
+			{ editor: 'name', icon: 'pencil', label: 'Name', value: c.name },
+			{ editor: 'dates', icon: 'calendar', label: 'Dates', value: `${short(c.starts)} – ${short(c.ends)} · ${weeks === 1 ? '1 week' : `${weeks} weeks`}` },
+			{ editor: 'block', icon: 'layers2', label: 'Block', value: `${c.block_days === 1 ? '1 day' : `${c.block_days} days`}, repeats ${repeats === 1 ? 'once' : `${repeats} times`}` }
 		];
 	});
+
+	// An editor works on a copy, and saves the whole cycle with its change.
+	let editing = $state<Editor | null>(null);
+	let open = $state(false);
+	let draft = $state<Cycle>(untrack(() => structuredClone($state.snapshot(data.cycle))));
+	let busy = $state(false);
+	let editError = $state('');
+	let leftOut = $state(0);
+
+	const begun = $derived(data.cycle.starts <= data.today);
+	// Day 1 of the block as the server will count it after the save.
+	const blockFrom = $derived(
+		draft.block_days !== data.cycle.block_days && data.today > data.cycle.starts && data.today <= draft.ends
+			? data.today
+			: data.cycle.block_from
+	);
+	const titles: Record<Editor, string> = { name: 'Name', dates: 'Dates', block: 'Block' };
+	const fields: Record<string, string> = { name: 'The name', starts: 'The start', ends: 'The end', block_days: 'The block' };
+
+	function edit(e: Editor) {
+		draft = structuredClone($state.snapshot(data.cycle));
+		editError = '';
+		editing = e;
+		open = true;
+	}
+
+	async function save() {
+		busy = true;
+		editError = '';
+		try {
+			const body = $state.snapshot(draft);
+			body.days = body.days.filter((d) => d.day <= body.block_days);
+			leftOut = (await saveCycle(body)).leftOut;
+			open = false;
+			await invalidateAll();
+		} catch (e) {
+			editError = describe(e, (f) => (f.startsWith('days') ? 'A session' : (fields[f] ?? f)));
+		} finally {
+			busy = false;
+		}
+	}
 
 	async function remove() {
 		if (!confirm(`Delete ${data.cycle.name}? Its planned sessions go. The sessions you ran stay in History.`)) return;
@@ -67,12 +114,19 @@
 	</header>
 
 	<FormError message={error} />
+	{#if leftOut}
+		<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold shadow-card">
+			Saved. {leftOut === 1 ? '1 day' : `${leftOut} days`} already held that session, so the cycle left
+			{leftOut === 1 ? 'it as it was' : 'them as they were'}.
+		</p>
+	{/if}
 
 	<section class="flex flex-col gap-2">
 		<h2 class="px-1 text-[15px] font-bold">Cycle</h2>
 		<ul class="rounded-3xl bg-surface px-[18px] shadow-card">
 			{#each rows as r (r.label)}
-				<li class="flex min-h-[58px] items-center gap-3.5 py-2 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+				<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+					<button type="button" class="flex min-h-[58px] w-full items-center gap-3.5 py-2 text-left" onclick={() => edit(r.editor)}>
 					<span class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-well text-ink-2">
 						<Icon name={r.icon} size="1.125rem" />
 					</span>
@@ -80,8 +134,60 @@
 						<span class="block text-[15px] font-bold">{r.label}</span>
 						<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{r.value}</span>
 					</span>
+					<span class="text-ink-3"><Icon name="chevron-right" size="1rem" /></span>
+					</button>
 				</li>
 			{/each}
 		</ul>
 	</section>
 </div>
+
+<Sheet bind:open title={editing ? titles[editing] : ''}>
+	<form
+		class="flex flex-col gap-3.5"
+		onsubmit={(e) => {
+			e.preventDefault();
+			save();
+		}}
+	>
+		<div class="flex flex-col gap-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
+			{#if editing === 'name'}
+				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
+					Name
+					<input class="input h-12 px-4" bind:value={draft.name} required maxlength="200" />
+				</label>
+			{:else if editing === 'dates'}
+				<div class="grid grid-cols-2 gap-3">
+					<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
+						Starts
+						<input class="input h-12 px-4" type="date" bind:value={draft.starts} required disabled={begun} />
+					</label>
+					<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
+						Ends
+						<input class="input h-12 px-4" type="date" bind:value={draft.ends} min={draft.starts} required />
+					</label>
+				</div>
+				{#if begun}
+					<p class="text-xs font-semibold text-ink-2">The start stays: the cycle has begun.</p>
+				{/if}
+			{:else if editing === 'block'}
+				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
+					Repeats every
+					<span class="flex items-center gap-2 text-[15px] font-bold text-ink">
+						<input class="input h-12 w-20 px-4 text-center" type="number" inputmode="numeric" min="1" max="28" bind:value={draft.block_days} required />
+						days
+					</span>
+				</label>
+				<BlockDays bind:days={draft.days} blockDays={draft.block_days} from={blockFrom} templates={data.templates} />
+			{/if}
+			{#if editing !== 'name'}
+				<p class="text-xs font-semibold text-ink-2">Planned days from today on are set again, so a session you moved goes back.</p>
+			{/if}
+		</div>
+		<FormError message={editError} />
+		<div class="grid grid-cols-2 gap-2">
+			<Button variant="secondary" onclick={() => (open = false)}>Cancel</Button>
+			<Button type="submit" disabled={busy}>Save</Button>
+		</div>
+	</form>
+</Sheet>
