@@ -17,7 +17,7 @@
 
 {#if message}
 	<div
-		class="fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-40 mx-auto flex min-h-14 w-[calc(100%-2rem)] max-w-[398px] items-center gap-3 rounded-full bg-hero py-2 pr-2 pl-5 text-on-hero shadow-card"
+		class="fixed inset-x-0 bottom-[var(--above-bar)] z-40 mx-auto flex min-h-14 w-[calc(100%-2rem)] max-w-[398px] items-center gap-3 rounded-full bg-hero py-2 pr-2 pl-5 text-on-hero shadow-card"
 		role="status"
 	>
 		<span class="min-w-0 flex-1 truncate text-[15px] font-bold">{message}</span>
