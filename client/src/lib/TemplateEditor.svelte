@@ -130,7 +130,7 @@
 			{/if}
 		</div>
 		<a
-			class="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"
+			class="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"
 			href={cancel}
 			title="Cancel"
 			aria-label="Cancel"
