@@ -109,6 +109,35 @@
         ]
       }
     },
+    "/api/v1/climbs": {
+      "get": {
+        "description": "Every climb in your finished runs from one day to another, both included,\nby day and then in the order they were climbed.",
+        "tags": [
+          "runs"
+        ],
+        "summary": "List your climbs",
+        "operationId": "listClimbs",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/climbListResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/cycles": {
       "get": {
         "description": "Latest start first.",
@@ -1505,6 +1534,19 @@
       },
       "x-go-package": "passion/server/api"
     },
+    "climbListResponse": {
+      "type": "object",
+      "properties": {
+        "climbs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/datedClimbBody"
+          },
+          "x-go-name": "Climbs"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
     "climbRequest": {
       "description": "What one climb was. A grade from a scale needs its grade_system: font or v\nfor a boulder, french or yds for a route.",
       "type": "object",
@@ -1790,6 +1832,132 @@
           "type": "string",
           "x-go-name": "Starts",
           "example": "2026-03-03"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "datedClimbBody": {
+      "type": "object",
+      "required": [
+        "step",
+        "discipline",
+        "setting"
+      ],
+      "properties": {
+        "attempts": {
+          "description": "1 or more.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Attempts",
+          "example": 3
+        },
+        "board": {
+          "description": "A board, for a boulder: kilter, moon, tension, spray or custom.",
+          "type": "string",
+          "x-go-name": "Board",
+          "example": "moon"
+        },
+        "discipline": {
+          "description": "boulder, sport or trad.",
+          "type": "string",
+          "x-go-name": "Discipline",
+          "example": "boulder"
+        },
+        "exercise": {
+          "description": "The exercise the step pointed at when the climb was written.",
+          "type": "string",
+          "x-go-name": "Exercise",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "focus": {
+          "description": "What you meant to work on, set before the climb.",
+          "type": "string",
+          "x-go-name": "Focus",
+          "example": "Heel hooks"
+        },
+        "grade": {
+          "description": "As logged. With no grade_system it can be an ungraded label, Rainbow or\nTraverse.",
+          "type": "string",
+          "x-go-name": "Grade",
+          "example": "6c"
+        },
+        "grade_system": {
+          "description": "font, v, french or yds.",
+          "type": "string",
+          "x-go-name": "GradeSystem",
+          "example": "font"
+        },
+        "id": {
+          "description": "The id the client chose.",
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "local_date": {
+          "description": "The run's day.",
+          "type": "string",
+          "x-go-name": "LocalDate",
+          "example": "2026-03-07"
+        },
+        "notes": {
+          "type": "string",
+          "x-go-name": "Notes"
+        },
+        "outcome": {
+          "description": "onsight, flash, redpoint, hangdog or working.",
+          "type": "string",
+          "x-go-name": "Outcome",
+          "example": "flash"
+        },
+        "position": {
+          "description": "The order it was climbed in, from 0.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Position",
+          "example": 0
+        },
+        "rope_style": {
+          "description": "For a route: lead, top_rope, auto_belay or follow.",
+          "type": "string",
+          "x-go-name": "RopeStyle",
+          "example": "lead"
+        },
+        "run": {
+          "description": "The run it was logged in.",
+          "type": "string",
+          "x-go-name": "Run",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "seconds": {
+          "description": "How long it took.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Seconds",
+          "example": 240
+        },
+        "sent": {
+          "description": "True for a graded onsight, flash or redpoint.",
+          "type": "boolean",
+          "x-go-name": "Sent"
+        },
+        "setting": {
+          "description": "indoor or outdoor.",
+          "type": "string",
+          "x-go-name": "Setting",
+          "example": "indoor"
+        },
+        "stars": {
+          "description": "1 to 3.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Stars",
+          "example": 2
+        },
+        "step": {
+          "description": "The climbing step it was climbed under.",
+          "type": "string",
+          "x-go-name": "Step",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
         }
       },
       "x-go-package": "passion/server/api"

@@ -712,6 +712,68 @@ func (s *Server) deleteClimb(w http.ResponseWriter, r *http.Request, who db.Auth
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// swagger:model datedClimbBody
+type datedClimbBody struct {
+	climbBody
+
+	// The run it was logged in.
+	//
+	// example: 01a0bf77-d7e8-76ea-96cc-f09cbca175a3
+	Run string `json:"run"`
+
+	// The run's day.
+	//
+	// example: 2026-03-07
+	LocalDate string `json:"local_date"`
+}
+
+// swagger:model climbListResponse
+type climbListResponse struct {
+	Climbs []datedClimbBody `json:"climbs"`
+}
+
+// swagger:route GET /api/v1/climbs runs listClimbs
+//
+// # List your climbs
+//
+// Every climb in your finished runs from one day to another, both included,
+// by day and then in the order they were climbed.
+//
+//	Security:
+//	  bearer:
+//	Responses:
+//	  200: climbListResponse
+//	  401: unauthenticated
+//	  422: validationFailed
+func (s *Server) listClimbs(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
+	problems := map[string]string{}
+	query := r.URL.Query()
+	from, okFrom := parseDay(query.Get("from"), "from", problems)
+	to, okTo := parseDay(query.Get("to"), "to", problems)
+	if okFrom && okTo && to.Before(from) {
+		problems["to"] = "must be on or after from"
+	}
+	if len(problems) > 0 {
+		writeFieldErrors(w, problems)
+		return
+	}
+
+	list, err := db.ListClimbs(r.Context(), s.pool, who.AccountID, from, to)
+	if err != nil {
+		writeInternal(w, s.log, err)
+		return
+	}
+	out := climbListResponse{Climbs: make([]datedClimbBody, 0, len(list))}
+	for _, c := range list {
+		out.Climbs = append(out.Climbs, datedClimbBody{
+			climbBody: toClimbBody(c.Climb),
+			Run:       c.Run,
+			LocalDate: c.LocalDate.Format(time.DateOnly),
+		})
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
 func (req climbRequest) fields() db.ClimbFields {
 	return db.ClimbFields{
 		Step:        req.Step,

@@ -339,6 +339,67 @@ func TestClimbs(t *testing.T) {
 	}
 }
 
+func TestListClimbs(t *testing.T) {
+	h := newTestServer(t)
+	ada := signedIn(t, h, "ada@example.com")
+	bob := signedIn(t, h, "bob@example.com")
+	const step = "0199c3a0-0000-7000-8000-0000000000a2"
+	climbOn := func(who, day, climb string, finish bool) string {
+		t.Helper()
+		run := startRunFor(t, h, who, `{"name": "Open", "local_date": "`+day+`"}`)
+		body := runRequestFrom(t, run, func(b map[string]any) {
+			b["sections"] = []any{map[string]any{"name": "Main", "items": []any{
+				map[string]any{"step": map[string]any{"id": step, "exercise": "0199c3a0-0000-7000-8000-0000000000b2", "name": "Bouldering", "kind": "climbing"}},
+			}}}
+		})
+		if rec := send(t, h, http.MethodPut, "/api/v1/runs/"+run.ID, who, body); rec.Code != http.StatusOK {
+			t.Fatalf("put body: status %d: %s", rec.Code, rec.Body)
+		}
+		path := "/api/v1/runs/" + run.ID + "/climbs/" + climb
+		if rec := send(t, h, http.MethodPut, path, who, `{"step": "`+step+`", "discipline": "boulder", "setting": "indoor"}`); rec.Code != http.StatusOK {
+			t.Fatalf("put climb: status %d: %s", rec.Code, rec.Body)
+		}
+		if finish {
+			send(t, h, http.MethodPost, "/api/v1/runs/"+run.ID+"/finish", who, "")
+		}
+		return run.ID
+	}
+	climbOn(ada, "2026-03-06", "0199c3a0-0000-7000-8000-0000000000c1", true)
+	first := climbOn(ada, "2026-03-07", "0199c3a0-0000-7000-8000-0000000000c2", true)
+	climbOn(ada, "2026-03-08", "0199c3a0-0000-7000-8000-0000000000c3", true)
+	climbOn(ada, "2026-03-08", "0199c3a0-0000-7000-8000-0000000000c4", false)
+	climbOn(ada, "2026-03-09", "0199c3a0-0000-7000-8000-0000000000c5", true)
+	climbOn(bob, "2026-03-07", "0199c3a0-0000-7000-8000-0000000000c6", true)
+
+	rec := send(t, h, http.MethodGet, "/api/v1/climbs?from=2026-03-07&to=2026-03-08", ada, "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("list: status %d: %s", rec.Code, rec.Body)
+	}
+	var got climbListResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	var days []string
+	for _, c := range got.Climbs {
+		days = append(days, c.LocalDate)
+	}
+	if !slices.Equal(days, []string{"2026-03-07", "2026-03-08"}) || got.Climbs[0].Run != first {
+		t.Fatalf("climbs %+v, want ada's finished ones on the 7th and the 8th", got.Climbs)
+	}
+
+	for name, query := range map[string]string{
+		"no range":         "",
+		"a bad day":        "?from=soon&to=2026-03-08",
+		"a range reversed": "?from=2026-03-08&to=2026-03-07",
+	} {
+		t.Run(name, func(t *testing.T) {
+			if rec := send(t, h, http.MethodGet, "/api/v1/climbs"+query, ada, ""); rec.Code != http.StatusUnprocessableEntity {
+				t.Fatalf("status %d, want 422", rec.Code)
+			}
+		})
+	}
+}
+
 func TestRunsNeedSignIn(t *testing.T) {
 	h := newTestServer(t)
 	id := "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
@@ -353,6 +414,7 @@ func TestRunsNeedSignIn(t *testing.T) {
 		{http.MethodPut, "/api/v1/runs/" + id + "/steps/" + id + "/sets"},
 		{http.MethodPut, "/api/v1/runs/" + id + "/climbs/" + id},
 		{http.MethodDelete, "/api/v1/runs/" + id + "/climbs/" + id},
+		{http.MethodGet, "/api/v1/climbs"},
 	} {
 		t.Run(route.method+" "+route.path, func(t *testing.T) {
 			if rec := send(t, h, route.method, route.path, "", ""); rec.Code != http.StatusUnauthorized {

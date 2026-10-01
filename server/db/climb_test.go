@@ -6,6 +6,7 @@ import (
 	"maps"
 	"slices"
 	"testing"
+	"time"
 
 	"passion/server/db"
 	"passion/server/db/dbtest"
@@ -16,6 +17,9 @@ const (
 	k2 = "0199c3a0-0000-7000-8000-0000000000c2"
 	k3 = "0199c3a0-0000-7000-8000-0000000000c3"
 	k4 = "0199c3a0-0000-7000-8000-0000000000c4"
+	k5 = "0199c3a0-0000-7000-8000-0000000000c5"
+	k6 = "0199c3a0-0000-7000-8000-0000000000c6"
+	k7 = "0199c3a0-0000-7000-8000-0000000000c7"
 )
 
 func climb(t *testing.T, f db.ClimbFields) db.ClimbFields {
@@ -114,6 +118,59 @@ func TestPutClimbRefuses(t *testing.T) {
 				t.Fatalf("got %v", err)
 			}
 		})
+	}
+}
+
+func TestListClimbs(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	bob := newAccount(t, pool, "bob@example.com")
+
+	climbedOn := func(owner, day string, finish bool, ids ...string) db.Run {
+		t.Helper()
+		d, err := time.Parse(time.DateOnly, day)
+		if err != nil {
+			t.Fatal(err)
+		}
+		run := startRun(t, ctx, pool, owner, db.RunStart{Name: "Open", StartedAt: time.Now(), LocalDate: &d})
+		run = putBody(t, ctx, pool, owner, run, kinded(runStep(s1, e1, "Bouldering"), "climbing"))
+		for i, id := range ids {
+			f := boulder(s1, "6a")
+			f.Position = len(ids) - i
+			if _, err := db.PutClimb(ctx, pool, owner, run.ID, id, climb(t, f)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if finish {
+			if _, err := db.FinishRun(ctx, pool, owner, run.ID); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return run
+	}
+	climbedOn(ada, "2026-03-06", true, k4)
+	first := climbedOn(ada, "2026-03-07", true, k1, k2)
+	climbedOn(ada, "2026-03-08", true, k5)
+	climbedOn(ada, "2026-03-08", false, k3)
+	climbedOn(ada, "2026-03-09", true, k6)
+	climbedOn(bob, "2026-03-07", true, k7)
+
+	from, _ := time.Parse(time.DateOnly, "2026-03-07")
+	to, _ := time.Parse(time.DateOnly, "2026-03-08")
+	list, err := db.ListClimbs(ctx, pool, ada, from, to)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ids []string
+	for _, c := range list {
+		ids = append(ids, c.ID)
+	}
+	if !slices.Equal(ids, []string{k2, k1, k5}) {
+		t.Fatalf("climbs %v, want ada's finished ones from the 7th to the 8th, in the order climbed", ids)
+	}
+	if list[0].Run != first.ID || list[0].LocalDate.Format(time.DateOnly) != "2026-03-07" {
+		t.Fatalf("climb %+v, want its run and day", list[0])
 	}
 }
 
