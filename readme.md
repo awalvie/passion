@@ -189,6 +189,7 @@ server/web/         serves the client, embedded with //go:embed
 server/cmd/         passion, the server, and catalogid, which gives catalog files an id
 client/             sveltekit, built into server/web/dist
 catalog/            the shipped catalog, embedded and loaded at startup. See docs/CATALOG_FORMAT.md
+deploy/             the compose file the deploy workflow runs on the server
 docs/               design and requirements
 ```
 
@@ -204,6 +205,35 @@ docker run -e DATABASE_URL=... -p 8080:8080 passion:dev
 ```
 
 The image is a static binary on Alpine, running as an unprivileged user.
+
+## Deploy
+
+Run the Deploy workflow by hand from the Actions tab. It builds the image, pushes it to
+`ghcr.io/awalvie/passion`, copies [deploy/compose.yaml](deploy/compose.yaml) and the
+private catalog to `/srv/passion` over SSH, and starts the server with Postgres beside it.
+The server listens on `127.0.0.1:8081`, so put a reverse proxy in front of it.
+
+Once, on the server:
+
+1. Install Docker with the compose plugin, and add the deploy user to the `docker` group.
+2. Create `/srv/passion`, owned by the deploy user.
+3. Point the proxy at it, for example in Caddy: `v2.passion.awalvie.me { reverse_proxy 127.0.0.1:8081 }`.
+
+In the repository settings:
+
+| Name | Kind | Value |
+|---|---|---|
+| `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` | secret | the server and an SSH key for it |
+| `DEPLOY_KNOWN_HOSTS` | secret | the server's host key, from `ssh-keyscan <host>` |
+| `PRIVATE_CATALOG_DEPLOY_KEY` | secret | a read-only deploy key for `passion-private-catalog` |
+| `POSTGRES_PASSWORD` | secret | letters, digits and `. _ ~ -` only, for example `openssl rand -hex 24` |
+| `CATALOG_OWNER` | variable | the email of the account that gets the private catalog |
+
+Postgres reads the password only when its volume is first created. To change it later,
+run `ALTER USER passion PASSWORD '...'` in the database before you change the secret.
+
+The private catalog loads only for an account that exists, and only when the server
+starts. After that account signs up, run `docker compose restart app` in `/srv/passion`.
 
 ## Licence
 
