@@ -349,7 +349,7 @@
 					onclick={pause}
 				>
 					{#if paused}
-						<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor" /></svg>
+						<Icon name="play" size="20px" />
 						Resume
 					{:else}
 						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
