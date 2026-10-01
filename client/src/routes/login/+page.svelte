@@ -48,6 +48,7 @@
 		<div>
 			<label for="email" class="text-xs font-bold text-ink-2">Email</label>
 			<input
+				enterkeyhint="go"
 				id="email"
 				name="email"
 				type="email"
@@ -60,6 +61,7 @@
 		<div>
 			<label for="password" class="text-xs font-bold text-ink-2">Password</label>
 			<input
+				enterkeyhint="go"
 				id="password"
 				name="password"
 				type="password"

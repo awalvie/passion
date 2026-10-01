@@ -9,6 +9,7 @@
 <label class="flex h-12 items-center gap-2.5 rounded-full bg-well px-4 text-ink-3 focus-within:shadow-[0_0_0_2px_var(--ink-3)] dark:bg-surface">
 	<svg viewBox="0 0 24 24" class="size-[18px] shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4 4" /></svg>
 	<input
+		enterkeyhint="search"
 		type="search"
 		bind:value
 		{placeholder}

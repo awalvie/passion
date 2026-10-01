@@ -70,6 +70,7 @@
 		<div>
 			<label for="display_name" class="text-xs font-bold text-ink-2">Name</label>
 			<input
+				enterkeyhint="go"
 				id="display_name"
 				name="display_name"
 				autocomplete="name"
@@ -81,6 +82,7 @@
 		<div>
 			<label for="email" class="text-xs font-bold text-ink-2">Email</label>
 			<input
+				enterkeyhint="go"
 				id="email"
 				name="email"
 				type="email"
@@ -93,6 +95,7 @@
 		<div>
 			<label for="password" class="text-xs font-bold text-ink-2">Password</label>
 			<input
+				enterkeyhint="go"
 				id="password"
 				name="password"
 				type="password"
@@ -107,6 +110,7 @@
 		<div>
 			<label for="password_confirm" class="text-xs font-bold text-ink-2">Confirm password</label>
 			<input
+				enterkeyhint="go"
 				id="password_confirm"
 				name="password_confirm"
 				type="password"
