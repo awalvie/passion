@@ -75,6 +75,16 @@ func TestPutCycle(t *testing.T) {
 		})
 	}
 
+	// A cycle that has begun keeps its start.
+	begun := "/api/v1/cycles/0199c3a0-0000-7000-8000-0000000000e2"
+	if rec := send(t, h, http.MethodPut, begun, ada, `{"name": "C", "starts": "2020-01-01", "ends": "2020-01-28", "block_days": 7}`); rec.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body)
+	}
+	rec = send(t, h, http.MethodPut, begun, ada, `{"name": "C", "starts": "2020-01-02", "ends": "2020-01-28", "block_days": 7}`)
+	if rec.Code != http.StatusUnprocessableEntity || decodeBody(t, rec).Error.Fields["starts"] == "" {
+		t.Fatalf("status %d: %s, want starts refused", rec.Code, rec.Body)
+	}
+
 	if rec := send(t, h, http.MethodGet, path, bob, ""); rec.Code != http.StatusNotFound {
 		t.Fatalf("someone else read it: status %d", rec.Code)
 	}

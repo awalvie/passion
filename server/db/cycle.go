@@ -60,6 +60,10 @@ type Slot struct {
 // see.
 var ErrNoCycle = errors.New("no such cycle")
 
+// ErrStartsLocked refuses a new start date for a cycle that has begun: its
+// days so far are what the runs recorded.
+var ErrStartsLocked = errors.New("a cycle that has begun keeps its start date")
+
 // UnknownTemplatesError names, by path, each day whose session template the
 // person cannot see.
 type UnknownTemplatesError struct {
@@ -178,6 +182,11 @@ func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cycle
 	if err := checkTemplates(ctx, tx, owner, f.Body); err != nil {
 		return Cycle{}, nil, err
 	}
+	var today time.Time
+	if err := tx.QueryRow(ctx, `SELECT (now() AT TIME ZONE timezone)::date FROM account WHERE id = $1`,
+		owner).Scan(&today); err != nil {
+		return Cycle{}, nil, fmt.Errorf("select today: %w", err)
+	}
 
 	// An id another account holds matches no row here, so it reads as a
 	// cycle that does not exist. old is the row as it stood before, even when
@@ -225,10 +234,13 @@ func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cycle
 		return Cycle{}, nil, fmt.Errorf("read cycle: %w", err)
 	}
 	cycle := row.Cycle
+	if row.OldStarts != nil && !row.OldStarts.After(today) && !row.OldStarts.Equal(cycle.Starts) {
+		return Cycle{}, nil, ErrStartsLocked
+	}
 
 	leftOut := []Slot{}
 	if row.OldStarts == nil || !sameShape(Cycle{Starts: *row.OldStarts, Ends: *row.OldEnds, BlockDays: *row.OldBlockDays, Body: *row.OldBody}, cycle) {
-		if leftOut, err = build(ctx, tx, cycle); err != nil {
+		if leftOut, err = build(ctx, tx, cycle, today); err != nil {
 			return Cycle{}, nil, err
 		}
 	}
@@ -246,12 +258,7 @@ func sameShape(a, b Cycle) bool {
 // build replaces the cycle's rows from today on. A past day is what the runs
 // recorded, so it is never planned again, and a row a run was started from
 // stays.
-func build(ctx context.Context, tx pgx.Tx, c Cycle) ([]Slot, error) {
-	var today time.Time
-	if err := tx.QueryRow(ctx, `SELECT (now() AT TIME ZONE timezone)::date FROM account WHERE id = $1`,
-		c.Owner).Scan(&today); err != nil {
-		return nil, fmt.Errorf("select today: %w", err)
-	}
+func build(ctx context.Context, tx pgx.Tx, c Cycle, today time.Time) ([]Slot, error) {
 	// A run starting from one of these rows holds a key lock on it. Taking the
 	// rows first waits for that run, and the delete, a new statement, then
 	// sees it. One statement would test for runs before the wait, and drop

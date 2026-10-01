@@ -202,7 +202,7 @@
         ]
       },
       "put": {
-        "description": "Creates the cycle under the id you chose, or replaces it, so a retry makes\none cycle. When the dates, the block or the days change, it places the\nsessions again from today on: a past day, and a day a run was started from,\nstay as they are, and so do the days you moved unless the shape changed. A\nday that already holds the session is left out and listed.",
+        "description": "Creates the cycle under the id you chose, or replaces it, so a retry makes\none cycle. When the dates, the block or the days change, it places the\nsessions again from today on: a past day, and a day a run was started from,\nstay as they are, and so do the days you moved unless the shape changed. A\nday that already holds the session is left out and listed. Once the cycle\nhas begun, its start date cannot change.",
         "tags": [
           "cycles"
         ],
