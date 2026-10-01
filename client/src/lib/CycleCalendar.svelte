@@ -58,6 +58,14 @@
 	const movable = (d: ScheduledDay) => d.status === 'planned' && d.local_date >= today;
 	const target = (date: string) => inCycle(date) && date >= today && date !== lifted?.local_date;
 
+	// Icons keep touch scrolling, so a swipe that starts on one still scrolls.
+	// Once a session is lifted, the page must not scroll under the finger.
+	$effect(() => {
+		const stop = (e: TouchEvent) => lifted && e.preventDefault();
+		window.addEventListener('touchmove', stop, { passive: false });
+		return () => window.removeEventListener('touchmove', stop);
+	});
+
 	function grab(e: PointerEvent, d: ScheduledDay) {
 		if (!movable(d)) return;
 		const el = e.currentTarget as Element;
@@ -148,7 +156,7 @@
 						</span>
 						{#each list as d (d.id)}
 							<span
-								class="rounded-full {movable(d) ? 'touch-none' : ''} {lifted?.id === d.id ? 'opacity-30' : ''}"
+								class="rounded-full {movable(d) ? 'select-none [-webkit-touch-callout:none]' : ''} {lifted?.id === d.id ? 'opacity-30' : ''}"
 								role="presentation"
 								onpointerdown={(e) => grab(e, d)}
 								onpointermove={follow}
