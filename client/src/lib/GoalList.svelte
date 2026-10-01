@@ -26,14 +26,15 @@
 <ul class="rounded-3xl bg-surface px-[18px] shadow-card">
 	{#each goals as g, i (i)}
 		<li class="flex min-h-[52px] items-center gap-3 py-2 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
-			<input
-				type="checkbox"
-				class="size-6 shrink-0 accent-ink"
-				checked={g.done}
-				aria-label={g.text}
-				onchange={(e) => set(goals.map((x, j) => (j === i ? { ...x, done: e.currentTarget.checked } : x)))}
-			/>
-			<span class="min-w-0 flex-1 text-[15px] font-bold break-words {g.done ? 'text-ink-3 line-through' : ''}">{g.text}</span>
+			<label class="flex min-w-0 flex-1 items-center gap-3 self-stretch">
+				<input
+					type="checkbox"
+					class="size-6 shrink-0 accent-ink"
+					checked={g.done}
+					onchange={(e) => set(goals.map((x, j) => (j === i ? { ...x, done: e.currentTarget.checked } : x)))}
+				/>
+				<span class="min-w-0 flex-1 text-[15px] font-bold break-words {g.done ? 'text-ink-3 line-through' : ''}">{g.text}</span>
+			</label>
 			<button
 				type="button"
 				class="flex size-9 shrink-0 items-center justify-center rounded-full text-ink-3"
