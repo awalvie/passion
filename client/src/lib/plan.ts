@@ -19,6 +19,10 @@ export type Cycle = {
 	ends: string;
 	block_days: number;
 	days: { day: number; template: string }[];
+	goals: { text: string; done: boolean }[];
+	before: string[];
+	after: string[];
+	notes: string | null;
 };
 
 // The shape of server/api/auth.go's accountResponse.
