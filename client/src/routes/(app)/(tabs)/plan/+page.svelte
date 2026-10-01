@@ -5,11 +5,13 @@
 	import Button from '$lib/Button.svelte';
 	import CycleYear from '$lib/CycleYear.svelte';
 	import { addDays, cycleWeek, daysBetween, formatDate, mondayOf } from '$lib/dates';
+	import DateField from '$lib/DateField.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import SessionIcon, { iconState } from '$lib/SessionIcon.svelte';
 	import type { ScheduledDay } from '$lib/plan';
 	import { startRun } from '$lib/runState.svelte';
+	import Sheet from '$lib/Sheet.svelte';
 
 	let { data } = $props();
 
@@ -164,10 +166,23 @@
 <svelte:head><title>Plan</title></svelte:head>
 
 <div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
-	<header>
-		<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">Plan</h1>
-		{#if data.today}
-			<p class="mt-1 text-[15px] font-semibold text-ink-2">{formatDate(data.today, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+	<header class="flex items-start justify-between gap-3">
+		<div>
+			<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">Plan</h1>
+			{#if data.today}
+				<p class="mt-1 text-[15px] font-semibold text-ink-2">{formatDate(data.today, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+			{/if}
+		</div>
+		{#if !data.offline}
+			{#if cyclesView}
+				<a href="/plan/cycles/new" class="mt-1 flex size-10 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm" aria-label="New cycle">
+					<Icon name="plus" size="1.25rem" />
+				</a>
+			{:else}
+				<button type="button" class="mt-1 flex size-10 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm" aria-label="Add a session" onclick={openAdd}>
+					<Icon name="plus" size="1.25rem" />
+				</button>
+			{/if}
 		{/if}
 	</header>
 
@@ -275,35 +290,6 @@
 			<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold text-ink-2 shadow-card">Nothing planned for the next four weeks.</p>
 		{/each}
 
-		{#if adding}
-			<form
-				class="flex flex-col gap-3 rounded-3xl bg-surface p-[18px] shadow-card"
-				onsubmit={(e) => {
-					e.preventDefault();
-					add();
-				}}
-			>
-				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
-					Session
-					<select class="input h-12 px-4" bind:value={template} required>
-						{#each data.templates as t (t.id)}
-							<option value={t.id}>{t.name}</option>
-						{/each}
-					</select>
-				</label>
-				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
-					Day
-					<input class="input h-12 px-4" type="date" bind:value={date} required />
-				</label>
-				<FormError message={error} />
-				<div class="grid grid-cols-2 items-center gap-2">
-					<Button variant="secondary" onclick={() => (adding = false)}>Cancel</Button>
-					<Button type="submit" disabled={busy}>Add</Button>
-				</div>
-			</form>
-		{:else}
-			<Button variant="secondary" onclick={openAdd}>Add a session</Button>
-		{/if}
 	{:else}
 		{#if data.cycles.length}
 			<CycleYear cycles={data.cycles} today={data.today} />
@@ -343,6 +329,35 @@
 				<p class="pt-1 pb-3 text-[15px] font-semibold text-ink-2">A cycle repeats a block of sessions over weeks.</p>
 			{/if}
 		</section>
-		<Button variant="secondary" href="/plan/cycles/new">New cycle</Button>
 	{/if}
 </div>
+
+<Sheet bind:open={adding} title="Add a session">
+	<form
+		class="flex flex-col gap-3.5"
+		onsubmit={(e) => {
+			e.preventDefault();
+			add();
+		}}
+	>
+		<div class="flex flex-col gap-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
+			<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
+				Session
+				<select class="input h-12 px-4" bind:value={template} required>
+					{#each data.templates as t (t.id)}
+						<option value={t.id}>{t.name}</option>
+					{/each}
+				</select>
+			</label>
+			<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
+				Day
+				<DateField bind:value={date} label="Day" />
+			</label>
+		</div>
+		<FormError message={error} />
+		<div class="grid grid-cols-2 items-center gap-2">
+			<Button variant="secondary" onclick={() => (adding = false)}>Cancel</Button>
+			<Button type="submit" disabled={busy}>Add</Button>
+		</div>
+	</form>
+</Sheet>
