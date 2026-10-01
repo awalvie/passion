@@ -108,6 +108,7 @@
 			['path', { d: 'M3 10h18' }]
 		],
 		'chevron-right': [['path', { d: 'm9 18 6-6-6-6' }]],
+		play: [['path', { d: 'M6 3 20 12 6 21Z' }]],
 		check: [['path', { d: 'M20 6 9 17l-5-5' }]],
 		x: [
 			['path', { d: 'M18 6 6 18' }],
