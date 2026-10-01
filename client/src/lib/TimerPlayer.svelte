@@ -281,7 +281,7 @@
 				class="mt-3.5 flex shrink-0 items-center justify-center gap-2 {clock.length === 1 ? '[--h:min(300px,36svh,76vw)]' : '[--h:min(236px,28svh,56vw)]'}"
 				role="img"
 				aria-live="off"
-				aria-label="{secs} seconds left"
+				aria-label="{secs} {secs === 1 ? 'second' : 'seconds'} left"
 			>
 				{#each clock.split('') as digit, i (i)}
 					{#if secs >= 60 && i === clock.length - 2}
