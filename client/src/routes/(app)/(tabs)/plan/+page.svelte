@@ -3,6 +3,7 @@
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
 	import FormError from '$lib/FormError.svelte';
+	import Icon from '$lib/Icon.svelte';
 	import type { ScheduledDay } from '$lib/plan';
 
 	let { data } = $props();
@@ -191,9 +192,14 @@
 			{#if data.cycles.length}
 				<ul class="overflow-hidden rounded-2xl bg-surface shadow-sm">
 					{#each data.cycles as c (c.id)}
-						<li class="flex flex-col border-line px-4 py-3 [&:not(:first-child)]:border-t">
-							<span class="truncate text-base">{c.name}</span>
-							<span class="truncate text-sm text-ink-2">{short(c.starts)} – {short(c.ends)}</span>
+						<li class="border-line [&:not(:first-child)]:border-t">
+							<a href="/plan/cycles/{c.id}" class="flex items-center gap-3 px-4 py-3">
+								<span class="min-w-0 flex-1">
+									<span class="block truncate text-base">{c.name}</span>
+									<span class="block truncate text-sm text-ink-2">{short(c.starts)} – {short(c.ends)}</span>
+								</span>
+								<Icon name="chevron-right" size="1rem" />
+							</a>
 						</li>
 					{/each}
 				</ul>
