@@ -32,19 +32,19 @@
 	const fields: Record<string, string> = { name: 'The name', starts: 'The start', ends: 'The end', block_days: 'The block' };
 	const weeks = $derived(Math.ceil(length / 7));
 	const planned = $derived(plannedDays(draft, data.today));
+	const count = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
 	const titles = ['Name and dates', 'What is it for?', 'What repeats?', 'Check it'];
 	const hints = $derived([
 		'The block comes next.',
 		'All optional. You can add these later.',
 		'Pick the block length, then fill each day.',
-		`${planned.length === 1 ? '1 session' : `${planned.length} sessions`} over ${weeks === 1 ? '1 week' : `${weeks} weeks`}.`
+		`${count(planned.length, 'session')} over ${count(weeks, 'week')}.`
 	]);
 	const short = (date: string) => formatDate(date, { day: 'numeric', month: 'short' });
 	const byId = $derived(new Map(data.templates.map((t) => [t.id, t])));
 	const blockList = $derived(
 		Array.from({ length: draft.block_days }, (_, i) => draft.days.find((d) => d.day === i + 1)).map((d) => d && byId.get(d.template))
 	);
-	const count = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
 	const goalsLine = $derived(
 		[draft.goals.length ? count(draft.goals.length, 'goal') : '', draft.notes ? 'notes' : ''].filter(Boolean).join(' · ') || 'None yet'
 	);
