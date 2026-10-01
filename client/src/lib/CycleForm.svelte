@@ -47,7 +47,7 @@
 			const { id, block_from, ...body } = $state.snapshot(draft);
 			body.days = body.days.filter((d) => d.day <= body.block_days);
 			const saved = await request<{ left_out: unknown[] }>('PUT', `/api/v1/cycles/${id}`, body);
-			if (!saved.left_out.length) return await goto('/plan');
+			if (!saved.left_out.length) return await goto('/plan?view=cycles');
 			leftOut = saved.left_out.length;
 		} catch (e) {
 			error = describe(e, label);
@@ -136,7 +136,7 @@
 		<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold shadow-card">
 			Saved. {leftOut === 1 ? '1 day' : `${leftOut} days`} already held that session, so the cycle left
 			{leftOut === 1 ? 'it as it was' : 'them as they were'}.
-			<a href="/plan" class="font-bold text-link underline">Back to the plan</a>
+			<a href="/plan?view=cycles" class="font-bold text-link underline">Back to the plan</a>
 		</p>
 	{/if}
 	<Button type="submit" disabled={busy}>Save cycle</Button>

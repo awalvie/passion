@@ -17,7 +17,7 @@
 		error = '';
 		try {
 			await request('DELETE', `/api/v1/cycles/${data.cycle.id}`);
-			await goto('/plan');
+			await goto('/plan?view=cycles');
 		} catch (e) {
 			error = describe(e, (f) => f);
 		} finally {
@@ -28,7 +28,7 @@
 
 <svelte:head><title>{data.cycle.name}</title></svelte:head>
 
-<NavBar title={data.cycle.name} back={{ href: '/plan', label: 'Plan' }} />
+<NavBar title={data.cycle.name} back={{ href: '/plan?view=cycles', label: 'Plan' }} />
 
 {#key data.cycle.id}
 	<CycleForm cycle={data.cycle} templates={data.templates}>

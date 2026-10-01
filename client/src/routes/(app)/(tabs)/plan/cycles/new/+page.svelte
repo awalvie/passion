@@ -7,6 +7,6 @@
 
 <svelte:head><title>New cycle</title></svelte:head>
 
-<NavBar title="New cycle" back={{ href: '/plan', label: 'Plan' }} />
+<NavBar title="New cycle" back={{ href: '/plan?view=cycles', label: 'Plan' }} />
 
 <CycleForm cycle={data.cycle} templates={data.templates} />
