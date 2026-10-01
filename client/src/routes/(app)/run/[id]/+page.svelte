@@ -12,6 +12,7 @@
 	import type { Exercise } from '$lib/exercise';
 	import ExercisePicker from '$lib/ExercisePicker.svelte';
 	import SessionDot from '$lib/SessionDot.svelte';
+	import Sheet from '$lib/Sheet.svelte';
 
 	const run = $derived(openRun.run!);
 	const steps = $derived(stepsOf(run));
@@ -43,13 +44,19 @@
 		picked = picked.includes(k) ? picked.filter((x) => x !== k) : [...picked, k];
 	}
 
-	let library = $state<Exercise[] | null>(null);
+	let library = $state<Exercise[]>([]);
+	let picking = $state(false);
+	let into = $state<number>();
 
-	async function openLibrary() {
+	async function openLibrary(section?: number) {
 		error = '';
 		try {
-			const { exercises } = await request<{ exercises: Exercise[] }>('GET', '/api/v1/exercises');
-			library = exercises.filter((e) => !e.retired_at);
+			if (!library.length) {
+				const { exercises } = await request<{ exercises: Exercise[] }>('GET', '/api/v1/exercises');
+				library = exercises.filter((e) => !e.retired_at);
+			}
+			into = section;
+			picking = true;
 		} catch (e) {
 			error = describe(e, (f) => f);
 		}
@@ -143,18 +150,16 @@
 {:else}
 	<NavBar title={run.name} back={{ href: '/', label: 'Today' }}>
 		{#snippet actions()}
-			{#if !run.finished_at}
-				<button
-					type="button"
-					class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm active:opacity-80"
-					onclick={() => {
-						choosing = null;
-						editing = true;
-					}}
-				>
-					Edit
-				</button>
-			{/if}
+			<button
+				type="button"
+				class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm active:opacity-80"
+				onclick={() => {
+					choosing = null;
+					editing = true;
+				}}
+			>
+				Edit
+			</button>
 			<Menu
 				items={[
 					{ label: 'Finish session', onclick: () => goto(`/run/${run.id}/finish`) },
@@ -175,6 +180,15 @@
 		{#each run.sections as s, i (i)}
 			<div class="flex items-baseline gap-2.5 px-1 pt-[18px] pb-2">
 				<h2 class="min-w-0 truncate text-xl leading-[1.15] font-bold tracking-[-0.01em]">{s.name}</h2>
+				<button
+					type="button"
+					class="ml-auto flex shrink-0 items-center gap-1 text-[15px] font-bold text-ink active:opacity-70"
+					aria-label="Add an exercise to {s.name}"
+					onclick={() => openLibrary(i)}
+				>
+					<Icon name="plus" size="1rem" />
+					Add
+				</button>
 			</div>
 			{#if s.items.length}
 				<ul class="rounded-3xl bg-surface py-1 shadow-card">
@@ -405,24 +419,25 @@
 			{/each}
 		</ol>
 
-		<div class="mt-5">
-			{#if library}
-				<div class="rounded-3xl bg-surface p-4 shadow-card">
-					<ExercisePicker
-						id="add-exercise"
-						exercises={library}
-						pick={(e) => {
-							openRun.addStep(e);
-							library = null;
-						}}
-					/>
-				</div>
-			{:else}
-				<Button variant="secondary" onclick={openLibrary}>Add exercise</Button>
-			{/if}
-		</div>
+		{#if !run.sections.length}
+			<div class="mt-5">
+				<Button variant="secondary" onclick={() => openLibrary()}>Add exercise</Button>
+			</div>
+		{/if}
 	</div>
 {/if}
+
+<Sheet bind:open={picking} eyebrow={into === undefined ? undefined : run.sections[into]?.name} title="Add exercise">
+	<ExercisePicker
+		id="add-exercise"
+		label="Exercise"
+		exercises={library}
+		pick={(e) => {
+			openRun.addStep(e, into);
+			picking = false;
+		}}
+	/>
+</Sheet>
 
 {#if !editing && !run.finished_at && (current || steps.length)}
 	<div

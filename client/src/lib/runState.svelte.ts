@@ -192,13 +192,14 @@ class OpenRun {
 		}
 	}
 
-	// addStep puts a library exercise at the end of the run. An open run
-	// starts with no sections, so the first exercise makes one.
-	addStep(e: Exercise) {
+	// addStep puts a library exercise at the end of a section, the last one
+	// unless told. An open run starts with no sections, so the first exercise
+	// makes one.
+	addStep(e: Exercise, section?: number) {
 		const run = this.run!;
 		if (!run.sections.length) run.sections.push({ name: 'Exercises', notes: null, items: [] });
 		const step: RunStep = { ...toStep(e), id: newId(), status: null, run_notes: null, elapsed_seconds: null };
-		run.sections.at(-1)!.items.push({ step });
+		run.sections[section ?? run.sections.length - 1].items.push({ step });
 		this.saveBody();
 	}
 
