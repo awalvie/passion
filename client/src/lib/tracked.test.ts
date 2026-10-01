@@ -1,4 +1,5 @@
 import { beforeEach, expect, test, vi } from 'vitest';
+import { forget } from './api';
 import type { HistorySession, LoggedSet } from './run';
 import { bestWeight, track, tracked } from './tracked';
 
@@ -31,6 +32,7 @@ function serve(sessions: HistorySession[]) {
 }
 
 beforeEach(() => {
+	forget();
 	const items = new Map<string, string>();
 	vi.stubGlobal('localStorage', {
 		getItem: (k: string) => items.get(k) ?? null,
