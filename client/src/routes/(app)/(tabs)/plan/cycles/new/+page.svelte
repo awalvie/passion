@@ -16,7 +16,7 @@
 
 	// The step lives in the address, so the phone's back gesture steps back.
 	// The draft keeps the id it opened with, so a retry makes one cycle.
-	const step = $derived(Number(page.url.searchParams.get('step') ?? 1));
+	const step = $derived(Math.min(3, Math.max(1, Number(page.url.searchParams.get('step')) || 1)));
 	let draft = $state(untrack(() => structuredClone($state.snapshot(data.cycle))));
 	let busy = $state(false);
 	let error = $state('');
