@@ -30,31 +30,31 @@
 </script>
 
 <div>
-	<label class="text-xs font-medium" for={id}>Add exercise</label>
+	<label class="block text-xs font-semibold text-ink-2" for={id}>Add exercise</label>
 	<input
 		{id}
 		type="search"
-		class="mt-1 w-full input text-sm"
+		class="mt-1.5 w-full input"
 		placeholder="Search the library…"
 		autocomplete="off"
 		bind:value={q}
 		onkeydown={key}
 	/>
 	{#if q.trim()}
-		<div class="mt-1 rounded-md border overflow-hidden" style="background:var(--panel);border-color:var(--border)">
+		<div class="mt-2 divide-y divide-line overflow-hidden rounded-2xl bg-surface shadow-card-sm">
 			{#each matches as e (e.id)}
 				<button
 					type="button"
-					class="flex w-full items-baseline justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-[var(--card-muted)]"
+					class="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-2.5 text-left active:bg-well"
 					onclick={() => choose(e)}
 				>
-					<span class="min-w-0 truncate">{e.name}</span>
-					<span class="shrink-0 text-[11px] muted">{kindOf(e.kind).label}</span>
+					<span class="min-w-0 truncate text-[15px] font-bold">{e.name}</span>
+					<span class="shrink-0 text-xs font-semibold text-ink-2">{kindOf(e.kind).label}</span>
 				</button>
 			{:else}
-				<p class="px-3 py-2 text-xs muted">
+				<p class="px-4 py-3 text-xs font-semibold text-ink-2">
 					Nothing matches.
-					<a class="link underline" href="/exercises/new" target="_blank" rel="noopener">Add it to the library</a>
+					<a class="font-bold text-link underline" href="/exercises/new" target="_blank" rel="noopener">Add it to the library</a>
 					in a new tab, then come back.
 				</p>
 			{/each}

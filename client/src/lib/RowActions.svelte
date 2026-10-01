@@ -23,10 +23,10 @@
 	}
 </script>
 
-<div class="flex shrink-0 items-center gap-0.5">
+<div class="flex shrink-0 items-center gap-1.5">
 	<button
 		type="button"
-		class="rounded-md btn-ghost p-1.5 inline-flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+		class="flex size-9 items-center justify-center rounded-full bg-well text-ink-2 active:opacity-70 disabled:cursor-not-allowed disabled:opacity-35"
 		title="Move up"
 		aria-label="Move {label} up"
 		disabled={index === 0}
@@ -36,7 +36,7 @@
 	</button>
 	<button
 		type="button"
-		class="rounded-md btn-ghost p-1.5 inline-flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+		class="flex size-9 items-center justify-center rounded-full bg-well text-ink-2 active:opacity-70 disabled:cursor-not-allowed disabled:opacity-35"
 		title="Move down"
 		aria-label="Move {label} down"
 		disabled={index === count - 1}
@@ -46,7 +46,7 @@
 	</button>
 	<button
 		type="button"
-		class="rounded-md btn-ghost p-1.5 inline-flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+		class="flex size-9 items-center justify-center rounded-full bg-well text-ink-2 active:opacity-70 disabled:cursor-not-allowed disabled:opacity-35"
 		title="Remove"
 		aria-label="Remove {label}"
 		onclick={(e) => run(e, remove)}
