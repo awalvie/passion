@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: passion
+      POSTGRES_DB: passion
+      # Read only when the volume is first created.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+    volumes:
+      - db:/var/lib/postgresql
+    healthcheck:
+      # Over TCP, because the socket answers while first-time setup still runs.
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "passion"]
+      interval: 5s
+      retries: 10
+
+  app:
+    image: ghcr.io/awalvie/passion:${TAG:?}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://passion:${POSTGRES_PASSWORD}@db/passion
+      PASSION_CONFIG: /etc/passion/passion.yaml
+    volumes:
+      - ./passion.yaml:/etc/passion/passion.yaml:ro
+      - ./catalog-private:/catalog-private:ro
+    ports:
+      - 127.0.0.1:8081:8080
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  db:
