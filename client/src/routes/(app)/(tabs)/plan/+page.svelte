@@ -89,6 +89,19 @@
 
 	const cycleNames = $derived(new Map(data.cycles.map((c) => [c.id, c.name])));
 
+	const cycleState = (c: { starts: string; ends: string }) =>
+		c.ends < data.today ? 'past' : c.starts > data.today ? 'next' : 'now';
+	// Running cycles first, then the next to start, then the latest to end.
+	const ordered = $derived.by(() => {
+		const rank = { now: 0, next: 1, past: 2 };
+		return [...data.cycles].sort((a, b) => {
+			const ra = rank[cycleState(a)];
+			const rb = rank[cycleState(b)];
+			if (ra !== rb) return ra - rb;
+			return ra === 1 ? a.starts.localeCompare(b.starts) : b.starts.localeCompare(a.starts);
+		});
+	});
+
 	const short = (date: string) => formatDate(date, { day: 'numeric', month: 'short' });
 
 	const statuses = { done: 'Done', started: 'Started', missed: 'Missed', planned: '' };
@@ -225,8 +238,8 @@
 		<section class="rounded-3xl bg-surface px-[18px] pt-2 pb-2 shadow-card">
 			{#if data.cycles.length}
 				<ul>
-					{#each data.cycles as c (c.id)}
-						{@const state = c.ends < data.today ? 'past' : c.starts > data.today ? 'next' : 'now'}
+					{#each ordered as c (c.id)}
+						{@const state = cycleState(c)}
 						<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 							<a href="/plan/cycles/{c.id}" class="flex min-h-[58px] items-center gap-3 py-2">
 								<span
