@@ -5,26 +5,23 @@
 	let { data, children } = $props();
 
 	// Creating a cycle is a task with its own bottom button, so it hides the
-	// tabs. Today's card already leads back to the running session.
+	// tabs and the session strip.
 	const task = $derived(page.url.pathname === '/plan/cycles/new');
-	const bar = $derived(data.live && page.url.pathname !== '/' && !task);
 </script>
 
-<div class={task ? '' : bar ? 'pb-[calc(8.5rem+env(safe-area-inset-bottom))]' : 'pb-[calc(5rem+env(safe-area-inset-bottom))]'}>
+<!-- --above-bar is where a bar stuck to the bottom of a page, or a toast, sits
+     clear of the tab bar and the open session's strip. -->
+<div
+	class={task ? '' : data.live ? 'pb-[calc(7.75rem+env(safe-area-inset-bottom))]' : 'pb-[calc(5rem+env(safe-area-inset-bottom))]'}
+	style:--above-bar={task
+		? 'calc(1rem + env(safe-area-inset-bottom))'
+		: data.live
+			? 'calc(7.5rem + env(safe-area-inset-bottom))'
+			: 'calc(4.75rem + env(safe-area-inset-bottom))'}
+>
 	{@render children()}
 </div>
 
-{#if bar && data.live}
-	<a
-		href="/run/{data.live.id}"
-		class="fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 mx-auto flex h-14 w-[calc(100%-2rem)] max-w-[398px] items-center gap-3 rounded-full bg-hero pr-2 pl-5 text-on-hero shadow-card"
-	>
-		<span class="size-2.5 shrink-0 rounded-full bg-live shadow-[0_0_0_5px_var(--live-halo)]"></span>
-		<span class="min-w-0 flex-1 truncate text-[15px] font-bold">{data.live.name}</span>
-		<span class="flex h-10 shrink-0 items-center rounded-full bg-live px-4 text-[15px] font-bold text-on-live">Back to session</span>
-	</a>
-{/if}
-
 {#if !task}
-	<TabBar live={!!data.live} />
+	<TabBar live={data.live} />
 {/if}

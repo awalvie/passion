@@ -87,7 +87,7 @@
 			</div>
 			{#if !locked}
 				<FormError message={error} />
-				<div class="sticky z-20 {data.live ? 'bottom-[calc(8.5rem+env(safe-area-inset-bottom))]' : 'bottom-[calc(4.75rem+env(safe-area-inset-bottom))]'}">
+				<div class="sticky bottom-[var(--above-bar)] z-20">
 					<Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
 				</div>
 			{/if}

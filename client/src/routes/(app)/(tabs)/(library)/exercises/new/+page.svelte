@@ -43,9 +43,7 @@
 		</div>
 		<FormError message={error} />
 		<div
-			class="sticky z-20 grid grid-cols-[auto_1fr] gap-2.5 {data.live
-				? 'bottom-[calc(8.5rem+env(safe-area-inset-bottom))]'
-				: 'bottom-[calc(4.75rem+env(safe-area-inset-bottom))]'}"
+			class="sticky bottom-[var(--above-bar)] z-20 grid grid-cols-[auto_1fr] gap-2.5"
 		>
 			<a
 				class="flex h-14 items-center rounded-full bg-surface px-6 text-[15px] font-bold text-ink shadow-card"
