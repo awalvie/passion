@@ -5,6 +5,7 @@
 	import { setSound, soundOn } from '$lib/audio';
 	import Button from '$lib/Button.svelte';
 	import NavBar from '$lib/NavBar.svelte';
+	import { hapticsOn, setHaptics, tickBox } from '$lib/haptics';
 	import { clearRunStorage, clearToken } from '$lib/session';
 
 	type Theme = 'system' | 'light' | 'dark';
@@ -15,6 +16,7 @@
 	];
 
 	let sound = $state(soundOn());
+	let haptics = $state(hapticsOn());
 
 	let theme = $state((localStorage.getItem('passion-theme') as Theme | null) ?? 'system');
 
@@ -38,6 +40,17 @@
 	}
 </script>
 
+{#snippet toggle(name: string, on: boolean, set: (on: boolean) => void)}
+	<label class="flex min-h-[58px] cursor-pointer items-center justify-between gap-3 py-2 text-[15px] font-bold shadow-[inset_0_1px_0_var(--line)]">
+		{name}
+		<input type="checkbox" class="peer sr-only" checked={on} onchange={(e) => set(e.currentTarget.checked)} use:tickBox />
+		<span
+			class="relative h-8 w-[52px] shrink-0 rounded-full bg-well transition-colors peer-checked:bg-tint peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink before:absolute before:top-1 before:left-1 before:size-6 before:rounded-full before:bg-surface before:shadow-card-sm before:transition-transform peer-checked:before:translate-x-5"
+			aria-hidden="true"
+		></span>
+	</label>
+{/snippet}
+
 <NavBar title="Settings" back={{ href: '/', label: 'Today' }} />
 
 <div class="flex flex-col gap-3.5 px-4 pt-2 pb-8">
@@ -47,19 +60,8 @@
 			<Segmented label="Theme" items={themes.map((t) => ({ label: t.label, on: theme === t.value, onclick: () => setTheme(t.value) }))} />
 		</div>
 
-		<label class="flex min-h-[58px] cursor-pointer items-center justify-between gap-3 py-2 text-[15px] font-bold shadow-[inset_0_1px_0_var(--line)]">
-			Timer sounds
-			<input
-				type="checkbox"
-				class="peer sr-only"
-				checked={sound}
-				onchange={(e) => setSound((sound = e.currentTarget.checked))}
-			/>
-			<span
-				class="relative h-8 w-[52px] shrink-0 rounded-full bg-well transition-colors peer-checked:bg-tint peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink before:absolute before:top-1 before:left-1 before:size-6 before:rounded-full before:bg-surface before:shadow-card-sm before:transition-transform peer-checked:before:translate-x-5"
-				aria-hidden="true"
-			></span>
-		</label>
+		{@render toggle('Timer sounds', sound, (on) => setSound((sound = on)))}
+		{@render toggle('Haptics', haptics, (on) => setHaptics((haptics = on)))}
 	</section>
 
 	<Button variant="danger" onclick={signOut}>Log out</Button>
