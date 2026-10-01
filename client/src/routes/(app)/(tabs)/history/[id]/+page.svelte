@@ -114,7 +114,7 @@
 				</dl>
 			{/if}
 			{#each thoughts as [label, text] (label)}
-				<div class="flex flex-col gap-1 rounded-[18px] bg-well px-4 dark:bg-[#1F2721] py-3.5 text-[15px] font-semibold">
+				<div class="flex flex-col gap-1 rounded-[18px] bg-inset px-4 py-3.5 text-[15px] font-semibold">
 					{#if label}<span class="text-xs font-semibold text-ink-2">{label}</span>{/if}
 					{text}
 				</div>

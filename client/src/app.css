@@ -56,6 +56,7 @@
 	--color-ground: var(--ground);
 	--color-surface: var(--surface);
 	--color-well: var(--well);
+	--color-inset: var(--inset);
 	--color-line: var(--line);
 	--color-ink: var(--ink);
 	--color-ink-2: var(--ink-2);

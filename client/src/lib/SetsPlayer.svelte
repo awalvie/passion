@@ -144,7 +144,7 @@
 							<span class="shrink-0 text-ink-3 transition-transform {editing === i ? 'rotate-90' : ''}"><Icon name="chevron-right" size="18px" /></span>
 						</button>
 						{#if editing === i}
-							<section class="mx-1.5 mb-1.5 flex flex-col gap-2 rounded-[20px] bg-well p-2.5 dark:bg-[#1F2721]">
+							<section class="mx-1.5 mb-1.5 flex flex-col gap-2 rounded-[20px] bg-inset p-2.5">
 								{#each draft as _, k (k)}
 									{#if sides === 2}<p class="px-1 text-xs font-semibold text-ink-2">{side(i * 2 + k + 1)}</p>{/if}
 									<div class="grid grid-cols-2 gap-2">
@@ -164,7 +164,7 @@
 		{/if}
 
 		{#if !isFinished(step) && editing === null}
-			<section class="mx-1.5 my-0.5 rounded-[20px] bg-well p-2.5 dark:bg-[#1F2721]">
+			<section class="mx-1.5 my-0.5 rounded-[20px] bg-inset p-2.5">
 				{#if sides === 2}
 					<div class="mb-2 grid grid-cols-2 gap-2">
 						<p class="rounded-2xl bg-ink px-3.5 pt-2.5 pb-3 text-ground shadow-card-sm">
