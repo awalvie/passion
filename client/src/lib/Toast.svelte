@@ -1,14 +1,16 @@
 <script lang="ts">
-	// A short note above the tab bar, with one action. It closes by itself.
+	// A short note above the tab bar, with one action. It closes by itself
+	// after duration milliseconds.
 	let {
 		message = $bindable(''),
 		action,
-		onaction
-	}: { message?: string; action?: string; onaction?: () => void } = $props();
+		onaction,
+		duration = 6000
+	}: { message?: string; action?: string; onaction?: () => void; duration?: number } = $props();
 
 	$effect(() => {
 		if (!message) return;
-		const t = setTimeout(() => (message = ''), 6000);
+		const t = setTimeout(() => (message = ''), duration);
 		return () => clearTimeout(t);
 	});
 </script>
