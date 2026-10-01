@@ -121,6 +121,24 @@ body {
 	}
 }
 
+/* Every tap shows: a pressed control shrinks a little. In the base layer, so a
+   control's own active: utility wins. A calendar day holds sessions that lift
+   on a hold, so it stays still. */
+@layer base {
+	:is(button:not(:disabled), a[href], summary):not([data-date]) {
+		-webkit-tap-highlight-color: transparent;
+		transition: scale 100ms ease-out;
+	}
+	:is(button:not(:disabled), a[href], summary):not([data-date]):active {
+		scale: 0.97;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		:is(button, a[href], summary) {
+			transition: none;
+		}
+	}
+}
+
 ::view-transition-old(root),
 ::view-transition-new(root) {
 	animation-duration: 180ms;
