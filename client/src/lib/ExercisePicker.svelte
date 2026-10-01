@@ -33,6 +33,7 @@
 <div>
 	<label class="block text-xs font-semibold text-ink-2" for={id}>{label}</label>
 	<input
+		enterkeyhint="search"
 		{id}
 		type="search"
 		class="mt-1.5 w-full input"
