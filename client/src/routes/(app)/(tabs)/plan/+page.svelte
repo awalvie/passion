@@ -202,7 +202,7 @@
 		{#each weeks as w (w.monday)}
 			<section class="flex flex-col gap-2">
 				<div class="flex items-baseline justify-between gap-3 px-1 pt-1.5">
-					<h2 class="shrink-0 text-xl font-bold tracking-tight">{weekTitle(w.monday)}</h2>
+					<h2 class="shrink-0 text-xl font-bold">{weekTitle(w.monday)}</h2>
 					<span class="truncate text-xs font-semibold text-ink-2">{weekNote(w)}</span>
 				</div>
 				<div class="rounded-3xl bg-surface px-[18px] py-1 shadow-card">
@@ -289,7 +289,7 @@
 	{:else}
 		{#if data.cycles.length}
 			<CycleYear cycles={data.cycles} today={data.today} />
-			<h2 class="px-1 text-[15px] font-bold">Cycles</h2>
+			<h2 class="px-1 text-xl font-bold">Cycles</h2>
 		{/if}
 		<section class="rounded-3xl bg-surface px-[18px] pt-2 pb-2 shadow-card">
 			{#if data.cycles.length}

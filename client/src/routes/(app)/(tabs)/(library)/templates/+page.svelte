@@ -61,8 +61,8 @@
 		</div>
 	{/if}
 
-	<div class="flex items-center justify-between px-1 pt-1">
-		<h2 class="text-xs font-semibold text-ink-2">Your session templates</h2>
+	<div class="flex items-baseline justify-between px-1 pt-1">
+		<h2 class="text-xl font-bold">Your session templates</h2>
 		<span class="text-xs font-semibold text-ink-2">{plural(shown.length, 'template')}</span>
 	</div>
 
