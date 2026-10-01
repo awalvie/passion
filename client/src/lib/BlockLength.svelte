@@ -6,6 +6,11 @@
 	const limit = $derived(Math.min(28, max));
 	const custom = $derived(!presets.includes(value));
 
+	// A cycle made shorter than its block takes the block down with it.
+	$effect(() => {
+		if (value > limit) value = limit;
+	});
+
 	let editing = $state(false);
 	let typed = $state<number | null>(null);
 
