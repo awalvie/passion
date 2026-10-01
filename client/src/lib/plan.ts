@@ -1,4 +1,5 @@
 import { request } from './api';
+import { addDays } from './dates';
 
 // The shape of server/api/scheduled_session.go's list response.
 export type ScheduledDay = {
@@ -35,6 +36,23 @@ export async function saveCycle(c: Cycle): Promise<{ cycle: Cycle; leftOut: numb
 	const saved = await request<Cycle & { left_out: unknown[] }>('PUT', `/api/v1/cycles/${id}`, body);
 	const { left_out, ...cycle } = saved;
 	return { cycle, leftOut: left_out.length };
+}
+
+// plannedDays lists what a new cycle plans, the way server/db/cycle.go's
+// slots does: the block repeats from starts to ends, and a past day is left
+// empty.
+export function plannedDays(
+	c: Pick<Cycle, 'starts' | 'ends' | 'block_days' | 'days'>,
+	today: string
+): { date: string; template: string }[] {
+	const out: { date: string; template: string }[] = [];
+	for (const d of c.days) {
+		if (d.day > c.block_days) continue;
+		for (let date = addDays(c.starts, d.day - 1); date <= c.ends; date = addDays(date, c.block_days)) {
+			if (date >= today) out.push({ date, template: d.template });
+		}
+	}
+	return out.sort((a, b) => a.date.localeCompare(b.date) || a.template.localeCompare(b.template));
 }
 
 // The shape of server/api/auth.go's accountResponse.
