@@ -81,6 +81,7 @@
 	function saveEdit() {
 		const at = editing! * sides;
 		openRun.setSets(step, logged.map((s, k) => (k >= at && k < at + draft.length ? draft[k - at] : s)));
+		[reps, weight] = prefill();
 		editing = null;
 	}
 
