@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { describe, request } from '$lib/api';
+	import Button from '$lib/Button.svelte';
 	import { fieldLabel, kindOf, toBody, toDraft, type Count } from '$lib/exercise';
 	import ExerciseForm from '$lib/ExerciseForm.svelte';
 	import FormError from '$lib/FormError.svelte';
@@ -30,20 +31,27 @@
 
 <svelte:head><title>New exercise</title></svelte:head>
 
-<div class="max-w-xl w-full mx-auto">
-	<div class="card card-pad">
-		<h1 class="text-xl font-bold">New exercise</h1>
-		<p class="mt-1 text-sm muted">Once it is saved, you can add it to any session template.</p>
+<div class="mx-auto flex w-full max-w-xl flex-col gap-3.5 pt-2">
+	<header class="px-1">
+		<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">New exercise</h1>
+		<p class="mt-1 text-[15px] font-semibold text-ink-2">Once it is saved, you can add it to any session template.</p>
+	</header>
 
-		<form class="mt-6" onsubmit={save}>
+	<form class="flex flex-col gap-3.5" onsubmit={save}>
+		<div class="rounded-3xl bg-surface p-[18px] shadow-card">
 			<ExerciseForm bind:draft {shown} sources={data.sources} />
-			<FormError message={error} />
-			<div class="flex items-center gap-2 pt-5">
-				<button class="rounded-md btn-primary px-4 py-2 text-sm font-medium" type="submit" disabled={busy}>
-					{busy ? 'Saving…' : 'Save'}
-				</button>
-				<a class="rounded-md btn-ghost px-4 py-2 text-sm" href="/exercises">Cancel</a>
-			</div>
-		</form>
-	</div>
+		</div>
+		<FormError message={error} />
+		<div
+			class="sticky z-20 grid grid-cols-[auto_1fr] gap-2.5 {data.live
+				? 'bottom-[calc(8.5rem+env(safe-area-inset-bottom))]'
+				: 'bottom-[calc(4.75rem+env(safe-area-inset-bottom))]'}"
+		>
+			<a
+				class="flex h-14 items-center rounded-full bg-surface px-6 text-[15px] font-bold text-ink shadow-card"
+				href="/exercises">Cancel</a
+			>
+			<Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
+		</div>
+	</form>
 </div>

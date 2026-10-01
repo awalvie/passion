@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
+	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
+	import Button from '$lib/Button.svelte';
 	import type { Exercise } from '$lib/exercise';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
@@ -114,184 +116,186 @@
 
 <svelte:window onfocus={reload} />
 
-<form onsubmit={submit} oninvalidcapture={reveal}>
-	<div class="space-y-4">
-		<div class="card card-pad">
-			<div class="flex items-start gap-2">
-				{#if draft.color}
-					<span class="inline-block w-3 h-3 rounded-full shrink-0 mt-2" style="background:{draft.color}"></span>
-				{/if}
-				<div class="min-w-0 flex-1">
-					<h1 class="text-xl font-bold m-0 break-words">{draft.name || 'New session template'}</h1>
-					{#if tags.length}
-						<div class="mt-1 text-[11px] muted">{tags.join(' · ')}</div>
-					{/if}
-				</div>
-				<a
-					class="rounded-md btn-ghost p-2 inline-flex items-center justify-center shrink-0"
-					href={cancel}
-					title="Cancel"
-					aria-label="Cancel"
-				>
-					<Icon name="arrow-left" />
-				</a>
-			</div>
-
-			<details class="passion-disclosure mt-3 pt-3 divider" open={!template}>
-				<summary class="text-xs font-medium muted px-1 py-1">
-					<Icon name="pencil" size="0.75rem" />
-					Settings
-				</summary>
-				<div class="mt-2 space-y-3">
-					<div>
-						<label class="text-xs font-medium" for="tpl-name">Name</label>
-						<input id="tpl-name" class="mt-1 w-full input text-sm" maxlength="200" required bind:value={draft.name} />
-					</div>
-					<div>
-						<label class="text-xs font-medium" for="tpl-source">Source</label>
-						<input
-							id="tpl-source"
-							list="tpl-sources"
-							class="mt-1 w-full input text-sm"
-							placeholder="e.g. Power Company Climbing"
-							autocomplete="off"
-							bind:value={draft.source}
-						/>
-						<datalist id="tpl-sources">
-							{#each sources as s (s)}
-								<option value={s}></option>
-							{/each}
-						</datalist>
-					</div>
-					<div>
-						<label class="text-xs font-medium" for="tpl-tags">Labels</label>
-						<input
-							id="tpl-tags"
-							class="mt-1 w-full input text-sm"
-							placeholder="comma-separated, e.g. technique, indoor"
-							autocomplete="off"
-							bind:value={draft.tags}
-						/>
-					</div>
-					<div>
-						<label class="text-xs font-medium" for="tpl-needs">Needs</label>
-						<input
-							id="tpl-needs"
-							class="mt-1 w-full input text-sm"
-							placeholder="equipment, e.g. hangboard, kilter, 20mm edge"
-							autocomplete="off"
-							bind:value={draft.needs}
-						/>
-					</div>
-					<div>
-						<label class="text-xs font-medium" for="tpl-notes">Notes</label>
-						<textarea id="tpl-notes" rows="3" class="mt-1 w-full input text-sm" bind:value={draft.notes}></textarea>
-					</div>
-					<div>
-						<span class="text-xs font-medium">Color</span>
-						<div class="mt-2 flex flex-wrap items-center gap-2">
-							<div class="template-color-row">
-								{#each presets as [color, name] (color)}
-									<button
-										type="button"
-										class="template-color-choice"
-										class:is-selected={draft.color === color}
-										style="--choice-color:{color}"
-										title={name}
-										aria-label={name}
-										onclick={() => (draft.color = color)}
-									></button>
-								{/each}
-								<label
-									class="template-color-choice template-color-choice-custom"
-									class:is-selected={custom}
-									title="Custom color…"
-								>
-									<input type="color" class="sr-only" bind:value={draft.color} aria-label="Custom color" />
-								</label>
-							</div>
-							<button
-								type="button"
-								class="template-color-none-btn rounded px-2 py-0.5 text-xs border"
-								class:is-selected={draft.color === ''}
-								style="border-color: var(--border)"
-								title="Remove accent color"
-								onclick={() => (draft.color = '')}>No color</button
-							>
-						</div>
-					</div>
-				</div>
-			</details>
+<form class="flex flex-col gap-3.5 pt-2" onsubmit={submit} oninvalidcapture={reveal}>
+	<header class="flex items-start gap-3 px-1">
+		{#if draft.color}
+			<span class="mt-3.5 size-3 shrink-0 rounded-full" style="background:{draft.color}"></span>
+		{/if}
+		<div class="min-w-0 flex-1">
+			<h1 class="m-0 text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em] break-words">
+				{draft.name || 'New session template'}
+			</h1>
+			{#if tags.length}
+				<div class="mt-1 text-[15px] font-semibold text-ink-2">{tags.join(' · ')}</div>
+			{/if}
 		</div>
+		<a
+			class="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"
+			href={cancel}
+			title="Cancel"
+			aria-label="Cancel"
+		>
+			<Icon name="arrow-left" size="1.25rem" />
+		</a>
+	</header>
 
-		<div class="md:grid md:grid-cols-2 md:gap-4">
-			<div class="space-y-3">
-				{#each draft.sections as section, i (section)}
-					{#snippet sectionActions()}
-						<RowActions
-							label={section.name || 'section'}
-							index={i}
-							count={draft.sections.length}
-							move={(by) => moveEntry(draft.sections, i, by)}
-							remove={() => removeSection(i)}
-						/>
-					{/snippet}
-					<SectionEditor
-						bind:section={draft.sections[i]}
-						id="sec{i}"
-						open={i === 0}
-						{library}
-						actions={sectionActions}
-					/>
-				{:else}
-					<div class="card-muted p-4 text-sm muted">No sections yet. Add one below.</div>
-				{/each}
-
-				<section class="card card-pad">
-					<h3 class="text-sm font-semibold">Add section</h3>
-					<div class="mt-3 grid gap-2 sm:grid-cols-2 sm:items-end">
-						<div>
-							<label class="text-xs font-medium" for="new-section">Name</label>
-							<input
-								id="new-section"
-								class="mt-1 w-full input"
-								placeholder="e.g. Warm-up, Strength, Cool-down"
-								bind:value={newSection}
-								onkeydown={(e) => {
-									if (e.key === 'Enter') {
-										e.preventDefault();
-										addSection();
-									}
-								}}
-							/>
-						</div>
+	<details class="group/settings rounded-3xl bg-surface shadow-card" open={!template}>
+		<summary
+			class="flex h-14 cursor-pointer list-none items-center gap-2.5 px-[18px] text-[15px] font-bold [&::-webkit-details-marker]:hidden"
+		>
+			<span class="text-ink-3"><Icon name="pencil" /></span>
+			<span class="flex-1">Settings</span>
+			<span class="text-ink-3 transition-transform group-open/settings:rotate-90"><Icon name="chevron-right" /></span>
+		</summary>
+		<div class="flex flex-col gap-3.5 border-t border-line px-[18px] pt-4 pb-[18px]">
+			<div>
+				<label class="block text-xs font-semibold text-ink-2" for="tpl-name">Name</label>
+				<input id="tpl-name" class="mt-1.5 w-full input" maxlength="200" required bind:value={draft.name} />
+			</div>
+			<div>
+				<label class="block text-xs font-semibold text-ink-2" for="tpl-source">Source</label>
+				<input
+					id="tpl-source"
+					list="tpl-sources"
+					class="mt-1.5 w-full input"
+					placeholder="e.g. Power Company Climbing"
+					autocomplete="off"
+					bind:value={draft.source}
+				/>
+				<datalist id="tpl-sources">
+					{#each sources as s (s)}
+						<option value={s}></option>
+					{/each}
+				</datalist>
+			</div>
+			<div>
+				<label class="block text-xs font-semibold text-ink-2" for="tpl-tags">Labels</label>
+				<input
+					id="tpl-tags"
+					class="mt-1.5 w-full input"
+					placeholder="comma-separated, e.g. technique, indoor"
+					autocomplete="off"
+					bind:value={draft.tags}
+				/>
+			</div>
+			<div>
+				<label class="block text-xs font-semibold text-ink-2" for="tpl-needs">Needs</label>
+				<input
+					id="tpl-needs"
+					class="mt-1.5 w-full input"
+					placeholder="equipment, e.g. hangboard, kilter, 20mm edge"
+					autocomplete="off"
+					bind:value={draft.needs}
+				/>
+			</div>
+			<div>
+				<label class="block text-xs font-semibold text-ink-2" for="tpl-notes">Notes</label>
+				<textarea id="tpl-notes" rows="3" class="mt-1.5 w-full input" bind:value={draft.notes}></textarea>
+			</div>
+			<div>
+				<span class="block text-xs font-semibold text-ink-2">Color</span>
+				<div class="mt-2 flex flex-wrap items-center gap-2.5">
+					{#each presets as [color, name] (color)}
 						<button
 							type="button"
-							class="mt-1 w-full rounded-md btn-ghost px-3 py-2 text-sm font-medium"
-							onclick={addSection}>+ Add section</button
-						>
-					</div>
-				</section>
+							class="size-8 rounded-full ring-offset-2 ring-offset-surface {draft.color === color ? 'ring-2 ring-ink' : ''}"
+							style="background:{color}"
+							title={name}
+							aria-label={name}
+							aria-pressed={draft.color === color}
+							onclick={() => (draft.color = color)}
+						></button>
+					{/each}
+					<label
+						class="size-8 cursor-pointer rounded-full bg-[conic-gradient(#ef4444,#f59e0b,#10b981,#3b82f6,#8b5cf6,#ec4899,#ef4444)] ring-offset-2 ring-offset-surface {custom ? 'ring-2 ring-ink' : ''}"
+						title="Custom color…"
+					>
+						<input type="color" class="sr-only" bind:value={draft.color} aria-label="Custom color" />
+					</label>
+					<button
+						type="button"
+						class="h-8 rounded-full px-3.5 text-xs font-bold {draft.color === ''
+							? 'bg-ink text-ground'
+							: 'bg-well text-ink-2'}"
+						title="Remove accent color"
+						aria-pressed={draft.color === ''}
+						onclick={() => (draft.color = '')}>No color</button
+					>
+				</div>
 			</div>
+		</div>
+	</details>
 
-			<!-- On a phone each row already shows its name and numbers, so the plan
-			     would only repeat the editor below it. -->
-			<aside class="hidden md:block">
-				<TemplatePlan sections={draft.sections} />
-			</aside>
+	<div class="md:grid md:grid-cols-2 md:gap-4">
+		<div class="flex flex-col gap-3.5">
+			{#each draft.sections as section, i (section)}
+				{#snippet sectionActions()}
+					<RowActions
+						label={section.name || 'section'}
+						index={i}
+						count={draft.sections.length}
+						move={(by) => moveEntry(draft.sections, i, by)}
+						remove={() => removeSection(i)}
+					/>
+				{/snippet}
+				<SectionEditor
+					bind:section={draft.sections[i]}
+					id="sec{i}"
+					open={i === 0}
+					{library}
+					actions={sectionActions}
+				/>
+			{:else}
+				<p class="px-1 text-[15px] font-semibold text-ink-2">No sections yet. Add one below.</p>
+			{/each}
+
+			<section class="rounded-3xl bg-surface p-[18px] shadow-card">
+				<h3 class="text-[15px] font-bold">Add section</h3>
+				<div class="mt-3 grid grid-cols-[1fr_auto] items-end gap-2">
+					<div>
+						<label class="block text-xs font-semibold text-ink-2" for="new-section">Name</label>
+						<input
+							id="new-section"
+							class="mt-1.5 w-full input"
+							placeholder="e.g. Warm-up, Strength, Cool-down"
+							bind:value={newSection}
+							onkeydown={(e) => {
+								if (e.key === 'Enter') {
+									e.preventDefault();
+									addSection();
+								}
+							}}
+						/>
+					</div>
+					<button
+						type="button"
+						class="flex h-12 items-center gap-1.5 rounded-full bg-well px-4 text-[15px] font-bold text-ink active:opacity-70"
+						onclick={addSection}
+					>
+						<Icon name="plus" />
+						Add section
+					</button>
+				</div>
+			</section>
 		</div>
 
-		<FormError message={error} />
+		<!-- On a phone each row already shows its name and numbers, so the plan
+		     would only repeat the editor below it. -->
+		<aside class="hidden md:block">
+			<TemplatePlan sections={draft.sections} />
+		</aside>
+	</div>
 
-		<div
-			class="lib-edit-sticky-bar m-0 rounded-lg border"
-			style="border-color:var(--border)"
+	<FormError message={error} />
+
+	<div
+		class="sticky z-20 grid grid-cols-[auto_1fr] gap-2.5 {page.data.live
+			? 'bottom-[calc(8.5rem+env(safe-area-inset-bottom))]'
+			: 'bottom-[calc(4.75rem+env(safe-area-inset-bottom))]'}"
+	>
+		<a class="flex h-14 items-center rounded-full bg-surface px-6 text-[15px] font-bold text-ink shadow-card" href={cancel}
+			>Cancel</a
 		>
-			<button class="rounded-md btn-primary px-4 py-2 text-sm font-medium" type="submit" disabled={busy}>
-				{busy ? 'Saving…' : 'Save'}
-			</button>
-			<span class="flex-1"></span>
-			<a class="text-sm muted hover:underline" href={cancel}>Cancel</a>
-		</div>
+		<Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
 	</div>
 </form>

@@ -15,20 +15,20 @@
 		seconds = h == null && m == null && s == null ? null : (h ?? 0) * 3600 + (m ?? 0) * 60 + (s ?? 0);
 	});
 
-	const input = $derived(`mt-1 w-full input${small ? ' text-xs' : ''}`);
+	const input = $derived(`mt-1.5 w-full input text-center${small ? ' min-h-10 py-2' : ''}`);
 </script>
 
-<div class="grid grid-cols-3 gap-2">
+<div class="grid grid-cols-3 gap-2.5">
 	<div>
-		<label class="text-xs font-medium" for="{id}-hours">Hours</label>
+		<label class="block text-xs font-semibold text-ink-2" for="{id}-hours">Hours</label>
 		<input id="{id}-hours" type="number" min="0" step="1" class={input} bind:value={h} />
 	</div>
 	<div>
-		<label class="text-xs font-medium" for="{id}-minutes">Minutes</label>
+		<label class="block text-xs font-semibold text-ink-2" for="{id}-minutes">Minutes</label>
 		<input id="{id}-minutes" type="number" min="0" step="1" class={input} bind:value={m} />
 	</div>
 	<div>
-		<label class="text-xs font-medium" for="{id}-seconds">Seconds</label>
+		<label class="block text-xs font-semibold text-ink-2" for="{id}-seconds">Seconds</label>
 		<input id="{id}-seconds" type="number" min="0" step="1" class={input} bind:value={s} />
 	</div>
 </div>
