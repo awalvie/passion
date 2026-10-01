@@ -22,6 +22,7 @@
 			{#if back}
 				<a
 					href={back.href}
+					data-back
 					class="inline-flex h-11 max-w-full items-center gap-0.5 rounded-full bg-surface pr-4 pl-2.5 text-[15px] font-bold text-ink shadow-card-sm"
 				>
 					<Icon name="chevron-left" size="1.25rem" stroke={2.4} />
