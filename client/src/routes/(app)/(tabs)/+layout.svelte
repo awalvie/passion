@@ -4,12 +4,8 @@
 
 	let { data, children } = $props();
 
-	// Today's card already leads back to its own running session.
-	const onCard = $derived(
-		page.url.pathname === '/' &&
-			((page.data.days ?? []) as { run: string | null }[]).some((d) => d.run === data.live?.id)
-	);
-	const bar = $derived(data.live && !onCard);
+	// Today's card already leads back to the running session.
+	const bar = $derived(data.live && page.url.pathname !== '/');
 </script>
 
 <div class="{bar ?'pb-[calc(8.5rem+env(safe-area-inset-bottom))]' : 'pb-[calc(5rem+env(safe-area-inset-bottom))]'}">

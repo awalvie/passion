@@ -85,6 +85,7 @@
 	--color-rest-ink: var(--rest-ink);
 	--color-rest-card: var(--rest-card);
 	--color-rest-digit: var(--rest-digit);
+	--color-rest-on-hero: var(--rest-on-hero);
 	--color-bad: var(--bad);
 	--shadow-card: var(--elev);
 	--shadow-card-sm: var(--elev-sm);
