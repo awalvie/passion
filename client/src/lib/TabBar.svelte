@@ -1,11 +1,19 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import Icon, { type IconName } from './Icon.svelte';
-	import type { RunSummary } from './run';
+	import { secondsSince, type RunSummary } from './run';
 
 	// live is the open session, shown as a strip on top of the tabs on every
 	// tab page.
 	let { live }: { live: RunSummary | null } = $props();
+
+	let now = $state(Date.now());
+	$effect(() => {
+		if (!live) return;
+		const tick = setInterval(() => (now = Date.now()), 1000);
+		return () => clearInterval(tick);
+	});
+	const minutes = $derived(live ? Math.floor(secondsSince(live.started_at, now) / 60) : 0);
 
 	const tabs: { href: string; label: string; icon: IconName; match: (path: string) => boolean }[] = [
 		{ href: '/', label: 'Today', icon: 'peak', match: (p) => p === '/' },
@@ -28,6 +36,7 @@
 		<a href="/run/{live.id}" class="flex h-11 items-center gap-2.5 rounded-t-[28px] bg-live pr-4 pl-6 text-on-live">
 			<span class="size-2 shrink-0 rounded-full bg-on-live motion-safe:animate-pulse"></span>
 			<span class="min-w-0 truncate text-[15px] font-bold">{live.name}</span>
+			<span class="shrink-0 text-xs font-semibold">· {minutes} min</span>
 			<span class="ml-auto shrink-0"><Icon name="chevron-right" size="1.125rem" /></span>
 		</a>
 	{/if}
