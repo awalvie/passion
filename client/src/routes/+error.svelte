@@ -1,13 +1,16 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import Button from '$lib/Button.svelte';
 </script>
 
 <svelte:head><title>{page.status === 404 ? 'Not found' : 'Something went wrong'}</title></svelte:head>
 
-<section class="card card-pad mx-4 mt-[calc(env(safe-area-inset-top)+2rem)] text-center">
-	<h1 class="text-xl font-bold">{page.status === 404 ? 'Not found' : 'Something went wrong'}</h1>
-	<p class="text-sm muted mt-1">
+<section class="mx-auto flex max-w-[430px] flex-col gap-2 px-4 pt-[calc(env(safe-area-inset-top)+4rem)]">
+	<h1 class="text-[32px] leading-tight font-extrabold tracking-tight">
+		{page.status === 404 ? 'Not found' : 'Something went wrong'}
+	</h1>
+	<p class="text-[15px] font-semibold text-ink-2">
 		{page.status === 404 ? 'That page does not exist, or it is not yours.' : page.error?.message}
 	</p>
-	<a href="/" class="btn btn-ghost mt-4">Home</a>
+	<div class="mt-4"><Button variant="secondary" href="/">Home</Button></div>
 </section>
