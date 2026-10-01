@@ -6,6 +6,7 @@
 	import Button from '$lib/Button.svelte';
 	import { cycleWeek } from '$lib/dates';
 	import FormError from '$lib/FormError.svelte';
+	import GoalList from '$lib/GoalList.svelte';
 	import Icon, { type IconName } from '$lib/Icon.svelte';
 	import Menu from '$lib/Menu.svelte';
 	import NavBar from '$lib/NavBar.svelte';
@@ -85,6 +86,20 @@
 		}
 	}
 
+	// Goals save as they change, with no Save button.
+	let goals = $state(untrack(() => structuredClone($state.snapshot(data.cycle.goals))));
+
+	async function saveGoals(next: Cycle['goals']) {
+		error = '';
+		try {
+			const saved = await saveCycle({ ...$state.snapshot(data.cycle), goals: next });
+			goals = saved.cycle.goals;
+			await invalidateAll();
+		} catch (e) {
+			error = describe(e, () => 'A goal');
+		}
+	}
+
 	async function remove() {
 		if (!confirm(`Delete ${data.cycle.name}? Its planned sessions go. The sessions you ran stay in History.`)) return;
 		error = '';
@@ -120,6 +135,16 @@
 			{leftOut === 1 ? 'it as it was' : 'them as they were'}.
 		</p>
 	{/if}
+
+	<section class="flex flex-col gap-2">
+		<div class="flex items-baseline justify-between px-1">
+			<h2 class="text-[15px] font-bold">Goals</h2>
+			{#if goals.length}
+				<span class="text-xs font-semibold text-ink-2">{goals.filter((g) => g.done).length} of {goals.length} done</span>
+			{/if}
+		</div>
+		<GoalList bind:goals onchange={saveGoals} />
+	</section>
 
 	<section class="flex flex-col gap-2">
 		<h2 class="px-1 text-[15px] font-bold">Cycle</h2>
