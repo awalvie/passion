@@ -11,6 +11,7 @@
 	import EntryList from '$lib/EntryList.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import GoalList from '$lib/GoalList.svelte';
+	import GoalSheet from '$lib/GoalSheet.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import { saveCycle } from '$lib/plan';
 
@@ -22,6 +23,8 @@
 	let draft = $state(untrack(() => structuredClone($state.snapshot(data.cycle))));
 	let busy = $state(false);
 	let error = $state('');
+	let goalOpen = $state(false);
+	let goalIndex = $state(-1);
 
 	const length = $derived(daysBetween(draft.starts, draft.ends) + 1);
 	const fields: Record<string, string> = { name: 'The name', starts: 'The start', ends: 'The end', block_days: 'The block' };
@@ -114,7 +117,13 @@
 	{:else if step === 2}
 		<section class="flex flex-col gap-2">
 			<h2 class="px-1 text-xs font-semibold text-ink-2">Goals</h2>
-			<GoalList bind:goals={draft.goals} />
+			<GoalList
+				bind:goals={draft.goals}
+				onedit={(i) => {
+					goalIndex = i;
+					goalOpen = true;
+				}}
+			/>
 		</section>
 		<section class="flex flex-col gap-2">
 			<h2 class="px-1 text-xs font-semibold text-ink-2">Before · where you start</h2>
@@ -145,3 +154,5 @@
 		<Button type="submit" disabled={busy}>{step < 3 ? 'Next' : 'Save cycle'}</Button>
 	</div>
 </form>
+
+<GoalSheet bind:open={goalOpen} goals={draft.goals} index={goalIndex} onsave={(next) => (draft.goals = next)} />

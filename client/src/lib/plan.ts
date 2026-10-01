@@ -12,6 +12,9 @@ export type ScheduledDay = {
 	status: 'done' | 'started' | 'missed' | 'planned';
 };
 
+// A goal, with where the person starts, where they end and how they get there.
+export type Goal = { text: string; done: boolean; before: string; after: string; how: string };
+
 // The shape of server/api/cycle.go's cycleResponse.
 export type Cycle = {
 	id: string;
@@ -21,7 +24,7 @@ export type Cycle = {
 	block_days: number;
 	block_from: string;
 	days: { day: number; template: string }[];
-	goals: { text: string; done: boolean }[];
+	goals: Goal[];
 	before: string[];
 	after: string[];
 	notes: string | null;
