@@ -164,12 +164,6 @@ body {
 	animation-duration: 180ms;
 }
 
-/* The library editors save from a bar stuck to the bottom, which must clear the
-   tab bar. */
-.lib-edit-sticky-bar {
-	bottom: calc(4.25rem + env(safe-area-inset-bottom));
-}
-
 /* iOS zooms into any field under 16px when it takes focus. */
 @media (pointer: coarse) {
 	input,
