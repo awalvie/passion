@@ -186,6 +186,14 @@
 				</li>
 			{/each}
 		</ul>
+		<ul class="mt-2 flex flex-wrap gap-x-4 gap-y-2 px-1.5 text-xs font-semibold text-ink-2">
+			{#each [['done', 'Done'], ['missed', 'Missed'], ['today', 'Today']] as const as [state, label] (state)}
+				<li class="flex items-center gap-1.5">
+					<SessionIcon icon={key[0].template_icon} name={key[0].template_name} {state} size={22} />
+					{label}
+				</li>
+			{/each}
+		</ul>
 	{/if}
 </section>
 
