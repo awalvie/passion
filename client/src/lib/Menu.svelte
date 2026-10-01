@@ -8,9 +8,8 @@
 	let {
 		items,
 		label = 'More',
-		look = 'bg-surface text-ink shadow-card-sm',
-		size = 'size-11'
-	}: { items: MenuItem[]; label?: string; look?: string; size?: string } = $props();
+		look = 'bg-surface text-ink shadow-card-sm'
+	}: { items: MenuItem[]; label?: string; look?: string } = $props();
 
 	let open = $state(false);
 	let root: HTMLDivElement;
@@ -32,7 +31,7 @@
 <div class="relative" bind:this={root}>
 	<button
 		type="button"
-		class="flex {size} items-center justify-center rounded-full {look}"
+		class="flex size-11 items-center justify-center rounded-full {look}"
 		aria-label={label}
 		aria-expanded={open}
 		onclick={() => (open = !open)}
