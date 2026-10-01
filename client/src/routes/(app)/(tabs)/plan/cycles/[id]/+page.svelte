@@ -305,7 +305,7 @@
 			{/if}
 		</div>
 		<FormError message={editError} />
-		<div class="grid grid-cols-2 gap-2">
+		<div class="grid grid-cols-2 items-center gap-2">
 			<Button variant="secondary" onclick={() => (open = false)}>Cancel</Button>
 			<Button type="submit" disabled={busy}>Save</Button>
 		</div>

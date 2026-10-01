@@ -233,7 +233,7 @@
 					<input class="input h-12 px-4" type="date" bind:value={date} required />
 				</label>
 				<FormError message={error} />
-				<div class="grid grid-cols-2 gap-2">
+				<div class="grid grid-cols-2 items-center gap-2">
 					<Button variant="secondary" onclick={() => (adding = false)}>Cancel</Button>
 					<Button type="submit" disabled={busy}>Add</Button>
 				</div>
