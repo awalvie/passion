@@ -76,6 +76,8 @@
 	--color-rest: var(--rest);
 	--color-rest-soft: var(--rest-soft);
 	--color-rest-ink: var(--rest-ink);
+	--color-rest-card: var(--rest-card);
+	--color-rest-digit: var(--rest-digit);
 	--color-bad: var(--bad);
 	--shadow-card: var(--elev);
 	--shadow-card-sm: var(--elev-sm);
