@@ -159,6 +159,15 @@ body {
 	}
 }
 
+@keyframes load {
+	from {
+		translate: -100%;
+	}
+	to {
+		translate: 300%;
+	}
+}
+
 ::view-transition-old(root),
 ::view-transition-new(root) {
 	animation-duration: 180ms;
