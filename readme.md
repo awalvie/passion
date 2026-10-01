@@ -26,7 +26,7 @@ holds the exercises and the session templates. History lists finished sessions a
 one logged. While a session runs, the client logs sets, per-side sets, climbs, and timed reps
 with prep, hang and rest. It picks from a choice, adds an exercise, and finishes with the
 journal. Writes wait on the phone when there is no signal.
-The look is a placeholder.
+Every screen has the look of `passion-design/final/designs/direction`, in light and dark.
 
 - Sign up with an email address and a password, hashed with argon2id.
 - Sign in. Each sign-in mints its own bearer token, so a phone and a laptop hold different
