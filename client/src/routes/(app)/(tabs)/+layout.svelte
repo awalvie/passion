@@ -4,11 +4,13 @@
 
 	let { data, children } = $props();
 
-	// Today's card already leads back to the running session.
-	const bar = $derived(data.live && page.url.pathname !== '/');
+	// Creating a cycle is a task with its own bottom button, so it hides the
+	// tabs. Today's card already leads back to the running session.
+	const task = $derived(page.url.pathname === '/plan/cycles/new');
+	const bar = $derived(data.live && page.url.pathname !== '/' && !task);
 </script>
 
-<div class="{bar ?'pb-[calc(8.5rem+env(safe-area-inset-bottom))]' : 'pb-[calc(5rem+env(safe-area-inset-bottom))]'}">
+<div class={task ? '' : bar ? 'pb-[calc(8.5rem+env(safe-area-inset-bottom))]' : 'pb-[calc(5rem+env(safe-area-inset-bottom))]'}>
 	{@render children()}
 </div>
 
@@ -23,4 +25,6 @@
 	</a>
 {/if}
 
-<TabBar live={!!data.live} />
+{#if !task}
+	<TabBar live={!!data.live} />
+{/if}
