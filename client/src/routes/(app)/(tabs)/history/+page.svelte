@@ -1,5 +1,4 @@
 <script lang="ts">
-	import Icon from '$lib/Icon.svelte';
 	import type { RunSummary } from '$lib/run';
 
 	let { data } = $props();
@@ -17,11 +16,12 @@
 		return out;
 	});
 
-	function day(r: RunSummary) {
-		return new Date(`${r.local_date}T12:00:00`).toLocaleDateString(undefined, {
-			weekday: 'short',
-			day: 'numeric'
-		});
+	function when(r: RunSummary) {
+		const d = new Date(`${r.local_date}T12:00:00`);
+		return {
+			weekday: d.toLocaleDateString(undefined, { weekday: 'short' }),
+			day: d.getDate()
+		};
 	}
 
 	function facts(r: RunSummary) {
@@ -32,29 +32,37 @@
 
 <svelte:head><title>History</title></svelte:head>
 
-<div class="flex flex-col gap-4 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
-	<h1 class="text-3xl font-bold">History</h1>
+<div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+	<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">History</h1>
 
 	{#each months as m (m.label)}
-		<section class="flex flex-col gap-2">
-			<h2 class="px-1 text-sm font-semibold text-ink-2">{m.label}</h2>
-			<ul class="overflow-hidden rounded-2xl bg-surface shadow-sm">
+		<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-2 shadow-card">
+			<h2 class="mb-1 text-[15px] font-bold">{m.label}</h2>
+			<ul>
 				{#each m.runs as r (r.id)}
-					<li class="border-line [&:not(:first-child)]:border-t">
-						<a href="/history/{r.id}" class="flex items-center gap-3 px-4 py-3">
-							<span class="w-14 shrink-0 text-sm text-ink-2">{day(r)}</span>
-							<span class="min-w-0 flex-1">
-								<span class="block truncate text-base">{r.name}</span>
-								<span class="block truncate text-sm text-ink-2">{facts(r)}</span>
+					{@const w = when(r)}
+					<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+						<a href="/history/{r.id}" class="flex min-h-[58px] items-center gap-3.5 py-2">
+							<span class="flex w-8 shrink-0 flex-col">
+								<span class="text-xs font-semibold text-ink-2">{w.weekday}</span>
+								<b class="text-xl leading-[1.05] font-bold">{w.day}</b>
 							</span>
-							<Icon name="chevron-right" size="1rem" />
+							<span class="min-w-0 flex-1">
+								<span class="block truncate text-[15px] font-bold">{r.name}</span>
+								{#if facts(r)}
+									<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{facts(r)}</span>
+								{/if}
+							</span>
+							{#if r.template === null}
+								<span class="shrink-0 rounded-xl bg-ink px-2.5 py-[5px] text-xs font-bold text-ground">Open</span>
+							{/if}
 						</a>
 					</li>
 				{/each}
 			</ul>
 		</section>
 	{:else}
-		<p class="rounded-2xl bg-surface p-4 text-base text-ink-2 shadow-sm">
+		<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold text-ink-2 shadow-card">
 			Finished sessions show here.
 		</p>
 	{/each}
