@@ -110,10 +110,8 @@ body {
 		padding: 0.625rem 0.875rem;
 		font-size: 15px;
 		font-weight: 600;
-	}
-	/* A long option must not widen a select past its container. */
-	.input {
 		width: 100%;
+		/* A long option must not widen a select past its container. */
 		min-width: 0;
 	}
 	select.input {
