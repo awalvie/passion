@@ -7,25 +7,71 @@
 @import './passion.css' layer(components);
 @import './tokens.css';
 
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+
 @theme inline {
 	--color-ground: var(--ground);
 	--color-surface: var(--surface);
+	--color-well: var(--well);
 	--color-line: var(--line);
 	--color-ink: var(--ink);
 	--color-ink-2: var(--ink-2);
+	--color-ink-3: var(--ink-3);
+	--color-link: var(--link);
 	--color-tint: var(--tint);
 	--color-on-tint: var(--on-tint);
 	--color-live: var(--live);
+	--color-on-live: var(--on-live);
+	--color-live-halo: var(--live-halo);
+	--color-hero: var(--hero);
+	--color-hero-2: var(--hero-2);
+	--color-on-hero: var(--on-hero);
+	--color-on-hero-2: var(--on-hero-2);
 	--color-prep: var(--prep);
 	--color-hang: var(--hang);
+	--color-on-hang: var(--on-hang);
 	--color-rest: var(--rest);
+	--color-rest-soft: var(--rest-soft);
+	--color-rest-ink: var(--rest-ink);
 	--color-bad: var(--bad);
+	--shadow-card: var(--elev);
+	--shadow-card-sm: var(--elev-sm);
+	--shadow-tint: var(--elev-tint);
+	--shadow-live: var(--elev-live);
+	--font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* passion.css paints the page in V1's colours. The V2 screens sit on the
+   direction ground. */
+html,
+body {
+	background: var(--ground);
+	color: var(--ink);
+	font-family: var(--font-sans);
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+}
+
+/* In the components layer, after passion.css, so it replaces V1's field look
+   and still loses to utilities. */
+@layer components {
+	.input {
+		min-height: 3rem;
+		border: 0;
+		border-radius: 1rem;
+		background: var(--well);
+		color: var(--ink);
+		padding: 0.625rem 0.875rem;
+		font-size: 15px;
+		font-weight: 600;
+	}
 }
 
 /* The library editors save from a bar stuck to the bottom, which must clear the
    tab bar. */
 .lib-edit-sticky-bar {
-	bottom: calc(3.5rem + env(safe-area-inset-bottom));
+	bottom: calc(4.25rem + env(safe-area-inset-bottom));
 }
 
 /* iOS zooms into any field under 16px when it takes focus. */

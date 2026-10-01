@@ -1,17 +1,78 @@
-/* The V2 screens use only these tokens. They point at the V1 theme for now, so
-   a new look only rewrites this file. Names avoid Tailwind's --spacing and
-   --radius-* and every V1 name. */
+/* The V2 screens use only these tokens: the palette of
+   passion-design/final/designs/direction. app.html always sets data-theme, so
+   following the system needs no media query here. Names avoid Tailwind's
+   --spacing and --radius-* and every V1 name. */
 :root {
-	--ground: var(--bg);
-	--surface: var(--panel);
-	--line: var(--border);
-	--ink: var(--text);
-	--ink-2: var(--muted);
-	--tint: var(--accent);
-	--on-tint: #ffffff;
-	--live: var(--tick-working-accent);
-	--prep: var(--tick-sky-fg);
-	--hang: var(--tick-red-fg);
-	--rest: var(--tick-green-fg);
-	--bad: var(--destructive);
+	color-scheme: light;
+	--ground: #f1eee5;
+	--surface: #fbfaf6;
+	--well: #e8e4d8;
+	--line: rgba(21, 32, 26, 0.08);
+	--ink: #15201a;
+	--ink-2: #556057;
+	--ink-3: #8a9288;
+	--link: #15201a;
+	--tint: #c6f05b;
+	--on-tint: #15201a;
+	--live: #f28a5c;
+	--on-live: #2a1308;
+	--live-halo: rgba(242, 138, 92, 0.3);
+	--hero: #15271e;
+	--hero-2: #21402f;
+	--on-hero: #f2f6ea;
+	--on-hero-2: rgba(242, 246, 234, 0.68);
+	--hero-topo: rgba(198, 240, 91, 0.15);
+	--topo: rgba(21, 32, 26, 0.07);
+	--glow-1: rgba(190, 230, 120, 0.5);
+	--glow-2: rgba(244, 200, 160, 0.5);
+	--prep: #2a72ec;
+	--hang: #c6f05b;
+	--on-hang: #15201a;
+	--rest: #0d8450;
+	--rest-soft: #dbebdf;
+	--rest-ink: #0b6b41;
+	--bad: #c2412d;
+	--elev: 0 1px 1px rgba(21, 32, 26, 0.04), 0 3px 8px rgba(21, 32, 26, 0.05),
+		0 16px 32px -10px rgba(21, 32, 26, 0.16);
+	--elev-sm: 0 1px 2px rgba(21, 32, 26, 0.06), 0 6px 14px -4px rgba(21, 32, 26, 0.12);
+	--elev-tint: 0 6px 16px -4px rgba(120, 160, 20, 0.55), inset 0 -2px 0 rgba(90, 130, 0, 0.18);
+	--elev-live: 0 8px 18px -6px rgba(214, 100, 50, 0.55), inset 0 -2px 0 rgba(150, 60, 20, 0.15);
+	--bar: rgba(251, 250, 246, 0.94);
+}
+
+:root[data-theme='dark'] {
+	color-scheme: dark;
+	--ground: #0c110e;
+	--surface: #171e19;
+	--well: #232b25;
+	--line: rgba(237, 241, 230, 0.07);
+	--ink: #edf1e6;
+	--ink-2: #a3aba0;
+	--ink-3: #737c71;
+	--link: #edf1e6;
+	--tint: #c6f05b;
+	--on-tint: #122015;
+	--live: #f59a70;
+	--on-live: #2a1308;
+	--live-halo: rgba(245, 154, 112, 0.28);
+	--hero: #1b3427;
+	--hero-2: #284a37;
+	--on-hero: #f2f6ea;
+	--on-hero-2: rgba(242, 246, 234, 0.68);
+	--hero-topo: rgba(198, 240, 91, 0.13);
+	--topo: rgba(237, 241, 230, 0.065);
+	--glow-1: rgba(110, 180, 80, 0.2);
+	--glow-2: rgba(60, 120, 110, 0.16);
+	--prep: #1e5bc9;
+	--hang: #aeda45;
+	--on-hang: #101812;
+	--rest: #12a061;
+	--rest-soft: #11291c;
+	--rest-ink: #63d69b;
+	--bad: #f07a63;
+	--elev: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 14px 28px -10px rgba(0, 0, 0, 0.7);
+	--elev-sm: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 6px 14px -4px rgba(0, 0, 0, 0.6);
+	--elev-tint: 0 8px 18px -6px rgba(198, 240, 91, 0.32);
+	--elev-live: 0 8px 18px -6px rgba(245, 154, 112, 0.35);
+	--bar: rgba(23, 30, 25, 0.94);
 }
