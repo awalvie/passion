@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from './Icon.svelte';
 	import { tone, unlock } from './audio';
 	import Button from './Button.svelte';
 	import { isFinished, setsOf, type RunStep } from './run';
@@ -87,7 +88,7 @@
 {:else if logged[0]?.seconds}
 	<p class="flex h-11 items-center gap-2.5 rounded-3xl bg-surface px-4 text-[15px] font-bold shadow-card">
 		<span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-ink text-ground dark:bg-ink-2">
-			<svg viewBox="0 0 24 24" class="size-3" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" /></svg>
+			<Icon name="check" size="0.75rem" stroke={3.2} />
 		</span>
 		Took {formatClock(logged[0].seconds)}
 	</p>

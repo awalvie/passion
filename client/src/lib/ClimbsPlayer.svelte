@@ -239,7 +239,7 @@
 				</div>
 				<div class="mt-2.5">
 					<Button onclick={log}>
-						<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" /></svg>
+						<Icon name="check" size="1.25rem" stroke={2.6} />
 						{editing ? 'Save' : 'Log'} climb {number}
 					</Button>
 				</div>

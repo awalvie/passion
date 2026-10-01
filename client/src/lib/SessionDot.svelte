@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from './Icon.svelte';
 	let {
 		mark,
 		small = false
@@ -14,7 +15,7 @@
 >
 	{#if mark === 'done'}
 		<span class="absolute rounded-full bg-ink dark:bg-ink-2 {small ? 'inset-0.5' : 'inset-[5px]'}"></span>
-		<svg viewBox="0 0 24 24" class="relative text-ground {small ? 'size-3' : 'size-3.5'}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" /></svg>
+		<span class="relative flex text-ground"><Icon name="check" size={small ? '0.75rem' : '0.875rem'} stroke={3} /></span>
 	{:else if mark === 'now'}
 		<span class="absolute inset-0 rounded-full {small ? '' : 'bg-ground'}"></span>
 		<span class="absolute inset-0 rounded-full bg-live-halo"></span>

@@ -104,7 +104,7 @@
 
 {#snippet tick()}
 	<span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-ink text-ground dark:bg-ink-2">
-		<svg viewBox="0 0 24 24" class="size-3" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" /></svg>
+		<Icon name="check" size="0.75rem" stroke={3.2} />
 	</span>
 {/snippet}
 
@@ -194,7 +194,7 @@
 				</div>
 				<div class="mt-2.5">
 					<Button onclick={log}>
-						<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" /></svg>
+						<Icon name="check" size="1.25rem" stroke={2.6} />
 						Log {sides === 2 ? side(row).toLowerCase() : `set ${number}`}
 					</Button>
 				</div>

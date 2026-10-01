@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '$lib/Icon.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import { climbsOf, setsOf, stepsOf, type LoggedSet, type RunStep } from '$lib/run';
 
@@ -132,7 +133,7 @@
 						<li class="flex gap-3 py-3 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 							{#if s.status === 'done'}
 								<span class="mt-px flex size-6 shrink-0 items-center justify-center rounded-full bg-ink text-tint dark:bg-[#2A342D]">
-									<svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" /></svg>
+									<Icon name="check" size="0.875rem" stroke={3} />
 								</span>
 							{:else}
 								<span class="mt-px size-6 shrink-0 rounded-full bg-well"></span>
