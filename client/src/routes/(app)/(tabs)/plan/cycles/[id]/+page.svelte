@@ -4,7 +4,7 @@
 	import { describe, request } from '$lib/api';
 	import BlockDays from '$lib/BlockDays.svelte';
 	import Button from '$lib/Button.svelte';
-	import { cycleWeek } from '$lib/dates';
+	import { addDays, cycleWeek } from '$lib/dates';
 	import FormError from '$lib/FormError.svelte';
 	import GoalList from '$lib/GoalList.svelte';
 	import Icon, { type IconName } from '$lib/Icon.svelte';
@@ -12,6 +12,7 @@
 	import NavBar from '$lib/NavBar.svelte';
 	import { saveCycle, type Cycle } from '$lib/plan';
 	import Sheet from '$lib/Sheet.svelte';
+	import WeekStrip from '$lib/WeekStrip.svelte';
 
 	let { data } = $props();
 
@@ -144,6 +145,23 @@
 			{/if}
 		</div>
 		<GoalList bind:goals onchange={saveGoals} />
+	</section>
+
+	<section class="flex flex-col gap-2">
+		<div class="flex items-baseline justify-between px-1">
+			<h2 class="text-[15px] font-bold">This week</h2>
+			<span class="text-xs font-semibold text-ink-2">{short(data.monday)} – {short(addDays(data.monday, 6))}</span>
+		</div>
+		<div class="rounded-3xl bg-surface pb-3 shadow-card">
+			<WeekStrip monday={data.monday} today={data.today} week={data.week} />
+			<p class="mx-[18px] mt-3 truncate pt-3 text-[15px] font-semibold text-ink-2 shadow-[inset_0_1px_0_var(--line)]">
+				<b class="text-ink">Today</b>
+				{data.week
+					.filter((d) => d.local_date === data.today)
+					.map((d) => d.template_name)
+					.join(' · ') || 'Rest day'}
+			</p>
+		</div>
 	</section>
 
 	<section class="flex flex-col gap-2">
