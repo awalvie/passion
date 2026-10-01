@@ -213,7 +213,7 @@
 			</div>
 			<div>
 				<span class="block text-xs font-semibold text-ink-2">Color</span>
-				<div class="mt-2 flex flex-wrap items-center gap-2.5">
+				<div class="mt-2 flex flex-wrap items-center gap-3">
 					{#each presets as [color, name] (color)}
 						<button
 							type="button"
