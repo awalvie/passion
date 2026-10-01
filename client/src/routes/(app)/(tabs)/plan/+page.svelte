@@ -36,6 +36,21 @@
 		}
 	}
 
+	let rowError = $state({ id: '', message: '' });
+
+	async function move(d: ScheduledDay, to: string) {
+		busy = true;
+		rowError = { id: '', message: '' };
+		try {
+			await request('PUT', `/api/v1/scheduled-sessions/${d.id}`, { local_date: to });
+			await invalidateAll();
+		} catch (e) {
+			rowError = { id: d.id, message: describe(e, (f) => labels[f] ?? f) };
+		} finally {
+			busy = false;
+		}
+	}
+
 	const dates = $derived.by(() => {
 		const out: { date: string; days: ScheduledDay[] }[] = [];
 		for (const d of data.days) {
@@ -73,7 +88,7 @@
 				<h2 class="px-1 text-sm font-semibold {g.date === data.today ? 'text-tint' : 'text-ink-2'}">{heading(g.date)}</h2>
 				<ul class="overflow-hidden rounded-2xl bg-surface shadow-sm">
 					{#each g.days as d (d.id)}
-						<li class="flex items-center gap-3 border-line px-4 py-3 [&:not(:first-child)]:border-t">
+						{#snippet row()}
 							<span class="min-w-0 flex-1">
 								<span class="block truncate text-base">{d.template_name}</span>
 								<span class="block truncate text-sm text-ink-2">
@@ -81,6 +96,30 @@
 								</span>
 							</span>
 							<span class="shrink-0 text-sm {d.status === 'missed' ? 'text-bad' : 'text-ink-2'}">{statuses[d.status]}</span>
+						{/snippet}
+						<li class="border-line [&:not(:first-child)]:border-t">
+							{#if d.status === 'planned' || d.status === 'missed'}
+								<details>
+									<summary class="flex cursor-pointer items-center gap-3 px-4 py-3">{@render row()}</summary>
+									<form
+										class="flex flex-col gap-3 px-4 pb-4"
+										onsubmit={(e) => {
+											e.preventDefault();
+											move(d, String(new FormData(e.currentTarget).get('date')));
+										}}
+									>
+										<div class="flex gap-2">
+											<input class="input min-w-0 flex-1" type="date" name="date" value={d.local_date} required aria-label="New day" />
+											<button type="submit" class="h-11 shrink-0 rounded-xl px-3 text-base font-semibold text-tint" disabled={busy}>
+												Move
+											</button>
+										</div>
+										<FormError message={rowError.id === d.id ? rowError.message : ''} />
+									</form>
+								</details>
+							{:else}
+								<div class="flex items-center gap-3 px-4 py-3">{@render row()}</div>
+							{/if}
 						</li>
 					{/each}
 				</ul>
