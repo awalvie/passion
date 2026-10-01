@@ -1,10 +1,5 @@
 @import 'tailwindcss';
 
-/* The design system, carried over from v1 unchanged. It defines the colour
-   tokens, the card, button and input classes, and both themes. V1 loaded
-   Tailwind after it, so a utility such as w-auto beat .input's width. Outside
-   a layer it would beat every utility instead. */
-@import './passion.css' layer(components);
 @import './tokens.css';
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
@@ -95,8 +90,6 @@
 	--font-digits: 'Barlow Semi Condensed', 'Figtree', ui-sans-serif, system-ui, sans-serif;
 }
 
-/* passion.css paints the page in V1's colours. The V2 screens sit on the
-   direction ground. */
 html,
 body {
 	background: var(--ground);
@@ -106,8 +99,7 @@ body {
 	font-variant-numeric: tabular-nums;
 }
 
-/* In the components layer, after passion.css, so it replaces V1's field look
-   and still loses to utilities. */
+/* In the components layer, so a utility such as w-auto still wins. */
 @layer components {
 	.input {
 		min-height: 3rem;
