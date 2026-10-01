@@ -228,11 +228,13 @@
 		class="fixed inset-0 z-40 overflow-hidden {look.field} {look.ink}"
 		aria-label="{labels[phase.kind]} timer"
 	>
-		<div
-			class="absolute inset-x-0 bottom-0 shadow-[0_-2px_0_rgba(0,0,0,0.08)] {look.band}"
-			style="height: {(pos.left / phase.ms) * 100}%"
-			aria-hidden="true"
-		></div>
+		{#key pos.index}
+			<div
+				class="absolute inset-x-0 bottom-0 shadow-[0_-2px_0_rgba(0,0,0,0.08)] {look.band} {paused ? '' : 'motion-safe:transition-[height] motion-safe:duration-200 motion-safe:ease-linear'}"
+				style="height: {(pos.left / phase.ms) * 100}%"
+				aria-hidden="true"
+			></div>
+		{/key}
 
 		<div
 			class="relative mx-auto flex h-full w-full max-w-[430px] flex-col pt-[env(safe-area-inset-top)] pb-[calc(env(safe-area-inset-bottom)+1rem)]"
