@@ -4,6 +4,7 @@
 
 	const tabs: { href: string; label: string; icon: IconName; match: (path: string) => boolean }[] = [
 		{ href: '/', label: 'Today', icon: 'sun', match: (p) => p === '/' },
+		{ href: '/plan', label: 'Plan', icon: 'calendar', match: (p) => p.startsWith('/plan') },
 		{
 			href: '/templates',
 			label: 'Library',
