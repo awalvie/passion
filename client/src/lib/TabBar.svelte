@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { formatDuration } from './exercise';
 	import Icon, { type IconName } from './Icon.svelte';
 	import { secondsSince, type RunSummary } from './run';
 	import { readTimers } from './timerStore';
@@ -46,7 +47,7 @@
 				<span class="size-2 shrink-0 rounded-full bg-on-live motion-safe:animate-pulse"></span>
 			{/if}
 			<span class="min-w-0 truncate text-[15px] font-bold">{live.name}</span>
-			<span class="shrink-0 text-xs font-semibold">· {restLeft > 0 ? `under ${Math.ceil(restLeft / 60)} min` : `${minutes} min`}</span>
+			<span class="shrink-0 text-xs font-semibold">· {restLeft > 0 ? `under ${Math.ceil(restLeft / 60)} min` : formatDuration(Math.max(1, minutes) * 60)}</span>
 			<span class="ml-auto shrink-0"><Icon name="chevron-right" size="1.125rem" /></span>
 		</a>
 	{/if}
