@@ -67,7 +67,7 @@
 	});
 
 	function grab(e: PointerEvent, d: ScheduledDay) {
-		if (!movable(d)) return;
+		if (e.button > 0 || !movable(d)) return;
 		const el = e.currentTarget as Element;
 		const id = e.pointerId;
 		start = { x: e.clientX, y: e.clientY };
