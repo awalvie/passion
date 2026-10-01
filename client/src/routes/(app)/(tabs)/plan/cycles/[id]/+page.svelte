@@ -12,6 +12,7 @@
 	import FormError from '$lib/FormError.svelte';
 	import EntryList from '$lib/EntryList.svelte';
 	import GoalList from '$lib/GoalList.svelte';
+	import GoalSheet from '$lib/GoalSheet.svelte';
 	import Icon, { type IconName } from '$lib/Icon.svelte';
 	import Menu from '$lib/Menu.svelte';
 	import NavBar from '$lib/NavBar.svelte';
@@ -95,6 +96,8 @@
 	let before = $state(untrack(() => [...data.cycle.before]));
 	let after = $state(untrack(() => [...data.cycle.after]));
 	let notes = $state(untrack(() => data.cycle.notes ?? ''));
+	let goalOpen = $state(false);
+	let goalIndex = $state(-1);
 
 	// Each save sends all four from the page, one after another, so a quick
 	// second change cannot send the first one's old value.
@@ -185,7 +188,14 @@
 				<span class="text-xs font-semibold text-ink-2">{goals.filter((g) => g.done).length} of {goals.length} done</span>
 			{/if}
 		</div>
-		<GoalList bind:goals onchange={savePart} />
+		<GoalList
+			bind:goals
+			onchange={savePart}
+			onedit={(i) => {
+				goalIndex = i;
+				goalOpen = true;
+			}}
+		/>
 	</section>
 
 	<section class="flex flex-col gap-2">
@@ -312,5 +322,15 @@
 		</div>
 	</form>
 </Sheet>
+
+<GoalSheet
+	bind:open={goalOpen}
+	{goals}
+	index={goalIndex}
+	onsave={(next) => {
+		goals = next;
+		savePart();
+	}}
+/>
 
 <Toast bind:message={toast} action="Undo" onaction={undo} />
