@@ -28,3 +28,7 @@ test('plannedDays leaves out days already past', () => {
 test('plannedDays drops days beyond the block', () => {
 	expect(plannedDays({ ...cycle, block_days: 2 }, '2026-09-01').map((d) => d.template)).toStrictEqual(['a', 'a', 'a', 'a', 'a']);
 });
+
+test('plannedDays plans nothing while a date is empty', () => {
+	expect(plannedDays({ ...cycle, starts: '' }, '2026-09-01')).toStrictEqual([]);
+});
