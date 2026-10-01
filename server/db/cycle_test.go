@@ -18,6 +18,7 @@ import (
 const (
 	y1 = "0199c3a0-0000-7000-8000-0000000000e1"
 	y2 = "0199c3a0-0000-7000-8000-0000000000e2"
+	y3 = "0199c3a0-0000-7000-8000-0000000000e3"
 )
 
 func day(s string) time.Time {
@@ -166,6 +167,21 @@ func TestPutCycleKeepsABegunStart(t *testing.T) {
 		t.Fatalf("moved a start not begun: %v", err)
 	}
 
+	if got, _ := db.GetCycle(ctx, pool, ada, y1); !got.BlockFrom.Equal(day("2100-01-06")) {
+		t.Fatalf("block from %v, want the new start", got.BlockFrom)
+	}
+
+	// An ended cycle keeps where its block counts from.
+	ended := cycleFields(t, 7)
+	ended.Starts, ended.Ends = day("2020-01-01"), day("2020-01-28")
+	if _, _, err := db.PutCycle(ctx, pool, ada, y3, ended); err != nil {
+		t.Fatal(err)
+	}
+	ended.BlockDays = 6
+	if got, _, err := db.PutCycle(ctx, pool, ada, y3, ended); err != nil || !got.BlockFrom.Equal(ended.Starts) {
+		t.Fatalf("block from %v, %v, want the start", got.BlockFrom, err)
+	}
+
 	begun := cycleFields(t, 7)
 	begun.Starts, begun.Ends = day("2020-01-01"), day("2020-12-30")
 	if _, _, err := db.PutCycle(ctx, pool, ada, y2, begun); err != nil {
@@ -211,6 +227,13 @@ func TestPutCycleNewBlockFromToday(t *testing.T) {
 	}
 	if got := scheduled(t, pool, ada); !slices.Equal(got, []string{at(0), at(3), at(6)}) {
 		t.Fatalf("scheduled %v, want days 1 from today", got)
+	}
+
+	// The start stays locked even when the block changes with it.
+	moved := f
+	moved.Starts, moved.BlockDays = today, 2
+	if _, _, err := db.PutCycle(ctx, pool, ada, y1, moved); !errors.Is(err, db.ErrStartsLocked) {
+		t.Fatalf("got %v, want the start kept", err)
 	}
 
 	// A rename keeps the block where it is.
