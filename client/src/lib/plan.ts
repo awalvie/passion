@@ -27,6 +27,15 @@ export type Cycle = {
 	notes: string | null;
 };
 
+// saveCycle sends the whole cycle, as the server replaces every field. It
+// answers the cycle saved and how many days already held their session.
+export async function saveCycle(c: Cycle): Promise<{ cycle: Cycle; leftOut: number }> {
+	const { id, block_from, ...body } = c;
+	const saved = await request<Cycle & { left_out: unknown[] }>('PUT', `/api/v1/cycles/${id}`, body);
+	const { left_out, ...cycle } = saved;
+	return { cycle, leftOut: left_out.length };
+}
+
 // The shape of server/api/auth.go's accountResponse.
 export type Account = {
 	id: string;
