@@ -29,7 +29,7 @@
 			<span class="min-w-0 flex-1 text-[15px] font-semibold break-words whitespace-pre-line">{entry}</span>
 			<button
 				type="button"
-				class="flex size-9 shrink-0 items-center justify-center rounded-full text-ink-3"
+				class="flex size-11 shrink-0 items-center justify-center rounded-full text-ink-3"
 				aria-label="Remove {entry}"
 				onclick={() => set(entries.filter((_, j) => j !== i))}
 			>
