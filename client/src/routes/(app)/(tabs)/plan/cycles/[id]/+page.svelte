@@ -71,6 +71,7 @@
 			body.days = body.days.filter((d) => d.day <= body.block_days);
 			leftOut = (await saveCycle(body)).leftOut;
 			open = false;
+			saved();
 			await invalidateAll();
 		} catch (e) {
 			editError = describe(e, (f) => (f.startsWith('days') ? 'A session' : (fields[f] ?? f)));
@@ -94,6 +95,7 @@
 			try {
 				const live = $state.snapshot({ goals });
 				await saveCycle({ ...$state.snapshot(data.cycle), ...live, notes: notes.trim() || null });
+				saved();
 				await invalidateAll();
 			} catch (e) {
 				error = describe(e, (f) => (f.startsWith('goals') ? 'A goal' : f));
@@ -102,9 +104,14 @@
 	}
 
 	// A refused move says why in the calendar's day panel. A move that lands
-	// can be undone from the toast.
+	// can be undone from the toast; any other save just says so.
 	let toast = $state('');
-	let last: { id: string; from: string } | null = null;
+	let last = $state<{ id: string; from: string } | null>(null);
+
+	function saved() {
+		last = null;
+		toast = 'Saved';
+	}
 
 	async function move(d: ScheduledDay, to: string) {
 		try {
@@ -286,4 +293,4 @@
 	}}
 />
 
-<Toast bind:message={toast} action="Undo" onaction={undo} />
+<Toast bind:message={toast} action={last ? 'Undo' : undefined} onaction={undo} duration={last ? 6000 : 2000} />
