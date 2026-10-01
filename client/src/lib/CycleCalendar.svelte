@@ -1,4 +1,5 @@
 <script lang="ts">
+	import FormError from './FormError.svelte';
 	import { formatDate, gridWeeks } from './dates';
 	import type { Cycle, ScheduledDay } from './plan';
 	import SessionIcon, { iconState } from './SessionIcon.svelte';
@@ -226,7 +227,7 @@
 		<p class="pt-1 pb-2.5 text-[15px] font-semibold text-ink-2">Rest day</p>
 	{/if}
 	{#if error && !lifted}
-		<p class="pb-2.5 text-[15px] font-semibold text-bad">{error}</p>
+		<div class="pb-2.5"><FormError message={error} /></div>
 	{/if}
 </section>
 
