@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { page } from '$app/state';
+	import { navigating, page } from '$app/state';
 	import { formatDuration } from './exercise';
-	import Icon, { type IconName } from './Icon.svelte';
+	import Icon from './Icon.svelte';
 	import { secondsSince, type RunSummary } from './run';
+	import { tabOf, tabs } from './tabs';
 	import { readTimers } from './timerStore';
 
 	// live is the open session, shown as a strip on top of the tabs.
@@ -18,17 +19,8 @@
 	// A rest shows only on the phone that started it, which holds its end time.
 	const restLeft = $derived(live ? ((readTimers(live.id).rest?.endsAt ?? 0) - now) / 1000 : 0);
 
-	const tabs: { href: string; label: string; icon: IconName; match: (path: string) => boolean }[] = [
-		{ href: '/', label: 'Today', icon: 'peak', match: (p) => p === '/' },
-		{ href: '/plan', label: 'Plan', icon: 'calendar', match: (p) => p.startsWith('/plan') },
-		{
-			href: '/templates',
-			label: 'Library',
-			icon: 'stack',
-			match: (p) => p.startsWith('/templates') || p.startsWith('/exercises')
-		},
-		{ href: '/history', label: 'History', icon: 'clock', match: (p) => p.startsWith('/history') }
-	];
+	// The pill moves on the tap, before the next page has loaded.
+	const active = $derived(tabOf(navigating.to?.url.pathname ?? page.url.pathname));
 </script>
 
 <nav
@@ -50,15 +42,23 @@
 			<span class="ml-auto shrink-0"><Icon name="chevron-right" size="1.125rem" /></span>
 		</a>
 	{/if}
-	<div class="flex h-16 items-center justify-around px-3 pt-1">
-		{#each tabs as t (t.href)}
-			{@const active = t.match(page.url.pathname)}
+	<div class="relative grid h-16 grid-cols-4 items-start px-3 pt-2">
+		{#if active >= 0}
+			<span
+				class="pointer-events-none absolute top-2 left-3 flex w-[calc((100%-1.5rem)/4)] justify-center transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none"
+				style:transform="translateX({active * 100}%)"
+				aria-hidden="true"
+			>
+				<span class="h-8 w-14 rounded-full bg-tint"></span>
+			</span>
+		{/if}
+		{#each tabs as t, i (t.href)}
 			<a
 				href={t.href}
-				class="flex w-20 flex-col items-center gap-0.5 text-xs font-bold {active ? 'text-ink' : 'text-ink-2'}"
-				aria-current={active ? 'page' : undefined}
+				class="relative flex flex-col items-center gap-0.5 text-xs font-bold {i === active ? 'text-ink' : 'text-ink-2'}"
+				aria-current={i === active ? 'page' : undefined}
 			>
-				<span class="flex h-8 w-14 items-center justify-center rounded-full {active ? 'bg-tint text-on-tint' : ''}">
+				<span class="flex h-8 w-14 items-center justify-center rounded-full transition-colors duration-300 {i === active ? 'text-on-tint' : ''}">
 					<Icon name={t.icon} size="1.375rem" />
 				</span>
 				{t.label}
