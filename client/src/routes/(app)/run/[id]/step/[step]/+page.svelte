@@ -17,6 +17,7 @@
 	import { climbsOf, isFinished, nextStep, setsOf, stepsOf } from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
 	import { stepMeta } from '$lib/template';
+	import { plainText } from '$lib/text';
 
 	const run = $derived(openRun.run!);
 	const step = $derived(openRun.step(page.params.step!));
@@ -33,6 +34,7 @@
 	// The phone lies on the floor during a set, with chalky hands.
 	$effect(() => keepAwake());
 
+	const howTo = $derived(plainText(step?.notes ?? ''));
 	const media = $derived(step?.media.find((m) => m.thumb_url));
 
 	let noting = $state(false);
@@ -121,11 +123,11 @@
 					{/if}
 					<span class="min-w-0 flex-1">
 						<span class="mb-0.5 block text-xs font-semibold text-ink-2">How to</span>
-						<span class="line-clamp-2 text-[15px] leading-[1.35] font-semibold text-ink group-open:hidden">{step.notes.replace(/\s+/g, ' ')}</span>
+						<span class="line-clamp-2 text-[15px] leading-[1.35] font-semibold text-ink group-open:hidden">{howTo.replace(/\s+/g, ' ')}</span>
 					</span>
 					<svg viewBox="0 0 24 24" class="size-[18px] shrink-0 text-ink-3 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
 				</summary>
-				<Notes text={step.notes} class="px-4 pb-4 text-[15px] leading-[1.35] font-semibold text-ink" />
+				<Notes text={howTo} class="px-4 pb-4 text-[15px] leading-[1.35] font-semibold text-ink" />
 			</details>
 		{/if}
 
