@@ -4,8 +4,9 @@
 	let {
 		exercises,
 		id,
+		label = 'Add exercise',
 		pick
-	}: { exercises: Exercise[]; id: string; pick: (e: Exercise) => void } = $props();
+	}: { exercises: Exercise[]; id: string; label?: string; pick: (e: Exercise) => void } = $props();
 
 	let q = $state('');
 
@@ -30,7 +31,7 @@
 </script>
 
 <div>
-	<label class="block text-xs font-semibold text-ink-2" for={id}>Add exercise</label>
+	<label class="block text-xs font-semibold text-ink-2" for={id}>{label}</label>
 	<input
 		{id}
 		type="search"
