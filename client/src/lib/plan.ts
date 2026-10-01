@@ -1,3 +1,5 @@
+import { request } from './api';
+
 // The shape of server/api/scheduled_session.go's list response.
 export type ScheduledDay = {
 	id: string;
@@ -23,4 +25,9 @@ export type Account = {
 // which is the day the server counts a run on.
 export function localToday(timezone: string, now = new Date()): string {
 	return new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
+}
+
+export async function loadToday(): Promise<string> {
+	const account = await request<Account>('GET', '/api/v1/accounts/me');
+	return localToday(account.timezone);
 }
