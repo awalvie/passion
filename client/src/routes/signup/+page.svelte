@@ -61,7 +61,7 @@
 	class="absolute inset-x-0 top-0 h-80 w-full text-[var(--topo)] [mask-image:linear-gradient(#000_30%,transparent)]"
 />
 <section class="relative mx-auto flex max-w-[430px] flex-col px-4 pt-[calc(env(safe-area-inset-top)+4rem)] pb-8">
-	<h1 class="text-[32px] leading-tight font-extrabold tracking-tight">Sign up</h1>
+	<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">Sign up</h1>
 	<p class="mt-1 text-[15px] font-semibold text-ink-2">Create your account to save personal workouts.</p>
 
 	<FormError message={error} />
