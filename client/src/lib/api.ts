@@ -17,6 +17,13 @@ export class RequestFailed extends Error {
 	}
 }
 
+// A GET answer is kept for two minutes, so going back to a page shows it at
+// once. Any other request can change what a GET returns, so it empties the
+// cache, and a GET that was under way meanwhile keeps its answer to itself.
+const kept = new Map<string, { at: number; text: string }>();
+const keepFor = 2 * 60_000;
+let writes = 0;
+
 export async function request<T>(
 	method: string,
 	path: string,
@@ -28,6 +35,16 @@ export async function request<T>(
 
 	const bearer = token();
 	if (bearer) headers['Authorization'] = `Bearer ${bearer}`;
+
+	const key = `${bearer} ${path}`;
+	const before = writes;
+	if (method === 'GET') {
+		const hit = kept.get(key);
+		if (hit && Date.now() - hit.at < keepFor) return JSON.parse(hit.text);
+	} else {
+		writes++;
+		kept.clear();
+	}
 
 	const res = await fetch(path, {
 		method,
@@ -54,7 +71,14 @@ export async function request<T>(
 		throw new RequestFailed(res.status, detail);
 	}
 
-	return res.status === 204 ? (undefined as T) : res.json();
+	if (method !== 'GET') {
+		writes++;
+		kept.clear();
+	}
+	if (res.status === 204) return undefined as T;
+	const text = await res.text();
+	if (method === 'GET' && writes === before) kept.set(key, { at: Date.now(), text });
+	return JSON.parse(text);
 }
 
 // unreachable says a request never got an answer from Passion: no signal, or
