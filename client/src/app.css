@@ -120,6 +120,11 @@ body {
 	}
 }
 
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 180ms;
+}
+
 /* The library editors save from a bar stuck to the bottom, which must clear the
    tab bar. */
 .lib-edit-sticky-bar {

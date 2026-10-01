@@ -1,8 +1,19 @@
 <script lang="ts">
+	import { onNavigate } from '$app/navigation';
 	import favicon from '$lib/assets/favicon.svg';
 	import '../app.css';
 
 	let { children } = $props();
+
+	onNavigate((navigation) => {
+		if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		return new Promise((resolve) => {
+			document.startViewTransition(async () => {
+				resolve();
+				await navigation.complete;
+			});
+		});
+	});
 </script>
 
 <svelte:head>
