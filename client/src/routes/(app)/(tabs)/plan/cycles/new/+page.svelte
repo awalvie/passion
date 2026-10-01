@@ -6,6 +6,7 @@
 	import BlockDays from '$lib/BlockDays.svelte';
 	import Button from '$lib/Button.svelte';
 	import { addDays, daysBetween, formatDate } from '$lib/dates';
+	import DateField from '$lib/DateField.svelte';
 	import EntryList from '$lib/EntryList.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import GoalList from '$lib/GoalList.svelte';
@@ -91,11 +92,11 @@
 			<div class="grid grid-cols-2 gap-3">
 				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
 					Starts
-					<input class="input h-12 px-4" type="date" bind:value={draft.starts} required />
+					<DateField bind:value={draft.starts} label="Starts" />
 				</label>
 				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
 					Ends
-					<input class="input h-12 px-4" type="date" bind:value={draft.ends} min={draft.starts} required />
+					<DateField bind:value={draft.ends} label="Ends" min={draft.starts} />
 				</label>
 			</div>
 		</div>
