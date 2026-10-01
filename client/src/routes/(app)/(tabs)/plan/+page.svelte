@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
 	import FormError from '$lib/FormError.svelte';
@@ -7,6 +8,8 @@
 	import type { ScheduledDay } from '$lib/plan';
 
 	let { data } = $props();
+
+	const cyclesView = $derived(page.url.searchParams.get('view') === 'cycles');
 
 	const labels: Record<string, string> = { local_date: 'That day', template: 'That session' };
 
@@ -107,9 +110,23 @@
 		{/if}
 	</header>
 
+	<nav class="grid grid-cols-2 gap-1 rounded-full bg-well p-1" aria-label="Plan">
+		{#each [{ label: 'Schedule', href: '/plan', on: !cyclesView }, { label: 'Cycles', href: '/plan?view=cycles', on: cyclesView }] as v (v.label)}
+			<a
+				href={v.href}
+				data-sveltekit-replacestate
+				data-sveltekit-noscroll
+				class="flex h-10 items-center justify-center rounded-full text-[15px] font-bold {v.on ? 'bg-tint text-on-tint' : 'text-ink-2'}"
+				aria-current={v.on ? 'page' : undefined}
+			>
+				{v.label}
+			</a>
+		{/each}
+	</nav>
+
 	{#if data.offline}
 		<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold text-ink-2 shadow-card">No signal. The plan needs one to load.</p>
-	{:else}
+	{:else if !cyclesView}
 		{#each months as m (m.label)}
 			<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-2 shadow-card">
 				<h2 class="mb-1 text-[15px] font-bold">{m.label}</h2>
@@ -201,8 +218,8 @@
 		{:else}
 			<Button variant="secondary" onclick={openAdd}>Add a session</Button>
 		{/if}
-
-		<section class="mt-2 rounded-3xl bg-surface px-[18px] pt-4 pb-2 shadow-card">
+	{:else}
+		<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-2 shadow-card">
 			<h2 class="mb-1 text-[15px] font-bold">Cycles</h2>
 			{#if data.cycles.length}
 				<ul>
