@@ -115,6 +115,17 @@
 	let editing = $state(false);
 </script>
 
+{#snippet remove(label: string, onclick: () => void)}
+	<button
+		type="button"
+		class="flex size-7 shrink-0 items-center justify-center rounded-full bg-well text-ink active:opacity-70"
+		aria-label={label}
+		{onclick}
+	>
+		<svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12" /></svg>
+	</button>
+{/snippet}
+
 <svelte:head><title>{run.name}</title></svelte:head>
 
 {#if editing}
@@ -160,7 +171,7 @@
 
 {#if editing}
 	<div class="px-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
-		<p class="px-1 pt-1 text-xs font-semibold text-ink-2">Done exercises keep their sets.</p>
+		<p class="px-1 pt-1 text-xs font-semibold text-ink-2">Remove with −. Done exercises keep their sets.</p>
 		{#each run.sections as s, i (i)}
 			<div class="flex items-baseline gap-2.5 px-1 pt-[18px] pb-2">
 				<h2 class="min-w-0 truncate text-xl leading-[1.15] font-bold tracking-[-0.01em]">{s.name}</h2>
@@ -178,6 +189,8 @@
 									<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-ink text-ground dark:bg-ink-2">
 										<Icon name="check" size="1rem" />
 									</span>
+								{:else}
+									{@render remove(`Remove ${item.step.name}`, () => openRun.removeStep(item.step!.id))}
 								{/if}
 								<span class="min-w-0 flex-1">
 									<span class="block truncate text-[15px] font-bold {reached ? 'text-ink-2' : ''}">{item.step.name}</span>
