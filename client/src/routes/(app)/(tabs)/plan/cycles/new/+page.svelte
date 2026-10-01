@@ -4,6 +4,7 @@
 	import { untrack } from 'svelte';
 	import { describe } from '$lib/api';
 	import BlockDays from '$lib/BlockDays.svelte';
+	import BlockLength from '$lib/BlockLength.svelte';
 	import Button from '$lib/Button.svelte';
 	import { addDays, daysBetween, formatDate } from '$lib/dates';
 	import DateField from '$lib/DateField.svelte';
@@ -132,32 +133,8 @@
 			></textarea>
 		</section>
 	{:else}
-		<div class="grid grid-cols-4 gap-2">
-			{#each [7, 10, 14] as n (n)}
-				<button
-					type="button"
-					class="h-12 rounded-full text-[15px] font-bold {draft.block_days === n ? 'bg-ink text-ground' : 'bg-surface text-ink shadow-card-sm'}"
-					aria-pressed={draft.block_days === n}
-					disabled={n > length}
-					onclick={() => (draft.block_days = n)}
-				>
-					{n} days
-				</button>
-			{/each}
-			<input
-				class="input h-12 px-2 text-center"
-				type="number"
-				inputmode="numeric"
-				min="1"
-				max={Math.min(28, length)}
-				aria-label="Days in the block"
-				bind:value={draft.block_days}
-				required
-			/>
-		</div>
-		<section class="rounded-3xl bg-surface px-[18px] pt-1 pb-2 shadow-card">
-			<BlockDays bind:days={draft.days} blockDays={draft.block_days} from={draft.starts} templates={data.templates} />
-		</section>
+		<BlockLength bind:value={draft.block_days} max={length} />
+		<BlockDays bind:days={draft.days} blockDays={draft.block_days} from={draft.starts} templates={data.templates} />
 	{/if}
 
 	<FormError message={error} />
