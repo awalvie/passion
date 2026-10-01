@@ -123,7 +123,7 @@
 		{#if done.length}
 			<ol>
 				{#each done as pair, i (i)}
-					<li class="border-line [&:not(:first-child)]:border-t">
+					<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 						<button
 							type="button"
 							class="flex h-11 w-full items-center gap-2.5 px-4 text-left text-[15px]"

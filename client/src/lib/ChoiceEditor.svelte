@@ -53,7 +53,7 @@
 
 		<div class="rounded-2xl px-3.5 shadow-[inset_0_0_0_1px_var(--line)]">
 			<div class="pt-3 text-xs font-bold tracking-wider text-ink-3 uppercase">Options</div>
-			<div class="divide-y divide-line">
+			<div class="[&>:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 				{#each choice.options as option, k (option)}
 					{#snippet optionActions()}
 						<RowActions

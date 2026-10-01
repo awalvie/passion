@@ -208,7 +208,7 @@
 							{#if j > 0 && s.items[j - 1].choice}
 								<li class="px-3.5 pt-2.5 pb-0.5 text-xs font-semibold tracking-[0.06em] text-ink-3 uppercase">Then</li>
 							{/if}
-							<li class="flex min-h-14 items-center gap-3 px-3.5 py-2.5 {j > 0 && s.items[j - 1].step ? 'border-t border-line' : ''}">
+							<li class="flex min-h-14 items-center gap-3 px-3.5 py-2.5 {j > 0 && s.items[j - 1].step ? 'shadow-[inset_0_1px_0_var(--line)]' : ''}">
 								{#if reached}
 									<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-ink text-ground dark:bg-ink-2">
 										<Icon name="check" size="1rem" />
@@ -229,7 +229,7 @@
 								{choiceMeta(c)}
 							</li>
 							{#each c.options as o, k (k)}
-								<li class="flex min-h-14 items-center gap-3 px-3.5 py-2.5 {k > 0 ? 'border-t border-line' : ''}">
+								<li class="flex min-h-14 items-center gap-3 px-3.5 py-2.5 {k > 0 ? 'shadow-[inset_0_1px_0_var(--line)]' : ''}">
 									{@render remove(`Remove ${o.name}`, () => openRun.removeOption(c.id, k))}
 									<span class="min-w-0 flex-1">
 										<span class="block truncate text-[15px] font-bold">{o.name}</span>
@@ -340,7 +340,7 @@
 					{#if open && s.items.length}
 						<ul class="relative mb-1 ml-[46px] rounded-3xl bg-surface p-2.5 pb-2 shadow-card">
 							{#each s.items as item, j (item.step?.id ?? item.choice?.id ?? j)}
-								<li class="border-line [&:not(:first-child)]:mt-1 [&:not(:first-child)]:border-t">
+								<li class="[&:not(:first-child)]:mt-1 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 									{#if item.step}
 										{@const sm = mark(item.step)}
 										<a href="/run/{run.id}/step/{item.step.id}" class="flex items-center gap-3 px-1 py-2.5">

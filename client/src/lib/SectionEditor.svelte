@@ -55,7 +55,7 @@
 			<textarea id="{id}-notes" rows="2" class="mt-1.5 w-full input" bind:value={section.notes}></textarea>
 		</div>
 
-		<div class="divide-y divide-line border-y border-line">
+		<div class="border-y border-line [&>:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 			{#each section.items as item, j (item)}
 				{#snippet itemActions()}
 					<RowActions

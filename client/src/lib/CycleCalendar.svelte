@@ -175,7 +175,7 @@
 	</div>
 
 	{#if key.length}
-		<ul class="mt-2 flex flex-wrap gap-x-4 gap-y-2 border-t border-line px-1.5 pt-3 text-xs font-semibold text-ink-2">
+		<ul class="mt-2 flex flex-wrap gap-x-4 gap-y-2 px-1.5 pt-3 shadow-[inset_0_1px_0_var(--line)] text-xs font-semibold text-ink-2">
 			{#each key as d (d.template)}
 				<li class="flex items-center gap-1.5">
 					<SessionIcon icon={d.template_icon} name={d.template_name} size={22} />

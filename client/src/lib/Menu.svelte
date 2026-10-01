@@ -42,7 +42,7 @@
 	{#if open}
 		<ul class="absolute top-full right-0 z-50 mt-2 min-w-52 overflow-hidden rounded-3xl bg-surface shadow-card">
 			{#each items as item (item.label)}
-				<li class="border-line [&:not(:first-child)]:border-t">
+				<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 					<button
 						type="button"
 						class="w-full px-5 py-3.5 text-left text-[15px] font-bold {item.danger ? 'text-bad' : 'text-ink'}"
