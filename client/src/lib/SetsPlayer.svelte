@@ -69,6 +69,21 @@
 	const done = $derived(Array.from({ length: Math.ceil(logged.length / sides) }, (_, i) => logged.slice(i * sides, (i + 1) * sides)));
 	const todo = $derived(isFinished(step) ? [] : Array.from({ length: Math.max(0, (step.sets ?? 0) - number) }, (_, i) => number + 1 + i));
 
+	let editing = $state<number | null>(null);
+	let draft = $state<SetFields[]>([]);
+
+	function edit(i: number) {
+		if (editing === i) return (editing = null);
+		editing = i;
+		draft = done[i].map((s) => ({ reps: s.reps, seconds: s.seconds, weight_kg: s.weight_kg }));
+	}
+
+	function saveEdit() {
+		const at = editing! * sides;
+		openRun.setSets(step, logged.map((s, k) => (k >= at && k < at + draft.length ? draft[k - at] : s)));
+		editing = null;
+	}
+
 	function short(s: SetFields) {
 		if (s.reps !== null && s.weight_kg !== null) return `${s.reps} × ${s.weight_kg} kg`;
 		return describeSet(s) || 'Done';
@@ -102,21 +117,44 @@
 		{#if done.length}
 			<ol>
 				{#each done as pair, i (i)}
-					<li class="flex h-11 items-center gap-2.5 border-line px-4 text-[15px] [&:not(:first-child)]:border-t">
-						{#if pair.length === sides}
-							{@render tick()}
-						{:else}
-							{@render ahead(i + 1)}
-						{/if}
-						<span class="sr-only">Set {i + 1}</span>
-						{#if sides === 2}
-							{#each pair as s (s.number)}
-								{@render sideLabel(side(s.number)[0])}
-								<span class="min-w-0 flex-1 truncate font-bold">{short(s)}</span>
-							{/each}
-						{:else}
-							<span class="font-bold">{pair[0].reps !== null ? `${pair[0].reps} reps` : pair[0].weight_kg === null ? 'Done' : ''}</span>
-							<span class="flex-1 font-semibold text-ink-2">{pair[0].weight_kg !== null ? `${pair[0].weight_kg} kg` : ''}</span>
+					<li class="border-line [&:not(:first-child)]:border-t">
+						<button
+							type="button"
+							class="flex h-11 w-full items-center gap-2.5 px-4 text-left text-[15px]"
+							aria-expanded={editing === i}
+							onclick={() => edit(i)}
+						>
+							{#if pair.length === sides}
+								{@render tick()}
+							{:else}
+								{@render ahead(i + 1)}
+							{/if}
+							<span class="sr-only">Set {i + 1}</span>
+							{#if sides === 2}
+								{#each pair as s (s.number)}
+									{@render sideLabel(side(s.number)[0])}
+									<span class="min-w-0 flex-1 truncate font-bold">{short(s)}</span>
+								{/each}
+							{:else}
+								<span class="font-bold">{pair[0].reps !== null ? `${pair[0].reps} reps` : pair[0].weight_kg === null ? 'Done' : ''}</span>
+								<span class="flex-1 font-semibold text-ink-2">{pair[0].weight_kg !== null ? `${pair[0].weight_kg} kg` : ''}</span>
+							{/if}
+							<svg viewBox="0 0 24 24" class="size-[18px] shrink-0 text-ink-3 transition-transform {editing === i ? 'rotate-90' : ''}" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+						</button>
+						{#if editing === i}
+							<section class="mx-1.5 mb-1.5 flex flex-col gap-2 rounded-[20px] bg-well p-2.5 dark:bg-[#1F2721]">
+								{#each draft as _, k (k)}
+									{#if sides === 2}<p class="px-1 text-xs font-semibold text-ink-2">{side(i * 2 + k + 1)}</p>{/if}
+									<div class="grid grid-cols-2 gap-2">
+										<Stepper label="Reps" bind:value={draft[k].reps} />
+										<Stepper label="kg" step={2.5} min={-200} placeholder="–" bind:value={draft[k].weight_kg} />
+									</div>
+								{/each}
+								<div class="grid grid-cols-2 gap-2 pt-0.5">
+									<Button variant="secondary" onclick={() => (editing = null)}>Cancel</Button>
+									<Button onclick={saveEdit}>Save set {i + 1}</Button>
+								</div>
+							</section>
 						{/if}
 					</li>
 				{/each}
