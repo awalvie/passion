@@ -3,7 +3,14 @@
 	import type { Cycle, ScheduledDay } from './plan';
 	import SessionIcon, { type IconState } from './SessionIcon.svelte';
 
-	let { cycle, days, today }: { cycle: Cycle; days: ScheduledDay[]; today: string } = $props();
+	// onmove puts a session on another day, and throws when the server refuses.
+	let {
+		cycle,
+		days,
+		today,
+		onmove
+	}: { cycle: Cycle; days: ScheduledDay[]; today: string; onmove: (d: ScheduledDay, to: string) => Promise<void> } =
+		$props();
 
 	const utc = (date: string, o: Intl.DateTimeFormatOptions) =>
 		new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, { ...o, timeZone: 'UTC' });
@@ -34,6 +41,74 @@
 	const key = $derived([...new Map(days.map((d) => [d.template, d])).values()]);
 
 	const words = { done: 'Done', started: 'Started', missed: 'Missed', planned: '', today: '' };
+
+	// A hold on a planned session lifts it; it then follows the finger, and a
+	// drop on a day from today on moves it there. A move before the hold ends
+	// is a scroll, so the hold gives up.
+	let lifted = $state<ScheduledDay | null>(null);
+	let at = $state({ x: 0, y: 0 });
+	let over = $state('');
+	let error = $state('');
+	let hold: ReturnType<typeof setTimeout> | undefined;
+	let start = { x: 0, y: 0 };
+	// The click that ends a drag lands on the day it started from; it must not
+	// choose that day.
+	let dropped = false;
+
+	const movable = (d: ScheduledDay) => d.status === 'planned' && d.local_date >= today;
+	const target = (date: string) => inCycle(date) && date >= today && date !== lifted?.local_date;
+
+	function grab(e: PointerEvent, d: ScheduledDay) {
+		if (!movable(d)) return;
+		const el = e.currentTarget as Element;
+		const id = e.pointerId;
+		start = { x: e.clientX, y: e.clientY };
+		at = start;
+		clearTimeout(hold);
+		hold = setTimeout(() => {
+			lifted = d;
+			over = '';
+			error = '';
+			el.setPointerCapture(id);
+			navigator.vibrate?.(10);
+		}, 300);
+	}
+
+	function follow(e: PointerEvent) {
+		if (!lifted) {
+			if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 8) clearTimeout(hold);
+			return;
+		}
+		at = { x: e.clientX, y: e.clientY };
+		const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>('[data-date]');
+		const date = cell?.dataset.date ?? '';
+		over = target(date) ? date : '';
+	}
+
+	async function drop() {
+		clearTimeout(hold);
+		const d = lifted;
+		const to = over;
+		lifted = null;
+		over = '';
+		dropped = d !== null;
+		setTimeout(() => (dropped = false));
+		if (!d || !to) return;
+		chosen = to;
+		try {
+			await onmove(d, to);
+		} catch (e) {
+			error = e instanceof Error ? e.message : String(e);
+		}
+	}
+
+	function cancel() {
+		clearTimeout(hold);
+		lifted = null;
+		over = '';
+	}
+
+	const panel = $derived(over || selected);
 </script>
 
 <section class="rounded-3xl bg-surface px-3 pt-4 pb-3 shadow-card" aria-label="Calendar">
@@ -53,20 +128,36 @@
 					{@const list = byDate.get(date) ?? []}
 					<button
 						type="button"
-						class="flex min-h-[64px] flex-col items-center gap-1 rounded-2xl pt-1.5 pb-2
-							{date === selected ? 'bg-well' : ''} {date === today ? 'shadow-[inset_0_0_0_1.5px_var(--tint)]' : ''}"
+						data-date={date}
+						class="flex min-h-[64px] flex-col items-center gap-1 rounded-2xl pt-1.5 pb-2 transition-colors
+							{date === over ? 'bg-tint/40' : date === selected && !lifted ? 'bg-well' : ''}
+							{date === today ? 'shadow-[inset_0_0_0_1.5px_var(--tint)]' : ''}
+							{lifted && !target(date) && date !== lifted.local_date ? 'opacity-40' : ''}"
 						disabled={!inCycle(date)}
 						aria-pressed={date === selected}
 						aria-label="{utc(date, { weekday: 'long', day: 'numeric', month: 'long' })}{list.length
 							? `: ${list.map((d) => d.template_name).join(', ')}`
 							: ''}"
-						onclick={() => (chosen = date)}
+						onclick={() => {
+							if (dropped) dropped = false;
+							else chosen = date;
+						}}
 					>
 						<span class="text-xs font-bold {inCycle(date) ? (date === today ? 'text-ink' : 'text-ink-2') : 'text-ink-3/50'}">
 							{Number(date.slice(8))}
 						</span>
 						{#each list as d (d.id)}
-							<SessionIcon icon={d.template_icon} name={d.template_name} state={look(d)} size={28} />
+							<span
+								class="rounded-full {movable(d) ? 'touch-none' : ''} {lifted?.id === d.id ? 'opacity-30' : ''}"
+								role="presentation"
+								onpointerdown={(e) => grab(e, d)}
+								onpointermove={follow}
+								onpointerup={drop}
+								onpointercancel={cancel}
+								oncontextmenu={(e) => movable(d) && e.preventDefault()}
+							>
+								<SessionIcon icon={d.template_icon} name={d.template_name} state={look(d)} size={28} />
+							</span>
 						{/each}
 					</button>
 				{/each}
@@ -86,11 +177,18 @@
 	{/if}
 </section>
 
-<section class="rounded-3xl bg-surface px-[18px] pt-3.5 pb-2 shadow-card" aria-live="polite">
-	<h3 class="text-[15px] font-bold">{utc(selected, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
-	{#if (byDate.get(selected) ?? []).length}
+<section
+	class="rounded-3xl px-[18px] pt-3.5 pb-2 shadow-card {lifted ? 'bg-tint/25 outline-2 -outline-offset-2 outline-dashed outline-ink-3' : 'bg-surface'}"
+	aria-live="polite"
+>
+	<h3 class="text-[15px] font-bold">{utc(panel, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
+	{#if lifted}
+		<p class="pt-1 pb-2.5 text-[15px] font-semibold text-ink-2">
+			{over ? `Drop to move ${lifted.template_name} here` : 'Drag onto a day from today on'}
+		</p>
+	{:else if (byDate.get(panel) ?? []).length}
 		<ul>
-			{#each byDate.get(selected) ?? [] as d (d.id)}
+			{#each byDate.get(panel) ?? [] as d (d.id)}
 				<li class="flex min-h-[52px] items-center gap-3 py-2 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 					<SessionIcon icon={d.template_icon} name={d.template_name} state={look(d)} size={32} />
 					<span class="min-w-0 flex-1 truncate text-[15px] font-bold">{d.template_name}</span>
@@ -103,4 +201,18 @@
 	{:else}
 		<p class="pt-1 pb-2.5 text-[15px] font-semibold text-ink-2">Rest day</p>
 	{/if}
+	{#if error && !lifted}
+		<p class="pb-2.5 text-[15px] font-semibold text-bad">{error}</p>
+	{/if}
 </section>
+
+{#if lifted}
+	<div
+		class="pointer-events-none fixed z-50 flex max-w-[60vw] -translate-x-1/2 -translate-y-[calc(100%+12px)] items-center gap-2 rounded-full bg-surface py-1.5 pr-4 pl-1.5 text-[15px] font-bold whitespace-nowrap shadow-card"
+		style="left: clamp(30vw, {at.x}px, 70vw); top: {at.y}px"
+		aria-hidden="true"
+	>
+		<SessionIcon icon={lifted.template_icon} name={lifted.template_name} state="today" size={32} />
+		<span class="truncate">{lifted.template_name}</span>
+	</div>
+{/if}
