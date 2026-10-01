@@ -4,7 +4,7 @@
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
 	import CycleYear from '$lib/CycleYear.svelte';
-	import { cycleWeek, formatDate } from '$lib/dates';
+	import { cycleWeek, daysBetween, formatDate } from '$lib/dates';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import type { ScheduledDay } from '$lib/plan';
@@ -88,6 +88,16 @@
 	});
 
 	const cycleNames = $derived(new Map(data.cycles.map((c) => [c.id, c.name])));
+
+	function when(c: { starts: string; ends: string }) {
+		if (c.ends < data.today) return '';
+		if (c.starts > data.today) {
+			const n = daysBetween(data.today, c.starts);
+			return n === 1 ? 'starts tomorrow' : `starts in ${n} days`;
+		}
+		const w = cycleWeek(c.starts, c.ends, data.today);
+		return `week ${w.week} of ${w.of}`;
+	}
 
 	const cycleState = (c: { starts: string; ends: string }) =>
 		c.ends < data.today ? 'past' : c.starts > data.today ? 'next' : 'now';
@@ -254,9 +264,7 @@
 								<span class="min-w-0 flex-1">
 									<span class="block truncate text-[15px] font-bold">{c.name}</span>
 									<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
-										{short(c.starts)} – {short(c.ends)}{state === 'now'
-											? ` · week ${cycleWeek(c.starts, c.ends, data.today).week} of ${cycleWeek(c.starts, c.ends, data.today).of}`
-											: ''}
+										{short(c.starts)} – {short(c.ends)}{when(c) ? ` · ${when(c)}` : ''}
 									</span>
 								</span>
 								{#if state === 'now'}
