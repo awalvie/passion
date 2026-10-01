@@ -349,7 +349,7 @@ func TestCleanCycleFields(t *testing.T) {
 func TestCleanCycleDropsBlankLines(t *testing.T) {
 	f, problems := db.CycleFields{
 		Name: "C", Starts: day("2026-03-01"), Ends: day("2026-03-07"), BlockDays: 7,
-		Goals:  []db.Goal{{Text: "  "}, {Text: " Flash 7a "}},
+		Goals: []db.Goal{{Text: "  "}, {Text: " Flash 7a "}},
 	}.Clean()
 	if len(problems) != 0 || !slices.Equal(f.Goals, []db.Goal{{Text: "Flash 7a"}}) {
 		t.Fatalf("fields %+v, problems %v", f, problems)
