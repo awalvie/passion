@@ -66,13 +66,16 @@
 	async function save() {
 		busy = true;
 		editError = '';
+		const d = $state.snapshot(draft);
+		const change: Record<Editor, Partial<Cycle>> = {
+			name: { name: d.name },
+			dates: { starts: d.starts, ends: d.ends },
+			block: { block_days: d.block_days, days: d.days }
+		};
 		try {
-			const body = $state.snapshot(draft);
-			body.days = body.days.filter((d) => d.day <= body.block_days);
-			leftOut = (await saveCycle(body)).leftOut;
+			leftOut = (await send(change[editing!])).leftOut;
 			open = false;
 			saved();
-			await invalidateAll();
 		} catch (e) {
 			editError = describe(e, (f) => (f.startsWith('days') ? 'A session' : (fields[f] ?? f)));
 		} finally {
@@ -86,21 +89,29 @@
 	let goalOpen = $state(false);
 	let goalIndex = $state(-1);
 
-	// Each save sends both from the page, one after another, so a quick
-	// second change cannot send the first one's old value.
-	let saving = Promise.resolve();
-	function savePart() {
-		saving = saving.then(async () => {
-			error = '';
-			try {
-				const live = $state.snapshot({ goals });
-				await saveCycle({ ...$state.snapshot(data.cycle), ...live, notes: notes.trim() || null });
-				saved();
-				await invalidateAll();
-			} catch (e) {
-				error = describe(e, (f) => (f.startsWith('goals') ? 'A goal' : f));
-			}
+	// Every save waits for the one before it, then builds the whole cycle from
+	// what that save left, so no save can send another's old values.
+	let saving: Promise<unknown> = Promise.resolve();
+	function send(change: Partial<Cycle> = {}) {
+		const next = saving.then(async () => {
+			const body = { ...$state.snapshot(data.cycle), goals: $state.snapshot(goals), notes: notes.trim() || null, ...change };
+			body.days = body.days.filter((d) => d.day <= body.block_days);
+			const result = await saveCycle(body);
+			await invalidateAll();
+			return result;
 		});
+		saving = next.catch(() => {});
+		return next;
+	}
+
+	async function savePart() {
+		error = '';
+		try {
+			await send();
+			saved();
+		} catch (e) {
+			error = describe(e, (f) => (f.startsWith('goals') ? 'A goal' : f));
+		}
 	}
 
 	// A refused move says why in the calendar's day panel. A move that lands
