@@ -9,6 +9,7 @@
 	import Icon from '$lib/Icon.svelte';
 	import RowActions from '$lib/RowActions.svelte';
 	import SectionEditor from '$lib/SectionEditor.svelte';
+	import { sessionIcons } from '$lib/SessionIcon.svelte';
 	import TemplatePlan from '$lib/TemplatePlan.svelte';
 	import {
 		moveEntry,
@@ -191,6 +192,25 @@
 			<div>
 				<label class="block text-xs font-semibold text-ink-2" for="tpl-notes">Notes</label>
 				<textarea id="tpl-notes" rows="3" class="mt-1.5 w-full input" bind:value={draft.notes}></textarea>
+			</div>
+			<div>
+				<span class="block text-xs font-semibold text-ink-2">Icon</span>
+				<div class="mt-2 flex flex-wrap items-center gap-2">
+					{#each sessionIcons as [icon, label] (icon)}
+						<button
+							type="button"
+							class="flex size-10 items-center justify-center rounded-full {draft.icon === icon
+								? 'bg-ink text-ground'
+								: 'bg-well text-ink-2'}"
+							title={label}
+							aria-label={label}
+							aria-pressed={draft.icon === icon}
+							onclick={() => (draft.icon = draft.icon === icon ? '' : icon)}
+						>
+							<Icon name={icon} size="1.25rem" />
+						</button>
+					{/each}
+				</div>
 			</div>
 			<div>
 				<span class="block text-xs font-semibold text-ink-2">Color</span>

@@ -8,6 +8,7 @@ export type SessionTemplate = {
 	notes: string | null;
 	source: string | null;
 	color: string | null;
+	icon: string | null;
 	needs: string | null;
 	tags: string[];
 	sections: Section[];
@@ -55,6 +56,7 @@ export type TemplateDraft = {
 	notes: string;
 	source: string;
 	color: string;
+	icon: string;
 	needs: string;
 	tags: string;
 	sections: Section[];
@@ -66,6 +68,7 @@ export function toTemplateDraft(t?: SessionTemplate): TemplateDraft {
 		notes: t?.notes ?? '',
 		source: t?.source ?? '',
 		color: t?.color ?? '',
+		icon: t?.icon ?? '',
 		needs: t?.needs ?? '',
 		tags: t?.tags.join(', ') ?? '',
 		sections: structuredClone(t?.sections ?? [])
@@ -74,11 +77,12 @@ export function toTemplateDraft(t?: SessionTemplate): TemplateDraft {
 
 // The server trims the text and treats an empty box as not set.
 export function toTemplateBody(d: TemplateDraft) {
-	return { ...d, color: d.color || null, tags: d.tags.split(',') };
+	return { ...d, color: d.color || null, icon: d.icon || null, tags: d.tags.split(',') };
 }
 
 const templateLabels: Record<string, string> = {
 	color: 'Color',
+	icon: 'Icon',
 	needs: 'Needs',
 	pick: 'Pick',
 	options: 'Options',
