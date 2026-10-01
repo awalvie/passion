@@ -22,7 +22,7 @@
 		{#if action}
 			<button
 				type="button"
-				class="h-10 shrink-0 rounded-full bg-tint px-4 text-[15px] font-bold text-on-tint"
+				class="h-11 shrink-0 rounded-full bg-tint px-4 text-[15px] font-bold text-on-tint"
 				onclick={() => {
 					message = '';
 					onaction?.();
