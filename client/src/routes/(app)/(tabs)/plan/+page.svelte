@@ -89,7 +89,15 @@
 		});
 	}
 
-	const statuses = { done: 'Done', started: 'Started', missed: 'Missed', planned: '' };
+	function short(date: string) {
+		return new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, {
+			day: 'numeric',
+			month: 'short',
+			timeZone: 'UTC'
+		});
+	}
+
+	const statuses ={ done: 'Done', started: 'Started', missed: 'Missed', planned: '' };
 </script>
 
 <svelte:head><title>Plan</title></svelte:head>
@@ -177,5 +185,23 @@
 		{:else}
 			<Button variant="secondary" onclick={openAdd}>Add a session</Button>
 		{/if}
+
+		<section class="flex flex-col gap-2 pt-4">
+			<h2 class="px-1 text-sm font-semibold text-ink-2">Cycles</h2>
+			{#if data.cycles.length}
+				<ul class="overflow-hidden rounded-2xl bg-surface shadow-sm">
+					{#each data.cycles as c (c.id)}
+						<li class="flex flex-col border-line px-4 py-3 [&:not(:first-child)]:border-t">
+							<span class="truncate text-base">{c.name}</span>
+							<span class="truncate text-sm text-ink-2">{short(c.starts)} – {short(c.ends)}</span>
+						</li>
+					{/each}
+				</ul>
+			{:else}
+				<p class="rounded-2xl bg-surface p-4 text-base text-ink-2 shadow-sm">
+					A cycle repeats a block of sessions over weeks.
+				</p>
+			{/if}
+		</section>
 	{/if}
 </div>
