@@ -16,6 +16,9 @@
 	});
 </script>
 
+<!-- iOS Safari applies :active only on a page that listens for touches. -->
+<svelte:body ontouchstart={() => {}} />
+
 <svelte:head>
 	<link rel="icon" href={favicon} />
 </svelte:head>
