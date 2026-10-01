@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Segmented from '$lib/Segmented.svelte';
 	import { page } from '$app/state';
 	import Icon from '$lib/Icon.svelte';
 
@@ -31,18 +32,7 @@
 				</a>
 			</header>
 		{/if}
-		<nav class="grid grid-cols-2 gap-1 rounded-full bg-well p-1 dark:bg-surface">
-			{#each parts as p (p.href)}
-				{@const active = page.url.pathname.startsWith(p.href)}
-				<a
-					href={p.href}
-					class="flex h-10 items-center justify-center rounded-full text-[15px] font-bold {active ? 'bg-tint text-on-tint shadow-card-sm' : 'text-ink-2'}"
-					aria-current={active ? 'page' : undefined}
-				>
-					{p.label}
-				</a>
-			{/each}
-		</nav>
+		<Segmented label="Library" items={parts.map((p) => ({ ...p, on: page.url.pathname.startsWith(p.href) }))} />
 		<main>
 			{@render children()}
 		</main>
