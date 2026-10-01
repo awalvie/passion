@@ -69,113 +69,128 @@
 		}
 	}
 
-	const dates = $derived.by(() => {
-		const out: { date: string; days: ScheduledDay[] }[] = [];
+	const utc = (date: string, o: Intl.DateTimeFormatOptions) =>
+		new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, { ...o, timeZone: 'UTC' });
+
+	const months = $derived.by(() => {
+		const out: { label: string; dates: { date: string; days: ScheduledDay[] }[] }[] = [];
 		for (const d of data.days) {
-			if (out.at(-1)?.date !== d.local_date) out.push({ date: d.local_date, days: [] });
-			out.at(-1)!.days.push(d);
+			const label = utc(d.local_date, { month: 'long', year: 'numeric' });
+			if (out.at(-1)?.label !== label) out.push({ label, dates: [] });
+			const dates = out.at(-1)!.dates;
+			if (dates.at(-1)?.date !== d.local_date) dates.push({ date: d.local_date, days: [] });
+			dates.at(-1)!.days.push(d);
 		}
 		return out;
 	});
 
 	const cycleNames = $derived(new Map(data.cycles.map((c) => [c.id, c.name])));
 
-	function heading(date: string) {
-		if (date === data.today) return 'Today';
-		return new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, {
-			weekday: 'short',
-			day: 'numeric',
-			month: 'short',
-			timeZone: 'UTC'
-		});
-	}
+	const short = (date: string) => utc(date, { day: 'numeric', month: 'short' });
 
-	function short(date: string) {
-		return new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, {
-			day: 'numeric',
-			month: 'short',
-			timeZone: 'UTC'
-		});
-	}
-
-	const statuses ={ done: 'Done', started: 'Started', missed: 'Missed', planned: '' };
+	const statuses = { done: 'Done', started: 'Started', missed: 'Missed', planned: '' };
+	const tags = {
+		done: 'bg-well text-ink-2',
+		started: 'bg-ink text-ground',
+		missed: 'text-ink-2 shadow-[inset_0_0_0_1.5px_var(--well)]',
+		planned: ''
+	};
 </script>
 
 <svelte:head><title>Plan</title></svelte:head>
 
-<div class="flex flex-col gap-4 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
-	<h1 class="text-3xl font-bold">Plan</h1>
+<div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+	<header>
+		<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">Plan</h1>
+		{#if data.today}
+			<p class="mt-1 text-[15px] font-semibold text-ink-2">{utc(data.today, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+		{/if}
+	</header>
 
 	{#if data.offline}
-		<p class="rounded-2xl bg-surface p-4 text-base text-ink-2 shadow-sm">No signal. The plan needs one to load.</p>
+		<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold text-ink-2 shadow-card">No signal. The plan needs one to load.</p>
 	{:else}
-		{#each dates as g (g.date)}
-			<section class="flex flex-col gap-2">
-				<h2 class="px-1 text-sm font-semibold {g.date === data.today ? 'text-tint' : 'text-ink-2'}">{heading(g.date)}</h2>
-				<ul class="overflow-hidden rounded-2xl bg-surface shadow-sm">
-					{#each g.days as d (d.id)}
-						{#snippet row()}
-							<span class="min-w-0 flex-1">
-								<span class="block truncate text-base">{d.template_name}</span>
-								<span class="block truncate text-sm text-ink-2">
-									{d.cycle ? (cycleNames.get(d.cycle) ?? 'Cycle') : 'One-off'}
+		{#each months as m (m.label)}
+			<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-2 shadow-card">
+				<h2 class="mb-1 text-[15px] font-bold">{m.label}</h2>
+				<ul>
+					{#each m.dates as g (g.date)}
+						{#each g.days as d, i (d.id)}
+							{#snippet row()}
+								<span class="flex w-11 shrink-0 flex-col">
+									{#if i === 0}
+										{#if g.date === data.today}
+											<span class="text-xs font-bold text-ink">Today</span>
+										{:else}
+											<span class="text-xs font-semibold text-ink-2">{utc(g.date, { weekday: 'short' })}</span>
+										{/if}
+										<b class="text-xl leading-[1.05] font-bold">{utc(g.date, { day: 'numeric' })}</b>
+									{/if}
 								</span>
-							</span>
-							<span class="shrink-0 text-sm {d.status === 'missed' ? 'text-bad' : 'text-ink-2'}">{statuses[d.status]}</span>
-						{/snippet}
-						<li class="border-line [&:not(:first-child)]:border-t">
-							{#if d.status === 'planned' || d.status === 'missed'}
-								<details>
-									<summary class="flex cursor-pointer items-center gap-3 px-4 py-3">{@render row()}</summary>
-									<form
-										class="flex flex-col gap-3 px-4 pb-4"
-										onsubmit={(e) => {
-											e.preventDefault();
-											move(d, String(new FormData(e.currentTarget).get('date')));
-										}}
-									>
-										<div class="flex gap-2">
-											<input class="input min-w-0 flex-1" type="date" name="date" value={d.local_date} required aria-label="New day" />
-											<button type="submit" class="h-11 shrink-0 rounded-xl px-3 text-base font-semibold text-tint" disabled={busy}>
-												Move
+								<span class="min-w-0 flex-1">
+									<span class="block truncate text-[15px] font-bold {d.status === 'missed' ? 'text-ink-2' : ''}">{d.template_name}</span>
+									<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
+										{d.cycle ? (cycleNames.get(d.cycle) ?? 'Cycle') : 'One-off'}
+									</span>
+								</span>
+								{#if statuses[d.status]}
+									<span class="shrink-0 rounded-xl px-2.5 py-[5px] text-xs font-bold {tags[d.status]}">{statuses[d.status]}</span>
+								{/if}
+							{/snippet}
+							<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+								{#if d.status === 'planned' || d.status === 'missed'}
+									<details>
+										<summary class="flex min-h-[58px] cursor-pointer list-none items-center gap-3.5 py-2 [&::-webkit-details-marker]:hidden">{@render row()}</summary>
+										<form
+											class="flex flex-col gap-3 pb-4 pl-[58px]"
+											onsubmit={(e) => {
+												e.preventDefault();
+												move(d, String(new FormData(e.currentTarget).get('date')));
+											}}
+										>
+											<div class="flex gap-2">
+												<input class="input h-12 px-4 min-w-0 flex-1" type="date" name="date" value={d.local_date} required aria-label="New day" />
+												<button type="submit" class="h-12 shrink-0 rounded-full bg-well px-4 text-[15px] font-bold text-ink disabled:opacity-50" disabled={busy}>
+													Move
+												</button>
+											</div>
+											<FormError message={rowError.id === d.id ? rowError.message : ''} />
+											<button type="button" class="h-11 self-start text-[15px] font-bold text-bad disabled:opacity-50" disabled={busy} onclick={() => remove(d)}>
+												Remove
 											</button>
-										</div>
-										<FormError message={rowError.id === d.id ? rowError.message : ''} />
-										<button type="button" class="h-11 self-start text-base font-semibold text-bad" disabled={busy} onclick={() => remove(d)}>
-											Remove
-										</button>
-									</form>
-								</details>
-							{:else}
-								<div class="flex items-center gap-3 px-4 py-3">{@render row()}</div>
-							{/if}
-						</li>
+										</form>
+									</details>
+								{:else}
+									<div class="flex min-h-[58px] items-center gap-3.5 py-2">{@render row()}</div>
+								{/if}
+							</li>
+						{/each}
 					{/each}
 				</ul>
 			</section>
 		{:else}
-			<p class="rounded-2xl bg-surface p-4 text-base text-ink-2 shadow-sm">Nothing planned for the next four weeks.</p>
+			<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold text-ink-2 shadow-card">Nothing planned for the next four weeks.</p>
 		{/each}
 
 		{#if adding}
 			<form
-				class="flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-sm"
+				class="flex flex-col gap-3 rounded-3xl bg-surface p-[18px] shadow-card"
 				onsubmit={(e) => {
 					e.preventDefault();
 					add();
 				}}
 			>
-				<label class="flex flex-col gap-1 text-sm text-ink-2">
+				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
 					Session
-					<select class="input" bind:value={template} required>
+					<select class="input h-12 px-4" bind:value={template} required>
 						{#each data.templates as t (t.id)}
 							<option value={t.id}>{t.name}</option>
 						{/each}
 					</select>
 				</label>
-				<label class="flex flex-col gap-1 text-sm text-ink-2">
+				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
 					Day
-					<input class="input" type="date" bind:value={date} required />
+					<input class="input h-12 px-4" type="date" bind:value={date} required />
 				</label>
 				<FormError message={error} />
 				<div class="grid grid-cols-2 gap-2">
@@ -187,28 +202,26 @@
 			<Button variant="secondary" onclick={openAdd}>Add a session</Button>
 		{/if}
 
-		<section class="flex flex-col gap-2 pt-4">
-			<h2 class="px-1 text-sm font-semibold text-ink-2">Cycles</h2>
+		<section class="mt-2 rounded-3xl bg-surface px-[18px] pt-4 pb-2 shadow-card">
+			<h2 class="mb-1 text-[15px] font-bold">Cycles</h2>
 			{#if data.cycles.length}
-				<ul class="overflow-hidden rounded-2xl bg-surface shadow-sm">
+				<ul>
 					{#each data.cycles as c (c.id)}
-						<li class="border-line [&:not(:first-child)]:border-t">
-							<a href="/plan/cycles/{c.id}" class="flex items-center gap-3 px-4 py-3">
+						<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+							<a href="/plan/cycles/{c.id}" class="flex min-h-[58px] items-center gap-3 py-2">
 								<span class="min-w-0 flex-1">
-									<span class="block truncate text-base">{c.name}</span>
-									<span class="block truncate text-sm text-ink-2">{short(c.starts)} – {short(c.ends)}</span>
+									<span class="block truncate text-[15px] font-bold">{c.name}</span>
+									<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{short(c.starts)} – {short(c.ends)}</span>
 								</span>
-								<Icon name="chevron-right" size="1rem" />
+								<span class="text-ink-3"><Icon name="chevron-right" size="1rem" /></span>
 							</a>
 						</li>
 					{/each}
 				</ul>
 			{:else}
-				<p class="rounded-2xl bg-surface p-4 text-base text-ink-2 shadow-sm">
-					A cycle repeats a block of sessions over weeks.
-				</p>
+				<p class="pt-1 pb-3 text-[15px] font-semibold text-ink-2">A cycle repeats a block of sessions over weeks.</p>
 			{/if}
-			<Button variant="secondary" href="/plan/cycles/new">New cycle</Button>
 		</section>
+		<Button variant="secondary" href="/plan/cycles/new">New cycle</Button>
 	{/if}
 </div>
