@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { formatDate, gridWeeks } from './dates';
 	import type { Cycle, ScheduledDay } from './plan';
-	import SessionIcon, { type IconState } from './SessionIcon.svelte';
+	import SessionIcon, { iconState } from './SessionIcon.svelte';
 
 	// days holds every row in the cycle's dates, from any cycle. onmove puts a
 	// session on another day, and throws when the server refuses.
@@ -36,10 +36,7 @@
 		return a === b ? a : `${a} – ${b}`;
 	});
 
-	function look(d: ScheduledDay): IconState {
-		if (d.status !== 'planned') return d.status;
-		return d.local_date === today ? 'today' : 'planned';
-	}
+	const look = (d: ScheduledDay) => iconState(d, today);
 
 	// One key entry per session the cycle holds, in the order they first fall.
 	const key = $derived([...new Map(days.map((d) => [d.template, d])).values()]);
