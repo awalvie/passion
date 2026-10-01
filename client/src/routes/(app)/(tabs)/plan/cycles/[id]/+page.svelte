@@ -94,6 +94,7 @@
 	let goals = $state(untrack(() => structuredClone($state.snapshot(data.cycle.goals))));
 	let before = $state(untrack(() => [...data.cycle.before]));
 	let after = $state(untrack(() => [...data.cycle.after]));
+	let notes = $state(untrack(() => data.cycle.notes ?? ''));
 
 	async function savePart(part: Partial<Cycle>) {
 		error = '';
@@ -102,6 +103,7 @@
 			goals = cycle.goals;
 			before = cycle.before;
 			after = cycle.after;
+			notes = cycle.notes ?? '';
 			await invalidateAll();
 		} catch (e) {
 			error = describe(e, (f) => (f.startsWith('goals') ? 'A goal' : f));
@@ -225,6 +227,17 @@
 		{/snippet}
 		{@render card('Before', data.cycle.starts, beforeList)}
 		{@render card('After', data.cycle.ends, afterList)}
+	</section>
+
+	<section class="flex flex-col gap-2">
+		<h2 class="px-1 text-[15px] font-bold">Notes</h2>
+		<textarea
+			class="min-h-28 w-full resize-none rounded-3xl bg-surface px-[18px] py-3.5 text-[15px] font-semibold shadow-card [field-sizing:content] placeholder:text-ink-3 focus:outline-none"
+			placeholder="Anything to remember about this cycle"
+			aria-label="Notes"
+			bind:value={notes}
+			onblur={() => notes.trim() !== (data.cycle.notes ?? '') && savePart({ notes })}
+		></textarea>
 	</section>
 
 	<section class="flex flex-col gap-2">
