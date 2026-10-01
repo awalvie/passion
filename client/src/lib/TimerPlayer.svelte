@@ -260,14 +260,14 @@
 			</p>
 
 			<div
-				class="mt-[min(34px,4svh)] flex shrink-0 items-center justify-center gap-2 [--h:min(232px,28svh,56vw)]"
+				class="mt-3.5 flex shrink-0 items-center justify-center gap-2 {clock.length === 1 ? '[--h:min(300px,36svh,76vw)]' : '[--h:min(236px,28svh,56vw)]'}"
 				role="img"
 				aria-live="off"
 				aria-label="{secs} seconds left"
 			>
 				{#each clock.split('') as digit, i (i)}
 					{#if secs >= 60 && i === clock.length - 2}
-						<div class="flex w-4.5 flex-col items-center gap-[calc(var(--h)*0.15)]" aria-hidden="true">
+						<div class="flex w-4 flex-col items-center gap-[calc(var(--h)*0.127)]" aria-hidden="true">
 							<i class="size-4 rounded-full {look.card}"></i>
 							<i class="size-4 rounded-full {look.card}"></i>
 						</div>
@@ -275,7 +275,7 @@
 					<TimerFlap {digit} wide={clock.length === 1} {look} />
 				{/each}
 				{#if secs < 60}
-					<span class="ml-1.5 self-end pb-4.5 text-[44px] leading-none font-bold">s</span>
+					<span class="ml-1.5 self-end pb-[22px] font-[family-name:var(--font-digits)] text-[44px] leading-none font-bold">s</span>
 				{/if}
 			</div>
 

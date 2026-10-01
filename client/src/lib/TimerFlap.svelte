@@ -3,9 +3,9 @@
 		$props();
 </script>
 
-<div class="relative h-(--h) shrink-0 {wide ? 'w-[calc(var(--h)*0.672)]' : 'w-[calc(var(--h)*0.448)]'}">
+<div class="relative h-(--h) shrink-0 {wide ? 'w-[calc(var(--h)*0.747)]' : 'w-[calc(var(--h)*0.449)]'}">
 	<div
-		class="relative size-full overflow-hidden rounded-3xl text-center {wide ? 'text-[length:calc(var(--h)*0.84)] tracking-tight' : 'text-[length:calc(var(--h)*0.7)] tracking-tighter'} leading-(--h) font-bold tabular-nums shadow-[0_26px_40px_-18px_rgba(0,0,0,0.55)] {look.card} {look.digit}"
+		class="relative size-full overflow-hidden rounded-[28px] text-center font-[family-name:var(--font-digits)] {wide ? 'text-[length:calc(var(--h)*1.1)]' : 'text-[length:calc(var(--h)*0.754)]'} leading-(--h) font-bold tabular-nums shadow-[0_26px_40px_-18px_rgba(0,0,0,0.55)] {look.card} {look.digit}"
 	>
 		<div class="absolute inset-x-0 top-0 h-1/2 bg-linear-to-b from-white/8 to-transparent"></div>
 		<span class="relative">{digit}</span>
