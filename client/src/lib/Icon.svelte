@@ -107,6 +107,7 @@
 			['rect', { width: '18', height: '18', x: '3', y: '4', rx: '2' }],
 			['path', { d: 'M3 10h18' }]
 		],
+		'chevron-left': [['path', { d: 'm15 18-6-6 6-6' }]],
 		'chevron-right': [['path', { d: 'm9 18 6-6-6-6' }]],
 		play: [['path', { d: 'M6 3 20 12 6 21Z' }]],
 		repeat: [
@@ -205,7 +206,7 @@
 </script>
 
 <script lang="ts">
-	let { name, size = '1rem' }: { name: IconName; size?: string } = $props();
+	let { name, size = '1rem', stroke = 2 }: { name: IconName; size?: string; stroke?: number } = $props();
 </script>
 
 <svg
@@ -213,7 +214,7 @@
 	viewBox="0 0 24 24"
 	fill="none"
 	stroke="currentColor"
-	stroke-width="2"
+	stroke-width={stroke}
 	stroke-linecap="round"
 	stroke-linejoin="round"
 	style="width: {size}; height: {size}; flex-shrink: 0"
