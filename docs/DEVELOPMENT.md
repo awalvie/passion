@@ -120,7 +120,8 @@ use them.
 ## Before you commit
 
 - `make db-up`, then `make test`. Tests share one database, so they run one package at a time.
-  `make test` also runs the client's `*.test.ts` files with `node --test`. They cover pure
-  modules only, so they need no browser and no extra packages.
+  `make test` also runs the client's `*.test.ts` files with vitest. It loads `vite.config.ts`,
+  so a test can import modules that use runes or `$app`. There is no browser: mock `$app`
+  modules with `vi.mock`, and stub `fetch`, `localStorage` and `document` with `vi.stubGlobal`.
 - `gofmt` and `go vet` must be clean. CI checks both.
 - `make openapi`, if you touched a handler or a request or response struct.
