@@ -56,6 +56,11 @@ type scheduledDayBody struct {
 	// example: Power
 	TemplateName string `json:"template_name"`
 
+	// The template's icon today.
+	//
+	// example: dumbbell
+	TemplateIcon *string `json:"template_icon"`
+
 	// The run started from it, a finished one first. null before it starts.
 	Run *string `json:"run"`
 
@@ -107,6 +112,7 @@ func (s *Server) listScheduledSessions(w http.ResponseWriter, r *http.Request, w
 		out.Days = append(out.Days, scheduledDayBody{
 			scheduledSessionBody: toScheduledSessionBody(d.ScheduledSession),
 			TemplateName:         d.TemplateName,
+			TemplateIcon:         d.TemplateIcon,
 			Run:                  d.Run,
 			Status:               d.Status,
 		})

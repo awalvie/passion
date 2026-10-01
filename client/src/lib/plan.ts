@@ -7,6 +7,7 @@ export type ScheduledDay = {
 	template: string;
 	local_date: string;
 	template_name: string;
+	template_icon: string | null;
 	run: string | null;
 	status: 'done' | 'started' | 'missed' | 'planned';
 };
