@@ -37,7 +37,7 @@
 			</label>
 			<button
 				type="button"
-				class="flex size-9 shrink-0 items-center justify-center rounded-full text-ink-3"
+				class="flex size-11 shrink-0 items-center justify-center rounded-full text-ink-3"
 				aria-label="Remove {g.text}"
 				onclick={() => set(goals.filter((_, j) => j !== i))}
 			>
