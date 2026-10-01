@@ -96,18 +96,20 @@
 	let after = $state(untrack(() => [...data.cycle.after]));
 	let notes = $state(untrack(() => data.cycle.notes ?? ''));
 
-	async function savePart(part: Partial<Cycle>) {
-		error = '';
-		try {
-			const { cycle } = await saveCycle({ ...$state.snapshot(data.cycle), ...part });
-			goals = cycle.goals;
-			before = cycle.before;
-			after = cycle.after;
-			notes = cycle.notes ?? '';
-			await invalidateAll();
-		} catch (e) {
-			error = describe(e, (f) => (f.startsWith('goals') ? 'A goal' : f));
-		}
+	// Each save sends all four from the page, one after another, so a quick
+	// second change cannot send the first one's old value.
+	let saving = Promise.resolve();
+	function savePart() {
+		saving = saving.then(async () => {
+			error = '';
+			try {
+				const live = $state.snapshot({ goals, before, after });
+				await saveCycle({ ...$state.snapshot(data.cycle), ...live, notes: notes.trim() || null });
+				await invalidateAll();
+			} catch (e) {
+				error = describe(e, (f) => (f.startsWith('goals') ? 'A goal' : f));
+			}
+		});
 	}
 
 	// A refused move says why in the calendar's day panel. A move that lands
@@ -183,7 +185,7 @@
 				<span class="text-xs font-semibold text-ink-2">{goals.filter((g) => g.done).length} of {goals.length} done</span>
 			{/if}
 		</div>
-		<GoalList bind:goals onchange={(goals) => savePart({ goals })} />
+		<GoalList bind:goals onchange={savePart} />
 	</section>
 
 	<section class="flex flex-col gap-2">
@@ -220,10 +222,10 @@
 			</div>
 		{/snippet}
 		{#snippet beforeList()}
-			<EntryList bind:entries={before} label="New before entry" onchange={(before) => savePart({ before })} />
+			<EntryList bind:entries={before} label="New before entry" onchange={savePart} />
 		{/snippet}
 		{#snippet afterList()}
-			<EntryList bind:entries={after} label="New after entry" onchange={(after) => savePart({ after })} />
+			<EntryList bind:entries={after} label="New after entry" onchange={savePart} />
 		{/snippet}
 		{@render card('Before', data.cycle.starts, beforeList)}
 		{@render card('After', data.cycle.ends, afterList)}
@@ -236,7 +238,7 @@
 			placeholder="Anything to remember about this cycle"
 			aria-label="Notes"
 			bind:value={notes}
-			onblur={() => notes.trim() !== (data.cycle.notes ?? '') && savePart({ notes })}
+			onblur={() => notes.trim() !== (data.cycle.notes ?? '') && savePart()}
 		></textarea>
 	</section>
 
