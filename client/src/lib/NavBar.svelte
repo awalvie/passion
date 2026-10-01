@@ -10,7 +10,7 @@
 </script>
 
 <header class="sticky top-0 z-30 bg-ground/85 pt-[env(safe-area-inset-top)] backdrop-blur-md">
-	<div class="grid h-14 grid-cols-[minmax(max-content,1fr)_minmax(0,auto)_minmax(max-content,1fr)] items-center gap-2 px-4">
+	<div class="relative flex h-14 items-center justify-between gap-2 px-4">
 		<div class="min-w-0">
 			{#if back}
 				<a
@@ -22,10 +22,13 @@
 				</a>
 			{/if}
 		</div>
+		<!-- Centered on the screen, not between the pills, so it leaves the outer 8rem on each side to them. -->
 		{#if title}
-			<svelte:element this={heading ? 'h1' : 'p'} class="truncate text-[15px] font-bold text-ink">{title}</svelte:element>
-		{:else}
-			<span></span>
+			<svelte:element
+				this={heading ? 'h1' : 'p'}
+				class="pointer-events-none absolute left-1/2 max-w-[calc(100%-16rem)] -translate-x-1/2 truncate text-[15px] font-bold text-ink"
+				>{title}</svelte:element
+			>
 		{/if}
 		<div class="flex min-w-0 items-center justify-end gap-2">
 			{@render actions?.()}
