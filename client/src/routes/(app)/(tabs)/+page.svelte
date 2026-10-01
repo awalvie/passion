@@ -1,15 +1,19 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
-	import { describe } from '$lib/api';
+	import { describe, request } from '$lib/api';
 	import { addDays, cycleWeek } from '$lib/dates';
+	import type { Exercise } from '$lib/exercise';
+	import ExercisePicker from '$lib/ExercisePicker.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import LiveCard from '$lib/LiveCard.svelte';
 	import type { ScheduledDay } from '$lib/plan';
 	import { openRun, startRun, type StartBody } from '$lib/runState.svelte';
 	import SessionCard from '$lib/SessionCard.svelte';
+	import Sheet from '$lib/Sheet.svelte';
 	import Topo from '$lib/Topo.svelte';
 	import { topTopo } from '$lib/topo';
+	import { bestWeight, track } from '$lib/tracked';
 	import WeekStrip from '$lib/WeekStrip.svelte';
 
 	let { data } = $props();
@@ -67,6 +71,31 @@
 			(r) => r.finished_at !== null && data.monday <= r.local_date && r.local_date <= addDays(data.monday, 6)
 		).length
 	);
+
+	let best = $derived(data.best);
+	let library = $state<Exercise[]>([]);
+	let choosing = $state(false);
+
+	async function choose() {
+		error = '';
+		try {
+			const { exercises } = await request<{ exercises: Exercise[] }>('GET', '/api/v1/exercises');
+			library = exercises.filter((e) => !e.retired_at);
+			choosing = true;
+		} catch (e) {
+			error = describe(e, (f) => f);
+		}
+	}
+
+	async function follow(e: Exercise) {
+		track(e.id);
+		choosing = false;
+		try {
+			best = await bestWeight(e.id, data.cycleStarts!, data.today);
+		} catch (err) {
+			error = describe(err, (f) => f);
+		}
+	}
 
 	function label(d: ScheduledDay) {
 		const c = data.cycles.find((x) => x.id === d.cycle);
@@ -170,9 +199,14 @@
 		</div>
 	{/if}
 
-	{#if sessionsThisWeek !== undefined || data.sends !== null}
+	{#if sessionsThisWeek !== undefined || data.cycleStarts}
 		<div class="flex items-center justify-between px-5 pt-4 pb-2">
-			<h2 class="text-xs font-semibold text-ink-2">{cycle ? 'This cycle' : 'This week'}</h2>
+			<h2 class="text-xs font-semibold text-ink-2">{data.cycleStarts ? 'This cycle' : 'This week'}</h2>
+			{#if data.cycleStarts}
+				<button type="button" class="-my-2 flex h-8 items-center gap-0.5 text-xs font-bold text-ink-2" onclick={choose}>
+					Choose<Icon name="chevron-right" size="14px" />
+				</button>
+			{/if}
 		</div>
 		<div class="grid grid-cols-[1fr_1fr_1.25fr] gap-2.5 px-4">
 			{#if sessionsThisWeek !== undefined}
@@ -181,9 +215,25 @@
 			{#if data.sends !== null}
 				{@render stat(String(data.sends), '', 'Sends this cycle')}
 			{/if}
+			{#if data.cycleStarts && best}
+				{@render stat(best.kg === null ? '–' : String(best.kg), best.kg === null ? '' : 'kg', `Best ${best.name}`)}
+			{:else if data.cycleStarts}
+				<button
+					type="button"
+					class="flex min-h-[92px] flex-col items-start justify-between gap-2 rounded-[22px] bg-surface p-3.5 text-left shadow-card"
+					onclick={choose}
+				>
+					<span class="flex size-8 items-center justify-center rounded-full bg-well"><Icon name="plus" size="1.125rem" /></span>
+					<span class="text-xs font-semibold text-ink-2">Choose an exercise to see its best</span>
+				</button>
+			{/if}
 		</div>
 	{/if}
 </div>
+
+<Sheet bind:open={choosing} title="Track an exercise">
+	<ExercisePicker id="track-exercise" label="Exercise" exercises={library} pick={follow} />
+</Sheet>
 
 {#snippet stat(value: string, unit: string, caption: string)}
 	<div class="flex min-h-[92px] flex-col justify-between gap-2 rounded-[22px] bg-surface p-3.5 shadow-card">

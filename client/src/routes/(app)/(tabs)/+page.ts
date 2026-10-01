@@ -4,6 +4,7 @@ import { loadToday, localToday, type Cycle, type ScheduledDay } from '$lib/plan'
 import type { Climb } from '$lib/run';
 import { openRun } from '$lib/runState.svelte';
 import type { SessionTemplate } from '$lib/template';
+import { bestWeight, tracked } from '$lib/tracked';
 
 export async function load({ parent }) {
 	// The card shows the live session from the run itself, which works offline
@@ -25,7 +26,8 @@ export async function load({ parent }) {
 		]);
 		const days = week.filter((d) => d.local_date === today);
 		const cycle = cycles.find((c) => c.starts <= today && today <= c.ends);
-		const [templates, sends] = await Promise.all([
+		const exercise = tracked()[0];
+		const [templates, sends, best] = await Promise.all([
 			Promise.all(
 				[...new Set(days.map((d) => d.template))].map((id) =>
 					request<SessionTemplate>('GET', `/api/v1/session-templates/${id}`)
@@ -35,7 +37,9 @@ export async function load({ parent }) {
 				? request<{ climbs: Climb[] }>('GET', `/api/v1/climbs?from=${cycle.starts}&to=${today}`).then(
 						(r) => r.climbs.filter((c) => c.sent).length
 					)
-				: null
+				: null,
+			// An exercise of another account only leaves the tile to choose again.
+			cycle && exercise ? bestWeight(exercise, cycle.starts, today).catch(() => null) : null
 		]);
 		await live;
 		return {
@@ -45,7 +49,9 @@ export async function load({ parent }) {
 			days,
 			cycles,
 			templates: new Map(templates.map((t) => [t.id, t])),
+			cycleStarts: cycle?.starts ?? null,
 			sends,
+			best,
 			offline: false
 		};
 	} catch (e) {
@@ -60,7 +66,9 @@ export async function load({ parent }) {
 			days: [] as ScheduledDay[],
 			cycles: [] as Cycle[],
 			templates: new Map<string, SessionTemplate>(),
+			cycleStarts: null,
 			sends: null,
+			best: null,
 			offline: true
 		};
 	}
