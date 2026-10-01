@@ -80,13 +80,13 @@
 		}
 	}
 
-	// Goals and entries save as they change, with no Save button.
+	// Goals and notes save as they change, with no Save button.
 	let goals = $state(untrack(() => structuredClone($state.snapshot(data.cycle.goals))));
 	let notes = $state(untrack(() => data.cycle.notes ?? ''));
 	let goalOpen = $state(false);
 	let goalIndex = $state(-1);
 
-	// Each save sends all four from the page, one after another, so a quick
+	// Each save sends both from the page, one after another, so a quick
 	// second change cannot send the first one's old value.
 	let saving = Promise.resolve();
 	function savePart() {
