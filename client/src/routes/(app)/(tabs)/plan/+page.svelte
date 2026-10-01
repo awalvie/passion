@@ -176,11 +176,11 @@
 		</div>
 		{#if !data.offline}
 			{#if cyclesView}
-				<a href="/plan/cycles/new" class="mt-1 flex size-10 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm" aria-label="New cycle">
+				<a href="/plan/cycles/new" class="mt-1 flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm" aria-label="New cycle">
 					<Icon name="plus" size="1.25rem" />
 				</a>
 			{:else}
-				<button type="button" class="mt-1 flex size-10 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm" aria-label="Add a session" onclick={openAdd}>
+				<button type="button" class="mt-1 flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm" aria-label="Add a session" onclick={openAdd}>
 					<Icon name="plus" size="1.25rem" />
 				</button>
 			{/if}

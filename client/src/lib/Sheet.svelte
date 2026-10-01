@@ -94,7 +94,7 @@
 				</div>
 				<button
 					type="button"
-					class="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"
+					class="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"
 					aria-label="Close"
 					onclick={() => (open = false)}
 				>

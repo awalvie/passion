@@ -24,7 +24,7 @@
 				<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">Library</h1>
 				<a
 					href="{list.href}/new"
-					class="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"
+					class="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"
 					aria-label={list.add}
 					title={list.add}
 				>
