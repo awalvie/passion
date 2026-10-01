@@ -11,7 +11,7 @@
 	import Icon, { type IconName } from '$lib/Icon.svelte';
 	import Menu from '$lib/Menu.svelte';
 	import NavBar from '$lib/NavBar.svelte';
-	import { saveCycle, type Cycle } from '$lib/plan';
+	import { saveCycle, type Cycle, type ScheduledDay } from '$lib/plan';
 	import Sheet from '$lib/Sheet.svelte';
 	import WeekStrip from '$lib/WeekStrip.svelte';
 
@@ -102,6 +102,17 @@
 		}
 	}
 
+	// A refused move says why in the calendar's day panel.
+	async function move(d: ScheduledDay, to: string) {
+		try {
+			await request('PUT', `/api/v1/scheduled-sessions/${d.id}`, { local_date: to });
+		} catch (e) {
+			throw new Error(describe(e, () => 'That day'));
+		} finally {
+			await invalidateAll();
+		}
+	}
+
 	async function remove() {
 		if (!confirm(`Delete ${data.cycle.name}? Its planned sessions go. The sessions you ran stay in History.`)) return;
 		error = '';
@@ -167,7 +178,7 @@
 
 	<section class="flex flex-col gap-2">
 		<h2 class="px-1 text-[15px] font-bold">Calendar</h2>
-		<CycleCalendar cycle={data.cycle} days={data.days} today={data.today} />
+		<CycleCalendar cycle={data.cycle} days={data.days} today={data.today} onmove={move} />
 	</section>
 
 	<section class="flex flex-col gap-2">
