@@ -266,7 +266,7 @@
 												}}
 											>
 												<div class="flex gap-2">
-													<input class="input h-12 px-4 min-w-0 flex-1" type="date" name="date" value={d.local_date} required aria-label="New day" />
+													<div class="min-w-0 flex-1"><DateField value={d.local_date} name="date" label="New day" /></div>
 													<button type="submit" class="h-12 shrink-0 rounded-full bg-well px-4 text-[15px] font-bold text-ink disabled:opacity-50" disabled={busy}>
 														Move
 													</button>

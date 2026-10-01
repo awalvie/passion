@@ -8,9 +8,10 @@
 	let {
 		value = $bindable(),
 		label,
+		name,
 		min,
 		disabled = false
-	}: { value: string; label: string; min?: string; disabled?: boolean } = $props();
+	}: { value: string; label: string; name?: string; min?: string; disabled?: boolean } = $props();
 </script>
 
 <span class="input relative flex h-12 items-center gap-2 px-4 focus-within:outline-2 focus-within:outline-ink {disabled ? 'opacity-50' : ''}">
@@ -20,6 +21,7 @@
 		class="absolute inset-0 size-full cursor-pointer opacity-0 disabled:cursor-default"
 		type="date"
 		aria-label={label}
+		{name}
 		bind:value
 		{min}
 		{disabled}
