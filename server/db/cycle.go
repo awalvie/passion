@@ -16,7 +16,7 @@ import (
 // maxCycleDays keeps a build to a year of rows.
 const maxCycleDays = 366
 
-// Cycle repeats a block of days from starts to ends.
+// Cycle repeats a block of days from block_from to ends.
 type Cycle struct {
 	ID        string    `db:"id"`
 	Owner     string    `db:"owner"`
@@ -24,6 +24,7 @@ type Cycle struct {
 	Starts    time.Time `db:"starts"`
 	Ends      time.Time `db:"ends"`
 	BlockDays int       `db:"block_days"`
+	BlockFrom time.Time `db:"block_from"`
 	Body      CycleBody `db:"body"`
 	Goals     []Goal    `db:"goals"`
 	Before    []string  `db:"before_entries"`
@@ -147,7 +148,7 @@ func days(a, b time.Time) int {
 func (c Cycle) slots(from time.Time) []Slot {
 	var out []Slot
 	for _, d := range c.Body.Days {
-		for date := c.Starts.AddDate(0, 0, d.Day-1); !date.After(c.Ends); date = date.AddDate(0, 0, c.BlockDays) {
+		for date := c.BlockFrom.AddDate(0, 0, d.Day-1); !date.After(c.Ends); date = date.AddDate(0, 0, c.BlockDays) {
 			if !date.Before(from) {
 				out = append(out, Slot{LocalDate: date, Template: d.Template})
 			}
@@ -190,19 +191,25 @@ func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cycle
 
 	// An id another account holds matches no row here, so it reads as a
 	// cycle that does not exist. old is the row as it stood before, even when
-	// a second create of the same id waited on the first.
+	// a second create of the same id waited on the first. A new block length
+	// in a cycle that has begun counts from today.
 	rows, err := tx.Query(ctx, `
-		INSERT INTO cycle (id, owner, name, starts, ends, block_days, body,
+		INSERT INTO cycle (id, owner, name, starts, ends, block_days, block_from, body,
 			goals, before_entries, after_entries, notes)
-		VALUES (@id, @owner, @name, @starts, @ends, @block_days, @body,
+		VALUES (@id, @owner, @name, @starts, @ends, @block_days, @starts, @body,
 			@goals, @before, @after, @notes)
 		ON CONFLICT (id) DO UPDATE SET
 			name = excluded.name, starts = excluded.starts, ends = excluded.ends,
 			block_days = excluded.block_days, body = excluded.body,
+			block_from = CASE
+				WHEN excluded.block_days <> cycle.block_days AND @today::date > cycle.starts THEN @today::date
+				WHEN excluded.starts <> cycle.starts THEN excluded.starts
+				ELSE cycle.block_from
+			END,
 			goals = excluded.goals, before_entries = excluded.before_entries,
 			after_entries = excluded.after_entries, notes = excluded.notes
 		WHERE cycle.owner = excluded.owner
-		RETURNING new.*, old.starts AS old_starts, old.ends AS old_ends,
+		RETURNING new.*, old.starts AS old_starts, old.block_from AS old_block_from, old.ends AS old_ends,
 			old.block_days AS old_block_days, old.body AS old_body`, pgx.NamedArgs{
 		"id":         id,
 		"owner":      owner,
@@ -215,6 +222,7 @@ func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cycle
 		"before":     f.Before,
 		"after":      f.After,
 		"notes":      f.Notes,
+		"today":      today,
 	})
 	if err != nil {
 		return Cycle{}, nil, fmt.Errorf("write cycle: %w", err)
@@ -222,6 +230,7 @@ func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cycle
 	type upserted struct {
 		Cycle
 		OldStarts    *time.Time `db:"old_starts"`
+		OldBlockFrom *time.Time `db:"old_block_from"`
 		OldEnds      *time.Time `db:"old_ends"`
 		OldBlockDays *int       `db:"old_block_days"`
 		OldBody      *CycleBody `db:"old_body"`
@@ -239,7 +248,7 @@ func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cycle
 	}
 
 	leftOut := []Slot{}
-	if row.OldStarts == nil || !sameShape(Cycle{Starts: *row.OldStarts, Ends: *row.OldEnds, BlockDays: *row.OldBlockDays, Body: *row.OldBody}, cycle) {
+	if row.OldStarts == nil || !sameShape(Cycle{BlockFrom: *row.OldBlockFrom, Ends: *row.OldEnds, BlockDays: *row.OldBlockDays, Body: *row.OldBody}, cycle) {
 		if leftOut, err = build(ctx, tx, cycle, today); err != nil {
 			return Cycle{}, nil, err
 		}
@@ -251,7 +260,7 @@ func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cycle
 }
 
 func sameShape(a, b Cycle) bool {
-	return a.Starts.Equal(b.Starts) && a.Ends.Equal(b.Ends) && a.BlockDays == b.BlockDays &&
+	return a.BlockFrom.Equal(b.BlockFrom) && a.Ends.Equal(b.Ends) && a.BlockDays == b.BlockDays &&
 		slices.Equal(a.Body.Days, b.Body.Days)
 }
 

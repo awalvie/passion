@@ -202,7 +202,7 @@
         ]
       },
       "put": {
-        "description": "Creates the cycle under the id you chose, or replaces it, so a retry makes\none cycle. When the dates, the block or the days change, it places the\nsessions again from today on: a past day, and a day a run was started from,\nstay as they are, and so do the days you moved unless the shape changed. A\nday that already holds the session is left out and listed. Once the cycle\nhas begun, its start date cannot change.",
+        "description": "Creates the cycle under the id you chose, or replaces it, so a retry makes\none cycle. When the dates, the block or the days change, it places the\nsessions again from today on: a past day, and a day a run was started from,\nstay as they are, and so do the days you moved unless the shape changed. A\nday that already holds the session is left out and listed. Once the cycle\nhas begun, its start date cannot change, and a new block length counts\nfrom today.",
         "tags": [
           "cycles"
         ],
@@ -1716,6 +1716,12 @@
           "x-go-name": "BlockDays",
           "example": 7
         },
+        "block_from": {
+          "description": "The day the block's day 1 counts from: starts, or the day the block's\nlength last changed once the cycle had begun.",
+          "type": "string",
+          "x-go-name": "BlockFrom",
+          "example": "2026-03-24"
+        },
         "days": {
           "description": "Which session falls on which day of the block.",
           "type": "array",
@@ -1883,6 +1889,12 @@
           "format": "int64",
           "x-go-name": "BlockDays",
           "example": 7
+        },
+        "block_from": {
+          "description": "The day the block's day 1 counts from: starts, or the day the block's\nlength last changed once the cycle had begun.",
+          "type": "string",
+          "x-go-name": "BlockFrom",
+          "example": "2026-03-24"
         },
         "days": {
           "description": "Which session falls on which day of the block.",

@@ -27,6 +27,8 @@
 		draft.starts && draft.ends ? Math.round((Date.parse(draft.ends) - Date.parse(draft.starts)) / 86_400_000) + 1 : 0
 	);
 	const maxBlock = $derived(Math.max(1, Math.min(28, length)));
+	// Day 1 of the block, as the server will count it.
+	const blockFrom = $derived(draft.starts === cycle.starts ? cycle.block_from : draft.starts);
 	const blockDays = $derived(Array.from({ length: Math.max(0, Math.min(draft.block_days, 28)) }, (_, i) => i + 1));
 
 	const fields: Record<string, string> = { name: 'The name', starts: 'The start', ends: 'The end', block_days: 'The block' };
@@ -42,7 +44,7 @@
 		busy = true;
 		error = '';
 		try {
-			const { id, ...body } = $state.snapshot(draft);
+			const { id, block_from, ...body } = $state.snapshot(draft);
 			body.days = body.days.filter((d) => d.day <= body.block_days);
 			const saved = await request<{ left_out: unknown[] }>('PUT', `/api/v1/cycles/${id}`, body);
 			if (!saved.left_out.length) return await goto('/plan');
@@ -94,7 +96,7 @@
 			{#each blockDays as day (day)}
 				<li class="flex flex-col gap-2 py-3 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 					<span class="text-xs font-semibold text-ink-2">
-						Day {day}{draft.starts ? ` · ${weekday(addDays(draft.starts, day - 1))}` : ''}
+						Day {day}{blockFrom ? ` · ${weekday(addDays(blockFrom, day - 1))}` : ''}
 					</span>
 					{#each draft.days.filter((d) => d.day === day) as d (d.template)}
 						{@const name = names.get(d.template) ?? 'Retired session'}
