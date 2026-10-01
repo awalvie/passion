@@ -4,8 +4,9 @@
 	import { cycleWeek } from '$lib/dates';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
+	import LiveCard from '$lib/LiveCard.svelte';
 	import type { ScheduledDay } from '$lib/plan';
-	import { startRun, type StartBody } from '$lib/runState.svelte';
+	import { openRun, startRun, type StartBody } from '$lib/runState.svelte';
 	import SessionCard from '$lib/SessionCard.svelte';
 	import Topo from '$lib/Topo.svelte';
 	import { topTopo } from '$lib/topo';
@@ -29,6 +30,19 @@
 			await invalidateAll();
 		} finally {
 			starting = false;
+		}
+	}
+
+	const live = $derived(data.live && openRun.run?.id === data.live.id ? openRun.run : null);
+	const days = $derived(data.days.filter((d) => d.run !== live?.id));
+
+	async function discard() {
+		error = '';
+		try {
+			await openRun.discard();
+			await invalidateAll();
+		} catch (e) {
+			error = describe(e, (f) => f);
 		}
 	}
 
@@ -100,7 +114,11 @@
 
 	<div class="px-4"><FormError message={error} /></div>
 
-	{#each data.days as d (d.id)}
+	{#if live}
+		<LiveCard run={live} ondiscard={discard} />
+	{/if}
+
+	{#each days as d (d.id)}
 		<SessionCard
 			day={d}
 			template={data.templates.get(d.template)}
@@ -108,7 +126,9 @@
 			{starting}
 			onstart={() => start({ scheduled: d.id })}
 		/>
-	{:else}
+	{/each}
+
+	{#if !live && !days.length}
 		<section class="mx-4 mt-3.5 flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-card">
 			<p class="text-xl font-bold tracking-tight">
 				{data.offline ? 'No signal' : 'Nothing planned today'}
@@ -124,21 +144,23 @@
 				</a>
 			{/if}
 		</section>
-	{/each}
+	{/if}
 
-	<div class="flex gap-3 px-4 pt-3">
-		<a href="/templates" class="flex h-12 flex-1 items-center gap-2.5 rounded-full bg-surface px-2 text-[15px] font-bold shadow-card">
-			<span class="flex size-8 items-center justify-center rounded-full bg-well"><Icon name="stack" size="1.125rem" /></span>
-			Other session
-		</a>
-		<button
-			type="button"
-			class="flex h-12 flex-1 items-center gap-2.5 rounded-full bg-surface px-2 text-[15px] font-bold shadow-card disabled:opacity-50"
-			disabled={starting}
-			onclick={() => start({ name: 'Open session' })}
-		>
-			<span class="flex size-8 items-center justify-center rounded-full bg-well"><Icon name="plus" size="1.125rem" /></span>
-			Open session
-		</button>
-	</div>
+	{#if !data.live}
+		<div class="flex gap-3 px-4 pt-3">
+			<a href="/templates" class="flex h-12 flex-1 items-center gap-2.5 rounded-full bg-surface px-2 text-[15px] font-bold shadow-card">
+				<span class="flex size-8 items-center justify-center rounded-full bg-well"><Icon name="stack" size="1.125rem" /></span>
+				Other session
+			</a>
+			<button
+				type="button"
+				class="flex h-12 flex-1 items-center gap-2.5 rounded-full bg-surface px-2 text-[15px] font-bold shadow-card disabled:opacity-50"
+				disabled={starting}
+				onclick={() => start({ name: 'Open session' })}
+			>
+				<span class="flex size-8 items-center justify-center rounded-full bg-well"><Icon name="plus" size="1.125rem" /></span>
+				Open session
+			</button>
+		</div>
+	{/if}
 </div>

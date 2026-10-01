@@ -1,9 +1,13 @@
 import { request, unreachable } from '$lib/api';
 import { addDays, mondayOf } from '$lib/dates';
 import { loadToday, localToday, type Cycle, type ScheduledDay } from '$lib/plan';
+import { openRun } from '$lib/runState.svelte';
 import type { SessionTemplate } from '$lib/template';
 
-export async function load() {
+export async function load({ parent }) {
+	// The card shows the live session from the run itself, which works offline
+	// from the copy on the phone.
+	const live = parent().then(({ live }) => live && openRun.load(live.id));
 	try {
 		const today = await loadToday();
 		const monday = mondayOf(today);
@@ -24,6 +28,7 @@ export async function load() {
 				request<SessionTemplate>('GET', `/api/v1/session-templates/${id}`)
 			)
 		);
+		await live;
 		return {
 			today,
 			monday,
@@ -34,9 +39,10 @@ export async function load() {
 			offline: false
 		};
 	} catch (e) {
-		// With no signal, Today still opens, and the live bar leads to the run.
+		// With no signal, Today still opens, and the card leads to the live run.
 		if (!unreachable(e)) throw e;
 		const today = localToday(Intl.DateTimeFormat().resolvedOptions().timeZone);
+		await live;
 		return {
 			today,
 			monday: mondayOf(today),
