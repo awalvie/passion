@@ -203,7 +203,7 @@
 		<div class="flex items-center justify-between px-5 pt-4 pb-2">
 			<h2 class="text-xs font-semibold text-ink-2">{data.cycleStarts ? 'This cycle' : 'This week'}</h2>
 			{#if data.cycleStarts}
-				<button type="button" class="-my-2 flex h-8 items-center gap-0.5 text-xs font-bold text-ink-2" onclick={choose}>
+				<button type="button" class="-my-3.5 flex h-11 items-center gap-0.5 text-xs font-bold text-ink-2" onclick={choose}>
 					Choose<Icon name="chevron-right" size="14px" />
 				</button>
 			{/if}

@@ -36,14 +36,14 @@
 
 	<!-- Two selects to a row on a phone: four on one row clip their own text. -->
 	<div class="flex flex-wrap items-center gap-2">
-		<select bind:value={f.kind} aria-label="Type" class="input min-h-10 w-[calc(50%-0.25rem)] min-w-0 rounded-full px-4 py-0 font-bold sm:w-auto">
+		<select bind:value={f.kind} aria-label="Type" class="input min-h-11 w-[calc(50%-0.25rem)] min-w-0 rounded-full px-4 py-0 font-bold sm:w-auto">
 			<option value="">All types</option>
 			{#each kinds as k (k.kind)}
 				<option value={k.kind}>{k.label}</option>
 			{/each}
 		</select>
 		{#if sources.length}
-			<select bind:value={f.source} aria-label="Source" class="input min-h-10 w-[calc(50%-0.25rem)] min-w-0 rounded-full px-4 py-0 font-bold sm:w-auto">
+			<select bind:value={f.source} aria-label="Source" class="input min-h-11 w-[calc(50%-0.25rem)] min-w-0 rounded-full px-4 py-0 font-bold sm:w-auto">
 				<option value="">All sources</option>
 				{#each sources as s (s)}
 					<option value={s}>{s}</option>
@@ -51,7 +51,7 @@
 			</select>
 		{/if}
 		{#if tags.length}
-			<select bind:value={f.tag} aria-label="Labels" class="input min-h-10 w-[calc(50%-0.25rem)] min-w-0 rounded-full px-4 py-0 font-bold sm:w-auto">
+			<select bind:value={f.tag} aria-label="Labels" class="input min-h-11 w-[calc(50%-0.25rem)] min-w-0 rounded-full px-4 py-0 font-bold sm:w-auto">
 				<option value="">All labels</option>
 				{#each tags as t (t)}
 					<option value={t}>{t}</option>
@@ -59,7 +59,7 @@
 			</select>
 		{/if}
 		{#if filtered}
-			<button type="button" class="flex h-10 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-link shadow-card-sm" onclick={clear}>
+			<button type="button" class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-link shadow-card-sm" onclick={clear}>
 				Clear
 			</button>
 		{/if}
