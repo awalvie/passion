@@ -34,7 +34,7 @@
 		if (seconds) save(Date.now() + seconds * 1000);
 	}
 
-	// Two tones as the rest runs out, once.
+	// Two tones and a buzz as the rest runs out, once.
 	let rang: number | null = null;
 	$effect(() => {
 		if (endsAt === null || left > 0 || rang === endsAt) return;
@@ -42,6 +42,7 @@
 		if (now - endsAt < 2000) {
 			tone(784, 150);
 			setTimeout(() => tone(1046, 250), 200);
+			navigator.vibrate?.([150, 50, 250]);
 		}
 	});
 	const announce = $derived(endsAt === null ? '' : left > 0 ? 'Rest started' : 'Rest over');
