@@ -236,19 +236,27 @@
 			</div>
 			<div class="flex flex-col gap-2 px-4 empty:hidden"><SaveStatus /></div>
 
-			<p class="flex items-center gap-3.5 px-6 pt-4 text-[32px] leading-none font-extrabold tracking-[0.1em] uppercase">
-				{#if phase.kind === 'prep'}
-					<i class="h-0 w-0 border-x-[13px] border-b-[22px] border-x-transparent border-b-current" aria-hidden="true"></i>
-				{:else if phase.kind === 'hang'}
-					<i class="size-5.5 rounded-md bg-current" aria-hidden="true"></i>
-				{:else}
-					<i class="size-5.5 rounded-full border-4 border-current" aria-hidden="true"></i>
-				{/if}
+			<p class="flex items-center gap-3 px-6 pt-2 font-[family-name:var(--font-digits)] text-[52px] leading-none font-bold tracking-[0.04em] uppercase">
+				<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					{#if phase.kind === 'prep'}
+						<path d="M6.5 3.5h11M6.5 20.5h11" /><path d="M8 3.5c0 5 8 5 8 8.5s-8 3.5-8 8.5M16 3.5c0 5-8 5-8 8.5s8 3.5 8 8.5" />
+					{:else if phase.kind === 'hang'}
+						<path d="M3 4h18" /><path d="M7.5 4l3 6.5M16.5 4l-3 6.5" /><circle cx="12" cy="10.2" r="2.2" /><path d="M12 12.6v4.4M12 17l-2.8 4M12 17l2.8 4" />
+					{:else}
+						<path d="M2.5 13c2.2-6 4.4-6 6.6 0s4.4 6 6.6 0 3.5-4.5 5.8-2" />
+					{/if}
+				</svg>
 				{labels[phase.kind]}
 			</p>
-			<p class="px-6 pt-2 text-[15px] font-semibold {look.ink2}">
-				{step.name}{phase.side ? ` · ${phase.side}` : ''}{weight ? ` · ${weight > 0 ? '+' : ''}${weight} kg` : ''}
-				{#if paused}· Paused{/if}
+			<p class="px-6 pt-1 text-[15px] font-semibold {look.ink2}">
+				{[
+					step.name,
+					phase.side,
+					setOver ? `set ${setsDone} of ${step.sets} done` : weight ? `${weight > 0 ? '+' : ''}${weight} kg` : null,
+					paused ? 'Paused' : null
+				]
+					.filter(Boolean)
+					.join(' · ')}
 			</p>
 
 			<div
