@@ -24,6 +24,10 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /passion ./server/cmd/passion
 
 FROM alpine:3
 
+# Links the package on ghcr.io to the repo, so the deploy's GITHUB_TOKEN can
+# push and pull it.
+LABEL org.opencontainers.image.source="https://github.com/awalvie/passion"
+
 RUN apk add --no-cache ca-certificates \
     && adduser -D -u 10001 passion
 
