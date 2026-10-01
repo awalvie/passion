@@ -1,3 +1,4 @@
+import { goto } from '$app/navigation';
 import { RequestFailed, request, unreachable } from './api';
 import { newId } from './id';
 import {
@@ -82,6 +83,16 @@ class OpenRun {
 			if (!unreachable(e) || !stored) throw e;
 			useStored();
 		}
+	}
+
+	// discard deletes the run once the person confirms. It leaves for Today
+	// before it forgets the run, because the open page reads it.
+	async discard() {
+		const run = this.run!;
+		if (!confirm(`Discard “${run.name}”? Everything logged in it is deleted.`)) return;
+		await request('DELETE', `/api/v1/runs/${run.id}`);
+		await goto('/');
+		this.forget();
 	}
 
 	// forget drops a deleted run with its unsent writes and its clocks.
