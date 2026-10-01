@@ -123,7 +123,7 @@
 		<h3 class="text-[15px] font-bold">{months}</h3>
 		<span class="text-xs font-semibold text-ink-2">{weeks.length === 1 ? '1 week' : `${weeks.length} weeks`}</span>
 	</div>
-	<ol class="mt-3 grid grid-cols-7 text-center text-xs font-bold text-ink-3" aria-hidden="true">
+	<ol class="mt-3 grid grid-cols-7 text-center text-xs font-bold text-ink-2" aria-hidden="true">
 		{#each ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as d, i (i)}
 			<li>{d}</li>
 		{/each}

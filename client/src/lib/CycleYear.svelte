@@ -55,7 +55,7 @@
 		{/each}
 		<span class="absolute top-3 bottom-[-4px] w-0.5 rounded-full bg-ink" style="left: {now * 100}%" aria-hidden="true"></span>
 	</div>
-	<ol class="mt-2.5 grid grid-cols-12 text-center text-[11px] font-semibold text-ink-3" aria-hidden="true">
+	<ol class="mt-2.5 grid grid-cols-12 text-center text-[11px] font-semibold text-ink-2" aria-hidden="true">
 		{#each months as m, i (i)}
 			<li>{m}</li>
 		{/each}
