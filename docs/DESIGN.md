@@ -245,11 +245,21 @@ Mobile-first. `md:` (768px) is the primary breakpoint.
 - Sidebars: full-width overlay on mobile (`position: fixed; inset: 0`), sticky aside on desktop.
 - Navigation: hidden checkbox toggle on mobile, full nav on desktop.
 - Grids collapse to a single column below `md:`.
-- Touch targets: **any button that is the primary action in a mid-session flow gets a
-  minimum 44px height** — the run transport, run completion, Start and Continue. Add
-  `.btn` to opt into that size; it is the only class carrying `min-height: 2.75rem`.
-  Everywhere else the house pattern is `rounded-md px-4 py-2 text-sm font-medium` plus a
-  tier class, and the deliberately small variants (28px table row icons, 26px inline
-  pills, segmented-control halves) are correct as they are. The tier classes
-  `.btn-primary` / `.btn-accent` / `.btn-ghost` are **colour skins only** — they set no
-  size, and must not, or the small variants lose their opt-out.
+- Touch targets: every control is at least 44 px (`size-11`, `h-11`). A control that must
+  look smaller keeps its size and grows its target with
+  `relative before:absolute before:-inset-1 before:content-['']`, as RowActions does.
+
+---
+
+## Shared parts (V2 client)
+
+These are the one way each part is drawn in `client/src`. Use them; do not redraw them.
+
+- Page title: `text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]`.
+- List divider: an inset hairline on every row after the first,
+  `[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]`. No `border-t` or `divide-y`.
+- Icons: `lib/Icon.svelte`, never an inline `<svg>` for a shape it has. `stroke` sets the
+  line weight.
+- Check box: `lib/Checkbox.svelte`, inside a label that gives the 44 px target.
+- Switch between views: `lib/Segmented.svelte` — a white pill on a `bg-well` track, 44 px.
+- Error line: `lib/FormError.svelte`.
