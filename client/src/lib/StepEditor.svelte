@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Checkbox from './Checkbox.svelte';
 	import type { Snippet } from 'svelte';
 	import DurationInput from '$lib/DurationInput.svelte';
 	import Icon from '$lib/Icon.svelte';
@@ -46,8 +47,8 @@
 			<DurationInput bind:seconds={step.duration_seconds} id="{id}-duration" small />
 		{/if}
 		{#if shown.length}
-			<label class="flex min-h-10 cursor-pointer items-center gap-2.5 text-[15px] font-semibold">
-				<input type="checkbox" class="size-5 accent-ink" bind:checked={step.per_side} />
+			<label class="flex min-h-11 cursor-pointer items-center gap-2.5 text-[15px] font-semibold">
+				<Checkbox bind:checked={step.per_side} />
 				Per side
 			</label>
 		{/if}

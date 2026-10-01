@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Checkbox from './Checkbox.svelte';
 	import DurationInput from '$lib/DurationInput.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import { allCounts, countLabels, kindOf, kinds, type Count, type Draft } from '$lib/exercise';
@@ -86,8 +87,8 @@
 
 	{#if allCounts.some(shown)}
 		<div class="mt-3">
-			<label class="flex min-h-10 cursor-pointer items-center gap-2.5 text-[15px] font-semibold">
-				<input type="checkbox" class="size-5 accent-ink" bind:checked={draft.per_side} />
+			<label class="flex min-h-11 cursor-pointer items-center gap-2.5 text-[15px] font-semibold">
+				<Checkbox bind:checked={draft.per_side} />
 				Per side
 			</label>
 			<p class="mb-0 text-xs font-semibold text-ink-3">The numbers are for each side, as in 6 reps per side.</p>
