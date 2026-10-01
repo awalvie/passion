@@ -21,7 +21,6 @@
 	let draft = $state(untrack(() => structuredClone($state.snapshot(data.cycle))));
 	let busy = $state(false);
 	let error = $state('');
-	let leftOut = $state(0);
 
 	const length = $derived(daysBetween(draft.starts, draft.ends) + 1);
 	const fields: Record<string, string> = { name: 'The name', starts: 'The start', ends: 'The end', block_days: 'The block' };
@@ -35,9 +34,8 @@
 		try {
 			const body = $state.snapshot(draft);
 			body.days = body.days.filter((d) => d.day <= body.block_days);
-			const saved = await saveCycle(body);
-			if (!saved.leftOut) return await goto(`/plan/cycles/${draft.id}`, { replaceState: true });
-			leftOut = saved.leftOut;
+			const { leftOut } = await saveCycle(body);
+			await goto(`/plan/cycles/${draft.id}`, { replaceState: true, state: { leftOut } });
 		} catch (e) {
 			error = describe(e, (f) => (f.startsWith('days') ? 'A session' : f.startsWith('goals') ? 'A goal' : (fields[f] ?? f)));
 		} finally {
@@ -163,18 +161,10 @@
 	{/if}
 
 	<FormError message={error} />
-	{#if leftOut}
-		<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold shadow-card">
-			Saved. {leftOut === 1 ? '1 day' : `${leftOut} days`} already held that session, so the cycle left
-			{leftOut === 1 ? 'it as it was' : 'them as they were'}.
-			<a href="/plan/cycles/{draft.id}" class="font-bold text-link underline">Open the cycle</a>
-		</p>
-	{:else}
-		<div class="flex items-center gap-2">
-			{#if step === 2}
-				<div class="w-28 shrink-0"><Button variant="secondary" href="?step=3">Skip</Button></div>
-			{/if}
-			<Button type="submit" disabled={busy}>{step < 3 ? 'Next' : 'Save cycle'}</Button>
-		</div>
-	{/if}
+	<div class="flex items-center gap-2">
+		{#if step === 2}
+			<div class="w-28 shrink-0"><Button variant="secondary" href="?step=3">Skip</Button></div>
+		{/if}
+		<Button type="submit" disabled={busy}>{step < 3 ? 'Next' : 'Save cycle'}</Button>
+	</div>
 </form>

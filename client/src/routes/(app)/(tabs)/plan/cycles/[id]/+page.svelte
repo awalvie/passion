@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack, type Snippet } from 'svelte';
 	import { goto, invalidateAll } from '$app/navigation';
+	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
 	import BlockDays from '$lib/BlockDays.svelte';
 	import CycleCalendar from '$lib/CycleCalendar.svelte';
@@ -53,7 +54,7 @@
 	let draft = $state<Cycle>(untrack(() => structuredClone($state.snapshot(data.cycle))));
 	let busy = $state(false);
 	let editError = $state('');
-	let leftOut = $state(0);
+	let leftOut = $state(untrack(() => page.state.leftOut ?? 0));
 
 	const begun = $derived(data.cycle.starts <= data.today);
 	// Day 1 of the block as the server will count it after the save.

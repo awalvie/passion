@@ -5,7 +5,10 @@ declare global {
 		// interface Error {}
 		// interface Locals {}
 		// interface PageData {}
-		// interface PageState {}
+		interface PageState {
+			// Days a new cycle left as they were, for the cycle page to say so.
+			leftOut?: number;
+		}
 		// interface Platform {}
 	}
 }
