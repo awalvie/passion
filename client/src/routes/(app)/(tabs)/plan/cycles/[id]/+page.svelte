@@ -278,7 +278,7 @@
 		<FormError message={editError} />
 		<div class="grid grid-cols-2 items-center gap-2">
 			<Button variant="secondary" onclick={() => (open = false)}>Cancel</Button>
-			<Button type="submit" disabled={busy}>Save</Button>
+			<Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
 		</div>
 	</form>
 </Sheet>

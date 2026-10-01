@@ -192,7 +192,7 @@
 		{#if step === 2}
 			<div class="w-28 shrink-0"><Button variant="secondary" href="?step=3">Skip</Button></div>
 		{/if}
-		<Button type="submit" disabled={busy}>{step < 3 ? 'Next' : step === 3 ? 'Next: see it on the calendar' : 'Create cycle'}</Button>
+		<Button type="submit" disabled={busy}>{step < 3 ? 'Next' : step === 3 ? 'Next: see it on the calendar' : busy ? 'Creating…' : 'Create cycle'}</Button>
 	</div>
 </form>
 
