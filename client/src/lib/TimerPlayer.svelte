@@ -2,10 +2,12 @@
 	import { untrack } from 'svelte';
 	import { tone, unlock } from './audio';
 	import Button from './Button.svelte';
+	import SaveStatus from './SaveStatus.svelte';
 	import { summary } from './exercise';
 	import { isFinished, setsOf, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
 	import Stepper from './Stepper.svelte';
+	import TimerFlap from './TimerFlap.svelte';
 	import { at, elapsed, endSet, jump, newClock, rows, startOf, timeline, togglePause } from './timeline';
 	import { readTimers, writeTimers, type Timed } from './timerStore';
 
@@ -112,38 +114,179 @@
 		stop();
 	}
 
-	const colours = { prep: 'bg-prep', hang: 'bg-hang', rest: 'bg-rest' };
 	const labels = { prep: 'Prep', hang: 'Hang', rest: 'Rest' };
 	const skipLabels = { prep: 'Skip prep', hang: 'End rep', rest: 'Skip rest' };
+
+	// Darker fields and glass than the tokens so text passes 4.5:1 when read from the floor.
+	const light = { ink: 'text-[#F6F9F4]', ink2: 'text-[#F6F9F4]/90', glass: 'bg-black/20' };
+	const looks = {
+		prep: {
+			...light,
+			field: 'bg-[#1a50b8] dark:bg-prep',
+			card: 'bg-[#0D2A66] dark:bg-[#091E4B]',
+			digit: 'text-[#F3F7FF] dark:text-[#E8EFFF]',
+			split: 'bg-[#1a50b8] dark:bg-prep'
+		},
+		hang: {
+			ink: 'text-on-hang',
+			ink2: 'text-on-hang/70',
+			glass: 'bg-on-hang/10',
+			field: 'bg-hang',
+			card: 'bg-on-hang',
+			digit: 'text-[#C6F05B] dark:text-[#BFEA55]',
+			split: 'bg-hang'
+		},
+		rest: {
+			...light,
+			field: 'bg-[#095c37] dark:bg-[#0A6A3F]',
+			card: 'bg-[#04311D] dark:bg-[#032717]',
+			digit: 'text-[#EAF7EE] dark:text-[#DDF2E4]',
+			split: 'bg-[#095c37] dark:bg-[#0A6A3F]'
+		}
+	};
+
+	const look = $derived(looks[phase?.kind ?? 'prep']);
+	const repsDone = $derived(phase ? (phase.kind === 'rest' ? phase.rep : phase.rep - 1) : 0);
+	const setOver = $derived(phase?.kind === 'rest' && phase.rep === step.reps && upcoming?.set !== phase.set);
+	const setsDone = $derived(phase ? (setOver ? phase.set : phase.set - 1) : 0);
+
+	function dash(i: number, done: number) {
+		if (i < done) return 'bg-current';
+		if (i === done) return 'bg-current opacity-45';
+		return look.glass;
+	}
+
 </script>
 
 {#if timed && phase}
 	{@const secs = Math.ceil(pos.left / 1000)}
-	<section class="relative flex flex-col items-center gap-2 overflow-hidden rounded-3xl py-8 text-on-tint shadow-sm {colours[phase.kind]}">
+	{@const clock = secs >= 60 ? `${Math.floor(secs / 60)}${String(secs % 60).padStart(2, '0')}` : String(secs)}
+	{@const paused = timed.clock.pausedAt !== null}
+	<section
+		class="fixed inset-0 z-40 overflow-hidden {look.field} {look.ink}"
+		aria-label="{labels[phase.kind]} timer"
+	>
 		<div
-			class="absolute inset-x-0 bottom-0 bg-black/15"
+			class="absolute inset-x-0 bottom-0 bg-black/15 shadow-[0_-2px_0_rgba(0,0,0,0.08)]"
 			style="height: {(pos.left / phase.ms) * 100}%"
 			aria-hidden="true"
 		></div>
-		<p class="relative text-xl font-semibold">{labels[phase.kind]}</p>
-		<p class="relative text-[7rem] leading-none font-bold tabular-nums" aria-live="off">{secs}</p>
-		<p class="relative text-base">
-			Rep {phase.rep} of {step.reps} · Set {phase.set} of {step.sets}{phase.side ? ` · ${phase.side}` : ''}
-		</p>
-		{#if upcoming}
-			<p class="relative text-sm opacity-90">Next: {labels[upcoming.kind]} {upcoming.ms / 1000} s</p>
-		{/if}
-	</section>
 
-	<div class="grid grid-cols-2 gap-2" onpointerdown={unlock} role="group" aria-label="Timer">
-		<Button variant="secondary" onclick={pause}>{timed.clock.pausedAt === null ? 'Pause' : 'Resume'}</Button>
-		<Button variant="secondary" onclick={skipPhase}>{skipLabels[phase.kind]}</Button>
-		<Button variant="secondary" onclick={cutSet}>End set</Button>
-		<Button variant="secondary" onclick={endExercise}>End exercise</Button>
-	</div>
+		<div
+			class="relative mx-auto flex h-full w-full max-w-[430px] flex-col pt-[env(safe-area-inset-top)] pb-[calc(env(safe-area-inset-bottom)+1rem)]"
+		>
+			<div class="flex h-14 shrink-0 items-center px-4">
+				<a
+					href="/run/{runId}"
+					class="inline-flex h-11 items-center gap-0.5 rounded-full pr-4 pl-2.5 text-[15px] font-bold {look.glass}"
+				>
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+					Session
+				</a>
+			</div>
+			<div class="flex flex-col gap-2 px-4 empty:hidden"><SaveStatus /></div>
+
+			<p class="flex items-center gap-3.5 px-6 pt-4 text-[32px] leading-none font-extrabold tracking-[0.1em] uppercase">
+				{#if phase.kind === 'prep'}
+					<i class="h-0 w-0 border-x-[13px] border-b-[22px] border-x-transparent border-b-current" aria-hidden="true"></i>
+				{:else if phase.kind === 'hang'}
+					<i class="size-5.5 rounded-md bg-current" aria-hidden="true"></i>
+				{:else}
+					<i class="size-5.5 rounded-full border-4 border-current" aria-hidden="true"></i>
+				{/if}
+				{labels[phase.kind]}
+			</p>
+			<p class="px-6 pt-2 text-[15px] font-semibold {look.ink2}">
+				{step.name}{phase.side ? ` · ${phase.side}` : ''}{weight ? ` · ${weight > 0 ? '+' : ''}${weight} kg` : ''}
+				{#if paused}· Paused{/if}
+			</p>
+
+			<div
+				class="mt-[min(34px,4svh)] flex shrink-0 items-center justify-center gap-2 [--h:min(232px,28svh,56vw)]"
+				role="img"
+				aria-live="off"
+				aria-label="{secs} seconds left"
+			>
+				{#each clock.split('') as digit, i (i)}
+					{#if secs >= 60 && i === clock.length - 2}
+						<div class="flex w-4.5 flex-col items-center gap-[calc(var(--h)*0.15)]" aria-hidden="true">
+							<i class="size-4 rounded-full {look.card}"></i>
+							<i class="size-4 rounded-full {look.card}"></i>
+						</div>
+					{/if}
+					<TimerFlap {digit} wide={clock.length === 1} {look} />
+				{/each}
+				{#if secs < 60}
+					<span class="ml-1.5 self-end pb-4.5 text-[44px] leading-none font-bold">s</span>
+				{/if}
+			</div>
+
+			<div class="flex flex-col gap-3.5 px-6 pt-[min(34px,4svh)]">
+				<div class="flex items-center justify-between gap-4">
+					<span class="text-xl font-semibold {look.ink2}">
+						Set <b class="mx-px text-[32px] font-extrabold {look.ink}">{phase.set}</b>/{step.sets}
+					</span>
+					<span class="flex w-[210px] gap-1.5" aria-hidden="true">
+						{#each { length: step.sets ?? 0 }, i (i)}
+							<i class="h-2 flex-1 rounded-full {dash(i, setsDone)}"></i>
+						{/each}
+					</span>
+				</div>
+				<div class="flex items-center justify-between gap-4">
+					<span class="text-xl font-semibold {look.ink2}">
+						Rep <b class="mx-px text-[32px] font-extrabold {look.ink}">{phase.rep}</b>/{step.reps}
+					</span>
+					<span class="flex w-[210px] gap-1.5" aria-hidden="true">
+						{#each { length: step.reps ?? 0 }, i (i)}
+							<i class="h-2 flex-1 rounded-full {dash(i, repsDone)}"></i>
+						{/each}
+					</span>
+				</div>
+			</div>
+
+			{#if upcoming}
+				<p class="mx-6 mt-5 flex items-center gap-2 text-xl font-bold">
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+					Next: {labels[upcoming.kind]} {upcoming.ms / 1000} s
+				</p>
+			{/if}
+
+			<div class="mt-auto flex flex-col gap-2.5 px-4 pt-4" onpointerdown={unlock} role="group" aria-label="Timer">
+				<div class="flex gap-2.5">
+					<button type="button" class="h-12 flex-1 rounded-full text-[15px] font-bold {look.glass}" onclick={cutSet}>End set</button>
+					<button type="button" class="h-12 flex-1 rounded-full text-[15px] font-bold {look.glass}" onclick={endExercise}>
+						End exercise
+					</button>
+				</div>
+				<div class="flex gap-2.5">
+					<button
+						type="button"
+						class="flex h-17 flex-1 items-center justify-center gap-2.5 rounded-full px-6 text-xl font-bold {look.glass}"
+						onclick={pause}
+					>
+						{#if paused}
+							<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor" /></svg>
+							Resume
+						{:else}
+							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
+							Pause
+						{/if}
+					</button>
+					<button
+						type="button"
+						class="flex h-17 items-center justify-center gap-2.5 rounded-full px-6 text-xl font-bold whitespace-nowrap {look.glass}"
+						onclick={skipPhase}
+					>
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5.5v13l9-6.5z" fill="currentColor" /><path d="M18.5 5v14" /></svg>
+						{skipLabels[phase.kind]}
+					</button>
+				</div>
+			</div>
+		</div>
+	</section>
 {:else if !isFinished(step)}
-	<section class="flex flex-col gap-4 rounded-2xl bg-surface p-4 shadow-sm">
-		<p class="text-center text-base font-semibold">
+	<section class="flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-card">
+		<p class="text-center text-[15px] font-bold">
 			{logged.length ? `${logged.length} of ${blocks} logged` : summary(step)}
 		</p>
 		<Stepper label="kg" step={2.5} min={-200} placeholder="–" bind:value={weight} />
