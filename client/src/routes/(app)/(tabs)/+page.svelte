@@ -139,7 +139,7 @@
 			{:else if progress}
 				<span class="rounded-full bg-surface px-3 py-2 text-xs font-bold shadow-card-sm">Week {progress.week} of {progress.of}</span>
 			{/if}
-			<a href="/settings" class="flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm" aria-label="Settings">
+			<a href="/profile" class="flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm" aria-label="Profile">
 				<Icon name="settings" size="1.25rem" />
 			</a>
 		</div>
