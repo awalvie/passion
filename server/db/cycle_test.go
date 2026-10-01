@@ -102,10 +102,10 @@ func TestPutCycle(t *testing.T) {
 		t.Fatalf("scheduled %v, want the moved day kept", got)
 	}
 
-	// Goals, entries and notes keep it too, and come back as written.
+	// Goals and notes keep it too, and come back as written.
 	notes := "Keep pull-ups strict"
 	f.Goals = []db.Goal{{Text: "Flash 7a", Done: true, Before: "6c", After: "7a", How: "Board twice a week"}}
-	f.Before, f.After, f.Notes = []string{"Max hang +18 kg"}, []string{}, &notes
+	f.Notes = &notes
 	if _, _, err := db.PutCycle(ctx, pool, ada, y1, f); err != nil {
 		t.Fatal(err)
 	}
@@ -113,8 +113,8 @@ func TestPutCycle(t *testing.T) {
 		t.Fatalf("scheduled %v, want the moved day kept", got)
 	}
 	got, err := db.GetCycle(ctx, pool, ada, y1)
-	if err != nil || !slices.Equal(got.Goals, f.Goals) || !slices.Equal(got.Before, f.Before) || len(got.After) != 0 || *got.Notes != notes {
-		t.Fatalf("cycle %+v, %v, want the goals, entries and notes written", got, err)
+	if err != nil || !slices.Equal(got.Goals, f.Goals) || *got.Notes != notes {
+		t.Fatalf("cycle %+v, %v, want the goals and notes written", got, err)
 	}
 
 	// A new shape builds again, and leaves out a day that already holds the
@@ -350,10 +350,8 @@ func TestCleanCycleDropsBlankLines(t *testing.T) {
 	f, problems := db.CycleFields{
 		Name: "C", Starts: day("2026-03-01"), Ends: day("2026-03-07"), BlockDays: 7,
 		Goals:  []db.Goal{{Text: "  "}, {Text: " Flash 7a "}},
-		Before: []string{"", " Max hang "},
 	}.Clean()
-	if len(problems) != 0 || !slices.Equal(f.Goals, []db.Goal{{Text: "Flash 7a"}}) ||
-		!slices.Equal(f.Before, []string{"Max hang"}) || f.After == nil {
+	if len(problems) != 0 || !slices.Equal(f.Goals, []db.Goal{{Text: "Flash 7a"}}) {
 		t.Fatalf("fields %+v, problems %v", f, problems)
 	}
 }

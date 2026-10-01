@@ -42,14 +42,6 @@ type cycleRequest struct {
 	// What the person sets out to reach. Blank lines are dropped.
 	Goals []goalBody `json:"goals"`
 
-	// Free-text entries written at the start. Blank ones are dropped.
-	//
-	// example: ["Max hang, 20 mm, 10 s: +18 kg"]
-	Before []string `json:"before"`
-
-	// Free-text entries written at the end. Blank ones are dropped.
-	After []string `json:"after"`
-
 	// example: Left shoulder felt tight in week 1.
 	Notes *string `json:"notes"`
 }
@@ -208,7 +200,7 @@ func (s *Server) putCycle(w http.ResponseWriter, r *http.Request, who db.Authent
 	}
 
 	problems := map[string]string{}
-	f := db.CycleFields{Name: req.Name, BlockDays: req.BlockDays, Before: req.Before, After: req.After, Notes: req.Notes}
+	f := db.CycleFields{Name: req.Name, BlockDays: req.BlockDays, Notes: req.Notes}
 	for _, g := range req.Goals {
 		f.Goals = append(f.Goals, db.Goal{Text: g.Text, Done: g.Done, Before: g.Before, After: g.After, How: g.How})
 	}
@@ -298,8 +290,6 @@ func toCycleResponse(c db.Cycle) cycleResponse {
 			BlockDays: c.BlockDays,
 			Days:      days,
 			Goals:     goals,
-			Before:    c.Before,
-			After:     c.After,
 			Notes:     c.Notes,
 		},
 	}

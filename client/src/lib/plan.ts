@@ -25,8 +25,6 @@ export type Cycle = {
 	block_from: string;
 	days: { day: number; template: string }[];
 	goals: Goal[];
-	before: string[];
-	after: string[];
 	notes: string | null;
 };
 

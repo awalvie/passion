@@ -8,7 +8,6 @@
 	import Button from '$lib/Button.svelte';
 	import { addDays, daysBetween, formatDate } from '$lib/dates';
 	import DateField from '$lib/DateField.svelte';
-	import EntryList from '$lib/EntryList.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import GoalList from '$lib/GoalList.svelte';
 	import GoalSheet from '$lib/GoalSheet.svelte';
@@ -124,12 +123,6 @@
 					goalOpen = true;
 				}}
 			/>
-		</section>
-		<section class="flex flex-col gap-2">
-			<h2 class="px-1 text-xs font-semibold text-ink-2">Before · where you start</h2>
-			<div class="rounded-3xl bg-surface px-[18px] pb-1 shadow-card">
-				<EntryList bind:entries={draft.before} label="New before entry" />
-			</div>
 		</section>
 		<section class="flex flex-col gap-2">
 			<h2 class="px-1 text-xs font-semibold text-ink-2">Notes</h2>

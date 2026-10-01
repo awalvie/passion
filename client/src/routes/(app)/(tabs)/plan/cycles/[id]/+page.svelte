@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack, type Snippet } from 'svelte';
+	import { untrack } from 'svelte';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
@@ -10,7 +10,6 @@
 	import { addDays, cycleWeek, daysBetween, formatDate } from '$lib/dates';
 	import DateField from '$lib/DateField.svelte';
 	import FormError from '$lib/FormError.svelte';
-	import EntryList from '$lib/EntryList.svelte';
 	import GoalList from '$lib/GoalList.svelte';
 	import GoalSheet from '$lib/GoalSheet.svelte';
 	import Icon, { type IconName } from '$lib/Icon.svelte';
@@ -93,8 +92,6 @@
 
 	// Goals and entries save as they change, with no Save button.
 	let goals = $state(untrack(() => structuredClone($state.snapshot(data.cycle.goals))));
-	let before = $state(untrack(() => [...data.cycle.before]));
-	let after = $state(untrack(() => [...data.cycle.after]));
 	let notes = $state(untrack(() => data.cycle.notes ?? ''));
 	let goalOpen = $state(false);
 	let goalIndex = $state(-1);
@@ -106,7 +103,7 @@
 		saving = saving.then(async () => {
 			error = '';
 			try {
-				const live = $state.snapshot({ goals, before, after });
+				const live = $state.snapshot({ goals });
 				await saveCycle({ ...$state.snapshot(data.cycle), ...live, notes: notes.trim() || null });
 				await invalidateAll();
 			} catch (e) {
@@ -223,27 +220,6 @@
 			{/if}
 		</div>
 		<CycleCalendar cycle={data.cycle} days={data.days} today={data.today} cycleNames={data.cycleNames} onmove={move} />
-	</section>
-
-	<section class="flex flex-col gap-2">
-		<h2 class="px-1 text-[15px] font-bold">Before and after</h2>
-		{#snippet card(label: string, when: string, list: Snippet)}
-			<div class="rounded-3xl bg-surface px-[18px] pt-3.5 pb-1 shadow-card">
-				<div class="flex items-baseline justify-between">
-					<h3 class="text-[15px] font-bold">{label}</h3>
-					<span class="text-xs font-semibold text-ink-2">{short(when)}</span>
-				</div>
-				{@render list()}
-			</div>
-		{/snippet}
-		{#snippet beforeList()}
-			<EntryList bind:entries={before} label="New before entry" onchange={savePart} />
-		{/snippet}
-		{#snippet afterList()}
-			<EntryList bind:entries={after} label="New after entry" onchange={savePart} />
-		{/snippet}
-		{@render card('Before', data.cycle.starts, beforeList)}
-		{@render card('After', data.cycle.ends, afterList)}
 	</section>
 
 	<section class="flex flex-col gap-2">
