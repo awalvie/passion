@@ -56,6 +56,7 @@
 
 <NavBar
 	title="New cycle"
+	heading={false}
 	back={step === 1 ? { href: '/plan?view=cycles', label: 'Cancel' } : { href: `?step=${step - 1}`, label: 'Back' }}
 >
 	{#snippet actions()}
