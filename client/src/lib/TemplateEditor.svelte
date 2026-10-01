@@ -217,7 +217,7 @@
 					{#each presets as [color, name] (color)}
 						<button
 							type="button"
-							class="size-8 rounded-full ring-offset-2 ring-offset-surface {draft.color === color ? 'ring-2 ring-ink' : ''}"
+							class="relative before:absolute before:-inset-1.5 before:content-[''] size-8 rounded-full ring-offset-2 ring-offset-surface {draft.color === color ? 'ring-2 ring-ink' : ''}"
 							style="background:{color}"
 							title={name}
 							aria-label={name}
@@ -226,14 +226,14 @@
 						></button>
 					{/each}
 					<label
-						class="size-8 cursor-pointer rounded-full bg-[conic-gradient(#ef4444,#f59e0b,#10b981,#3b82f6,#8b5cf6,#ec4899,#ef4444)] ring-offset-2 ring-offset-surface {custom ? 'ring-2 ring-ink' : ''}"
+						class="relative before:absolute before:-inset-1.5 before:content-[''] size-8 cursor-pointer rounded-full bg-[conic-gradient(#ef4444,#f59e0b,#10b981,#3b82f6,#8b5cf6,#ec4899,#ef4444)] ring-offset-2 ring-offset-surface {custom ? 'ring-2 ring-ink' : ''}"
 						title="Custom color…"
 					>
 						<input type="color" class="sr-only" bind:value={draft.color} aria-label="Custom color" />
 					</label>
 					<button
 						type="button"
-						class="h-8 rounded-full px-3.5 text-xs font-bold {draft.color === ''
+						class="relative h-8 rounded-full px-3.5 text-xs font-bold before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] {draft.color === ''
 							? 'bg-ink text-ground'
 							: 'bg-well text-ink-2'}"
 						title="Remove accent color"

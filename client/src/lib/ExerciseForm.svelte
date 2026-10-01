@@ -122,7 +122,7 @@
 							{#if !disabled}
 								<button
 									type="button"
-									class="flex size-10 shrink-0 items-center justify-center rounded-full bg-well text-xl leading-none text-ink-2 active:opacity-70"
+									class="flex size-11 shrink-0 items-center justify-center rounded-full bg-well text-xl leading-none text-ink-2 active:opacity-70"
 									title="Remove"
 									aria-label="Remove media row {i + 1}"
 									onclick={() => draft.media.splice(i, 1)}>&times;</button
@@ -138,7 +138,7 @@
 		{#if !disabled}
 			<button
 				type="button"
-				class="mt-2.5 flex h-10 items-center gap-1.5 rounded-full bg-well px-4 text-[15px] font-bold text-ink active:opacity-70"
+				class="mt-2.5 flex h-11 items-center gap-1.5 rounded-full bg-well px-4 text-[15px] font-bold text-ink active:opacity-70"
 				onclick={() => draft.media.push({ url: '', thumb_url: '' })}
 			>
 				<Icon name="plus" />
