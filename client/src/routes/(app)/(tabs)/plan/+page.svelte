@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
@@ -9,6 +9,7 @@
 	import Icon from '$lib/Icon.svelte';
 	import SessionIcon, { iconState } from '$lib/SessionIcon.svelte';
 	import type { ScheduledDay } from '$lib/plan';
+	import { startRun } from '$lib/runState.svelte';
 
 	let { data } = $props();
 
@@ -44,6 +45,22 @@
 	}
 
 	let rowError = $state({ id: '', message: '' });
+	let starting = $state(false);
+
+	async function start(d: ScheduledDay) {
+		starting = true;
+		rowError = { id: '', message: '' };
+		try {
+			const run = await startRun({ scheduled: d.id });
+			await goto(`/run/${run.id}`);
+		} catch (e) {
+			rowError = { id: d.id, message: describe(e, (f) => labels[f] ?? f) };
+			// The run can start even when the answer is lost; the reload shows it.
+			await invalidateAll();
+		} finally {
+			starting = false;
+		}
+	}
 
 	async function move(d: ScheduledDay, to: string) {
 		busy = true;
@@ -208,7 +225,23 @@
 										<details class="group">
 											<summary class="flex min-h-[58px] cursor-pointer list-none items-center gap-3.5 py-2 [&::-webkit-details-marker]:hidden">
 												{@render row()}
-												<span class="shrink-0 text-ink-3 transition-transform group-open:rotate-90"><Icon name="chevron-right" size="1rem" /></span>
+												{#if d.status === 'planned' && d.local_date === data.today && !data.live}
+													<button
+														type="button"
+														class="flex size-11 shrink-0 items-center justify-center rounded-full bg-tint text-on-tint shadow-tint disabled:opacity-50"
+														aria-label="Start {d.template_name}"
+														disabled={starting}
+														onclick={(e) => {
+															e.preventDefault();
+															e.stopPropagation();
+															start(d);
+														}}
+													>
+														<Icon name="play" size="1.125rem" />
+													</button>
+												{:else}
+													<span class="shrink-0 text-ink-3 transition-transform group-open:rotate-90"><Icon name="chevron-right" size="1rem" /></span>
+												{/if}
 											</summary>
 											<form
 												class="flex flex-col gap-3 pb-4 pl-[108px]"
