@@ -56,51 +56,53 @@
 </script>
 
 <form
-	class="flex flex-col gap-5 px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+5rem)]"
+	class="flex flex-col gap-3.5 px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+5rem)]"
 	onsubmit={(e) => {
 		e.preventDefault();
 		save();
 	}}
 >
-	<label class="flex flex-col gap-1 text-sm text-ink-2">
-		Name
-		<input class="input" bind:value={draft.name} required maxlength="200" placeholder="Autumn power" />
-	</label>
-
-	<div class="grid grid-cols-2 gap-3">
-		<label class="flex flex-col gap-1 text-sm text-ink-2">
-			Starts
-			<input class="input" type="date" bind:value={draft.starts} required />
+	<div class="flex flex-col gap-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
+		<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
+			Name
+			<input class="input h-12 px-4" bind:value={draft.name} required maxlength="200" placeholder="Autumn power" />
 		</label>
-		<label class="flex flex-col gap-1 text-sm text-ink-2">
-			Ends
-			<input class="input" type="date" bind:value={draft.ends} min={draft.starts} required />
+
+		<div class="grid grid-cols-2 gap-3">
+			<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
+				Starts
+				<input class="input h-12 px-4" type="date" bind:value={draft.starts} required />
+			</label>
+			<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
+				Ends
+				<input class="input h-12 px-4" type="date" bind:value={draft.ends} min={draft.starts} required />
+			</label>
+		</div>
+
+		<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
+			Repeats every
+			<span class="flex items-center gap-2 text-[15px] font-bold text-ink">
+				<input class="input h-12 px-4 w-20 text-center" type="number" inputmode="numeric" min="1" max={maxBlock} bind:value={draft.block_days} required />
+				days
+			</span>
 		</label>
 	</div>
 
-	<label class="flex flex-col gap-1 text-sm text-ink-2">
-		Repeats every
-		<span class="flex items-center gap-2 text-base text-ink">
-			<input class="input w-20" type="number" inputmode="numeric" min="1" max={maxBlock} bind:value={draft.block_days} required />
-			days
-		</span>
-	</label>
-
-	<section class="flex flex-col gap-2">
-		<h2 class="px-1 text-sm font-semibold text-ink-2">Sessions</h2>
-		<ul class="overflow-hidden rounded-2xl bg-surface shadow-sm">
+	<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-2 shadow-card">
+		<h2 class="mb-1 text-[15px] font-bold">Sessions</h2>
+		<ul>
 			{#each blockDays as day (day)}
-				<li class="flex flex-col gap-2 border-line px-4 py-3 [&:not(:first-child)]:border-t">
-					<span class="text-sm font-semibold text-ink-2">
+				<li class="flex flex-col gap-2 py-3 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+					<span class="text-xs font-semibold text-ink-2">
 						Day {day}{draft.starts ? ` · ${weekday(addDays(draft.starts, day - 1))}` : ''}
 					</span>
 					{#each draft.days.filter((d) => d.day === day) as d (d.template)}
 						{@const name = names.get(d.template) ?? 'Retired session'}
 						<span class="flex items-center gap-2">
-							<span class="min-w-0 flex-1 truncate text-base">{name}</span>
+							<span class="min-w-0 flex-1 truncate text-[15px] font-bold">{name}</span>
 							<button
 								type="button"
-								class="h-11 shrink-0 px-2 text-base font-semibold text-bad"
+								class="h-11 shrink-0 px-2 text-[15px] font-bold text-bad"
 								aria-label="Remove {name} from day {day}"
 								onclick={() => (draft.days = draft.days.filter((x) => x !== d))}
 							>
@@ -109,7 +111,7 @@
 						</span>
 					{/each}
 					<select
-						class="input"
+						class="input h-12 px-4"
 						aria-label="Add a session on day {day}"
 						value=""
 						onchange={(e) => {
@@ -129,10 +131,10 @@
 
 	<FormError message={error} />
 	{#if leftOut}
-		<p class="rounded-2xl bg-surface p-4 text-base shadow-sm">
+		<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold shadow-card">
 			Saved. {leftOut === 1 ? '1 day' : `${leftOut} days`} already held that session, so the cycle left
 			{leftOut === 1 ? 'it as it was' : 'them as they were'}.
-			<a href="/plan" class="font-semibold text-tint">Back to the plan</a>
+			<a href="/plan" class="font-bold text-link underline">Back to the plan</a>
 		</p>
 	{/if}
 	<Button type="submit" disabled={busy}>Save cycle</Button>
