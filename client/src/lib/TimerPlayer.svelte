@@ -2,6 +2,7 @@
 	import { untrack } from 'svelte';
 	import { tone, unlock } from './audio';
 	import Button from './Button.svelte';
+	import Menu from './Menu.svelte';
 	import SaveStatus from './SaveStatus.svelte';
 	import { summary } from './exercise';
 	import { isFinished, setsOf, type RunStep } from './run';
@@ -175,7 +176,7 @@
 		<div
 			class="relative mx-auto flex h-full w-full max-w-[430px] flex-col pt-[env(safe-area-inset-top)] pb-[calc(env(safe-area-inset-bottom)+1rem)]"
 		>
-			<div class="flex h-14 shrink-0 items-center px-4">
+			<div class="flex h-14 shrink-0 items-center justify-between px-4">
 				<a
 					href="/run/{runId}"
 					class="inline-flex h-11 items-center gap-0.5 rounded-full pr-4 pl-2.5 text-[15px] font-bold {look.glass}"
@@ -183,6 +184,13 @@
 					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
 					Session
 				</a>
+				<Menu
+					look={look.glass}
+					items={[
+						{ label: 'End set', onclick: cutSet },
+						{ label: 'End exercise', onclick: endExercise }
+					]}
+				/>
 			</div>
 			<div class="flex flex-col gap-2 px-4 empty:hidden"><SaveStatus /></div>
 
@@ -252,12 +260,6 @@
 			{/if}
 
 			<div class="mt-auto flex flex-col gap-2.5 px-4 pt-4" onpointerdown={unlock} role="group" aria-label="Timer">
-				<div class="flex gap-2.5">
-					<button type="button" class="h-12 flex-1 rounded-full text-[15px] font-bold {look.glass}" onclick={cutSet}>End set</button>
-					<button type="button" class="h-12 flex-1 rounded-full text-[15px] font-bold {look.glass}" onclick={endExercise}>
-						End exercise
-					</button>
-				</div>
 				<div class="flex gap-2.5">
 					<button
 						type="button"

@@ -5,7 +5,11 @@
 <script lang="ts">
 	import Icon from './Icon.svelte';
 
-	let { items, label = 'More' }: { items: MenuItem[]; label?: string } = $props();
+	let {
+		items,
+		label = 'More',
+		look = 'bg-surface text-ink shadow-card-sm'
+	}: { items: MenuItem[]; label?: string; look?: string } = $props();
 
 	let open = $state(false);
 	let root: HTMLDivElement;
@@ -27,7 +31,7 @@
 <div class="relative" bind:this={root}>
 	<button
 		type="button"
-		class="flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"
+		class="flex size-11 items-center justify-center rounded-full {look}"
 		aria-label={label}
 		aria-expanded={open}
 		onclick={() => (open = !open)}
