@@ -151,6 +151,35 @@ func TestPutCycleNeverPlansThePast(t *testing.T) {
 	}
 }
 
+func TestPutCycleKeepsABegunStart(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+
+	// Not begun yet: the start can move.
+	f := cycleFields(t, 7)
+	if _, _, err := db.PutCycle(ctx, pool, ada, y1, f); err != nil {
+		t.Fatal(err)
+	}
+	f.Starts = day("2100-01-06")
+	if _, _, err := db.PutCycle(ctx, pool, ada, y1, f); err != nil {
+		t.Fatalf("moved a start not begun: %v", err)
+	}
+
+	begun := cycleFields(t, 7)
+	begun.Starts, begun.Ends = day("2020-01-01"), day("2020-12-30")
+	if _, _, err := db.PutCycle(ctx, pool, ada, y2, begun); err != nil {
+		t.Fatal(err)
+	}
+	begun.Starts = day("2020-01-02")
+	if _, _, err := db.PutCycle(ctx, pool, ada, y2, begun); !errors.Is(err, db.ErrStartsLocked) {
+		t.Fatalf("got %v, want the start kept", err)
+	}
+	if got, _ := db.GetCycle(ctx, pool, ada, y2); !got.Starts.Equal(day("2020-01-01")) {
+		t.Fatalf("starts %v, want it unchanged", got.Starts)
+	}
+}
+
 func TestPutCycleRefuses(t *testing.T) {
 	ctx := context.Background()
 	pool := dbtest.Pool(t)

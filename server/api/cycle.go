@@ -168,7 +168,8 @@ func (s *Server) readCycle(w http.ResponseWriter, r *http.Request, who db.Authen
 // one cycle. When the dates, the block or the days change, it places the
 // sessions again from today on: a past day, and a day a run was started from,
 // stay as they are, and so do the days you moved unless the shape changed. A
-// day that already holds the session is left out and listed.
+// day that already holds the session is left out and listed. Once the cycle
+// has begun, its start date cannot change.
 //
 //	Security:
 //	  bearer:
@@ -212,6 +213,9 @@ func (s *Server) putCycle(w http.ResponseWriter, r *http.Request, who db.Authent
 	switch {
 	case errors.As(err, &unknown):
 		writeFieldErrors(w, unknown.Problems)
+		return
+	case errors.Is(err, db.ErrStartsLocked):
+		writeFieldErrors(w, map[string]string{"starts": "cannot change once the cycle has begun"})
 		return
 	case errors.Is(err, db.ErrNoCycle):
 		writeNotFound(w)
