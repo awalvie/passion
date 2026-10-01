@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
 	import { describe } from '$lib/api';
-	import { cycleWeek } from '$lib/dates';
+	import { addDays, cycleWeek } from '$lib/dates';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import LiveCard from '$lib/LiveCard.svelte';
@@ -61,6 +61,12 @@
 			data.cycles.find((c) => c.starts <= data.today && data.today <= c.ends)
 	);
 	const progress = $derived(cycle ? cycleWeek(cycle.starts, cycle.ends, data.today) : null);
+
+	const sessionsThisWeek = $derived(
+		data.runs?.filter(
+			(r) => r.finished_at !== null && data.monday <= r.local_date && r.local_date <= addDays(data.monday, 6)
+		).length
+	);
 
 	function label(d: ScheduledDay) {
 		const c = data.cycles.find((x) => x.id === d.cycle);
@@ -163,4 +169,22 @@
 			</button>
 		</div>
 	{/if}
+
+	{#if sessionsThisWeek !== undefined}
+		<div class="flex items-center justify-between px-5 pt-4 pb-2">
+			<h2 class="text-xs font-semibold text-ink-2">{cycle ? 'This cycle' : 'This week'}</h2>
+		</div>
+		<div class="grid grid-cols-[1fr_1fr_1.25fr] gap-2.5 px-4">
+			{@render stat(String(sessionsThisWeek), '', 'Sessions this week')}
+		</div>
+	{/if}
 </div>
+
+{#snippet stat(value: string, unit: string, caption: string)}
+	<div class="flex min-h-[92px] flex-col justify-between gap-2 rounded-[22px] bg-surface p-3.5 shadow-card">
+		<p class="text-[32px] leading-[1.1] font-extrabold tracking-tight">
+			{value}{#if unit}<small class="ml-[3px] text-[15px] font-semibold tracking-normal text-ink-2">{unit}</small>{/if}
+		</p>
+		<p class="text-xs font-semibold text-ink-2">{caption}</p>
+	</div>
+{/snippet}
