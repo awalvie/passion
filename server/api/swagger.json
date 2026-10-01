@@ -3255,6 +3255,12 @@
           "x-go-name": "Color",
           "example": "#5d86c9"
         },
+        "icon": {
+          "description": "An icon for the session: a lowercase name from the client's set. The\nclient draws the first letter of the session's name for one it lacks.",
+          "type": "string",
+          "x-go-name": "Icon",
+          "example": "dumbbell"
+        },
         "name": {
           "description": "Up to 200 characters.",
           "type": "string",
@@ -3305,6 +3311,10 @@
         "color": {
           "type": "string",
           "x-go-name": "Color"
+        },
+        "icon": {
+          "type": "string",
+          "x-go-name": "Icon"
         },
         "id": {
           "type": "string",

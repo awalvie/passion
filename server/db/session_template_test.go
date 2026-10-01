@@ -29,6 +29,7 @@ func TestCleanSessionTemplateFields(t *testing.T) {
 	f, problems := db.SessionTemplateFields{
 		Name:  " Power ",
 		Color: ptr("#5D86C9"),
+		Icon:  ptr(" dumbbell "),
 		Notes: ptr(" "),
 		Body: db.SessionBody{Sections: []db.Section{{
 			Name: " Warm-up ",
@@ -42,8 +43,8 @@ func TestCleanSessionTemplateFields(t *testing.T) {
 	if len(problems) != 0 {
 		t.Fatalf("problems %v", problems)
 	}
-	if f.Name != "Power" || f.Notes != nil || *f.Color != "#5d86c9" {
-		t.Fatalf("name %q, notes %v, color %q", f.Name, f.Notes, *f.Color)
+	if f.Name != "Power" || f.Notes != nil || *f.Color != "#5d86c9" || *f.Icon != "dumbbell" {
+		t.Fatalf("name %q, notes %v, color %q, icon %q", f.Name, f.Notes, *f.Color, *f.Icon)
 	}
 	if f.Tags == nil {
 		t.Fatal("tags are nil, want an empty list")
@@ -62,6 +63,7 @@ func TestCleanSessionTemplateProblems(t *testing.T) {
 
 	_, problems := db.SessionTemplateFields{
 		Color: ptr("blue"),
+		Icon:  ptr("Dumbbell!"),
 		Body: db.SessionBody{Sections: []db.Section{{
 			Items: []db.Item{
 				{},
@@ -76,6 +78,7 @@ func TestCleanSessionTemplateProblems(t *testing.T) {
 
 	want := []string{
 		"color",
+		"icon",
 		"name",
 		"sections[0].items[0]",
 		"sections[0].items[1]",

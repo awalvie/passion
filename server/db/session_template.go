@@ -21,6 +21,7 @@ type SessionTemplateFields struct {
 	Notes  *string
 	Source *string
 	Color  *string
+	Icon   *string
 	Needs  *string
 	Tags   []string
 	Body   SessionBody
@@ -61,6 +62,7 @@ type Step struct {
 
 var (
 	hexColor = regexp.MustCompile(`^#[0-9a-f]{6}$`)
+	iconName = regexp.MustCompile(`^[a-z0-9-]{1,32}$`)
 	uuidText = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 )
 
@@ -82,6 +84,11 @@ func (f SessionTemplateFields) Clean() (SessionTemplateFields, map[string]string
 		if !hexColor.MatchString(lower) {
 			problems["color"] = "must look like #5d86c9"
 		}
+	}
+
+	f.Icon = optional(f.Icon)
+	if f.Icon != nil && !iconName.MatchString(*f.Icon) {
+		problems["icon"] = "must be an icon name, such as dumbbell"
 	}
 
 	sections := []Section{}
@@ -165,6 +172,7 @@ type SessionTemplate struct {
 	Notes  *string     `db:"notes"`
 	Source *string     `db:"source"`
 	Color  *string     `db:"color"`
+	Icon   *string     `db:"icon"`
 	Needs  *string     `db:"needs"`
 	Tags   []string    `db:"tags"`
 	Body   SessionBody `db:"body"`
@@ -239,6 +247,7 @@ func (f SessionTemplateFields) args() pgx.NamedArgs {
 		"notes":  f.Notes,
 		"source": f.Source,
 		"color":  f.Color,
+		"icon":   f.Icon,
 		"needs":  f.Needs,
 		"tags":   f.Tags,
 		"body":   f.Body,
@@ -254,8 +263,8 @@ func CreateSessionTemplate(ctx context.Context, pool *pgxpool.Pool, owner string
 	args := f.args()
 	args["owner"] = owner
 	rows, err := pool.Query(ctx, `
-		INSERT INTO session_template (owner, name, notes, source, color, needs, tags, body)
-		VALUES (@owner, @name, @notes, @source, @color, @needs, @tags, @body)
+		INSERT INTO session_template (owner, name, notes, source, color, icon, needs, tags, body)
+		VALUES (@owner, @name, @notes, @source, @color, @icon, @needs, @tags, @body)
 		RETURNING *`, args)
 	if err != nil {
 		return SessionTemplate{}, fmt.Errorf("insert session template: %w", err)
@@ -305,7 +314,7 @@ func UpdateSessionTemplate(ctx context.Context, pool *pgxpool.Pool, owner, id st
 	args["id"] = id
 	rows, err := pool.Query(ctx, `
 		UPDATE session_template SET
-			name = @name, notes = @notes, source = @source, color = @color,
+			name = @name, notes = @notes, source = @source, color = @color, icon = @icon,
 			needs = @needs, tags = @tags, body = @body
 		WHERE id = @id AND owner = @owner
 		RETURNING *`, args)

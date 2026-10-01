@@ -27,6 +27,12 @@ type sessionTemplateRequest struct {
 	// example: #5d86c9
 	Color *string `json:"color"`
 
+	// An icon for the session: a lowercase name from the client's set. The
+	// client draws the first letter of the session's name for one it lacks.
+	//
+	// example: dumbbell
+	Icon *string `json:"icon"`
+
 	// What the session needs to run.
 	//
 	// example: a hangboard and a bar
@@ -113,6 +119,7 @@ type sessionTemplateResponse struct {
 	Notes    *string       `json:"notes"`
 	Source   *string       `json:"source"`
 	Color    *string       `json:"color"`
+	Icon     *string       `json:"icon"`
 	Needs    *string       `json:"needs"`
 	Tags     []string      `json:"tags"`
 	Sections []sectionBody `json:"sections"`
@@ -322,6 +329,7 @@ func (req sessionTemplateRequest) fields() db.SessionTemplateFields {
 		Notes:  req.Notes,
 		Source: req.Source,
 		Color:  req.Color,
+		Icon:   req.Icon,
 		Needs:  req.Needs,
 		Tags:   req.Tags,
 		Body:   db.SessionBody{Sections: sections},
@@ -400,6 +408,7 @@ func toSessionTemplateResponse(t db.SessionTemplate) sessionTemplateResponse {
 		Notes:     t.Notes,
 		Source:    t.Source,
 		Color:     t.Color,
+		Icon:      t.Icon,
 		Needs:     t.Needs,
 		Tags:      t.Tags,
 		Sections:  toSectionBodies(t.Body),

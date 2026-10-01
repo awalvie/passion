@@ -46,6 +46,7 @@ items:
 		"sessions/power.yaml": `id: ` + sessionID + `
 name: Power
 color: '#5D86C9'
+icon: hand
 items:
     - block: warm_up
     - block: warm_up
@@ -61,7 +62,7 @@ items:
 	}
 
 	s := sessions[0]
-	if s.Slug != "power" || s.FileID != sessionID || *s.Fields.Color != "#5d86c9" {
+	if s.Slug != "power" || s.FileID != sessionID || *s.Fields.Color != "#5d86c9" || *s.Fields.Icon != "hand" {
 		t.Fatalf("slug %q, id %q, color %q", s.Slug, s.FileID, *s.Fields.Color)
 	}
 	if len(s.Fields.Body.Sections) != 2 || s.Fields.Body.Sections[1].Name != "Warm-up" {
