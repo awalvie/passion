@@ -120,6 +120,16 @@
 	const isOpen = (i: number) => chosen[i] ?? i === section;
 
 	let editing = $state(false);
+
+	let naming = $state(false);
+	let sectionName = $state('');
+
+	function addSection(e: SubmitEvent) {
+		e.preventDefault();
+		openRun.addSection(sectionName.trim());
+		sectionName = '';
+		naming = false;
+	}
 </script>
 
 {#snippet remove(label: string, onclick: () => void)}
@@ -232,6 +242,12 @@
 				</ul>
 			{/if}
 		{/each}
+		<div class="mt-5">
+			<Button variant="secondary" onclick={() => (naming = true)}>
+				<Icon name="plus" />
+				Add section
+			</Button>
+		</div>
 	</div>
 {:else}
 	<div class="flex flex-col px-4 pt-1 pb-[calc(env(safe-area-inset-bottom)+7rem)]">
@@ -437,6 +453,16 @@
 			picking = false;
 		}}
 	/>
+</Sheet>
+
+<Sheet bind:open={naming} title="Add section">
+	<form onsubmit={addSection}>
+		<label class="block text-xs font-semibold text-ink-2" for="section-name">Name</label>
+		<input id="section-name" class="mt-1.5 w-full input" maxlength="200" required bind:value={sectionName} />
+		<div class="mt-4">
+			<Button type="submit" disabled={!sectionName.trim()}>Add section</Button>
+		</div>
+	</form>
 </Sheet>
 
 {#if !editing && !run.finished_at && (current || steps.length)}
