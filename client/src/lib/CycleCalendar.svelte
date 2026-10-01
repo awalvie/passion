@@ -148,6 +148,7 @@
 						onclick={() => {
 							if (performance.now() - droppedAt < 500) return;
 							chosen = date;
+							error = '';
 						}}
 					>
 						<span class="text-xs font-bold {inCycle(date) ? (date === today ? 'text-ink' : 'text-ink-2') : 'text-ink-3/50'}">
