@@ -170,7 +170,7 @@
 			<a href="/plan/cycles/{draft.id}" class="font-bold text-link underline">Open the cycle</a>
 		</p>
 	{:else}
-		<div class="flex gap-2">
+		<div class="flex items-center gap-2">
 			{#if step === 2}
 				<div class="w-28 shrink-0"><Button variant="secondary" href="?step=3">Skip</Button></div>
 			{/if}
