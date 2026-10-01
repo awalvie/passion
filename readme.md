@@ -119,6 +119,7 @@ the handlers and the OpenAPI document is at `/api/openapi.json`.
 | `PUT` | `/api/v1/runs/{id}/steps/{step}/sets` | Replace one step's sets |
 | `PUT` | `/api/v1/runs/{id}/climbs/{climb}` | Write one climb, under an id the client chose |
 | `DELETE` | `/api/v1/runs/{id}/climbs/{climb}` | Remove one climb |
+| `GET` | `/api/v1/climbs?from=&to=` | Every climb in your finished runs between two dates |
 | `GET` | `/api/v1/grades` | Every grade scale, easiest grade first |
 | `GET` | `/api/v1/cycles` | Your cycles, latest start first |
 | `GET` | `/api/v1/cycles/{id}` | One cycle |

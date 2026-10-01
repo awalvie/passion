@@ -283,6 +283,35 @@ func pruneClimbs(ctx context.Context, tx pgx.Tx, runID string, body RunBody) err
 	return nil
 }
 
+// DatedClimb is a climb with the run it was logged in and that run's day.
+type DatedClimb struct {
+	Climb
+
+	Run       string    `db:"run_id"`
+	LocalDate time.Time `db:"local_date"`
+}
+
+// ListClimbs is every climb in the person's finished runs from one day to
+// another, both included, by day and then in the order they were climbed.
+func ListClimbs(ctx context.Context, pool *pgxpool.Pool, owner string, from, to time.Time) ([]DatedClimb, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT `+climbColumns+`, run_id, local_date
+		FROM climb
+		JOIN (
+			SELECT id AS run_id, local_date, started_at FROM run
+			WHERE owner = $1 AND finished_at IS NOT NULL AND local_date BETWEEN $2 AND $3
+		) r ON climb.run = r.run_id
+		ORDER BY local_date, started_at, run_id, position, created_at, id`, owner, from, to)
+	if err != nil {
+		return nil, fmt.Errorf("select climbs: %w", err)
+	}
+	list, err := pgx.CollectRows(rows, pgx.RowToStructByName[DatedClimb])
+	if err != nil {
+		return nil, fmt.Errorf("read climbs: %w", err)
+	}
+	return list, nil
+}
+
 // runClimbs lists a run's climbs in the order they were climbed.
 func runClimbs(ctx context.Context, q querier, runID string) ([]Climb, error) {
 	rows, err := q.Query(ctx, `SELECT `+climbColumns+` FROM climb WHERE run = $1 ORDER BY position, created_at, id`, runID)
