@@ -1,9 +1,17 @@
+<script lang="ts" module>
+	// Where each page was scrolled to, and the top page each tab was last on,
+	// so a tab opens where you left it.
+	const scrolled = new Map<string, number>();
+	const left = new Map<number, string>();
+</script>
+
 <script lang="ts">
+	import { beforeNavigate, goto } from '$app/navigation';
 	import { navigating, page } from '$app/state';
 	import { formatDuration } from './exercise';
 	import Icon from './Icon.svelte';
 	import { secondsSince, type RunSummary } from './run';
-	import { tabOf, tabs } from './tabs';
+	import { tabOf, tabs, under } from './tabs';
 	import { readTimers } from './timerStore';
 
 	// live is the open session, shown as a strip on top of the tabs.
@@ -21,6 +29,32 @@
 
 	// The pill moves on the tap, before the next page has loaded.
 	const active = $derived(tabOf(navigating.to?.url.pathname ?? page.url.pathname));
+
+	beforeNavigate(({ from }) => {
+		if (!from) return;
+		const at = from.url.pathname + from.url.search;
+		scrolled.set(at, scrollY);
+		const i = tabOf(from.url.pathname);
+		if (i >= 0 && tabs[i].roots.includes(from.url.pathname)) left.set(i, at);
+	});
+
+	// A tap on another tab opens it where you left it. A tap on the open tab
+	// goes up to its top page, or to the top of that page.
+	async function open(e: MouseEvent, i: number) {
+		if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+		e.preventDefault();
+		const t = tabs[i];
+		const here = page.url.pathname;
+		if (i !== active) {
+			const to = left.get(i) ?? t.href;
+			await goto(to, { noScroll: true });
+			scrollTo(0, scrolled.get(to) ?? 0);
+		} else if (t.roots.includes(here)) {
+			scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+		} else {
+			await goto(t.roots.find((r) => under(here, r)) ?? t.href);
+		}
+	}
 </script>
 
 <nav
@@ -57,6 +91,7 @@
 				href={t.href}
 				class="relative flex flex-col items-center gap-0.5 text-xs font-bold {i === active ? 'text-ink' : 'text-ink-2'}"
 				aria-current={i === active ? 'page' : undefined}
+				onclick={(e) => open(e, i)}
 			>
 				<span class="flex h-8 w-14 items-center justify-center rounded-full transition-colors duration-300 {i === active ? 'text-on-tint' : ''}">
 					<Icon name={t.icon} size="1.375rem" />
