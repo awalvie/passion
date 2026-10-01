@@ -3,6 +3,8 @@
 	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
+	import CycleYear from '$lib/CycleYear.svelte';
+	import { cycleWeek } from '$lib/dates';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import type { ScheduledDay } from '$lib/plan';
@@ -219,18 +221,37 @@
 			<Button variant="secondary" onclick={openAdd}>Add a session</Button>
 		{/if}
 	{:else}
-		<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-2 shadow-card">
-			<h2 class="mb-1 text-[15px] font-bold">Cycles</h2>
+		{#if data.cycles.length}
+			<CycleYear cycles={data.cycles} today={data.today} />
+		{/if}
+		<section class="rounded-3xl bg-surface px-[18px] pt-2 pb-2 shadow-card">
 			{#if data.cycles.length}
 				<ul>
 					{#each data.cycles as c (c.id)}
+						{@const state = c.ends < data.today ? 'past' : c.starts > data.today ? 'next' : 'now'}
 						<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 							<a href="/plan/cycles/{c.id}" class="flex min-h-[58px] items-center gap-3 py-2">
+								<span
+									class="size-2.5 shrink-0 rounded-full {state === 'now'
+										? 'bg-live shadow-[0_0_0_4px_var(--live-halo)]'
+										: state === 'next'
+											? 'shadow-[inset_0_0_0_1.5px_var(--ink-3)]'
+											: 'bg-ink-3 opacity-50'}"
+									aria-hidden="true"
+								></span>
 								<span class="min-w-0 flex-1">
 									<span class="block truncate text-[15px] font-bold">{c.name}</span>
-									<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{short(c.starts)} – {short(c.ends)}</span>
+									<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
+										{short(c.starts)} – {short(c.ends)}{state === 'now'
+											? ` · week ${cycleWeek(c.starts, c.ends, data.today).week} of ${cycleWeek(c.starts, c.ends, data.today).of}`
+											: ''}
+									</span>
 								</span>
-								<span class="text-ink-3"><Icon name="chevron-right" size="1rem" /></span>
+								{#if state === 'now'}
+									<span class="shrink-0 rounded-xl bg-live px-2.5 py-[5px] text-xs font-bold text-on-live">Now</span>
+								{:else}
+									<span class="text-ink-3"><Icon name="chevron-right" size="1rem" /></span>
+								{/if}
 							</a>
 						</li>
 					{/each}
