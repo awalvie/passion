@@ -40,7 +40,7 @@
 	{#if sources.length || tags.length || filtered}
 		<div class="flex flex-wrap items-center gap-2">
 			{#if sources.length}
-				<select bind:value={f.source} aria-label="Source" class="input min-h-10 max-w-full min-w-0 flex-1 rounded-full px-4 py-0 font-bold sm:flex-none">
+				<select bind:value={f.source} aria-label="Source" class="input min-h-11 max-w-full min-w-0 flex-1 rounded-full px-4 py-0 font-bold sm:flex-none">
 					<option value="">All sources</option>
 					{#each sources as s (s)}
 						<option value={s}>{s}</option>
@@ -48,7 +48,7 @@
 				</select>
 			{/if}
 			{#if tags.length}
-				<select bind:value={f.tag} aria-label="Labels" class="input min-h-10 max-w-full min-w-0 flex-1 rounded-full px-4 py-0 font-bold sm:flex-none">
+				<select bind:value={f.tag} aria-label="Labels" class="input min-h-11 max-w-full min-w-0 flex-1 rounded-full px-4 py-0 font-bold sm:flex-none">
 					<option value="">All labels</option>
 					{#each tags as t (t)}
 						<option value={t}>{t}</option>
@@ -56,7 +56,7 @@
 				</select>
 			{/if}
 			{#if filtered}
-				<button type="button" class="flex h-10 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-link shadow-card-sm" onclick={clear}>Clear</button>
+				<button type="button" class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-link shadow-card-sm" onclick={clear}>Clear</button>
 			{/if}
 		</div>
 	{/if}

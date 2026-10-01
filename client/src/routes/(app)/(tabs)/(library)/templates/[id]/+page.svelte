@@ -86,7 +86,7 @@
 		{#if !locked}
 			<a
 				href="/templates/{t.id}/edit"
-				class="flex h-10 items-center gap-1.5 rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm"
+				class="flex h-11 items-center gap-1.5 rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm"
 			>
 				<Icon name="pencil" size="0.875rem" />
 				Edit

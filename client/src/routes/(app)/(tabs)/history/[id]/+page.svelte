@@ -75,7 +75,7 @@
 
 <NavBar title={run.name} heading={false} back={{ href: '/history', label: 'History' }}>
 	{#snippet actions()}
-		<a href="/run/{run.id}" class="flex h-10 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm">Edit</a>
+		<a href="/run/{run.id}" class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm">Edit</a>
 	{/snippet}
 </NavBar>
 
