@@ -51,6 +51,23 @@
 		}
 	}
 
+	async function remove(d: ScheduledDay) {
+		const warning = d.cycle
+			? ' It comes back if you change the dates, the block or the days of its cycle.'
+			: '';
+		if (!confirm(`Take ${d.template_name} off this day?${warning}`)) return;
+		busy = true;
+		rowError = { id: '', message: '' };
+		try {
+			await request('DELETE', `/api/v1/scheduled-sessions/${d.id}`);
+			await invalidateAll();
+		} catch (e) {
+			rowError = { id: d.id, message: describe(e, (f) => labels[f] ?? f) };
+		} finally {
+			busy = false;
+		}
+	}
+
 	const dates = $derived.by(() => {
 		const out: { date: string; days: ScheduledDay[] }[] = [];
 		for (const d of data.days) {
@@ -115,6 +132,9 @@
 											</button>
 										</div>
 										<FormError message={rowError.id === d.id ? rowError.message : ''} />
+										<button type="button" class="h-11 self-start text-base font-semibold text-bad" disabled={busy} onclick={() => remove(d)}>
+											Remove
+										</button>
 									</form>
 								</details>
 							{:else}
