@@ -2,6 +2,7 @@
 	import { distinct, kindOf, kinds, sourcesOf } from '$lib/exercise';
 	import { urlFilters } from '$lib/filters.svelte';
 	import Icon from '$lib/Icon.svelte';
+	import LibrarySearch from '$lib/LibrarySearch.svelte';
 
 	let { data } = $props();
 
@@ -30,49 +31,19 @@
 
 <svelte:head><title>Exercises</title></svelte:head>
 
-<div class="card card-pad">
-	<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-		<div>
-			<h1 class="text-xl font-bold">Exercise library</h1>
-			<p class="mt-1 text-sm muted">The exercises you can add to any session template.</p>
-		</div>
-		<a
-			class="inline-flex items-center justify-center rounded-md btn-primary px-4 py-2 text-sm font-medium"
-			href="/exercises/new"
-		>
-			New exercise
-		</a>
-	</div>
+<div class="flex flex-col gap-3.5">
+	<LibrarySearch bind:value={f.q} placeholder="Search exercises" label="Search exercises" />
 
-	<!-- Search owns row 1. The selects sit two to a row below sm and inline above it,
-	     because four on one phone row clip their own text. -->
-	<div class="mt-4 flex flex-wrap items-end gap-2">
-		<div class="w-full sm:flex-1" style="min-width:10rem">
-			<input
-				type="search"
-				bind:value={f.q}
-				placeholder="Search exercises..."
-				aria-label="Search exercises"
-				class="input text-sm"
-				autocomplete="off"
-			/>
-		</div>
-		<select
-			bind:value={f.kind}
-			aria-label="Type"
-			class="input text-sm w-[calc(50%-0.25rem)] min-w-0 sm:w-auto sm:min-w-[8rem]"
-		>
+	<!-- Two selects to a row on a phone: four on one row clip their own text. -->
+	<div class="flex flex-wrap items-center gap-2">
+		<select bind:value={f.kind} aria-label="Type" class="input min-h-10 w-[calc(50%-0.25rem)] min-w-0 rounded-full px-4 py-0 font-bold sm:w-auto">
 			<option value="">All types</option>
 			{#each kinds as k (k.kind)}
 				<option value={k.kind}>{k.label}</option>
 			{/each}
 		</select>
 		{#if sources.length}
-			<select
-				bind:value={f.source}
-				aria-label="Source"
-				class="input text-sm w-[calc(50%-0.25rem)] min-w-0 sm:w-auto sm:min-w-[8rem]"
-			>
+			<select bind:value={f.source} aria-label="Source" class="input min-h-10 w-[calc(50%-0.25rem)] min-w-0 rounded-full px-4 py-0 font-bold sm:w-auto">
 				<option value="">All sources</option>
 				{#each sources as s (s)}
 					<option value={s}>{s}</option>
@@ -80,11 +51,7 @@
 			</select>
 		{/if}
 		{#if tags.length}
-			<select
-				bind:value={f.tag}
-				aria-label="Labels"
-				class="input text-sm w-[calc(50%-0.25rem)] min-w-0 sm:w-auto sm:min-w-[8rem]"
-			>
+			<select bind:value={f.tag} aria-label="Labels" class="input min-h-10 w-[calc(50%-0.25rem)] min-w-0 rounded-full px-4 py-0 font-bold sm:w-auto">
 				<option value="">All labels</option>
 				{#each tags as t (t)}
 					<option value={t}>{t}</option>
@@ -92,80 +59,40 @@
 			</select>
 		{/if}
 		{#if filtered}
-			<button type="button" class="rounded-md px-3 py-2 text-xs muted hover:underline" onclick={clear}>
+			<button type="button" class="flex h-10 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-link shadow-card-sm" onclick={clear}>
 				Clear
 			</button>
 		{/if}
 	</div>
 
-	{#if shown.length}
-		<!-- Mobile: a two-line card with no source, because a 303px row cannot hold a
-		     source chip and still show the name. -->
-		<div class="mt-3 space-y-1.5 md:hidden">
-			{#each shown as e (e.id)}
-				<div
-					class="relative rounded-lg border px-3 py-2"
-					style="border-color:var(--border);background:var(--panel)"
-				>
-					<a href="/exercises/{e.id}" class="lib-row no-underline after:absolute after:inset-0">
-						<span class="sr-only">{kindOf(e.kind).label}. </span>
-						<span class="lib-row-glyph muted"><Icon name={kindOf(e.kind).icon} size="0.875rem" /></span>
-						<span class="lib-row-name text-sm font-medium truncate">{e.name}</span>
-						{#if e.tags.length}
-							<span class="lib-row-labels text-[11px] muted truncate">{e.tags.join(' · ')}</span>
-						{/if}
-					</a>
-				</div>
-			{/each}
-		</div>
+	<div class="flex items-center justify-between px-1 pt-1">
+		<h2 class="text-xs font-semibold text-ink-2">Exercise library</h2>
+		<span class="text-xs font-semibold text-ink-2">{shown.length} {shown.length === 1 ? 'exercise' : 'exercises'}</span>
+	</div>
 
-		<!-- Desktop: a fixed table, so an empty cell still lines up its neighbours.
-		     The source column fits the widest source on one line. -->
-		<div class="mt-4 hidden md:block">
-			<table class="w-full text-sm table-fixed">
-				<colgroup>
-					<col style="width:2rem" />
-					<col />
-					<col style="width:15rem" />
-					<col style="width:12rem" />
-				</colgroup>
-				<thead>
-					<tr class="text-left text-xs font-semibold muted">
-						<th class="px-2 py-2"><span class="sr-only">Type</span></th>
-						<th class="px-3 py-2">Name</th>
-						<th class="px-3 py-2">Labels</th>
-						<th class="px-3 py-2">Source</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each shown as e (e.id)}
-						<tr class="divider relative">
-							<td class="px-2 py-2 align-middle muted" title={kindOf(e.kind).label}>
-								<Icon name={kindOf(e.kind).icon} size="0.875rem" />
-							</td>
-							<td class="px-3 py-2 align-middle">
-								<a
-									class="text-sm font-medium link hover:underline after:absolute after:inset-0"
-									href="/exercises/{e.id}">{e.name}</a
-								>
-							</td>
-							<td class="px-3 py-2 align-middle text-[11px] muted truncate">{e.tags.join(' · ')}</td>
-							<td class="px-3 py-2 align-middle">
-								{#if e.source}
-									<span
-										class="inline-flex max-w-full items-center gap-1 truncate text-[11px] font-medium px-1.5 py-0.5 rounded"
-										style="background:var(--accent-bg);color:var(--accent)"
-									>
-										<Icon name="book-marked" size="0.6rem" />{e.source}
-									</span>
-								{/if}
-							</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
+	{#if shown.length}
+		<ul class="rounded-3xl bg-surface py-1 shadow-card">
+			{#each shown as e (e.id)}
+				<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+					<a href="/exercises/{e.id}" class="flex min-h-16 items-center gap-3.5 py-2.5 pr-3 pl-3.5">
+						<span class="sr-only">{kindOf(e.kind).label}. </span>
+						<span class="flex size-10 shrink-0 items-center justify-center rounded-[14px] bg-well text-ink" title={kindOf(e.kind).label}>
+							<Icon name={kindOf(e.kind).icon} size="1.25rem" />
+						</span>
+						<span class="min-w-0 flex-1">
+							<span class="block truncate text-[15px] font-bold">{e.name}</span>
+							{#if e.tags.length || e.source}
+								<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
+									{[...e.tags, e.source].filter(Boolean).join(' · ')}
+								</span>
+							{/if}
+						</span>
+						<svg viewBox="0 0 24 24" class="size-[18px] shrink-0 text-ink-3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+					</a>
+				</li>
+			{/each}
+		</ul>
 	{:else}
-		<p class="px-3 py-6 text-center text-sm muted">No exercises match your search.</p>
+		<p class="rounded-3xl bg-surface p-[18px] text-center text-[15px] font-semibold text-ink-2 shadow-card">No exercises match your search.</p>
 	{/if}
 </div>
