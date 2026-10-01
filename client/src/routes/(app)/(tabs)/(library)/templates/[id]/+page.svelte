@@ -2,6 +2,8 @@
 	import { goto } from '$app/navigation';
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
+	import { saveCentre, type Centre } from '$lib/centres';
+	import { haptic } from '$lib/haptics';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import Menu, { type MenuItem } from '$lib/Menu.svelte';
@@ -73,6 +75,25 @@
 		}
 	}
 
+	// A tap on a centre says whether this session can be done there.
+	let centres = $state<Centre[]>([]);
+	$effect.pre(() => {
+		centres = structuredClone($state.snapshot(data.centres));
+	});
+
+	async function toggleCentre(i: number) {
+		const before = $state.snapshot(centres[i]);
+		const on = before.sessions.includes(t.id);
+		centres[i].sessions = on ? before.sessions.filter((s) => s !== t.id) : [...before.sessions, t.id];
+		error = '';
+		try {
+			await saveCentre($state.snapshot(centres[i]));
+		} catch (e) {
+			centres[i] = before;
+			error = describe(e, () => 'That centre');
+		}
+	}
+
 	const menu = $derived<MenuItem[]>([
 		{ label: 'Duplicate', onclick: duplicate },
 		...(locked ? [] : [{ label: 'Retire', danger: true, onclick: retire }])
@@ -133,6 +154,28 @@
 		Start
 	</Button>
 	<FormError message={error} />
+
+	<section class="flex flex-col gap-2">
+		<h2 class="px-1 text-[15px] font-bold">Where you can do it</h2>
+		{#if centres.length}
+			<div class="flex flex-wrap gap-2">
+				{#each centres as c, i (c.id)}
+					{@const on = c.sessions.includes(t.id)}
+					<button
+						type="button"
+						class="h-11 max-w-full truncate rounded-full px-4 text-[15px] font-bold {on ? 'bg-ink text-ground' : 'bg-surface text-ink shadow-card-sm'}"
+						aria-pressed={on}
+						onclick={() => toggleCentre(i)}
+						use:haptic
+					>
+						{c.name}
+					</button>
+				{/each}
+			</div>
+		{:else}
+			<a href="/profile" class="flex min-h-11 items-center px-1 text-xs font-semibold text-ink-2">Add your climbing centres in Profile</a>
+		{/if}
+	</section>
 
 	<TemplatePlan sections={t.sections} />
 </div>
