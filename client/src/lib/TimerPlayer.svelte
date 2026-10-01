@@ -160,7 +160,14 @@
 	});
 
 	// Darker fields and glass than the tokens so text passes 4.5:1 when read from the floor.
-	const light = { ink: 'text-[#F6F9F4]', ink2: 'text-[#F6F9F4]/90', glass: 'bg-black/20', ring: 'text-[#F6F9F4]/74' };
+	const light = {
+		ink: 'text-[#F6F9F4]',
+		ink2: 'text-[#F6F9F4]/90',
+		glass: 'bg-black/20',
+		ring: 'text-[#F6F9F4]/74',
+		accent: '',
+		band: 'bg-black/15'
+	};
 	const looks = {
 		prep: {
 			...light,
@@ -174,17 +181,24 @@
 			ink2: 'text-on-hang/70',
 			glass: 'bg-on-hang/10',
 			ring: 'text-on-hang/70',
+			accent: '',
+			band: 'bg-black/15',
 			field: 'bg-hang',
 			card: 'bg-on-hang',
 			digit: 'text-[#C6F05B] dark:text-[#BFEA55]',
 			split: 'bg-hang'
 		},
 		rest: {
-			...light,
-			field: 'bg-[#095c37] dark:bg-[#0A6A3F]',
-			card: 'bg-[#04311D] dark:bg-[#032717]',
-			digit: 'text-[#EAF7EE] dark:text-[#DDF2E4]',
-			split: 'bg-[#095c37] dark:bg-[#0A6A3F]'
+			ink: 'text-ink',
+			ink2: 'text-ink/65',
+			glass: 'bg-ink/7 dark:bg-ink/8',
+			ring: 'text-ink/65',
+			accent: 'text-rest-ink',
+			band: 'bg-rest-soft',
+			field: 'bg-ground',
+			card: 'bg-rest-card',
+			digit: 'text-rest-digit',
+			split: 'bg-ground'
 		}
 	};
 
@@ -210,7 +224,7 @@
 		aria-label="{labels[phase.kind]} timer"
 	>
 		<div
-			class="absolute inset-x-0 bottom-0 bg-black/15 shadow-[0_-2px_0_rgba(0,0,0,0.08)]"
+			class="absolute inset-x-0 bottom-0 shadow-[0_-2px_0_rgba(0,0,0,0.08)] {look.band}"
 			style="height: {(pos.left / phase.ms) * 100}%"
 			aria-hidden="true"
 		></div>
@@ -236,7 +250,7 @@
 			</div>
 			<div class="flex flex-col gap-2 px-4 empty:hidden"><SaveStatus /></div>
 
-			<p class="flex items-center gap-3 px-6 pt-2 font-[family-name:var(--font-digits)] text-[52px] leading-none font-bold tracking-[0.04em] uppercase">
+			<p class="flex items-center gap-3 px-6 pt-2 {look.accent} font-[family-name:var(--font-digits)] text-[52px] leading-none font-bold tracking-[0.04em] uppercase">
 				<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 					{#if phase.kind === 'prep'}
 						<path d="M6.5 3.5h11M6.5 20.5h11" /><path d="M8 3.5c0 5 8 5 8 8.5s-8 3.5-8 8.5M16 3.5c0 5-8 5-8 8.5s8 3.5 8 8.5" />
