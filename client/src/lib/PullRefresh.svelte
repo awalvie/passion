@@ -8,18 +8,21 @@
 	const mark = 72;
 	let pull = $state(0);
 	let busy = $state(false);
+	let startX = 0;
 	let startY: number | null = null;
 
 	function start(e: TouchEvent) {
 		if (busy || scrollY > 0 || e.touches.length > 1 || document.querySelector('dialog[open]')) return;
 		if ((e.target as Element).closest('[data-date]')) return;
+		startX = e.touches[0].clientX;
 		startY = e.touches[0].clientY;
 	}
 
 	function move(e: TouchEvent) {
 		if (startY === null) return;
 		const dy = e.touches[0].clientY - startY;
-		pull = dy > 0 && scrollY <= 0 ? Math.min(mark * 1.5, dy * 0.5) : 0;
+		const dx = Math.abs(e.touches[0].clientX - startX);
+		pull = dy > dx && scrollY <= 0 ? Math.min(mark * 1.5, dy * 0.5) : 0;
 	}
 
 	async function end() {
