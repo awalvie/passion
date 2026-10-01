@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { tone, unlock } from './audio';
 	import Button from './Button.svelte';
+	import Icon from './Icon.svelte';
 	import Menu from './Menu.svelte';
 	import SaveStatus from './SaveStatus.svelte';
 	import { summary } from './exercise';
@@ -321,7 +322,7 @@
 			</div>
 
 			<div class="mx-4 mt-[18px] flex h-14 items-center gap-2 rounded-full pr-1.5 pl-3.5 text-xl font-bold tracking-[-0.01em] {look.glass}">
-				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="shrink-0" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+				<Icon name="chevron-right" size="18px" />
 				<span class="min-w-0 flex-1 truncate">{nextText}</span>
 				<button
 					type="button"

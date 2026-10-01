@@ -2,6 +2,7 @@
 	import { untrack } from 'svelte';
 	import { request } from './api';
 	import Button from './Button.svelte';
+	import Icon from './Icon.svelte';
 	import RestCard from './RestCard.svelte';
 	import { isFinished, setsOf, type HistorySession, type RunStep, type SetFields } from './run';
 	import { openRun } from './runState.svelte';
@@ -140,7 +141,7 @@
 								<span class="font-bold">{pair[0].reps !== null ? `${pair[0].reps} reps` : pair[0].weight_kg === null ? 'Done' : ''}</span>
 								<span class="flex-1 font-semibold text-ink-2">{pair[0].weight_kg !== null ? `${pair[0].weight_kg} kg` : ''}</span>
 							{/if}
-							<svg viewBox="0 0 24 24" class="size-[18px] shrink-0 text-ink-3 transition-transform {editing === i ? 'rotate-90' : ''}" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+							<span class="shrink-0 text-ink-3 transition-transform {editing === i ? 'rotate-90' : ''}"><Icon name="chevron-right" size="18px" /></span>
 						</button>
 						{#if editing === i}
 							<section class="mx-1.5 mb-1.5 flex flex-col gap-2 rounded-[20px] bg-well p-2.5 dark:bg-[#1F2721]">
