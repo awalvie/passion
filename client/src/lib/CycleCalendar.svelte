@@ -51,9 +51,9 @@
 	let error = $state('');
 	let hold: ReturnType<typeof setTimeout> | undefined;
 	let start = { x: 0, y: 0 };
-	// The click that ends a drag lands on the day it started from; it must not
-	// choose that day.
-	let dropped = false;
+	// The click that ends a drag lands on the day it started from, sometimes
+	// well after the drop; it must not choose that day.
+	let droppedAt = 0;
 
 	const movable = (d: ScheduledDay) => d.status === 'planned' && d.local_date >= today;
 	const target = (date: string) => inCycle(date) && date >= today && date !== lifted?.local_date;
@@ -99,8 +99,7 @@
 		const to = over;
 		lifted = null;
 		over = '';
-		dropped = d !== null;
-		setTimeout(() => (dropped = false));
+		if (d) droppedAt = performance.now();
 		if (!d || !to) return;
 		chosen = to;
 		try {
@@ -147,8 +146,8 @@
 							? `: ${list.map((d) => d.template_name).join(', ')}`
 							: ''}"
 						onclick={() => {
-							if (dropped) dropped = false;
-							else chosen = date;
+							if (performance.now() - droppedAt < 500) return;
+							chosen = date;
 						}}
 					>
 						<span class="text-xs font-bold {inCycle(date) ? (date === today ? 'text-ink' : 'text-ink-2') : 'text-ink-3/50'}">
