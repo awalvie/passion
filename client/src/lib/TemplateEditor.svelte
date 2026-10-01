@@ -199,7 +199,7 @@
 					{#each sessionIcons as [icon, label] (icon)}
 						<button
 							type="button"
-							class="flex size-10 items-center justify-center rounded-full {draft.icon === icon
+							class="flex size-11 items-center justify-center rounded-full {draft.icon === icon
 								? 'bg-ink text-ground'
 								: 'bg-well text-ink-2'}"
 							title={label}
