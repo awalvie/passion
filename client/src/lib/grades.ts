@@ -22,6 +22,12 @@ export function loadGrades() {
 	return cached;
 }
 
+// forgetGrades drops the fetched scales and account, after the account's
+// scales change.
+export function forgetGrades() {
+	cached = null;
+}
+
 // scaleFor is the scale the account grades a boulder or a route in.
 export function scaleFor(g: Grades, account: Account, boulder: boolean): Scale | undefined {
 	const system = boulder ? account.boulder_grades : account.route_grades;
