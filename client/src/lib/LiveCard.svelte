@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import Button from './Button.svelte';
+	import { formatDuration } from './exercise';
 	import Menu from './Menu.svelte';
 	import { currentStep, isFinished, secondsSince, setsOf, type Run } from './run';
 	import { formatClock, readTimers } from './timerStore';
@@ -69,7 +70,7 @@
 	<div class="relative flex flex-col p-5">
 		<div class="-mt-1.5 -mr-1.5 flex items-center justify-between">
 			<p class="flex items-center gap-2.5 text-xs font-semibold tracking-[0.06em] uppercase">
-				<i class="size-2.5 rounded-full bg-live shadow-[0_0_0_5px_var(--live-halo)]"></i>Live · {minutes} min
+				<i class="size-2.5 rounded-full bg-live shadow-[0_0_0_5px_var(--live-halo)]"></i>Live · {formatDuration(Math.max(1, minutes) * 60)}
 			</p>
 			<Menu
 				look="bg-white/10 text-on-hero"
