@@ -61,8 +61,13 @@
 		const key = `${pos.index}:${secs}`;
 		if (key === played) return;
 		const fresh = phase.ms - pos.left < 1000;
-		if (fresh && phase.kind === 'hang') tone(1046, 300);
-		else if (fresh) tone(523, 200);
+		if (fresh && phase.kind === 'hang') {
+			tone(1046, 300);
+			navigator.vibrate?.(300);
+		} else if (fresh) {
+			tone(523, 200);
+			navigator.vibrate?.(150);
+		}
 		else if (secs <= 3) tone(784, 80);
 		played = key;
 	});

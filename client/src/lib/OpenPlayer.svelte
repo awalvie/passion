@@ -32,7 +32,10 @@
 	// A countdown logs its full time and ends by itself.
 	$effect(() => {
 		if (timed && target && ms >= target) {
-			if (ms - target < 2000) tone(1046, 400);
+			if (ms - target < 2000) {
+				tone(1046, 400);
+				navigator.vibrate?.(400);
+			}
 			done(target);
 		}
 	});
