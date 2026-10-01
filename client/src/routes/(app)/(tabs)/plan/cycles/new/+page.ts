@@ -10,5 +10,5 @@ export async function load() {
 		request<{ session_templates: SessionTemplate[] }>('GET', '/api/v1/session-templates')
 	]);
 	const cycle: Cycle = { id: newId(), name: '', starts: today, ends: addDays(today, 27), block_days: 7, block_from: today, days: [], goals: [], notes: null };
-	return { cycle, templates: session_templates };
+	return { cycle, today, templates: session_templates };
 }
