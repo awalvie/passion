@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Segmented from '$lib/Segmented.svelte';
 	import { goto } from '$app/navigation';
 	import { request } from '$lib/api';
 	import { setSound, soundOn } from '$lib/audio';
@@ -43,18 +44,7 @@
 	<section class="rounded-3xl bg-surface px-[18px] py-2 shadow-card">
 		<div class="flex flex-col gap-2.5 py-3">
 			<h2 class="text-[15px] font-bold">Theme</h2>
-			<div class="grid grid-cols-3 gap-1 rounded-full bg-well p-1">
-				{#each themes as t (t.value)}
-					<button
-						type="button"
-						class="h-10 rounded-full text-[15px] font-bold {theme === t.value ? 'bg-tint text-on-tint' : 'text-ink-2'}"
-						aria-pressed={theme === t.value}
-						onclick={() => setTheme(t.value)}
-					>
-						{t.label}
-					</button>
-				{/each}
-			</div>
+			<Segmented label="Theme" items={themes.map((t) => ({ label: t.label, on: theme === t.value, onclick: () => setTheme(t.value) }))} />
 		</div>
 
 		<label class="flex min-h-[58px] cursor-pointer items-center justify-between gap-3 py-2 text-[15px] font-bold shadow-[inset_0_1px_0_var(--line)]">

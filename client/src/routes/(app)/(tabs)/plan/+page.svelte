@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Segmented from '$lib/Segmented.svelte';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
@@ -186,19 +187,14 @@
 		{/if}
 	</header>
 
-	<nav class="grid grid-cols-2 gap-1 rounded-full bg-well p-1" aria-label="Plan">
-		{#each [{ label: 'Schedule', href: '/plan', on: !cyclesView }, { label: 'Cycles', href: '/plan?view=cycles', on: cyclesView }] as v (v.label)}
-			<a
-				href={v.href}
-				data-sveltekit-replacestate
-				data-sveltekit-noscroll
-				class="flex h-11 items-center justify-center rounded-full text-[15px] font-bold {v.on ? 'bg-surface text-ink shadow-card-sm' : 'text-ink-2'}"
-				aria-current={v.on ? 'page' : undefined}
-			>
-				{v.label}
-			</a>
-		{/each}
-	</nav>
+	<Segmented
+		label="Plan"
+		replace
+		items={[
+			{ label: 'Schedule', href: '/plan', on: !cyclesView },
+			{ label: 'Cycles', href: '/plan?view=cycles', on: cyclesView }
+		]}
+	/>
 
 	{#if data.offline}
 		<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold text-ink-2 shadow-card">No signal. The plan needs one to load.</p>
