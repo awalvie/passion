@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -24,6 +25,10 @@ type Cycle struct {
 	Ends      time.Time `db:"ends"`
 	BlockDays int       `db:"block_days"`
 	Body      CycleBody `db:"body"`
+	Goals     []Goal    `db:"goals"`
+	Before    []string  `db:"before_entries"`
+	After     []string  `db:"after_entries"`
+	Notes     *string   `db:"notes"`
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
 }
@@ -37,6 +42,12 @@ type CycleBody struct {
 type CycleDay struct {
 	Day      int    `json:"day"`
 	Template string `json:"template"`
+}
+
+// Goal is a line the person sets out to reach, ticked off when reached.
+type Goal struct {
+	Text string `json:"text"`
+	Done bool   `json:"done"`
 }
 
 // Slot is one session on one date.
@@ -66,6 +77,10 @@ type CycleFields struct {
 	Ends      time.Time
 	BlockDays int
 	Body      CycleBody
+	Goals     []Goal
+	Before    []string
+	After     []string
+	Notes     *string
 }
 
 func (f CycleFields) Clean() (CycleFields, map[string]string) {
@@ -82,6 +97,22 @@ func (f CycleFields) Clean() (CycleFields, map[string]string) {
 	if f.BlockDays < 1 || (length >= 1 && f.BlockDays > length) {
 		problems["block_days"] = "must be 1 or more, and no longer than the cycle"
 	}
+
+	goals := []Goal{}
+	for _, g := range f.Goals {
+		g.Text = strings.TrimSpace(g.Text)
+		if g.Text == "" {
+			continue
+		}
+		if utf8.RuneCountInString(g.Text) > maxName {
+			problems[fmt.Sprintf("goals[%d]", len(goals))] = "is too long"
+		}
+		goals = append(goals, g)
+	}
+	f.Goals = goals
+	f.Before = cleanTags(f.Before)
+	f.After = cleanTags(f.After)
+	f.Notes = optional(f.Notes)
 
 	if f.Body.Days == nil {
 		f.Body.Days = []CycleDay{}
@@ -152,11 +183,15 @@ func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cycle
 	// cycle that does not exist. old is the row as it stood before, even when
 	// a second create of the same id waited on the first.
 	rows, err := tx.Query(ctx, `
-		INSERT INTO cycle (id, owner, name, starts, ends, block_days, body)
-		VALUES (@id, @owner, @name, @starts, @ends, @block_days, @body)
+		INSERT INTO cycle (id, owner, name, starts, ends, block_days, body,
+			goals, before_entries, after_entries, notes)
+		VALUES (@id, @owner, @name, @starts, @ends, @block_days, @body,
+			@goals, @before, @after, @notes)
 		ON CONFLICT (id) DO UPDATE SET
 			name = excluded.name, starts = excluded.starts, ends = excluded.ends,
-			block_days = excluded.block_days, body = excluded.body
+			block_days = excluded.block_days, body = excluded.body,
+			goals = excluded.goals, before_entries = excluded.before_entries,
+			after_entries = excluded.after_entries, notes = excluded.notes
 		WHERE cycle.owner = excluded.owner
 		RETURNING new.*, old.starts AS old_starts, old.ends AS old_ends,
 			old.block_days AS old_block_days, old.body AS old_body`, pgx.NamedArgs{
@@ -167,6 +202,10 @@ func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cycle
 		"ends":       f.Ends,
 		"block_days": f.BlockDays,
 		"body":       f.Body,
+		"goals":      f.Goals,
+		"before":     f.Before,
+		"after":      f.After,
+		"notes":      f.Notes,
 	})
 	if err != nil {
 		return Cycle{}, nil, fmt.Errorf("write cycle: %w", err)
