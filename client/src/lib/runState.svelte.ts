@@ -202,6 +202,15 @@ class OpenRun {
 		this.saveBody();
 	}
 
+	// removeStep drops a step nothing was logged against, and any set write
+	// still waiting for it, which the server would refuse.
+	removeStep(id: string) {
+		const run = this.run!;
+		for (const section of run.sections) section.items = section.items.filter((it) => it.step?.id !== id);
+		this.writes = this.writes.filter((w) => w.url !== `/api/v1/runs/${run.id}/steps/${id}/sets`);
+		this.saveBody();
+	}
+
 	// logTimer logs the blocks a running timer finished, including those after
 	// the person left its step.
 	logTimer() {
