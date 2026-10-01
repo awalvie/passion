@@ -25,10 +25,15 @@
 	--topo: rgba(21, 32, 26, 0.07);
 	--glow-1: rgba(190, 230, 120, 0.5);
 	--glow-2: rgba(244, 200, 160, 0.5);
-	--prep: #2a72ec;
+	/* Darker than the mock's #2a72ec so the timer's text passes 4.5:1. */
+	--prep: #1a50b8;
 	--prep-band: #11409e;
+	--prep-card: #0d2a66;
+	--prep-digit: #f3f7ff;
 	--hang: #c6f05b;
 	--hang-band: #a8d63b;
+	--hang-digit: #c6f05b;
+	--on-timer: #f6f9f4;
 	--on-hang: #15201a;
 	--rest: #0d8450;
 	--rest-soft: #dbebdf;
@@ -69,8 +74,12 @@
 	--glow-2: rgba(60, 120, 110, 0.16);
 	--prep: #1e5bc9;
 	--prep-band: #16489f;
+	--prep-card: #091e4b;
+	--prep-digit: #e8efff;
 	--hang: #aeda45;
 	--hang-band: #8fba2b;
+	--hang-digit: #bfea55;
+	--on-timer: #f6f9f4;
 	--on-hang: #101812;
 	--rest: #12a061;
 	--rest-soft: #11291c;

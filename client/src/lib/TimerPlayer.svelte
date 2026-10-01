@@ -163,22 +163,22 @@
 		return `Then ${then(upcoming)}`;
 	});
 
-	// Darker fields and glass than the tokens so text passes 4.5:1 when read from the floor.
+	// A darker glass than the mock so text passes 4.5:1 when read from the floor.
 	const light = {
-		ink: 'text-[#F6F9F4]',
-		ink2: 'text-[#F6F9F4]/90',
+		ink: 'text-on-timer',
+		ink2: 'text-on-timer/90',
 		glass: 'bg-black/20',
-		ring: 'text-[#F6F9F4]/74',
+		ring: 'text-on-timer/74',
 		accent: ''
 	};
 	const looks = {
 		prep: {
 			...light,
 			band: 'bg-prep-band',
-			field: 'bg-[#1a50b8] dark:bg-prep',
-			card: 'bg-[#0D2A66] dark:bg-[#091E4B]',
-			digit: 'text-[#F3F7FF] dark:text-[#E8EFFF]',
-			split: 'bg-[#1a50b8] dark:bg-prep'
+			field: 'bg-prep',
+			card: 'bg-prep-card',
+			digit: 'text-prep-digit',
+			split: 'bg-prep'
 		},
 		hang: {
 			ink: 'text-on-hang',
@@ -189,7 +189,7 @@
 			band: 'bg-hang-band',
 			field: 'bg-hang',
 			card: 'bg-on-hang',
-			digit: 'text-[#C6F05B] dark:text-[#BFEA55]',
+			digit: 'text-hang-digit',
 			split: 'bg-hang'
 		},
 		rest: {
