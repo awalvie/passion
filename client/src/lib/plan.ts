@@ -11,6 +11,16 @@ export type ScheduledDay = {
 	status: 'done' | 'started' | 'missed' | 'planned';
 };
 
+// The shape of server/api/cycle.go's cycleResponse.
+export type Cycle = {
+	id: string;
+	name: string;
+	starts: string;
+	ends: string;
+	block_days: number;
+	days: { day: number; template: string }[];
+};
+
 // The shape of server/api/auth.go's accountResponse.
 export type Account = {
 	id: string;
