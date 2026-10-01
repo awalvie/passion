@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
 	import BlockDays from '$lib/BlockDays.svelte';
+	import BlockLength from '$lib/BlockLength.svelte';
 	import CycleCalendar from '$lib/CycleCalendar.svelte';
 	import Button from '$lib/Button.svelte';
 	import { addDays, cycleWeek, daysBetween, formatDate } from '$lib/dates';
@@ -275,40 +276,35 @@
 			save();
 		}}
 	>
-		<div class="flex flex-col gap-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
-			{#if editing === 'name'}
-				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
-					Name
-					<input class="input h-12 px-4" bind:value={draft.name} required maxlength="200" />
-				</label>
-			{:else if editing === 'dates'}
-				<div class="grid grid-cols-2 gap-3">
+		{#if editing === 'block'}
+			<BlockLength bind:value={draft.block_days} max={daysBetween(draft.starts, draft.ends) + 1} />
+			<BlockDays bind:days={draft.days} blockDays={draft.block_days} from={blockFrom} templates={data.templates} />
+			<p class="px-1 text-xs font-semibold text-ink-2">Planned days from today on are set again, so a session you moved goes back.</p>
+		{:else}
+			<div class="flex flex-col gap-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
+				{#if editing === 'name'}
 					<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
-						Starts
-						<DateField bind:value={draft.starts} label="Starts" disabled={begun} />
+						Name
+						<input class="input h-12 px-4" bind:value={draft.name} required maxlength="200" />
 					</label>
-					<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
-						Ends
-						<DateField bind:value={draft.ends} label="Ends" min={draft.starts} />
-					</label>
-				</div>
-				{#if begun}
-					<p class="text-xs font-semibold text-ink-2">The start stays: the cycle has begun.</p>
+				{:else if editing === 'dates'}
+					<div class="grid grid-cols-2 gap-3">
+						<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
+							Starts
+							<DateField bind:value={draft.starts} label="Starts" disabled={begun} />
+						</label>
+						<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
+							Ends
+							<DateField bind:value={draft.ends} label="Ends" min={draft.starts} />
+						</label>
+					</div>
+					{#if begun}
+						<p class="text-xs font-semibold text-ink-2">The start stays: the cycle has begun.</p>
+					{/if}
+					<p class="text-xs font-semibold text-ink-2">Planned days from today on are set again, so a session you moved goes back.</p>
 				{/if}
-			{:else if editing === 'block'}
-				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
-					Repeats every
-					<span class="flex items-center gap-2 text-[15px] font-bold text-ink">
-						<input class="input h-12 w-20 px-4 text-center" type="number" inputmode="numeric" min="1" max="28" bind:value={draft.block_days} required />
-						days
-					</span>
-				</label>
-				<BlockDays bind:days={draft.days} blockDays={draft.block_days} from={blockFrom} templates={data.templates} />
-			{/if}
-			{#if editing !== 'name'}
-				<p class="text-xs font-semibold text-ink-2">Planned days from today on are set again, so a session you moved goes back.</p>
-			{/if}
-		</div>
+			</div>
+		{/if}
 		<FormError message={editError} />
 		<div class="grid grid-cols-2 items-center gap-2">
 			<Button variant="secondary" onclick={() => (open = false)}>Cancel</Button>
