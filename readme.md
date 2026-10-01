@@ -53,6 +53,7 @@ Every screen has the look of `passion-design/final/designs/direction`, in light 
   A climb is a send when it is graded and was an onsight, flash or redpoint.
 - Grades come in Font and V for boulders, French and YDS for routes. Your account says which
   the client offers first.
+- Keep a list of climbing centres, each with the sessions you can do there.
 - Plan a cycle: a block of days that repeats between two dates, with sessions on some of its
   days. The app places each session on the dates it falls, from today on. Move one day, take
   one out, or schedule a one-off by hand. A day gone by with no run shows as missed.
@@ -85,7 +86,8 @@ For development, `make watch` reloads both halves. Vite serves the client on
 3. Open Passion from the Home Screen and sign in there. The Home Screen app keeps its own
    storage, so a sign-in in Safari does not carry over.
 
-Timer tones play once you tap Start. Turn them off in Settings, from the gear on Today.
+Timer tones play once you tap Start. Turn them off, and haptics too, in Profile, from the gear
+on Today.
 
 ## API
 
@@ -125,6 +127,9 @@ the handlers and the OpenAPI document is at `/api/openapi.json`.
 | `GET` | `/api/v1/cycles/{id}` | One cycle |
 | `PUT` | `/api/v1/cycles/{id}` | Create or replace a cycle, under an id the client chose |
 | `DELETE` | `/api/v1/cycles/{id}` | Delete a cycle and the days it placed. Runs stay |
+| `GET` | `/api/v1/centres` | Your climbing centres, by name |
+| `PUT` | `/api/v1/centres/{id}` | Create or replace a centre, under an id the client chose |
+| `DELETE` | `/api/v1/centres/{id}` | Delete a centre |
 | `GET` | `/api/v1/scheduled-sessions?from=&to=` | Your calendar, with each day's status |
 | `POST` | `/api/v1/scheduled-sessions` | Schedule a one-off session |
 | `PUT` | `/api/v1/scheduled-sessions/{id}` | Move a session to another day |
