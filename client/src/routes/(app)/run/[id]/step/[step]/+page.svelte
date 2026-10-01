@@ -14,7 +14,7 @@
 	import { canTime } from '$lib/timeline';
 	import TimerPlayer from '$lib/TimerPlayer.svelte';
 	import { keepAwake } from '$lib/wakeLock';
-	import { climbsOf, isFinished, nextStep, setsOf, stepsOf } from '$lib/run';
+	import { climbsOf, isFinished, nextStep, secondsSince, setsOf, stepsOf } from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
 	import { stepMeta } from '$lib/template';
 	import { plainText } from '$lib/text';
@@ -36,6 +36,12 @@
 
 	const howTo = $derived(plainText(step?.notes ?? ''));
 	const media = $derived(step?.media.find((m) => m.thumb_url));
+
+	let now = $state(Date.now());
+	$effect(() => {
+		const tick = setInterval(() => (now = Date.now()), 30_000);
+		return () => clearInterval(tick);
+	});
 
 	let noting = $state(false);
 
@@ -100,7 +106,11 @@
 			{#if section}<p class="text-xs font-semibold tracking-[0.06em] text-ink-2 uppercase">{section.name}</p>{/if}
 			<h1 class="mt-0.5 text-[32px] leading-[1.1] font-extrabold tracking-tight">{step.name}</h1>
 			<p class="mt-1 text-[15px] font-semibold text-ink-2">
-				{stepMeta(step)}{step.kind === 'climbing' ? ` · ${logged} ${logged === 1 ? 'climb' : 'climbs'} logged` : ''}
+				{#if step.kind === 'climbing'}
+					{logged} {logged === 1 ? 'climb' : 'climbs'} logged · {Math.floor(secondsSince(run.started_at, now) / 60)} min in
+				{:else}
+					{stepMeta(step)}
+				{/if}
 			</p>
 		</header>
 

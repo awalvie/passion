@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import Button from './Button.svelte';
 	import PlayerStepFrame from './PlayerStepFrame.svelte';
 	import { loadGrades, scaleFor, type Grades } from './grades';
@@ -45,6 +46,10 @@
 		{ value: 'hangdog', label: 'Hangdog', route: true },
 		{ value: 'working', label: 'Working' }
 	];
+
+	const disciplines: Record<Discipline, string> = { boulder: 'Boulder', sport: 'Sport', trad: 'Trad' };
+	const settings = { indoor: 'Indoor', outdoor: 'Outdoor' };
+	const ropes = { lead: 'Lead', top_rope: 'Top rope', auto_belay: 'Auto belay', follow: 'Follow' };
 
 	const shown = $derived(outcomes.filter((o) => !o.route || !boulder));
 
@@ -126,38 +131,50 @@
 	</button>
 {/snippet}
 
-<div class="flex h-12 items-center rounded-full bg-well dark:bg-surface">
+{#snippet pill(label: string, select: Snippet)}
+	<span class="relative flex h-full min-w-0 flex-1 items-center justify-center gap-1 rounded-full text-[15px] font-bold text-ink has-focus-visible:outline-2 has-focus-visible:outline-ink">
+		<span class="truncate">{label}</span>
+		<svg viewBox="0 0 24 24" class="size-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+		{@render select()}
+	</span>
+{/snippet}
+
+{#snippet disciplineSelect()}
 	<select
-		class="input h-full flex-1 rounded-full border-0 bg-transparent bg-[position:right_0.5rem_center] px-2 pr-6 text-center text-[15px] font-bold text-ink"
+		class="input absolute inset-0 h-full min-h-0 cursor-pointer opacity-0"
 		aria-label="Discipline"
 		value={discipline}
 		onchange={(e) => setDiscipline(e.currentTarget.value as Discipline)}
 	>
-		<option value="boulder">Boulder</option>
-		<option value="sport">Sport</option>
-		<option value="trad">Trad</option>
+		{#each Object.entries(disciplines) as [value, label] (value)}
+			<option {value}>{label}</option>
+		{/each}
 	</select>
+{/snippet}
+
+{#snippet settingSelect()}
+	<select class="input absolute inset-0 h-full min-h-0 cursor-pointer opacity-0" aria-label="Indoor or outdoor" bind:value={setting}>
+		{#each Object.entries(settings) as [value, label] (value)}
+			<option {value}>{label}</option>
+		{/each}
+	</select>
+{/snippet}
+
+{#snippet ropeSelect()}
+	<select class="input absolute inset-0 h-full min-h-0 cursor-pointer opacity-0" aria-label="Rope" bind:value={ropeStyle}>
+		{#each Object.entries(ropes) as [value, label] (value)}
+			<option {value}>{label}</option>
+		{/each}
+	</select>
+{/snippet}
+
+<div class="flex h-12 items-center rounded-full bg-well dark:bg-surface">
+	{@render pill(disciplines[discipline], disciplineSelect)}
 	{@render divider()}
-	<select
-		class="input h-full flex-1 rounded-full border-0 bg-transparent bg-[position:right_0.5rem_center] px-2 pr-6 text-center text-[15px] font-bold text-ink"
-		aria-label="Indoor or outdoor"
-		bind:value={setting}
-	>
-		<option value="indoor">Indoor</option>
-		<option value="outdoor">Outdoor</option>
-	</select>
+	{@render pill(settings[setting], settingSelect)}
 	{#if !boulder}
 		{@render divider()}
-		<select
-			class="input h-full flex-1 rounded-full border-0 bg-transparent bg-[position:right_0.5rem_center] px-2 pr-6 text-center text-[15px] font-bold text-ink"
-			aria-label="Rope"
-			bind:value={ropeStyle}
-		>
-			<option value="lead">Lead</option>
-			<option value="top_rope">Top rope</option>
-			<option value="auto_belay">Auto belay</option>
-			<option value="follow">Follow</option>
-		</select>
+		{@render pill(ropes[ropeStyle as keyof typeof ropes] ?? ropeStyle, ropeSelect)}
 	{/if}
 </div>
 
