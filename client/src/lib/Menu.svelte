@@ -27,20 +27,20 @@
 <div class="relative" bind:this={root}>
 	<button
 		type="button"
-		class="flex size-11 items-center justify-center text-tint"
+		class="flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"
 		aria-label={label}
 		aria-expanded={open}
 		onclick={() => (open = !open)}
 	>
-		<Icon name="ellipsis" size="1.5rem" />
+		<Icon name="ellipsis" size="1.25rem" />
 	</button>
 	{#if open}
-		<ul class="absolute top-full right-0 z-50 min-w-48 overflow-hidden rounded-xl bg-surface shadow-lg">
+		<ul class="absolute top-full right-0 z-50 mt-2 min-w-52 overflow-hidden rounded-3xl bg-surface shadow-card">
 			{#each items as item (item.label)}
 				<li class="border-line [&:not(:first-child)]:border-t">
 					<button
 						type="button"
-						class="w-full px-4 py-3 text-left text-base {item.danger ? 'text-bad' : 'text-ink'}"
+						class="w-full px-5 py-3.5 text-left text-[15px] font-bold {item.danger ? 'text-bad' : 'text-ink'}"
 						onclick={() => choose(item)}
 					>
 						{item.label}

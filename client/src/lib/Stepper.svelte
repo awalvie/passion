@@ -1,4 +1,6 @@
 <script lang="ts">
+	import PlayerStepFrame from './PlayerStepFrame.svelte';
+
 	let {
 		value = $bindable(),
 		label,
@@ -14,28 +16,13 @@
 	}
 </script>
 
-<div class="flex flex-col items-center gap-1">
-	<span class="text-sm text-ink-2">{label}</span>
-	<div class="flex items-center gap-1">
-		<button
-			type="button"
-			class="flex size-11 shrink-0 items-center justify-center rounded-full bg-line text-2xl text-ink"
-			aria-label="Less {label}"
-			onclick={() => by(-step)}>−</button
-		>
-		<input
-			type="number"
-			inputmode={step % 1 ? 'decimal' : 'numeric'}
-			class="w-16 [appearance:textfield] bg-transparent text-center text-3xl font-semibold tabular-nums text-ink outline-none [&::-webkit-inner-spin-button]:appearance-none"
-			aria-label={label}
-			{placeholder}
-			bind:value
-		/>
-		<button
-			type="button"
-			class="flex size-11 shrink-0 items-center justify-center rounded-full bg-line text-2xl text-ink"
-			aria-label="More {label}"
-			onclick={() => by(step)}>+</button
-		>
-	</div>
-</div>
+<PlayerStepFrame {label} chars={String(value ?? placeholder).length} less={() => by(-step)} more={() => by(step)}>
+	<input
+		type="number"
+		inputmode={step % 1 ? 'decimal' : 'numeric'}
+		class="w-full min-w-0 [appearance:textfield] bg-transparent text-center text-[1em] leading-[1.05] font-extrabold tracking-tight text-ink outline-none placeholder:text-ink-3 [&::-webkit-inner-spin-button]:appearance-none"
+		aria-label={label}
+		{placeholder}
+		bind:value
+	/>
+</PlayerStepFrame>
