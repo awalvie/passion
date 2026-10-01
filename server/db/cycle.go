@@ -202,7 +202,8 @@ func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cycle
 			name = excluded.name, starts = excluded.starts, ends = excluded.ends,
 			block_days = excluded.block_days, body = excluded.body,
 			block_from = CASE
-				WHEN excluded.block_days <> cycle.block_days AND @today::date > cycle.starts THEN @today::date
+				WHEN excluded.block_days <> cycle.block_days AND @today::date > cycle.starts
+					AND @today::date <= excluded.ends THEN @today::date
 				WHEN excluded.starts <> cycle.starts THEN excluded.starts
 				ELSE cycle.block_from
 			END,
