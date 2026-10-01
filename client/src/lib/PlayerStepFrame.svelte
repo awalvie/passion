@@ -20,6 +20,7 @@
 
 	function hold(e: PointerEvent, step: () => void) {
 		if (e.button > 0) return;
+		clearTimeout(timer);
 		held = false;
 		const next = (wait: number) => {
 			timer = setTimeout(() => {
