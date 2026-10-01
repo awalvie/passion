@@ -65,7 +65,7 @@
 	{/snippet}
 </NavBar>
 
-<form class="flex flex-col gap-3.5 px-4 pt-1 pb-[calc(env(safe-area-inset-bottom)+5rem)]" onsubmit={next}>
+<form class="flex min-h-[calc(100dvh-4rem)] flex-col gap-3.5 px-4 pt-1" onsubmit={next}>
 	<ol class="grid grid-cols-3 gap-1.5" aria-hidden="true">
 		{#each [1, 2, 3] as s (s)}
 			<li class="h-1 rounded-full {s <= step ? 'bg-ink' : 'bg-well'}"></li>
@@ -140,7 +140,7 @@
 	{/if}
 
 	<FormError message={error} />
-	<div class="flex items-center gap-2">
+	<div class="sticky bottom-0 -mx-4 mt-auto flex items-center gap-2 bg-ground px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
 		{#if step === 2}
 			<div class="w-28 shrink-0"><Button variant="secondary" href="?step=3">Skip</Button></div>
 		{/if}
