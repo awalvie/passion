@@ -256,6 +256,9 @@ Mobile-first. `md:` (768px) is the primary breakpoint.
 These are the one way each part is drawn in `client/src`. Use them; do not redraw them.
 
 - Page title: `text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]`.
+- Section heading above a card: `text-xl font-bold` on a tab page (Today, Plan, Library),
+  `text-[15px] font-bold` on a page about one thing or a task page. A count beside it is
+  `text-xs font-semibold text-ink-2`, on the same baseline.
 - List divider: an inset hairline on every row after the first,
   `[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]`. No `border-t` or `divide-y`.
 - Icons: `lib/Icon.svelte`, never an inline `<svg>` for a shape it has. `stroke` sets the
