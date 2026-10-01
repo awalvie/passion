@@ -479,7 +479,7 @@
 			</a>
 			<div class="min-w-0 flex-1">
 				<Button variant="live" href="/run/{run.id}/step/{current.id}">
-					<svg viewBox="0 0 24 24" class="size-[18px]" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" /></svg>
+					<Icon name="play" size="18px" />
 					Continue
 				</Button>
 			</div>

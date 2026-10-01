@@ -128,7 +128,7 @@
 						>
 							<img src={media.thumb_url} alt="" class="absolute inset-0 size-full object-cover" />
 							<span class="relative flex size-7 items-center justify-center rounded-full bg-white/90 pl-0.5 text-on-tint">
-								<svg viewBox="0 0 24 24" class="size-3.5" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" /></svg>
+								<Icon name="play" size="0.875rem" />
 							</span>
 						</a>
 					{/if}

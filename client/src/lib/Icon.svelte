@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	type Shape =
-		| ['path', { d: string }]
+		| ['path', { d: string; fill?: string; stroke?: string }]
 		| ['circle', { cx: string; cy: string; r: string }]
 		| ['line', { x1: string; x2: string; y1: string; y2: string }]
 		| ['rect', { width: string; height: string; x: string; y: string; rx: string; ry?: string }];
@@ -109,7 +109,8 @@
 		],
 		'chevron-left': [['path', { d: 'm15 18-6-6 6-6' }]],
 		'chevron-right': [['path', { d: 'm9 18 6-6-6-6' }]],
-		play: [['path', { d: 'M6 3 20 12 6 21Z' }]],
+		// Filled, unlike lucide's, as play buttons are drawn.
+		play: [['path', { d: 'M8 5.5v13l10.5-6.5z', fill: 'currentColor', stroke: 'none' }]],
 		repeat: [
 			['path', { d: 'm17 2 4 4-4 4' }],
 			['path', { d: 'M3 11v-1a4 4 0 0 1 4-4h14' }],
