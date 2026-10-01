@@ -157,15 +157,6 @@ body {
 	}
 }
 
-@keyframes load {
-	from {
-		translate: -100%;
-	}
-	to {
-		translate: 300%;
-	}
-}
-
 /* Page arrivals; see the root layout. The tab bar stays where it is. */
 @keyframes from-right {
 	from {
@@ -213,10 +204,10 @@ body {
 :root[data-nav='back']::view-transition-new(root) {
 	animation: from-left var(--slide);
 }
-:root[data-nav='tab']::view-transition-old(root) {
+:root:is([data-nav='tab'], [data-nav='fade'])::view-transition-old(root) {
 	animation: fade-out 150ms ease both;
 }
-:root[data-nav='tab']::view-transition-new(root) {
+:root:is([data-nav='tab'], [data-nav='fade'])::view-transition-new(root) {
 	animation: fade-in 150ms ease both;
 }
 ::view-transition-group(tabbar),
@@ -232,6 +223,20 @@ body {
 }
 ::view-transition-new(tabbar):only-child {
 	animation: fade-in 150ms ease both;
+}
+.arrive-forward {
+	animation: from-right var(--slide);
+}
+.arrive-back {
+	animation: from-left var(--slide);
+}
+.arrive-tab {
+	animation: fade-in 150ms ease both;
+}
+@media (prefers-reduced-motion: reduce) {
+	[class*='arrive-'] {
+		animation: none;
+	}
 }
 
 /* iOS zooms into any field under 16px when it takes focus. */
