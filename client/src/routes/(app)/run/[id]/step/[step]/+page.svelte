@@ -35,7 +35,7 @@
 	$effect(() => keepAwake());
 
 	const howTo = $derived(plainText(step?.notes ?? ''));
-	const media = $derived(step?.media.find((m) => m.thumb_url));
+	const media = $derived(step?.media?.find((m) => m.thumb_url && m.url));
 
 	let now = $state(Date.now());
 	$effect(() => {
