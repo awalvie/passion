@@ -244,7 +244,7 @@
 					href="/run/{runId}"
 					class="inline-flex h-11 items-center gap-0.5 rounded-full pr-4 pl-2.5 text-[15px] font-bold {look.glass}"
 				>
-					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+					<Icon name="chevron-left" size="20px" stroke={2.4} />
 					Session
 				</a>
 				<Menu
