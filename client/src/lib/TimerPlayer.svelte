@@ -117,6 +117,7 @@
 	}
 
 	async function endSession() {
+		if (!timed) return;
 		endExercise();
 		await goto(`/run/${runId}/finish`);
 	}
@@ -126,6 +127,7 @@
 
 	function holdStart(e: PointerEvent) {
 		if (e.button !== 0) return;
+		clearTimeout(held);
 		holding = true;
 		held = setTimeout(endSession, 1000);
 	}
@@ -134,6 +136,8 @@
 		holding = false;
 		clearTimeout(held);
 	}
+
+	$effect(() => holdStop);
 
 	const labels = { prep: 'Prep', hang: 'Hang', rest: 'Rest' };
 
