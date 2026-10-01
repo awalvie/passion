@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import PullRefresh from '$lib/PullRefresh.svelte';
 	import TabBar from '$lib/TabBar.svelte';
 
 	let { data, children } = $props();
@@ -10,6 +11,8 @@
 	// Today shows the open session as a card, so it needs no strip.
 	const live = $derived(page.url.pathname === '/' ? null : data.live);
 </script>
+
+<PullRefresh />
 
 <!-- --above-bar is where a bar stuck to the bottom of a page, or a toast, sits
      clear of the tab bar and the open session's strip. -->

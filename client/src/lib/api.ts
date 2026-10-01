@@ -81,6 +81,12 @@ export async function request<T>(
 	return JSON.parse(text);
 }
 
+// forget drops every kept answer, so the next GET asks the server.
+export function forget() {
+	writes++;
+	kept.clear();
+}
+
 // unreachable says a request never got an answer from Passion: no signal, or
 // a proxy in front of it answering for a server it cannot reach.
 export function unreachable(e: unknown): boolean {
