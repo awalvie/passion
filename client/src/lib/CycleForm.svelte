@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { untrack } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import { describe, request } from './api';
 	import Button from './Button.svelte';
 	import { addDays, weekday } from './dates';
@@ -8,7 +8,11 @@
 	import type { Cycle } from './plan';
 	import type { SessionTemplate } from './template';
 
-	let { cycle, templates }: { cycle: Cycle; templates: SessionTemplate[] } = $props();
+	let {
+		cycle,
+		templates,
+		children
+	}: { cycle: Cycle; templates: SessionTemplate[]; children?: Snippet } = $props();
 
 	// The form edits a copy, and keeps the id it opened with, so a retry after a
 	// lost answer replaces the same cycle.
@@ -132,4 +136,5 @@
 		</p>
 	{/if}
 	<Button type="submit" disabled={busy}>Save cycle</Button>
+	{@render children?.()}
 </form>
