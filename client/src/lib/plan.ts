@@ -46,6 +46,8 @@ export function plannedDays(
 	today: string
 ): { date: string; template: string }[] {
 	const out: { date: string; template: string }[] = [];
+	// A date field is empty while it is being typed in.
+	if (!c.starts || !c.ends || !(c.block_days >= 1)) return out;
 	for (const d of c.days) {
 		if (d.day > c.block_days) continue;
 		for (let date = addDays(c.starts, d.day - 1); date <= c.ends; date = addDays(date, c.block_days)) {
