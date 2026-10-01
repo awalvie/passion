@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { RequestFailed, describe, request } from '$lib/api';
+	import Button from '$lib/Button.svelte';
 	import FormError from '$lib/FormError.svelte';
+	import Topo from '$lib/Topo.svelte';
+	import { topTopo } from '$lib/topo';
 	import { setToken } from '$lib/session';
 
 	type SignedUp = { token: { token: string } };
@@ -53,15 +56,19 @@
 
 <svelte:head><title>Sign up</title></svelte:head>
 
-<section class="card card-pad mx-4 mt-[calc(env(safe-area-inset-top)+2rem)]">
-	<h1 class="text-xl font-bold">Sign up</h1>
-	<p class="text-sm muted mt-1">Create your account to save personal workouts.</p>
+<Topo
+	shape={topTopo}
+	class="absolute inset-x-0 top-0 h-80 w-full text-[var(--topo)] [mask-image:linear-gradient(#000_30%,transparent)]"
+/>
+<section class="relative mx-auto flex max-w-[430px] flex-col px-4 pt-[calc(env(safe-area-inset-top)+4rem)] pb-8">
+	<h1 class="text-[32px] leading-tight font-extrabold tracking-tight">Sign up</h1>
+	<p class="mt-1 text-[15px] font-semibold text-ink-2">Create your account to save personal workouts.</p>
 
 	<FormError message={error} />
 
-	<form class="mt-4 space-y-3" onsubmit={signUp}>
+	<form class="mt-6 flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-card" onsubmit={signUp}>
 		<div>
-			<label for="display_name" class="text-xs muted">Name</label>
+			<label for="display_name" class="text-xs font-bold text-ink-2">Name</label>
 			<input
 				id="display_name"
 				name="display_name"
@@ -72,7 +79,7 @@
 			/>
 		</div>
 		<div>
-			<label for="email" class="text-xs muted">Email</label>
+			<label for="email" class="text-xs font-bold text-ink-2">Email</label>
 			<input
 				id="email"
 				name="email"
@@ -84,7 +91,7 @@
 			/>
 		</div>
 		<div>
-			<label for="password" class="text-xs muted">Password</label>
+			<label for="password" class="text-xs font-bold text-ink-2">Password</label>
 			<input
 				id="password"
 				name="password"
@@ -98,7 +105,7 @@
 			/>
 		</div>
 		<div>
-			<label for="password_confirm" class="text-xs muted">Confirm password</label>
+			<label for="password_confirm" class="text-xs font-bold text-ink-2">Confirm password</label>
 			<input
 				id="password_confirm"
 				name="password_confirm"
@@ -111,10 +118,10 @@
 				required
 			/>
 		</div>
-		<button type="submit" class="btn btn-accent" disabled={busy}>
-			{busy ? 'Creating account…' : 'Create account'}
-		</button>
+		<Button type="submit" disabled={busy}>{busy ? 'Creating account…' : 'Create account'}</Button>
 	</form>
 
-	<p class="text-sm muted mt-4">Already registered? <a href="/login" class="underline">Log in</a>.</p>
+	<p class="mt-5 text-center text-[15px] font-semibold text-ink-2">
+		Already registered? <a href="/login" class="font-bold text-link underline">Log in</a>
+	</p>
 </section>
