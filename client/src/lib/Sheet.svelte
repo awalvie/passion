@@ -33,6 +33,9 @@
 	// A drag down from the top area moves the sheet with the finger. Past a
 	// quarter of its height it closes; short of that it springs back.
 	let drag = $state<number | null>(null);
+	// A swipe that closes keeps its inline transform, so the slide down starts
+	// where the finger let go instead of jumping back up first.
+	let flung = $state(false);
 	let startY = 0;
 
 	function grab(e: PointerEvent) {
@@ -44,8 +47,10 @@
 
 	function release() {
 		if (drag === null) return;
-		if (drag > Math.min(120, dialog.offsetHeight / 4)) open = false;
-		drag = null;
+		if (drag > Math.min(120, dialog.offsetHeight / 4)) {
+			flung = true;
+			open = false;
+		} else drag = null;
 	}
 </script>
 
@@ -54,10 +59,14 @@
 	bind:this={dialog}
 	aria-label={title}
 	data-hidden={hidden || undefined}
-	style:transform={drag === null ? undefined : `translateY(${drag}px)`}
-	style:transition={drag === null ? undefined : 'none'}
+	style:transform={drag === null ? undefined : flung ? 'translateY(100%)' : `translateY(${drag}px)`}
+	style:transition={drag === null || flung ? undefined : 'none'}
 	class="fixed inset-x-0 top-auto bottom-0 m-0 mx-auto max-h-[calc(100dvh-3rem)] w-full max-w-[430px] overflow-y-auto overscroll-contain [scrollbar-width:none] rounded-t-[32px] bg-ground text-ink shadow-[0_-20px_40px_-10px_rgba(0,0,0,0.35)] backdrop:bg-[var(--scrim)]"
-	onclose={() => (open = false)}
+	onclose={() => {
+		open = false;
+		drag = null;
+		flung = false;
+	}}
 	oncancel={(e) => {
 		e.preventDefault();
 		open = false;
