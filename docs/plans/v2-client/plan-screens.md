@@ -43,7 +43,7 @@ A fourth tab, Plan, between Today and Library. Icon: calendar.
 - New cycle defaults: today to four weeks later, block 7, no sessions.
 - Each field shows the server's 422 message under it.
 
-The cycle page and the three-step create replaced this form. They add goals, before and after entries, and notes. `mock-gaps.md` lists what is left out.
+The cycle page and the three-step create replaced this form. They add goals (each with its own before, after and how) and notes. `mock-gaps.md` lists what is left out.
 
 ## Code
 

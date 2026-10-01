@@ -1690,25 +1690,6 @@
         "block_days"
       ],
       "properties": {
-        "after": {
-          "description": "Free-text entries written at the end. Blank ones are dropped.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "After"
-        },
-        "before": {
-          "description": "Free-text entries written at the start. Blank ones are dropped.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "Before",
-          "example": [
-            "Max hang, 20 mm, 10 s: +18 kg"
-          ]
-        },
         "block_days": {
           "description": "How long the repeating block is. Seven lands the sessions on the same\nweekdays every time.",
           "type": "integer",
@@ -1787,25 +1768,6 @@
         "block_days"
       ],
       "properties": {
-        "after": {
-          "description": "Free-text entries written at the end. Blank ones are dropped.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "After"
-        },
-        "before": {
-          "description": "Free-text entries written at the start. Blank ones are dropped.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "Before",
-          "example": [
-            "Max hang, 20 mm, 10 s: +18 kg"
-          ]
-        },
         "block_days": {
           "description": "How long the repeating block is. Seven lands the sessions on the same\nweekdays every time.",
           "type": "integer",
@@ -1864,25 +1826,6 @@
         "block_days"
       ],
       "properties": {
-        "after": {
-          "description": "Free-text entries written at the end. Blank ones are dropped.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "After"
-        },
-        "before": {
-          "description": "Free-text entries written at the start. Blank ones are dropped.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "Before",
-          "example": [
-            "Max hang, 20 mm, 10 s: +18 kg"
-          ]
-        },
         "block_days": {
           "description": "How long the repeating block is. Seven lands the sessions on the same\nweekdays every time.",
           "type": "integer",

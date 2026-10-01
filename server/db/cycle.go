@@ -27,8 +27,6 @@ type Cycle struct {
 	BlockFrom time.Time `db:"block_from"`
 	Body      CycleBody `db:"body"`
 	Goals     []Goal    `db:"goals"`
-	Before    []string  `db:"before_entries"`
-	After     []string  `db:"after_entries"`
 	Notes     *string   `db:"notes"`
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
@@ -90,8 +88,6 @@ type CycleFields struct {
 	BlockDays int
 	Body      CycleBody
 	Goals     []Goal
-	Before    []string
-	After     []string
 	Notes     *string
 }
 
@@ -128,8 +124,6 @@ func (f CycleFields) Clean() (CycleFields, map[string]string) {
 		goals = append(goals, g)
 	}
 	f.Goals = goals
-	f.Before = cleanTags(f.Before)
-	f.After = cleanTags(f.After)
 	f.Notes = optional(f.Notes)
 
 	if f.Body.Days == nil {
@@ -208,9 +202,9 @@ func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cycle
 	// in a cycle that has begun counts from today.
 	rows, err := tx.Query(ctx, `
 		INSERT INTO cycle (id, owner, name, starts, ends, block_days, block_from, body,
-			goals, before_entries, after_entries, notes)
+			goals, notes)
 		VALUES (@id, @owner, @name, @starts, @ends, @block_days, @starts, @body,
-			@goals, @before, @after, @notes)
+			@goals, @notes)
 		ON CONFLICT (id) DO UPDATE SET
 			name = excluded.name, starts = excluded.starts, ends = excluded.ends,
 			block_days = excluded.block_days, body = excluded.body,
@@ -220,8 +214,7 @@ func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cycle
 				WHEN excluded.starts <> cycle.starts THEN excluded.starts
 				ELSE cycle.block_from
 			END,
-			goals = excluded.goals, before_entries = excluded.before_entries,
-			after_entries = excluded.after_entries, notes = excluded.notes
+			goals = excluded.goals, notes = excluded.notes
 		WHERE cycle.owner = excluded.owner
 		RETURNING new.*, old.starts AS old_starts, old.block_from AS old_block_from, old.ends AS old_ends,
 			old.block_days AS old_block_days, old.body AS old_body`, pgx.NamedArgs{
@@ -233,8 +226,6 @@ func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cycle
 		"block_days": f.BlockDays,
 		"body":       f.Body,
 		"goals":      f.Goals,
-		"before":     f.Before,
-		"after":      f.After,
 		"notes":      f.Notes,
 		"today":      today,
 	})

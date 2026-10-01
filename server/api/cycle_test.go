@@ -35,15 +35,15 @@ func TestPutCycle(t *testing.T) {
 			t.Fatalf("cycle %+v, want Spring fingers under the id chosen, with an empty left_out", got)
 		}
 	}
-	// Goals, entries and notes come back as written, blank lines dropped.
+	// Goals and notes come back as written, blank goals dropped.
 	rec := send(t, h, http.MethodPut, path, ada, `{"name": "Spring fingers", "starts": "2100-01-05", "ends": "2100-01-18", "block_days": 7,
-		"goals": [{"text": "Flash 7a", "done": true, "how": " Board twice a week "}, {"text": " "}], "before": ["Max hang +18 kg"], "notes": "Strict pull-ups"}`)
+		"goals": [{"text": "Flash 7a", "done": true, "how": " Board twice a week "}, {"text": " "}], "notes": "Strict pull-ups"}`)
 	var got cycleResponse
 	if err := json.Unmarshal(send(t, h, http.MethodGet, path, ada, "").Body.Bytes(), &got); err != nil || rec.Code != http.StatusOK {
 		t.Fatalf("status %d, %v", rec.Code, err)
 	}
-	if len(got.Goals) != 1 || !got.Goals[0].Done || got.Goals[0].How != "Board twice a week" || len(got.Before) != 1 || got.After == nil || *got.Notes != "Strict pull-ups" {
-		t.Fatalf("cycle %+v, want the goal, the entry and the notes", got)
+	if len(got.Goals) != 1 || !got.Goals[0].Done || got.Goals[0].How != "Board twice a week" || *got.Notes != "Strict pull-ups" {
+		t.Fatalf("cycle %+v, want the goal and the notes", got)
 	}
 
 	var list cycleListResponse
