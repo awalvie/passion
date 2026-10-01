@@ -36,7 +36,7 @@
 							type="number"
 							min="0"
 							step="1"
-							class="mt-1.5 min-h-10 w-full input py-2 text-center"
+							class="mt-1.5 min-h-11 w-full input py-2 text-center"
 							bind:value={step[c]}
 						/>
 					</div>

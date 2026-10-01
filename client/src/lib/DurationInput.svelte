@@ -15,7 +15,7 @@
 		seconds = h == null && m == null && s == null ? null : (h ?? 0) * 3600 + (m ?? 0) * 60 + (s ?? 0);
 	});
 
-	const input = $derived(`mt-1.5 w-full input text-center${small ? ' min-h-10 py-2' : ''}`);
+	const input = $derived(`mt-1.5 w-full input text-center${small ? ' min-h-11 py-2' : ''}`);
 </script>
 
 <div class="grid grid-cols-3 gap-2.5">
