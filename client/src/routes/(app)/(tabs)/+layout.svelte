@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import PullRefresh from '$lib/PullRefresh.svelte';
 	import TabBar from '$lib/TabBar.svelte';
@@ -10,6 +11,17 @@
 	const task = $derived(page.url.pathname === '/plan/cycles/new');
 	// Today shows the open session as a card, so it needs no strip.
 	const live = $derived(page.url.pathname === '/' ? null : data.live);
+
+	// Back after a while away, the app fetches its pages again.
+	$effect(() => {
+		let away = 0;
+		const back = () => {
+			if (document.hidden) away = Date.now();
+			else if (away && Date.now() - away > 2 * 60_000) void invalidateAll();
+		};
+		document.addEventListener('visibilitychange', back);
+		return () => document.removeEventListener('visibilitychange', back);
+	});
 </script>
 
 <PullRefresh />
