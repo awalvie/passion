@@ -209,6 +209,7 @@
 					<ul>
 						{#each w.dates as g (g.date)}
 							{#each g.days as d, i (d.id)}
+								{@const note = rowNote(d)}
 								{#snippet row()}
 									<span class="flex w-11 shrink-0 flex-col">
 										{#if i === 0}
@@ -223,8 +224,8 @@
 									<SessionIcon icon={d.template_icon} name={d.template_name} state={iconState(d, data.today)} size={36} />
 									<span class="min-w-0 flex-1">
 										<span class="block truncate text-[15px] font-bold {d.status === 'missed' ? 'text-ink-2' : ''}">{d.template_name}</span>
-										{#if rowNote(d)}
-											<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{rowNote(d)}</span>
+										{#if note}
+											<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{note}</span>
 										{/if}
 									</span>
 									{#if statuses[d.status]}
