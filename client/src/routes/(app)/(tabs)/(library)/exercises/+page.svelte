@@ -65,8 +65,8 @@
 		{/if}
 	</div>
 
-	<div class="flex items-center justify-between px-1 pt-1">
-		<h2 class="text-xs font-semibold text-ink-2">Exercise library</h2>
+	<div class="flex items-baseline justify-between px-1 pt-1">
+		<h2 class="text-xl font-bold">Exercise library</h2>
 		<span class="text-xs font-semibold text-ink-2">{shown.length} {shown.length === 1 ? 'exercise' : 'exercises'}</span>
 	</div>
 

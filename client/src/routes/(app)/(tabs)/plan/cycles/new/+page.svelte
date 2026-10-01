@@ -133,7 +133,7 @@
 		</div>
 	{:else if step === 2}
 		<section class="flex flex-col gap-2">
-			<h2 class="px-1 text-xs font-semibold text-ink-2">Goals</h2>
+			<h2 class="px-1 text-[15px] font-bold">Goals</h2>
 			<GoalList
 				bind:goals={draft.goals}
 				onedit={(i) => {
@@ -143,7 +143,7 @@
 			/>
 		</section>
 		<section class="flex flex-col gap-2">
-			<h2 class="px-1 text-xs font-semibold text-ink-2">Notes</h2>
+			<h2 class="px-1 text-[15px] font-bold">Notes</h2>
 			<textarea
 				class="min-h-28 w-full resize-none rounded-3xl bg-surface px-[18px] py-3.5 text-[15px] font-semibold shadow-card [field-sizing:content] placeholder:text-ink-3 focus:outline-none"
 				placeholder="Anything to remember about this cycle"
