@@ -13,6 +13,7 @@
 	import NavBar from '$lib/NavBar.svelte';
 	import { saveCycle, type Cycle, type ScheduledDay } from '$lib/plan';
 	import Sheet from '$lib/Sheet.svelte';
+	import Toast from '$lib/Toast.svelte';
 	import WeekStrip from '$lib/WeekStrip.svelte';
 
 	let { data } = $props();
@@ -102,12 +103,31 @@
 		}
 	}
 
-	// A refused move says why in the calendar's day panel.
+	// A refused move says why in the calendar's day panel. A move that lands
+	// can be undone from the toast.
+	let toast = $state('');
+	let last: { id: string; from: string } | null = null;
+
 	async function move(d: ScheduledDay, to: string) {
 		try {
 			await request('PUT', `/api/v1/scheduled-sessions/${d.id}`, { local_date: to });
+			last = { id: d.id, from: d.local_date };
+			toast = `${d.template_name} moved to ${utc(to, { weekday: 'short', day: 'numeric', month: 'short' })}`;
 		} catch (e) {
 			throw new Error(describe(e, () => 'That day'));
+		} finally {
+			await invalidateAll();
+		}
+	}
+
+	async function undo() {
+		if (!last) return;
+		const { id, from } = last;
+		last = null;
+		try {
+			await request('PUT', `/api/v1/scheduled-sessions/${id}`, { local_date: from });
+		} catch (e) {
+			error = describe(e, () => 'That day');
 		} finally {
 			await invalidateAll();
 		}
@@ -251,3 +271,5 @@
 		</div>
 	</form>
 </Sheet>
+
+<Toast bind:message={toast} action="Undo" onaction={undo} />
