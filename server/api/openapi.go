@@ -253,6 +253,22 @@ type cycleParams struct {
 	Body cycleRequest `json:"body"`
 }
 
+// swagger:parameters putCentre deleteCentre
+type centreIDParams struct {
+	// The centre's id. The client chooses it when it creates the centre.
+	//
+	// in: path
+	// required: true
+	ID string `json:"id"`
+}
+
+// swagger:parameters putCentre
+type centreParams struct {
+	// in:body
+	// required:true
+	Body centreRequest `json:"body"`
+}
+
 // swagger:parameters listScheduledSessions
 type scheduleRangeParams struct {
 	// The first day, written YYYY-MM-DD.
