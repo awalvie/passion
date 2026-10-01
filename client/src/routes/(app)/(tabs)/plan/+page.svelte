@@ -1,7 +1,40 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
+	import { describe, request } from '$lib/api';
+	import Button from '$lib/Button.svelte';
+	import FormError from '$lib/FormError.svelte';
 	import type { ScheduledDay } from '$lib/plan';
 
 	let { data } = $props();
+
+	const labels: Record<string, string> = { local_date: 'That day', template: 'That session' };
+
+	let adding = $state(false);
+	let template = $state('');
+	let date = $state('');
+	let busy = $state(false);
+	let error = $state('');
+
+	function openAdd() {
+		adding = true;
+		template = data.templates[0]?.id ?? '';
+		date = data.today;
+		error = '';
+	}
+
+	async function add() {
+		busy = true;
+		error = '';
+		try {
+			await request('POST', '/api/v1/scheduled-sessions', { template, local_date: date });
+			await invalidateAll();
+			adding = false;
+		} catch (e) {
+			error = describe(e, (f) => labels[f] ?? f);
+		} finally {
+			busy = false;
+		}
+	}
 
 	const dates = $derived.by(() => {
 		const out: { date: string; days: ScheduledDay[] }[] = [];
@@ -55,5 +88,35 @@
 		{:else}
 			<p class="rounded-2xl bg-surface p-4 text-base text-ink-2 shadow-sm">Nothing planned for the next four weeks.</p>
 		{/each}
+
+		{#if adding}
+			<form
+				class="flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-sm"
+				onsubmit={(e) => {
+					e.preventDefault();
+					add();
+				}}
+			>
+				<label class="flex flex-col gap-1 text-sm text-ink-2">
+					Session
+					<select class="input" bind:value={template} required>
+						{#each data.templates as t (t.id)}
+							<option value={t.id}>{t.name}</option>
+						{/each}
+					</select>
+				</label>
+				<label class="flex flex-col gap-1 text-sm text-ink-2">
+					Day
+					<input class="input" type="date" bind:value={date} required />
+				</label>
+				<FormError message={error} />
+				<div class="grid grid-cols-2 gap-2">
+					<Button variant="secondary" onclick={() => (adding = false)}>Cancel</Button>
+					<Button type="submit" disabled={busy}>Add</Button>
+				</div>
+			</form>
+		{:else}
+			<Button variant="secondary" onclick={openAdd}>Add a session</Button>
+		{/if}
 	{/if}
 </div>
