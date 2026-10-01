@@ -39,21 +39,25 @@
 		if (from && to) kind = kindOf(from.url, to.url, type);
 	});
 
-	// A page that takes a moment to load shows a bar; a quick one shows nothing.
-	let slow = $state(false);
+	// A page that takes a moment to load shows its outline at once, and its
+	// content replaces the outline when it comes.
+	let outline = $state(false);
 	$effect(() => {
 		if (!navigating.to) {
-			slow = false;
+			outline = false;
 			return;
 		}
-		const t = setTimeout(() => (slow = true), 150);
+		const t = setTimeout(() => (outline = true), 100);
 		return () => clearTimeout(t);
 	});
+	const outlineRoot = $derived(navigating.to?.url ? isRoot(navigating.to.url) : false);
 
 	onNavigate((navigation) => {
 		if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-		if (kind === 'none') return;
-		document.documentElement.dataset.nav = kind;
+		// The outline already slid in, so the page only fades over it.
+		const shown = outline ? 'fade' : kind;
+		if (shown === 'none') return;
+		document.documentElement.dataset.nav = shown;
 		return new Promise((resolve) => {
 			const t = document.startViewTransition(async () => {
 				resolve();
@@ -71,9 +75,25 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-{#if slow}
-	<div class="fixed inset-x-0 top-[env(safe-area-inset-top)] z-[60] h-[3px] overflow-hidden" role="progressbar" aria-label="Loading">
-		<div class="h-full w-1/3 bg-ink motion-safe:animate-[load_1s_ease-in-out_infinite] motion-reduce:w-full"></div>
+{#if outline}
+	<div
+		class="fixed inset-x-0 top-0 z-20 mx-auto h-dvh w-full max-w-[430px] overflow-hidden bg-ground pt-[env(safe-area-inset-top)] arrive-{kind}"
+		role="progressbar"
+		aria-label="Loading"
+	>
+		<div class="flex flex-col gap-3.5 px-4 motion-safe:animate-pulse">
+			{#if outlineRoot}
+				<div class="mt-4 h-9 w-40 rounded-xl bg-well"></div>
+				<div class="h-4 w-32 rounded-full bg-well"></div>
+			{:else}
+				<div class="mt-1.5 h-11 w-28 rounded-full bg-surface shadow-card-sm"></div>
+				<div class="mt-2 h-9 w-2/3 rounded-xl bg-well"></div>
+				<div class="h-4 w-1/3 rounded-full bg-well"></div>
+			{/if}
+			<div class="mt-2 h-36 rounded-3xl bg-surface shadow-card"></div>
+			<div class="h-24 rounded-3xl bg-surface shadow-card"></div>
+			<div class="h-24 rounded-3xl bg-surface shadow-card"></div>
+		</div>
 	</div>
 {/if}
 
