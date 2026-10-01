@@ -4,6 +4,8 @@
 	import Button from '$lib/Button.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
+	import Menu, { type MenuItem } from '$lib/Menu.svelte';
+	import NavBar from '$lib/NavBar.svelte';
 	import Notes from '$lib/Notes.svelte';
 	import TemplatePlan from '$lib/TemplatePlan.svelte';
 	import { startRun } from '$lib/runState.svelte';
@@ -26,6 +28,7 @@
 	// A copy is a new template of your own. Its steps keep the exercise ids, so
 	// both copies still count toward the same exercises.
 	async function duplicate() {
+		if (busy) return;
 		error = '';
 		busy = true;
 		try {
@@ -56,6 +59,7 @@
 	}
 
 	async function retire() {
+		if (busy) return;
 		if (!confirm(`Retire “${t.name}”? It leaves your list of session templates.`)) return;
 		error = '';
 		busy = true;
@@ -68,93 +72,67 @@
 			busy = false;
 		}
 	}
+
+	const menu = $derived<MenuItem[]>([
+		{ label: 'Duplicate', onclick: duplicate },
+		...(locked ? [] : [{ label: 'Retire', danger: true, onclick: retire }])
+	]);
 </script>
 
 <svelte:head><title>{t.name}</title></svelte:head>
 
-<div class="space-y-4">
-	<div class="card card-pad">
-		<div class="flex items-start gap-2">
-			{#if t.color}
-				<span class="inline-block w-3 h-3 rounded-full shrink-0 mt-2" style="background:{t.color}"></span>
-			{/if}
-			<div class="min-w-0 flex-1">
-				<h1 class="text-xl font-bold m-0 break-words">{t.name}</h1>
-				{#if t.tags.length}
-					<div class="mt-1 text-[11px] muted">{t.tags.join(' · ')}</div>
-				{/if}
-			</div>
+<NavBar back={{ href: '/templates', label: 'Sessions' }}>
+	{#snippet actions()}
+		{#if !locked}
 			<a
-				class="rounded-md btn-ghost p-2 inline-flex items-center justify-center shrink-0"
-				href="/templates"
-				title="Back to templates"
-				aria-label="Back to templates"
+				href="/templates/{t.id}/edit"
+				class="flex h-10 items-center gap-1.5 rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm"
 			>
-				<Icon name="arrow-left" />
+				<Icon name="pencil" size="0.875rem" />
+				Edit
 			</a>
-		</div>
-
-		{#if locked}
-			<p class="mt-2 text-xs muted">{locked}</p>
 		{/if}
+		<Menu items={menu} />
+	{/snippet}
+</NavBar>
 
+<div class="flex flex-col gap-3.5 px-4 pt-2">
+	<header class="px-1">
+		<div class="flex items-start gap-2.5">
+			{#if t.color}
+				<span class="mt-3.5 size-3 shrink-0 rounded-full" style="background:{t.color}" aria-hidden="true"></span>
+			{/if}
+			<h1 class="min-w-0 text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em] break-words">{t.name}</h1>
+		</div>
+		{#if t.tags.length}
+			<p class="mt-1 text-[15px] font-semibold text-ink-2">{t.tags.join(' · ')}</p>
+		{/if}
 		{#if t.source || t.needs}
-			<div class="mt-3 flex flex-wrap items-center gap-2 text-[11px] muted">
+			<div class="mt-3 flex flex-wrap items-center gap-2">
 				{#if t.source}
-					<span
-						class="inline-flex items-center gap-1 font-medium px-1.5 py-0.5 rounded"
-						style="background:var(--accent-bg);color:var(--accent)"
-					>
-						<Icon name="book-marked" size="0.6rem" />{t.source}
+					<span class="inline-flex items-center gap-1 rounded-xl bg-well px-2.5 py-[5px] text-xs font-bold text-ink-2">
+						<Icon name="book-marked" size="0.75rem" />{t.source}
 					</span>
 				{/if}
 				{#if t.needs}
-					<span>Needs: {t.needs}</span>
+					<span class="rounded-xl px-2.5 py-[5px] text-xs font-bold text-ink-2 shadow-[inset_0_0_0_1.5px_var(--well)]">Needs: {t.needs}</span>
 				{/if}
 			</div>
 		{/if}
-
-		{#if t.notes}
-			<Notes text={t.notes} class="mt-3 text-sm" />
+		{#if locked}
+			<p class="mt-3 text-xs font-semibold text-ink-2">{locked}</p>
 		{/if}
+	</header>
 
-		<!-- Beside the title, these would squeeze a long name onto several lines on a phone. -->
-		<div class="mt-3 pt-3 divider flex flex-wrap items-center gap-2">
-			{#if !locked}
-				<a
-					class="rounded-md btn-ghost px-3 py-2 text-sm inline-flex items-center gap-1.5"
-					href="/templates/{t.id}/edit"
-				>
-					<Icon name="pencil" size="0.875rem" />
-					Edit
-				</a>
-			{/if}
-			<button
-				type="button"
-				class="rounded-md btn-ghost px-3 py-2 text-sm inline-flex items-center gap-1.5"
-				disabled={busy}
-				onclick={duplicate}
-			>
-				<Icon name="copy-plus" size="0.875rem" />
-				Duplicate
-			</button>
-			{#if !locked}
-				<button
-					type="button"
-					class="rounded-md btn-ghost px-3 py-2 text-sm inline-flex items-center gap-1.5"
-					style="color:var(--destructive)"
-					disabled={busy}
-					onclick={retire}
-				>
-					<Icon name="archive" size="0.875rem" />
-					Retire
-				</button>
-			{/if}
-		</div>
-		<FormError message={error} />
-	</div>
+	{#if t.notes}
+		<Notes text={t.notes} class="rounded-[18px] bg-well px-4 py-3.5 text-[15px] font-semibold dark:bg-surface" />
+	{/if}
 
-	<Button disabled={busy} onclick={start}>Start</Button>
+	<Button disabled={busy} onclick={start}>
+		<svg viewBox="0 0 24 24" class="size-4" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" /></svg>
+		Start
+	</Button>
+	<FormError message={error} />
 
 	<TemplatePlan sections={t.sections} />
 </div>

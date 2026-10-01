@@ -2,9 +2,12 @@
 	import { goto } from '$app/navigation';
 	import { describe, request } from '$lib/api';
 	import { allCounts, fieldLabel, kindOf, summary, toBody, toDraft, type Count } from '$lib/exercise';
+	import Button from '$lib/Button.svelte';
 	import ExerciseForm from '$lib/ExerciseForm.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
+	import Menu from '$lib/Menu.svelte';
+	import NavBar from '$lib/NavBar.svelte';
 	import { untrack } from 'svelte';
 
 	let { data } = $props();
@@ -43,6 +46,7 @@
 	}
 
 	async function retire() {
+		if (busy) return;
 		if (!confirm(`Retire “${saved.name}”? It leaves your library. Session templates that use it keep their copy.`))
 			return;
 		error = '';
@@ -60,74 +64,60 @@
 
 <svelte:head><title>{saved.name}</title></svelte:head>
 
-<div class="lib-edit-grid">
-	<div class="card card-pad">
-		<div class="flex items-center justify-between gap-3">
-			<div>
-				<h1 class="text-xl font-bold">{locked ? saved.name : 'Edit exercise'}</h1>
-				<p class="mt-1 text-xs muted">
-					{locked || 'Changes here do not affect session templates that already use it.'}
-				</p>
-			</div>
-			<a
-				class="rounded-md btn-ghost px-3 py-2 text-sm shrink-0"
-				href="/exercises"
-				aria-label="Back to exercise library"
-			>
-				<Icon name="arrow-left" size="0.875rem" />
-			</a>
-		</div>
+<NavBar title={locked ? '' : 'Edit exercise'} heading={false} back={{ href: '/exercises', label: 'Exercises' }}>
+	{#snippet actions()}
+		{#if !locked}
+			<Menu items={[{ label: 'Retire', danger: true, onclick: retire }]} />
+		{/if}
+	{/snippet}
+</NavBar>
 
-		<form class="mt-5" onsubmit={save}>
-			<ExerciseForm bind:draft {shown} sources={data.sources} disabled={Boolean(locked)} />
+<div class="mx-auto grid max-w-5xl gap-3.5 px-4 pt-2 lg:grid-cols-[minmax(0,1fr)_20rem] [&>*]:min-w-0">
+	<div class="flex flex-col gap-3.5">
+		<header class="px-1">
+			<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em] break-words">{saved.name}</h1>
+			<p class="mt-1 text-[15px] font-semibold text-ink-2">
+				{locked || 'Changes here do not affect session templates that already use it.'}
+			</p>
+		</header>
+
+		<form class="flex flex-col gap-3.5" onsubmit={save}>
+			<div class="rounded-3xl bg-surface p-[18px] shadow-card">
+				<ExerciseForm bind:draft {shown} sources={data.sources} disabled={Boolean(locked)} />
+			</div>
 			{#if !locked}
 				<FormError message={error} />
-				<div class="lib-edit-sticky-bar">
-					<button class="rounded-md btn-primary px-4 py-2 text-sm font-medium" type="submit" disabled={busy}>
-						{busy ? 'Saving…' : 'Save'}
-					</button>
-					<span class="flex-1"></span>
-					<button
-						type="button"
-						class="rounded-md btn-ghost px-4 py-2 text-sm inline-flex items-center"
-						style="color:var(--destructive)"
-						title="Retire"
-						disabled={busy}
-						onclick={retire}
-					>
-						<Icon name="archive" size="0.875rem" />
-						<span class="ml-1.5 hidden sm:inline">Retire</span>
-					</button>
-					<a class="text-sm muted hover:underline" href="/exercises">Back</a>
+				<div class="sticky z-20 {data.live ? 'bottom-[calc(8.5rem+env(safe-area-inset-bottom))]' : 'bottom-[calc(4.75rem+env(safe-area-inset-bottom))]'}">
+					<Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
 				</div>
 			{/if}
 		</form>
 	</div>
 
-	<!-- On a phone the preview goes above the form (see .lib-edit-side). -->
-	<div class="lib-edit-side space-y-4">
-		<div class="card card-pad">
-			<div class="text-xs font-semibold muted uppercase tracking-widest mb-3">Preview</div>
-			<div class="lib-edit-media-preview">
+	<!-- On a phone the preview goes above the form rather than below a long field list. -->
+	<aside class="order-first lg:order-none">
+		<div class="rounded-3xl bg-surface p-2.5 shadow-card">
+			<div class="flex aspect-[16/10] items-center justify-center overflow-hidden rounded-[18px] bg-well">
 				{#if thumb?.thumb_url}
 					{#if thumb.url}
-						<a href={thumb.url} target="_blank" rel="noopener" title="Open video">
-							<img src={thumb.thumb_url} alt="Exercise thumbnail" />
+						<a href={thumb.url} target="_blank" rel="noopener" title="Open video" class="size-full">
+							<img src={thumb.thumb_url} alt="Exercise thumbnail" class="size-full object-cover" />
 						</a>
 					{:else}
-						<img src={thumb.thumb_url} alt="Exercise thumbnail" />
+						<img src={thumb.thumb_url} alt="Exercise thumbnail" class="size-full object-cover" />
 					{/if}
 				{:else}
-					<div class="lib-edit-media-placeholder">
+					<div class="flex flex-col items-center gap-2 text-xs font-semibold text-ink-2">
 						<Icon name="image" size="2rem" />
 						<span>{thumb ? 'No thumbnail' : 'No media added'}</span>
 					</div>
 				{/if}
 			</div>
-			<div class="mt-3 space-y-2">
-				<div class="text-sm font-semibold">{saved.name}</div>
-				<div class="text-xs muted">{summary(saved) || kindOf(saved.kind).label}</div>
+			<div class="px-2 pt-2.5 pb-1.5">
+				<div class="text-xs font-semibold text-ink-2">Preview</div>
+				<div class="mt-0.5 text-[15px] font-bold">{saved.name}</div>
+				<div class="mt-0.5 text-xs font-semibold text-ink-2">{summary(saved) || kindOf(saved.kind).label}</div>
 			</div>
 		</div>
-	</div>
+	</aside>
 </div>
