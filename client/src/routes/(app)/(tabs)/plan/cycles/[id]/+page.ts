@@ -4,9 +4,10 @@ import { loadToday, type Cycle, type ScheduledDay } from '$lib/plan';
 import type { SessionTemplate } from '$lib/template';
 
 export async function load({ params }) {
-	const [today, cycle, { session_templates }] = await Promise.all([
+	const [today, cycle, { cycles }, { session_templates }] = await Promise.all([
 		loadToday(),
 		request<Cycle>('GET', `/api/v1/cycles/${params.id}`),
+		request<{ cycles: Cycle[] }>('GET', '/api/v1/cycles'),
 		request<{ session_templates: SessionTemplate[] }>('GET', '/api/v1/session-templates')
 	]);
 	// One call covers the cycle and this week, which may lie outside it.
@@ -19,7 +20,10 @@ export async function load({ params }) {
 		monday,
 		cycle,
 		templates: session_templates,
-		days: days.filter((d) => d.cycle === cycle.id),
+		// Every row in the cycle's dates, so a day another cycle or a one-off
+		// holds does not look free.
+		days: days.filter((d) => d.local_date >= cycle.starts && d.local_date <= cycle.ends),
+		cycleNames: Object.fromEntries(cycles.map((c) => [c.id, c.name])),
 		week: days.filter((d) => d.local_date >= monday && d.local_date <= addDays(monday, 6))
 	};
 }
