@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { tone, unlock } from './audio';
 	import Button from './Button.svelte';
 	import Menu from './Menu.svelte';
@@ -115,6 +116,25 @@
 		stop();
 	}
 
+	async function endSession() {
+		endExercise();
+		await goto(`/run/${runId}/finish`);
+	}
+
+	let holding = $state(false);
+	let held: ReturnType<typeof setTimeout> | undefined;
+
+	function holdStart(e: PointerEvent) {
+		if (e.button !== 0) return;
+		holding = true;
+		held = setTimeout(endSession, 1000);
+	}
+
+	function holdStop() {
+		holding = false;
+		clearTimeout(held);
+	}
+
 	const labels = { prep: 'Prep', hang: 'Hang', rest: 'Rest' };
 
 	function span(ms: number) {
@@ -140,7 +160,7 @@
 	});
 
 	// Darker fields and glass than the tokens so text passes 4.5:1 when read from the floor.
-	const light = { ink: 'text-[#F6F9F4]', ink2: 'text-[#F6F9F4]/90', glass: 'bg-black/20' };
+	const light = { ink: 'text-[#F6F9F4]', ink2: 'text-[#F6F9F4]/90', glass: 'bg-black/20', ring: 'text-[#F6F9F4]/74' };
 	const looks = {
 		prep: {
 			...light,
@@ -153,6 +173,7 @@
 			ink: 'text-on-hang',
 			ink2: 'text-on-hang/70',
 			glass: 'bg-on-hang/10',
+			ring: 'text-on-hang/70',
 			field: 'bg-hang',
 			card: 'bg-on-hang',
 			digit: 'text-[#C6F05B] dark:text-[#BFEA55]',
@@ -287,22 +308,51 @@
 				</button>
 			</div>
 
-			<div class="mt-auto flex flex-col gap-2.5 px-4 pt-4" onpointerdown={unlock} role="group" aria-label="Timer">
-				<div class="flex gap-2.5">
-					<button
-						type="button"
-						class="flex h-17 flex-1 items-center justify-center gap-2.5 rounded-full px-6 text-xl font-bold {look.glass}"
-						onclick={pause}
-					>
-						{#if paused}
-							<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor" /></svg>
-							Resume
-						{:else}
-							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
-							Pause
-						{/if}
-					</button>
-				</div>
+			<div class="mt-auto flex gap-2.5 px-4 pt-4" onpointerdown={unlock} role="group" aria-label="Timer">
+				<button
+					type="button"
+					class="flex h-17 flex-1 items-center justify-center gap-2.5 rounded-full px-6 text-xl font-bold {look.glass}"
+					onclick={pause}
+				>
+					{#if paused}
+						<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor" /></svg>
+						Resume
+					{:else}
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
+						Pause
+					{/if}
+				</button>
+				<button
+					type="button"
+					class="flex h-17 touch-none items-center gap-2.5 rounded-full pr-5 pl-3 text-left select-none [-webkit-touch-callout:none] {look.glass}"
+					onpointerdown={holdStart}
+					onpointerup={holdStop}
+					onpointercancel={holdStop}
+					onpointerleave={holdStop}
+					oncontextmenu={(e) => e.preventDefault()}
+					onclick={(e) => e.detail === 0 && confirm('End the session?') && endSession()}
+				>
+					<span class="relative flex size-11 items-center justify-center rounded-full shadow-[inset_0_0_0_3px] {look.ring}">
+						<svg viewBox="0 0 44 44" class="absolute inset-0 -rotate-90" aria-hidden="true">
+							<circle
+								cx="22"
+								cy="22"
+								r="20.5"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="3"
+								stroke-dasharray="129"
+								stroke-dashoffset={holding ? 0 : 129}
+								class="{look.ink} {holding ? 'transition-[stroke-dashoffset] duration-1000 ease-linear' : ''}"
+							/>
+						</svg>
+						<i class="size-[9px] rounded-[2px] bg-current {look.ink}" aria-hidden="true"></i>
+					</span>
+					<span class="flex flex-col leading-[1.15]">
+						<b class="text-[15px] font-bold">Hold to end</b>
+						<small class="text-xs font-semibold {look.ink2}">the session</small>
+					</span>
+				</button>
 			</div>
 		</div>
 	</section>
