@@ -104,13 +104,13 @@ func (f CycleFields) Clean() (CycleFields, map[string]string) {
 	}
 
 	goals := []Goal{}
-	for _, g := range f.Goals {
+	for i, g := range f.Goals {
 		g.Text = strings.TrimSpace(g.Text)
 		if g.Text == "" {
 			continue
 		}
 		if utf8.RuneCountInString(g.Text) > maxName {
-			problems[fmt.Sprintf("goals[%d]", len(goals))] = "is too long"
+			problems[fmt.Sprintf("goals[%d]", i)] = "is too long"
 		}
 		goals = append(goals, g)
 	}

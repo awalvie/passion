@@ -299,7 +299,7 @@ func TestCleanCycleFields(t *testing.T) {
 			db.CycleFields{Name: "C", Starts: day("2026-03-01"), Ends: day("2026-03-07"), BlockDays: 7, Goals: []db.Goal{
 				{Text: " "}, {Text: strings.Repeat("a", 201)},
 			}},
-			[]string{"goals[0]"},
+			[]string{"goals[1]"},
 		},
 		"bad days": {
 			db.CycleFields{Name: "", Starts: day("2026-03-01"), Ends: day("2026-03-28"), BlockDays: 7, Body: db.CycleBody{Days: []db.CycleDay{
