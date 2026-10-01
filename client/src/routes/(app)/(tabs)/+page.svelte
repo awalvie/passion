@@ -170,12 +170,17 @@
 		</div>
 	{/if}
 
-	{#if sessionsThisWeek !== undefined}
+	{#if sessionsThisWeek !== undefined || data.sends !== null}
 		<div class="flex items-center justify-between px-5 pt-4 pb-2">
 			<h2 class="text-xs font-semibold text-ink-2">{cycle ? 'This cycle' : 'This week'}</h2>
 		</div>
 		<div class="grid grid-cols-[1fr_1fr_1.25fr] gap-2.5 px-4">
-			{@render stat(String(sessionsThisWeek), '', 'Sessions this week')}
+			{#if sessionsThisWeek !== undefined}
+				{@render stat(String(sessionsThisWeek), '', 'Sessions this week')}
+			{/if}
+			{#if data.sends !== null}
+				{@render stat(String(data.sends), '', 'Sends this cycle')}
+			{/if}
 		</div>
 	{/if}
 </div>
