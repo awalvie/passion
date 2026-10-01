@@ -7,6 +7,7 @@
 	import { addDays, cycleWeek, daysBetween, formatDate, mondayOf } from '$lib/dates';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
+	import SessionIcon, { iconState } from '$lib/SessionIcon.svelte';
 	import type { ScheduledDay } from '$lib/plan';
 
 	let { data } = $props();
@@ -191,6 +192,7 @@
 											<b class="text-xl leading-[1.05] font-bold">{formatDate(g.date, { day: 'numeric' })}</b>
 										{/if}
 									</span>
+									<SessionIcon icon={d.template_icon} name={d.template_name} state={iconState(d, data.today)} size={36} />
 									<span class="min-w-0 flex-1">
 										<span class="block truncate text-[15px] font-bold {d.status === 'missed' ? 'text-ink-2' : ''}">{d.template_name}</span>
 										{#if rowNote(d)}
@@ -206,7 +208,7 @@
 										<details>
 											<summary class="flex min-h-[58px] cursor-pointer list-none items-center gap-3.5 py-2 [&::-webkit-details-marker]:hidden">{@render row()}</summary>
 											<form
-												class="flex flex-col gap-3 pb-4 pl-[58px]"
+												class="flex flex-col gap-3 pb-4 pl-[108px]"
 												onsubmit={(e) => {
 													e.preventDefault();
 													move(d, String(new FormData(e.currentTarget).get('date')));
