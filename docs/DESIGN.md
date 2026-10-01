@@ -179,6 +179,17 @@ because widening it only stretches bars that are already over-scaled for their n
 </div>
 ```
 
+**Page titles**: every page says where you are once, in one fixed place for its type.
+
+- Tab pages (Today, Plan, Library, History): a large title at the top left, with the date or a
+  short line under it.
+- Pages about one thing (a cycle, a session, an exercise, a past run): a back pill that names
+  the parent, then the thing's name as the large heading. The top bar has no title.
+- Task pages (New cycle, Edit session): a small title centered in the top bar, Cancel at the
+  left in place of the back pill, and Save at the right.
+- A centered title stays centered on the screen and is cut off with "…" when it does not
+  fit. It never moves toward the pills.
+
 **Week group dividers** (training log, history):
 ```html
 <div class="pt-4 pb-1 flex items-center gap-3">
