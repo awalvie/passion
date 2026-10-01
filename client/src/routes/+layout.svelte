@@ -37,7 +37,7 @@
 
 {#if slow}
 	<div class="fixed inset-x-0 top-[env(safe-area-inset-top)] z-[60] h-[3px] overflow-hidden" role="progressbar" aria-label="Loading">
-		<div class="h-full w-1/3 bg-tint motion-safe:animate-[load_1s_ease-in-out_infinite] motion-reduce:w-full"></div>
+		<div class="h-full w-1/3 bg-ink motion-safe:animate-[load_1s_ease-in-out_infinite] motion-reduce:w-full"></div>
 	</div>
 {/if}
 
