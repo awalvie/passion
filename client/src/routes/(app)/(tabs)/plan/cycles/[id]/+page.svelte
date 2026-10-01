@@ -12,7 +12,6 @@
 	import FormError from '$lib/FormError.svelte';
 	import GoalList from '$lib/GoalList.svelte';
 	import GoalSheet from '$lib/GoalSheet.svelte';
-	import Icon, { type IconName } from '$lib/Icon.svelte';
 	import Menu from '$lib/Menu.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import { saveCycle, type Cycle, type ScheduledDay } from '$lib/plan';
@@ -38,16 +37,6 @@
 	});
 
 	type Editor = 'name' | 'dates' | 'block';
-	const rows: { editor: Editor; icon: IconName; label: string; value: string }[] = $derived.by(() => {
-		const c = data.cycle;
-		const repeats = Math.ceil((daysBetween(c.block_from, c.ends) + 1) / c.block_days);
-		const weeks = Math.round((daysBetween(c.starts, c.ends) + 1) / 7);
-		return [
-			{ editor: 'name', icon: 'pencil', label: 'Name', value: c.name },
-			{ editor: 'dates', icon: 'calendar', label: 'Dates', value: `${short(c.starts)} – ${short(c.ends)} · ${weeks === 1 ? '1 week' : `${weeks} weeks`}` },
-			{ editor: 'block', icon: 'layers2', label: 'Block', value: `${c.block_days === 1 ? '1 day' : `${c.block_days} days`}, repeats ${repeats === 1 ? 'once' : `${repeats} times`}` }
-		];
-	});
 
 	// An editor works on a copy, and saves the whole cycle with its change.
 	let editing = $state<Editor | null>(null);
@@ -158,7 +147,14 @@
 
 <NavBar back={{ href: '/plan?view=cycles', label: 'Plan' }}>
 	{#snippet actions()}
-		<Menu items={[{ label: 'Delete cycle', danger: true, onclick: remove }]} />
+		<Menu
+			items={[
+				{ label: 'Edit name', onclick: () => edit('name') },
+				{ label: 'Edit dates', onclick: () => edit('dates') },
+				{ label: 'Edit block', onclick: () => edit('block') },
+				{ label: 'Delete cycle', danger: true, onclick: remove }
+			]}
+		/>
 	{/snippet}
 </NavBar>
 
@@ -166,7 +162,7 @@
 	<header class="px-1">
 		<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em] break-words">{data.cycle.name}</h1>
 		<p class="mt-1 text-[15px] font-semibold text-ink-2">
-			{short(data.cycle.starts)} – {short(data.cycle.ends)} · {when}
+			{short(data.cycle.starts)} – {short(data.cycle.ends)} · {when} · {data.cycle.block_days}-day block
 		</p>
 	</header>
 
@@ -233,25 +229,6 @@
 		<CycleCalendar cycle={data.cycle} days={data.days} today={data.today} cycleNames={data.cycleNames} onmove={move} />
 	</section>
 
-	<section class="flex flex-col gap-2">
-		<h2 class="px-1 text-[15px] font-bold">Cycle</h2>
-		<ul class="rounded-3xl bg-surface px-[18px] shadow-card">
-			{#each rows as r (r.label)}
-				<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
-					<button type="button" class="flex min-h-[58px] w-full items-center gap-3.5 py-2 text-left" onclick={() => edit(r.editor)}>
-					<span class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-well text-ink-2">
-						<Icon name={r.icon} size="1.125rem" />
-					</span>
-					<span class="min-w-0 flex-1">
-						<span class="block text-[15px] font-bold">{r.label}</span>
-						<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{r.value}</span>
-					</span>
-					<span class="text-ink-3"><Icon name="chevron-right" size="1rem" /></span>
-					</button>
-				</li>
-			{/each}
-		</ul>
-	</section>
 </div>
 
 <Sheet bind:open title={editing ? titles[editing] : ''}>
