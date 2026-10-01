@@ -5,6 +5,7 @@ import (
 	"errors"
 	"maps"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -98,6 +99,21 @@ func TestPutCycle(t *testing.T) {
 	}
 	if got := scheduled(t, pool, ada); got[0] != "2100-01-06 "+hang {
 		t.Fatalf("scheduled %v, want the moved day kept", got)
+	}
+
+	// Goals, entries and notes keep it too, and come back as written.
+	notes := "Keep pull-ups strict"
+	f.Goals = []db.Goal{{Text: "Flash 7a", Done: true}}
+	f.Before, f.After, f.Notes = []string{"Max hang +18 kg"}, []string{}, &notes
+	if _, _, err := db.PutCycle(ctx, pool, ada, y1, f); err != nil {
+		t.Fatal(err)
+	}
+	if got := scheduled(t, pool, ada); got[0] != "2100-01-06 "+hang {
+		t.Fatalf("scheduled %v, want the moved day kept", got)
+	}
+	got, err := db.GetCycle(ctx, pool, ada, y1)
+	if err != nil || !slices.Equal(got.Goals, f.Goals) || !slices.Equal(got.Before, f.Before) || len(got.After) != 0 || *got.Notes != notes {
+		t.Fatalf("cycle %+v, %v, want the goals, entries and notes written", got, err)
 	}
 
 	// A new shape builds again, and leaves out a day that already holds the
@@ -210,6 +226,12 @@ func TestCleanCycleFields(t *testing.T) {
 			db.CycleFields{Name: "C", Starts: day("2026-03-01"), Ends: day("2026-03-05"), BlockDays: 7},
 			[]string{"block_days"},
 		},
+		"a goal too long": {
+			db.CycleFields{Name: "C", Starts: day("2026-03-01"), Ends: day("2026-03-07"), BlockDays: 7, Goals: []db.Goal{
+				{Text: " "}, {Text: strings.Repeat("a", 201)},
+			}},
+			[]string{"goals[0]"},
+		},
 		"bad days": {
 			db.CycleFields{Name: "", Starts: day("2026-03-01"), Ends: day("2026-03-28"), BlockDays: 7, Body: db.CycleBody{Days: []db.CycleDay{
 				{Day: 8, Template: e1}, {Day: 1, Template: "nope"}, {Day: 2, Template: e1}, {Day: 2, Template: e1},
@@ -223,6 +245,18 @@ func TestCleanCycleFields(t *testing.T) {
 				t.Fatalf("problems %v, want %v", problems, c.want)
 			}
 		})
+	}
+}
+
+func TestCleanCycleDropsBlankLines(t *testing.T) {
+	f, problems := db.CycleFields{
+		Name: "C", Starts: day("2026-03-01"), Ends: day("2026-03-07"), BlockDays: 7,
+		Goals:  []db.Goal{{Text: "  "}, {Text: " Flash 7a "}},
+		Before: []string{"", " Max hang "},
+	}.Clean()
+	if len(problems) != 0 || !slices.Equal(f.Goals, []db.Goal{{Text: "Flash 7a"}}) ||
+		!slices.Equal(f.Before, []string{"Max hang"}) || f.After == nil {
+		t.Fatalf("fields %+v, problems %v", f, problems)
 	}
 }
 
