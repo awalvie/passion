@@ -4,7 +4,7 @@
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
 	import CycleYear from '$lib/CycleYear.svelte';
-	import { cycleWeek } from '$lib/dates';
+	import { cycleWeek, formatDate } from '$lib/dates';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import type { ScheduledDay } from '$lib/plan';
@@ -74,13 +74,11 @@
 		}
 	}
 
-	const utc = (date: string, o: Intl.DateTimeFormatOptions) =>
-		new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, { ...o, timeZone: 'UTC' });
 
 	const months = $derived.by(() => {
 		const out: { label: string; dates: { date: string; days: ScheduledDay[] }[] }[] = [];
 		for (const d of data.days) {
-			const label = utc(d.local_date, { month: 'long', year: 'numeric' });
+			const label = formatDate(d.local_date, { month: 'long', year: 'numeric' });
 			if (out.at(-1)?.label !== label) out.push({ label, dates: [] });
 			const dates = out.at(-1)!.dates;
 			if (dates.at(-1)?.date !== d.local_date) dates.push({ date: d.local_date, days: [] });
@@ -91,7 +89,7 @@
 
 	const cycleNames = $derived(new Map(data.cycles.map((c) => [c.id, c.name])));
 
-	const short = (date: string) => utc(date, { day: 'numeric', month: 'short' });
+	const short = (date: string) => formatDate(date, { day: 'numeric', month: 'short' });
 
 	const statuses = { done: 'Done', started: 'Started', missed: 'Missed', planned: '' };
 	const tags = {
@@ -108,7 +106,7 @@
 	<header>
 		<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">Plan</h1>
 		{#if data.today}
-			<p class="mt-1 text-[15px] font-semibold text-ink-2">{utc(data.today, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+			<p class="mt-1 text-[15px] font-semibold text-ink-2">{formatDate(data.today, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
 		{/if}
 	</header>
 
@@ -141,9 +139,9 @@
 										{#if g.date === data.today}
 											<span class="text-xs font-bold text-ink">Today</span>
 										{:else}
-											<span class="text-xs font-semibold text-ink-2">{utc(g.date, { weekday: 'short' })}</span>
+											<span class="text-xs font-semibold text-ink-2">{formatDate(g.date, { weekday: 'short' })}</span>
 										{/if}
-										<b class="text-xl leading-[1.05] font-bold">{utc(g.date, { day: 'numeric' })}</b>
+										<b class="text-xl leading-[1.05] font-bold">{formatDate(g.date, { day: 'numeric' })}</b>
 									{/if}
 								</span>
 								<span class="min-w-0 flex-1">

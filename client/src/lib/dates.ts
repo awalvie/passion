@@ -14,8 +14,7 @@ export function mondayOf(date: string): string {
 
 // cycleWeek says which week of a cycle a date falls in, counted from its start.
 export function cycleWeek(starts: string, ends: string, date: string): { week: number; of: number } {
-	const days = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
-	return { week: Math.floor(days(starts, date) / 7) + 1, of: Math.ceil((days(starts, ends) + 1) / 7) };
+	return { week: Math.floor(daysBetween(starts, date) / 7) + 1, of: Math.ceil((daysBetween(starts, ends) + 1) / 7) };
 }
 
 // gridWeeks lists the Monday-to-Sunday weeks that hold from..to, each as its
@@ -39,6 +38,14 @@ export function yearSpan(from: string, to: string, year: number): { left: number
 	return { left: (a - start) / (end - start), width: (b - a) / (end - start) };
 }
 
+export function formatDate(date: string, o: Intl.DateTimeFormatOptions): string {
+	return new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, { ...o, timeZone: 'UTC' });
+}
+
+export function daysBetween(from: string, to: string): number {
+	return Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000);
+}
+
 export function weekday(date: string): string {
-	return new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', timeZone: 'UTC' });
+	return formatDate(date, { weekday: 'short' });
 }

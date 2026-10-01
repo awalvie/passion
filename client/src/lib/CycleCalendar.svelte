@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { gridWeeks } from './dates';
+	import { formatDate, gridWeeks } from './dates';
 	import type { Cycle, ScheduledDay } from './plan';
 	import SessionIcon, { type IconState } from './SessionIcon.svelte';
 
@@ -11,9 +11,6 @@
 		onmove
 	}: { cycle: Cycle; days: ScheduledDay[]; today: string; onmove: (d: ScheduledDay, to: string) => Promise<void> } =
 		$props();
-
-	const utc = (date: string, o: Intl.DateTimeFormatOptions) =>
-		new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, { ...o, timeZone: 'UTC' });
 
 	const weeks = $derived(gridWeeks(cycle.starts, cycle.ends));
 	const byDate = $derived.by(() => {
@@ -27,8 +24,8 @@
 	const selected = $derived(chosen || (inCycle(today) ? today : cycle.starts));
 
 	const months = $derived.by(() => {
-		const a = utc(cycle.starts, { month: 'long' });
-		const b = utc(cycle.ends, { month: 'long' });
+		const a = formatDate(cycle.starts, { month: 'long' });
+		const b = formatDate(cycle.ends, { month: 'long' });
 		return a === b ? a : `${a} – ${b}`;
 	});
 
@@ -142,7 +139,7 @@
 							{lifted && !target(date) && date !== lifted.local_date ? 'opacity-40' : ''}"
 						disabled={!inCycle(date)}
 						aria-pressed={date === selected}
-						aria-label="{utc(date, { weekday: 'long', day: 'numeric', month: 'long' })}{list.length
+						aria-label="{formatDate(date, { weekday: 'long', day: 'numeric', month: 'long' })}{list.length
 							? `: ${list.map((d) => d.template_name).join(', ')}`
 							: ''}"
 						onclick={() => {
@@ -189,7 +186,7 @@
 	class="rounded-3xl px-[18px] pt-3.5 pb-2 shadow-card {lifted ? 'bg-tint/25 outline-2 -outline-offset-2 outline-dashed outline-ink-3' : 'bg-surface'}"
 	aria-live="polite"
 >
-	<h3 class="text-[15px] font-bold">{utc(panel, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
+	<h3 class="text-[15px] font-bold">{formatDate(panel, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
 	{#if lifted}
 		<p class="pt-1 pb-2.5 text-[15px] font-semibold text-ink-2">
 			{over ? `Drop to move ${lifted.template_name} here` : 'Drag onto a day from today on'}

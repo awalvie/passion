@@ -5,7 +5,7 @@
 	import { describe } from '$lib/api';
 	import BlockDays from '$lib/BlockDays.svelte';
 	import Button from '$lib/Button.svelte';
-	import { addDays } from '$lib/dates';
+	import { addDays, daysBetween, formatDate } from '$lib/dates';
 	import EntryList from '$lib/EntryList.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import GoalList from '$lib/GoalList.svelte';
@@ -22,12 +22,11 @@
 	let error = $state('');
 	let leftOut = $state(0);
 
-	const length = $derived(Math.round((Date.parse(draft.ends) - Date.parse(draft.starts)) / 86_400_000) + 1);
+	const length = $derived(daysBetween(draft.starts, draft.ends) + 1);
 	const fields: Record<string, string> = { name: 'The name', starts: 'The start', ends: 'The end', block_days: 'The block' };
 	const titles = ['Name and dates', 'What is it for?', 'What repeats?'];
 	const hints = ['The block comes next.', 'All optional. You can add these later.', 'Pick the block length, then fill each day.'];
-	const short = (date: string) =>
-		new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' });
+	const short = (date: string) => formatDate(date, { day: 'numeric', month: 'short' });
 
 	async function save() {
 		busy = true;

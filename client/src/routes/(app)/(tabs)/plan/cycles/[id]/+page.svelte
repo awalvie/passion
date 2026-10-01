@@ -5,7 +5,7 @@
 	import BlockDays from '$lib/BlockDays.svelte';
 	import CycleCalendar from '$lib/CycleCalendar.svelte';
 	import Button from '$lib/Button.svelte';
-	import { addDays, cycleWeek } from '$lib/dates';
+	import { addDays, cycleWeek, daysBetween, formatDate } from '$lib/dates';
 	import FormError from '$lib/FormError.svelte';
 	import EntryList from '$lib/EntryList.svelte';
 	import GoalList from '$lib/GoalList.svelte';
@@ -21,16 +21,13 @@
 
 	let error = $state('');
 
-	const span = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
-	const utc = (date: string, o: Intl.DateTimeFormatOptions) =>
-		new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, { ...o, timeZone: 'UTC' });
-	const short = (date: string) => utc(date, { day: 'numeric', month: 'short' });
+	const short = (date: string) => formatDate(date, { day: 'numeric', month: 'short' });
 
 	const when = $derived.by(() => {
 		const c = data.cycle;
 		if (data.today > c.ends) return 'Ended';
 		if (data.today < c.starts) {
-			const n = span(data.today, c.starts);
+			const n = daysBetween(data.today, c.starts);
 			return n === 1 ? 'Starts tomorrow' : `Starts in ${n} days`;
 		}
 		const w = cycleWeek(c.starts, c.ends, data.today);
@@ -40,8 +37,8 @@
 	type Editor = 'name' | 'dates' | 'block';
 	const rows: { editor: Editor; icon: IconName; label: string; value: string }[] = $derived.by(() => {
 		const c = data.cycle;
-		const repeats = Math.ceil((span(c.block_from, c.ends) + 1) / c.block_days);
-		const weeks = Math.round((span(c.starts, c.ends) + 1) / 7);
+		const repeats = Math.ceil((daysBetween(c.block_from, c.ends) + 1) / c.block_days);
+		const weeks = Math.round((daysBetween(c.starts, c.ends) + 1) / 7);
 		return [
 			{ editor: 'name', icon: 'pencil', label: 'Name', value: c.name },
 			{ editor: 'dates', icon: 'calendar', label: 'Dates', value: `${short(c.starts)} – ${short(c.ends)} · ${weeks === 1 ? '1 week' : `${weeks} weeks`}` },
@@ -121,7 +118,7 @@
 		try {
 			await request('PUT', `/api/v1/scheduled-sessions/${d.id}`, { local_date: to });
 			last = { id: d.id, from: d.local_date };
-			toast = `${d.template_name} moved to ${utc(to, { weekday: 'short', day: 'numeric', month: 'short' })}`;
+			toast = `${d.template_name} moved to ${formatDate(to, { weekday: 'short', day: 'numeric', month: 'short' })}`;
 		} catch (e) {
 			throw new Error(describe(e, () => 'That day'));
 		} finally {
