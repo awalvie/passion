@@ -202,6 +202,7 @@
 					A cycle repeats a block of sessions over weeks.
 				</p>
 			{/if}
+			<Button variant="secondary" href="/plan/cycles/new">New cycle</Button>
 		</section>
 	{/if}
 </div>
