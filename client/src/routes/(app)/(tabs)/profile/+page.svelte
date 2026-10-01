@@ -1,12 +1,36 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import Segmented from '$lib/Segmented.svelte';
 	import { goto } from '$app/navigation';
-	import { request } from '$lib/api';
+	import { describe, request } from '$lib/api';
 	import { setSound, soundOn } from '$lib/audio';
 	import Button from '$lib/Button.svelte';
+	import FormError from '$lib/FormError.svelte';
+	import { forgetGrades } from '$lib/grades';
 	import NavBar from '$lib/NavBar.svelte';
 	import { hapticsOn, setHaptics, tickBox } from '$lib/haptics';
 	import { clearRunStorage, clearToken } from '$lib/session';
+
+	let { data } = $props();
+
+	const scaleNames: Record<string, string> = { font: 'Font', v: 'V scale', french: 'French', yds: 'YDS' };
+	let boulder = $state(untrack(() => data.account.boulder_grades));
+	let route = $state(untrack(() => data.account.route_grades));
+	let gradeError = $state('');
+
+	async function setScale(kind: 'boulder' | 'route', system: string) {
+		const before = { boulder, route };
+		if (kind === 'boulder') boulder = system;
+		else route = system;
+		gradeError = '';
+		try {
+			await request('PUT', '/api/v1/accounts/me/grades', { boulder_grades: boulder, route_grades: route });
+			forgetGrades();
+		} catch (e) {
+			({ boulder, route } = before);
+			gradeError = describe(e, (f) => (f === 'boulder_grades' ? 'The boulder scale' : 'The route scale'));
+		}
+	}
 
 	type Theme = 'system' | 'light' | 'dark';
 	const themes: { value: Theme; label: string }[] = [
@@ -51,17 +75,51 @@
 	</label>
 {/snippet}
 
-<NavBar title="Profile" back={{ href: '/', label: 'Today' }} />
+<svelte:head><title>Profile</title></svelte:head>
+
+<NavBar back={{ href: '/', label: 'Today' }} />
 
 <div class="flex flex-col gap-3.5 px-4 pt-2 pb-8">
-	<section class="rounded-3xl bg-surface px-[18px] py-2 shadow-card">
-		<div class="flex flex-col gap-2.5 py-3">
-			<h2 class="text-[15px] font-bold">Theme</h2>
-			<Segmented label="Theme" items={themes.map((t) => ({ label: t.label, on: theme === t.value, onclick: () => setTheme(t.value) }))} />
-		</div>
+	<header class="px-1">
+		<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em] break-words">{data.account.display_name || data.account.email}</h1>
+		{#if data.account.display_name}
+			<p class="mt-1 truncate text-[15px] font-semibold text-ink-2">{data.account.email}</p>
+		{/if}
+	</header>
 
-		{@render toggle('Timer sounds', sound, (on) => setSound((sound = on)))}
-		{@render toggle('Haptics', haptics, (on) => setHaptics((haptics = on)))}
+	<section class="flex flex-col gap-2">
+		<h2 class="px-1 text-[15px] font-bold">Grades</h2>
+		<div class="flex flex-col gap-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
+			{#each [{ kind: 'boulder', label: 'Boulders', on: boulder }, { kind: 'route', label: 'Routes', on: route }] as const as g (g.kind)}
+				<div class="flex flex-col gap-2">
+					<span class="text-xs font-semibold text-ink-2">{g.label}</span>
+					<Segmented
+						label="{g.label} scale"
+						items={data.grades.scales
+							.filter((s) => s.boulder === (g.kind === 'boulder'))
+							.map((s) => ({
+								label: `${scaleNames[s.system] ?? s.system} · ${s.grades[Math.floor(s.grades.length / 2)]}`,
+								on: g.on === s.system,
+								onclick: () => setScale(g.kind, s.system)
+							}))}
+					/>
+				</div>
+			{/each}
+			<FormError message={gradeError} />
+		</div>
+	</section>
+
+	<section class="flex flex-col gap-2">
+		<h2 class="px-1 text-[15px] font-bold">App</h2>
+		<div class="rounded-3xl bg-surface px-[18px] py-2 shadow-card">
+			<div class="flex flex-col gap-2.5 py-3">
+				<h3 class="text-[15px] font-bold">Theme</h3>
+				<Segmented label="Theme" items={themes.map((t) => ({ label: t.label, on: theme === t.value, onclick: () => setTheme(t.value) }))} />
+			</div>
+
+			{@render toggle('Timer sounds', sound, (on) => setSound((sound = on)))}
+			{@render toggle('Haptics', haptics, (on) => setHaptics((haptics = on)))}
+		</div>
 	</section>
 
 	<Button variant="danger" onclick={signOut}>Log out</Button>
