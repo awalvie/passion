@@ -405,7 +405,7 @@
 																	: 'border-2 border-ink-3'}"
 														>
 															{#if on}
-																<svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" /></svg>
+																<Icon name="check" size="0.875rem" stroke={3} />
 															{/if}
 														</span>
 														<span class="block px-2.5 pt-2 pb-2.5 {thumb ? '' : 'pr-9'}">
