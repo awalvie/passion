@@ -26,7 +26,9 @@
 	--glow-1: rgba(190, 230, 120, 0.5);
 	--glow-2: rgba(244, 200, 160, 0.5);
 	--prep: #2a72ec;
+	--prep-band: #11409e;
 	--hang: #c6f05b;
+	--hang-band: #a8d63b;
 	--on-hang: #15201a;
 	--rest: #0d8450;
 	--rest-soft: #dbebdf;
@@ -66,7 +68,9 @@
 	--glow-1: rgba(110, 180, 80, 0.2);
 	--glow-2: rgba(60, 120, 110, 0.16);
 	--prep: #1e5bc9;
+	--prep-band: #16489f;
 	--hang: #aeda45;
+	--hang-band: #8fba2b;
 	--on-hang: #101812;
 	--rest: #12a061;
 	--rest-soft: #11291c;

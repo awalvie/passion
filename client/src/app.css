@@ -71,7 +71,9 @@
 	--color-on-hero: var(--on-hero);
 	--color-on-hero-2: var(--on-hero-2);
 	--color-prep: var(--prep);
+	--color-prep-band: var(--prep-band);
 	--color-hang: var(--hang);
+	--color-hang-band: var(--hang-band);
 	--color-on-hang: var(--on-hang);
 	--color-rest: var(--rest);
 	--color-rest-soft: var(--rest-soft);

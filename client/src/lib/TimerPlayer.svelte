@@ -169,12 +169,12 @@
 		ink2: 'text-[#F6F9F4]/90',
 		glass: 'bg-black/20',
 		ring: 'text-[#F6F9F4]/74',
-		accent: '',
-		band: 'bg-black/15'
+		accent: ''
 	};
 	const looks = {
 		prep: {
 			...light,
+			band: 'bg-prep-band',
 			field: 'bg-[#1a50b8] dark:bg-prep',
 			card: 'bg-[#0D2A66] dark:bg-[#091E4B]',
 			digit: 'text-[#F3F7FF] dark:text-[#E8EFFF]',
@@ -186,7 +186,7 @@
 			glass: 'bg-on-hang/10',
 			ring: 'text-on-hang/70',
 			accent: '',
-			band: 'bg-black/15',
+			band: 'bg-hang-band',
 			field: 'bg-hang',
 			card: 'bg-on-hang',
 			digit: 'text-[#C6F05B] dark:text-[#BFEA55]',
