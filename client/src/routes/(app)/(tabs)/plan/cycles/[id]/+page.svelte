@@ -204,7 +204,7 @@
 
 	<section class="flex flex-col gap-2">
 		<h2 class="px-1 text-[15px] font-bold">Calendar</h2>
-		<CycleCalendar cycle={data.cycle} days={data.days} today={data.today} onmove={move} />
+		<CycleCalendar cycle={data.cycle} days={data.days} today={data.today} cycleNames={data.cycleNames} onmove={move} />
 	</section>
 
 	<section class="flex flex-col gap-2">

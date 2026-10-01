@@ -3,14 +3,21 @@
 	import type { Cycle, ScheduledDay } from './plan';
 	import SessionIcon, { type IconState } from './SessionIcon.svelte';
 
-	// onmove puts a session on another day, and throws when the server refuses.
+	// days holds every row in the cycle's dates, from any cycle. onmove puts a
+	// session on another day, and throws when the server refuses.
 	let {
 		cycle,
 		days,
 		today,
+		cycleNames,
 		onmove
-	}: { cycle: Cycle; days: ScheduledDay[]; today: string; onmove: (d: ScheduledDay, to: string) => Promise<void> } =
-		$props();
+	}: {
+		cycle: Cycle;
+		days: ScheduledDay[];
+		today: string;
+		cycleNames: Record<string, string>;
+		onmove: (d: ScheduledDay, to: string) => Promise<void>;
+	} = $props();
 
 	const weeks = $derived(gridWeeks(cycle.starts, cycle.ends));
 	const byDate = $derived.by(() => {
@@ -196,7 +203,14 @@
 			{#each byDate.get(panel) ?? [] as d (d.id)}
 				<li class="flex min-h-[52px] items-center gap-3 py-2 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 					<SessionIcon icon={d.template_icon} name={d.template_name} state={look(d)} size={32} />
-					<span class="min-w-0 flex-1 truncate text-[15px] font-bold">{d.template_name}</span>
+					<span class="min-w-0 flex-1">
+						<span class="block truncate text-[15px] font-bold">{d.template_name}</span>
+						{#if d.cycle !== cycle.id}
+							<span class="block truncate text-xs font-semibold text-ink-2">
+								{d.cycle ? (cycleNames[d.cycle] ?? 'Another cycle') : 'One-off'}
+							</span>
+						{/if}
+					</span>
 					{#if words[look(d)]}
 						<span class="shrink-0 text-xs font-bold text-ink-2">{words[look(d)]}</span>
 					{/if}
