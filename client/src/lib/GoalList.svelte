@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Checkbox from './Checkbox.svelte';
 	import Icon from './Icon.svelte';
 	import type { Goal } from './plan';
 
@@ -20,17 +21,8 @@
 <ul class="rounded-3xl bg-surface px-[18px] shadow-card">
 	{#each goals as g, i (i)}
 		<li class="flex min-h-[52px] items-start gap-1 py-1.5 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
-			<label class="relative -ml-2.5 flex size-11 shrink-0 cursor-pointer items-center justify-center">
-				<input
-					type="checkbox"
-					class="peer size-6 cursor-pointer appearance-none rounded-lg shadow-[inset_0_0_0_2px_var(--ink-3)] checked:bg-ink checked:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-					checked={g.done}
-					aria-label={g.text}
-					onchange={(e) => tick(i, e.currentTarget.checked)}
-				/>
-				<span class="pointer-events-none absolute inset-0 hidden items-center justify-center text-ground peer-checked:flex">
-					<Icon name="check" size="1rem" />
-				</span>
+			<label class="-ml-2.5 flex size-11 shrink-0 cursor-pointer items-center justify-center">
+				<Checkbox checked={g.done} label={g.text} onchange={(e) => tick(i, e.currentTarget.checked)} />
 			</label>
 			<button type="button" class="flex min-h-11 min-w-0 flex-1 flex-col justify-center gap-0.5 py-1.5 text-left" onclick={() => onedit(i)}>
 				<span class="text-[15px] font-bold break-words {g.done ? 'text-ink-3 line-through' : ''}">{g.text}</span>
