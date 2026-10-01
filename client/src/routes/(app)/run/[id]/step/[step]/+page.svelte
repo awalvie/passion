@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '$lib/Icon.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { describe } from '$lib/api';
@@ -135,7 +136,7 @@
 						<span class="mb-0.5 block text-xs font-semibold text-ink-2">How to</span>
 						<span class="line-clamp-2 text-[15px] leading-[1.35] font-semibold text-ink group-open:hidden">{howTo.replace(/\s+/g, ' ')}</span>
 					</span>
-					<svg viewBox="0 0 24 24" class="size-[18px] shrink-0 text-ink-3 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+					<span class="flex shrink-0 text-ink-3 transition-transform group-open:rotate-90"><Icon name="chevron-right" size="18px" stroke={2.2} /></span>
 				</summary>
 				<Notes text={howTo} class="px-4 pb-4 text-[15px] leading-[1.35] font-semibold text-ink" />
 			</details>
@@ -190,7 +191,7 @@
 					<span class="block truncate text-[15px] font-bold">{next.name}</span>
 					<span class="block truncate text-xs font-semibold text-ink-2">{stepMeta(next)}</span>
 				</span>
-				<svg viewBox="0 0 24 24" class="size-[18px] shrink-0 text-ink-3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+				<span class="flex shrink-0 text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.2} /></span>
 			</a>
 		{/if}
 	</div>

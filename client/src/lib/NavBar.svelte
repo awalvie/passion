@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from './Icon.svelte';
 	import type { Snippet } from 'svelte';
 
 	let {
@@ -23,7 +24,7 @@
 					href={back.href}
 					class="inline-flex h-11 max-w-full items-center gap-0.5 rounded-full bg-surface pr-4 pl-2.5 text-[15px] font-bold text-ink shadow-card-sm"
 				>
-					<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+					<Icon name="chevron-left" size="1.25rem" stroke={2.4} />
 					<span class="truncate">{back.label}</span>
 				</a>
 			{/if}

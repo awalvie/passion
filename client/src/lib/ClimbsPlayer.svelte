@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from './Icon.svelte';
 	import type { Snippet } from 'svelte';
 	import Button from './Button.svelte';
 	import PlayerStepFrame from './PlayerStepFrame.svelte';
@@ -194,7 +195,7 @@
 							</span>
 							<span class="font-bold">{c.grade ?? 'No grade'}</span>
 							<span class="min-w-0 flex-1 truncate font-semibold text-ink-2">{describe(c)}</span>
-							<svg viewBox="0 0 24 24" class="size-4 shrink-0 text-ink-3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+							<span class="flex shrink-0 text-ink-3"><Icon name="chevron-right" stroke={2.2} /></span>
 						</button>
 					</li>
 				{/each}
