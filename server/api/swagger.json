@@ -1690,6 +1690,25 @@
         "block_days"
       ],
       "properties": {
+        "after": {
+          "description": "Free-text entries written at the end. Blank ones are dropped.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "After"
+        },
+        "before": {
+          "description": "Free-text entries written at the start. Blank ones are dropped.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Before",
+          "example": [
+            "Max hang, 20 mm, 10 s: +18 kg"
+          ]
+        },
         "block_days": {
           "description": "How long the repeating block is. Seven lands the sessions on the same\nweekdays every time.",
           "type": "integer",
@@ -1710,6 +1729,14 @@
           "type": "string",
           "x-go-name": "Ends",
           "example": "2026-04-13"
+        },
+        "goals": {
+          "description": "What the person sets out to reach. Blank lines are dropped.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/goalBody"
+          },
+          "x-go-name": "Goals"
         },
         "id": {
           "description": "The id the client chose.",
@@ -1731,6 +1758,11 @@
           "x-go-name": "Name",
           "example": "Spring fingers"
         },
+        "notes": {
+          "type": "string",
+          "x-go-name": "Notes",
+          "example": "Left shoulder felt tight in week 1"
+        },
         "starts": {
           "description": "The first day, written YYYY-MM-DD.",
           "type": "string",
@@ -1749,6 +1781,25 @@
         "block_days"
       ],
       "properties": {
+        "after": {
+          "description": "Free-text entries written at the end. Blank ones are dropped.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "After"
+        },
+        "before": {
+          "description": "Free-text entries written at the start. Blank ones are dropped.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Before",
+          "example": [
+            "Max hang, 20 mm, 10 s: +18 kg"
+          ]
+        },
         "block_days": {
           "description": "How long the repeating block is. Seven lands the sessions on the same\nweekdays every time.",
           "type": "integer",
@@ -1770,11 +1821,24 @@
           "x-go-name": "Ends",
           "example": "2026-04-13"
         },
+        "goals": {
+          "description": "What the person sets out to reach. Blank lines are dropped.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/goalBody"
+          },
+          "x-go-name": "Goals"
+        },
         "name": {
           "description": "Up to 200 characters.",
           "type": "string",
           "x-go-name": "Name",
           "example": "Spring fingers"
+        },
+        "notes": {
+          "type": "string",
+          "x-go-name": "Notes",
+          "example": "Left shoulder felt tight in week 1"
         },
         "starts": {
           "description": "The first day, written YYYY-MM-DD.",
@@ -1794,6 +1858,25 @@
         "block_days"
       ],
       "properties": {
+        "after": {
+          "description": "Free-text entries written at the end. Blank ones are dropped.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "After"
+        },
+        "before": {
+          "description": "Free-text entries written at the start. Blank ones are dropped.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Before",
+          "example": [
+            "Max hang, 20 mm, 10 s: +18 kg"
+          ]
+        },
         "block_days": {
           "description": "How long the repeating block is. Seven lands the sessions on the same\nweekdays every time.",
           "type": "integer",
@@ -1815,6 +1898,14 @@
           "x-go-name": "Ends",
           "example": "2026-04-13"
         },
+        "goals": {
+          "description": "What the person sets out to reach. Blank lines are dropped.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/goalBody"
+          },
+          "x-go-name": "Goals"
+        },
         "id": {
           "description": "The id the client chose.",
           "type": "string",
@@ -1826,6 +1917,11 @@
           "type": "string",
           "x-go-name": "Name",
           "example": "Spring fingers"
+        },
+        "notes": {
+          "type": "string",
+          "x-go-name": "Notes",
+          "example": "Left shoulder felt tight in week 1"
         },
         "starts": {
           "description": "The first day, written YYYY-MM-DD.",
@@ -2213,6 +2309,25 @@
             "type": "string"
           },
           "x-go-name": "Tags"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "goalBody": {
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "done": {
+          "type": "boolean",
+          "x-go-name": "Done"
+        },
+        "text": {
+          "description": "Up to 200 characters.",
+          "type": "string",
+          "x-go-name": "Text",
+          "example": "Flash 7a in the gym"
         }
       },
       "x-go-package": "passion/server/api"

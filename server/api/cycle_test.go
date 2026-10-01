@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -34,6 +35,17 @@ func TestPutCycle(t *testing.T) {
 			t.Fatalf("cycle %+v, want Spring fingers under the id chosen, with an empty left_out", got)
 		}
 	}
+	// Goals, entries and notes come back as written, blank lines dropped.
+	rec := send(t, h, http.MethodPut, path, ada, `{"name": "Spring fingers", "starts": "2100-01-05", "ends": "2100-01-18", "block_days": 7,
+		"goals": [{"text": "Flash 7a", "done": true}, {"text": " "}], "before": ["Max hang +18 kg"], "notes": "Strict pull-ups"}`)
+	var got cycleResponse
+	if err := json.Unmarshal(send(t, h, http.MethodGet, path, ada, "").Body.Bytes(), &got); err != nil || rec.Code != http.StatusOK {
+		t.Fatalf("status %d, %v", rec.Code, err)
+	}
+	if len(got.Goals) != 1 || !got.Goals[0].Done || len(got.Before) != 1 || got.After == nil || *got.Notes != "Strict pull-ups" {
+		t.Fatalf("cycle %+v, want the goal, the entry and the notes", got)
+	}
+
 	var list cycleListResponse
 	if err := json.Unmarshal(send(t, h, http.MethodGet, "/api/v1/cycles", ada, "").Body.Bytes(), &list); err != nil {
 		t.Fatal(err)
@@ -48,6 +60,7 @@ func TestPutCycle(t *testing.T) {
 	}{
 		"a bad date":              {ada, path, `{"name": "C", "starts": "soon", "ends": "2100-01-18", "block_days": 7}`, "starts", http.StatusUnprocessableEntity},
 		"a day past the block":    {ada, path, `{"name": "C", "starts": "2100-01-05", "ends": "2100-01-18", "block_days": 7, "days": [{"day": 8, "template": "` + power + `"}]}`, "days[0].day", http.StatusUnprocessableEntity},
+		"a goal too long":         {ada, path, `{"name": "C", "starts": "2100-01-05", "ends": "2100-01-18", "block_days": 7, "goals": [{"text": "` + strings.Repeat("a", 201) + `"}]}`, "goals[0]", http.StatusUnprocessableEntity},
 		"a template you lack":     {ada, path, `{"name": "C", "starts": "2100-01-05", "ends": "2100-01-18", "block_days": 7, "days": [{"day": 1, "template": "0199c3a0-0000-7000-8000-0000000000ff"}]}`, "days[0].template", http.StatusUnprocessableEntity},
 		"someone else's cycle id": {bob, path, cycleBody(power), "", http.StatusNotFound},
 	} {

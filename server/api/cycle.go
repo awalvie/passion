@@ -38,6 +38,31 @@ type cycleRequest struct {
 
 	// Which session falls on which day of the block.
 	Days []cycleDayBody `json:"days"`
+
+	// What the person sets out to reach. Blank lines are dropped.
+	Goals []goalBody `json:"goals"`
+
+	// Free-text entries written at the start. Blank ones are dropped.
+	//
+	// example: ["Max hang, 20 mm, 10 s: +18 kg"]
+	Before []string `json:"before"`
+
+	// Free-text entries written at the end. Blank ones are dropped.
+	After []string `json:"after"`
+
+	// example: Left shoulder felt tight in week 1.
+	Notes *string `json:"notes"`
+}
+
+// swagger:model goalBody
+type goalBody struct {
+	// Up to 200 characters.
+	//
+	// required: true
+	// example: Flash 7a in the gym
+	Text string `json:"text"`
+
+	Done bool `json:"done"`
 }
 
 // swagger:model cycleDayBody
@@ -160,7 +185,10 @@ func (s *Server) putCycle(w http.ResponseWriter, r *http.Request, who db.Authent
 	}
 
 	problems := map[string]string{}
-	f := db.CycleFields{Name: req.Name, BlockDays: req.BlockDays}
+	f := db.CycleFields{Name: req.Name, BlockDays: req.BlockDays, Before: req.Before, After: req.After, Notes: req.Notes}
+	for _, g := range req.Goals {
+		f.Goals = append(f.Goals, db.Goal{Text: g.Text, Done: g.Done})
+	}
 	starts, okStarts := parseDay(req.Starts, "starts", problems)
 	ends, okEnds := parseDay(req.Ends, "ends", problems)
 	f.Starts, f.Ends = starts, ends
@@ -230,6 +258,10 @@ func toCycleResponse(c db.Cycle) cycleResponse {
 	for _, d := range c.Body.Days {
 		days = append(days, cycleDayBody{Day: d.Day, Template: d.Template})
 	}
+	goals := make([]goalBody, 0, len(c.Goals))
+	for _, g := range c.Goals {
+		goals = append(goals, goalBody{Text: g.Text, Done: g.Done})
+	}
 	return cycleResponse{
 		ID: c.ID,
 		cycleRequest: cycleRequest{
@@ -238,6 +270,10 @@ func toCycleResponse(c db.Cycle) cycleResponse {
 			Ends:      c.Ends.Format(time.DateOnly),
 			BlockDays: c.BlockDays,
 			Days:      days,
+			Goals:     goals,
+			Before:    c.Before,
+			After:     c.After,
+			Notes:     c.Notes,
 		},
 	}
 }
