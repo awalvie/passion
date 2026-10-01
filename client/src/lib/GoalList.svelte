@@ -27,12 +27,17 @@
 	{#each goals as g, i (i)}
 		<li class="flex min-h-[52px] items-center gap-3 py-2 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 			<label class="flex min-w-0 flex-1 items-center gap-3 self-stretch">
-				<input
-					type="checkbox"
-					class="size-6 shrink-0 accent-ink"
-					checked={g.done}
-					onchange={(e) => set(goals.map((x, j) => (j === i ? { ...x, done: e.currentTarget.checked } : x)))}
-				/>
+				<span class="relative flex size-6 shrink-0">
+					<input
+						type="checkbox"
+						class="peer size-6 cursor-pointer appearance-none rounded-lg shadow-[inset_0_0_0_2px_var(--ink-3)] checked:bg-ink checked:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+						checked={g.done}
+						onchange={(e) => set(goals.map((x, j) => (j === i ? { ...x, done: e.currentTarget.checked } : x)))}
+					/>
+					<span class="pointer-events-none absolute inset-0 hidden items-center justify-center text-ground peer-checked:flex">
+						<Icon name="check" size="1rem" />
+					</span>
+				</span>
 				<span class="min-w-0 flex-1 text-[15px] font-bold break-words {g.done ? 'text-ink-3 line-through' : ''}">{g.text}</span>
 			</label>
 			<button
