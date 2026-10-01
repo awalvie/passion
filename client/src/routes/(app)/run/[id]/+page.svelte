@@ -61,12 +61,9 @@
 	}
 
 	async function discard() {
-		if (!confirm(`Discard “${run.name}”? Everything logged in it is deleted.`)) return;
 		error = '';
 		try {
-			await request('DELETE', `/api/v1/runs/${run.id}`);
-			await goto('/');
-			openRun.forget();
+			await openRun.discard();
 		} catch (e) {
 			error = describe(e, (f) => f);
 		}
