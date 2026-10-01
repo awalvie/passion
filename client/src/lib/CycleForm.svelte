@@ -3,7 +3,7 @@
 	import { untrack, type Snippet } from 'svelte';
 	import { describe, request } from './api';
 	import Button from './Button.svelte';
-	import { addDays, weekday } from './dates';
+	import BlockDays from './BlockDays.svelte';
 	import FormError from './FormError.svelte';
 	import type { Cycle } from './plan';
 	import type { SessionTemplate } from './template';
@@ -22,23 +22,15 @@
 	let error = $state('');
 	let leftOut = $state(0);
 
-	const names = $derived(new Map(templates.map((t) => [t.id, t.name])));
 	const length = $derived(
 		draft.starts && draft.ends ? Math.round((Date.parse(draft.ends) - Date.parse(draft.starts)) / 86_400_000) + 1 : 0
 	);
 	const maxBlock = $derived(Math.max(1, Math.min(28, length)));
 	// Day 1 of the block, as the server will count it.
 	const blockFrom = $derived(draft.starts === cycle.starts ? cycle.block_from : draft.starts);
-	const blockDays = $derived(Array.from({ length: Math.max(0, Math.min(draft.block_days, 28)) }, (_, i) => i + 1));
 
 	const fields: Record<string, string> = { name: 'The name', starts: 'The start', ends: 'The end', block_days: 'The block' };
 	const label = (f: string) => (f.startsWith('days') ? 'A session' : (fields[f] ?? f));
-
-	function add(day: number, template: string) {
-		if (template && !draft.days.some((d) => d.day === day && d.template === template)) {
-			draft.days.push({ day, template });
-		}
-	}
 
 	async function save() {
 		busy = true;
@@ -92,43 +84,7 @@
 
 	<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-2 shadow-card">
 		<h2 class="mb-1 text-[15px] font-bold">Sessions</h2>
-		<ul>
-			{#each blockDays as day (day)}
-				<li class="flex flex-col gap-2 py-3 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
-					<span class="text-xs font-semibold text-ink-2">
-						Day {day}{blockFrom ? ` · ${weekday(addDays(blockFrom, day - 1))}` : ''}
-					</span>
-					{#each draft.days.filter((d) => d.day === day) as d (d.template)}
-						{@const name = names.get(d.template) ?? 'Retired session'}
-						<span class="flex items-center gap-2">
-							<span class="min-w-0 flex-1 truncate text-[15px] font-bold">{name}</span>
-							<button
-								type="button"
-								class="h-11 shrink-0 px-2 text-[15px] font-bold text-bad"
-								aria-label="Remove {name} from day {day}"
-								onclick={() => (draft.days = draft.days.filter((x) => x !== d))}
-							>
-								Remove
-							</button>
-						</span>
-					{/each}
-					<select
-						class="input h-12 px-4"
-						aria-label="Add a session on day {day}"
-						value=""
-						onchange={(e) => {
-							add(day, e.currentTarget.value);
-							e.currentTarget.value = '';
-						}}
-					>
-						<option value="">Add a session…</option>
-						{#each templates as t (t.id)}
-							<option value={t.id}>{t.name}</option>
-						{/each}
-					</select>
-				</li>
-			{/each}
-		</ul>
+		<BlockDays bind:days={draft.days} blockDays={draft.block_days} from={blockFrom} {templates} />
 	</section>
 
 	<FormError message={error} />
