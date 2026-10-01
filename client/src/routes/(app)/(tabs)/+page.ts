@@ -1,6 +1,7 @@
 import { request, unreachable } from '$lib/api';
 import { addDays, mondayOf } from '$lib/dates';
 import { loadToday, localToday, type Cycle, type ScheduledDay } from '$lib/plan';
+import type { Climb } from '$lib/run';
 import { openRun } from '$lib/runState.svelte';
 import type { SessionTemplate } from '$lib/template';
 
@@ -23,11 +24,19 @@ export async function load({ parent }) {
 			)
 		]);
 		const days = week.filter((d) => d.local_date === today);
-		const templates = await Promise.all(
-			[...new Set(days.map((d) => d.template))].map((id) =>
-				request<SessionTemplate>('GET', `/api/v1/session-templates/${id}`)
-			)
-		);
+		const cycle = cycles.find((c) => c.starts <= today && today <= c.ends);
+		const [templates, sends] = await Promise.all([
+			Promise.all(
+				[...new Set(days.map((d) => d.template))].map((id) =>
+					request<SessionTemplate>('GET', `/api/v1/session-templates/${id}`)
+				)
+			),
+			cycle
+				? request<{ climbs: Climb[] }>('GET', `/api/v1/climbs?from=${cycle.starts}&to=${today}`).then(
+						(r) => r.climbs.filter((c) => c.sent).length
+					)
+				: null
+		]);
 		await live;
 		return {
 			today,
@@ -36,6 +45,7 @@ export async function load({ parent }) {
 			days,
 			cycles,
 			templates: new Map(templates.map((t) => [t.id, t])),
+			sends,
 			offline: false
 		};
 	} catch (e) {
@@ -50,6 +60,7 @@ export async function load({ parent }) {
 			days: [] as ScheduledDay[],
 			cycles: [] as Cycle[],
 			templates: new Map<string, SessionTemplate>(),
+			sends: null,
 			offline: true
 		};
 	}
