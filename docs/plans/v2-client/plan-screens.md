@@ -43,7 +43,7 @@ A fourth tab, Plan, between Today and Library. Icon: calendar.
 - New cycle defaults: today to four weeks later, block 7, no sessions.
 - Each field shows the server's 422 message under it.
 
-No goals, focus, labels, deload or rest periods. The V2 API has none of them.
+The cycle page and the three-step create replaced this form. They add goals, before and after entries, and notes. `mock-gaps.md` lists what is left out.
 
 ## Code
 
@@ -52,7 +52,7 @@ No goals, focus, labels, deload or rest periods. The V2 API has none of them.
 - `lib/dates.test.ts`: tests for both.
 - `routes/(app)/(tabs)/plan/+page.ts`: loads the days, the cycles and the templates in parallel.
 - `routes/(app)/(tabs)/plan/+page.svelte`.
-- `routes/(app)/(tabs)/plan/cycles/new/+page.ts` and `[id]/+page.ts`, and `lib/CycleForm.svelte`, which both pages use.
+- `routes/(app)/(tabs)/plan/cycles/new/`: the three-step create. `[id]/`: the cycle page.
 - `TabBar.svelte`: the Plan tab. `Icon.svelte`: a calendar icon.
 - Each change calls the API, then `invalidateAll()`. No queue: the plan is made at home, with a signal.
 
