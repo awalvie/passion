@@ -3154,6 +3154,12 @@
           "x-go-name": "Template",
           "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
         },
+        "template_icon": {
+          "description": "The template's icon today.",
+          "type": "string",
+          "x-go-name": "TemplateIcon",
+          "example": "dumbbell"
+        },
         "template_name": {
           "description": "The template's name today. A future session follows its template.",
           "type": "string",

@@ -70,6 +70,9 @@ type ScheduledDay struct {
 	// The template's name today, as a future session follows its template.
 	TemplateName string `db:"template_name"`
 
+	// The template's icon today.
+	TemplateIcon *string `db:"template_icon"`
+
 	// The run started from it, a finished one first.
 	Run *string `db:"run"`
 
@@ -82,7 +85,7 @@ type ScheduledDay struct {
 // both included. "Today" is the person's, in their own zone (rule 43).
 func ListScheduledSessions(ctx context.Context, pool *pgxpool.Pool, owner string, from, to time.Time) ([]ScheduledDay, error) {
 	rows, err := pool.Query(ctx, `
-		SELECT s.*, t.name AS template_name, r.id AS run,
+		SELECT s.*, t.name AS template_name, t.icon AS template_icon, r.id AS run,
 			CASE
 				WHEN r.finished_at IS NOT NULL THEN 'done'
 				WHEN r.id IS NOT NULL THEN 'started'

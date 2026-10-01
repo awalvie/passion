@@ -45,10 +45,16 @@ func TestScheduledSessions(t *testing.T) {
 		t.Fatalf("the same session twice on a day: status %d, want 422", rec.Code)
 	}
 
+	if _, err := pool.Exec(t.Context(), `UPDATE session_template SET icon = 'hand' WHERE id = $1`, power); err != nil {
+		t.Fatal(err)
+	}
 	days := listSchedule(t, h, ada, "2100-01-05", "2100-01-07")
 	var got []string
 	for _, d := range days {
 		got = append(got, d.LocalDate+" "+d.TemplateName+" "+d.Status)
+		if d.TemplateIcon == nil || *d.TemplateIcon != "hand" {
+			t.Fatalf("icon %v, want the template's", d.TemplateIcon)
+		}
 	}
 	want := []string{"2100-01-05 Power planned", "2100-01-06 Power planned", "2100-01-07 Power planned"}
 	if !slices.Equal(got, want) {
