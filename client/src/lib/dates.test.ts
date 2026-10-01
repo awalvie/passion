@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { addDays, cycleWeek, mondayOf, weekday, yearSpan } from './dates';
+import { addDays, cycleWeek, gridWeeks, mondayOf, weekday, yearSpan } from './dates';
 
 test('mondayOf finds the Monday on or before a date', () => {
 	expect(mondayOf('2026-10-01')).toBe('2026-09-28');
@@ -24,6 +24,17 @@ test('addDays crosses months, years and leap days', () => {
 test('addDays keeps the day across a daylight saving change', () => {
 	expect(addDays('2026-03-28', 1)).toBe('2026-03-29');
 	expect(addDays('2026-03-29', 1)).toBe('2026-03-30');
+});
+
+test('gridWeeks covers the span in whole weeks', () => {
+	const weeks = gridWeeks('2026-09-16', '2026-10-05');
+	expect(weeks.map((w) => [w[0], w[6]])).toStrictEqual([
+		['2026-09-14', '2026-09-20'],
+		['2026-09-21', '2026-09-27'],
+		['2026-09-28', '2026-10-04'],
+		['2026-10-05', '2026-10-11']
+	]);
+	expect(gridWeeks('2026-09-14', '2026-09-14')).toHaveLength(1);
 });
 
 test('yearSpan clips a span to the year', () => {

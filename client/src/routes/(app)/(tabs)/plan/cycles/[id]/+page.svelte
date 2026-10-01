@@ -3,6 +3,7 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { describe, request } from '$lib/api';
 	import BlockDays from '$lib/BlockDays.svelte';
+	import CycleCalendar from '$lib/CycleCalendar.svelte';
 	import Button from '$lib/Button.svelte';
 	import { addDays, cycleWeek } from '$lib/dates';
 	import FormError from '$lib/FormError.svelte';
@@ -162,6 +163,11 @@
 					.join(' · ') || 'Rest day'}
 			</p>
 		</div>
+	</section>
+
+	<section class="flex flex-col gap-2">
+		<h2 class="px-1 text-[15px] font-bold">Calendar</h2>
+		<CycleCalendar cycle={data.cycle} days={data.days} today={data.today} />
 	</section>
 
 	<section class="flex flex-col gap-2">

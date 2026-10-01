@@ -18,6 +18,16 @@ export function cycleWeek(starts: string, ends: string, date: string): { week: n
 	return { week: Math.floor(days(starts, date) / 7) + 1, of: Math.ceil((days(starts, ends) + 1) / 7) };
 }
 
+// gridWeeks lists the Monday-to-Sunday weeks that hold from..to, each as its
+// seven dates.
+export function gridWeeks(from: string, to: string): string[][] {
+	const weeks: string[][] = [];
+	for (let monday = mondayOf(from); monday <= to; monday = addDays(monday, 7)) {
+		weeks.push(Array.from({ length: 7 }, (_, i) => addDays(monday, i)));
+	}
+	return weeks;
+}
+
 // yearSpan places from..to, both included, on a year as fractions of it, or
 // answers null when the span misses the year.
 export function yearSpan(from: string, to: string, year: number): { left: number; width: number } | null {
