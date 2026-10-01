@@ -87,6 +87,12 @@ type cycleResponse struct {
 	// example: 01a0bf77-d7e8-76ea-96cc-f09cbca175a3
 	ID string `json:"id"`
 
+	// The day the block's day 1 counts from: starts, or the day the block's
+	// length last changed once the cycle had begun.
+	//
+	// example: 2026-03-24
+	BlockFrom string `json:"block_from"`
+
 	cycleRequest
 }
 
@@ -169,7 +175,8 @@ func (s *Server) readCycle(w http.ResponseWriter, r *http.Request, who db.Authen
 // sessions again from today on: a past day, and a day a run was started from,
 // stay as they are, and so do the days you moved unless the shape changed. A
 // day that already holds the session is left out and listed. Once the cycle
-// has begun, its start date cannot change.
+// has begun, its start date cannot change, and a new block length counts
+// from today.
 //
 //	Security:
 //	  bearer:
@@ -267,7 +274,8 @@ func toCycleResponse(c db.Cycle) cycleResponse {
 		goals = append(goals, goalBody{Text: g.Text, Done: g.Done})
 	}
 	return cycleResponse{
-		ID: c.ID,
+		ID:        c.ID,
+		BlockFrom: c.BlockFrom.Format(time.DateOnly),
 		cycleRequest: cycleRequest{
 			Name:      c.Name,
 			Starts:    c.Starts.Format(time.DateOnly),

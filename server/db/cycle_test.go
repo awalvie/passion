@@ -180,6 +180,46 @@ func TestPutCycleKeepsABegunStart(t *testing.T) {
 	}
 }
 
+// Once the cycle has begun, a new block length makes today day 1.
+func TestPutCycleNewBlockFromToday(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	hang := insertSessionTemplate(t, pool, ada, "Hang")
+	var today time.Time
+	if err := pool.QueryRow(ctx, `SELECT (now() AT TIME ZONE timezone)::date FROM account WHERE id = $1`, ada).Scan(&today); err != nil {
+		t.Fatal(err)
+	}
+	at := func(n int) string { return today.AddDate(0, 0, n).Format(time.DateOnly) + " " + hang }
+
+	f := cycleFields(t, 4, db.CycleDay{Day: 1, Template: hang})
+	f.Starts, f.Ends = today.AddDate(0, 0, -1), today.AddDate(0, 0, 8)
+	if _, _, err := db.PutCycle(ctx, pool, ada, y1, f); err != nil {
+		t.Fatal(err)
+	}
+	if got := scheduled(t, pool, ada); !slices.Equal(got, []string{at(3), at(7)}) {
+		t.Fatalf("scheduled %v, want days 1 from the start", got)
+	}
+
+	f.BlockDays = 3
+	cycle, _, err := db.PutCycle(ctx, pool, ada, y1, f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cycle.BlockFrom.Equal(today) {
+		t.Fatalf("block from %v, want today", cycle.BlockFrom)
+	}
+	if got := scheduled(t, pool, ada); !slices.Equal(got, []string{at(0), at(3), at(6)}) {
+		t.Fatalf("scheduled %v, want days 1 from today", got)
+	}
+
+	// A rename keeps the block where it is.
+	f.Name = "Renamed"
+	if cycle, _, err = db.PutCycle(ctx, pool, ada, y1, f); err != nil || !cycle.BlockFrom.Equal(today) {
+		t.Fatalf("block from %v, %v, want it kept", cycle.BlockFrom, err)
+	}
+}
+
 func TestPutCycleRefuses(t *testing.T) {
 	ctx := context.Background()
 	pool := dbtest.Pool(t)
@@ -304,8 +344,8 @@ func TestPutCycleTwiceAtOnce(t *testing.T) {
 	}
 	defer first.Rollback(ctx)
 	if _, err := first.Exec(ctx, `
-		INSERT INTO cycle (id, owner, name, starts, ends, block_days, body)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`, y1, ada, f.Name, f.Starts, f.Ends, f.BlockDays, f.Body); err != nil {
+		INSERT INTO cycle (id, owner, name, starts, ends, block_days, block_from, body)
+		VALUES ($1, $2, $3, $4, $5, $6, $4, $7)`, y1, ada, f.Name, f.Starts, f.Ends, f.BlockDays, f.Body); err != nil {
 		t.Fatal(err)
 	}
 	var day string
