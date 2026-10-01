@@ -205,8 +205,11 @@
 								{/snippet}
 								<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 									{#if d.status === 'planned' || d.status === 'missed'}
-										<details>
-											<summary class="flex min-h-[58px] cursor-pointer list-none items-center gap-3.5 py-2 [&::-webkit-details-marker]:hidden">{@render row()}</summary>
+										<details class="group">
+											<summary class="flex min-h-[58px] cursor-pointer list-none items-center gap-3.5 py-2 [&::-webkit-details-marker]:hidden">
+												{@render row()}
+												<span class="shrink-0 text-ink-3 transition-transform group-open:rotate-90"><Icon name="chevron-right" size="1rem" /></span>
+											</summary>
 											<form
 												class="flex flex-col gap-3 pb-4 pl-[108px]"
 												onsubmit={(e) => {
