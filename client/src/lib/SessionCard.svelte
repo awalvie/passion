@@ -2,8 +2,10 @@
 	import Button from './Button.svelte';
 	import Icon from './Icon.svelte';
 	import type { ScheduledDay } from './plan';
+	import Sheet from './Sheet.svelte';
 	import type { SessionTemplate } from './template';
 	import Topo from './Topo.svelte';
+	import TemplatePlan from './TemplatePlan.svelte';
 	import { heroTopo } from './topo';
 
 	let {
@@ -27,6 +29,8 @@
 	const sections = $derived(template?.sections ?? []);
 	const shown = $derived(sections.length > 5 ? sections.slice(0, 4) : sections);
 	const more = $derived(sections.length - shown.length);
+
+	let previewing = $state(false);
 </script>
 
 <article
@@ -63,13 +67,14 @@
 			<p class="mt-2.5 text-[15px] leading-snug font-semibold text-on-hero-2">{template.needs}</p>
 		{/if}
 		<div class="mt-4 flex gap-2.5">
-			{#if !live}
-				<a
-					href="/templates/{day.template}"
+			{#if !live && template}
+				<button
+					type="button"
 					class="flex h-14 shrink-0 items-center gap-2 rounded-full bg-white/10 px-5 text-[15px] font-bold text-on-hero"
+					onclick={() => (previewing = true)}
 				>
 					<Icon name="list" size="1.25rem" />Preview
-				</a>
+				</button>
 			{/if}
 			<div class="flex-1">
 				{#if day.status === 'done'}
@@ -85,3 +90,29 @@
 		</div>
 	</div>
 </article>
+
+{#if template}
+	<Sheet bind:open={previewing} eyebrow={label} title={template.name}>
+		<p class="mx-1 flex items-center gap-2 text-xl font-bold tracking-tight">
+			<span class="text-ink-2"><Icon name="layers2" size="1.25rem" /></span>
+			{sections.length} section{sections.length === 1 ? '' : 's'}
+		</p>
+		{#if template.needs}
+			<p class="mx-1 mt-2 mb-1 text-[15px] leading-snug font-semibold text-ink-2">{template.needs}</p>
+		{/if}
+		<TemplatePlan sections={template.sections} />
+		{#if day.status !== 'done'}
+			<div class="mt-[22px]">
+				<Button
+					disabled={starting}
+					onclick={() => {
+						previewing = false;
+						onstart();
+					}}
+				>
+					Start {template.name}
+				</Button>
+			</div>
+		{/if}
+	</Sheet>
+{/if}

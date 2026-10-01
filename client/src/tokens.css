@@ -49,6 +49,7 @@
 	--elev-tint: 0 6px 16px -4px rgba(120, 160, 20, 0.55), inset 0 -2px 0 rgba(90, 130, 0, 0.18);
 	--elev-live: 0 8px 18px -6px rgba(214, 100, 50, 0.55), inset 0 -2px 0 rgba(150, 60, 20, 0.15);
 	--bar: rgba(251, 250, 246, 0.94);
+	--scrim: rgba(21, 32, 26, 0.38);
 }
 
 :root[data-theme='dark'] {
@@ -96,4 +97,5 @@
 	--elev-tint: 0 8px 18px -6px rgba(198, 240, 91, 0.32);
 	--elev-live: 0 8px 18px -6px rgba(245, 154, 112, 0.35);
 	--bar: rgba(23, 30, 25, 0.94);
+	--scrim: rgba(0, 0, 0, 0.55);
 }
