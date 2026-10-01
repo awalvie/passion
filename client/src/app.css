@@ -152,12 +152,12 @@ body {
 	}
 	/* A row in a list fills when pressed, as list rows do on a phone; a
 	   shrinking row would pull away from its dividers. */
-	li > :is(button:not(:disabled), a[href]):not([data-date]):active {
+	:is(li > :is(button:not(:disabled), a[href]), li > details > summary):not([data-date]):active {
 		scale: none;
 		background: var(--well);
 		box-shadow: 0 0 0 6px var(--well);
 	}
-	li > :is(button, a[href]) {
+	:is(li > :is(button, a[href]), li > details > summary) {
 		border-radius: 0.75rem;
 	}
 	/* A long press on a control neither selects its words nor opens the
