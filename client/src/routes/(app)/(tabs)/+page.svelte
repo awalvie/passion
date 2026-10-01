@@ -117,7 +117,7 @@
 <div class="relative flex flex-col pt-[env(safe-area-inset-top)]">
 	<header class="flex items-start justify-between gap-3 px-4 pt-3">
 		<div>
-			<h1 class="text-[32px] leading-tight font-extrabold tracking-tight">Today</h1>
+			<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">Today</h1>
 			<p class="mt-1 text-[15px] font-semibold text-ink-2">{date}</p>
 		</div>
 		<div class="flex min-w-0 items-center gap-2 pt-1.5">

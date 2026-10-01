@@ -104,7 +104,7 @@
 
 		<header class="px-1 pb-0.5">
 			{#if section}<p class="text-xs font-semibold tracking-[0.06em] text-ink-2 uppercase">{section.name}</p>{/if}
-			<h1 class="mt-0.5 text-[32px] leading-[1.1] font-extrabold tracking-tight">{step.name}</h1>
+			<h1 class="mt-0.5 text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">{step.name}</h1>
 			<p class="mt-1 text-[15px] font-semibold text-ink-2">
 				{#if step.kind === 'climbing'}
 					{logged} {logged === 1 ? 'climb' : 'climbs'} logged · {Math.floor(secondsSince(run.started_at, now) / 60)} min in
