@@ -184,10 +184,10 @@
 		{#if logged.length}
 			<ol>
 				{#each logged as c, i (c.id)}
-					<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+					<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)] {editing?.id === c.id ? 'bg-well' : ''}">
 						<button
 							type="button"
-							class="flex h-11 w-full items-center gap-2.5 px-4 text-left text-[15px] {editing?.id === c.id ? 'bg-well' : ''}"
+							class="flex h-11 w-full items-center gap-2.5 px-4 text-left text-[15px]"
 							onclick={() => edit(c)}
 						>
 							<span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-bold text-ground dark:bg-ink-2">
