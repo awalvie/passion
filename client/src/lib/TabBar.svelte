@@ -6,7 +6,7 @@
 </script>
 
 <script lang="ts">
-	import { beforeNavigate, goto } from '$app/navigation';
+	import { beforeNavigate, goto, preloadData } from '$app/navigation';
 	import { navigating, page } from '$app/state';
 	import { formatDuration } from './exercise';
 	import Icon from './Icon.svelte';
@@ -29,6 +29,13 @@
 
 	// The pill moves on the tap, before the next page has loaded.
 	const active = $derived(tabOf(navigating.to?.url.pathname ?? page.url.pathname));
+
+	// The other tabs load once the app has settled, so the first tap on one
+	// shows it at once.
+	$effect(() => {
+		const t = setTimeout(() => tabs.forEach((tab) => preloadData(tab.href).catch(() => {})), 1500);
+		return () => clearTimeout(t);
+	});
 
 	beforeNavigate(({ from }) => {
 		if (!from) return;
