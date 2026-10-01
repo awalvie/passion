@@ -58,13 +58,15 @@
 </script>
 
 {#snippet rating(label: string, max: number, value: number | null, set: (v: number | null) => void)}
-	<fieldset class="flex flex-col gap-2">
-		<legend class="px-1 pb-2 text-sm text-ink-2">{label}</legend>
-		<div class="flex gap-1 rounded-xl bg-surface p-1 shadow-sm">
+	<fieldset class="border-line px-4 py-3.5 [&:not(:first-child)]:border-t">
+		<legend class="float-left mb-2.5 w-full text-[15px] font-bold">{label}</legend>
+		<div class="clear-left grid grid-cols-5 gap-2">
 			{#each Array.from({ length: max }, (_, i) => i + 1) as n (n)}
 				<button
 					type="button"
-					class="h-10 flex-1 rounded-lg text-base {value === n ? 'bg-tint font-semibold text-on-tint' : 'text-ink'}"
+					class="h-12 rounded-full text-[15px] {value === n
+						? 'bg-tint font-bold text-on-tint shadow-tint'
+						: 'bg-well font-semibold text-ink-2'}"
 					aria-pressed={value === n}
 					onclick={() => set(value === n ? null : n)}
 				>
@@ -75,19 +77,32 @@
 	</fieldset>
 {/snippet}
 
+{#snippet note(label: string, value: string, set: (v: string) => void)}
+	<label class="flex flex-col gap-2 border-line px-4 py-3.5 [&:not(:first-child)]:border-t">
+		<span class="text-[15px] font-bold">{label}</span>
+		<textarea
+			class="min-h-20 rounded-2xl bg-well p-3 text-[15px] font-medium text-ink outline-none"
+			{value}
+			oninput={(e) => set(e.currentTarget.value)}
+		></textarea>
+	</label>
+{/snippet}
+
 <svelte:head><title>Finish {run.name}</title></svelte:head>
 
 <NavBar title="Finish" back={{ href: `/run/${run.id}`, label: 'Session' }} />
 
-<div class="flex flex-col gap-5 px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
-	<p class="text-base text-ink-2">All optional. It helps to read it before the next session.</p>
+<div class="flex flex-col gap-3 px-4 pt-1 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
+	<p class="px-1 text-[15px] font-semibold text-ink-2">All optional. It helps to read it before the next session.</p>
 
-	{@render rating('Sleep', 5, sleep, (v) => (sleep = v))}
-	{@render rating('Energy before', 5, energy, (v) => (energy = v))}
-	{@render rating('How hard it felt', 10, rpe, (v) => (rpe = v))}
+	<div class="rounded-3xl bg-surface shadow-card">
+		{@render rating('Sleep', 5, sleep, (v) => (sleep = v))}
+		{@render rating('Energy before', 5, energy, (v) => (energy = v))}
+		{@render rating('How hard it felt', 10, rpe, (v) => (rpe = v))}
+	</div>
 
-	<div class="grid grid-cols-2 gap-3">
-		<label class="flex flex-col gap-1 text-sm text-ink-2">
+	<div class="grid grid-cols-2 gap-3 rounded-3xl bg-surface p-4 shadow-card">
+		<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
 			Focus
 			<select class="input" bind:value={focus}>
 				<option value="">–</option>
@@ -96,7 +111,7 @@
 				{/each}
 			</select>
 		</label>
-		<label class="flex flex-col gap-1 text-sm text-ink-2">
+		<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
 			Where
 			<select class="input" bind:value={setting}>
 				<option value="">–</option>
@@ -106,19 +121,14 @@
 		</label>
 	</div>
 
-	<label class="flex flex-col gap-1 text-sm text-ink-2">
-		What went well
-		<textarea class="min-h-20 rounded-2xl bg-surface p-3 text-base text-ink shadow-sm outline-none" bind:value={wentWell}></textarea>
-	</label>
-	<label class="flex flex-col gap-1 text-sm text-ink-2">
-		Next time, focus on
-		<textarea class="min-h-20 rounded-2xl bg-surface p-3 text-base text-ink shadow-sm outline-none" bind:value={nextFocus}></textarea>
-	</label>
-	<label class="flex flex-col gap-1 text-sm text-ink-2">
-		Notes
-		<textarea class="min-h-20 rounded-2xl bg-surface p-3 text-base text-ink shadow-sm outline-none" bind:value={notes}></textarea>
-	</label>
+	<div class="rounded-3xl bg-surface shadow-card">
+		{@render note('What went well', wentWell, (v) => (wentWell = v))}
+		{@render note('Next time, focus on', nextFocus, (v) => (nextFocus = v))}
+		{@render note('Notes', notes, (v) => (notes = v))}
+	</div>
 
 	<FormError message={error} />
-	<Button disabled={busy} onclick={finish}>Finish session</Button>
+	<div class="mt-2">
+		<Button disabled={busy} onclick={finish}>Finish session</Button>
+	</div>
 </div>
