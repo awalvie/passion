@@ -33,6 +33,8 @@
 	// The phone lies on the floor during a set, with chalky hands.
 	$effect(() => keepAwake());
 
+	const media = $derived(step?.media.find((m) => m.thumb_url));
+
 	let noting = $state(false);
 
 	const total = $derived(stepsOf(run).length);
@@ -102,7 +104,21 @@
 
 		{#if step.notes}
 			<details class="group rounded-3xl bg-surface shadow-card">
-				<summary class="flex min-h-[68px] cursor-pointer list-none items-center gap-3.5 py-2 pr-3 pl-4 [&::-webkit-details-marker]:hidden">
+				<summary class="flex min-h-[68px] cursor-pointer list-none items-center gap-3.5 py-2 pr-3 {media ? 'pl-2' : 'pl-4'} [&::-webkit-details-marker]:hidden">
+					{#if media}
+						<a
+							href={media.url}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="relative flex size-[52px] shrink-0 items-center justify-center overflow-hidden rounded-[14px] bg-well"
+							aria-label="Play video"
+						>
+							<img src={media.thumb_url} alt="" class="absolute inset-0 size-full object-cover" />
+							<span class="relative flex size-7 items-center justify-center rounded-full bg-white/90 pl-0.5 text-[#15201A]">
+								<svg viewBox="0 0 24 24" class="size-3.5" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" /></svg>
+							</span>
+						</a>
+					{/if}
 					<span class="min-w-0 flex-1">
 						<span class="mb-0.5 block text-xs font-semibold text-ink-2">How to</span>
 						<span class="line-clamp-2 text-[15px] leading-[1.35] font-semibold text-ink group-open:hidden">{step.notes.replace(/\s+/g, ' ')}</span>
