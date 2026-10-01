@@ -147,7 +147,7 @@
 			<span class="flex-1">Settings</span>
 			<span class="text-ink-3 transition-transform group-open/settings:rotate-90"><Icon name="chevron-right" /></span>
 		</summary>
-		<div class="flex flex-col gap-3.5 border-t border-line px-[18px] pt-4 pb-[18px]">
+		<div class="flex flex-col gap-3.5 px-[18px] pt-4 pb-[18px] shadow-[inset_0_1px_0_var(--line)]">
 			<div>
 				<label class="block text-xs font-semibold text-ink-2" for="tpl-name">Name</label>
 				<input id="tpl-name" class="mt-1.5 w-full input" maxlength="200" required bind:value={draft.name} />

@@ -183,7 +183,7 @@
 		{#if logged.length}
 			<ol>
 				{#each logged as c, i (c.id)}
-					<li class="border-line [&:not(:first-child)]:border-t">
+					<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 						<button
 							type="button"
 							class="flex h-11 w-full items-center gap-2.5 px-4 text-left text-[15px] {editing?.id === c.id ? 'bg-well' : ''}"

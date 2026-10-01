@@ -57,7 +57,7 @@
 	</div>
 
 	{#if counts.length}
-		<div class="mt-[18px] border-t border-line pt-4">
+		<div class="mt-[18px] pt-4 shadow-[inset_0_1px_0_var(--line)]">
 			<div class="mb-2.5 text-xs font-bold tracking-wider text-ink-3 uppercase">Configuration</div>
 			<div class="grid grid-cols-3 gap-2.5">
 				{#each counts as c (c)}
@@ -78,7 +78,7 @@
 	{/if}
 
 	{#if shown('duration_seconds')}
-		<div class="mt-[18px] border-t border-line pt-4">
+		<div class="mt-[18px] pt-4 shadow-[inset_0_1px_0_var(--line)]">
 			<div class="mb-2.5 text-xs font-bold tracking-wider text-ink-3 uppercase">Duration</div>
 			<DurationInput bind:seconds={draft.duration_seconds} id="ex" />
 		</div>
@@ -94,12 +94,12 @@
 		</div>
 	{/if}
 
-	<div class="mt-[18px] border-t border-line pt-4">
+	<div class="mt-[18px] pt-4 shadow-[inset_0_1px_0_var(--line)]">
 		<label class="block text-xs font-semibold text-ink-2" for="ex-notes">Notes</label>
 		<textarea id="ex-notes" class="mt-1.5 w-full input" rows="4" bind:value={draft.notes}></textarea>
 	</div>
 
-	<div class="mt-[18px] border-t border-line pt-4">
+	<div class="mt-[18px] pt-4 shadow-[inset_0_1px_0_var(--line)]">
 		<span class="block text-xs font-semibold text-ink-2">Media</span>
 		{#if draft.media.length}
 			<div class="mt-1.5 flex flex-col gap-2.5">

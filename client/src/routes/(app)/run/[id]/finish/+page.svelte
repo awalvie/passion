@@ -58,7 +58,7 @@
 </script>
 
 {#snippet rating(label: string, max: number, value: number | null, set: (v: number | null) => void)}
-	<fieldset class="border-line px-4 py-3.5 [&:not(:first-child)]:border-t">
+	<fieldset class="px-4 py-3.5 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 		<legend class="float-left mb-2.5 w-full text-[15px] font-bold">{label}</legend>
 		<div class="clear-left grid grid-cols-5 gap-2">
 			{#each Array.from({ length: max }, (_, i) => i + 1) as n (n)}
@@ -78,7 +78,7 @@
 {/snippet}
 
 {#snippet note(label: string, value: string, set: (v: string) => void)}
-	<label class="flex flex-col gap-2 border-line px-4 py-3.5 [&:not(:first-child)]:border-t">
+	<label class="flex flex-col gap-2 px-4 py-3.5 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 		<span class="text-[15px] font-bold">{label}</span>
 		<textarea
 			class="min-h-20 rounded-2xl bg-well p-3 text-[15px] font-medium text-ink outline-none"

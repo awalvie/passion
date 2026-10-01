@@ -42,7 +42,7 @@
 		onkeydown={key}
 	/>
 	{#if q.trim()}
-		<div class="mt-2 divide-y divide-line overflow-hidden rounded-2xl bg-surface shadow-card-sm">
+		<div class="mt-2 overflow-hidden [&>:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)] rounded-2xl bg-surface shadow-card-sm">
 			{#each matches as e (e.id)}
 				<button
 					type="button"
