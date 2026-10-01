@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { describe } from '$lib/api';
 	import Button from '$lib/Button.svelte';
 	import ClimbsPlayer from '$lib/ClimbsPlayer.svelte';
+	import FormError from '$lib/FormError.svelte';
+	import Menu from '$lib/Menu.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import Notes from '$lib/Notes.svelte';
 	import OpenPlayer from '$lib/OpenPlayer.svelte';
@@ -40,6 +43,17 @@
 		openRun.saveBody();
 	}
 
+	let error = $state('');
+
+	async function discard() {
+		error = '';
+		try {
+			await openRun.discard();
+		} catch (e) {
+			error = describe(e, (f) => f);
+		}
+	}
+
 	// Skip keeps what is logged and ends the step, or skips a step with nothing.
 	async function skip() {
 		if (!step) return;
@@ -62,11 +76,21 @@
 	</button>
 {/snippet}
 
-<NavBar back={{ href: `/run/${run.id}`, label: 'Session' }} title={step ? `${position} of ${total}` : ''} heading={false} />
+<NavBar back={{ href: `/run/${run.id}`, label: 'Session' }} title={step ? `${position} of ${total}` : ''} heading={false}>
+	{#snippet actions()}
+		<Menu
+			items={[
+				{ label: 'Finish session', onclick: () => goto(`/run/${run.id}/finish`) },
+				{ label: 'Discard session', danger: true, onclick: discard }
+			]}
+		/>
+	{/snippet}
+</NavBar>
 
 {#if step}
 	<div class="flex flex-col gap-2.5 px-4 pt-0.5 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
 		<SaveStatus />
+		<FormError message={error} />
 
 		<header class="px-1 pb-0.5">
 			{#if section}<p class="text-xs font-semibold tracking-[0.06em] text-ink-2 uppercase">{section.name}</p>{/if}
