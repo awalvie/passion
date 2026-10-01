@@ -196,6 +196,17 @@
 	</section>
 
 	<section class="flex flex-col gap-2">
+		<h2 class="px-1 text-[15px] font-bold">Notes</h2>
+		<textarea
+			class="min-h-28 w-full resize-none rounded-3xl bg-surface px-[18px] py-3.5 text-[15px] font-semibold shadow-card [field-sizing:content] placeholder:text-ink-3 focus:outline-none"
+			placeholder="Anything to remember about this cycle"
+			aria-label="Notes"
+			bind:value={notes}
+			onblur={() => notes.trim() !== (data.cycle.notes ?? '') && savePart()}
+		></textarea>
+	</section>
+
+	<section class="flex flex-col gap-2">
 		<div class="flex items-baseline justify-between px-1">
 			<h2 class="text-[15px] font-bold">This week</h2>
 			<span class="text-xs font-semibold text-ink-2">{short(data.monday)} – {short(addDays(data.monday, 6))}</span>
@@ -220,17 +231,6 @@
 			{/if}
 		</div>
 		<CycleCalendar cycle={data.cycle} days={data.days} today={data.today} cycleNames={data.cycleNames} onmove={move} />
-	</section>
-
-	<section class="flex flex-col gap-2">
-		<h2 class="px-1 text-[15px] font-bold">Notes</h2>
-		<textarea
-			class="min-h-28 w-full resize-none rounded-3xl bg-surface px-[18px] py-3.5 text-[15px] font-semibold shadow-card [field-sizing:content] placeholder:text-ink-3 focus:outline-none"
-			placeholder="Anything to remember about this cycle"
-			aria-label="Notes"
-			bind:value={notes}
-			onblur={() => notes.trim() !== (data.cycle.notes ?? '') && savePart()}
-		></textarea>
 	</section>
 
 	<section class="flex flex-col gap-2">
