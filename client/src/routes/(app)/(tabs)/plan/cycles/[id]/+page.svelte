@@ -205,7 +205,12 @@
 	</section>
 
 	<section class="flex flex-col gap-2">
-		<h2 class="px-1 text-[15px] font-bold">Calendar</h2>
+		<div class="flex items-baseline justify-between px-1">
+			<h2 class="text-[15px] font-bold">Calendar</h2>
+			{#if data.today <= data.cycle.ends}
+				<span class="text-xs font-semibold text-ink-2">Hold a session to move it</span>
+			{/if}
+		</div>
 		<CycleCalendar cycle={data.cycle} days={data.days} today={data.today} cycleNames={data.cycleNames} onmove={move} />
 	</section>
 
