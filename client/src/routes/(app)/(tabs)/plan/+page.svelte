@@ -234,6 +234,7 @@
 	{:else}
 		{#if data.cycles.length}
 			<CycleYear cycles={data.cycles} today={data.today} />
+			<h2 class="px-1 text-[15px] font-bold">Cycles</h2>
 		{/if}
 		<section class="rounded-3xl bg-surface px-[18px] pt-2 pb-2 shadow-card">
 			{#if data.cycles.length}
