@@ -24,6 +24,11 @@
 	const step = $derived(Math.min(4, Math.max(1, Number(page.url.searchParams.get('step')) || 1)));
 	let draft = $state(untrack(() => structuredClone($state.snapshot(data.cycle))));
 	let busy = $state(false);
+
+	// A reload or a back step from the new cycle opens a blank draft past step 1.
+	$effect(() => {
+		if (step > 1 && !draft.name) goto('?step=1', { replaceState: true });
+	});
 	let error = $state('');
 	let goalOpen = $state(false);
 	let goalIndex = $state(-1);
