@@ -45,11 +45,18 @@ type CycleDay struct {
 	Template string `json:"template"`
 }
 
-// Goal is a line the person sets out to reach, ticked off when reached.
+// Goal is a line the person sets out to reach, ticked off when reached. Before
+// and After say where they stand at the start and the end, and How what they
+// will do to get there; any of the three may be empty.
 type Goal struct {
-	Text string `json:"text"`
-	Done bool   `json:"done"`
+	Text   string `json:"text"`
+	Done   bool   `json:"done"`
+	Before string `json:"before"`
+	After  string `json:"after"`
+	How    string `json:"how"`
 }
+
+const maxGoalPart = 500
 
 // Slot is one session on one date.
 type Slot struct {
@@ -111,6 +118,12 @@ func (f CycleFields) Clean() (CycleFields, map[string]string) {
 		}
 		if utf8.RuneCountInString(g.Text) > maxName {
 			problems[fmt.Sprintf("goals[%d]", i)] = "is too long"
+		}
+		for key, part := range map[string]*string{"before": &g.Before, "after": &g.After, "how": &g.How} {
+			*part = strings.TrimSpace(*part)
+			if utf8.RuneCountInString(*part) > maxGoalPart {
+				problems[fmt.Sprintf("goals[%d].%s", i, key)] = "is too long"
+			}
 		}
 		goals = append(goals, g)
 	}

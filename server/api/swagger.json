@@ -2331,9 +2331,27 @@
         "text"
       ],
       "properties": {
+        "after": {
+          "description": "Where they stand at the end. Up to 500 characters.",
+          "type": "string",
+          "x-go-name": "After",
+          "example": "Hang 10 s on the 10 mm edge"
+        },
+        "before": {
+          "description": "Where the person stands at the start. Up to 500 characters.",
+          "type": "string",
+          "x-go-name": "Before",
+          "example": "Hang 3 s on the 10 mm edge"
+        },
         "done": {
           "type": "boolean",
           "x-go-name": "Done"
+        },
+        "how": {
+          "description": "What they will do to get there. Up to 500 characters.",
+          "type": "string",
+          "x-go-name": "How",
+          "example": "A hangboard session once a week"
         },
         "text": {
           "description": "Up to 200 characters.",

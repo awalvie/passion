@@ -63,6 +63,21 @@ type goalBody struct {
 	Text string `json:"text"`
 
 	Done bool `json:"done"`
+
+	// Where the person stands at the start. Up to 500 characters.
+	//
+	// example: Hang 3 s on the 10 mm edge
+	Before string `json:"before"`
+
+	// Where they stand at the end. Up to 500 characters.
+	//
+	// example: Hang 10 s on the 10 mm edge
+	After string `json:"after"`
+
+	// What they will do to get there. Up to 500 characters.
+	//
+	// example: A hangboard session once a week
+	How string `json:"how"`
 }
 
 // swagger:model cycleDayBody
@@ -195,7 +210,7 @@ func (s *Server) putCycle(w http.ResponseWriter, r *http.Request, who db.Authent
 	problems := map[string]string{}
 	f := db.CycleFields{Name: req.Name, BlockDays: req.BlockDays, Before: req.Before, After: req.After, Notes: req.Notes}
 	for _, g := range req.Goals {
-		f.Goals = append(f.Goals, db.Goal{Text: g.Text, Done: g.Done})
+		f.Goals = append(f.Goals, db.Goal{Text: g.Text, Done: g.Done, Before: g.Before, After: g.After, How: g.How})
 	}
 	starts, okStarts := parseDay(req.Starts, "starts", problems)
 	ends, okEnds := parseDay(req.Ends, "ends", problems)
@@ -271,7 +286,7 @@ func toCycleResponse(c db.Cycle) cycleResponse {
 	}
 	goals := make([]goalBody, 0, len(c.Goals))
 	for _, g := range c.Goals {
-		goals = append(goals, goalBody{Text: g.Text, Done: g.Done})
+		goals = append(goals, goalBody{Text: g.Text, Done: g.Done, Before: g.Before, After: g.After, How: g.How})
 	}
 	return cycleResponse{
 		ID:        c.ID,

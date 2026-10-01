@@ -104,7 +104,7 @@ func TestPutCycle(t *testing.T) {
 
 	// Goals, entries and notes keep it too, and come back as written.
 	notes := "Keep pull-ups strict"
-	f.Goals = []db.Goal{{Text: "Flash 7a", Done: true}}
+	f.Goals = []db.Goal{{Text: "Flash 7a", Done: true, Before: "6c", After: "7a", How: "Board twice a week"}}
 	f.Before, f.After, f.Notes = []string{"Max hang +18 kg"}, []string{}, &notes
 	if _, _, err := db.PutCycle(ctx, pool, ada, y1, f); err != nil {
 		t.Fatal(err)
@@ -323,6 +323,12 @@ func TestCleanCycleFields(t *testing.T) {
 				{Text: " "}, {Text: strings.Repeat("a", 201)},
 			}},
 			[]string{"goals[1]"},
+		},
+		"a goal's how too long": {
+			db.CycleFields{Name: "C", Starts: day("2026-03-01"), Ends: day("2026-03-07"), BlockDays: 7, Goals: []db.Goal{
+				{Text: "Flash 7a", How: strings.Repeat("a", 501)},
+			}},
+			[]string{"goals[0].how"},
 		},
 		"bad days": {
 			db.CycleFields{Name: "", Starts: day("2026-03-01"), Ends: day("2026-03-28"), BlockDays: 7, Body: db.CycleBody{Days: []db.CycleDay{
