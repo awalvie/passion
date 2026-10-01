@@ -20,14 +20,14 @@
 	} = $props();
 
 	const looks: Record<Variant, string> = {
-		primary: 'bg-tint text-on-tint',
-		live: 'bg-live text-on-tint',
-		secondary: 'bg-surface text-ink shadow-sm',
-		danger: 'bg-surface text-bad shadow-sm'
+		primary: 'h-14 bg-tint text-xl text-on-tint shadow-tint',
+		live: 'h-14 bg-live text-xl text-on-live shadow-live',
+		secondary: 'h-12 bg-surface text-[15px] text-ink shadow-card',
+		danger: 'h-12 bg-surface text-[15px] text-bad shadow-card'
 	};
 
 	const cls = $derived(
-		`flex h-12 w-full items-center justify-center gap-2 rounded-xl px-5 text-base font-semibold active:opacity-80 disabled:opacity-50 ${looks[variant]}`
+		`flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 font-bold tracking-tight active:opacity-80 disabled:opacity-50 ${looks[variant]}`
 	);
 </script>
 
