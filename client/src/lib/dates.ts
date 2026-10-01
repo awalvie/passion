@@ -18,6 +18,17 @@ export function cycleWeek(starts: string, ends: string, date: string): { week: n
 	return { week: Math.floor(days(starts, date) / 7) + 1, of: Math.ceil((days(starts, ends) + 1) / 7) };
 }
 
+// yearSpan places from..to, both included, on a year as fractions of it, or
+// answers null when the span misses the year.
+export function yearSpan(from: string, to: string, year: number): { left: number; width: number } | null {
+	const start = Date.UTC(year, 0, 1);
+	const end = Date.UTC(year + 1, 0, 1);
+	const a = Math.max(Date.parse(from), start);
+	const b = Math.min(Date.parse(to) + 86_400_000, end);
+	if (b <= a) return null;
+	return { left: (a - start) / (end - start), width: (b - a) / (end - start) };
+}
+
 export function weekday(date: string): string {
 	return new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', timeZone: 'UTC' });
 }
