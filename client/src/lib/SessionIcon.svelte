@@ -18,6 +18,13 @@
 	const known = new Set<string>(sessionIcons.map(([name]) => name));
 
 	export type IconState = 'done' | 'started' | 'missed' | 'planned' | 'today';
+
+	// iconState says how a scheduled session's icon looks: a planned session is
+	// lit on its own day.
+	export function iconState(d: { status: Exclude<IconState, 'today'>; local_date: string }, today: string): IconState {
+		if (d.status !== 'planned') return d.status;
+		return d.local_date === today ? 'today' : 'planned';
+	}
 </script>
 
 <script lang="ts">
