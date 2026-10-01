@@ -4,7 +4,7 @@
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
 	import CycleYear from '$lib/CycleYear.svelte';
-	import { cycleWeek, daysBetween, formatDate } from '$lib/dates';
+	import { addDays, cycleWeek, daysBetween, formatDate, mondayOf } from '$lib/dates';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import type { ScheduledDay } from '$lib/plan';
@@ -74,12 +74,14 @@
 		}
 	}
 
+	const cycleNames = $derived(new Map(data.cycles.map((c) => [c.id, c.name])));
+	const templates = $derived(new Map(data.templates.map((t) => [t.id, t])));
 
-	const months = $derived.by(() => {
-		const out: { label: string; dates: { date: string; days: ScheduledDay[] }[] }[] = [];
+	const weeks = $derived.by(() => {
+		const out: { monday: string; dates: { date: string; days: ScheduledDay[] }[] }[] = [];
 		for (const d of data.days) {
-			const label = formatDate(d.local_date, { month: 'long', year: 'numeric' });
-			if (out.at(-1)?.label !== label) out.push({ label, dates: [] });
+			const monday = mondayOf(d.local_date);
+			if (out.at(-1)?.monday !== monday) out.push({ monday, dates: [] });
 			const dates = out.at(-1)!.dates;
 			if (dates.at(-1)?.date !== d.local_date) dates.push({ date: d.local_date, days: [] });
 			dates.at(-1)!.days.push(d);
@@ -87,7 +89,25 @@
 		return out;
 	});
 
-	const cycleNames = $derived(new Map(data.cycles.map((c) => [c.id, c.name])));
+	function weekTitle(monday: string) {
+		const now = mondayOf(data.today);
+		if (monday === now) return 'This week';
+		if (monday === addDays(now, 7)) return 'Next week';
+		if (monday === addDays(now, -7)) return 'Last week';
+		return `Week of ${short(monday)}`;
+	}
+
+	// The week's dates, then the cycles its sessions come from.
+	function weekNote(w: (typeof weeks)[number]) {
+		const names = new Set(w.dates.flatMap((g) => g.days.flatMap((d) => (d.cycle ? [cycleNames.get(d.cycle) ?? 'Cycle'] : []))));
+		return [`${short(w.monday)} – ${short(addDays(w.monday, 6))}`, ...names].join(' · ');
+	}
+
+	function rowNote(d: ScheduledDay) {
+		const n = templates.get(d.template)?.sections.length ?? 0;
+		const sections = n === 1 ? '1 section' : n ? `${n} sections` : '';
+		return [d.cycle ? '' : 'One-off', sections].filter(Boolean).join(' · ');
+	}
 
 	function when(c: { starts: string; ends: string }) {
 		if (c.ends < data.today) return '';
@@ -150,63 +170,68 @@
 	{#if data.offline}
 		<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold text-ink-2 shadow-card">No signal. The plan needs one to load.</p>
 	{:else if !cyclesView}
-		{#each months as m (m.label)}
-			<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-2 shadow-card">
-				<h2 class="mb-1 text-[15px] font-bold">{m.label}</h2>
-				<ul>
-					{#each m.dates as g (g.date)}
-						{#each g.days as d, i (d.id)}
-							{#snippet row()}
-								<span class="flex w-11 shrink-0 flex-col">
-									{#if i === 0}
-										{#if g.date === data.today}
-											<span class="text-xs font-bold text-ink">Today</span>
-										{:else}
-											<span class="text-xs font-semibold text-ink-2">{formatDate(g.date, { weekday: 'short' })}</span>
+		{#each weeks as w (w.monday)}
+			<section class="flex flex-col gap-2">
+				<div class="flex items-baseline justify-between gap-3 px-1 pt-1.5">
+					<h2 class="shrink-0 text-xl font-bold tracking-tight">{weekTitle(w.monday)}</h2>
+					<span class="truncate text-xs font-semibold text-ink-2">{weekNote(w)}</span>
+				</div>
+				<div class="rounded-3xl bg-surface px-[18px] py-1 shadow-card">
+					<ul>
+						{#each w.dates as g (g.date)}
+							{#each g.days as d, i (d.id)}
+								{#snippet row()}
+									<span class="flex w-11 shrink-0 flex-col">
+										{#if i === 0}
+											{#if g.date === data.today}
+												<span class="text-xs font-bold text-ink">Today</span>
+											{:else}
+												<span class="text-xs font-semibold text-ink-2">{formatDate(g.date, { weekday: 'short' })}</span>
+											{/if}
+											<b class="text-xl leading-[1.05] font-bold">{formatDate(g.date, { day: 'numeric' })}</b>
 										{/if}
-										<b class="text-xl leading-[1.05] font-bold">{formatDate(g.date, { day: 'numeric' })}</b>
-									{/if}
-								</span>
-								<span class="min-w-0 flex-1">
-									<span class="block truncate text-[15px] font-bold {d.status === 'missed' ? 'text-ink-2' : ''}">{d.template_name}</span>
-									<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
-										{d.cycle ? (cycleNames.get(d.cycle) ?? 'Cycle') : 'One-off'}
 									</span>
-								</span>
-								{#if statuses[d.status]}
-									<span class="shrink-0 rounded-xl px-2.5 py-[5px] text-xs font-bold {tags[d.status]}">{statuses[d.status]}</span>
-								{/if}
-							{/snippet}
-							<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
-								{#if d.status === 'planned' || d.status === 'missed'}
-									<details>
-										<summary class="flex min-h-[58px] cursor-pointer list-none items-center gap-3.5 py-2 [&::-webkit-details-marker]:hidden">{@render row()}</summary>
-										<form
-											class="flex flex-col gap-3 pb-4 pl-[58px]"
-											onsubmit={(e) => {
-												e.preventDefault();
-												move(d, String(new FormData(e.currentTarget).get('date')));
-											}}
-										>
-											<div class="flex gap-2">
-												<input class="input h-12 px-4 min-w-0 flex-1" type="date" name="date" value={d.local_date} required aria-label="New day" />
-												<button type="submit" class="h-12 shrink-0 rounded-full bg-well px-4 text-[15px] font-bold text-ink disabled:opacity-50" disabled={busy}>
-													Move
+									<span class="min-w-0 flex-1">
+										<span class="block truncate text-[15px] font-bold {d.status === 'missed' ? 'text-ink-2' : ''}">{d.template_name}</span>
+										{#if rowNote(d)}
+											<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{rowNote(d)}</span>
+										{/if}
+									</span>
+									{#if statuses[d.status]}
+										<span class="shrink-0 rounded-xl px-2.5 py-[5px] text-xs font-bold {tags[d.status]}">{statuses[d.status]}</span>
+									{/if}
+								{/snippet}
+								<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+									{#if d.status === 'planned' || d.status === 'missed'}
+										<details>
+											<summary class="flex min-h-[58px] cursor-pointer list-none items-center gap-3.5 py-2 [&::-webkit-details-marker]:hidden">{@render row()}</summary>
+											<form
+												class="flex flex-col gap-3 pb-4 pl-[58px]"
+												onsubmit={(e) => {
+													e.preventDefault();
+													move(d, String(new FormData(e.currentTarget).get('date')));
+												}}
+											>
+												<div class="flex gap-2">
+													<input class="input h-12 px-4 min-w-0 flex-1" type="date" name="date" value={d.local_date} required aria-label="New day" />
+													<button type="submit" class="h-12 shrink-0 rounded-full bg-well px-4 text-[15px] font-bold text-ink disabled:opacity-50" disabled={busy}>
+														Move
+													</button>
+												</div>
+												<FormError message={rowError.id === d.id ? rowError.message : ''} />
+												<button type="button" class="h-11 self-start text-[15px] font-bold text-bad disabled:opacity-50" disabled={busy} onclick={() => remove(d)}>
+													Remove
 												</button>
-											</div>
-											<FormError message={rowError.id === d.id ? rowError.message : ''} />
-											<button type="button" class="h-11 self-start text-[15px] font-bold text-bad disabled:opacity-50" disabled={busy} onclick={() => remove(d)}>
-												Remove
-											</button>
-										</form>
-									</details>
-								{:else}
-									<div class="flex min-h-[58px] items-center gap-3.5 py-2">{@render row()}</div>
-								{/if}
-							</li>
+											</form>
+										</details>
+									{:else}
+										<div class="flex min-h-[58px] items-center gap-3.5 py-2">{@render row()}</div>
+									{/if}
+								</li>
+							{/each}
 						{/each}
-					{/each}
-				</ul>
+					</ul>
+				</div>
 			</section>
 		{:else}
 			<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold text-ink-2 shadow-card">Nothing planned for the next four weeks.</p>
