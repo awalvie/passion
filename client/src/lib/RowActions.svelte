@@ -23,7 +23,7 @@
 	}
 </script>
 
-<div class="flex shrink-0 items-center gap-1.5">
+<div class="flex shrink-0 items-center gap-2">
 	<button
 		type="button"
 		class="relative flex size-9 items-center justify-center rounded-full bg-well before:absolute before:-inset-1 before:content-[''] text-ink-2 active:opacity-70 disabled:cursor-not-allowed disabled:opacity-35"
