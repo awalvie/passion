@@ -5,8 +5,7 @@
 	import { secondsSince, type RunSummary } from './run';
 	import { readTimers } from './timerStore';
 
-	// live is the open session, shown as a strip on top of the tabs on every
-	// tab page.
+	// live is the open session, shown as a strip on top of the tabs.
 	let { live }: { live: RunSummary | null } = $props();
 
 	let now = $state(Date.now());
