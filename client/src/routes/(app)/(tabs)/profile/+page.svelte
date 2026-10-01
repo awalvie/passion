@@ -51,7 +51,7 @@
 	</label>
 {/snippet}
 
-<NavBar title="Settings" back={{ href: '/', label: 'Today' }} />
+<NavBar title="Profile" back={{ href: '/', label: 'Today' }} />
 
 <div class="flex flex-col gap-3.5 px-4 pt-2 pb-8">
 	<section class="rounded-3xl bg-surface px-[18px] py-2 shadow-card">
