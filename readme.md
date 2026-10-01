@@ -19,11 +19,13 @@ what the app will do and how the data is arranged. This file says what works tod
 ## What works today
 
 Accounts, authentication, an exercise library, session templates and runs, through the API.
-The client is a phone app with three tabs. Today shows the day's planned sessions and starts
-one, or an open session. Library holds the exercises and the session templates. History
-lists finished sessions and what each one logged. While a session runs, the client logs sets,
-per-side sets, climbs, and timed reps with prep, hang and rest. It picks from a choice, adds
-an exercise, and finishes with the journal. Writes wait on the phone when there is no signal.
+The client is a phone app with four tabs. Today shows the day's planned sessions and starts
+one, or an open session. Plan lists the sessions from a week ago to four weeks ahead. It
+adds a one-off session, moves or removes one, and makes, edits and deletes cycles. Library
+holds the exercises and the session templates. History lists finished sessions and what each
+one logged. While a session runs, the client logs sets, per-side sets, climbs, and timed reps
+with prep, hang and rest. It picks from a choice, adds an exercise, and finishes with the
+journal. Writes wait on the phone when there is no signal.
 The look is a placeholder.
 
 - Sign up with an email address and a password, hashed with argon2id.
