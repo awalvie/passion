@@ -72,7 +72,6 @@
 				<i class="size-2.5 rounded-full bg-live shadow-[0_0_0_5px_var(--live-halo)]"></i>Live · {minutes} min
 			</p>
 			<Menu
-				size="size-9"
 				look="bg-white/10 text-on-hero"
 				items={[
 					{ label: 'Finish session', onclick: () => goto(`/run/${run.id}/finish`) },
