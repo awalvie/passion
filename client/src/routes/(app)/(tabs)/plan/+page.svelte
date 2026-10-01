@@ -118,7 +118,7 @@
 				href={v.href}
 				data-sveltekit-replacestate
 				data-sveltekit-noscroll
-				class="flex h-10 items-center justify-center rounded-full text-[15px] font-bold {v.on ? 'bg-tint text-on-tint' : 'text-ink-2'}"
+				class="flex h-11 items-center justify-center rounded-full text-[15px] font-bold {v.on ? 'bg-surface text-ink shadow-card-sm' : 'text-ink-2'}"
 				aria-current={v.on ? 'page' : undefined}
 			>
 				{v.label}
