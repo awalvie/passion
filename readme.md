@@ -217,7 +217,7 @@ Once, on the server:
 
 1. Install Docker with the compose plugin, and add the deploy user to the `docker` group.
 2. Create `/srv/passion`, owned by the deploy user.
-3. Point the proxy at it, for example in Caddy: `v2.passion.awalvie.me { reverse_proxy 127.0.0.1:8081 }`.
+3. Point the proxy at it, for example in Caddy: `example.com { reverse_proxy 127.0.0.1:8081 }`.
 
 In the repository settings:
 
