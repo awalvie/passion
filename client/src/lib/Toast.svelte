@@ -17,17 +17,40 @@
 		if (message) text = message;
 	});
 
+	// A finger on the note holds it open; a swipe down sends it away.
+	let drag = $state<number | null>(null);
+	let startY = 0;
+
 	$effect(() => {
-		if (!message) return;
+		if (!message || drag !== null) return;
 		const t = setTimeout(() => (message = ''), duration);
 		return () => clearTimeout(t);
 	});
+
+	function grab(e: PointerEvent) {
+		if ((e.target as Element).closest('button')) return;
+		startY = e.clientY;
+		drag = 0;
+		(e.currentTarget as Element).setPointerCapture(e.pointerId);
+	}
+
+	function release() {
+		if (drag !== null && drag > 32) message = '';
+		drag = null;
+	}
 </script>
 
 {#if message}
 	<div
-		class="fixed inset-x-0 bottom-[var(--above-bar)] z-40 mx-auto flex min-h-14 w-[calc(100%-2rem)] max-w-[398px] items-center gap-3 rounded-full bg-hero py-2 pr-2 pl-5 text-on-hero shadow-card"
+		class="fixed inset-x-0 bottom-[var(--above-bar)] z-40 mx-auto flex min-h-14 w-[calc(100%-2rem)] max-w-[398px] touch-none items-center gap-3 rounded-full bg-hero py-2 pr-2 pl-5 text-on-hero shadow-card"
 		role="status"
+		style:translate={drag ? `0 ${drag}px` : undefined}
+		onpointerdown={grab}
+		onpointermove={(e) => {
+			if (drag !== null) drag = Math.max(0, e.clientY - startY);
+		}}
+		onpointerup={release}
+		onpointercancel={() => (drag = null)}
 		transition:fly={{ y: 24, duration: still ? 0 : 200 }}
 	>
 		<span class="min-w-0 flex-1 truncate text-[15px] font-bold">{text}</span>
