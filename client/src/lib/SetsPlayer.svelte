@@ -161,7 +161,7 @@
 			</ol>
 		{/if}
 
-		{#if !isFinished(step)}
+		{#if !isFinished(step) && editing === null}
 			<section class="mx-1.5 my-0.5 rounded-[20px] bg-well p-2.5 dark:bg-[#1F2721]">
 				{#if sides === 2}
 					<div class="mb-2 grid grid-cols-2 gap-2">
