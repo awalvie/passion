@@ -68,9 +68,13 @@
 	}
 
 	const done = $derived(Array.from({ length: Math.ceil(logged.length / sides) }, (_, i) => logged.slice(i * sides, (i + 1) * sides)));
-	const todo = $derived(isFinished(step) ? [] : Array.from({ length: Math.max(0, (step.sets ?? 0) - number) }, (_, i) => number + 1 + i));
-
 	let editing = $state<number | null>(null);
+
+	// While a logged set is open, the next set stays in the list without its
+	// steppers. A half-logged per-side set is already among the logged rows.
+	const first = $derived(editing !== null && logged.length % sides === 0 ? number : number + 1);
+	const todo = $derived(isFinished(step) ? [] : Array.from({ length: Math.max(0, (step.sets ?? 0) - first + 1) }, (_, i) => first + i));
+
 	let draft = $state<SetFields[]>([]);
 
 	function edit(i: number) {
