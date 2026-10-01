@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { haptic } from './haptics';
+
 	// One switch between views: links when each view has an address, buttons
 	// otherwise. replace keeps the switch out of the back history.
 	type Item = { label: string; on: boolean; href?: string; onclick?: () => void };
@@ -27,7 +29,7 @@
 				{item.label}
 			</a>
 		{:else}
-			<button type="button" class={cls(item.on)} aria-pressed={item.on} onclick={item.onclick}>{item.label}</button>
+			<button type="button" class={cls(item.on)} aria-pressed={item.on} onclick={item.onclick} use:haptic>{item.label}</button>
 		{/if}
 	{/each}
 </svelte:element>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { haptic } from './haptics';
 
 	type Variant = 'primary' | 'live' | 'secondary' | 'danger';
 
@@ -34,5 +35,5 @@
 {#if href}
 	<a {href} class={cls}>{@render children()}</a>
 {:else}
-	<button {type} {disabled} {onclick} class={cls}>{@render children()}</button>
+	<button {type} {disabled} {onclick} class={cls} use:haptic={type === 'button' && (variant === 'primary' || variant === 'live')}>{@render children()}</button>
 {/if}

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { haptic } from './haptics';
+
 	// max is the most days a block can hold: 28, or fewer for a short cycle.
 	let { value = $bindable(), max }: { value: number; max: number } = $props();
 
@@ -38,6 +40,7 @@
 			aria-pressed={value === n}
 			disabled={n > max}
 			onclick={() => (value = n)}
+			use:haptic
 		>
 			{n}
 		</button>

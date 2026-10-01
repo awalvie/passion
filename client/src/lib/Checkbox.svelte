@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tickBox } from './haptics';
 	import Icon from './Icon.svelte';
 
 	// The box alone; the label around it gives the 44 px target.
@@ -16,6 +17,7 @@
 		bind:checked
 		aria-label={label}
 		{onchange}
+		use:tickBox
 	/>
 	<span class="pointer-events-none absolute inset-0 hidden items-center justify-center text-ground peer-checked:flex">
 		<Icon name="check" />

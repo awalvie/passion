@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { haptic } from './haptics';
 
 	let {
 		label,
@@ -47,6 +48,7 @@
 		onpointerleave={stop}
 		onpointercancel={stop}
 		oncontextmenu={(e) => e.preventDefault()}
+		use:haptic
 		onclick={() => {
 			if (held) held = false;
 			else onclick();
