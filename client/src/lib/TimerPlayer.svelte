@@ -9,7 +9,7 @@
 	import { openRun } from './runState.svelte';
 	import Stepper from './Stepper.svelte';
 	import TimerFlap from './TimerFlap.svelte';
-	import { at, elapsed, endSet, jump, newClock, rows, startOf, timeline, togglePause } from './timeline';
+	import { at, elapsed, endSet, jump, newClock, rows, startOf, timeline, togglePause, type Phase } from './timeline';
 	import { readTimers, writeTimers, type Timed } from './timerStore';
 
 	let { step }: { step: RunStep } = $props();
@@ -116,7 +116,28 @@
 	}
 
 	const labels = { prep: 'Prep', hang: 'Hang', rest: 'Rest' };
-	const skipLabels = { prep: 'Skip prep', hang: 'End rep', rest: 'Skip rest' };
+
+	function span(ms: number) {
+		const s = Math.round(ms / 1000);
+		if (s < 60) return `${s} s`;
+		return s % 60 ? `${Math.floor(s / 60)} min ${s % 60} s` : `${s / 60} min`;
+	}
+
+	function then(p: Phase) {
+		if (p.set !== phase.set) return `set ${p.set}`;
+		if (p.side !== phase.side) return `${p.side!.toLowerCase()} side`;
+		return `rep ${p.rep}`;
+	}
+
+	const nextText = $derived.by(() => {
+		if (!phase || !upcoming) return 'Last rep';
+		if (upcoming.kind === 'rest') {
+			const after = phases[pos.index + 2];
+			return `Rest ${span(upcoming.ms)}${after ? `, then ${then(after)}` : ''}`;
+		}
+		if (phase.kind === 'prep') return `Hang ${span(upcoming.ms)}`;
+		return `Then ${then(upcoming)}`;
+	});
 
 	// Darker fields and glass than the tokens so text passes 4.5:1 when read from the floor.
 	const light = { ink: 'text-[#F6F9F4]', ink2: 'text-[#F6F9F4]/90', glass: 'bg-black/20' };
@@ -252,12 +273,19 @@
 				</div>
 			</div>
 
-			{#if upcoming}
-				<p class="mx-6 mt-5 flex items-center gap-2 text-xl font-bold">
-					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
-					Next: {labels[upcoming.kind]} {upcoming.ms / 1000} s
-				</p>
-			{/if}
+			<div class="mx-4 mt-[18px] flex h-14 items-center gap-2 rounded-full pr-1.5 pl-3.5 text-xl font-bold tracking-[-0.01em] {look.glass}">
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="shrink-0" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+				<span class="min-w-0 flex-1 truncate">{nextText}</span>
+				<button
+					type="button"
+					class="flex h-11 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[15px] font-bold {look.glass}"
+					onpointerdown={unlock}
+					onclick={skipPhase}
+				>
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5.5v13l9-6.5z" fill="currentColor" /><path d="M18.5 5v14" /></svg>
+					Skip
+				</button>
+			</div>
 
 			<div class="mt-auto flex flex-col gap-2.5 px-4 pt-4" onpointerdown={unlock} role="group" aria-label="Timer">
 				<div class="flex gap-2.5">
@@ -273,14 +301,6 @@
 							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
 							Pause
 						{/if}
-					</button>
-					<button
-						type="button"
-						class="flex h-17 items-center justify-center gap-2.5 rounded-full px-6 text-xl font-bold whitespace-nowrap {look.glass}"
-						onclick={skipPhase}
-					>
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5.5v13l9-6.5z" fill="currentColor" /><path d="M18.5 5v14" /></svg>
-						{skipLabels[phase.kind]}
 					</button>
 				</div>
 			</div>
