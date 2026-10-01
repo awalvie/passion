@@ -116,6 +116,7 @@ func TestSessionTemplateValidation(t *testing.T) {
 	}{
 		"no name":            {`{"name":" "}`, "name"},
 		"bad colour":         {`{"name":"Power","color":"blue"}`, "color"},
+		"bad icon":           {`{"name":"Power","icon":"Big Dumbbell"}`, "icon"},
 		"no section name":    {`{"name":"Power","sections":[{"name":""}]}`, "sections[0].name"},
 		"empty item":         {section(`{}`), "sections[0].items[0]"},
 		"step and choice":    {section(`{"step":` + step + `,"choice":{"name":"Pick","options":[` + step + `]}}`), "sections[0].items[0]"},

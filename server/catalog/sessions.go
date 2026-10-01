@@ -34,6 +34,7 @@ type sessionFile struct {
 	Notes  *string  `yaml:"notes"`
 	Source *string  `yaml:"source"`
 	Color  *string  `yaml:"color"`
+	Icon   *string  `yaml:"icon"`
 	Needs  *string  `yaml:"needs"`
 	Tags   []string `yaml:"tags"`
 	Items  []struct {
@@ -389,6 +390,7 @@ func (r resolver) session(tree Tree, rel string) (Session, error) {
 		Notes:  f.Notes,
 		Source: f.Source,
 		Color:  f.Color,
+		Icon:   f.Icon,
 		Needs:  f.Needs,
 		Tags:   f.Tags,
 		Body:   db.SessionBody{Sections: sections},
