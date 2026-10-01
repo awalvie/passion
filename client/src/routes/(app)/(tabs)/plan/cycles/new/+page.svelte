@@ -150,7 +150,7 @@
 		<section class="flex flex-col gap-2">
 			<h2 class="px-1 text-[15px] font-bold">Notes</h2>
 			<textarea
-				class="min-h-28 w-full resize-none rounded-3xl bg-surface px-[18px] py-3.5 text-[15px] font-semibold shadow-card [field-sizing:content] placeholder:text-ink-3 focus:outline-none"
+				class="min-h-28 w-full resize-none rounded-3xl bg-surface px-[18px] py-3.5 text-[15px] font-semibold shadow-card [field-sizing:content] placeholder:text-ink-3 focus:shadow-[0_0_0_2px_var(--ink-3)] focus:outline-none"
 				placeholder="Anything to remember about this cycle"
 				aria-label="Notes"
 				value={draft.notes ?? ''}
