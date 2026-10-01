@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { describe, request } from '$lib/api';
 	import BlockDays from '$lib/BlockDays.svelte';
@@ -7,6 +7,7 @@
 	import Button from '$lib/Button.svelte';
 	import { addDays, cycleWeek } from '$lib/dates';
 	import FormError from '$lib/FormError.svelte';
+	import EntryList from '$lib/EntryList.svelte';
 	import GoalList from '$lib/GoalList.svelte';
 	import Icon, { type IconName } from '$lib/Icon.svelte';
 	import Menu from '$lib/Menu.svelte';
@@ -89,17 +90,21 @@
 		}
 	}
 
-	// Goals save as they change, with no Save button.
+	// Goals and entries save as they change, with no Save button.
 	let goals = $state(untrack(() => structuredClone($state.snapshot(data.cycle.goals))));
+	let before = $state(untrack(() => [...data.cycle.before]));
+	let after = $state(untrack(() => [...data.cycle.after]));
 
-	async function saveGoals(next: Cycle['goals']) {
+	async function savePart(part: Partial<Cycle>) {
 		error = '';
 		try {
-			const saved = await saveCycle({ ...$state.snapshot(data.cycle), goals: next });
-			goals = saved.cycle.goals;
+			const { cycle } = await saveCycle({ ...$state.snapshot(data.cycle), ...part });
+			goals = cycle.goals;
+			before = cycle.before;
+			after = cycle.after;
 			await invalidateAll();
 		} catch (e) {
-			error = describe(e, () => 'A goal');
+			error = describe(e, (f) => (f.startsWith('goals') ? 'A goal' : f));
 		}
 	}
 
@@ -176,7 +181,7 @@
 				<span class="text-xs font-semibold text-ink-2">{goals.filter((g) => g.done).length} of {goals.length} done</span>
 			{/if}
 		</div>
-		<GoalList bind:goals onchange={saveGoals} />
+		<GoalList bind:goals onchange={(goals) => savePart({ goals })} />
 	</section>
 
 	<section class="flex flex-col gap-2">
@@ -199,6 +204,27 @@
 	<section class="flex flex-col gap-2">
 		<h2 class="px-1 text-[15px] font-bold">Calendar</h2>
 		<CycleCalendar cycle={data.cycle} days={data.days} today={data.today} onmove={move} />
+	</section>
+
+	<section class="flex flex-col gap-2">
+		<h2 class="px-1 text-[15px] font-bold">Before and after</h2>
+		{#snippet card(label: string, when: string, list: Snippet)}
+			<div class="rounded-3xl bg-surface px-[18px] pt-3.5 pb-1 shadow-card">
+				<div class="flex items-baseline justify-between">
+					<h3 class="text-[15px] font-bold">{label}</h3>
+					<span class="text-xs font-semibold text-ink-2">{short(when)}</span>
+				</div>
+				{@render list()}
+			</div>
+		{/snippet}
+		{#snippet beforeList()}
+			<EntryList bind:entries={before} label="New before entry" onchange={(before) => savePart({ before })} />
+		{/snippet}
+		{#snippet afterList()}
+			<EntryList bind:entries={after} label="New after entry" onchange={(after) => savePart({ after })} />
+		{/snippet}
+		{@render card('Before', data.cycle.starts, beforeList)}
+		{@render card('After', data.cycle.ends, afterList)}
 	</section>
 
 	<section class="flex flex-col gap-2">
