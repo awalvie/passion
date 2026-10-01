@@ -33,6 +33,9 @@ tags:
       A plan that repeats a block of days from one date to another, and places
       its sessions on the days they fall. Deleting a cycle keeps every run done
       under it.
+  - name: centres
+    description: >-
+      The places you climb or train, and the sessions you can do at each.
   - name: scheduled-sessions
     description: >-
       Your calendar: one row per session per day, placed by a cycle or by you.

@@ -109,6 +109,116 @@
         ]
       }
     },
+    "/api/v1/centres": {
+      "get": {
+        "description": "By name.",
+        "tags": [
+          "centres"
+        ],
+        "summary": "List your climbing centres",
+        "operationId": "listCentres",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/centreListResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/centres/{id}": {
+      "put": {
+        "description": "Creates the centre under the id you chose, or replaces it, so a retry makes\none centre.",
+        "tags": [
+          "centres"
+        ],
+        "summary": "Create or replace a climbing centre",
+        "operationId": "putCentre",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The centre's id. The client chooses it when it creates the centre.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "x-go-name": "Body",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/centreRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/centreResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "centres"
+        ],
+        "summary": "Delete a climbing centre",
+        "operationId": "deleteCentre",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The centre's id. The client chooses it when it creates the centre.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/climbs": {
       "get": {
         "description": "Every climb in your finished runs from one day to another, both included,\nby day and then in the order they were climbed.",
@@ -1380,6 +1490,71 @@
           "type": "string",
           "x-go-name": "Timezone",
           "example": "Europe/Oslo"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "centreListResponse": {
+      "type": "object",
+      "properties": {
+        "centres": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/centreResponse"
+          },
+          "x-go-name": "Centres"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "centreRequest": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "description": "Up to 200 characters.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "The Arch"
+        },
+        "sessions": {
+          "description": "The session templates you can do here. Repeats are dropped.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Sessions"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "centreResponse": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "description": "The id the client chose.",
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "name": {
+          "description": "Up to 200 characters.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "The Arch"
+        },
+        "sessions": {
+          "description": "The session templates you can do here. Repeats are dropped.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Sessions"
         }
       },
       "x-go-package": "passion/server/api"
@@ -3730,6 +3905,10 @@
     {
       "description": "A plan that repeats a block of days from one date to another, and places its sessions on the days they fall. Deleting a cycle keeps every run done under it.",
       "name": "cycles"
+    },
+    {
+      "description": "The places you climb or train, and the sessions you can do at each.",
+      "name": "centres"
     },
     {
       "description": "Your calendar: one row per session per day, placed by a cycle or by you. A future one follows its template until you start it.",
