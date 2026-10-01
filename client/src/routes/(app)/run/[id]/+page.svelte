@@ -135,7 +135,7 @@
 {#snippet remove(label: string, onclick: () => void)}
 	<button
 		type="button"
-		class="flex size-7 shrink-0 items-center justify-center rounded-full bg-well text-ink active:opacity-70"
+		class="relative flex size-7 shrink-0 items-center justify-center rounded-full bg-well text-ink before:absolute before:-inset-2 before:content-[''] active:opacity-70"
 		aria-label={label}
 		{onclick}
 	>
