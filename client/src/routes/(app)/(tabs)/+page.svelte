@@ -1,11 +1,15 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
 	import { describe } from '$lib/api';
-	import Button from '$lib/Button.svelte';
+	import { cycleWeek } from '$lib/dates';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import type { ScheduledDay } from '$lib/plan';
 	import { startRun, type StartBody } from '$lib/runState.svelte';
+	import SessionCard from '$lib/SessionCard.svelte';
+	import Topo from '$lib/Topo.svelte';
+	import { topTopo } from '$lib/topo';
+	import WeekStrip from '$lib/WeekStrip.svelte';
 
 	let { data } = $props();
 
@@ -21,7 +25,7 @@
 		} catch (e) {
 			error = describe(e, (f) => f);
 			// The run can start even when the answer is lost, and then the card
-			// offers Resume.
+			// offers to go back to it.
 			await invalidateAll();
 		} finally {
 			starting = false;
@@ -29,73 +33,112 @@
 	}
 
 	const date = $derived(
-		new Date(`${data.today}T12:00:00`).toLocaleDateString(undefined, {
+		new Date(`${data.today}T00:00:00Z`).toLocaleDateString(undefined, {
 			weekday: 'long',
 			day: 'numeric',
-			month: 'long'
+			month: 'long',
+			timeZone: 'UTC'
 		})
 	);
 
-	function facts(d: ScheduledDay): string {
-		const t = data.templates.get(d.template);
-		if (!t) return '';
-		const n = t.sections.length;
-		return [`${n} section${n === 1 ? '' : 's'}`, t.needs].filter(Boolean).join(' · ');
+	// The cycle of today's first session, or else any cycle that covers today.
+	const cycle = $derived(
+		data.cycles.find((c) => c.id === data.days.find((d) => d.cycle)?.cycle) ??
+			data.cycles.find((c) => c.starts <= data.today && data.today <= c.ends)
+	);
+	const progress = $derived(cycle ? cycleWeek(cycle.starts, cycle.ends, data.today) : null);
+
+	function label(d: ScheduledDay) {
+		const c = data.cycles.find((x) => x.id === d.cycle);
+		if (!c) return d.cycle ? 'Cycle' : 'One-off';
+		return `${c.name} · Week ${cycleWeek(c.starts, c.ends, data.today).week}`;
 	}
 </script>
 
 <svelte:head><title>Today</title></svelte:head>
 
-<div class="flex flex-col gap-4 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
-	<header class="flex items-start justify-between gap-3">
+<div
+	class="pointer-events-none absolute inset-x-0 top-0 -z-0 h-[420px] bg-[radial-gradient(120%_70%_at_100%_-10%,var(--glow-1),transparent_62%),radial-gradient(90%_60%_at_-10%_18%,var(--glow-2),transparent_62%)]"
+></div>
+<Topo
+	shape={topTopo}
+	class="absolute inset-x-0 top-0 h-80 w-full text-[var(--topo)] [mask-image:linear-gradient(#000_30%,transparent)]"
+/>
+
+<div class="relative flex flex-col pt-[env(safe-area-inset-top)]">
+	<header class="flex items-start justify-between gap-3 px-4 pt-3">
 		<div>
-			<p class="text-sm text-ink-2">{date}</p>
-			<h1 class="text-3xl font-bold">Today</h1>
+			<h1 class="text-[32px] leading-tight font-extrabold tracking-tight">Today</h1>
+			<p class="mt-1 text-[15px] font-semibold text-ink-2">{date}</p>
 		</div>
-		<a href="/settings" class="flex size-11 items-center justify-center text-ink-2" aria-label="Settings">
-			<Icon name="settings" size="1.5rem" />
-		</a>
+		<div class="flex min-w-0 items-center gap-2 pt-1.5">
+			{#if progress && progress.of <= 8}
+				<div class="flex min-w-0 flex-col gap-1.5 rounded-[20px] bg-surface px-3 py-2 text-xs font-bold shadow-card-sm">
+					<span>Week {progress.week} of {progress.of}</span>
+					<span class="flex min-w-0 gap-[3px]">
+						{#each Array.from({ length: progress.of }, (_, i) => i + 1) as w (w)}
+							<i
+								class="h-1 w-3.5 min-w-0 rounded-sm {w < progress.week
+									? 'bg-ink dark:bg-tint'
+									: w === progress.week
+										? 'bg-[linear-gradient(90deg,var(--ink)_50%,var(--well)_50%)] dark:bg-[linear-gradient(90deg,var(--tint)_50%,var(--well)_50%)]'
+										: 'bg-well'}"
+							></i>
+						{/each}
+					</span>
+				</div>
+			{:else if progress}
+				<span class="rounded-full bg-surface px-3 py-2 text-xs font-bold shadow-card-sm">Week {progress.week} of {progress.of}</span>
+			{/if}
+			<a href="/settings" class="flex size-10 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm" aria-label="Settings">
+				<Icon name="settings" size="1.25rem" />
+			</a>
+		</div>
 	</header>
 
-	<FormError message={error} />
+	<WeekStrip monday={data.monday} today={data.today} week={data.week} />
+
+	<div class="px-4"><FormError message={error} /></div>
 
 	{#each data.days as d (d.id)}
-		{@const t = data.templates.get(d.template)}
-		<article class="flex flex-col gap-4 rounded-2xl bg-surface p-4 shadow-sm">
-			<a href="/templates/{d.template}" class="flex flex-col gap-1">
-				<h2 class="text-xl font-semibold">{d.template_name}</h2>
-				<p class="text-base text-ink-2">{facts(d)}</p>
-			</a>
-			{#if t}
-				<ol class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink-2">
-					{#each t.sections as s, i (i)}
-						<li class="flex items-center gap-1.5">
-							<span class="size-2 rounded-full bg-tint"></span>{s.name}
-						</li>
-					{/each}
-				</ol>
-			{/if}
-			{#if d.status === 'done'}
-				<p class="flex items-center gap-2 text-base font-semibold text-tint">
-					<Icon name="check" size="1.25rem" />Done
-				</p>
-			{:else if d.status === 'started' && d.run}
-				<Button variant="live" href="/run/{d.run}">Resume</Button>
-			{:else}
-				<Button disabled={starting} onclick={() => start({ scheduled: d.id })}>Start</Button>
-			{/if}
-			<a href="/templates/{d.template}" class="text-center text-base text-tint">See the whole session</a>
-		</article>
+		<SessionCard
+			day={d}
+			template={data.templates.get(d.template)}
+			label={label(d)}
+			{starting}
+			onstart={() => start({ scheduled: d.id })}
+		/>
 	{:else}
-		<section class="flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-sm">
-			<p class="text-base">
-				{data.offline ? 'No signal, so the plan cannot load. A running session still works.' : 'Nothing planned today.'}
+		<section class="mx-4 mt-3.5 flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-card">
+			<p class="text-xl font-bold tracking-tight">
+				{data.offline ? 'No signal' : 'Nothing planned today'}
 			</p>
-			<Button variant="secondary" href="/templates">Pick a session</Button>
+			<p class="text-[15px] font-semibold text-ink-2">
+				{data.offline
+					? 'The plan cannot load. A running session still works.'
+					: 'Plan a session, or start one from the library.'}
+			</p>
+			{#if !data.offline}
+				<a href="/plan" class="flex h-12 items-center justify-center rounded-full bg-tint text-[15px] font-bold text-on-tint shadow-tint">
+					Plan a session
+				</a>
+			{/if}
 		</section>
 	{/each}
 
-	<Button variant="secondary" disabled={starting} onclick={() => start({ name: 'Open session' })}>
-		Open session
-	</Button>
+	<div class="flex gap-3 px-4 pt-3">
+		<a href="/templates" class="flex h-12 flex-1 items-center gap-2.5 rounded-full bg-surface px-2 text-[15px] font-bold shadow-card">
+			<span class="flex size-8 items-center justify-center rounded-full bg-well"><Icon name="stack" size="1.125rem" /></span>
+			Other session
+		</a>
+		<button
+			type="button"
+			class="flex h-12 flex-1 items-center gap-2.5 rounded-full bg-surface px-2 text-[15px] font-bold shadow-card disabled:opacity-50"
+			disabled={starting}
+			onclick={() => start({ name: 'Open session' })}
+		>
+			<span class="flex size-8 items-center justify-center rounded-full bg-well"><Icon name="plus" size="1.125rem" /></span>
+			Open session
+		</button>
+	</div>
 </div>
