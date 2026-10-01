@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { RequestFailed, request } from '$lib/api';
+	import Button from '$lib/Button.svelte';
 	import FormError from '$lib/FormError.svelte';
+	import Topo from '$lib/Topo.svelte';
+	import { topTopo } from '$lib/topo';
 	import { setToken } from '$lib/session';
 
 	type Issued = { token: string; expires_at: string };
@@ -31,15 +34,19 @@
 
 <svelte:head><title>Log in</title></svelte:head>
 
-<section class="card card-pad mx-4 mt-[calc(env(safe-area-inset-top)+2rem)]">
-	<h1 class="text-xl font-bold">Log in</h1>
-	<p class="text-sm muted mt-1">Sign in to access your workouts.</p>
+<Topo
+	shape={topTopo}
+	class="absolute inset-x-0 top-0 h-80 w-full text-[var(--topo)] [mask-image:linear-gradient(#000_30%,transparent)]"
+/>
+<section class="relative mx-auto flex max-w-[430px] flex-col px-4 pt-[calc(env(safe-area-inset-top)+4rem)] pb-8">
+	<h1 class="text-[32px] leading-tight font-extrabold tracking-tight">Log in</h1>
+	<p class="mt-1 text-[15px] font-semibold text-ink-2">Sign in to access your workouts.</p>
 
 	<FormError message={error} />
 
-	<form class="mt-4 space-y-3" onsubmit={signIn}>
+	<form class="mt-6 flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-card" onsubmit={signIn}>
 		<div>
-			<label for="email" class="text-xs muted">Email</label>
+			<label for="email" class="text-xs font-bold text-ink-2">Email</label>
 			<input
 				id="email"
 				name="email"
@@ -51,7 +58,7 @@
 			/>
 		</div>
 		<div>
-			<label for="password" class="text-xs muted">Password</label>
+			<label for="password" class="text-xs font-bold text-ink-2">Password</label>
 			<input
 				id="password"
 				name="password"
@@ -62,10 +69,10 @@
 				required
 			/>
 		</div>
-		<button type="submit" class="btn btn-accent" disabled={busy}>
-			{busy ? 'Signing in…' : 'Log in'}
-		</button>
+		<Button type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Log in'}</Button>
 	</form>
 
-	<p class="text-sm muted mt-4">No account yet? <a href="/signup" class="underline">Sign up</a>.</p>
+	<p class="mt-5 text-center text-[15px] font-semibold text-ink-2">
+		No account yet? <a href="/signup" class="font-bold text-link underline">Sign up</a>
+	</p>
 </section>
