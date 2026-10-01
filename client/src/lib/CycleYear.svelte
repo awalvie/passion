@@ -23,6 +23,9 @@
 		return out;
 	});
 	const lanes = $derived(Math.max(1, ...bars.map((b) => b.lane + 1)));
+	// Two running cycles would print their names on top of each other, so only
+	// the one that started last is named; the list below names them all.
+	const named = $derived(bars.filter((b) => b.state === 'now').at(-1)?.cycle.id);
 	const now = $derived(yearSpan(today, today, year)!.left);
 	const looks = {
 		now: 'bg-live',
@@ -38,7 +41,7 @@
 	</div>
 	<div class="relative mt-3" style="height: {lanes * 14 + 18}px">
 		{#each bars as b (b.cycle.id)}
-			{#if b.state === 'now'}
+			{#if b.cycle.id === named}
 				<span
 					class="absolute truncate text-[11px] font-bold text-ink"
 					style="top: 0; left: {b.left * 100}%; max-width: {(1 - b.left) * 100}%"
