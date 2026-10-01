@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Button from './Button.svelte';
 	import { addDays, weekday } from './dates';
+	import { haptic } from './haptics';
 	import Icon from './Icon.svelte';
 	import type { Cycle } from './plan';
 	import SessionIcon from './SessionIcon.svelte';
@@ -70,7 +71,7 @@
 		{#each [...templates.map((t) => ({ id: t.id, name: t.name, icon: t.icon })), ...retired.map((d) => ({ id: d.template, name: 'Retired session', icon: null }))] as t (t.id)}
 			{@const picked = days.some((d) => d.day === chosen && d.template === t.id)}
 			<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
-				<button type="button" class="flex min-h-[56px] w-full items-center gap-3 py-2 text-left" aria-pressed={picked} onclick={() => toggle(t.id)}>
+				<button type="button" class="flex min-h-[56px] w-full items-center gap-3 py-2 text-left" aria-pressed={picked} onclick={() => toggle(t.id)} use:haptic>
 					<SessionIcon icon={t.icon} name={t.name} size={32} />
 					<span class="min-w-0 flex-1 truncate text-[15px] font-bold">{t.name}</span>
 					<span
