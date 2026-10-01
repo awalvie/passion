@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import Icon, { type IconName } from './Icon.svelte';
 	import { secondsSince, type RunSummary } from './run';
+	import { readTimers } from './timerStore';
 
 	// live is the open session, shown as a strip on top of the tabs on every
 	// tab page.
@@ -14,6 +15,8 @@
 		return () => clearInterval(tick);
 	});
 	const minutes = $derived(live ? Math.floor(secondsSince(live.started_at, now) / 60) : 0);
+	// A rest shows only on the phone that started it, which holds its end time.
+	const restLeft = $derived(live ? ((readTimers(live.id).rest?.endsAt ?? 0) - now) / 1000 : 0);
 
 	const tabs: { href: string; label: string; icon: IconName; match: (path: string) => boolean }[] = [
 		{ href: '/', label: 'Today', icon: 'peak', match: (p) => p === '/' },
@@ -33,10 +36,17 @@
 	aria-label="Main"
 >
 	{#if live}
-		<a href="/run/{live.id}" class="flex h-11 items-center gap-2.5 rounded-t-[28px] bg-live pr-4 pl-6 text-on-live">
-			<span class="size-2 shrink-0 rounded-full bg-on-live motion-safe:animate-pulse"></span>
+		<a
+			href="/run/{live.id}"
+			class="flex h-11 items-center gap-2.5 rounded-t-[28px] pr-4 pl-6 {restLeft > 0 ? 'bg-rest-card text-rest-digit' : 'bg-live text-on-live'}"
+		>
+			{#if restLeft > 0}
+				<span class="shrink-0 text-xs font-extrabold tracking-[0.06em] uppercase">Rest</span>
+			{:else}
+				<span class="size-2 shrink-0 rounded-full bg-on-live motion-safe:animate-pulse"></span>
+			{/if}
 			<span class="min-w-0 truncate text-[15px] font-bold">{live.name}</span>
-			<span class="shrink-0 text-xs font-semibold">· {minutes} min</span>
+			<span class="shrink-0 text-xs font-semibold">· {restLeft > 0 ? `under ${Math.ceil(restLeft / 60)} min` : `${minutes} min`}</span>
 			<span class="ml-auto shrink-0"><Icon name="chevron-right" size="1.125rem" /></span>
 		</a>
 	{/if}
