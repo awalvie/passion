@@ -160,6 +160,13 @@ body {
 	li > :is(button, a[href]) {
 		border-radius: 0.75rem;
 	}
+	/* A long press on a control neither selects its words nor opens the
+	   link preview. */
+	:is(button, a[href], summary) {
+		-webkit-touch-callout: none;
+		-webkit-user-select: none;
+		user-select: none;
+	}
 	@media (prefers-reduced-motion: reduce) {
 		:is(button, a[href], summary) {
 			transition: none;
