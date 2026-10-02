@@ -43,7 +43,7 @@
 		</div>
 		<FormError message={error} />
 		<div
-			class="sticky bottom-[var(--above-bar)] z-20 grid grid-cols-[auto_1fr] gap-2.5"
+			class="sticky bottom-[calc(var(--above-bar)-0.75rem)] z-20 -mx-4 grid grid-cols-[auto_1fr] gap-2.5 bg-ground/85 px-4 py-3 backdrop-blur-md"
 		>
 			<a
 				class="flex h-14 items-center rounded-full bg-surface px-6 text-[15px] font-bold text-ink shadow-card"
