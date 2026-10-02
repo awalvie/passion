@@ -252,7 +252,7 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
 	[class*='arrive-'] {
-		animation: none;
+		animation: fade-in 150ms ease both;
 	}
 }
 

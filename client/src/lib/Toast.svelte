@@ -51,7 +51,7 @@
 		}}
 		onpointerup={release}
 		onpointercancel={() => (drag = null)}
-		transition:fly={{ y: 24, duration: still ? 0 : 200 }}
+		transition:fly={{ y: still ? 0 : 24, duration: 200 }}
 	>
 		<span class="min-w-0 flex-1 truncate text-[15px] font-bold">{text}</span>
 		{#if action}

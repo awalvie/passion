@@ -54,10 +54,10 @@
 	const outlineRoot = $derived(navigating.to?.url ? isRoot(navigating.to.url) : false);
 
 	onNavigate((navigation) => {
-		if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-		// The outline already slid in, so the page only fades over it.
-		const shown = outline ? 'fade' : kind;
-		if (shown === 'none') return;
+		if (!document.startViewTransition || kind === 'none') return;
+		// The outline already slid in, so the page only fades over it. With
+		// Reduce Motion on, every arrival is a fade, as in iOS's own apps.
+		const shown = outline || matchMedia('(prefers-reduced-motion: reduce)').matches ? 'fade' : kind;
 		document.documentElement.dataset.nav = shown;
 		return new Promise((resolve) => {
 			const t = document.startViewTransition(async () => {
