@@ -13,12 +13,15 @@
 		template,
 		label,
 		starting,
+		busy,
 		onstart
 	}: {
 		day: ScheduledDay;
 		template: SessionTemplate | undefined;
 		label: string;
 		starting: boolean;
+		// This card's start is the one waiting.
+		busy: boolean;
 		onstart: () => void;
 	} = $props();
 
@@ -75,7 +78,7 @@
 				{:else if live}
 					<Button variant="live" href="/run/{day.run}">Back to session</Button>
 				{:else}
-					<Button disabled={starting} onclick={onstart}>Start</Button>
+					<Button disabled={starting} onclick={onstart}>{busy ? 'Starting…' : 'Start'}</Button>
 				{/if}
 			</div>
 		</div>

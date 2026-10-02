@@ -18,11 +18,12 @@
 
 	let { data } = $props();
 
-	let starting = $state(false);
+	// The day being started, or 'open'.
+	let starting = $state<string | null>(null);
 	let error = $state('');
 
 	async function start(body: StartBody) {
-		starting = true;
+		starting = 'scheduled' in body ? body.scheduled : 'open';
 		error = '';
 		try {
 			const run = await startRun(body);
@@ -33,7 +34,7 @@
 			// offers to go back to it.
 			await invalidateAll();
 		} finally {
-			starting = false;
+			starting = null;
 		}
 	}
 
@@ -158,7 +159,8 @@
 			day={d}
 			template={data.templates.get(d.template)}
 			label={label(d)}
-			{starting}
+			starting={starting !== null}
+			busy={starting === d.id}
 			onstart={() => start({ scheduled: d.id })}
 		/>
 	{/each}
@@ -190,11 +192,11 @@
 			<button
 				type="button"
 				class="flex h-12 flex-1 items-center gap-2.5 rounded-full bg-surface px-2 text-[15px] font-bold shadow-card disabled:opacity-50"
-				disabled={starting}
+				disabled={starting !== null}
 				onclick={() => start({ name: 'Open session' })}
 			>
 				<span class="flex size-8 items-center justify-center rounded-full bg-well"><Icon name="plus" size="1.125rem" /></span>
-				Open session
+				{starting === 'open' ? 'Starting…' : 'Open session'}
 			</button>
 		</div>
 	{/if}

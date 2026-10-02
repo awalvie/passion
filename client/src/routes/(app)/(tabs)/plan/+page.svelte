@@ -23,7 +23,8 @@
 	let adding = $state(false);
 	let template = $state('');
 	let date = $state('');
-	let busy = $state(false);
+	// What is waiting: 'add', or a row's move or remove.
+	let doing = $state<string | null>(null);
 	let error = $state('');
 
 	function openAdd() {
@@ -34,7 +35,7 @@
 	}
 
 	async function add() {
-		busy = true;
+		doing = 'add';
 		error = '';
 		try {
 			await request('POST', '/api/v1/scheduled-sessions', { template, local_date: date });
@@ -43,7 +44,7 @@
 		} catch (e) {
 			error = describe(e, (f) => labels[f] ?? f);
 		} finally {
-			busy = false;
+			doing = null;
 		}
 	}
 
@@ -66,7 +67,7 @@
 	}
 
 	async function move(d: ScheduledDay, to: string) {
-		busy = true;
+		doing = `move:${d.id}`;
 		rowError = { id: '', message: '' };
 		try {
 			await request('PUT', `/api/v1/scheduled-sessions/${d.id}`, { local_date: to });
@@ -74,7 +75,7 @@
 		} catch (e) {
 			rowError = { id: d.id, message: describe(e, (f) => labels[f] ?? f) };
 		} finally {
-			busy = false;
+			doing = null;
 		}
 	}
 
@@ -83,7 +84,7 @@
 			? ' It comes back if you change the dates, the block or the days of its cycle.'
 			: '';
 		if (!confirm(`Take ${d.template_name} off this day?${warning}`)) return;
-		busy = true;
+		doing = `remove:${d.id}`;
 		rowError = { id: '', message: '' };
 		try {
 			await request('DELETE', `/api/v1/scheduled-sessions/${d.id}`);
@@ -91,7 +92,7 @@
 		} catch (e) {
 			rowError = { id: d.id, message: describe(e, (f) => labels[f] ?? f) };
 		} finally {
-			busy = false;
+			doing = null;
 		}
 	}
 
@@ -264,13 +265,13 @@
 											>
 												<div class="flex gap-2">
 													<div class="min-w-0 flex-1"><DateField value={d.local_date} name="date" label="New day" /></div>
-													<button type="submit" class="h-12 shrink-0 rounded-full bg-well px-4 text-[15px] font-bold text-ink disabled:opacity-50" disabled={busy}>
-														Move
+													<button type="submit" class="h-12 shrink-0 rounded-full bg-well px-4 text-[15px] font-bold text-ink disabled:opacity-50" disabled={doing !== null}>
+														{doing === `move:${d.id}` ? 'Moving…' : 'Move'}
 													</button>
 												</div>
 												<FormError message={rowError.id === d.id ? rowError.message : ''} />
-												<button type="button" class="h-11 self-start text-[15px] font-bold text-bad disabled:opacity-50" disabled={busy} onclick={() => remove(d)}>
-													Remove
+												<button type="button" class="h-11 self-start text-[15px] font-bold text-bad disabled:opacity-50" disabled={doing !== null} onclick={() => remove(d)}>
+													{doing === `remove:${d.id}` ? 'Removing…' : 'Remove'}
 												</button>
 											</form>
 										</details>
@@ -354,7 +355,7 @@
 		<FormError message={error} />
 		<div class="grid grid-cols-2 items-center gap-2">
 			<Button variant="secondary" onclick={() => (adding = false)}>Cancel</Button>
-			<Button type="submit" disabled={busy}>Add</Button>
+			<Button type="submit" disabled={doing !== null}>{doing === 'add' ? 'Adding…' : 'Add'}</Button>
 		</div>
 	</form>
 </Sheet>

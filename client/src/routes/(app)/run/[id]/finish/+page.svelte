@@ -129,6 +129,6 @@
 
 	<FormError message={error} />
 	<div class="mt-2">
-		<Button disabled={busy} onclick={finish}>Finish session</Button>
+		<Button disabled={busy} onclick={finish}>{busy ? 'Finishing…' : 'Finish session'}</Button>
 	</div>
 </div>
