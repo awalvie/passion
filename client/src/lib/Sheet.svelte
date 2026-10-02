@@ -25,8 +25,7 @@
 			hidden = false;
 		} else if (dialog.open) {
 			hidden = true;
-			const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-			closing = setTimeout(() => dialog.close(), still ? 0 : 250);
+			closing = setTimeout(() => dialog.close(), 250);
 		}
 	});
 
@@ -119,10 +118,14 @@
 	dialog[data-hidden]::backdrop {
 		opacity: 0;
 	}
+	/* With Reduce Motion on, the sheet fades in and out where it stands. */
 	@media (prefers-reduced-motion: reduce) {
-		dialog,
-		dialog::backdrop {
-			transition: none;
+		dialog {
+			transition: opacity 200ms ease;
+		}
+		dialog[data-hidden] {
+			transform: none;
+			opacity: 0;
 		}
 	}
 </style>
