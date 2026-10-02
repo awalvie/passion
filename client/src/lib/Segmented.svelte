@@ -7,7 +7,7 @@
 	let { items, label, replace = false }: { items: Item[]; label: string; replace?: boolean } = $props();
 
 	const cls = (on: boolean) =>
-		`flex h-11 items-center justify-center rounded-full text-[15px] font-bold ${on ? 'bg-surface text-ink shadow-card-sm' : 'text-ink-2'}`;
+		`flex h-11 items-center justify-center rounded-full text-[15px] font-bold ${on ? 'bg-surface text-ink shadow-card-sm dark:bg-ink/15' : 'text-ink-2'}`;
 </script>
 
 <svelte:element
