@@ -53,7 +53,8 @@
 
 	beforeNavigate(({ from }) => {
 		if (!from) return;
-		const at = from.url.pathname + from.url.search;
+		// Today always reopens on today, not on a day picked from its strip.
+		const at = from.url.pathname === '/' ? '/' : from.url.pathname + from.url.search;
 		scrolled.set(at, scrollY);
 		const i = tabOf(from.url.pathname);
 		if (i >= 0 && tabs[i].roots.includes(from.url.pathname)) left.set(i, at);
@@ -70,6 +71,8 @@
 			const to = left.get(i) ?? t.href;
 			await goto(to, { noScroll: true });
 			scrollTo(0, scrolled.get(to) ?? 0);
+		} else if (here === '/' && page.url.search) {
+			await goto('/', { replaceState: true });
 		} else if (t.roots.includes(here)) {
 			scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
 		} else {

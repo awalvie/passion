@@ -14,6 +14,7 @@
 		label,
 		starting,
 		busy,
+		startLabel = 'Start',
 		onstart
 	}: {
 		day: ScheduledDay;
@@ -22,6 +23,7 @@
 		starting: boolean;
 		// This card's start is the one waiting.
 		busy: boolean;
+		startLabel?: string;
 		onstart: () => void;
 	} = $props();
 
@@ -74,7 +76,7 @@
 				{#if live}
 					<Button variant="live" href="/run/{day.run}">Back to session</Button>
 				{:else}
-					<Button disabled={starting} onclick={onstart}>{busy ? 'Starting…' : 'Start'}</Button>
+					<Button disabled={starting} onclick={onstart}>{busy ? 'Starting…' : startLabel}</Button>
 				{/if}
 			</div>
 		</div>

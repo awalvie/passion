@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
+	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
-	import { addDays, cycleWeek } from '$lib/dates';
+	import { addDays, cycleWeek, daysBetween, formatDate } from '$lib/dates';
 	import { formatDuration, type Exercise } from '$lib/exercise';
 	import ExercisePicker from '$lib/ExercisePicker.svelte';
 	import FormError from '$lib/FormError.svelte';
@@ -38,14 +39,22 @@
 		}
 	}
 
+	// A tap on the week strip shows that day in place of today.
+	const shown = $derived.by(() => {
+		const day = page.url.searchParams.get('day');
+		return Array.from({ length: 7 }, (_, i) => addDays(data.monday, i)).includes(day ?? '') ? day! : data.today;
+	});
+	const other = $derived(shown !== data.today);
+	const shownDays = $derived(other ? data.week.filter((d) => d.local_date === shown) : data.days);
+
 	const live = $derived(data.live && openRun.run?.id === data.live.id ? openRun.run : null);
-	const days = $derived(data.days.filter((d) => d.run !== live?.id && d.status !== 'done'));
+	const days = $derived(shownDays.filter((d) => d.run !== live?.id && d.status !== 'done'));
 	// A run belongs to the day it was done, and to the planned day it ran for.
 	const done = $derived(
 		(data.runs ?? []).filter(
 			(r) =>
 				r.finished_at !== null &&
-				(r.local_date === data.today || data.days.some((d) => d.run === r.id))
+				(r.local_date === shown || shownDays.some((d) => d.run === r.id))
 		)
 	);
 
@@ -59,14 +68,13 @@
 		}
 	}
 
-	const date = $derived(
-		new Date(`${data.today}T00:00:00Z`).toLocaleDateString(undefined, {
-			weekday: 'long',
-			day: 'numeric',
-			month: 'long',
-			timeZone: 'UTC'
-		})
-	);
+	const date = $derived(formatDate(shown, { weekday: 'long', day: 'numeric', month: 'long' }));
+
+	function away(n: number) {
+		if (n === 1) return 'tomorrow';
+		if (n === -1) return 'yesterday';
+		return n > 0 ? `in ${n} days` : `${-n} days ago`;
+	}
 
 	// The cycle of today's first session, or else any cycle that covers today.
 	const cycle = $derived(
@@ -107,6 +115,10 @@
 	}
 
 	function label(d: ScheduledDay) {
+		if (other) {
+			const when = formatDate(d.local_date, { weekday: 'short', day: 'numeric', month: 'short' });
+			return `${d.status === 'missed' ? 'Missed' : 'Planned'} · ${when}`;
+		}
 		const c = data.cycles.find((x) => x.id === d.cycle);
 		if (!c) return d.cycle ? 'Cycle' : 'One-off';
 		return `${c.name} · Week ${cycleWeek(c.starts, c.ends, data.today).week}`;
@@ -126,11 +138,24 @@
 <div class="relative flex flex-col pt-[env(safe-area-inset-top)]">
 	<header class="flex items-start justify-between gap-3 px-4 pt-3">
 		<div>
-			<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">Today</h1>
-			<p class="mt-1 text-[15px] font-semibold text-ink-2">{date}</p>
+			<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">
+				{other ? formatDate(shown, { weekday: 'long' }) : 'Today'}
+			</h1>
+			<p class="mt-1 text-[15px] font-semibold text-ink-2">
+				{other ? `${formatDate(shown, { day: 'numeric', month: 'long' })} · ${away(daysBetween(data.today, shown))}` : date}
+			</p>
 		</div>
 		<div class="flex min-w-0 items-center gap-2 pt-1.5">
-			{#if progress && progress.of <= 8}
+			{#if other}
+				<a
+					href="/"
+					class="flex h-11 items-center gap-1.5 rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm"
+					data-sveltekit-replacestate
+					data-sveltekit-noscroll
+				>
+					<Icon name="undo-2" size="1.125rem" />Today
+				</a>
+			{:else if progress && progress.of <= 8}
 				<div class="flex min-w-0 flex-col gap-1.5 rounded-[20px] bg-surface px-3 py-2 text-xs font-bold shadow-card-sm">
 					<span>Week {progress.week} of {progress.of}</span>
 					<span class="flex min-w-0 gap-[3px]">
@@ -154,7 +179,7 @@
 		</div>
 	</header>
 
-	<WeekStrip monday={data.monday} today={data.today} week={data.week} />
+	<WeekStrip monday={data.monday} today={data.today} week={data.week} selected={shown} />
 
 	<div class="px-4"><FormError message={error} /></div>
 
@@ -169,6 +194,7 @@
 			label={label(d)}
 			starting={starting !== null}
 			busy={starting === d.id}
+			startLabel={other ? 'Start now' : 'Start'}
 			onstart={() => start({ scheduled: d.id })}
 		/>
 	{/each}
@@ -191,14 +217,16 @@
 	{#if !live && !days.length && !done.length}
 		<section class="mx-4 mt-3.5 flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-card">
 			<p class="text-xl font-bold tracking-tight">
-				{data.offline ? 'No signal' : 'Nothing planned today'}
+				{data.offline ? 'No signal' : other ? 'Nothing planned' : 'Nothing planned today'}
 			</p>
 			<p class="text-[15px] font-semibold text-ink-2">
 				{data.offline
 					? 'The plan cannot load. A running session still works.'
-					: 'Plan a session, or start one from the library.'}
+					: other
+						? 'Nothing on this day.'
+						: 'Plan a session, or start one from the library.'}
 			</p>
-			{#if !data.offline}
+			{#if !data.offline && !other}
 				<a href="/plan" class="flex h-12 items-center justify-center rounded-full bg-tint text-[15px] font-bold text-on-tint shadow-tint">
 					Plan a session
 				</a>
