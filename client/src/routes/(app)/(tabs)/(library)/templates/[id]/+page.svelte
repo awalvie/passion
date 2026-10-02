@@ -143,6 +143,18 @@
 		});
 	});
 
+	// The option after the one the newest run picked, from the first pick-one choice.
+	const drill = $derived.by(() => {
+		const choice = t.sections
+			.flatMap((sec) => sec.items.flatMap((i) => (i.choice ? [i.choice] : [])))
+			.find((c) => c.pick > 0 && c.pick < c.options.length);
+		if (!choice || !data.last) return null;
+		const picked = stepsOf(data.last).find((s) => s.from_choice && choice.options.some((o) => o.exercise === s.exercise));
+		if (!picked) return null;
+		const at = choice.options.findIndex((o) => o.exercise === picked.exercise);
+		return { next: choice.options[(at + 1) % choice.options.length], last: picked };
+	});
+
 	const steps = (section: SessionTemplate['sections'][number]) =>
 		section.items.reduce((n, item) => n + (item.step ? 1 : item.choice.options.length), 0);
 </script>
@@ -216,6 +228,25 @@
 			{/if}
 			{#if t.notes}
 				<Notes text={t.notes} class="rounded-[18px] bg-well px-4 py-3.5 text-[15px] font-semibold dark:bg-surface" />
+			{/if}
+
+			{#if drill}
+				<section class="flex flex-col gap-2">
+					<h2 class="px-1 text-[15px] font-bold">Drill</h2>
+					<a
+						href="/exercises/{drill.next.exercise}?from={encodeURIComponent(`/templates/${t.id}`)}"
+						class="flex items-center gap-3 rounded-3xl bg-surface p-3.5 shadow-card"
+					>
+						<span class="flex size-10 shrink-0 items-center justify-center rounded-[13px] bg-tint text-on-tint">
+							<Icon name="repeat" size="1.25rem" />
+						</span>
+						<span class="min-w-0 flex-1">
+							<span class="block text-[15px] font-bold">Try {drill.next.name}</span>
+							<span class="block text-xs font-semibold text-ink-2">Last time {drill.last.name}</span>
+						</span>
+						<span class="text-ink-3"><Icon name="chevron-right" size="1rem" stroke={2.2} /></span>
+					</a>
+				</section>
 			{/if}
 
 			{#if loads.length}
