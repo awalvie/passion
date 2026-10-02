@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notice } from '$lib/notice.svelte';
 	import { goto } from '$app/navigation';
 	import { describe, request } from '$lib/api';
 	import { allCounts, fieldLabel, kindOf, summary, toBody, toDraft, type Count } from '$lib/exercise';
@@ -38,6 +39,7 @@
 		try {
 			await request('PUT', `/api/v1/exercises/${saved.id}`, toBody(draft, shown));
 			await goto('/exercises');
+			notice.text = 'Exercise saved';
 		} catch (e) {
 			error = describe(e, fieldLabel);
 		} finally {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notice } from '$lib/notice.svelte';
 	import { goto } from '$app/navigation';
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
@@ -21,6 +22,7 @@
 		try {
 			await request('POST', '/api/v1/exercises', toBody(draft, shown));
 			await goto('/exercises');
+			notice.text = 'Exercise saved';
 		} catch (e) {
 			error = describe(e, fieldLabel);
 		} finally {

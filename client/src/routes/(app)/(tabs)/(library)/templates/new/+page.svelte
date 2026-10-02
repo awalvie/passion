@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notice } from '$lib/notice.svelte';
 	import { goto } from '$app/navigation';
 	import { request } from '$lib/api';
 	import TemplateEditor from '$lib/TemplateEditor.svelte';
@@ -16,5 +17,6 @@
 	save={async (body) => {
 		const created = await request<SessionTemplate>('POST', '/api/v1/session-templates', body);
 		await goto(`/templates/${created.id}`);
+		notice.text = 'Session saved';
 	}}
 />
