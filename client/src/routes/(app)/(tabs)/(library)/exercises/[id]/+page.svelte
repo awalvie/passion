@@ -87,7 +87,7 @@
 			</div>
 			{#if !locked}
 				<FormError message={error} />
-				<div class="sticky bottom-[var(--above-bar)] z-20">
+				<div class="sticky bottom-[calc(var(--above-bar)-0.75rem)] z-20 -mx-4 bg-ground/85 px-4 py-3 backdrop-blur-md">
 					<Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
 				</div>
 			{/if}
