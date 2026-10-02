@@ -20,7 +20,10 @@ what the app will do and how the data is arranged. This file says what works tod
 
 Accounts, authentication, an exercise library, session templates and runs, through the API.
 The client is a phone app with four tabs. Today shows the day's planned sessions and starts
-one, or an open session. Plan lists the sessions from a week ago to four weeks ahead. It
+one, or an open session. A tap on a planned day in the week strip shows that day instead.
+A session's page shows its runs, the last note and loads, and the next drill to try, with
+its exercises on a second tab. A running session follows you across the tabs as a mini
+player. Plan lists the sessions from a week ago to four weeks ahead. It
 adds a one-off session, moves or removes one, and makes, edits and deletes cycles. Library
 holds the exercises and the session templates. History lists finished sessions and what each
 one logged. While a session runs, the client logs sets, per-side sets, climbs, and timed reps
