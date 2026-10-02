@@ -29,7 +29,8 @@ export async function load({ parent }) {
 		const exercise = tracked()[0];
 		const [templates, sends, best] = await Promise.all([
 			Promise.all(
-				[...new Set(days.map((d) => d.template))].map((id) =>
+				// The whole week's, so a tap on another day needs no load.
+				[...new Set(week.map((d) => d.template))].map((id) =>
 					request<SessionTemplate>('GET', `/api/v1/session-templates/${id}`)
 				)
 			),
