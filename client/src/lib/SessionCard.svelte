@@ -71,11 +71,7 @@
 				</button>
 			{/if}
 			<div class="flex-1">
-				{#if day.status === 'done'}
-					<p class="flex h-14 items-center justify-center gap-2 text-xl font-bold text-tint">
-						<Icon name="check" size="1.25rem" />Done
-					</p>
-				{:else if live}
+				{#if live}
 					<Button variant="live" href="/run/{day.run}">Back to session</Button>
 				{:else}
 					<Button disabled={starting} onclick={onstart}>{busy ? 'Starting…' : 'Start'}</Button>
@@ -95,18 +91,16 @@
 			<p class="mx-1 mt-2 mb-1 text-[15px] leading-snug font-semibold text-ink-2">{template.needs}</p>
 		{/if}
 		<TemplatePlan sections={template.sections} />
-		{#if day.status !== 'done'}
-			<div class="mt-[22px]">
-				<Button
-					disabled={starting}
-					onclick={() => {
-						previewing = false;
-						onstart();
-					}}
-				>
-					Start {template.name}
-				</Button>
-			</div>
-		{/if}
+		<div class="mt-[22px]">
+			<Button
+				disabled={starting}
+				onclick={() => {
+					previewing = false;
+					onstart();
+				}}
+			>
+				Start {template.name}
+			</Button>
+		</div>
 	</Sheet>
 {/if}
