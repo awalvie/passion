@@ -13,6 +13,7 @@
 	import Segmented from '$lib/Segmented.svelte';
 	import { sessionIcons } from '$lib/SessionIcon.svelte';
 	import { choiceMeta, stepMeta, templateFieldLabel, type Choice, type SessionTemplate } from '$lib/template';
+	import { formatDate, weekday } from '$lib/dates';
 	import { plainText } from '$lib/text';
 	import Topo from '$lib/Topo.svelte';
 	import { heroTopo } from '$lib/topo';
@@ -111,6 +112,16 @@
 		section.items.length === 1 ? section.items[0].choice : undefined;
 	const pickLabel = (c: Choice) =>
 		c.pick > 0 && c.pick < c.options.length ? `Pick ${c.pick} of ${c.options.length}` : choiceMeta(c);
+	const minutes = $derived.by(() => {
+		const timed = data.runs.flatMap((r) => (r.elapsed_seconds ? [r.elapsed_seconds] : []));
+		return timed.length ? Math.round(timed.reduce((a, b) => a + b, 0) / timed.length / 60) : null;
+	});
+	const day = (date: string) => `${weekday(date)} ${Number(date.slice(8))} ${formatDate(date, { month: 'short' })}`;
+
+	// Long lists show three and fold open in place.
+	let unfolded = $state<string[]>([]);
+	const shown = <T,>(key: string, list: T[]) => (unfolded.includes(key) ? list : list.slice(0, 3));
+
 	const steps = (section: SessionTemplate['sections'][number]) =>
 		section.items.reduce((n, item) => n + (item.step ? 1 : item.choice.options.length), 0);
 </script>
@@ -139,8 +150,11 @@
 				</span>
 			{/if}
 			<h1 class="text-[40px] leading-[1.05] font-extrabold tracking-[-0.02em] break-words">{t.name}</h1>
-			{#if t.tags.length || t.source || t.needs || t.shipped}
+			{#if t.tags.length || t.source || t.needs || t.shipped || minutes}
 				<div class="mt-3 flex flex-wrap gap-2">
+					{#if minutes}
+						<span class="flex h-8 items-center rounded-full bg-white/10 px-3 text-[15px] font-bold">~{minutes} min</span>
+					{/if}
 					{#each t.tags as tag (tag)}
 						<span class="flex h-8 items-center rounded-full bg-white/10 px-3 text-[15px] font-semibold">{tag}</span>
 					{/each}
@@ -181,6 +195,24 @@
 			{/if}
 			{#if t.notes}
 				<Notes text={t.notes} class="rounded-[18px] bg-well px-4 py-3.5 text-[15px] font-semibold dark:bg-surface" />
+			{/if}
+
+			{#if data.runs.length}
+				<section class="flex flex-col gap-2">
+					<h2 class="px-1 text-[15px] font-bold">Runs</h2>
+					<div class="rounded-3xl bg-surface py-0.5 shadow-card">
+						{#each shown('runs', data.runs) as r (r.id)}
+							<a href="/history/{r.id}" class="flex min-h-[52px] items-center gap-3 px-4 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+								<span class="flex-1 text-[15px] font-bold">{day(r.local_date)}</span>
+								{#if r.elapsed_seconds}
+									<span class="text-xs font-semibold text-ink-2">{Math.max(1, Math.round(r.elapsed_seconds / 60))} min</span>
+								{/if}
+								<span class="text-ink-3"><Icon name="chevron-right" size="1rem" stroke={2.2} /></span>
+							</a>
+						{/each}
+						{@render more('runs', data.runs.length)}
+					</div>
+				</section>
 			{/if}
 
 			<section class="flex flex-col gap-2">
@@ -266,6 +298,18 @@
 		</div>
 	</div>
 </div>
+
+{#snippet more(key: string, count: number)}
+	{#if count > 3 && !unfolded.includes(key)}
+		<button
+			type="button"
+			class="flex min-h-11 w-full items-center justify-center gap-1.5 text-[15px] font-bold text-ink-2 shadow-[inset_0_1px_0_var(--line)]"
+			onclick={() => (unfolded = [...unfolded, key])}
+		>
+			+{count - 3} more<Icon name="chevron-down" size="1rem" stroke={2.4} />
+		</button>
+	{/if}
+{/snippet}
 
 {#snippet row(exercise: string, name: string, meta: string)}
 	<a
