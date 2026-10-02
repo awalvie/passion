@@ -18,6 +18,7 @@
 	const target = $derived((step.duration_seconds ?? 0) * 1000);
 	const section = $derived(run.sections.find((s) => s.items.some((i) => i.step?.id === step.id)));
 	const siblings = $derived(section?.items.flatMap((i) => (i.step ? [i.step] : [])) ?? []);
+	const video = $derived(step.media?.find((m) => m.url));
 	const howTo = $derived(plainText(step.notes ?? '').replace(/\s+/g, ' '));
 
 	let timed = $state<Timed | null>(null);
@@ -159,6 +160,17 @@
 				>
 					{howTo}
 				</button>
+			{/if}
+
+			{#if video}
+				<a
+					href={video.url}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="mt-3 flex h-11 items-center gap-2 self-center rounded-full bg-on-hero/10 px-4 text-[15px] font-bold"
+				>
+					<Icon name="play" size="1rem" />Watch how
+				</a>
 			{/if}
 
 			<div class="mt-auto flex flex-col gap-3 px-4 pt-4" onpointerdown={unlock} role="group" aria-label="Exercise">
