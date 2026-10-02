@@ -155,6 +155,12 @@
 		return { next: choice.options[(at + 1) % choice.options.length], last: picked };
 	});
 
+	const planned = $derived.by(() => {
+		const d = data.next?.day;
+		if (!d) return '';
+		return d.local_date === data.next!.today ? 'Planned today' : `Planned ${weekday(d.local_date)} ${Number(d.local_date.slice(8))}`;
+	});
+
 	const steps = (section: SessionTemplate['sections'][number]) =>
 		section.items.reduce((n, item) => n + (item.step ? 1 : item.choice.options.length), 0);
 </script>
@@ -183,8 +189,11 @@
 				</span>
 			{/if}
 			<h1 class="text-[40px] leading-[1.05] font-extrabold tracking-[-0.02em] break-words">{t.name}</h1>
-			{#if t.tags.length || t.source || t.needs || t.shipped || minutes}
+			{#if t.tags.length || t.source || t.needs || t.shipped || minutes || planned}
 				<div class="mt-3 flex flex-wrap gap-2">
+					{#if planned}
+						<span class="flex h-8 items-center rounded-full bg-tint px-3 text-[15px] font-bold text-on-tint">{planned}</span>
+					{/if}
 					{#if minutes}
 						<span class="flex h-8 items-center rounded-full bg-white/10 px-3 text-[15px] font-bold">~{minutes} min</span>
 					{/if}
