@@ -162,7 +162,7 @@
 	const tags = {
 		done: 'bg-well text-ink-2',
 		started: 'bg-ink text-ground',
-		missed: 'text-ink-2 shadow-[inset_0_0_0_1.5px_var(--well)]',
+		missed: 'text-ink-2 shadow-[inset_0_0_0_1.5px_var(--ink-3)]',
 		planned: ''
 	};
 </script>
