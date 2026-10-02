@@ -7,7 +7,7 @@
 	import BlockLength from '$lib/BlockLength.svelte';
 	import CycleCalendar from '$lib/CycleCalendar.svelte';
 	import Button from '$lib/Button.svelte';
-	import { addDays, cycleWeek, daysBetween, formatDate } from '$lib/dates';
+	import { addDays, cycleWeek, daysBetween, formatDate, weekday } from '$lib/dates';
 	import DateField from '$lib/DateField.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import GoalList from '$lib/GoalList.svelte';
@@ -128,7 +128,7 @@
 		try {
 			await request('PUT', `/api/v1/scheduled-sessions/${d.id}`, { local_date: to });
 			last = { id: d.id, from: d.local_date };
-			toast = `${d.template_name} moved to ${formatDate(to, { weekday: 'short', day: 'numeric', month: 'short' })}`;
+			toast = `Moved to ${weekday(to)} ${Number(to.slice(8))}`;
 		} catch (e) {
 			throw new Error(describe(e, () => 'That day'));
 		} finally {
