@@ -1,4 +1,5 @@
 import { request, unreachable } from '$lib/api';
+import { loadCentres } from '$lib/centres';
 import { addDays, mondayOf } from '$lib/dates';
 import { loadToday, localToday, type Cycle, type ScheduledDay } from '$lib/plan';
 import type { Climb } from '$lib/run';
@@ -27,7 +28,9 @@ export async function load({ parent }) {
 		const days = week.filter((d) => d.local_date === today);
 		const cycle = cycles.find((c) => c.starts <= today && today <= c.ends);
 		const exercise = tracked()[0];
-		const [templates, sends, best] = await Promise.all([
+		// Only someone who has logged nothing yet sees the first-week card.
+		const { runs } = await parent();
+		const [templates, sends, best, centres] = await Promise.all([
 			Promise.all(
 				// The whole week's, so a tap on another day needs no load.
 				[...new Set(week.map((d) => d.template))].map((id) =>
@@ -40,7 +43,8 @@ export async function load({ parent }) {
 					)
 				: null,
 			// An exercise of another account only leaves the tile to choose again.
-			cycle && exercise ? bestWeight(exercise, cycle.starts, today).catch(() => null) : null
+			cycle && exercise ? bestWeight(exercise, cycle.starts, today).catch(() => null) : null,
+			runs?.length === 0 ? loadCentres().then((c) => c.length) : null
 		]);
 		await live;
 		return {
@@ -53,6 +57,7 @@ export async function load({ parent }) {
 			cycleStarts: cycle?.starts ?? null,
 			sends,
 			best,
+			centres,
 			offline: false
 		};
 	} catch (e) {
@@ -70,6 +75,7 @@ export async function load({ parent }) {
 			cycleStarts: null,
 			sends: null,
 			best: null,
+			centres: null,
 			offline: true
 		};
 	}
