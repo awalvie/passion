@@ -87,7 +87,7 @@
 	<div class="relative grid h-16 grid-cols-4 items-start px-3 pt-2">
 		{#if active >= 0}
 			<span
-				class="pointer-events-none absolute top-2 left-3 flex w-[calc((100%-1.5rem)/4)] justify-center transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none"
+				class="pointer-events-none absolute top-2 left-3 flex w-[calc((100%-1.5rem)/4)] justify-center transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:hidden"
 				style:transform="translateX({active * 100}%)"
 				aria-hidden="true"
 			>
@@ -101,8 +101,13 @@
 				aria-current={i === active ? 'page' : undefined}
 				onclick={(e) => open(e, i)}
 			>
-				<span class="flex h-8 w-14 items-center justify-center rounded-full transition-colors duration-300 {i === active ? 'text-on-tint' : ''}">
-					<Icon name={t.icon} size="1.375rem" />
+				<span class="relative flex h-8 w-14 items-center justify-center rounded-full transition-colors duration-300 {i === active ? 'text-on-tint' : ''}">
+					<!-- With Reduce Motion on, the pill fades from tab to tab instead. -->
+					<span
+						class="absolute inset-0 hidden rounded-full bg-tint transition-opacity duration-200 motion-reduce:block {i === active ? 'opacity-100' : 'opacity-0'}"
+						aria-hidden="true"
+					></span>
+					<span class="relative"><Icon name={t.icon} size="1.375rem" /></span>
 				</span>
 				{t.label}
 			</a>
