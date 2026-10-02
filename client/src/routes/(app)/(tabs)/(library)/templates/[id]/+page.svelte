@@ -7,11 +7,15 @@
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import Menu, { type MenuItem } from '$lib/Menu.svelte';
-	import NavBar from '$lib/NavBar.svelte';
+	import { page } from '$app/state';
 	import Notes from '$lib/Notes.svelte';
-	import TemplatePlan from '$lib/TemplatePlan.svelte';
 	import { startRun } from '$lib/runState.svelte';
-	import { templateFieldLabel, type SessionTemplate } from '$lib/template';
+	import Segmented from '$lib/Segmented.svelte';
+	import { sessionIcons } from '$lib/SessionIcon.svelte';
+	import { choiceMeta, stepMeta, templateFieldLabel, type Choice, type SessionTemplate } from '$lib/template';
+	import { plainText } from '$lib/text';
+	import Topo from '$lib/Topo.svelte';
+	import { heroTopo } from '$lib/topo';
 
 	let { data } = $props();
 
@@ -95,87 +99,183 @@
 	}
 
 	const menu = $derived<MenuItem[]>([
+		...(locked ? [] : [{ label: 'Edit', onclick: () => goto(`/templates/${t.id}/edit`) }]),
 		{ label: 'Duplicate', onclick: duplicate },
 		...(locked ? [] : [{ label: 'Retire', danger: true, onclick: retire }])
 	]);
+
+	const tab = $derived(page.url.searchParams.get('tab') === 'exercises' ? 'exercises' : 'overview');
+	const icon = $derived(sessionIcons.find(([name]) => name === t.icon)?.[0]);
+	// A pick-one section carries its badge in its own header, not a second title.
+	const only = (section: SessionTemplate['sections'][number]) =>
+		section.items.length === 1 ? section.items[0].choice : undefined;
+	const pickLabel = (c: Choice) =>
+		c.pick > 0 && c.pick < c.options.length ? `Pick ${c.pick} of ${c.options.length}` : choiceMeta(c);
+	const steps = (section: SessionTemplate['sections'][number]) =>
+		section.items.reduce((n, item) => n + (item.step ? 1 : item.choice.options.length), 0);
 </script>
 
 <svelte:head><title>{t.name}</title></svelte:head>
 
-<NavBar back={{ href: '/templates', label: 'Sessions' }}>
-	{#snippet actions()}
-		{#if !locked}
-			<a
-				href="/templates/{t.id}/edit"
-				class="flex h-11 items-center gap-1.5 rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm"
-			>
-				<Icon name="pencil" size="0.875rem" />
-				Edit
-			</a>
-		{/if}
-		<Menu items={menu} />
-	{/snippet}
-</NavBar>
-
-<div class="flex flex-col gap-3.5 px-4 pt-2">
-	<header class="px-1">
-		<div class="flex items-start gap-2.5">
-			{#if t.color}
-				<span class="mt-3.5 size-3 shrink-0 rounded-full" style="background:{t.color}" aria-hidden="true"></span>
-			{/if}
-			<h1 class="min-w-0 text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em] break-words">{t.name}</h1>
+<div class="flex min-h-dvh flex-col">
+	<header class="relative bg-[radial-gradient(90%_70%_at_88%_0%,var(--hero-2),var(--hero)_70%)] pt-[env(safe-area-inset-top)] pb-12 text-on-hero">
+		<div class="absolute inset-0 overflow-hidden" aria-hidden="true">
+			<Topo shape={heroTopo} class="h-full w-full text-[var(--hero-topo)]" />
 		</div>
-		{#if t.tags.length}
-			<p class="mt-1 text-[15px] font-semibold text-ink-2">{t.tags.join(' · ')}</p>
-		{/if}
-		{#if t.source || t.needs}
-			<div class="mt-3 flex flex-wrap items-center gap-2">
-				{#if t.source}
-					<span class="inline-flex items-center gap-1 rounded-xl bg-well px-2.5 py-[5px] text-xs font-bold text-ink-2">
-						<Icon name="book-marked" size="0.75rem" />{t.source}
-					</span>
-				{/if}
-				{#if t.needs}
-					<span class="rounded-xl px-2.5 py-[5px] text-xs font-bold text-ink-2 shadow-[inset_0_0_0_1.5px_var(--well)]">Needs: {t.needs}</span>
-				{/if}
-			</div>
-		{/if}
-		{#if locked}
-			<p class="mt-3 text-xs font-semibold text-ink-2">{locked}</p>
-		{/if}
+		<div class="relative flex h-14 items-center justify-between px-4">
+			<a href="/templates" data-back class="inline-flex h-11 items-center gap-0.5 rounded-full bg-white/10 pr-4 pl-2.5 text-[15px] font-bold">
+				<Icon name="chevron-left" size="1.25rem" stroke={2.4} />
+				Sessions
+			</a>
+			<Menu items={menu} look="bg-white/10 text-on-hero" />
+		</div>
+		<div class="relative px-5 pt-3">
+			{#if icon}
+				<span
+					class="mb-4 flex size-14 items-center justify-center rounded-[18px] {t.color ? '' : 'bg-white/10 text-tint'}"
+					style={t.color ? `background: color-mix(in srgb, ${t.color} 30%, transparent); color: color-mix(in srgb, ${t.color} 45%, white)` : undefined}
+				>
+					<Icon name={icon} size="1.75rem" />
+				</span>
+			{/if}
+			<h1 class="text-[40px] leading-[1.05] font-extrabold tracking-[-0.02em] break-words">{t.name}</h1>
+			{#if t.tags.length || t.source || t.needs || t.shipped}
+				<div class="mt-3 flex flex-wrap gap-2">
+					{#each t.tags as tag (tag)}
+						<span class="flex h-8 items-center rounded-full bg-white/10 px-3 text-[15px] font-semibold">{tag}</span>
+					{/each}
+					{#if t.source}
+						<span class="flex h-8 items-center gap-1.5 rounded-full bg-white/10 px-3 text-[15px] font-semibold">
+							<Icon name="book-marked" size="0.875rem" />{t.source}
+						</span>
+					{/if}
+					{#if t.needs}
+						<span class="flex h-8 items-center gap-1.5 rounded-full px-3 text-[15px] font-semibold shadow-[inset_0_0_0_1.5px_rgba(242,246,234,0.2)]">
+							<Icon name="backpack" size="0.875rem" />{t.needs}
+						</span>
+					{/if}
+					{#if t.shipped}
+						<span class="flex h-8 items-center gap-1.5 rounded-full px-3 text-[15px] font-semibold shadow-[inset_0_0_0_1.5px_rgba(242,246,234,0.2)]">
+							<Icon name="lock" size="0.875rem" />Built in
+						</span>
+					{/if}
+				</div>
+			{/if}
+		</div>
 	</header>
 
-	{#if t.notes}
-		<Notes text={t.notes} class="rounded-[18px] bg-well px-4 py-3.5 text-[15px] font-semibold dark:bg-surface" />
-	{/if}
+	<div class="relative -mt-7 flex flex-1 flex-col gap-3.5 rounded-t-[28px] bg-ground px-4 pt-4">
+		<Segmented
+			label="Session"
+			replace
+			items={[
+				{ label: 'Overview', href: `/templates/${t.id}`, on: tab === 'overview' },
+				{ label: 'Exercises', href: `/templates/${t.id}?tab=exercises`, on: tab === 'exercises' }
+			]}
+		/>
+		<FormError message={error} />
 
-	<Button disabled={doing !== null} onclick={start}>
-		<Icon name="play" />
-		{doing === 'start' ? 'Starting…' : 'Start'}
-	</Button>
-	<FormError message={error} />
+		{#if tab === 'overview'}
+			{#if locked && !t.shipped}
+				<p class="px-1 text-xs font-semibold text-ink-2">{locked}</p>
+			{/if}
+			{#if t.notes}
+				<Notes text={t.notes} class="rounded-[18px] bg-well px-4 py-3.5 text-[15px] font-semibold dark:bg-surface" />
+			{/if}
 
-	<section class="flex flex-col gap-2">
-		<h2 class="px-1 text-[15px] font-bold">Where you can do it</h2>
-		{#if centres.length}
-			<div class="flex flex-wrap gap-2">
-				{#each centres as c, i (c.id)}
-					{@const on = c.sessions.includes(t.id)}
-					<button
-						type="button"
-						class="h-11 max-w-full truncate rounded-full px-4 text-[15px] font-bold {on ? 'bg-ink text-ground' : 'bg-surface text-ink shadow-card-sm'}"
-						aria-pressed={on}
-						onclick={() => toggleCentre(i)}
-						use:haptic
-					>
-						{c.name}
-					</button>
-				{/each}
-			</div>
+			<section class="flex flex-col gap-2">
+				<h2 class="px-1 text-[15px] font-bold">Where you can do it</h2>
+				{#if centres.length}
+					<div class="flex flex-wrap gap-2">
+						{#each centres as c, i (c.id)}
+							{@const on = c.sessions.includes(t.id)}
+							<button
+								type="button"
+								class="h-11 max-w-full truncate rounded-full px-4 text-[15px] font-bold {on ? 'bg-ink text-ground' : 'bg-surface text-ink shadow-card-sm'}"
+								aria-pressed={on}
+								onclick={() => toggleCentre(i)}
+								use:haptic
+							>
+								{c.name}
+							</button>
+						{/each}
+					</div>
+				{:else}
+					<a href="/profile" class="flex min-h-11 items-center px-1 text-xs font-semibold text-ink-2">Add your climbing centres in Profile</a>
+				{/if}
+			</section>
 		{:else}
-			<a href="/profile" class="flex min-h-11 items-center px-1 text-xs font-semibold text-ink-2">Add your climbing centres in Profile</a>
+			{#each t.sections as section, i (i)}
+				<details class="group rounded-3xl bg-surface shadow-card" open={t.sections.length === 1}>
+					<summary class="flex min-h-[68px] cursor-pointer list-none items-center gap-3.5 px-4 py-3 [&::-webkit-details-marker]:hidden">
+						<span class="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-ink text-[15px] font-bold text-ground">{i + 1}</span>
+						<span class="min-w-0 flex-1">
+							<span class="block text-[17px] font-bold break-words">{section.name}</span>
+							{#if only(section)}
+								<span class="mt-1 inline-block rounded-full bg-tint px-2.5 py-0.5 text-xs font-bold text-on-tint">{pickLabel(only(section)!)}</span>
+							{:else}
+								<span class="block text-xs font-semibold text-ink-2">
+									{steps(section)} exercise{steps(section) === 1 ? '' : 's'}
+								</span>
+							{/if}
+						</span>
+						<span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-well text-ink-2 transition-transform group-open:rotate-180">
+							<Icon name="chevron-down" size="1.125rem" stroke={2.4} />
+						</span>
+					</summary>
+					<div class="flex flex-col gap-2 px-4 pb-4">
+						{#if section.notes}
+							<Notes text={section.notes} class="px-1 text-xs font-semibold text-ink-2" />
+						{/if}
+						{#each section.items as item, j (j)}
+							{#if item.step}
+								{@render row(item.step.exercise, item.step.name, stepMeta(item.step))}
+							{:else}
+								<div class="mt-1 flex flex-col gap-2">
+									{#if !only(section)}
+										<div class="flex flex-wrap items-center gap-2 px-1">
+											<span class="text-[15px] font-bold">{item.choice.name}</span>
+											<span class="rounded-full bg-tint px-2.5 py-1 text-xs font-bold text-on-tint">{pickLabel(item.choice)}</span>
+										</div>
+									{/if}
+									{#if item.choice.notes}
+										<p class="line-clamp-2 px-1 text-xs font-semibold text-ink-2">{plainText(item.choice.notes)}</p>
+									{/if}
+									<div class="rounded-[18px] p-1 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--tint)_60%,transparent)]">
+										{#each item.choice.options as option, k (k)}
+											{@render row(option.exercise, option.name, stepMeta(option))}
+										{/each}
+									</div>
+								</div>
+							{/if}
+						{:else}
+							<p class="px-1 text-xs font-semibold text-ink-2">No exercises</p>
+						{/each}
+					</div>
+				</details>
+			{:else}
+				<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold text-ink-2 shadow-card">No sections yet.</p>
+			{/each}
 		{/if}
-	</section>
 
-	<TemplatePlan sections={t.sections} />
+		<div class="sticky bottom-[calc(var(--above-bar)-0.75rem)] z-20 -mx-4 mt-auto bg-ground/85 px-4 py-3 backdrop-blur-md">
+			<Button disabled={doing !== null} onclick={start}>
+				<Icon name="play" />
+				{doing === 'start' ? 'Starting…' : 'Start session'}
+			</Button>
+		</div>
+	</div>
 </div>
+
+{#snippet row(exercise: string, name: string, meta: string)}
+	<a
+		href="/exercises/{exercise}?from={encodeURIComponent(`/templates/${t.id}?tab=exercises`)}"
+		class="flex min-h-[52px] items-center gap-3 rounded-[14px] px-3 py-2 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]"
+	>
+		<span class="min-w-0 flex-1">
+			<span class="block text-[15px] font-bold break-words">{name}</span>
+			<span class="block text-xs font-semibold text-ink-2">{meta}</span>
+		</span>
+		<span class="text-ink-3"><Icon name="chevron-right" size="1rem" stroke={2.2} /></span>
+	</a>
+{/snippet}
