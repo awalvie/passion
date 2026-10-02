@@ -13,7 +13,7 @@
 	import SessionCard from '$lib/SessionCard.svelte';
 	import Sheet from '$lib/Sheet.svelte';
 	import Topo from '$lib/Topo.svelte';
-	import { topTopo } from '$lib/topo';
+	import { heroTopo, topTopo } from '$lib/topo';
 	import { bestWeight, track } from '$lib/tracked';
 	import WeekStrip from '$lib/WeekStrip.svelte';
 
@@ -114,6 +114,17 @@
 		}
 	}
 
+	// The first-week card, for someone who has logged nothing yet.
+	const setup = $derived(
+		!other && data.runs?.length === 0 && data.centres !== null
+			? [
+					{ text: 'Add where you train', href: '/profile', icon: 'map-pin', done: data.centres > 0 },
+					{ text: 'Plan your week', href: '/plan', icon: 'calendar', done: data.week.length > 0 || data.cycles.length > 0 }
+				] as const
+			: null
+	);
+	const settingUp = $derived(setup?.some((s) => !s.done) ?? false);
+
 	function label(d: ScheduledDay) {
 		if (other) {
 			const when = formatDate(d.local_date, { weekday: 'short', day: 'numeric', month: 'short' });
@@ -183,6 +194,40 @@
 
 	<div class="px-4"><FormError message={error} /></div>
 
+	{#if settingUp}
+		<article
+			class="relative mx-4 mt-3.5 overflow-hidden rounded-[32px] bg-[radial-gradient(90%_70%_at_88%_0%,var(--hero-2),var(--hero)_70%)] text-on-hero shadow-[0_18px_36px_-12px_rgba(10,30,18,0.55)]"
+		>
+			<Topo shape={heroTopo} class="absolute inset-0 h-full w-full text-[var(--hero-topo)]" />
+			<div class="relative flex flex-col p-5">
+				<p class="text-xs font-semibold tracking-[0.06em] text-on-hero-2 uppercase">Get set up</p>
+				<h2 class="mt-1 text-[32px] leading-tight font-extrabold tracking-tight">Your first week</h2>
+				<ul class="mt-2 flex flex-col">
+					{#each setup as s (s.text)}
+						<li>
+							{#if s.done}
+								<p class="flex min-h-12 items-center gap-3 text-[17px] font-bold">
+									<span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-tint text-on-tint">
+										<Icon name="check" size="1rem" stroke={2.6} />
+									</span>
+									{s.text}
+								</p>
+							{:else}
+								<a href={s.href} class="flex min-h-12 items-center gap-3 text-[17px] font-bold">
+									<span class="flex size-8 shrink-0 items-center justify-center rounded-full shadow-[inset_0_0_0_2px_rgba(242,246,234,0.35)]">
+										<Icon name={s.icon} size="1rem" stroke={2.4} />
+									</span>
+									<span class="flex-1">{s.text}</span>
+									<Icon name="chevron-right" size="18px" stroke={2.2} />
+								</a>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			</div>
+		</article>
+	{/if}
+
 	{#if live}
 		<LiveCard run={live} ondiscard={discard} />
 	{/if}
@@ -214,7 +259,7 @@
 		</a>
 	{/each}
 
-	{#if !live && !days.length && !done.length}
+	{#if !live && !days.length && !done.length && !settingUp}
 		<section class="mx-4 mt-3.5 flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-card">
 			<p class="text-xl font-bold tracking-tight">
 				{data.offline ? 'No signal' : other ? 'Nothing planned' : 'Nothing planned today'}
