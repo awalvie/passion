@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { notice } from '$lib/notice.svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
 	import { allCounts, fieldLabel, kindOf, summary, toBody, toDraft, type Count } from '$lib/exercise';
 	import Button from '$lib/Button.svelte';
@@ -62,11 +63,14 @@
 			busy = false;
 		}
 	}
+
+	// A row on a session page opens its exercise and leads back there.
+	const from = $derived(page.url.searchParams.get('from')?.match(/^\/templates\/[\w-]+(\?tab=exercises)?$/)?.[0]);
 </script>
 
 <svelte:head><title>{saved.name}</title></svelte:head>
 
-<NavBar title={locked ? '' : 'Edit exercise'} heading={false} back={{ href: '/exercises', label: 'Exercises' }}>
+<NavBar title={locked ? '' : 'Edit exercise'} heading={false} back={from ? { href: from, label: 'Session' } : { href: '/exercises', label: 'Exercises' }}>
 	{#snippet actions()}
 		{#if !locked}
 			<Menu items={[{ label: 'Retire', danger: true, onclick: retire }]} />
