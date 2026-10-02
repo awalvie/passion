@@ -62,8 +62,10 @@
 			</ul>
 		</section>
 	{:else}
-		<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold text-ink-2 shadow-card">
-			Finished sessions show here.
-		</p>
+		<section class="flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-card">
+			<p class="text-xl font-bold tracking-tight">No sessions yet</p>
+			<p class="text-[15px] font-semibold text-ink-2">Finished sessions show here.</p>
+			<a href="/" class="flex h-12 items-center justify-center rounded-full bg-tint text-[15px] font-bold text-on-tint shadow-tint">Start one</a>
+		</section>
 	{/each}
 </div>

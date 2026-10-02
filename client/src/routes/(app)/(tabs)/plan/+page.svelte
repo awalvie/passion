@@ -285,7 +285,13 @@
 				</div>
 			</section>
 		{:else}
-			<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold text-ink-2 shadow-card">Nothing planned for the next four weeks.</p>
+			<section class="flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-card">
+				<p class="text-xl font-bold tracking-tight">Nothing planned</p>
+				<p class="text-[15px] font-semibold text-ink-2">Nothing in the next four weeks.</p>
+				{#if data.templates.length}
+					<button type="button" class="flex h-12 items-center justify-center rounded-full bg-tint text-[15px] font-bold text-on-tint shadow-tint" onclick={openAdd}>Add a session</button>
+				{/if}
+			</section>
 		{/each}
 
 	{:else}
@@ -324,7 +330,10 @@
 					{/each}
 				</ul>
 			{:else}
-				<p class="pt-1 pb-3 text-[15px] font-semibold text-ink-2">A cycle repeats a block of sessions over weeks.</p>
+				<div class="flex flex-col gap-3 pt-1 pb-3">
+					<p class="text-[15px] font-semibold text-ink-2">A cycle repeats a block of sessions over weeks.</p>
+					<a href="/plan/cycles/new" class="flex h-12 items-center justify-center rounded-full bg-tint text-[15px] font-bold text-on-tint shadow-tint">New cycle</a>
+				</div>
 			{/if}
 		</section>
 	{/if}
