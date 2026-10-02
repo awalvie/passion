@@ -8,7 +8,7 @@
 	import SaveStatus from './SaveStatus.svelte';
 	import { plainText } from './text';
 	import { elapsed, newClock, togglePause } from './timeline';
-	import { formatClock, readTimers, writeTimers, type Timed } from './timerStore';
+	import { formatClock, readTimers, sessionClock, writeTimers, type Timed } from './timerStore';
 
 	let { step, nextHref, last }: { step: RunStep; nextHref: string; last: boolean } = $props();
 
@@ -98,10 +98,6 @@
 	function saveNote(text: string) {
 		step.run_notes = text.trim() || null;
 		openRun.saveBody();
-	}
-
-	function sessionClock(s: number) {
-		return s < 3600 ? formatClock(s) : `${Math.floor(s / 3600)}:${formatClock(s % 3600).padStart(5, '0')}`;
 	}
 
 	const clock = $derived(

@@ -34,3 +34,9 @@ export function formatClock(seconds: number): string {
 	const s = Math.max(0, Math.ceil(seconds));
 	return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
+
+// sessionClock writes a session's time as m:ss, or h:mm:ss past an hour.
+export function sessionClock(seconds: number): string {
+	const s = Math.max(0, Math.floor(seconds));
+	return s < 3600 ? formatClock(s) : `${Math.floor(s / 3600)}:${formatClock(s % 3600).padStart(5, '0')}`;
+}
