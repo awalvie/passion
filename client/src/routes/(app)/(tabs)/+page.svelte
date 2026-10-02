@@ -2,7 +2,7 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { describe, request } from '$lib/api';
 	import { addDays, cycleWeek } from '$lib/dates';
-	import type { Exercise } from '$lib/exercise';
+	import { formatDuration, type Exercise } from '$lib/exercise';
 	import ExercisePicker from '$lib/ExercisePicker.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
@@ -39,7 +39,15 @@
 	}
 
 	const live = $derived(data.live && openRun.run?.id === data.live.id ? openRun.run : null);
-	const days = $derived(data.days.filter((d) => d.run !== live?.id));
+	const days = $derived(data.days.filter((d) => d.run !== live?.id && d.status !== 'done'));
+	// A run belongs to the day it was done, and to the planned day it ran for.
+	const done = $derived(
+		(data.runs ?? []).filter(
+			(r) =>
+				r.finished_at !== null &&
+				(r.local_date === data.today || data.days.some((d) => d.run === r.id))
+		)
+	);
 
 	async function discard() {
 		error = '';
@@ -165,7 +173,22 @@
 		/>
 	{/each}
 
-	{#if !live && !days.length}
+	{#each done as r (r.id)}
+		<a href="/history/{r.id}" class="mx-4 mt-3 flex items-center gap-3 rounded-3xl bg-surface py-3 pr-3.5 pl-3 shadow-card">
+			<span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink text-tint">
+				<Icon name="check" size="1.125rem" stroke={2.6} />
+			</span>
+			<span class="min-w-0 flex-1">
+				<span class="block truncate text-[15px] font-bold">{r.name}</span>
+				<span class="block text-xs font-semibold text-ink-2">
+					Done{r.elapsed_seconds ? ` · ${formatDuration(Math.max(1, Math.round(r.elapsed_seconds / 60)) * 60)}` : ''}
+				</span>
+			</span>
+			<span class="text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.2} /></span>
+		</a>
+	{/each}
+
+	{#if !live && !days.length && !done.length}
 		<section class="mx-4 mt-3.5 flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-card">
 			<p class="text-xl font-bold tracking-tight">
 				{data.offline ? 'No signal' : 'Nothing planned today'}
