@@ -25,14 +25,14 @@
 	);
 
 	let error = $state('');
-	let busy = $state(false);
+	let doing = $state<'duplicate' | 'start' | 'retire' | null>(null);
 
 	// A copy is a new template of your own. Its steps keep the exercise ids, so
 	// both copies still count toward the same exercises.
 	async function duplicate() {
-		if (busy) return;
+		if (doing) return;
 		error = '';
-		busy = true;
+		doing = 'duplicate';
 		try {
 			const { id, shipped, retired_at, ...fields } = t;
 			const copy = await request<SessionTemplate>('POST', '/api/v1/session-templates', {
@@ -43,35 +43,35 @@
 		} catch (e) {
 			error = describe(e, templateFieldLabel);
 		} finally {
-			busy = false;
+			doing = null;
 		}
 	}
 
 	async function start() {
 		error = '';
-		busy = true;
+		doing = 'start';
 		try {
 			const run = await startRun({ template: t.id });
 			await goto(`/run/${run.id}`);
 		} catch (e) {
 			error = describe(e, templateFieldLabel);
 		} finally {
-			busy = false;
+			doing = null;
 		}
 	}
 
 	async function retire() {
-		if (busy) return;
+		if (doing) return;
 		if (!confirm(`Retire “${t.name}”? It leaves your list of session templates.`)) return;
 		error = '';
-		busy = true;
+		doing = 'retire';
 		try {
 			await request('POST', `/api/v1/session-templates/${t.id}/retire`);
 			await goto('/templates');
 		} catch (e) {
 			error = describe(e, templateFieldLabel);
 		} finally {
-			busy = false;
+			doing = null;
 		}
 	}
 
@@ -149,9 +149,9 @@
 		<Notes text={t.notes} class="rounded-[18px] bg-well px-4 py-3.5 text-[15px] font-semibold dark:bg-surface" />
 	{/if}
 
-	<Button disabled={busy} onclick={start}>
+	<Button disabled={doing !== null} onclick={start}>
 		<Icon name="play" />
-		Start
+		{doing === 'start' ? 'Starting…' : 'Start'}
 	</Button>
 	<FormError message={error} />
 

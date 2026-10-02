@@ -44,7 +44,7 @@
 	let centreOpen = $state(false);
 	let fresh = $state(false);
 	let centreTitle = $state('');
-	let busy = $state(false);
+	let doing = $state<'save' | 'delete' | null>(null);
 	let centreError = $state('');
 
 	function openCentre(c: Centre | null) {
@@ -62,7 +62,7 @@
 
 	async function keepCentre() {
 		if (!centre) return;
-		busy = true;
+		doing = 'save';
 		centreError = '';
 		try {
 			await saveCentre($state.snapshot(centre));
@@ -71,13 +71,13 @@
 		} catch (e) {
 			centreError = describe(e, (f) => (f === 'name' ? 'The name' : 'A session'));
 		} finally {
-			busy = false;
+			doing = null;
 		}
 	}
 
 	async function dropCentre() {
 		if (!centre || !confirm(`Delete ${centre.name}? Your sessions stay.`)) return;
-		busy = true;
+		doing = 'delete';
 		try {
 			await request('DELETE', `/api/v1/centres/${centre.id}`);
 			centreOpen = false;
@@ -85,7 +85,7 @@
 		} catch (e) {
 			centreError = describe(e, (f) => f);
 		} finally {
-			busy = false;
+			doing = null;
 		}
 	}
 
@@ -242,11 +242,11 @@
 			<FormError message={centreError} />
 			<div class="grid grid-cols-2 items-center gap-2">
 				<Button variant="secondary" onclick={() => (centreOpen = false)}>Cancel</Button>
-				<Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
+				<Button type="submit" disabled={doing !== null}>{doing === 'save' ? 'Saving…' : 'Save'}</Button>
 			</div>
 			{#if !fresh}
-				<button type="button" class="h-11 self-center text-[15px] font-bold text-bad disabled:opacity-50" disabled={busy} onclick={dropCentre}>
-					Delete centre
+				<button type="button" class="h-11 self-center text-[15px] font-bold text-bad disabled:opacity-50" disabled={doing !== null} onclick={dropCentre}>
+					{doing === 'delete' ? 'Deleting…' : 'Delete centre'}
 				</button>
 			{/if}
 		</form>
