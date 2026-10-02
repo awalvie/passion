@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notice } from '$lib/notice.svelte';
 	import Segmented from '$lib/Segmented.svelte';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
@@ -41,6 +42,7 @@
 			await request('POST', '/api/v1/scheduled-sessions', { template, local_date: date });
 			await invalidateAll();
 			adding = false;
+			notice.text = 'Session added';
 		} catch (e) {
 			error = describe(e, (f) => labels[f] ?? f);
 		} finally {

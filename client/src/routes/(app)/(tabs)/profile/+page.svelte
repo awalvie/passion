@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notice } from '$lib/notice.svelte';
 	import { untrack } from 'svelte';
 	import Segmented from '$lib/Segmented.svelte';
 	import { goto, invalidateAll } from '$app/navigation';
@@ -67,6 +68,7 @@
 		try {
 			await saveCentre($state.snapshot(centre));
 			centreOpen = false;
+			notice.text = 'Centre saved';
 			await invalidateAll();
 		} catch (e) {
 			centreError = describe(e, (f) => (f === 'name' ? 'The name' : 'A session'));

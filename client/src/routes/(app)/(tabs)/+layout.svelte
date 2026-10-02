@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { notice } from '$lib/notice.svelte';
+	import Toast from '$lib/Toast.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import PullRefresh from '$lib/PullRefresh.svelte';
@@ -37,6 +39,7 @@
 			: 'calc(4.75rem + env(safe-area-inset-bottom))'}
 >
 	{@render children()}
+	<Toast bind:message={notice.text} duration={2000} />
 </div>
 
 {#if !task}
