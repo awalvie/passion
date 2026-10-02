@@ -46,6 +46,11 @@ export function storedRuns(): Run[] {
 		.sort((a, b) => b.started_at.localeCompare(a.started_at));
 }
 
+// storedRun is this phone's copy of a run, if it holds one.
+export function storedRun(id: string): Run | null {
+	return readStored(id)?.run ?? null;
+}
+
 // The run the person has open. The session screen and the player share it.
 // Every change lands here first and reaches the server through the queue, so
 // a gym with no signal loses nothing.
@@ -56,6 +61,8 @@ class OpenRun {
 	refused = $state('');
 	// True while writes wait after a send that did not reach the server.
 	stalled = $state(false);
+	// The step the person last had open on this phone.
+	here = $state<string | null>(null);
 	#seq = 0;
 	#flushing = false;
 	#openedAt = new Map<string, number>();
@@ -105,6 +112,7 @@ class OpenRun {
 		this.writes = [];
 		this.refused = '';
 		this.stalled = false;
+		this.here = null;
 	}
 
 	step(id: string): RunStep | undefined {
@@ -133,6 +141,7 @@ class OpenRun {
 	// opened notes when the person first reached a step on this phone, which is
 	// where the time written when they move on starts.
 	opened(step: string) {
+		this.here = step;
 		if (!this.#openedAt.has(step)) this.#openedAt.set(step, Date.now());
 	}
 
