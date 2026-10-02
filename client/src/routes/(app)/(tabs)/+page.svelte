@@ -184,21 +184,19 @@
 	{/if}
 
 	{#if !data.live}
-		<div class="flex gap-3 px-4 pt-3">
-			<a href="/templates" class="flex h-12 flex-1 items-center gap-2.5 rounded-full bg-surface px-2 text-[15px] font-bold shadow-card">
-				<span class="flex size-8 items-center justify-center rounded-full bg-well"><Icon name="stack" size="1.125rem" /></span>
-				Other session
-			</a>
+		<section class="mx-4 mt-3.5 rounded-3xl bg-surface py-0.5 shadow-card">
 			<button
 				type="button"
-				class="flex h-12 flex-1 items-center gap-2.5 rounded-full bg-surface px-2 text-[15px] font-bold shadow-card disabled:opacity-50"
+				class="flex min-h-[60px] w-full items-center gap-3 px-4 text-left disabled:opacity-50"
 				disabled={starting !== null}
 				onclick={() => start({ name: 'Open session' })}
 			>
-				<span class="flex size-8 items-center justify-center rounded-full bg-well"><Icon name="plus" size="1.125rem" /></span>
-				{starting === 'open' ? 'Starting…' : 'Open session'}
+				{@render action('plus', starting === 'open' ? 'Starting…' : 'Open session', 'Log as you go')}
 			</button>
-		</div>
+			<a href="/templates" class="flex min-h-[60px] items-center gap-3 px-4 shadow-[inset_0_1px_0_var(--line)]">
+				{@render action('stack', 'Other session', 'From the library')}
+			</a>
+		</section>
 	{/if}
 
 	{#if sessionsThisWeek !== undefined || data.cycleStarts}
@@ -236,6 +234,15 @@
 <Sheet bind:open={choosing} title="Track an exercise">
 	<ExercisePicker id="track-exercise" label="Exercise" exercises={library} pick={follow} />
 </Sheet>
+
+{#snippet action(icon: 'plus' | 'stack', title: string, caption: string)}
+	<span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-well"><Icon name={icon} size="1.125rem" /></span>
+	<span class="min-w-0 flex-1">
+		<span class="block text-[15px] font-bold">{title}</span>
+		<span class="block text-xs font-semibold text-ink-2">{caption}</span>
+	</span>
+	<span class="text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.2} /></span>
+{/snippet}
 
 {#snippet stat(value: string, unit: string, caption: string)}
 	<div class="flex min-h-[92px] flex-col justify-between gap-2 rounded-[22px] bg-surface p-3.5 shadow-card">
