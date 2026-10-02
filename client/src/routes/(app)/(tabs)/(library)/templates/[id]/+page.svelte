@@ -9,6 +9,7 @@
 	import Menu, { type MenuItem } from '$lib/Menu.svelte';
 	import { page } from '$app/state';
 	import Notes from '$lib/Notes.svelte';
+	import { stepsOf } from '$lib/run';
 	import { startRun } from '$lib/runState.svelte';
 	import Segmented from '$lib/Segmented.svelte';
 	import { sessionIcons } from '$lib/SessionIcon.svelte';
@@ -122,6 +123,26 @@
 	let unfolded = $state<string[]>([]);
 	const shown = <T,>(key: string, list: T[]) => (unfolded.includes(key) ? list : list.slice(0, 3));
 
+	// The newest run's own note, or else the last note on one of its steps.
+	const note = $derived.by(() => {
+		if (!data.last) return '';
+		const steps = stepsOf(data.last);
+		return plainText(data.last.notes || steps.findLast((s) => s.run_notes)?.run_notes || '');
+	});
+
+	// Each weighted exercise of the newest run, at its heaviest set.
+	const loads = $derived.by(() => {
+		if (!data.last) return [];
+		const names = new Map(stepsOf(data.last).map((s) => [s.exercise, s.name]));
+		return [...new Set(data.last.sets.map((x) => x.exercise))].flatMap((exercise) => {
+			const sets = data.last!.sets.filter((x) => x.exercise === exercise);
+			const top = sets.reduce((a, b) => ((b.weight_kg ?? -Infinity) > (a.weight_kg ?? -Infinity) ? b : a));
+			if (top.weight_kg === null) return [];
+			const dose = top.reps ? `${sets.length}×${top.reps}` : `${sets.length} set${sets.length === 1 ? '' : 's'}`;
+			return [{ exercise, name: names.get(exercise) ?? 'Exercise', text: `${dose} · ${top.weight_kg} kg` }];
+		});
+	});
+
 	const steps = (section: SessionTemplate['sections'][number]) =>
 		section.items.reduce((n, item) => n + (item.step ? 1 : item.choice.options.length), 0);
 </script>
@@ -195,6 +216,31 @@
 			{/if}
 			{#if t.notes}
 				<Notes text={t.notes} class="rounded-[18px] bg-well px-4 py-3.5 text-[15px] font-semibold dark:bg-surface" />
+			{/if}
+
+			{#if loads.length}
+				<section class="flex flex-col gap-2">
+					<h2 class="px-1 text-[15px] font-bold">Last time</h2>
+					<div class="rounded-3xl bg-surface py-0.5 shadow-card">
+						{#each shown('loads', loads) as l (l.exercise)}
+							<p class="flex min-h-[52px] items-center gap-3 px-4 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+								<span class="min-w-0 flex-1 truncate text-[15px] font-bold">{l.name}</span>
+								<span class="shrink-0 font-[family-name:var(--font-digits)] text-lg font-bold">{l.text}</span>
+							</p>
+						{/each}
+						{@render more('loads', loads.length)}
+					</div>
+				</section>
+			{/if}
+
+			{#if note && data.last}
+				<section class="flex flex-col gap-2">
+					<h2 class="px-1 text-[15px] font-bold">Last note</h2>
+					<a href="/history/{data.last.id}" class="rounded-3xl bg-surface p-4 shadow-card">
+						<p class="line-clamp-3 text-[15px] leading-[1.4] font-semibold">{note}</p>
+						<p class="mt-2 text-xs font-semibold text-ink-2">{day(data.last.local_date)}</p>
+					</a>
+				</section>
 			{/if}
 
 			{#if data.runs.length}
