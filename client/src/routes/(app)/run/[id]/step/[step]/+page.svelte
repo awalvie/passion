@@ -147,7 +147,7 @@
 		{:else if step.kind === 'reps_and_sets' || step.kind === 'timed_reps'}
 			<SetsPlayer {step} />
 		{:else if step.kind === 'open'}
-			<OpenPlayer {step} />
+			<OpenPlayer {step} {nextHref} last={!next} />
 		{:else if step.kind === 'climbing'}
 			<ClimbsPlayer {step} />
 		{:else}

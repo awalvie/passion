@@ -1,29 +1,42 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import Icon from './Icon.svelte';
 	import { tone, unlock } from './audio';
-	import Button from './Button.svelte';
-	import { isFinished, setsOf, type RunStep } from './run';
+	import Menu from './Menu.svelte';
+	import { isFinished, secondsSince, setsOf, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
+	import SaveStatus from './SaveStatus.svelte';
+	import { plainText } from './text';
 	import { elapsed, newClock, togglePause } from './timeline';
 	import { formatClock, readTimers, writeTimers, type Timed } from './timerStore';
 
-	let { step }: { step: RunStep } = $props();
+	let { step, nextHref, last }: { step: RunStep; nextHref: string; last: boolean } = $props();
 
-	const runId = $derived(openRun.run!.id);
-	const logged = $derived(setsOf(openRun.run!, step.id));
+	const run = $derived(openRun.run!);
+	const runId = $derived(run.id);
+	const logged = $derived(setsOf(run, step.id));
 	const target = $derived((step.duration_seconds ?? 0) * 1000);
+	const section = $derived(run.sections.find((s) => s.items.some((i) => i.step?.id === step.id)));
+	const siblings = $derived(section?.items.flatMap((i) => (i.step ? [i.step] : [])) ?? []);
+	const howTo = $derived(plainText(step.notes ?? '').replace(/\s+/g, ' '));
 
 	let timed = $state<Timed | null>(null);
 	let now = $state(Date.now());
+
+	// Each is the id of the step it was set on, so the next step starts clear.
+	let leaving = $state<string | null>(null);
+	let noting = $state<string | null>(null);
+	let reading = $state<string | null>(null);
 
 	$effect.pre(() => {
 		const stored = readTimers(runId).timed;
 		timed = stored?.step === step.id && !isFinished(step) ? stored : null;
 	});
 
+	const paused = $derived(timed?.clock.pausedAt != null);
+
 	$effect(() => {
-		if (!timed || timed.clock.pausedAt !== null) return;
-		const tick = setInterval(() => (now = Date.now()), 250);
+		const tick = setInterval(() => (now = Date.now()), timed && !paused ? 250 : 1000);
 		return () => clearInterval(tick);
 	});
 
@@ -60,33 +73,147 @@
 		openRun.setSets(step, [{ reps: null, seconds: Math.round(spent / 1000), weight_kg: null }]);
 		openRun.finish(step);
 	}
+
+	// The cover stays up until the next step loads, so the page under it does
+	// not flash its finished state.
+	async function next() {
+		leaving = step.id;
+		if (timed && ms >= 1000) done(ms);
+		else {
+			if (timed) save(null);
+			openRun.finish(step);
+		}
+		await goto(nextHref);
+		leaving = null;
+	}
+
+	async function skip() {
+		leaving = step.id;
+		if (timed) save(null);
+		openRun.skip(step);
+		await goto(nextHref);
+		leaving = null;
+	}
+
+	function saveNote(text: string) {
+		step.run_notes = text.trim() || null;
+		openRun.saveBody();
+	}
+
+	function sessionClock(s: number) {
+		return s < 3600 ? formatClock(s) : `${Math.floor(s / 3600)}:${formatClock(s % 3600).padStart(5, '0')}`;
+	}
+
+	const clock = $derived(
+		!timed
+			? formatClock(target / 1000)
+			: target
+				? formatClock((target - ms) / 1000)
+				: formatClock(Math.floor(ms / 1000))
+	);
+	const clockSize = $derived(clock.length <= 4 ? 'text-[min(168px,43vw)]' : clock.length === 5 ? 'text-[min(136px,35vw)]' : 'text-[min(108px,27vw)]');
+	const glass = 'bg-on-hero/10';
 </script>
 
-{#if timed}
-	<section class="rounded-3xl bg-surface px-5 pt-4 pb-5 shadow-card">
-		<p class="flex items-center gap-2.5 text-xs font-bold tracking-[0.06em] text-ink-2 uppercase">
-			<i class="size-2.5 rounded-full {timed.clock.pausedAt === null ? 'bg-live shadow-[0_0_0_5px_var(--live-halo)]' : 'bg-ink-3'}"></i>
-			{target ? 'Left' : 'Time'}
-		</p>
-		<p class="mt-2 text-[64px] leading-none font-extrabold tracking-tighter">
-			{formatClock(target ? (target - ms) / 1000 : Math.floor(ms / 1000))}
-		</p>
-		{#if target}
-			<div class="mt-4 h-1.5 overflow-hidden rounded-full bg-well">
-				<i class="block h-full rounded-full bg-live" style="width: {Math.min(100, (ms / target) * 100)}%"></i>
+{#if !isFinished(step) || leaving === step.id}
+	<section class="fixed inset-0 z-40 overflow-hidden bg-hero text-on-hero" aria-label="Open exercise">
+		<div
+			class="relative mx-auto flex h-full w-full max-w-[430px] flex-col pt-[env(safe-area-inset-top)] pb-[calc(env(safe-area-inset-bottom)+1rem)]"
+		>
+			<div class="relative flex h-14 shrink-0 items-center justify-between px-4">
+				<a href="/run/{runId}" class="inline-flex h-11 items-center gap-0.5 rounded-full pr-4 pl-2.5 text-[15px] font-bold {glass}">
+					<Icon name="chevron-left" size="20px" stroke={2.4} />
+					Session
+				</a>
+				<span
+					class="absolute top-1/2 left-1/2 flex h-11 -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-full px-4 font-[family-name:var(--font-digits)] text-xl font-bold shadow-[inset_0_0_0_1px_var(--live)] {glass}"
+					aria-label="Session time"
+				>
+					<i class="size-2 rounded-full bg-live shadow-[0_0_0_4px_var(--live-halo)]"></i>
+					{sessionClock(secondsSince(run.started_at, now))}
+				</span>
+				<Menu look={glass} items={[{ label: 'Finish session', onclick: () => goto(`/run/${runId}/finish`) }]} />
 			</div>
-		{/if}
-	</section>
-	<div class="grid grid-cols-2 gap-2.5">
-		<Button variant="secondary" onclick={pause}>{timed.clock.pausedAt === null ? 'Pause' : 'Resume'}</Button>
-		<Button onclick={() => done(ms)}>Done</Button>
-	</div>
-{:else if !isFinished(step)}
-	<section class="flex flex-col gap-4 rounded-3xl bg-surface p-4 shadow-card">
-		<p class="text-center text-[32px] leading-[1.1] font-extrabold tracking-tight">
-			{#if target}{formatClock(target / 1000)}{:else}<span class="text-xl font-bold">As long as it takes</span>{/if}
-		</p>
-		<Button onclick={start}>Start</Button>
+			<div class="flex flex-col gap-2 px-4 empty:hidden"><SaveStatus /></div>
+
+			<div class="px-6 pt-5 text-center">
+				{#if section}
+					<p class="text-xs font-bold tracking-[0.06em] text-tint uppercase">
+						{section.name} · {siblings.findIndex((s) => s.id === step.id) + 1} of {siblings.length}
+					</p>
+				{/if}
+				<h1 class="mt-1.5 line-clamp-2 text-[40px] leading-[1.1] font-bold tracking-[-0.02em] break-words">{step.name}</h1>
+			</div>
+
+			<p
+				class="mt-8 text-center font-[family-name:var(--font-digits)] leading-none font-bold tracking-[-0.02em] whitespace-nowrap {clockSize}"
+				role="timer"
+				aria-live="off"
+			>
+				{clock}
+			</p>
+
+			{#if paused}
+				<p class="mt-2 px-6 text-center text-[15px] font-semibold text-on-hero-2">Paused</p>
+			{:else if howTo}
+				<button
+					type="button"
+					class="mt-2 px-6 text-center text-[15px] font-semibold text-on-hero-2 {reading === step.id ? 'max-h-40 overflow-y-auto' : 'line-clamp-2'}"
+					onclick={() => (reading = reading === step.id ? null : step.id)}
+				>
+					{howTo}
+				</button>
+			{/if}
+
+			<div class="mt-auto flex flex-col gap-3 px-4 pt-4" onpointerdown={unlock} role="group" aria-label="Exercise">
+				{#if noting === step.id || step.run_notes}
+					<textarea
+						class="min-h-24 rounded-3xl p-4 text-[15px] font-semibold text-on-hero outline-none placeholder:text-on-hero-2 {glass}"
+						placeholder="How did it go?"
+						aria-label="Note"
+						value={step.run_notes ?? ''}
+						oninput={(e) => (step.run_notes = e.currentTarget.value)}
+						onchange={(e) => saveNote(e.currentTarget.value)}
+					></textarea>
+				{/if}
+
+				{#if !timed}
+					<button type="button" class="flex h-30 items-center justify-center gap-3 rounded-[36px] bg-tint text-[28px] font-bold text-on-tint shadow-tint" onclick={start}>
+						<Icon name="play" size="30px" />
+						Start
+					</button>
+				{:else}
+					<button type="button" class="flex h-30 items-center justify-center gap-3 rounded-[36px] text-[28px] font-bold {glass}" onclick={pause}>
+						{#if paused}
+							<Icon name="play" size="30px" />
+							Resume
+						{:else}
+							<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
+							Pause
+						{/if}
+					</button>
+				{/if}
+
+				<div class="flex gap-2">
+					<button
+						type="button"
+						class="flex h-15 flex-1 items-center justify-center gap-2 rounded-full text-base font-bold {glass}"
+						onclick={() => (noting = noting === step.id ? null : step.id)}
+					>
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h7l4 4v13H7z" /><path d="M14 3.5v4h4M10 12h5M10 16h5" /></svg>
+						Note
+					</button>
+					<button type="button" class="flex h-15 flex-1 items-center justify-center gap-2 rounded-full text-base font-bold {glass}" onclick={skip}>
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5.5v13l9-6.5z" fill="currentColor" /><path d="M18.5 5v14" /></svg>
+						Skip
+					</button>
+					<button type="button" class="flex h-15 flex-1 items-center justify-center gap-2 rounded-full text-base font-bold {glass}" onclick={next}>
+						{last ? 'Done' : 'Next'}
+						<Icon name="chevron-right" size="18px" stroke={2.2} />
+					</button>
+				</div>
+			</div>
+		</div>
 	</section>
 {:else if logged[0]?.seconds}
 	<p class="flex h-11 items-center gap-2.5 rounded-3xl bg-surface px-4 text-[15px] font-bold shadow-card">
