@@ -123,7 +123,25 @@
 				] as const
 			: null
 	);
-	const settingUp = $derived(setup?.some((s) => !s.done) ?? false);
+	// Hidden for good on this phone; the server keeps no flag for it.
+	let setupHidden = $state(
+		(() => {
+			try {
+				return localStorage.getItem('passion-hide-setup') === '1';
+			} catch {
+				return false;
+			}
+		})()
+	);
+	function hideSetup() {
+		setupHidden = true;
+		try {
+			localStorage.setItem('passion-hide-setup', '1');
+		} catch {
+			/* hidden until the app reloads */
+		}
+	}
+	const settingUp = $derived(!setupHidden && (setup?.some((s) => !s.done) ?? false));
 
 	function label(d: ScheduledDay) {
 		if (other) {
@@ -200,8 +218,16 @@
 		>
 			<Topo shape={heroTopo} class="absolute inset-0 h-full w-full text-[var(--hero-topo)]" />
 			<div class="relative flex flex-col p-5">
+				<button
+					type="button"
+					class="absolute top-3 right-3 flex size-11 items-center justify-center rounded-full bg-white/10 text-on-hero"
+					aria-label="Hide the setup card"
+					onclick={hideSetup}
+				>
+					<Icon name="x" size="1.125rem" stroke={2.4} />
+				</button>
 				<p class="text-xs font-semibold tracking-[0.06em] text-on-hero-2 uppercase">Get set up</p>
-				<h2 class="mt-1 text-[32px] leading-tight font-extrabold tracking-tight">Your first week</h2>
+				<h2 class="mt-1 pr-10 text-[32px] leading-tight font-extrabold tracking-tight">Your first week</h2>
 				<ul class="mt-2 flex flex-col">
 					{#each setup as s (s.text)}
 						<li>
