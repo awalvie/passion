@@ -116,7 +116,11 @@
 
 <svelte:window onfocus={reload} />
 
-<form class="flex flex-col gap-3.5 pt-2" onsubmit={submit} oninvalidcapture={reveal}>
+<form
+	class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-[calc(env(safe-area-inset-bottom)+1rem)]"
+	onsubmit={submit}
+	oninvalidcapture={reveal}
+>
 	<header class="flex items-start gap-3 px-1">
 		{#if draft.color}
 			<span class="mt-3.5 size-3 shrink-0 rounded-full" style="background:{draft.color}"></span>
