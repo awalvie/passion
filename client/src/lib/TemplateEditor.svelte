@@ -2,7 +2,6 @@
 	import { untrack } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
 	import { describe, request } from '$lib/api';
-	import Button from '$lib/Button.svelte';
 	import type { Exercise } from '$lib/exercise';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
@@ -117,10 +116,31 @@
 <svelte:window onfocus={reload} />
 
 <form
-	class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-[calc(env(safe-area-inset-bottom)+1rem)]"
+	class="flex flex-col gap-3.5 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]"
 	onsubmit={submit}
 	oninvalidcapture={reveal}
 >
+	<div class="sticky top-0 z-30 -mx-4 flex flex-col gap-2 bg-ground/85 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-2 backdrop-blur-md">
+		<div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+			<a
+				class="flex h-11 items-center justify-self-start rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm"
+				href={cancel}
+				data-back
+			>
+				Cancel
+			</a>
+			<span class="text-[15px] font-bold">{template ? 'Edit session' : 'New session'}</span>
+			<button
+				type="submit"
+				class="flex h-11 items-center justify-self-end rounded-full bg-tint px-5 text-[15px] font-bold text-on-tint shadow-tint disabled:opacity-50"
+				disabled={busy}
+			>
+				{busy ? 'Saving…' : 'Save'}
+			</button>
+		</div>
+		<FormError message={error} />
+	</div>
+
 	<header class="flex items-start gap-3 px-1">
 		{#if draft.color}
 			<span class="mt-3.5 size-3 shrink-0 rounded-full" style="background:{draft.color}"></span>
@@ -133,14 +153,6 @@
 				<div class="mt-1 text-[15px] font-semibold text-ink-2">{tags.join(' · ')}</div>
 			{/if}
 		</div>
-		<a
-			class="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"
-			href={cancel}
-			title="Cancel"
-			aria-label="Cancel"
-		>
-			<Icon name="arrow-left" size="1.25rem" />
-		</a>
 	</header>
 
 	<details class="group/settings rounded-3xl bg-surface shadow-card" open={!template}>
@@ -307,16 +319,5 @@
 		<aside class="hidden md:block">
 			<TemplatePlan sections={draft.sections} />
 		</aside>
-	</div>
-
-	<FormError message={error} />
-
-	<div
-		class="sticky bottom-[calc(var(--above-bar)-0.75rem)] z-20 -mx-4 grid grid-cols-[auto_1fr] gap-2.5 bg-ground/85 px-4 py-3 backdrop-blur-md"
-	>
-		<a class="flex h-14 items-center rounded-full bg-surface px-6 text-[15px] font-bold text-ink shadow-card" href={cancel}
-			>Cancel</a
-		>
-		<Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
 	</div>
 </form>
