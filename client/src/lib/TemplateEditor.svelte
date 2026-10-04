@@ -279,6 +279,7 @@
 				<SectionEditor
 					bind:section={draft.sections[i]}
 					id="sec{i}"
+					number={i + 1}
 					open={i === 0}
 					{library}
 					actions={sectionActions}
@@ -287,9 +288,13 @@
 				<p class="px-1 text-[15px] font-semibold text-ink-2">No sections yet. Add one below.</p>
 			{/each}
 
-			<section class="rounded-3xl bg-surface p-[18px] shadow-card">
-				<h3 class="text-[15px] font-bold">Add section</h3>
-				<div class="mt-3 grid grid-cols-[1fr_auto] items-end gap-2">
+			<details class="rounded-3xl bg-surface px-4 shadow-card" open={!draft.sections.length}>
+				<summary
+					class="flex min-h-14 cursor-pointer list-none items-center gap-2.5 text-[15px] font-bold [&::-webkit-details-marker]:hidden"
+				>
+					<Icon name="plus" />Add section
+				</summary>
+				<div class="grid grid-cols-[1fr_auto] items-end gap-2 pb-4">
 					<div>
 						<label class="block text-xs font-semibold text-ink-2" for="new-section">Name</label>
 						<input
@@ -310,11 +315,10 @@
 						class="flex h-12 items-center gap-1.5 rounded-full bg-well px-4 text-[15px] font-bold text-ink active:opacity-70"
 						onclick={addSection}
 					>
-						<Icon name="plus" />
-						Add section
+						Add
 					</button>
 				</div>
-			</section>
+			</details>
 		</div>
 
 		<!-- On a phone each row already shows its name and numbers, so the plan
