@@ -72,6 +72,8 @@
 			.map((t) => t.trim())
 			.filter(Boolean)
 	);
+	const meta = $derived([...tags, draft.needs.trim()].filter(Boolean).join(' · '));
+	const icon = $derived(sessionIcons.find(([name]) => name === draft.icon)?.[0]);
 	const custom = $derived(draft.color !== '' && !presets.some(([c]) => c === draft.color));
 
 	function addSection() {
@@ -141,27 +143,28 @@
 		<FormError message={error} />
 	</div>
 
-	<header class="flex items-start gap-3 px-1">
-		{#if draft.color}
-			<span class="mt-3.5 size-3 shrink-0 rounded-full" style="background:{draft.color}"></span>
-		{/if}
-		<div class="min-w-0 flex-1">
-			<h1 class="m-0 text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em] break-words">
-				{draft.name || 'New session template'}
-			</h1>
-			{#if tags.length}
-				<div class="mt-1 text-[15px] font-semibold text-ink-2">{tags.join(' · ')}</div>
-			{/if}
-		</div>
-	</header>
-
 	<details class="group/settings rounded-3xl bg-surface shadow-card" open={!template}>
 		<summary
-			class="flex h-14 cursor-pointer list-none items-center gap-2.5 px-[18px] text-[15px] font-bold [&::-webkit-details-marker]:hidden"
+			class="flex min-h-20 cursor-pointer list-none items-center gap-3.5 px-4 py-3.5 [&::-webkit-details-marker]:hidden"
 		>
+			<span
+				class="flex size-12 shrink-0 items-center justify-center rounded-[15px] text-xl font-bold {draft.color ? 'text-white' : 'bg-well text-ink'}"
+				style={draft.color ? `background:${draft.color}` : ''}
+				aria-hidden="true"
+			>
+				{#if icon}
+					<Icon name={icon} size="1.5rem" />
+				{:else}
+					{(draft.name.trim() || 'N').charAt(0).toUpperCase()}
+				{/if}
+			</span>
+			<span class="min-w-0 flex-1">
+				<h1 class="text-xl leading-tight font-extrabold tracking-tight break-words">{draft.name || 'New session'}</h1>
+				{#if meta}
+					<span class="mt-0.5 block text-xs font-semibold text-ink-2">{meta}</span>
+				{/if}
+			</span>
 			<span class="text-ink-3"><Icon name="pencil" /></span>
-			<span class="flex-1">Settings</span>
-			<span class="text-ink-3 transition-transform group-open/settings:rotate-90"><Icon name="chevron-right" /></span>
 		</summary>
 		<div class="flex flex-col gap-3.5 px-[18px] pt-4 pb-[18px] shadow-[inset_0_1px_0_var(--line)]">
 			<div>
