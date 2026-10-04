@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Icon from '$lib/Icon.svelte';
+	import Menu, { type MenuItem } from '$lib/Menu.svelte';
 
 	let {
 		label,
@@ -15,42 +15,18 @@
 		remove: () => void;
 	} = $props();
 
-	// These sit inside a <summary>, where a click would also open or close the row.
-	function run(event: MouseEvent, action: () => void) {
-		event.preventDefault();
-		event.stopPropagation();
-		action();
-	}
+	const items = $derived<MenuItem[]>([
+		...(index > 0 ? [{ label: 'Move up', onclick: () => move(-1) }] : []),
+		...(index < count - 1 ? [{ label: 'Move down', onclick: () => move(1) }] : []),
+		{ label: 'Remove', danger: true, onclick: remove }
+	]);
+
+	// The menu sits inside a <summary>, where a click (Enter and Space on a button are clicks too)
+	// would also open or close the row.
+	const hold = (e: Event) => e.preventDefault();
 </script>
 
-<div class="flex shrink-0 items-center gap-2">
-	<button
-		type="button"
-		class="relative flex size-9 items-center justify-center rounded-full bg-well before:absolute before:-inset-1 before:content-[''] text-ink-2 active:opacity-70 disabled:cursor-not-allowed disabled:opacity-35"
-		title="Move up"
-		aria-label="Move {label} up"
-		disabled={index === 0}
-		onclick={(e) => run(e, () => move(-1))}
-	>
-		<Icon name="arrow-up" size="0.875rem" />
-	</button>
-	<button
-		type="button"
-		class="relative flex size-9 items-center justify-center rounded-full bg-well before:absolute before:-inset-1 before:content-[''] text-ink-2 active:opacity-70 disabled:cursor-not-allowed disabled:opacity-35"
-		title="Move down"
-		aria-label="Move {label} down"
-		disabled={index === count - 1}
-		onclick={(e) => run(e, () => move(1))}
-	>
-		<Icon name="arrow-down" size="0.875rem" />
-	</button>
-	<button
-		type="button"
-		class="relative flex size-9 items-center justify-center rounded-full bg-well before:absolute before:-inset-1 before:content-[''] text-ink-2 active:opacity-70 disabled:cursor-not-allowed disabled:opacity-35"
-		title="Remove"
-		aria-label="Remove {label}"
-		onclick={(e) => run(e, remove)}
-	>
-		<Icon name="trash-2" size="0.875rem" />
-	</button>
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+<div class="shrink-0" onclick={hold}>
+	<Menu {items} label="Actions for {label}" look="bg-transparent text-ink-3" />
 </div>
