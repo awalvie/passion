@@ -163,6 +163,13 @@
 
 	const steps = (section: SessionTemplate['sections'][number]) =>
 		section.items.reduce((n, item) => n + (item.step ? 1 : item.choice.options.length), 0);
+	// The first two exercise names of a section, then how many more.
+	const firstNames = (section: SessionTemplate['sections'][number]) => {
+		const names = section.items.flatMap((item) => (item.step ? [item.step.name] : item.choice.options.map((o) => o.name)));
+		return names.slice(0, 2).join(', ') + (names.length > 2 ? ` +${names.length - 2}` : '');
+	};
+	// A section opened from the Overview's contents.
+	const opened = $derived(Number(page.url.searchParams.get('open') ?? -1));
 </script>
 
 <svelte:head><title>{t.name}</title></svelte:head>
@@ -299,6 +306,35 @@
 						{@render more('runs', data.runs.length)}
 					</div>
 				</section>
+			{:else if t.sections.length}
+				<!-- Until a first run fills the Overview, it shows what the session holds. -->
+				<section class="rounded-3xl bg-surface px-[18px] py-1 shadow-card">
+					{#each t.sections as section, i (i)}
+						{@const choice = only(section)}
+						<a
+							href="/templates/{t.id}?tab=exercises&open={i}"
+							data-sveltekit-replacestate
+							class="flex min-h-[76px] items-center gap-4 py-2.5 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]"
+						>
+							<span class="w-[34px] shrink-0 font-[family-name:var(--font-digits)] text-[34px] leading-none font-bold text-ink-3 opacity-60">
+								{String(i + 1).padStart(2, '0')}
+							</span>
+							<span class="min-w-0 flex-1">
+								<span class="flex flex-wrap items-center gap-x-2 gap-y-1">
+									<span class="text-base font-bold break-words">{section.name}</span>
+									{#if choice}
+										<span class="rounded-full bg-tint px-2.5 py-0.5 text-xs font-bold text-on-tint">{pickLabel(choice)}</span>
+									{/if}
+								</span>
+								{#if firstNames(section) && firstNames(section) !== section.name}
+									<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{firstNames(section)}</span>
+								{/if}
+							</span>
+							<span class="text-ink-3"><Icon name="chevron-right" size="1rem" stroke={2.2} /></span>
+						</a>
+					{/each}
+				</section>
+				<p class="px-1 text-xs font-semibold text-ink-2">Not run yet. Your runs, loads and notes show here after the first one.</p>
 			{/if}
 
 			<section class="flex flex-col gap-2">
@@ -324,7 +360,7 @@
 			</section>
 		{:else}
 			{#each t.sections as section, i (i)}
-				<details class="group rounded-3xl bg-surface shadow-card" open={t.sections.length === 1}>
+				<details class="group rounded-3xl bg-surface shadow-card" open={t.sections.length === 1 || i === opened}>
 					<summary class="flex min-h-[68px] cursor-pointer list-none items-center gap-3.5 px-4 py-3 [&::-webkit-details-marker]:hidden">
 						<span class="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-ink text-[15px] font-bold text-ground">{i + 1}</span>
 						<span class="min-w-0 flex-1">
