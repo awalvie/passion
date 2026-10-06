@@ -3,6 +3,7 @@
 	import Icon from './Icon.svelte';
 	import { tone, unlock } from './audio';
 	import Menu from './Menu.svelte';
+	import Notes from './Notes.svelte';
 	import { isFinished, secondsSince, setsOf, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
 	import SaveStatus from './SaveStatus.svelte';
@@ -19,7 +20,7 @@
 	const section = $derived(run.sections.find((s) => s.items.some((i) => i.step?.id === step.id)));
 	const siblings = $derived(section?.items.flatMap((i) => (i.step ? [i.step] : [])) ?? []);
 	const video = $derived(step.media?.find((m) => m.url));
-	const howTo = $derived(plainText(step.notes ?? '').replace(/\s+/g, ' '));
+	const howTo = $derived(plainText(step.notes ?? '').trim());
 
 	let timed = $state<Timed | null>(null);
 	let now = $state(Date.now());
@@ -27,7 +28,6 @@
 	// Each is the id of the step it was set on, so the next step starts clear.
 	let leaving = $state<string | null>(null);
 	let noting = $state<string | null>(null);
-	let reading = $state<string | null>(null);
 
 	// An open step starts its clock as soon as it opens, unless another step's
 	// clock is still running: there is one clock, and its time is not logged yet.
@@ -157,14 +157,11 @@
 
 			{#if paused}
 				<p class="mt-2 px-6 text-center text-[15px] font-semibold text-on-hero-2">Paused</p>
-			{:else if howTo}
-				<button
-					type="button"
-					class="mt-2 px-6 text-center text-[15px] font-semibold text-on-hero-2 {reading === step.id ? 'max-h-40 overflow-y-auto' : 'line-clamp-2'}"
-					onclick={() => (reading = reading === step.id ? null : step.id)}
-				>
-					{howTo}
-				</button>
+			{/if}
+			{#if howTo}
+				<div class="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 text-[15px] font-semibold text-on-hero-2">
+					<Notes text={howTo} />
+				</div>
 			{/if}
 
 			{#if video}
