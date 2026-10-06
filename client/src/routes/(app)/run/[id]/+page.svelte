@@ -7,7 +7,19 @@
 	import Icon from '$lib/Icon.svelte';
 	import Menu from '$lib/Menu.svelte';
 	import NavBar from '$lib/NavBar.svelte';
-	import { currentStop, isFinished, secondsSince, setsOf, stepsOf, stopHref, type RunSection, type RunStep } from '$lib/run';
+	import {
+		currentStop,
+		isFinished,
+		secondsSince,
+		sectionMarks,
+		sectionShare,
+		setsOf,
+		stepsOf,
+		stopHref,
+		type RunSection,
+		type RunStep,
+		type SectionMark
+	} from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
 	import { choiceMeta, stepMeta, type Step } from '$lib/template';
 	import type { Exercise } from '$lib/exercise';
@@ -82,20 +94,8 @@
 		return s.id === current?.id ? 'now' : 'todo';
 	}
 
-	type SectionMark = 'done' | 'now' | 'todo';
-
-	const marks = $derived(
-		run.sections.map((s, i): SectionMark => {
-			if (i === section) return 'now';
-			return s.items.length && s.items.every((it) => it.step && isFinished(it.step)) ? 'done' : 'todo';
-		})
-	);
+	const marks = $derived(sectionMarks(run, section));
 	const sectionsDone = $derived(marks.filter((m) => m === 'done').length);
-
-	function share(s: RunSection): number {
-		const done = s.items.filter((it) => it.step && isFinished(it.step)).length;
-		return s.items.length ? done / s.items.length : 0;
-	}
 
 	function caption(s: RunSection, m: SectionMark): string {
 		if (!s.items.length) return 'No exercises';
@@ -287,7 +287,7 @@
 				{#each run.sections as s, i (i)}
 					<span class="h-2 flex-1 overflow-hidden rounded-full {marks[i] === 'done' ? 'bg-ink dark:bg-ink-2' : 'bg-well'}">
 						{#if marks[i] === 'now'}
-							<span class="block h-full rounded-full bg-live" style="width: {share(s) * 100}%"></span>
+							<span class="block h-full rounded-full bg-live" style="width: {sectionShare(s) * 100}%"></span>
 						{/if}
 					</span>
 				{/each}
