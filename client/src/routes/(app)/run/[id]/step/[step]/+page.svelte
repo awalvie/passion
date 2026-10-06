@@ -15,17 +15,17 @@
 	import { canTime } from '$lib/timeline';
 	import TimerPlayer from '$lib/TimerPlayer.svelte';
 	import { keepAwake } from '$lib/wakeLock';
-	import { climbsOf, isFinished, nextStep, secondsSince, setsOf, stepsOf } from '$lib/run';
+	import { climbsOf, isFinished, nextStop, secondsSince, setsOf, stepsOf, stopHref } from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
-	import { stepMeta } from '$lib/template';
+	import { choiceMeta, stepMeta } from '$lib/template';
 	import { plainText } from '$lib/text';
 
 	const run = $derived(openRun.run!);
 	const step = $derived(openRun.step(page.params.step!));
 	const section = $derived(run.sections.find((s) => s.items.some((i) => i.step?.id === step?.id)));
 	const position = $derived(stepsOf(run).findIndex((s) => s.id === step?.id) + 1);
-	const next = $derived(step ? nextStep(run, step.id) : undefined);
-	const nextHref = $derived(next ? `/run/${run.id}/step/${next.id}` : `/run/${run.id}`);
+	const next = $derived(step ? nextStop(run, step.id) : undefined);
+	const nextHref = $derived(stopHref(run.id, next));
 	const logged = $derived(step ? setsOf(run, step.id).length + climbsOf(run, step.id).length : 0);
 
 	$effect(() => {
@@ -188,8 +188,13 @@
 			<a href={nextHref} class="mt-1.5 flex items-center gap-3.5 rounded-3xl bg-surface py-2.5 pr-3.5 pl-4 shadow-card">
 				<span class="w-[52px] shrink-0 text-xs leading-tight font-semibold tracking-[0.06em] text-ink-2 uppercase">Up next</span>
 				<span class="min-w-0 flex-1">
-					<span class="block truncate text-[15px] font-bold">{next.name}</span>
-					<span class="block truncate text-xs font-semibold text-ink-2">{stepMeta(next)}</span>
+					{#if next.step}
+						<span class="block truncate text-[15px] font-bold">{next.step.name}</span>
+						<span class="block truncate text-xs font-semibold text-ink-2">{stepMeta(next.step)}</span>
+					{:else}
+						<span class="block truncate text-[15px] font-bold">Pick {next.choice.name}</span>
+						<span class="block truncate text-xs font-semibold text-ink-2">{choiceMeta(next.choice)}</span>
+					{/if}
 				</span>
 				<span class="flex shrink-0 text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.2} /></span>
 			</a>

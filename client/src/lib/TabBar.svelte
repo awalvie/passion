@@ -9,7 +9,7 @@
 	import { beforeNavigate, goto, preloadData } from '$app/navigation';
 	import { navigating, page } from '$app/state';
 	import Icon from './Icon.svelte';
-	import { currentStep, isFinished, setsOf, secondsSince, stepsOf, type RunSummary } from './run';
+	import { currentStop, isFinished, setsOf, secondsSince, stepsOf, stopHref, type RunItem, type RunSummary } from './run';
 	import { openRun, storedRun } from './runState.svelte';
 	import { tabOf, tabs, under } from './tabs';
 	import { formatClock, readTimers, sessionClock } from './timerStore';
@@ -28,11 +28,13 @@
 
 	// Only a phone that holds the run knows the step.
 	const run = $derived(live ? (openRun.run?.id === live.id ? openRun.run : storedRun(live.id)) : null);
-	const step = $derived.by(() => {
+	const stop = $derived.by((): RunItem | undefined => {
 		if (!run) return undefined;
 		const here = stepsOf(run).find((s) => s.id === openRun.here);
-		return here && !isFinished(here) ? here : currentStep(run);
+		return here && !isFinished(here) ? { step: here } : currentStop(run);
 	});
+	const step = $derived(stop?.step);
+	const title = $derived(step?.name ?? (stop?.choice && `Pick ${stop.choice.name}`));
 	// Timed reps log their sets only when the run is next open, so only reps
 	// and sets have a count to trust here.
 	const where = $derived(
@@ -88,14 +90,14 @@
 >
 	{#if live}
 		<a
-			href={step ? `/run/${live.id}/step/${step.id}` : `/run/${live.id}`}
+			href={stopHref(live.id, stop)}
 			class="mx-3 mb-2 flex h-15 items-center gap-3 rounded-[22px] bg-hero py-2 pr-2 pl-4 text-on-hero shadow-[0_14px_30px_-10px_rgba(21,32,26,0.55)] dark:shadow-[0_14px_30px_-10px_rgba(0,0,0,0.7),inset_0_0_0_1px_rgba(255,255,255,0.08)]"
-			aria-label="Back to {[step?.name, where, live.name].filter(Boolean).join(', ')}"
+			aria-label="Back to {[title, where, live.name].filter(Boolean).join(', ')}"
 		>
 			<span class="size-2.5 shrink-0 rounded-full bg-live shadow-[0_0_0_4px_var(--live-halo)] motion-safe:animate-pulse"></span>
 			<span class="min-w-0 flex-1">
-				<b class="block truncate text-[15px] font-bold">{step ? [step.name, where].filter(Boolean).join(' · ') : live.name}</b>
-				{#if step}<span class="block truncate text-xs font-semibold text-on-hero-2">{live.name}</span>{/if}
+				<b class="block truncate text-[15px] font-bold">{title ? [title, where].filter(Boolean).join(' · ') : live.name}</b>
+				{#if title}<span class="block truncate text-xs font-semibold text-on-hero-2">{live.name}</span>{/if}
 			</span>
 			<span class="shrink-0 font-[family-name:var(--font-digits)] text-xl font-bold {restLeft > 0 ? 'text-live' : ''}">
 				{restLeft > 0 ? formatClock(restLeft) : sessionClock(secondsSince(live.started_at, now))}

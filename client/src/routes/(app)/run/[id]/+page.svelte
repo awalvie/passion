@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import Menu from '$lib/Menu.svelte';
 	import NavBar from '$lib/NavBar.svelte';
-	import { currentStep, isFinished, secondsSince, setsOf, stepsOf, type RunSection, type RunStep } from '$lib/run';
+	import { currentStop, isFinished, secondsSince, setsOf, stepsOf, stopHref, type RunSection, type RunStep } from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
 	import { choiceMeta, stepMeta, type Step } from '$lib/template';
 	import type { Exercise } from '$lib/exercise';
@@ -17,10 +18,9 @@
 	const run = $derived(openRun.run!);
 	const steps = $derived(stepsOf(run));
 	const finished = $derived(steps.filter(isFinished).length);
-	const current = $derived(currentStep(run));
-	const section = $derived(
-		current ? run.sections.findIndex((s) => s.items.some((i) => i.step?.id === current.id)) : -1
-	);
+	const stop = $derived(currentStop(run));
+	const current = $derived(stop?.step);
+	const section = $derived(stop ? run.sections.findIndex((s) => s.items.includes(stop)) : -1);
 
 	let now = $state(Date.now());
 	$effect(() => {
@@ -117,7 +117,10 @@
 		void section;
 		chosen = {};
 	});
-	const isOpen = (i: number) => chosen[i] ?? i === section;
+	// A link to a choice opens its section too.
+	const asked = $derived(page.url.hash.startsWith('#pick-') ? page.url.hash.slice(6) : '');
+	const askedIn = $derived(run.sections.findIndex((s) => s.items.some((it) => it.choice?.id === asked)));
+	const isOpen = (i: number) => chosen[i] ?? (i === section || i === askedIn);
 
 	let editing = $state(false);
 
@@ -378,7 +381,7 @@
 										</a>
 									{:else}
 										{@const c = item.choice}
-										<div class="pt-0.5 pb-1">
+										<div id="pick-{c.id}" class="scroll-mt-20 pt-0.5 pb-1">
 											<p class="px-1 pt-0.5 pb-2 text-xs font-semibold tracking-[0.06em] text-ink-2 uppercase">
 												{c.name} · {choiceMeta(c)}
 											</p>
@@ -465,11 +468,11 @@
 	</form>
 </Sheet>
 
-{#if !editing && !run.finished_at && (current || steps.length)}
+{#if !editing && !run.finished_at && (stop || steps.length)}
 	<div
 		class="fixed inset-x-0 bottom-0 z-20 mx-auto flex w-full max-w-[430px] gap-2.5 bg-linear-to-t from-ground from-60% to-transparent px-4 pt-6 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]"
 	>
-		{#if current}
+		{#if stop}
 			<a
 				href="/run/{run.id}/finish"
 				class="flex h-14 shrink-0 items-center gap-2 rounded-full bg-surface px-[22px] text-[15px] font-bold text-ink shadow-card active:opacity-80"
@@ -478,7 +481,7 @@
 				Finish
 			</a>
 			<div class="min-w-0 flex-1">
-				<Button variant="live" href="/run/{run.id}/step/{current.id}">
+				<Button variant="live" href={stopHref(run.id, stop)}>
 					<Icon name="play" size="18px" />
 					Continue
 				</Button>
