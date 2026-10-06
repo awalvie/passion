@@ -29,9 +29,15 @@
 	let noting = $state<string | null>(null);
 	let reading = $state<string | null>(null);
 
+	// An open step starts its clock as soon as it opens, unless another step's
+	// clock is still running: there is one clock, and its time is not logged yet.
 	$effect.pre(() => {
 		const stored = readTimers(runId).timed;
-		timed = stored?.step === step.id && !isFinished(step) ? stored : null;
+		const other = stored && stored.step !== step.id ? openRun.step(stored.step) : undefined;
+		if (isFinished(step)) timed = null;
+		else if (stored?.step === step.id) timed = stored;
+		else if (other && !isFinished(other)) timed = null;
+		else start();
 	});
 
 	const paused = $derived(timed?.clock.pausedAt != null);
@@ -61,7 +67,6 @@
 	}
 
 	function start() {
-		unlock();
 		save({ step: step.id, clock: newClock(Date.now()), short: {}, weight: null });
 	}
 
