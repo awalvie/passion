@@ -65,12 +65,18 @@
 		}
 	}
 
+	// The step being left, so its Next button does not flash before the next
+	// step loads.
+	let leaving = $state<string | null>(null);
+
 	// Skip keeps what is logged and ends the step, or skips a step with nothing.
 	async function skip() {
 		if (!step) return;
+		leaving = step.id;
 		if (logged) openRun.finish(step);
 		else openRun.skip(step);
 		await goto(nextHref);
+		leaving = null;
 	}
 </script>
 
@@ -154,7 +160,7 @@
 			<p class="text-[15px] text-ink-2">This kind of exercise cannot be logged here yet.</p>
 		{/if}
 
-		{#if isFinished(step)}
+		{#if isFinished(step) && leaving !== step.id}
 			<Button variant="live" href={nextHref}>{next ? 'Next exercise' : 'Back to session'}</Button>
 		{/if}
 
@@ -163,7 +169,7 @@
 				{@render ctrl('Add set', ['M12 5v14M5 12h14'], () => openRun.addSet(step!))}
 			{/if}
 			{@render ctrl('Note', ['M7 3.5h7l4 4v13H7z', 'M14 3.5v4h4M10 12h5M10 16h5'], () => (noting = !noting))}
-			{#if step.status === 'skipped'}
+			{#if step.status === 'skipped' && leaving !== step.id}
 				{@render ctrl('Undo skip', ['M9 14 4 9l5-5', 'M4 9h10.5a5.5 5.5 0 0 1 0 11H11'], () => openRun.unskip(step!))}
 			{:else if !isFinished(step)}
 				{#if logged && step.kind === 'climbing'}
