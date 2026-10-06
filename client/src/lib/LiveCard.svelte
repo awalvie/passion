@@ -3,7 +3,7 @@
 	import Button from './Button.svelte';
 	import { formatDuration } from './exercise';
 	import Menu from './Menu.svelte';
-	import { currentStop, isFinished, secondsSince, setsOf, type Run } from './run';
+	import { currentStop, secondsSince, sectionMarks, sectionShare, setsOf, type Run } from './run';
 	import { formatClock, readTimers } from './timerStore';
 	import Topo from './Topo.svelte';
 	import { heroTopo } from './topo';
@@ -21,32 +21,7 @@
 	const current = $derived(stop?.step);
 	const at = $derived(stop ? run.sections.findIndex((s) => s.items.includes(stop)) : run.sections.length);
 
-	// Five sections at most, kept around the current one.
-	const first = $derived(Math.max(0, Math.min(at - 2, run.sections.length - 5)));
-	const shown = $derived(run.sections.slice(first, first + 5));
-	const nowAt = $derived(at - first);
-	const done = $derived(
-		shown.map((s) => s.items.length > 0 && s.items.every((it) => it.step && isFinished(it.step)))
-	);
-
-	const heights = [36, 18, 30, 12, 26];
-	let width = $state(318);
-	const pad = $derived((width * 30) / 318);
-	const gap = $derived(shown.length > 1 ? (width - 2 * pad) / (shown.length - 1) : width);
-	const points = $derived(
-		shown.map((_, i): [number, number] => [shown.length > 1 ? pad + i * gap : width / 2, heights[i]])
-	);
-
-	// A Catmull-Rom curve through the points from one index to another.
-	function curve(from: number, to: number) {
-		const p = points;
-		let d = `M${p[from][0]} ${p[from][1]}`;
-		for (let i = from; i < to; i++) {
-			const [a, b, c, e] = [p[i - 1] ?? p[i], p[i], p[i + 1], p[i + 2] ?? p[i + 1]];
-			d += ` C${b[0] + (c[0] - a[0]) / 6} ${b[1] + (c[1] - a[1]) / 6} ${c[0] - (e[0] - b[0]) / 6} ${c[1] - (e[1] - b[1]) / 6} ${c[0]} ${c[1]}`;
-		}
-		return d;
-	}
+	const marks = $derived(sectionMarks(run, at));
 
 	// The rest the step page started on this phone. Today only reads it.
 	let endsAt = $state<number | null>(null);
@@ -80,45 +55,24 @@
 			/>
 		</div>
 		<h2 class="mt-1 truncate text-[32px] leading-tight font-extrabold tracking-tight">{run.name}</h2>
-		{#if shown.length}
-			<div class="relative mt-3 h-16" bind:clientWidth={width}>
-				<svg class="absolute inset-0 h-16 w-full overflow-visible" viewBox="0 0 {width} 64" aria-hidden="true">
-					{#if Math.min(nowAt, points.length - 1) > 0}
-						<path d={curve(0, Math.min(nowAt, points.length - 1))} fill="none" stroke="var(--on-hero)" stroke-width="2.5" stroke-linecap="round" />
-					{/if}
-					{#if nowAt < points.length - 1}
-						<path
-							d={curve(nowAt, points.length - 1)}
-							fill="none"
-							stroke="var(--on-hero)"
-							stroke-opacity="0.4"
-							stroke-width="2"
-							stroke-dasharray="1 6"
-							stroke-linecap="round"
-						/>
-					{/if}
-					{#each points as [x, y], i (i)}
-						{#if i !== nowAt && done[i]}
-							<circle cx={x} cy={y} r="6" fill="var(--on-hero)" />
-						{:else if i === nowAt}
-							<circle cx={x} cy={y} r="15" fill="var(--live-halo)" />
-							<circle cx={x} cy={y} r="9" fill="var(--live)" />
-						{:else}
-							<circle cx={x} cy={y} r="6" fill="var(--hero)" stroke="var(--on-hero)" stroke-opacity="0.55" stroke-width="2" />
+		{#if run.sections.length}
+			<div class="mt-3.5 flex gap-1.5" aria-hidden="true">
+				{#each run.sections as s, i (i)}
+					<span class="h-2 flex-1 overflow-hidden rounded-full {marks[i] === 'done' ? 'bg-on-hero' : 'bg-on-hero/20'}">
+						{#if marks[i] === 'now'}
+							<span class="block h-full rounded-full bg-live" style="width: {sectionShare(s) * 100}%"></span>
 						{/if}
-					{/each}
-				</svg>
-				<ol>
-					{#each shown as s, i (i)}
-						<li
-							class="absolute bottom-0 truncate text-center text-xs {i === nowAt ? 'font-bold text-live' : 'font-semibold text-on-hero/70'}"
-							style="left: {points[i][0] - gap / 2}px; width: {gap}px"
-						>
-							{s.name}
-						</li>
-					{/each}
-				</ol>
+					</span>
+				{/each}
 			</div>
+			<p class="mt-2.5 flex items-baseline justify-between gap-3">
+				{#if stop}
+					<span class="min-w-0 truncate text-lg font-extrabold text-live">{run.sections[at].name}</span>
+					<span class="shrink-0 text-sm font-semibold text-on-hero-2">Section {at + 1} of {run.sections.length}</span>
+				{:else}
+					<span class="text-lg font-extrabold">All done</span>
+				{/if}
+			</p>
 		{/if}
 		{#if left > 0}
 			<div class="mt-3.5 flex items-end justify-between">

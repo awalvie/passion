@@ -158,6 +158,23 @@ export function stopHref(run: string, stop: RunItem | undefined): string {
 	return stop.step ? `/run/${run}/step/${stop.step.id}` : `/run/${run}#pick-${stop.choice.id}`;
 }
 
+export type SectionMark = 'done' | 'now' | 'todo';
+
+// sectionMarks marks the section at `at` as now, and a section whose items
+// are all finished as done.
+export function sectionMarks(r: Pick<Run, 'sections'>, at: number): SectionMark[] {
+	return r.sections.map((s, i) => {
+		if (i === at) return 'now';
+		return s.items.length && s.items.every((it) => it.step && isFinished(it.step)) ? 'done' : 'todo';
+	});
+}
+
+// sectionShare is how much of a section is finished, from 0 to 1.
+export function sectionShare(s: RunSection): number {
+	const done = s.items.filter((it) => it.step && isFinished(it.step)).length;
+	return s.items.length ? done / s.items.length : 0;
+}
+
 export function setsOf(r: Pick<Run, 'sets'>, step: string): LoggedSet[] {
 	return r.sets.filter((s) => s.step === step).sort((a, b) => a.number - b.number);
 }
