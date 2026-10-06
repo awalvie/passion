@@ -136,16 +136,26 @@ export function isFinished(s: RunStep): boolean {
 	return s.status === 'skipped' || s.elapsed_seconds !== null;
 }
 
-export function currentStep(r: Pick<Run, 'sections'>): RunStep | undefined {
-	return stepsOf(r).find((s) => !isFinished(s));
+// A stop is where the player goes next: an unfinished step, or a choice that
+// still needs a pick. The player must not pass a choice that asks for one.
+function isStop(i: RunItem): boolean {
+	return i.choice ? i.choice.pick > 0 : !isFinished(i.step);
 }
 
-// nextStep is the first unfinished step after this one, or else the first
-// unfinished one before it.
-export function nextStep(r: Pick<Run, 'sections'>, after: string): RunStep | undefined {
-	const steps = stepsOf(r);
-	const i = steps.findIndex((s) => s.id === after);
-	return [...steps.slice(i + 1), ...steps.slice(0, i)].find((s) => !isFinished(s));
+export function currentStop(r: Pick<Run, 'sections'>): RunItem | undefined {
+	return r.sections.flatMap((s) => s.items).find(isStop);
+}
+
+// nextStop is the first stop after this step, or else the first one before it.
+export function nextStop(r: Pick<Run, 'sections'>, after: string): RunItem | undefined {
+	const items = r.sections.flatMap((s) => s.items);
+	const i = items.findIndex((it) => it.step?.id === after);
+	return [...items.slice(i + 1), ...items.slice(0, i)].find(isStop);
+}
+
+export function stopHref(run: string, stop: RunItem | undefined): string {
+	if (!stop) return `/run/${run}`;
+	return stop.step ? `/run/${run}/step/${stop.step.id}` : `/run/${run}#pick-${stop.choice.id}`;
 }
 
 export function setsOf(r: Pick<Run, 'sets'>, step: string): LoggedSet[] {

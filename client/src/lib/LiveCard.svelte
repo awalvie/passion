@@ -3,7 +3,7 @@
 	import Button from './Button.svelte';
 	import { formatDuration } from './exercise';
 	import Menu from './Menu.svelte';
-	import { currentStep, isFinished, secondsSince, setsOf, type Run } from './run';
+	import { currentStop, isFinished, secondsSince, setsOf, type Run } from './run';
 	import { formatClock, readTimers } from './timerStore';
 	import Topo from './Topo.svelte';
 	import { heroTopo } from './topo';
@@ -17,10 +17,9 @@
 	});
 	const minutes = $derived(Math.floor(secondsSince(run.started_at, now) / 60));
 
-	const current = $derived(currentStep(run));
-	const at = $derived(
-		current ? run.sections.findIndex((s) => s.items.some((i) => i.step?.id === current.id)) : run.sections.length
-	);
+	const stop = $derived(currentStop(run));
+	const current = $derived(stop?.step);
+	const at = $derived(stop ? run.sections.findIndex((s) => s.items.includes(stop)) : run.sections.length);
 
 	// Five sections at most, kept around the current one.
 	const first = $derived(Math.max(0, Math.min(at - 2, run.sections.length - 5)));
