@@ -45,7 +45,7 @@
 		{:else}
 			<p class="text-xs font-semibold tracking-[0.06em] text-on-hero-2 uppercase">{label}</p>
 		{/if}
-		<h2 class="mt-1 text-[32px] leading-tight font-extrabold tracking-tight">{day.template_name}</h2>
+		<h2 class="mt-1 truncate text-[32px] leading-tight font-extrabold tracking-tight">{day.template_name}</h2>
 		{#if sections.length || template?.needs}
 			<div class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xl font-bold tracking-tight">
 				{#if sections.length}

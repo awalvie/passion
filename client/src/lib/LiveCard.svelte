@@ -79,7 +79,7 @@
 				]}
 			/>
 		</div>
-		<h2 class="mt-1 text-[32px] leading-tight font-extrabold tracking-tight">{run.name}</h2>
+		<h2 class="mt-1 truncate text-[32px] leading-tight font-extrabold tracking-tight">{run.name}</h2>
 		{#if shown.length}
 			<div class="relative mt-3 h-16" bind:clientWidth={width}>
 				<svg class="absolute inset-0 h-16 w-full overflow-visible" viewBox="0 0 {width} 64" aria-hidden="true">
