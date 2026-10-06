@@ -144,6 +144,16 @@
 	const askedIn = $derived(run.sections.findIndex((s) => s.items.some((it) => it.choice?.id === asked)));
 	const isOpen = (i: number) => chosen[i] ?? (i === section || i === askedIn);
 
+	// Sections that hold a choice still to pick, asked about once at the start.
+	let later = $state(false);
+	const unpicked = $derived(
+		run.sections.flatMap((s) => {
+			const c = s.items.find((it) => it.choice && it.choice.pick > 0)?.choice;
+			return c ? [{ section: s.name, choice: c }] : [];
+		})
+	);
+	const remind = $derived(!later && !run.finished_at && finished === 0 && unpicked.length > 0);
+
 	let editing = $state(false);
 
 	let naming = $state(false);
@@ -315,6 +325,19 @@
 				{/each}
 			</div>
 		</section>
+
+		{#if remind}
+			<div class="mt-2.5 rounded-3xl bg-surface px-4 pt-3.5 pb-4 shadow-[0_0_0_2px_var(--live),var(--elev)]">
+				<p class="text-[17px] font-extrabold">
+					{unpicked.length === 1 ? '1 section needs a pick' : `${unpicked.length} sections need a pick`}
+				</p>
+				<p class="mt-0.5 truncate text-sm font-semibold text-ink-2">{unpicked.map((u) => u.section).join(' · ')}</p>
+				<div class="mt-3 grid grid-cols-[1fr_1.4fr] gap-2.5">
+					<button type="button" class="flex h-14 items-center justify-center rounded-full bg-well text-[15px] font-bold text-ink active:opacity-80" onclick={() => (later = true)}>Later</button>
+					<Button variant="live" href={stopHref(run.id, { choice: unpicked[0].choice })}>Pick now</Button>
+				</div>
+			</div>
+		{/if}
 
 		<ol class="mt-1.5">
 			{#each run.sections as s, i (i)}
