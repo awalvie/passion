@@ -16,6 +16,7 @@
 		setsOf,
 		stepsOf,
 		stopHref,
+		type RunChoice,
 		type RunSection,
 		type RunStep,
 		type SectionMark
@@ -25,6 +26,7 @@
 	import type { Exercise } from '$lib/exercise';
 	import ExercisePicker from '$lib/ExercisePicker.svelte';
 	import SessionDot from '$lib/SessionDot.svelte';
+	import Notes from '$lib/Notes.svelte';
 	import Sheet from '$lib/Sheet.svelte';
 
 	const run = $derived(openRun.run!);
@@ -77,6 +79,26 @@
 	function pick(id: string, options: Step[]) {
 		openRun.pick(id, options);
 		choosing = null;
+	}
+
+	// The sheet keeps the last option it showed, so it does not go blank while
+	// it slides down.
+	let previewing = $state(false);
+	let shown = $state<{ choice: RunChoice; k: number }>();
+	const option = $derived(shown?.choice.options[shown.k]);
+	const video = $derived(option?.media.find((md) => md.url));
+	const videoThumb = $derived(option?.media.find((md) => md.url && md.thumb_url));
+
+	function preview(choice: RunChoice, k: number) {
+		shown = { choice, k };
+		previewing = true;
+	}
+
+	function pickShown() {
+		const { choice, k } = shown!;
+		if (choice.pick === 1) pick(choice.id, [choice.options[k]]);
+		else if (!(choosing === choice.id && picked.includes(k))) toggle(choice.id, k);
+		previewing = false;
 	}
 
 	async function discard() {
@@ -385,37 +407,39 @@
 											<p class="px-1 pt-0.5 pb-2 text-xs font-semibold tracking-[0.06em] text-ink-2 uppercase">
 												{c.name} · {choiceMeta(c)}
 											</p>
-											<div class="grid grid-cols-2 gap-2">
+											<div>
 												{#each c.options as o, k (k)}
 													{@const on = choosing === c.id && picked.includes(k)}
 													{@const thumb = o.media.find((md) => md.thumb_url)?.thumb_url}
-													<button
-														type="button"
-														class="relative overflow-hidden rounded-[18px] text-left {on
-															? 'bg-surface shadow-[0_0_0_2.5px_var(--live),var(--elev-sm)]'
-															: 'bg-well opacity-90'}"
-														aria-pressed={on}
-														onclick={() => toggle(c.id, k)}
-													>
-														{#if thumb}
-															<img src={thumb} alt="" class="h-14 w-full object-cover" />
-														{/if}
-														<span
-															class="absolute top-2 right-2 flex size-6 items-center justify-center rounded-full {on
+													<div class="flex items-center gap-3 px-1 {k > 0 ? 'shadow-[inset_0_1px_0_var(--line)]' : ''}">
+														<button
+															type="button"
+															class="relative flex size-7 shrink-0 items-center justify-center rounded-full before:absolute before:-inset-2 before:content-[''] {on
 																? 'bg-live text-on-live'
-																: thumb
-																	? 'border-2 border-white/85 bg-white/30'
-																	: 'border-2 border-ink-3'}"
+																: 'shadow-[inset_0_0_0_2px_var(--ink-3)]'}"
+															aria-pressed={on}
+															aria-label="Pick {o.name}"
+															onclick={() => toggle(c.id, k)}
 														>
 															{#if on}
-																<Icon name="check" size="0.875rem" stroke={3} />
+																<Icon name="check" size="1rem" stroke={3} />
 															{/if}
-														</span>
-														<span class="block px-2.5 pt-2 pb-2.5 {thumb ? '' : 'pr-9'}">
-															<span class="block text-[15px] leading-tight font-bold">{o.name}</span>
-															<span class="mt-0.5 block text-xs font-semibold text-ink-2">{stepMeta(o)}</span>
-														</span>
-													</button>
+														</button>
+														<button
+															type="button"
+															class="flex min-h-[60px] min-w-0 flex-1 items-center gap-3 py-2 text-left"
+															onclick={() => preview(c, k)}
+														>
+															{#if thumb}
+																<img src={thumb} alt="" class="size-11 shrink-0 rounded-xl object-cover" />
+															{/if}
+															<span class="min-w-0 flex-1">
+																<span class="block truncate text-[15px] font-bold">{o.name}</span>
+																<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{stepMeta(o)}</span>
+															</span>
+															<span class="text-ink-3"><Icon name="chevron-right" size="1.125rem" /></span>
+														</button>
+													</div>
 												{/each}
 											</div>
 											{#if choosing === c.id}
@@ -466,6 +490,38 @@
 			<Button type="submit" disabled={!sectionName.trim()}>Add section</Button>
 		</div>
 	</form>
+</Sheet>
+
+<Sheet bind:open={previewing} eyebrow={shown?.choice.name} title={option?.name ?? ''}>
+	{#if option}
+		<p class="-mt-1 text-xs font-semibold text-ink-2">{stepMeta(option)}</p>
+		{#if videoThumb}
+			<a
+				href={videoThumb.url}
+				target="_blank"
+				rel="noopener"
+				class="relative mt-3.5 block aspect-video max-w-full overflow-hidden rounded-[18px] bg-well"
+				aria-label="Watch {option.name}"
+			>
+				<img src={videoThumb.thumb_url} alt="" class="size-full object-cover" />
+				<span class="absolute top-1/2 left-1/2 flex size-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 pl-0.5 text-on-tint">
+					<Icon name="play" size="1.5rem" />
+				</span>
+			</a>
+		{:else if video}
+			<a href={video.url} target="_blank" rel="noopener" class="mt-3.5 flex items-center gap-2.5 text-[15px] font-bold">
+				<span class="flex size-8 items-center justify-center rounded-full bg-well pl-0.5"><Icon name="play" size="1rem" /></span>
+				Watch video
+			</a>
+		{/if}
+		{#if option.notes?.trim()}
+			<div class="mt-3.5 text-[15px] font-semibold"><Notes text={option.notes} /></div>
+		{/if}
+		<div class="mt-5 grid grid-cols-[1fr_1.4fr] gap-2.5">
+			<button type="button" class="flex h-14 items-center justify-center rounded-full bg-well text-[15px] font-bold text-ink active:opacity-80" onclick={() => (previewing = false)}>Back</button>
+			<Button variant="live" onclick={pickShown}>Pick this</Button>
+		</div>
+	{/if}
 </Sheet>
 
 {#if !editing && !run.finished_at && (stop || steps.length)}
