@@ -27,7 +27,8 @@ function resume() {
 	if (ctx && ctx.state !== 'running') void ctx.resume();
 }
 
-addEventListener('pointerdown', resume);
+// Any tap unlocks, so a clock that started by itself can still sound.
+addEventListener('pointerdown', unlock);
 document.addEventListener('visibilitychange', () => {
 	if (document.visibilityState === 'visible') resume();
 });
