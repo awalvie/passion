@@ -269,9 +269,20 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
 - Step page: `lib/RunPage.svelte` for every step of a running session except climbing. It
   is one dark look in both themes: the session green (`bg-run`), or the timer's phase
   colour (`prep`, `hang`, `rest-field`). From the top: the bar (back, the session clock,
-  •••), the phase line (an icon in a circle, a status such as `SET 2 OF 3`, then Media and
-  Note), the name, the kind's middle, and one bottom panel with a `NEXT` line and one row
-  of buttons. The buttons are `run-btn` (a main action, `bg-tint`, or `bg-live` to go on),
-  `run-chip` (a small one such as Skip or +30 s) and `run-icon` (the circle around an
-  icon on either). The phase icons are `hourglass` (ready, prep), `bolt` (work), `wave`
-  (rest) and `barbell` (sets).
+  •••), the name centred, How-to and Note as a centred pair of `run-tag` chips, the
+  kind's middle, and one bottom panel. Everything above the bottom panel sits on the
+  centre line.
+  - A timer's state (`READY · PREP 10 S`, `WORK · REP 1 OF 2`) is a small-caps label
+    centred above its digits.
+  - The bottom panel starts with a `NEXT` label and a row for the next exercise: its kind
+    icon in a glass tile, the name, the dose under it, and a chevron that opens its how-to.
+    `NEXT` never names a timer phase.
+  - The buttons are `run-btn` (a main action, `bg-tint`, or `bg-live` to go on),
+    `run-chip` (a small one such as +30 s), `run-round` (Skip, pause) and `run-icon` (the
+    circle around an icon on either).
+- Set card: `lib/SetsPlayer.svelte`. One glass card: a "Last time · date" row that opens
+  the History sheet, the REPS and WEIGHT headings, one row per set, then "+ Add set". A set
+  row is a number circle (tap marks the set done), a reps field, a weight field with a
+  `kg` placeholder, and a small × that removes the set. Done is a green row with a check
+  (`rest-on-hero`), the current set has a lime ring, number and left bar, and later sets
+  are dimmed. Each field shows last time's value under it as `last 20`.
