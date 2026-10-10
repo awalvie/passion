@@ -7,6 +7,7 @@
 	import { isFinished, nextStop, setsOf, stepsOf, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
 	import RunPage from './RunPage.svelte';
+	import type { NextLine } from './template';
 	import Stepper from './Stepper.svelte';
 	import TimerFlap from './TimerFlap.svelte';
 	import { at, canTime, elapsed, endSet, jump, newClock, rows, startOf, timeline, togglePause, type Phase } from './timeline';
@@ -23,7 +24,7 @@
 		skip
 	}: {
 		step: RunStep;
-		next: string;
+		next: NextLine;
 		nextHref: string;
 		last: boolean;
 		menu: MenuItem[];
@@ -189,11 +190,10 @@
 
 	// What comes after this phase, under the NEXT label: the next phase of
 	// this step, or the next step once its last hang is on.
-	function then(p: Phase) {
-		const rep = `Rep ${p.rep} · ${s(step.rep_seconds)}`;
+	function then(p: Phase): NextLine {
 		const side = p.side && p.side !== phase?.side ? `${p.side} side · ` : '';
-		if (phase && p.set !== phase.set) return `Set ${p.set} · ${side}${rep}`;
-		return side + rep;
+		const set = phase && p.set !== phase.set ? `Set ${p.set} · ` : '';
+		return { name: `${set}${side}Rep ${p.rep}`, detail: s(step.rep_seconds) };
 	}
 
 	const finished = $derived(isFinished(step) && !leaving && !advancing);
@@ -213,16 +213,16 @@
 		return `${word} · Rep ${phase.rep} of ${step.reps}`;
 	});
 
-	const nextLine = $derived.by(() => {
+	const nextLine = $derived.by((): NextLine => {
 		if (finished) return next;
 		if (!timed || !phase) {
 			const work = setsLogged
 				? `set ${setsLogged + 1}`
 				: `${step.sets && step.sets > 1 ? `${step.sets} × ` : ''}${step.reps} × ${s(step.rep_seconds)}`;
-			return step.prep_seconds ? `Prep ${s(step.prep_seconds)}, then ${work}` : work[0].toUpperCase() + work.slice(1);
+			return { name: step.prep_seconds ? `Prep ${s(step.prep_seconds)}, then ${work}` : work[0].toUpperCase() + work.slice(1) };
 		}
 		if (!upcoming) return next;
-		if (upcoming.kind === 'rest') return `Rest · ${s(Math.round(upcoming.ms / 1000))}`;
+		if (upcoming.kind === 'rest') return { name: 'Rest', detail: s(Math.round(upcoming.ms / 1000)) };
 		return then(upcoming);
 	});
 

@@ -5,6 +5,7 @@
 	import { isFinished, setsOf, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
 	import RunPage from './RunPage.svelte';
+	import type { NextLine } from './template';
 	import { plainText } from './text';
 	import { elapsed, newClock, togglePause } from './timeline';
 	import { formatClock, readTimers, writeTimers, type Timed } from './timerStore';
@@ -20,7 +21,7 @@
 		leave
 	}: {
 		step: RunStep;
-		next: string;
+		next: NextLine;
 		nextHref: string;
 		last: boolean;
 		menu: MenuItem[];

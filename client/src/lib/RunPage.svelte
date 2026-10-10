@@ -12,6 +12,7 @@
 	import { openRun } from './runState.svelte';
 	import SaveStatus from './SaveStatus.svelte';
 	import Sheet from './Sheet.svelte';
+	import type { NextLine } from './template';
 	import { plainText } from './text';
 	import { runRings } from './topo';
 	import { sessionClock } from './timerStore';
@@ -33,7 +34,7 @@
 		look?: RunLook;
 		icon: IconName;
 		status: string;
-		next: string | null;
+		next: NextLine | null;
 		menu: MenuItem[];
 		band?: number | null;
 		error?: string;
@@ -189,9 +190,17 @@
 			role="group"
 			aria-label="Exercise"
 		>
+			{#snippet upNext(n: NextLine)}
+				<span class="min-w-0 flex-1">
+					<span class="flex items-baseline gap-3 font-[family-name:var(--font-digits)] text-[17px] leading-none font-bold tracking-[0.08em] text-(--fg2)">
+						NEXT
+						{#if n.detail}<span class="min-w-0 truncate tracking-[0.02em]">{n.detail}</span>{/if}
+					</span>
+					<span class="mt-1.5 line-clamp-2 text-[22px] leading-[1.15] font-extrabold tracking-[-0.01em] text-balance">{n.name}</span>
+				</span>
+			{/snippet}
 			{#if next}
-				<p class="px-1 font-[family-name:var(--font-digits)] text-[17px] leading-none font-bold tracking-[0.08em] text-(--fg2)">NEXT</p>
-				<p class="mt-1 truncate px-1 text-[22px] leading-tight font-extrabold tracking-[-0.01em]">{next}</p>
+				<div class="flex px-1">{@render upNext(next)}</div>
 			{/if}
 			<div class="flex gap-2.5 {next ? 'mt-5' : ''}">
 				{@render buttons()}

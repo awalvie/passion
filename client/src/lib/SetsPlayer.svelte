@@ -7,6 +7,7 @@
 	import { isFinished, setsOf, type HistorySession, type RunStep, type SetFields } from './run';
 	import { openRun } from './runState.svelte';
 	import RunPage from './RunPage.svelte';
+	import type { NextLine } from './template';
 	import Stepper from './Stepper.svelte';
 
 	let {
@@ -20,7 +21,7 @@
 		skip
 	}: {
 		step: RunStep;
-		next: string;
+		next: NextLine;
 		nextHref: string;
 		last: boolean;
 		menu: MenuItem[];
