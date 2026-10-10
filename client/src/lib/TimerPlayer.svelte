@@ -34,7 +34,7 @@
 
 	const runId = $derived(openRun.run!.id);
 	let timed = $state<Timed | null>(null);
-	const phases = $derived(timeline(step));
+	const phases = $derived(timeline(step, timed?.extra));
 	const logged = $derived(setsOf(openRun.run!, step.id));
 
 	// A per-side set logs two rows, one for each side.
@@ -125,6 +125,11 @@
 	function skipPhase() {
 		const t = Date.now();
 		save({ ...timed!, clock: jump(timed!.clock, t, startOf(phases, pos.index + 1)) });
+	}
+
+	function addRest() {
+		const extra = timed!.extra ?? {};
+		save({ ...timed!, extra: { ...extra, [pos.index]: (extra[pos.index] ?? 0) + 30_000 } });
 	}
 
 	function cutSet() {
@@ -289,6 +294,9 @@
 			<button type="button" class="run-btn {paused && phase?.kind !== 'hang' ? 'bg-tint text-on-tint' : 'bg-(--fg) text-(--field)'}" onclick={pause}>
 				<span class="run-icon"><Icon name={paused ? 'play' : 'pause'} size="16px" stroke={3} /></span>{paused ? 'Resume' : 'Pause'}
 			</button>
+			{#if phase?.kind === 'rest'}
+				<button type="button" class="run-chip pl-[18px]" onclick={addRest}>+30 s</button>
+			{/if}
 			<button type="button" class="run-chip" onclick={skipPhase}><span class="run-icon"><Icon name="skip" size="16px" /></span>Skip</button>
 		{/if}
 	{/snippet}

@@ -7,9 +7,15 @@ export type Timers = {
 	timed?: Timed | null;
 };
 
-// A running timed-reps step: its clock, the blocks cut short, and the weight
-// each of its rows logs.
-export type Timed = { step: string; clock: Clock; short: Record<number, number>; weight: number | null };
+// A running timed-reps step: its clock, the blocks cut short, the weight each
+// of its rows logs, and the time added to its phases.
+export type Timed = {
+	step: string;
+	clock: Clock;
+	short: Record<number, number>;
+	weight: number | null;
+	extra?: Record<number, number>;
+};
 
 const key = (runId: string) => `passion-timer:${runId}`;
 
