@@ -220,6 +220,16 @@ test('unlog to no sets reaches the server as a null status in the body, then an 
 	expect(sent[1][1]).toStrictEqual({ sets: [] });
 });
 
+test('addSet from a count adds a set to what the page shows', async () => {
+	const openRun = await openOffline();
+	const s = openRun.step('s1')!;
+	s.sets = null;
+
+	openRun.addSet(s, 1);
+
+	expect(s.sets).toBe(2);
+});
+
 test('removeOption drops one option and lowers the pick count to what is left', async () => {
 	const openRun = await openOffline();
 

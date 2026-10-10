@@ -122,7 +122,7 @@
 		next={stopLine(next)}
 		{nextHref}
 		last={!next}
-		menu={[{ label: 'Add set', onclick: () => openRun.addSet(step!) }, ...menu]}
+		{menu}
 		{error}
 		leaving={leaving === step.id}
 		{leave}
