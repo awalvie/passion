@@ -264,7 +264,7 @@
 			<span class="text-[17px] font-bold text-(--fg2)">{setsLogged} of {step.sets} {step.sets === 1 ? 'set' : 'sets'} logged</span>
 		</div>
 	{:else}
-		<p class="mt-6 shrink-0 text-center font-[family-name:var(--font-digits)] text-[17px] leading-none font-bold tracking-[0.08em] text-(--fg2) uppercase">{status}</p>
+		<p class="mt-8 shrink-0 text-center font-[family-name:var(--font-digits)] text-[17px] leading-none font-bold tracking-[0.08em] text-(--fg2) uppercase">{status}</p>
 		<div
 			class="mt-3 flex shrink-0 items-end justify-center gap-2 {ready
 				? '[--h:min(196px,20svh,48vw)]'

@@ -136,7 +136,7 @@
 	{error}
 	bind:reading
 >
-	<div class="mt-6 flex flex-col">
+	<div class="mt-8 flex flex-col">
 		{#if !finished}
 			<p class="mb-3 text-center font-[family-name:var(--font-digits)] text-[17px] leading-none font-bold tracking-[0.08em] text-(--fg2) uppercase">
 				{!timed ? 'Ready' : paused ? 'Paused' : 'Running'}
