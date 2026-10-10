@@ -4,12 +4,12 @@
 	import { tone, unlock } from './audio';
 	import Icon from './Icon.svelte';
 	import type { MenuItem } from './Menu.svelte';
-	import { isFinished, setsOf, type RunStep } from './run';
+	import { isFinished, nextStop, setsOf, stepsOf, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
 	import RunPage from './RunPage.svelte';
 	import Stepper from './Stepper.svelte';
 	import TimerFlap from './TimerFlap.svelte';
-	import { at, elapsed, endSet, jump, newClock, rows, startOf, timeline, togglePause, type Phase } from './timeline';
+	import { at, canTime, elapsed, endSet, jump, newClock, rows, startOf, timeline, togglePause, type Phase } from './timeline';
 	import { readTimers, writeTimers, type Timed } from './timerStore';
 
 	let {
@@ -37,6 +37,13 @@
 	const phases = $derived(timeline(step, timed?.extra));
 	const logged = $derived(setsOf(openRun.run!, step.id));
 
+	// A skip or End set that lands on the end is the person ending the step,
+	// not the timer running out.
+	let cut = false;
+
+	// The page keeps this step's last look while auto-next opens the next one.
+	let advancing = $state(false);
+
 	// A per-side set logs two rows, one for each side.
 	const sides = $derived(step.per_side ? 2 : 1);
 	let weight = $state<number | null>(null);
@@ -46,6 +53,7 @@
 		const stored = readTimers(runId).timed;
 		const mine = stored?.step === step.id && !isFinished(step) ? stored : null;
 		timed = mine;
+		cut = false;
 		weight = mine?.weight ?? untrack(() => logged.at(-1)?.weight_kg) ?? null;
 	});
 
@@ -66,8 +74,24 @@
 		if (!timed) return;
 		const done = rows(phases, ms, timed.short);
 		if (done.length > logged.length) log(done);
-		if (pos.index >= phases.length) stop();
+		if (pos.index >= phases.length) ranOut();
 	});
+
+	// When the last hang runs out on its own, a fresh timed step that comes
+	// next starts with its own prep, so a routine runs with no touch. A timer
+	// that ran out long ago, while the phone slept, only finishes.
+	function ranOut() {
+		const late = ms - startOf(phases, phases.length) > 2000;
+		const run = openRun.run!;
+		const after = nextStop(run, step.id)?.step;
+		const steps = stepsOf(run);
+		stop();
+		if (cut || late || !after || after.kind !== 'timed_reps' || !canTime(after) || setsOf(run, after.id).length) return;
+		if (steps.indexOf(after) < steps.indexOf(step)) return;
+		advancing = true;
+		writeTimers(runId, { ...readTimers(runId), timed: { step: after.id, clock: newClock(Date.now()), short: {}, weight } });
+		void goto(nextHref).finally(() => (advancing = false));
+	}
 
 	// A tick in each of the last three seconds of a phase, and a high tone as
 	// a hang starts. A key per sound plays each one once.
@@ -124,6 +148,7 @@
 
 	function skipPhase() {
 		const t = Date.now();
+		cut = pos.index + 1 >= phases.length;
 		save({ ...timed!, clock: jump(timed!.clock, t, startOf(phases, pos.index + 1)) });
 	}
 
@@ -134,6 +159,7 @@
 
 	function cutSet() {
 		const { clock, short } = endSet(phases, timed!.clock, Date.now(), timed!.short);
+		cut = at(phases, elapsed(clock, Date.now())).index >= phases.length;
 		save({ ...timed!, clock, short });
 	}
 
@@ -170,7 +196,7 @@
 		return side + rep;
 	}
 
-	const finished = $derived(isFinished(step) && !leaving);
+	const finished = $derived(isFinished(step) && !leaving && !advancing);
 	const setsLogged = $derived(Math.floor(logged.length / sides));
 	const paused = $derived(timed?.clock.pausedAt != null);
 	const repsDone = $derived(phase ? (phase.kind === 'rest' ? phase.rep : phase.rep - 1) : 0);

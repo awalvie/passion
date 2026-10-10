@@ -27,8 +27,9 @@ player. Plan lists the sessions from a week ago to four weeks ahead. It
 adds a one-off session, moves or removes one, and makes, edits and deletes cycles. Library
 holds the exercises and the session templates. History lists finished sessions and what each
 one logged. While a session runs, the client logs sets, per-side sets, climbs, and timed reps
-with prep, hang and rest, and a rest can run 30 s longer. It picks from a choice, adds an
-exercise, and finishes with the journal. Writes wait on the phone when there is no signal.
+with prep, hang and rest. A rest can run 30 s longer, and the next timed exercise starts
+when one runs out. It picks from a choice, adds an exercise, and finishes with the journal.
+Writes wait on the phone when there is no signal.
 Every screen has the look of `passion-design/final/designs/direction`, in light and dark.
 
 - Sign up with an email address and a password, hashed with argon2id.
