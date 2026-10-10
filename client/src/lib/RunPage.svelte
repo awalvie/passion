@@ -12,7 +12,7 @@
 	import { openRun } from './runState.svelte';
 	import SaveStatus from './SaveStatus.svelte';
 	import Sheet from './Sheet.svelte';
-	import type { NextLine } from './template';
+	import type { NextLine, Step } from './template';
 	import { plainText } from './text';
 	import { runRings } from './topo';
 	import { sessionClock } from './timerStore';
@@ -61,10 +61,8 @@
 		return () => clearInterval(tick);
 	});
 
-	const howTo = $derived(plainText(step.notes ?? '').trim());
-	const video = $derived(step.media?.find((m) => m.url));
-
 	let noting = $state(false);
+	let peeking = $state(false);
 	let draft = $state('');
 
 	// The step the note sheet opened on, which keeps the note if the page
@@ -86,6 +84,7 @@
 		if (step.id === shown) return;
 		shown = step.id;
 		reading = false;
+		peeking = false;
 		if (noting) saveNote();
 		noting = false;
 	});
@@ -199,7 +198,14 @@
 					<span class="mt-1.5 line-clamp-2 text-[22px] leading-[1.15] font-extrabold tracking-[-0.01em] text-balance">{n.name}</span>
 				</span>
 			{/snippet}
-			{#if next}
+			{#if next?.step}
+				<button type="button" class="flex w-full items-center gap-3 px-1 text-left" onclick={() => (peeking = true)}>
+					{@render upNext(next)}
+					<span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-(--glass) text-(--fg2)" aria-hidden="true">
+						<Icon name="chevron-right" size="18px" stroke={2.4} />
+					</span>
+				</button>
+			{:else if next}
 				<div class="flex px-1">{@render upNext(next)}</div>
 			{/if}
 			<div class="flex gap-2.5 {next ? 'mt-5' : ''}">
@@ -207,7 +213,8 @@
 			</div>
 		</div>
 
-		<Sheet bind:open={reading} title={step.name} eyebrow="How to">
+		{#snippet guide(s: Step)}
+			{@const video = s.media?.find((m) => m.url)}
 			<div class="flex flex-col gap-4 px-1 text-[15px] leading-[1.4] font-semibold text-ink">
 				{#if video?.thumb_url}
 					<a
@@ -227,13 +234,23 @@
 						<Icon name="play" size="1rem" />Watch the video
 					</a>
 				{/if}
-				{#if howTo}
-					<Notes text={step.notes ?? ''} outline class="rounded-[22px] bg-surface p-5 shadow-card-sm" />
+				{#if plainText(s.notes ?? '').trim()}
+					<Notes text={s.notes ?? ''} outline class="rounded-[22px] bg-surface p-5 shadow-card-sm" />
 				{:else}
 					<p class="text-ink-2">No notes for this exercise yet.</p>
 				{/if}
 			</div>
+		{/snippet}
+
+		<Sheet bind:open={reading} title={step.name} eyebrow="How to">
+			{@render guide(step)}
 		</Sheet>
+
+		{#if next?.step}
+			<Sheet bind:open={peeking} title={next.step.name} eyebrow={next.detail ? `Up next · ${next.detail}` : 'Up next'}>
+				{@render guide(next.step)}
+			</Sheet>
+		{/if}
 
 		<Sheet bind:open={noting} title="Your note" eyebrow={step.name}>
 			<textarea
