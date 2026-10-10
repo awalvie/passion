@@ -267,14 +267,18 @@
 		<p class="mt-8 shrink-0 text-center font-[family-name:var(--font-digits)] text-[17px] leading-none font-bold tracking-[0.08em] text-(--fg2) uppercase">{status}</p>
 		<div
 			class="mt-3 flex shrink-0 items-end justify-center gap-2 {ready
-				? '[--h:min(196px,20svh,48vw)]'
+				? '[--h:min(260px,28svh,62vw)]'
 				: clock.length === 1
 					? '[--h:min(300px,34svh,76vw)]'
-					: '[--h:min(236px,28svh,56vw)]'} {paused ? 'opacity-55' : ''}"
+					: '[--h:min(260px,28svh,62vw)]'} {paused ? 'opacity-55' : ''}"
 			role="img"
 			aria-live="off"
 			aria-label="{secs} {secs === 1 ? 'second' : 'seconds'}{timed ? ' left' : ''}"
 		>
+			<!-- A hidden twin of the unit keeps the digits on the centre line. -->
+			{#if secs < 60}
+				<span class="invisible mr-0.5 pb-5 font-[family-name:var(--font-digits)] text-[44px] leading-none font-bold" aria-hidden="true">s</span>
+			{/if}
 			{#each clock.split('') as digit, i (i)}
 				{#if secs >= 60 && i === clock.length - 2}
 					<div class="flex w-4 flex-col items-center gap-[calc(var(--h)*0.127)] self-center" aria-hidden="true">
