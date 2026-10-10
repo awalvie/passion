@@ -280,6 +280,20 @@ class OpenRun {
 		this.saveBody();
 	}
 
+	// removeSet drops one of a step's sets, and what it logged if it was done.
+	removeSet(step: RunStep, i: number, count: number) {
+		const sides = step.per_side ? 2 : 1;
+		const logged = setsOf(this.run!, step.id);
+		const keep = logged.filter((_, k) => Math.floor(k / sides) !== i);
+		step.sets = Math.max(0, count - 1);
+		if (!keep.length) {
+			step.status = null;
+			step.elapsed_seconds = null;
+		}
+		this.saveBody();
+		if (keep.length !== logged.length) this.setSets(step, keep);
+	}
+
 	// skip drops what the step logged, as the server does, and any set write
 	// still waiting, which the server would refuse.
 	skip(step: RunStep) {
