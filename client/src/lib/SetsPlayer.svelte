@@ -41,6 +41,9 @@
 	let reps = $state<number | null>(null);
 	let weight = $state<number | null>(null);
 	let lastTime = $state<HistorySession | null>(null);
+	// The page stays mounted from one exercise to the next, so the history of
+	// the one before can still be loaded when the steppers fill.
+	const history = $derived(lastTime?.sets[0]?.exercise === step.exercise ? lastTime : null);
 
 	// The newest finished run that logged this exercise. Without a signal the
 	// sets start from the plan.
@@ -67,7 +70,7 @@
 	// time, and else from the plan.
 	function prefill(): [number | null, number | null] {
 		const before = logged.at(-1);
-		const then = lastTime?.sets[logged.length] ?? lastTime?.sets.at(-1);
+		const then = history?.sets[logged.length] ?? history?.sets.at(-1);
 		return [before?.reps ?? then?.reps ?? step.reps, before?.weight_kg ?? then?.weight_kg ?? null];
 	}
 
@@ -120,7 +123,7 @@
 	// The sets still to do after the one being logged now.
 	const later = $derived(finished ? [] : Array.from({ length: Math.max(0, (step.sets ?? 0) - number) }, (_, i) => number + 1 + i));
 	const plan = $derived(step.sets && step.reps ? `${step.sets} × ${step.reps}` : step.sets ? `${step.sets} sets` : step.reps ? `${step.reps} reps` : '');
-	const lastWeight = $derived(lastTime?.sets.find((s) => s.weight_kg !== null)?.weight_kg ?? null);
+	const lastWeight = $derived(history?.sets.find((s) => s.weight_kg !== null)?.weight_kg ?? null);
 	const status = $derived(
 		finished ? `Done · ${setsDone}${step.sets ? ` of ${step.sets}` : ''}` : `Set ${number}${step.sets ? ` of ${step.sets}` : ''}${sides === 2 ? ` · ${side(row)}` : ''}`
 	);
