@@ -179,15 +179,15 @@
 			<button type="button" class="run-btn bg-tint text-on-tint" onclick={start}>
 				<span class="run-icon"><Icon name="play" size="16px" /></span>Start
 			</button>
-			<button type="button" class="run-chip" onclick={skip}><span class="run-icon"><Icon name="skip" size="16px" /></span>Skip</button>
+			<button type="button" class="run-round" aria-label="Skip" onclick={skip}><Icon name="skip" size="26px" /></button>
 		{:else}
-			<button type="button" class="run-btn gap-2 text-[17px] {paused ? 'bg-tint text-on-tint' : 'bg-(--fg) text-(--field)'}" onclick={pause}>
-				<span class="run-icon"><Icon name={paused ? 'play' : 'pause'} size="16px" stroke={3} /></span>{paused ? 'Resume' : 'Pause'}
+			<button type="button" class="run-round {paused ? 'bg-tint text-on-tint' : 'bg-(--fg) text-(--field)'}" aria-label={paused ? 'Resume' : 'Pause'} onclick={pause}>
+				<Icon name={paused ? 'play' : 'pause'} size="26px" stroke={3} />
 			</button>
-			<button type="button" class="run-btn gap-2 text-[17px] {paused ? 'bg-(--glass)' : 'bg-tint text-on-tint'}" onclick={finish}>
+			<button type="button" class="run-btn {paused ? 'bg-(--glass)' : 'bg-tint text-on-tint'}" onclick={finish}>
 				<span class="run-icon"><Icon name="check" size="16px" stroke={3} /></span>Done
 			</button>
-			<button type="button" class="run-chip" onclick={skip}><span class="run-icon"><Icon name="skip" size="16px" /></span>Skip</button>
+			<button type="button" class="run-round" aria-label="Skip" onclick={skip}><Icon name="skip" size="26px" /></button>
 		{/if}
 	{/snippet}
 </RunPage>

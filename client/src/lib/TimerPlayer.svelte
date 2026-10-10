@@ -315,15 +315,20 @@
 			<button type="button" class="run-btn bg-tint text-on-tint" onclick={start}>
 				<span class="run-icon"><Icon name="play" size="16px" /></span>{logged.length ? 'Continue' : 'Start'}
 			</button>
-			<button type="button" class="run-chip" onclick={skip}><span class="run-icon"><Icon name="skip" size="16px" /></span>Skip</button>
+			<button type="button" class="run-round" aria-label="Skip" onclick={skip}><Icon name="skip" size="26px" /></button>
 		{:else}
-			<button type="button" class="run-btn {paused && phase?.kind !== 'hang' ? 'bg-tint text-on-tint' : 'bg-(--fg) text-(--field)'}" onclick={pause}>
-				<span class="run-icon"><Icon name={paused ? 'play' : 'pause'} size="16px" stroke={3} /></span>{paused ? 'Resume' : 'Pause'}
+			<button
+				type="button"
+				class="run-btn {paused && phase?.kind !== 'hang' ? 'bg-tint text-on-tint' : 'bg-(--fg) text-(--field)'}"
+				aria-label={paused ? 'Resume' : 'Pause'}
+				onclick={pause}
+			>
+				<Icon name={paused ? 'play' : 'pause'} size="36px" stroke={3.4} />
 			</button>
 			{#if phase?.kind === 'rest'}
 				<button type="button" class="run-chip pl-[18px]" onclick={addRest}>+30 s</button>
 			{/if}
-			<button type="button" class="run-chip" onclick={skipPhase}><span class="run-icon"><Icon name="skip" size="16px" /></span>Skip</button>
+			<button type="button" class="run-round" aria-label="Skip" onclick={skipPhase}><Icon name="skip" size="26px" /></button>
 		{/if}
 	{/snippet}
 </RunPage>
