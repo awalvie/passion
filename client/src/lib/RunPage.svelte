@@ -91,13 +91,13 @@
 		noting = true;
 	}
 
-	// The name takes two lines at most: it starts at 32 px and steps down to
-	// 24 px until it fits.
+	// The name takes two lines at most: it starts at 28 px and steps down to
+	// 22 px until it fits.
 	function fit(node: HTMLElement, name: string) {
 		const size = () => {
-			let px = 32;
+			let px = 28;
 			node.style.fontSize = `${px}px`;
-			while (px > 24 && node.scrollHeight > px * 1.05 * 2 + 2) {
+			while (px > 22 && node.scrollHeight > px * 1.08 * 2 + 2) {
 				px -= 1;
 				node.style.fontSize = `${px}px`;
 			}
@@ -149,25 +149,18 @@
 			{#if error}<p class="rounded-2xl bg-surface px-4 py-3 text-[15px] font-semibold text-bad" role="alert">{error}</p>{/if}
 		</div>
 
-		<div class="mt-3 flex h-11 shrink-0 items-center justify-end gap-2.5 pr-4 pl-5">
-			<button type="button" class="flex size-11 shrink-0 items-center justify-center rounded-full bg-(--glass)" aria-label="How to" onclick={() => (reading = true)}>
-				<Icon name="book" size="20px" stroke={2.2} />
-			</button>
-			<button
-				type="button"
-				class="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-(--glass)"
-				aria-label={step.run_notes ? 'Your note' : 'Write a note'}
-				onclick={openNote}
-			>
-				<Icon name="notepad" size="20px" stroke={2.2} />
-				{#if step.run_notes}
-					<i class="absolute top-px right-px size-[11px] rounded-full bg-tint shadow-[0_0_0_3px_var(--field)]"></i>
-				{/if}
-			</button>
-		</div>
-		<h1 class="mt-2 line-clamp-2 shrink-0 px-5 text-[32px] leading-[1.05] font-extrabold tracking-[-0.02em] break-words text-balance" use:fit={step.name}>
+		<h1 class="mt-3 line-clamp-2 shrink-0 px-5 text-center text-[28px] leading-[1.08] font-extrabold tracking-[-0.02em] break-words text-balance" use:fit={step.name}>
 			{step.name}
 		</h1>
+		<div class="mt-3 flex shrink-0 justify-center gap-2 px-4">
+			<button type="button" class="run-tag" onclick={() => (reading = true)}>
+				<Icon name="book" size="17px" stroke={2.2} />How-to
+			</button>
+			<button type="button" class="run-tag" aria-label={step.run_notes ? 'Your note' : 'Write a note'} onclick={openNote}>
+				<Icon name="notepad" size="17px" stroke={2.2} />Note
+				{#if step.run_notes}<i class="size-2 rounded-full bg-tint" aria-hidden="true"></i>{/if}
+			</button>
+		</div>
 
 		<div class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
 			{@render children()}

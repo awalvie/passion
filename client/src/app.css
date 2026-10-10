@@ -146,6 +146,25 @@ body {
 		font-size: 16px;
 		font-weight: 700;
 	}
+	/* How-to and Note under the step name. The tap area reaches 44 px. */
+	.run-tag {
+		position: relative;
+		display: flex;
+		height: 2.5rem;
+		align-items: center;
+		gap: 0.5rem;
+		border-radius: 999px;
+		padding: 0 1rem 0 0.8125rem;
+		background: var(--glass);
+		color: var(--fg);
+		font-size: 15px;
+		font-weight: 700;
+	}
+	.run-tag::before {
+		content: '';
+		position: absolute;
+		inset: -2px 0;
+	}
 	.run-round {
 		display: flex;
 		flex-shrink: 0;
