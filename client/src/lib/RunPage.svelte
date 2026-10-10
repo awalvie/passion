@@ -218,7 +218,7 @@
 					</a>
 				{/if}
 				{#if howTo}
-					<Notes text={howTo} />
+					<Notes text={step.notes ?? ''} outline class="rounded-[22px] bg-surface p-5 shadow-card-sm" />
 				{:else}
 					<p class="text-ink-2">No notes for this exercise yet.</p>
 				{/if}
