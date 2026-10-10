@@ -168,6 +168,58 @@ test('removeStep keeps the set writes of other steps', async () => {
 	expect(urls(openRun.writes).sort()).toStrictEqual([bodyUrl, `${bodyUrl}/steps/s2/sets`]);
 });
 
+test('unlog to no sets reopens the step and marks it not done', async () => {
+	const openRun = await openOffline();
+	const s = openRun.step('s1')!;
+	openRun.setSets(s, [{ reps: 5, seconds: null, weight_kg: null }]);
+	openRun.finish(s);
+
+	openRun.unlog(s, []);
+
+	expect(s.status).toBeNull();
+	expect(s.elapsed_seconds).toBeNull();
+	expect(openRun.run!.sets.filter((x) => x.step === 's1')).toStrictEqual([]);
+});
+
+test('unlog to some sets keeps the step done, reopens it and queues the body before the sets', async () => {
+	const openRun = await openOffline();
+	const s = openRun.step('s1')!;
+	const two = [
+		{ reps: 5, seconds: null, weight_kg: 10 },
+		{ reps: 4, seconds: null, weight_kg: 12 }
+	];
+	openRun.setSets(s, two);
+	s.elapsed_seconds = 30;
+
+	openRun.unlog(s, two.slice(0, 1));
+
+	expect(s.status).toBe('done');
+	expect(s.elapsed_seconds).toBeNull();
+	expect(openRun.run!.sets.filter((x) => x.step === 's1').map((x) => x.reps)).toStrictEqual([5]);
+	expect(urls(openRun.writes)).toStrictEqual([bodyUrl, `${bodyUrl}/steps/s1/sets`]);
+});
+
+test('unlog to no sets reaches the server as a null status in the body, then an empty set list', async () => {
+	const openRun = await openOffline();
+	const s = openRun.step('s1')!;
+	openRun.setSets(s, [{ reps: 5, seconds: null, weight_kg: null }]);
+	openRun.unlog(s, []);
+
+	const sent: [string, unknown][] = [];
+	vi.stubGlobal(
+		'fetch',
+		vi.fn(async (url: string, init: RequestInit) => {
+			sent.push([url, init.body ? JSON.parse(String(init.body)) : null]);
+			return new Response(null, { status: 204 });
+		})
+	);
+	await openRun.settle();
+
+	expect(sent.map(([u]) => u)).toStrictEqual([bodyUrl, `${bodyUrl}/steps/s1/sets`]);
+	expect((sent[0][1] as Run).sections[0].items[0].step).toMatchObject({ id: 's1', status: null });
+	expect(sent[1][1]).toStrictEqual({ sets: [] });
+});
+
 test('removeOption drops one option and lowers the pick count to what is left', async () => {
 	const openRun = await openOffline();
 

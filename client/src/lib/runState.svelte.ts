@@ -132,6 +132,15 @@ class OpenRun {
 		this.#queue('PUT', `/api/v1/runs/${run.id}/steps/${step.id}/sets`, { sets });
 	}
 
+	// unlog keeps only the first sets as done and reopens the step. A step
+	// left with no sets is not done any more.
+	unlog(step: RunStep, keep: SetFields[]) {
+		if (!keep.length) step.status = null;
+		step.elapsed_seconds = null;
+		this.saveBody();
+		this.setSets(step, keep);
+	}
+
 	// saveBody sends the whole run after a change to its sections or fields.
 	saveBody() {
 		const run = this.run!;
@@ -263,9 +272,10 @@ class OpenRun {
 		this.saveBody();
 	}
 
-	// addSet plans one more set, which reopens a finished step.
-	addSet(step: RunStep) {
-		step.sets = (step.sets ?? 0) + 1;
+	// addSet plans one more set, which reopens a finished step. The set page
+	// shows one row for a step planned with none, so it passes its own count.
+	addSet(step: RunStep, count = step.sets ?? 0) {
+		step.sets = count + 1;
 		step.elapsed_seconds = null;
 		this.saveBody();
 	}
