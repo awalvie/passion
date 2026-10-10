@@ -125,6 +125,7 @@
 		menu={[{ label: 'Add set', onclick: () => openRun.addSet(step!) }, ...menu]}
 		{error}
 		leaving={leaving === step.id}
+		{leave}
 		{skip}
 	/>
 {:else if step?.kind === 'open'}
