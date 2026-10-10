@@ -3,7 +3,6 @@
 	import { request } from './api';
 	import Icon from './Icon.svelte';
 	import type { MenuItem } from './Menu.svelte';
-	import RestCard from './RestCard.svelte';
 	import { isFinished, setsOf, type HistorySession, type RunStep, type SetFields } from './run';
 	import { openRun } from './runState.svelte';
 	import RunPage from './RunPage.svelte';
@@ -81,13 +80,10 @@
 		[reps, weight] = untrack(prefill);
 	});
 
-	let rest = $state<ReturnType<typeof RestCard>>();
-
 	function log() {
 		const rows = logged.length + 1;
 		openRun.setSets(step, [...logged, { reps, seconds: null, weight_kg: weight }]);
 		if (planned && rows >= planned) openRun.finish(step);
-		else if (rows % sides === 0) rest?.start();
 	}
 
 	const done = $derived(Array.from({ length: Math.ceil(logged.length / sides) }, (_, i) => logged.slice(i * sides, (i + 1) * sides)));
@@ -145,10 +141,6 @@
 					{[sides === 2 ? 'per side' : '', lastWeight !== null ? `${lastWeight} kg last time` : ''].filter(Boolean).join(' · ')}
 				</span>
 			</p>
-		{/if}
-
-		{#if !finished}
-			<RestCard bind:this={rest} runId={openRun.run!.id} seconds={step.set_rest_seconds} offer={logged.length > 0} />
 		{/if}
 
 		<ol class="overflow-hidden rounded-[18px] bg-(--glass)">
