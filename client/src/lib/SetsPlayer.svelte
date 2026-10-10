@@ -120,14 +120,10 @@
 	}
 
 	const finished = $derived(isFinished(step) && !leaving);
-	const setsDone = $derived(Math.floor(logged.length / sides));
 	// The sets still to do after the one being logged now.
 	const later = $derived(finished ? [] : Array.from({ length: Math.max(0, (step.sets ?? 0) - number) }, (_, i) => number + 1 + i));
 	const plan = $derived(step.sets && step.reps ? `${step.sets} × ${step.reps}` : step.sets ? `${step.sets} sets` : step.reps ? `${step.reps} reps` : '');
 	const lastWeight = $derived(history?.sets.find((s) => s.weight_kg !== null)?.weight_kg ?? null);
-	const status = $derived(
-		finished ? `Done · ${setsDone}${step.sets ? ` of ${step.sets}` : ''}` : `Set ${number}${step.sets ? ` of ${step.sets}` : ''}${sides === 2 ? ` · ${side(row)}` : ''}`
-	);
 </script>
 
 {#snippet tick()}
@@ -140,7 +136,7 @@
 	<i class="size-8 shrink-0 rounded-full border-2 border-(--fg2) opacity-70"></i>
 {/snippet}
 
-<RunPage {step} icon={finished ? 'check' : 'barbell'} {status} {next} {menu} {error}>
+<RunPage {step} {next} {menu} {error}>
 	<div class="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto overscroll-contain px-4 pt-5 pb-4">
 		{#if plan}
 			<p class="flex items-baseline gap-2.5 px-1">

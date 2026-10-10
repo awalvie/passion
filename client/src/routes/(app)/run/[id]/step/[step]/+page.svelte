@@ -103,7 +103,7 @@
 {/snippet}
 
 {#if step && step.kind !== 'climbing' && step.status === 'skipped' && leaving !== step.id}
-	<RunPage {step} icon="skip" status="Skipped" next={stopLine(next)} {menu} {error}>
+	<RunPage {step} next={stopLine(next)} {menu} {error}>
 		<p class="mt-10 px-5 text-[17px] font-semibold text-(--fg2)">You skipped this exercise. Undo brings it back with nothing logged.</p>
 		{#snippet buttons()}
 			<button type="button" class="run-btn bg-(--glass)" onclick={() => openRun.unskip(step!)}>
