@@ -89,3 +89,8 @@ test('end set keeps the hangs done and moves to the rest after the set', () => {
 	expect(p[at(p, elapsed(clock, 13_000)).index].ms).toBe(60_000);
 	expect(rows(p, elapsed(clock, 13_000), short)).toStrictEqual([1]);
 });
+
+test('extra time lengthens the phase it was added to', () => {
+	const p = timeline({ ...hang, sets: 1, reps: 2 }, { 2: 30_000 });
+	expect(p.map((x) => `${x.kind}${x.ms / 1000}`)).toStrictEqual(['prep5', 'hang7', 'rest33', 'hang7']);
+});

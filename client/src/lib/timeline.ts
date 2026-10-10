@@ -28,7 +28,8 @@ export function canTime(s: TimedStep): boolean {
 	return Boolean(s.rep_seconds && s.reps && s.sets);
 }
 
-export function timeline(s: TimedStep): Phase[] {
+// extra is time added to phases, by their index, as +30 s adds to a rest.
+export function timeline(s: TimedStep, extra: Record<number, number> = {}): Phase[] {
 	const sides = s.per_side ? (['Left', 'Right'] as const) : ([null] as const);
 	const reps = s.reps ?? 1;
 	const out: Phase[] = [];
@@ -47,7 +48,7 @@ export function timeline(s: TimedStep): Phase[] {
 			block++;
 		}
 	}
-	return out;
+	return out.map((p, i) => (extra[i] ? { ...p, ms: p.ms + extra[i] } : p));
 }
 
 export function newClock(now: number): Clock {

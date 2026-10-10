@@ -248,7 +248,7 @@ class OpenRun {
 		const t = readTimers(run.id).timed;
 		const step = t ? this.step(t.step) : undefined;
 		if (!t || !step || isFinished(step)) return;
-		const done = rows(timeline(step), elapsed(t.clock, Date.now()), t.short);
+		const done = rows(timeline(step, t.extra), elapsed(t.clock, Date.now()), t.short);
 		if (done.length <= setsOf(run, step.id).length) return;
 		this.setSets(
 			step,
