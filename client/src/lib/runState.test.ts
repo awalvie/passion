@@ -181,6 +181,20 @@ test('unlog to no sets reopens the step and marks it not done', async () => {
 	expect(openRun.run!.sets.filter((x) => x.step === 's1')).toStrictEqual([]);
 });
 
+test('removeSet drops a done set and lowers the planned count', async () => {
+	const openRun = await openOffline();
+	const s = openRun.step('s1')!;
+	openRun.setSets(s, [
+		{ reps: 5, seconds: null, weight_kg: 10 },
+		{ reps: 4, seconds: null, weight_kg: 12 }
+	]);
+
+	openRun.removeSet(s, 0, 3);
+
+	expect(s.sets).toBe(2);
+	expect(openRun.run!.sets.filter((x) => x.step === 's1').map((x) => [x.number, x.reps])).toStrictEqual([[1, 4]]);
+});
+
 test('unlog to some sets keeps the step done, reopens it and queues the body before the sets', async () => {
 	const openRun = await openOffline();
 	const s = openRun.step('s1')!;
@@ -218,6 +232,52 @@ test('unlog to no sets reaches the server as a null status in the body, then an 
 	expect(sent.map(([u]) => u)).toStrictEqual([bodyUrl, `${bodyUrl}/steps/s1/sets`]);
 	expect((sent[0][1] as Run).sections[0].items[0].step).toMatchObject({ id: 's1', status: null });
 	expect(sent[1][1]).toStrictEqual({ sets: [] });
+});
+
+test('removeSet on a per-side step drops both rows of that set and renumbers the rest', async () => {
+	const openRun = await openOffline();
+	const s = openRun.step('s1')!;
+	s.per_side = true;
+	s.sets = 3;
+	const row = (reps: number) => ({ reps, seconds: null, weight_kg: null });
+	openRun.setSets(s, [row(1), row(2), row(3), row(4)]);
+
+	openRun.removeSet(s, 0, 3);
+
+	expect(s.sets).toBe(2);
+	expect(openRun.run!.sets.filter((x) => x.step === 's1').map((x) => [x.number, x.reps])).toStrictEqual([
+		[1, 3],
+		[2, 4]
+	]);
+});
+
+test('removeSet on a set not logged writes no sets and keeps the logged ones', async () => {
+	const openRun = await openOffline();
+	const s = openRun.step('s1')!;
+	s.sets = 3;
+	openRun.setSets(s, [{ reps: 5, seconds: null, weight_kg: null }]);
+	openRun.writes = [];
+
+	openRun.removeSet(s, 2, 3);
+
+	expect(s.sets).toBe(2);
+	expect(s.status).toBe('done');
+	expect(openRun.run!.sets.filter((x) => x.step === 's1')).toHaveLength(1);
+	expect(urls(openRun.writes)).toStrictEqual([bodyUrl]);
+});
+
+test('removeSet of the only logged set reopens the step and marks it not done', async () => {
+	const openRun = await openOffline();
+	const s = openRun.step('s1')!;
+	openRun.setSets(s, [{ reps: 5, seconds: null, weight_kg: null }]);
+	s.elapsed_seconds = 30;
+
+	openRun.removeSet(s, 0, 3);
+
+	expect(s.status).toBeNull();
+	expect(s.elapsed_seconds).toBeNull();
+	expect(openRun.run!.sets.filter((x) => x.step === 's1')).toStrictEqual([]);
+	expect(openRun.writes.find((w) => w.url === `${bodyUrl}/steps/s1/sets`)!.body).toStrictEqual({ sets: [] });
 });
 
 test('addSet from a count adds a set to what the page shows', async () => {

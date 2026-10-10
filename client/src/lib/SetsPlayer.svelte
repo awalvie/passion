@@ -102,6 +102,17 @@
 		else drafts[k] = s;
 	}
 
+	// Drafts after the removed set move up one set.
+	function remove(i: number) {
+		const moved: Record<number, SetFields> = {};
+		for (const [k, v] of Object.entries(drafts)) {
+			const at = Math.floor(Number(k) / sides);
+			if (at !== i) moved[at > i ? Number(k) - sides : Number(k)] = v;
+		}
+		drafts = moved;
+		openRun.removeSet(step, i, count);
+	}
+
 	function done() {
 		void leave(() => {
 			openRun.setSets(step, rows(count * sides));
@@ -130,15 +141,15 @@
 
 <RunPage {step} {next} {menu} {error}>
 	<div class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overscroll-contain px-4 pt-6 pb-4">
-		<p class="grid gap-x-2.5 px-3.5 text-xs font-bold tracking-[0.1em] text-(--fg2)/80 {sides === 2 ? 'grid-cols-[40px_48px_1fr_1fr]' : 'grid-cols-[40px_1fr_1fr]'}">
-			<span class="col-start-[-3] text-center">REPS</span><span class="text-center">WEIGHT</span>
+		<p class="grid gap-x-2.5 px-3.5 text-xs font-bold tracking-[0.1em] text-(--fg2)/80 {sides === 2 ? 'grid-cols-[40px_48px_1fr_1fr_28px]' : 'grid-cols-[40px_1fr_1fr_28px]'}">
+			<span class="col-start-[-4] text-center">REPS</span><span class="text-center">WEIGHT</span>
 		</p>
 		<ol class="overflow-hidden rounded-[18px] bg-(--glass)">
 			{#each { length: count }, i (i)}
 				{@const state = i < doneSets ? 'done' : i === current ? 'now' : 'later'}
 				<li
 					class="relative grid items-center gap-x-2.5 gap-y-2 px-3.5 py-3 [&:not(:first-child)]:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]
-						{sides === 2 ? 'grid-cols-[40px_48px_1fr_1fr]' : 'grid-cols-[40px_1fr_1fr]'}
+						{sides === 2 ? 'grid-cols-[40px_48px_1fr_1fr_28px]' : 'grid-cols-[40px_1fr_1fr_28px]'}
 						{state === 'done' ? 'bg-rest-on-hero/14' : state === 'now' ? 'bg-white/7' : ''}"
 				>
 					{#if state === 'now'}<i class="absolute inset-y-2.5 left-0 w-[3px] rounded-r-[3px] bg-tint"></i>{/if}
@@ -162,6 +173,17 @@
 						{@const label = `Set ${i + 1}${sides === 2 ? (s ? ' right' : ' left') : ''}`}
 						{@render field(i * sides + s, 'reps', state, label)}
 						{@render field(i * sides + s, 'weight_kg', state, label)}
+						{#if s === 0}
+							<button
+								type="button"
+								class="relative flex size-7 items-center justify-center rounded-full bg-(--glass) text-(--fg2) before:absolute before:-inset-2"
+								style="grid-row: span {sides}"
+								aria-label="Remove set {i + 1}"
+								onclick={() => remove(i)}
+							>
+								<Icon name="x" size="12px" stroke={3} />
+							</button>
+						{/if}
 					{/each}
 				</li>
 			{/each}
