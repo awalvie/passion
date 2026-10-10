@@ -176,7 +176,6 @@
 	}
 
 	const words = { hang: 'Work', rest: 'Rest' };
-	const icons = { prep: 'hourglass', hang: 'bolt', rest: 'wave' } as const;
 
 	// The flip cards on each field.
 	const cards = {
@@ -204,7 +203,6 @@
 	const setsDone = $derived(phase ? (setOver ? phase.set : phase.set - 1) : 0);
 
 	const status = $derived.by(() => {
-		if (finished) return `Done · ${setsLogged} of ${step.sets}`;
 		if (!timed || !phase) return setsLogged ? `Ready · ${setsLogged} of ${step.sets} logged` : 'Ready';
 		// On a per-side step a hang names its side instead of "Work", so the
 		// line stays one line.
@@ -248,8 +246,6 @@
 <RunPage
 	{step}
 	look={timed && phase ? phase.kind : 'run'}
-	icon={finished ? 'check' : timed && phase ? icons[phase.kind] : 'hourglass'}
-	{status}
 	next={nextLine}
 	menu={timed
 		? [
@@ -268,8 +264,9 @@
 			<span class="text-[17px] font-bold text-(--fg2)">{setsLogged} of {step.sets} {step.sets === 1 ? 'set' : 'sets'} logged</span>
 		</div>
 	{:else}
+		<p class="mt-6 shrink-0 text-center font-[family-name:var(--font-digits)] text-[17px] leading-none font-bold tracking-[0.08em] text-(--fg2) uppercase">{status}</p>
 		<div
-			class="mt-6 flex shrink-0 items-end justify-center gap-2 {ready
+			class="mt-3 flex shrink-0 items-end justify-center gap-2 {ready
 				? '[--h:min(196px,20svh,48vw)]'
 				: clock.length === 1
 					? '[--h:min(300px,34svh,76vw)]'

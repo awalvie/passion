@@ -131,14 +131,17 @@
 
 <RunPage
 	{step}
-	icon={finished ? 'check' : paused ? 'pause' : 'hourglass'}
-	status={finished ? 'Done' : !timed ? 'Ready' : paused ? 'Paused' : 'Running'}
 	{next}
 	{menu}
 	{error}
 	bind:reading
 >
-	<div class="mt-10 flex flex-col">
+	<div class="mt-6 flex flex-col">
+		{#if !finished}
+			<p class="mb-3 text-center font-[family-name:var(--font-digits)] text-[17px] leading-none font-bold tracking-[0.08em] text-(--fg2) uppercase">
+				{!timed ? 'Ready' : paused ? 'Paused' : 'Running'}
+			</p>
+		{/if}
 		<p
 			class="text-center font-[family-name:var(--font-digits)] leading-none font-bold tracking-[-0.02em] whitespace-nowrap {clockSize} {paused ? 'opacity-55' : ''}"
 			role="timer"

@@ -5,7 +5,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { unlock } from './audio';
-	import Icon, { type IconName } from './Icon.svelte';
+	import Icon from './Icon.svelte';
 	import Menu, { type MenuItem } from './Menu.svelte';
 	import Notes from './Notes.svelte';
 	import { secondsSince, type RunStep } from './run';
@@ -20,8 +20,6 @@
 	let {
 		step,
 		look = 'run',
-		icon,
-		status,
 		next,
 		menu,
 		band = null,
@@ -32,8 +30,6 @@
 	}: {
 		step: RunStep;
 		look?: RunLook;
-		icon: IconName;
-		status: string;
 		next: NextLine | null;
 		menu: MenuItem[];
 		band?: number | null;
@@ -153,13 +149,7 @@
 			{#if error}<p class="rounded-2xl bg-surface px-4 py-3 text-[15px] font-semibold text-bad" role="alert">{error}</p>{/if}
 		</div>
 
-		<div class="mt-3 flex h-11 shrink-0 items-center gap-2.5 pr-4 pl-5">
-			<span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-(--glass) text-(--accent)">
-				<Icon name={icon} size="20px" stroke={2.6} />
-			</span>
-			<p class="min-w-0 flex-1 truncate font-[family-name:var(--font-digits)] text-[22px] leading-none font-bold tracking-[0.06em] text-(--accent) uppercase">
-				{status}
-			</p>
+		<div class="mt-3 flex h-11 shrink-0 items-center justify-end gap-2.5 pr-4 pl-5">
 			<button type="button" class="flex size-11 shrink-0 items-center justify-center rounded-full bg-(--glass)" aria-label="How to" onclick={() => (reading = true)}>
 				<Icon name="book" size="20px" stroke={2.2} />
 			</button>
