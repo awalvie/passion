@@ -1,14 +1,33 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { request } from './api';
-	import Button from './Button.svelte';
 	import Icon from './Icon.svelte';
+	import type { MenuItem } from './Menu.svelte';
 	import RestCard from './RestCard.svelte';
 	import { isFinished, setsOf, type HistorySession, type RunStep, type SetFields } from './run';
 	import { openRun } from './runState.svelte';
+	import RunPage from './RunPage.svelte';
 	import Stepper from './Stepper.svelte';
 
-	let { step }: { step: RunStep } = $props();
+	let {
+		step,
+		next,
+		nextHref,
+		last,
+		menu,
+		error,
+		leaving,
+		skip
+	}: {
+		step: RunStep;
+		next: string;
+		nextHref: string;
+		last: boolean;
+		menu: MenuItem[];
+		error: string;
+		leaving: boolean;
+		skip: () => void;
+	} = $props();
 
 	// A per-side set logs two rows, left then right. The server has no side
 	// column, so the order carries it.
@@ -58,24 +77,23 @@
 		[reps, weight] = untrack(prefill);
 	});
 
-	let rest: ReturnType<typeof RestCard>;
+	let rest = $state<ReturnType<typeof RestCard>>();
 
 	function log() {
 		const rows = logged.length + 1;
 		openRun.setSets(step, [...logged, { reps, seconds: null, weight_kg: weight }]);
 		if (planned && rows >= planned) openRun.finish(step);
-		else if (rows % sides === 0) rest.start();
+		else if (rows % sides === 0) rest?.start();
 	}
 
 	const done = $derived(Array.from({ length: Math.ceil(logged.length / sides) }, (_, i) => logged.slice(i * sides, (i + 1) * sides)));
 	let editing = $state<number | null>(null);
-
-	// While a logged set is open, the next set stays in the list without its
-	// steppers. A half-logged per-side set is already among the logged rows.
-	const first = $derived(editing !== null && logged.length % sides === 0 ? number : number + 1);
-	const todo = $derived(isFinished(step) ? [] : Array.from({ length: Math.max(0, (step.sets ?? 0) - first + 1) }, (_, i) => first + i));
-
 	let draft = $state<SetFields[]>([]);
+
+	$effect.pre(() => {
+		void step.id;
+		editing = null;
+	});
 
 	function edit(i: number) {
 		if (editing === i) return (editing = null);
@@ -92,131 +110,111 @@
 
 	function short(s: SetFields) {
 		if (s.reps !== null && s.weight_kg !== null) return `${s.reps} × ${s.weight_kg} kg`;
-		return describeSet(s) || 'Done';
+		if (s.reps !== null) return `${s.reps} reps`;
+		if (s.weight_kg !== null) return `${s.weight_kg} kg`;
+		return 'Done';
 	}
 
-	function describeSet(s: SetFields) {
-		return [s.reps !== null && `${s.reps} reps`, s.weight_kg !== null && `${s.weight_kg} kg`]
-			.filter(Boolean)
-			.join(' · ');
-	}
+	const finished = $derived(isFinished(step) && !leaving);
+	const setsDone = $derived(Math.floor(logged.length / sides));
+	// The sets still to do after the one being logged now.
+	const later = $derived(finished ? [] : Array.from({ length: Math.max(0, (step.sets ?? 0) - number) }, (_, i) => number + 1 + i));
+	const plan = $derived(step.sets && step.reps ? `${step.sets} × ${step.reps}` : step.sets ? `${step.sets} sets` : step.reps ? `${step.reps} reps` : '');
+	const lastWeight = $derived(lastTime?.sets.find((s) => s.weight_kg !== null)?.weight_kg ?? null);
+	const status = $derived(
+		finished ? `Done · ${setsDone}${step.sets ? ` of ${step.sets}` : ''}` : `Set ${number}${step.sets ? ` of ${step.sets}` : ''}${sides === 2 ? ` · ${side(row)}` : ''}`
+	);
 </script>
 
 {#snippet tick()}
-	<span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-ink text-ground dark:bg-ink-2">
-		<Icon name="check" size="0.75rem" stroke={3.2} />
+	<span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-tint text-on-tint">
+		<Icon name="check" size="15px" stroke={3} />
 	</span>
 {/snippet}
 
-{#snippet sideLabel(text: string)}
-	<span class="w-3 shrink-0 text-xs font-bold text-ink-2">{text}</span>
+{#snippet ring()}
+	<i class="size-8 shrink-0 rounded-full border-2 border-(--fg2) opacity-70"></i>
 {/snippet}
 
-{#snippet ahead(n: number)}
-	<span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-well text-xs font-bold text-ink-2">{n}</span>
-{/snippet}
+<RunPage {step} icon={finished ? 'check' : 'barbell'} {status} {next} {menu} {error}>
+	<div class="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto overscroll-contain px-4 pt-5 pb-4">
+		{#if plan}
+			<p class="flex items-baseline gap-2.5 px-1">
+				<b class="font-[family-name:var(--font-digits)] text-[76px] leading-none font-bold">{plan}</b>
+				<span class="text-[15px] font-semibold text-(--fg2)">
+					{[sides === 2 ? 'per side' : '', lastWeight !== null ? `${lastWeight} kg last time` : ''].filter(Boolean).join(' · ')}
+				</span>
+			</p>
+		{/if}
 
-<RestCard bind:this={rest} runId={openRun.run!.id} seconds={step.set_rest_seconds} />
+		{#if !finished}
+			<RestCard bind:this={rest} runId={openRun.run!.id} seconds={step.set_rest_seconds} offer={logged.length > 0} />
+		{/if}
 
-{#if logged.length || !isFinished(step)}
-	<div class="rounded-3xl bg-surface py-0.5 shadow-card">
-		{#if done.length}
-			<ol>
-				{#each done as pair, i (i)}
-					<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
-						<button
-							type="button"
-							class="flex h-11 w-full items-center gap-2.5 px-4 text-left text-[15px]"
-							aria-expanded={editing === i}
-							onclick={() => edit(i)}
-						>
-							{#if pair.length === sides}
-								{@render tick()}
-							{:else}
-								{@render ahead(i + 1)}
-							{/if}
-							<span class="sr-only">Set {i + 1}</span>
+		<ol class="overflow-hidden rounded-[18px] bg-(--glass)">
+			{#each done as pair, i (i)}
+				<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+					<button type="button" class="flex h-[78px] w-full items-center gap-3 px-4 text-left text-lg font-bold" aria-expanded={editing === i} onclick={() => edit(i)}>
+						{#if pair.length === sides}{@render tick()}{:else}{@render ring()}{/if}
+						Set {i + 1}
+						<span class="ml-auto truncate text-[17px] font-semibold text-(--fg2)">
 							{#if sides === 2}
-								{#each pair as s (s.number)}
-									{@render sideLabel(side(s.number)[0])}
-									<span class="min-w-0 flex-1 truncate font-bold">{short(s)}</span>
-								{/each}
+								{pair.map((s) => `${side(s.number)[0]} ${short(s)}`).join(' · ')}
 							{:else}
-								<span class="font-bold">{pair[0].reps !== null ? `${pair[0].reps} reps` : pair[0].weight_kg === null ? 'Done' : ''}</span>
-								<span class="flex-1 font-semibold text-ink-2">{pair[0].weight_kg !== null ? `${pair[0].weight_kg} kg` : ''}</span>
+								{short(pair[0])}
 							{/if}
-							<span class="shrink-0 text-ink-3 transition-transform {editing === i ? 'rotate-90' : ''}"><Icon name="chevron-right" size="18px" /></span>
-						</button>
-						{#if editing === i}
-							<section class="mx-1.5 mb-1.5 flex flex-col gap-2 rounded-[20px] bg-inset p-2.5">
-								{#each draft as _, k (k)}
-									{#if sides === 2}<p class="px-1 text-xs font-semibold text-ink-2">{side(i * 2 + k + 1)}</p>{/if}
-									<div class="grid grid-cols-2 gap-2">
-										<Stepper label="Reps" bind:value={draft[k].reps} />
-										<Stepper label="kg" step={2.5} min={-200} placeholder="–" bind:value={draft[k].weight_kg} />
-									</div>
-								{/each}
-								<div class="grid grid-cols-2 gap-2 pt-0.5">
-									<Button variant="secondary" onclick={() => (editing = null)}>Cancel</Button>
-									<Button onclick={saveEdit}>Save set {i + 1}</Button>
+						</span>
+					</button>
+					{#if editing === i}
+						<div class="flex flex-col gap-2 px-3 pb-3">
+							{#each draft as _, k (k)}
+								{#if sides === 2}<p class="px-1 text-xs font-semibold text-(--fg2)">{side(i * 2 + k + 1)}</p>{/if}
+								<div class="grid grid-cols-2 gap-2">
+									<Stepper label="Reps" bind:value={draft[k].reps} />
+									<Stepper label="kg" step={2.5} min={-200} placeholder="–" bind:value={draft[k].weight_kg} />
 								</div>
-							</section>
-						{/if}
-					</li>
-				{/each}
-			</ol>
-		{/if}
-
-		{#if !isFinished(step) && editing === null}
-			<section class="mx-1.5 my-0.5 rounded-[20px] bg-inset p-2.5">
-				{#if sides === 2}
-					<div class="mb-2 grid grid-cols-2 gap-2">
-						<p class="rounded-2xl bg-ink px-3.5 pt-2.5 pb-3 text-ground shadow-card-sm">
-							<span class="block text-xs font-semibold">Set {number}{planned ? ` of ${planned / sides}` : ''} · now</span>
-							<span class="block text-[32px] leading-[1.05] font-extrabold tracking-tight">{side(row)}</span>
-						</p>
-						<p class="rounded-2xl bg-ink/5 px-3.5 pt-2.5 pb-3 dark:bg-white/5">
-							<span class="block text-xs font-semibold text-ink-2">Next</span>
-							<span class="block text-[32px] leading-[1.05] font-extrabold tracking-tight text-ink-2">{side(row + 1)}</span>
-						</p>
-					</div>
-				{:else}
-					<p class="px-1 pb-2 text-[15px] font-bold">Set {number}{planned ? ` of ${planned}` : ''}</p>
-				{/if}
-				{#if lastTime}
-					<p class="px-1 pb-2.5 text-xs font-semibold text-ink-2">
-						Last time: {lastTime.sets.map(describeSet).filter(Boolean).join(', ')}
+							{/each}
+						</div>
+					{/if}
+				</li>
+			{/each}
+			{#if !finished}
+				<li class="bg-tint/7 px-4 py-4 [&:not(:first-child)]:shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] {editing !== null ? 'opacity-50' : ''}">
+					<p class="flex items-center gap-3 text-lg font-bold">
+						{@render ring()}Set {number}{sides === 2 ? ` · ${side(row)}` : ''}
 					</p>
-				{/if}
-				<div class="grid grid-cols-2 gap-2">
-					<Stepper label="Reps" bind:value={reps} />
-					<Stepper label="kg" step={2.5} min={-200} placeholder="–" bind:value={weight} />
-				</div>
-				<div class="mt-2.5">
-					<Button onclick={log}>
-						<Icon name="check" size="1.25rem" stroke={2.6} />
-						Log {sides === 2 ? side(row).toLowerCase() : `set ${number}`}
-					</Button>
-				</div>
-			</section>
-		{/if}
-
-		{#if todo.length}
-			<ol class={sides === 2 ? '' : 'grid grid-cols-2'}>
-				{#each todo as n (n)}
-					<li class="flex h-11 items-center gap-2.5 px-4 text-[15px] font-bold text-ink-2">
-						{@render ahead(n)}
-						{#if sides === 2}
-							{@render sideLabel('L')}
-							<span class="flex-1">{step.reps !== null ? `${step.reps} reps` : ''}</span>
-							{@render sideLabel('R')}
-							<span class="flex-1">{step.reps !== null ? `${step.reps} reps` : ''}</span>
-						{:else if step.reps !== null}
-							<span>{step.reps} reps</span>
-						{/if}
-					</li>
-				{/each}
-			</ol>
-		{/if}
+					{#if editing === null}
+						<div class="mt-3 grid grid-cols-2 gap-2">
+							<Stepper label="Reps" bind:value={reps} />
+							<Stepper label="kg" step={2.5} min={-200} placeholder="–" bind:value={weight} />
+						</div>
+					{/if}
+				</li>
+			{/if}
+			{#each later as n (n)}
+				<li class="flex h-[78px] items-center gap-3 px-4 text-lg font-bold text-(--fg2) [&:not(:first-child)]:shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+					{@render ring()}Set {n}
+					{#if step.reps !== null}<span class="ml-auto text-[17px] font-semibold">{step.reps} reps{sides === 2 ? ' each side' : ''}</span>{/if}
+				</li>
+			{/each}
+		</ol>
 	</div>
-{/if}
+
+	{#snippet buttons()}
+		{#if editing !== null}
+			<button type="button" class="run-btn bg-(--glass)" onclick={() => (editing = null)}>Cancel</button>
+			<button type="button" class="run-btn bg-tint text-on-tint" onclick={saveEdit}>
+				<span class="run-icon"><Icon name="check" size="16px" stroke={3} /></span>Save set {editing + 1}
+			</button>
+		{:else if finished}
+			<a href={nextHref} class="run-btn bg-live text-on-live">
+				{last ? 'Back to session' : 'Next exercise'}<span class="run-icon"><Icon name="arrow-right" size="16px" stroke={2.6} /></span>
+			</a>
+		{:else}
+			<button type="button" class="run-btn bg-tint text-on-tint" onclick={log}>
+				<span class="run-icon"><Icon name="check" size="16px" stroke={3} /></span>Log {sides === 2 ? side(row).toLowerCase() : `set ${number}`}
+			</button>
+			<button type="button" class="run-chip" onclick={skip}><span class="run-icon"><Icon name="skip" size="16px" /></span>Skip</button>
+		{/if}
+	{/snippet}
+</RunPage>

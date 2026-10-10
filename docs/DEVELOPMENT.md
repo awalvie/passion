@@ -101,8 +101,13 @@ use them.
   wells, `text-ink`, `text-ink-2` and `text-ink-3` for text, `border-line` for hairlines.
   `bg-tint` with `text-on-tint` is lime, for Start, Log and the active tab. `bg-live` with
   `text-on-live` is apricot, for a session that is running. `bg-hero` with `text-on-hero`
-  and `text-on-hero-2` is the forest card. `prep`, `hang` and `rest` colour the timer phases.
+  and `text-on-hero-2` is the forest card. `bg-run` is the step page's field, and `prep`,
+  `hang` and `rest-field` colour the timer phases on it.
   `text-bad` is for errors.
+- The step page (`client/src/lib/RunPage.svelte`) has one dark look in both themes. It sets
+  the app's tokens dark inside itself, so a stepper, a sheet or the menu on it reads dark
+  without a variant. Its bottom buttons use `run-btn`, `run-chip` and `run-icon` from
+  `app.css`.
 - `text-tint` is not for text. Lime has too little contrast on a light page. Use
   `text-link` for a link or a text button. `text-tint` is only for an icon or a mark on a
   dark ground, such as the forest card.

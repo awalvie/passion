@@ -266,3 +266,12 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
 - Check box: `lib/Checkbox.svelte`, inside a label that gives the 44 px target.
 - Switch between views: `lib/Segmented.svelte` — a white pill on a `bg-well` track, 44 px.
 - Error line: `lib/FormError.svelte`.
+- Step page: `lib/RunPage.svelte` for every step of a running session except climbing. It
+  is one dark look in both themes: the session green (`bg-run`), or the timer's phase
+  colour (`prep`, `hang`, `rest-field`). From the top: the bar (back, the session clock,
+  •••), the phase line (an icon in a circle, a status such as `SET 2 OF 3`, then Media and
+  Note), the name, the kind's middle, and one bottom panel with a `NEXT` line and one row
+  of buttons. The buttons are `run-btn` (a main action, `bg-tint`, or `bg-live` to go on),
+  `run-chip` (a small one such as Skip or +30 s) and `run-icon` (the circle around an
+  icon on either). The phase icons are `hourglass` (ready, prep), `bolt` (work), `wave`
+  (rest) and `barbell` (sets).

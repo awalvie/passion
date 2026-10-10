@@ -1,33 +1,43 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import Icon from './Icon.svelte';
-	import { tone, unlock } from './audio';
-	import Menu from './Menu.svelte';
+	import { tone } from './audio';
+	import type { MenuItem } from './Menu.svelte';
 	import Notes from './Notes.svelte';
-	import { isFinished, secondsSince, setsOf, type RunStep } from './run';
+	import { isFinished, setsOf, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
-	import SaveStatus from './SaveStatus.svelte';
+	import RunPage from './RunPage.svelte';
 	import { plainText } from './text';
 	import { elapsed, newClock, togglePause } from './timeline';
-	import { formatClock, readTimers, sessionClock, writeTimers, type Timed } from './timerStore';
+	import { formatClock, readTimers, writeTimers, type Timed } from './timerStore';
 
-	let { step, nextHref, last }: { step: RunStep; nextHref: string; last: boolean } = $props();
+	let {
+		step,
+		next,
+		nextHref,
+		last,
+		menu,
+		error,
+		leaving,
+		leave
+	}: {
+		step: RunStep;
+		next: string;
+		nextHref: string;
+		last: boolean;
+		menu: MenuItem[];
+		error: string;
+		leaving: boolean;
+		leave: (end: () => void) => Promise<void>;
+	} = $props();
 
 	const run = $derived(openRun.run!);
 	const runId = $derived(run.id);
 	const logged = $derived(setsOf(run, step.id));
 	const target = $derived((step.duration_seconds ?? 0) * 1000);
-	const section = $derived(run.sections.find((s) => s.items.some((i) => i.step?.id === step.id)));
-	const siblings = $derived(section?.items.flatMap((i) => (i.step ? [i.step] : [])) ?? []);
-	const video = $derived(step.media?.find((m) => m.url));
 	const howTo = $derived(plainText(step.notes ?? '').trim());
 
 	let timed = $state<Timed | null>(null);
 	let now = $state(Date.now());
-
-	// Each is the id of the step it was set on, so the next step starts clear.
-	let leaving = $state<string | null>(null);
-	let noting = $state<string | null>(null);
 
 	// An open step starts its clock as soon as it opens, unless another step's
 	// clock is still running: there is one clock, and its time is not logged yet.
@@ -80,156 +90,85 @@
 		openRun.finish(step);
 	}
 
-	// The cover stays up until the next step loads, so the page under it does
-	// not flash its finished state.
-	async function next() {
-		leaving = step.id;
-		if (timed && ms >= 1000) done(ms);
-		else {
+	function finish() {
+		void leave(() => {
+			if (timed && ms >= 1000) done(ms);
+			else {
+				if (timed) save(null);
+				openRun.finish(step);
+			}
+		});
+	}
+
+	function skip() {
+		void leave(() => {
 			if (timed) save(null);
-			openRun.finish(step);
-		}
-		await goto(nextHref);
-		leaving = null;
+			openRun.skip(step);
+		});
 	}
 
-	async function skip() {
-		leaving = step.id;
-		if (timed) save(null);
-		openRun.skip(step);
-		await goto(nextHref);
-		leaving = null;
-	}
-
-	function saveNote(text: string) {
-		step.run_notes = text.trim() || null;
-		openRun.saveBody();
-	}
-
+	const finished = $derived(isFinished(step) && !leaving);
+	const took = $derived(logged[0]?.seconds ?? 0);
 	const clock = $derived(
-		!timed
-			? formatClock(target / 1000)
-			: target
-				? formatClock((target - ms) / 1000)
-				: formatClock(Math.floor(ms / 1000))
+		finished ? formatClock(took) : !timed ? formatClock(target / 1000) : target ? formatClock((target - ms) / 1000) : formatClock(Math.floor(ms / 1000))
 	);
-	const clockSize = $derived(clock.length <= 4 ? 'text-[min(168px,43vw)]' : clock.length === 5 ? 'text-[min(136px,35vw)]' : 'text-[min(108px,27vw)]');
-	const glass = 'bg-on-hero/10';
+	const clockSize = $derived(clock.length <= 4 ? 'text-[min(190px,48vw)]' : clock.length === 5 ? 'text-[min(150px,38vw)]' : 'text-[min(112px,28vw)]');
+	const share = $derived(target ? Math.min(1, ms / target) : 0);
 </script>
 
-{#if !isFinished(step) || leaving === step.id}
-	<section class="fixed inset-0 z-40 overflow-hidden bg-hero text-on-hero" aria-label="Open exercise">
-		<div
-			class="relative mx-auto flex h-full w-full max-w-[430px] flex-col pt-[env(safe-area-inset-top)] pb-[calc(env(safe-area-inset-bottom)+1rem)]"
-		>
-			<div class="relative flex h-14 shrink-0 items-center justify-between px-4">
-				<a href="/run/{runId}" class="inline-flex h-11 items-center gap-0.5 rounded-full pr-4 pl-2.5 text-[15px] font-bold {glass}">
-					<Icon name="chevron-left" size="20px" stroke={2.4} />
-					Session
-				</a>
-				<span
-					class="absolute top-1/2 left-1/2 flex h-11 -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-full px-4 font-[family-name:var(--font-digits)] text-xl font-bold shadow-[inset_0_0_0_1px_var(--live)] {glass}"
-					aria-label="Session time"
-				>
-					<i class="size-2 rounded-full bg-live shadow-[0_0_0_4px_var(--live-halo)]"></i>
-					{sessionClock(secondsSince(run.started_at, now))}
-				</span>
-				<Menu look={glass} items={[{ label: 'Finish session', onclick: () => goto(`/run/${runId}/finish`) }]} />
-			</div>
-			<div class="flex flex-col gap-2 px-4 empty:hidden"><SaveStatus /></div>
-
-			<div class="px-6 pt-5 text-center">
-				{#if section}
-					<p class="text-xs font-bold tracking-[0.06em] text-tint uppercase">
-						{section.name} · {siblings.findIndex((s) => s.id === step.id) + 1} of {siblings.length}
-					</p>
-				{/if}
-				<h1 class="mt-1.5 line-clamp-2 text-[40px] leading-[1.1] font-bold tracking-[-0.02em] break-words">{step.name}</h1>
-			</div>
-
-			<p
-				class="mt-8 text-center font-[family-name:var(--font-digits)] leading-none font-bold tracking-[-0.02em] whitespace-nowrap {clockSize}"
-				role="timer"
-				aria-live="off"
-			>
-				{clock}
-			</p>
-
-			{#if paused}
-				<p class="mt-2 px-6 text-center text-[15px] font-semibold text-on-hero-2">Paused</p>
-			{/if}
-			{#if howTo}
-				<div class="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 text-[15px] font-semibold text-on-hero-2">
-					<Notes text={howTo} />
-				</div>
-			{/if}
-
-			{#if video}
-				<a
-					href={video.url}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="mt-3 flex h-11 items-center gap-2 self-center rounded-full bg-on-hero/10 px-4 text-[15px] font-bold"
-				>
-					<Icon name="play" size="1rem" />Watch how
-				</a>
-			{/if}
-
-			<div class="mt-auto flex flex-col gap-3 px-4 pt-4" onpointerdown={unlock} role="group" aria-label="Exercise">
-				{#if noting === step.id || step.run_notes}
-					<textarea
-						class="min-h-24 rounded-3xl p-4 text-[15px] font-semibold text-on-hero outline-none placeholder:text-on-hero-2 {glass}"
-						placeholder="How did it go?"
-						aria-label="Note"
-						value={step.run_notes ?? ''}
-						oninput={(e) => (step.run_notes = e.currentTarget.value)}
-						onchange={(e) => saveNote(e.currentTarget.value)}
-					></textarea>
-				{/if}
-
-				{#if !timed}
-					<button type="button" class="flex h-30 items-center justify-center gap-3 rounded-[36px] bg-tint text-[28px] font-bold text-on-tint shadow-tint" onclick={start}>
-						<Icon name="play" size="30px" />
-						Start
-					</button>
-				{:else}
-					<button type="button" class="flex h-30 items-center justify-center gap-3 rounded-[36px] text-[28px] font-bold {glass}" onclick={pause}>
-						{#if paused}
-							<Icon name="play" size="30px" />
-							Resume
-						{:else}
-							<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
-							Pause
-						{/if}
-					</button>
-				{/if}
-
-				<div class="flex gap-2">
-					<button
-						type="button"
-						class="flex h-15 flex-1 items-center justify-center gap-2 rounded-full text-base font-bold {glass}"
-						onclick={() => (noting = noting === step.id ? null : step.id)}
-					>
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h7l4 4v13H7z" /><path d="M14 3.5v4h4M10 12h5M10 16h5" /></svg>
-						Note
-					</button>
-					<button type="button" class="flex h-15 flex-1 items-center justify-center gap-2 rounded-full text-base font-bold {glass}" onclick={skip}>
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5.5v13l9-6.5z" fill="currentColor" /><path d="M18.5 5v14" /></svg>
-						Skip
-					</button>
-					<button type="button" class="flex h-15 flex-1 items-center justify-center gap-2 rounded-full text-base font-bold {glass}" onclick={next}>
-						{last ? 'Done' : 'Next'}
-						<Icon name="chevron-right" size="18px" stroke={2.2} />
-					</button>
-				</div>
-			</div>
-		</div>
-	</section>
-{:else if logged[0]?.seconds}
-	<p class="flex h-11 items-center gap-2.5 rounded-3xl bg-surface px-4 text-[15px] font-bold shadow-card">
-		<span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-ink text-ground dark:bg-ink-2">
-			<Icon name="check" size="0.75rem" stroke={3.2} />
-		</span>
-		Took {formatClock(logged[0].seconds)}
+<RunPage
+	{step}
+	icon={finished ? 'check' : paused ? 'pause' : 'hourglass'}
+	status={finished ? 'Done' : !timed ? 'Ready' : paused ? 'Paused' : 'Running'}
+	{next}
+	{menu}
+	{error}
+>
+	<p
+		class="mt-10 text-center font-[family-name:var(--font-digits)] leading-none font-bold tracking-[-0.02em] whitespace-nowrap {clockSize} {paused ? 'opacity-55' : ''}"
+		role="timer"
+		aria-live="off"
+	>
+		{clock}
 	</p>
-{/if}
+	{#if finished}
+		<p class="mt-3 text-center text-[17px] font-bold text-(--fg2)">{took ? 'Time logged' : 'Done'}</p>
+	{:else if target}
+		<div class="mx-5 mt-6">
+			<div class="h-3.5 overflow-hidden rounded-full bg-(--glass)">
+				<i class="block h-full rounded-full bg-tint" style="width: {share * 100}%"></i>
+			</div>
+			<p class="mt-2.5 flex justify-between font-[family-name:var(--font-digits)] text-lg font-bold tracking-[0.04em] text-(--fg2)">
+				<span><b class="text-(--fg)">{formatClock(ms / 1000)}</b> DONE</span>
+				<span>OF {formatClock(target / 1000)}</span>
+			</p>
+		</div>
+	{/if}
+	{#if howTo && !finished}
+		<div class="mt-6 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 text-base leading-[1.4] font-semibold text-(--fg2)">
+			<Notes text={howTo} />
+		</div>
+	{/if}
+
+	{#snippet buttons()}
+		{#if finished}
+			<a href={nextHref} class="run-btn bg-live text-on-live">
+				{last ? 'Back to session' : 'Next exercise'}
+				<span class="run-icon"><Icon name="arrow-right" size="16px" stroke={2.6} /></span>
+			</a>
+		{:else if !timed}
+			<button type="button" class="run-btn bg-tint text-on-tint" onclick={start}>
+				<span class="run-icon"><Icon name="play" size="16px" /></span>Start
+			</button>
+			<button type="button" class="run-chip" onclick={skip}><span class="run-icon"><Icon name="skip" size="16px" /></span>Skip</button>
+		{:else}
+			<button type="button" class="run-btn gap-2 text-[17px] {paused ? 'bg-tint text-on-tint' : 'bg-(--fg) text-(--field)'}" onclick={pause}>
+				<span class="run-icon"><Icon name={paused ? 'play' : 'pause'} size="16px" stroke={3} /></span>{paused ? 'Resume' : 'Pause'}
+			</button>
+			<button type="button" class="run-btn gap-2 text-[17px] {paused ? 'bg-(--glass)' : 'bg-tint text-on-tint'}" onclick={finish}>
+				<span class="run-icon"><Icon name="check" size="16px" stroke={3} /></span>Done
+			</button>
+			<button type="button" class="run-chip" onclick={skip}><span class="run-icon"><Icon name="skip" size="16px" /></span>Skip</button>
+		{/if}
+	{/snippet}
+</RunPage>

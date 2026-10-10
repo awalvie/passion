@@ -67,21 +67,17 @@
 	--color-on-hero: var(--on-hero);
 	--color-on-hero-2: var(--on-hero-2);
 	--color-prep: var(--prep);
-	--color-prep-band: var(--prep-band);
 	--color-prep-card: var(--prep-card);
 	--color-prep-digit: var(--prep-digit);
 	--color-hang: var(--hang);
-	--color-hang-band: var(--hang-band);
 	--color-hang-digit: var(--hang-digit);
-	--color-on-timer: var(--on-timer);
 	--color-on-hang: var(--on-hang);
-	--color-rest: var(--rest);
-	--color-rest-soft: var(--rest-soft);
-	--color-rest-ink: var(--rest-ink);
-	--color-rest-card: var(--rest-card);
-	--color-rest-digit: var(--rest-digit);
 	--color-rest-on-hero: var(--rest-on-hero);
 	--color-bad: var(--bad);
+	--color-run: var(--run);
+	--color-rest-field: var(--rest-field);
+	--color-rest-plate: var(--rest-plate);
+	--color-rest-glyph: var(--rest-glyph);
 	--shadow-card: var(--elev);
 	--shadow-card-sm: var(--elev-sm);
 	--shadow-tint: var(--elev-tint);
@@ -121,6 +117,45 @@ body {
 		background-repeat: no-repeat;
 		background-position: right 0.6rem center;
 		background-size: 0.9rem;
+	}
+	/* The buttons on the step page's bottom panel, one row on every kind. */
+	.run-btn {
+		display: flex;
+		flex: 1;
+		min-width: 0;
+		height: 4rem;
+		align-items: center;
+		justify-content: center;
+		gap: 0.625rem;
+		border-radius: 999px;
+		padding: 0 0.75rem;
+		font-size: 20px;
+		font-weight: 800;
+		white-space: nowrap;
+	}
+	.run-chip {
+		display: flex;
+		flex-shrink: 0;
+		height: 4rem;
+		align-items: center;
+		gap: 0.5rem;
+		border-radius: 999px;
+		padding: 0 1.125rem 0 0.75rem;
+		background: var(--glass);
+		color: var(--fg);
+		font-size: 16px;
+		font-weight: 700;
+	}
+	/* Every icon on those buttons sits in its own circle. */
+	.run-icon {
+		display: flex;
+		flex-shrink: 0;
+		width: 2rem;
+		height: 2rem;
+		align-items: center;
+		justify-content: center;
+		border-radius: 999px;
+		background: color-mix(in srgb, currentColor 14%, transparent);
 	}
 	:root[data-theme='dark'] select.input {
 		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%238d96a6' stroke-width='1.5'%3E%3Cpath d='M5 7l5 5 5-5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -253,6 +288,36 @@ body {
 @media (prefers-reduced-motion: reduce) {
 	[class*='arrive-'] {
 		animation: fade-in 150ms ease both;
+	}
+}
+
+/* The step page's live cue: a light rolls out from the session clock over the
+   contour lines every 4 s, and the clock glows with it. It plays under Reduce
+   Motion too, by the owner's wish, which is why it stays slow and faint. */
+@property --wave {
+	syntax: '<length>';
+	inherits: false;
+	initial-value: 0px;
+}
+@keyframes run-wave {
+	from {
+		--wave: 0px;
+		opacity: 1;
+	}
+	to {
+		--wave: 980px;
+		opacity: 0.3;
+	}
+}
+@keyframes run-beat {
+	0% {
+		box-shadow: 0 0 0 0 var(--live-halo);
+	}
+	35% {
+		box-shadow: 0 0 0 10px transparent;
+	}
+	100% {
+		box-shadow: none;
 	}
 }
 

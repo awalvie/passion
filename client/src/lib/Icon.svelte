@@ -118,6 +118,26 @@
 			['path', { d: 'M21 13v1a4 4 0 0 1-4 4H3' }]
 		],
 		check: [['path', { d: 'M20 6 9 17l-5-5' }]],
+		// The step page's own marks, drawn for it rather than taken from lucide.
+		book: [
+			['path', { d: 'M12 6.5C10 5 7 4.5 4 5v13c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5z' }],
+			['path', { d: 'M12 6.5v13' }]
+		],
+		notepad: [
+			['path', { d: 'M5 4h14v11l-5 5H5z' }],
+			['path', { d: 'M14 20v-5h5' }],
+			['path', { d: 'M8.5 8.5h7M8.5 12h4' }]
+		],
+		hourglass: [['path', { d: 'M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9' }]],
+		barbell: [['path', { d: 'M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11' }]],
+		bolt: [['path', { d: 'M13 3 5 14h6l-1 7 8-11h-6z' }]],
+		wave: [['path', { d: 'M2.5 13c2.2-6 4.4-6 6.6 0s4.4 6 6.6 0 3.5-4.5 5.8-2' }]],
+		pause: [['path', { d: 'M8 5v14M16 5v14' }]],
+		skip: [
+			['path', { d: 'M6 5.5v13l9-6.5z', fill: 'currentColor' }],
+			['path', { d: 'M18.5 5v14' }]
+		],
+		'arrow-right': [['path', { d: 'M5 12h14M13 6l6 6-6 6' }]],
 		'map-pin': [
 			['path', { d: 'M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0' }],
 			['circle', { cx: '12', cy: '10', r: '3' }]
