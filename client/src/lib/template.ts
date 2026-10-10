@@ -31,12 +31,14 @@ export function stepMeta(s: Step): string {
 	return [kind, summary(s), s.rep_seconds ? `${s.rep_seconds}s rep` : ''].filter(Boolean).join(' · ');
 }
 
+export type NextLine = { name: string; detail?: string; step?: Step };
+
 // stopLine names where the step page goes next, under its NEXT label.
-export function stopLine(stop: { step?: Step; choice?: { name: string } } | undefined): string {
-	if (!stop) return 'End of session';
-	if (stop.choice) return `Pick ${stop.choice.name}`;
+export function stopLine(stop: { step?: Step; choice?: { name: string } } | undefined): NextLine {
+	if (!stop) return { name: 'End of session' };
+	if (stop.choice) return { name: `Pick ${stop.choice.name}` };
 	const s = stop.step!;
-	return [s.name, summary(s), s.rep_seconds ? `${s.rep_seconds}s rep` : ''].filter(Boolean).join(' · ');
+	return { name: s.name, detail: [summary(s), s.rep_seconds ? `${s.rep_seconds}s rep` : ''].filter(Boolean).join(' · '), step: s };
 }
 
 // pick is the fewest options to do, so 0 makes the whole choice optional.
