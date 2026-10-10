@@ -127,16 +127,23 @@
 
 {#snippet field(k: number, key: 'reps' | 'weight_kg', state: 'done' | 'now' | 'later', label: string)}
 	{@const v = value(k)[key]}
-	<input
-		class="h-12 w-full min-w-0 rounded-xl text-center font-[family-name:var(--font-digits)] text-2xl font-bold outline-none placeholder:font-sans placeholder:text-base placeholder:font-semibold placeholder:text-(--fg2)/55 focus:ring-2 focus:ring-tint
-			{state === 'done' ? 'bg-black/7' : state === 'now' ? 'bg-black/30 ring-1 ring-white/6' : 'bg-black/16 text-(--fg2)'}"
-		inputmode={key === 'reps' ? 'numeric' : 'decimal'}
-		placeholder={key === 'reps' ? 'reps' : 'kg'}
-		aria-label="{label} {key === 'reps' ? 'reps' : 'weight, kg'}"
-		value={v ?? ''}
-		onfocus={select}
-		onchange={(e) => edit(k, key, e.currentTarget.value)}
-	/>
+	{@const then = history?.sets[k]?.[key] ?? null}
+	<span class="relative min-w-0">
+		<input
+			class="h-12 w-full rounded-xl text-center font-[family-name:var(--font-digits)] text-2xl leading-none font-bold outline-none placeholder:font-sans placeholder:text-base placeholder:font-semibold placeholder:text-(--fg2)/55 focus:ring-2 focus:ring-tint
+				{then !== null ? 'pb-3' : ''}
+				{state === 'done' ? 'bg-black/7' : state === 'now' ? 'bg-black/30 ring-1 ring-white/6' : 'bg-black/16 text-(--fg2)'}"
+			inputmode={key === 'reps' ? 'numeric' : 'decimal'}
+			placeholder={key === 'reps' ? 'reps' : 'kg'}
+			aria-label="{label} {key === 'reps' ? 'reps' : 'weight, kg'}"
+			value={v ?? ''}
+			onfocus={select}
+			onchange={(e) => edit(k, key, e.currentTarget.value)}
+		/>
+		{#if then !== null}
+			<span class="pointer-events-none absolute inset-x-0 bottom-1.5 text-center text-[11px] leading-none font-semibold text-(--fg2)">last {then}</span>
+		{/if}
+	</span>
 {/snippet}
 
 <RunPage {step} {next} {menu} {error}>
