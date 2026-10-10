@@ -89,6 +89,7 @@
 			['circle', { cx: '12', cy: '12', r: '8.5' }],
 			['path', { d: 'M12 7.5V12l3 2' }]
 		],
+		history: [['path', { d: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2' }]],
 		plus: [['path', { d: 'M12 5v14M5 12h14' }]],
 		list: [
 			['path', { d: 'M9 7h11M9 12h11M9 17h11' }],

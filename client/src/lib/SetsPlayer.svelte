@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { request } from './api';
+	import { formatDate } from './dates';
 	import Icon from './Icon.svelte';
 	import type { MenuItem } from './Menu.svelte';
 	import { isFinished, setsOf, type HistorySession, type RunStep, type SetFields } from './run';
 	import { openRun } from './runState.svelte';
 	import RunPage from './RunPage.svelte';
+	import Sheet from './Sheet.svelte';
 	import type { NextLine } from './template';
 
 	let {
@@ -37,18 +39,20 @@
 	const count = $derived(Math.max(step.sets ?? 0, Math.ceil(logged.length / sides), 1));
 	const doneSets = $derived(Math.floor(logged.length / sides));
 
-	let lastTime = $state<HistorySession | null>(null);
+	let past = $state<HistorySession[]>([]);
 	// The page stays mounted from one exercise to the next, so the history of
 	// the one before can still be loaded.
-	const history = $derived(lastTime?.sets[0]?.exercise === step.exercise ? lastTime : null);
+	const sessions = $derived(past[0]?.sets[0]?.exercise === step.exercise ? past : []);
+	const history = $derived(sessions[0] ?? null);
+	let browsing = $state(false);
 
 	$effect(() => {
 		const exercise = step.exercise;
 		let current = true;
-		lastTime = null;
+		past = [];
 		request<{ sessions: HistorySession[] }>('GET', `/api/v1/exercises/${exercise}/history`)
 			.then((h) => {
-				if (current) lastTime = h.sessions.find((s) => s.sets.length) ?? null;
+				if (current) past = h.sessions.filter((s) => s.sets.length);
 			})
 			.catch(() => {});
 		return () => (current = false);
@@ -123,6 +127,8 @@
 	const finished = $derived(isFinished(step) && !leaving);
 	const current = $derived(finished ? -1 : doneSets);
 	const select = (e: FocusEvent) => (e.currentTarget as HTMLInputElement).select();
+	const day = (date: string) => formatDate(date, { weekday: 'short', day: 'numeric', month: 'short' });
+	const short = (s: SetFields) => [s.reps !== null ? `${s.reps}` : '', s.weight_kg !== null ? `${s.weight_kg} kg` : ''].filter(Boolean).join(' × ') || '–';
 </script>
 
 {#snippet field(k: number, key: 'reps' | 'weight_kg', state: 'done' | 'now' | 'later', label: string)}
@@ -148,14 +154,27 @@
 
 <RunPage {step} {next} {menu} {error}>
 	<div class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overscroll-contain px-4 pt-6 pb-4">
-		<p class="grid gap-x-2.5 px-3.5 text-xs font-bold tracking-[0.1em] text-(--fg2)/80 {sides === 2 ? 'grid-cols-[40px_48px_1fr_1fr_28px]' : 'grid-cols-[40px_1fr_1fr_28px]'}">
-			<span class="col-start-[-4] text-center">REPS</span><span class="text-center">WEIGHT</span>
-		</p>
 		<ol class="overflow-hidden rounded-[18px] bg-(--glass)">
+			{#if history}
+				<li>
+					<button
+						type="button"
+						class="flex h-12 w-full items-center gap-2.5 px-3.5 text-left text-[15px] font-semibold text-(--fg2) shadow-[inset_0_-1px_0_rgba(255,255,255,0.06)]"
+						onclick={() => (browsing = true)}
+					>
+						<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--glass) text-(--fg)"><Icon name="history" size="15px" stroke={2.4} /></span>
+						<span class="min-w-0 flex-1 truncate">Last time · <b class="text-(--fg)">{day(history.local_date)}</b></span>
+						<span class="flex items-center gap-1">History<Icon name="chevron-right" size="16px" stroke={2.6} /></span>
+					</button>
+				</li>
+			{/if}
+			<li class="grid gap-x-2.5 px-3.5 pt-3 pb-1.5 text-xs font-bold tracking-[0.1em] text-(--fg2)/80 {sides === 2 ? 'grid-cols-[40px_48px_1fr_1fr_28px]' : 'grid-cols-[40px_1fr_1fr_28px]'}">
+				<span class="col-start-[-4] text-center">REPS</span><span class="text-center">WEIGHT</span>
+			</li>
 			{#each { length: count }, i (i)}
 				{@const state = i < doneSets ? 'done' : i === current ? 'now' : 'later'}
 				<li
-					class="relative grid items-center gap-x-2.5 gap-y-2 px-3.5 py-3 [&:not(:first-child)]:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]
+					class="relative grid items-center gap-x-2.5 gap-y-2 px-3.5 py-3 {i ? 'shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]' : ''}
 						{sides === 2 ? 'grid-cols-[40px_48px_1fr_1fr_28px]' : 'grid-cols-[40px_1fr_1fr_28px]'}
 						{state === 'done' ? 'bg-rest-on-hero/14' : state === 'now' ? 'bg-white/7' : ''}"
 				>
@@ -201,6 +220,29 @@
 			</li>
 		</ol>
 	</div>
+
+	<Sheet bind:open={browsing} title="History" eyebrow={step.name}>
+		<div class="flex flex-col gap-3 px-1">
+			{#each sessions.slice(0, 5) as session (session.run)}
+				<section class="rounded-[22px] bg-surface p-4 shadow-card-sm">
+					<p class="text-xs font-semibold text-ink-2">{day(session.local_date)}</p>
+					<ol class="mt-2 flex flex-col gap-1.5">
+						{#each { length: Math.ceil(session.sets.length / sides) }, i (i)}
+							<li class="flex items-baseline gap-3 text-[15px] font-semibold">
+								<span class="w-12 shrink-0 text-ink-2">Set {i + 1}</span>
+								<span class="font-[family-name:var(--font-digits)] text-lg font-bold">
+									{session.sets
+										.slice(i * sides, (i + 1) * sides)
+										.map(short)
+										.join(' / ')}
+								</span>
+							</li>
+						{/each}
+					</ol>
+				</section>
+			{/each}
+		</div>
+	</Sheet>
 
 	{#snippet buttons()}
 		{#if finished}
