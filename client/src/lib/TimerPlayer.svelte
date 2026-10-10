@@ -10,7 +10,7 @@
 	import type { NextLine } from './template';
 	import Stepper from './Stepper.svelte';
 	import TimerFlap from './TimerFlap.svelte';
-	import { at, canTime, elapsed, endSet, jump, newClock, rows, startOf, timeline, togglePause, type Phase } from './timeline';
+	import { at, canTime, elapsed, endSet, jump, newClock, rows, startOf, timeline, togglePause } from './timeline';
 	import { readTimers, writeTimers, type Timed } from './timerStore';
 
 	let {
@@ -187,14 +187,6 @@
 
 	const s = (secs: number | null) => `${secs ?? 0} s`;
 
-	// What comes after this phase, under the NEXT label: the next phase of
-	// this step, or the next step once its last hang is on.
-	function then(p: Phase): NextLine {
-		const side = p.side && p.side !== phase?.side ? `${p.side} side · ` : '';
-		const set = phase && p.set !== phase.set ? `Set ${p.set} · ` : '';
-		return { name: `${set}${side}Rep ${p.rep}`, detail: s(step.rep_seconds) };
-	}
-
 	const finished = $derived(isFinished(step) && !leaving && !advancing);
 	const setsLogged = $derived(Math.floor(logged.length / sides));
 	const paused = $derived(timed?.clock.pausedAt != null);
@@ -203,25 +195,12 @@
 	const setsDone = $derived(phase ? (setOver ? phase.set : phase.set - 1) : 0);
 
 	const status = $derived.by(() => {
-		if (!timed || !phase) return setsLogged ? `Ready · ${setsLogged} of ${step.sets} logged` : 'Ready';
+		if (!timed || !phase) return setsLogged ? `Ready · ${setsLogged} of ${step.sets} logged` : step.prep_seconds ? `Ready · Prep ${s(step.prep_seconds)}` : 'Ready';
 		// On a per-side step a hang names its side instead of "Work", so the
 		// line stays one line.
 		if (phase.kind === 'prep') return phase.side ? `Prep · ${phase.side}` : 'Prep';
 		const word = phase.kind === 'hang' && phase.side ? phase.side : words[phase.kind];
 		return `${word} · Rep ${phase.rep} of ${step.reps}`;
-	});
-
-	const nextLine = $derived.by((): NextLine => {
-		if (finished) return next;
-		if (!timed || !phase) {
-			const work = setsLogged
-				? `set ${setsLogged + 1}`
-				: `${step.sets && step.sets > 1 ? `${step.sets} × ` : ''}${step.reps} × ${s(step.rep_seconds)}`;
-			return { name: step.prep_seconds ? `Prep ${s(step.prep_seconds)}, then ${work}` : work[0].toUpperCase() + work.slice(1) };
-		}
-		if (!upcoming) return next;
-		if (upcoming.kind === 'rest') return { name: 'Rest', detail: s(Math.round(upcoming.ms / 1000)) };
-		return then(upcoming);
 	});
 
 	const secs = $derived(timed && phase ? Math.ceil(pos.left / 1000) : (step.rep_seconds ?? 0));
@@ -246,7 +225,7 @@
 <RunPage
 	{step}
 	look={timed && phase ? phase.kind : 'run'}
-	next={nextLine}
+	{next}
 	menu={timed
 		? [
 				{ label: 'End set', onclick: cutSet },
