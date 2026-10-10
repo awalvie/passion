@@ -217,7 +217,7 @@
 			<button type="button" class="run-btn bg-tint text-on-tint" onclick={log}>
 				<span class="run-icon"><Icon name="check" size="16px" stroke={3} /></span>Log {sides === 2 ? side(row).toLowerCase() : `set ${number}`}
 			</button>
-			<button type="button" class="run-chip" onclick={skip}><span class="run-icon"><Icon name="skip" size="16px" /></span>Skip</button>
+			<button type="button" class="run-round" aria-label="Skip" onclick={skip}><Icon name="skip" size="26px" /></button>
 		{/if}
 	{/snippet}
 </RunPage>
