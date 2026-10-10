@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { tone, unlock } from './audio';
+	import Icon from './Icon.svelte';
 	import { formatClock, readTimers, writeTimers } from './timerStore';
 
-	let { runId, seconds }: { runId: string; seconds: number | null } = $props();
+	// offer shows the button that starts a rest by hand.
+	let { runId, seconds, offer }: { runId: string; seconds: number | null; offer: boolean } = $props();
 
 	let endsAt = $state<number | null>(null);
 	$effect.pre(() => {
@@ -50,19 +52,19 @@
 
 <p class="sr-only" aria-live="polite">{announce}</p>
 {#if endsAt !== null && left > 0}
-	<section class="grid grid-cols-[1fr_auto] items-center rounded-3xl bg-rest-soft pt-3 pr-3.5 pb-3.5 pl-[18px]">
+	<section class="grid grid-cols-[1fr_auto] items-center rounded-3xl bg-rest-field pt-3 pr-3.5 pb-3.5 pl-[18px] text-[#eefaf6]">
 		<div>
-			<p class="flex items-center gap-2 text-xs font-bold tracking-[0.06em] text-rest-ink uppercase">
+			<p class="flex items-center gap-2 text-xs font-bold tracking-[0.06em] text-rest-glyph uppercase">
 				<i class="size-2.5 rounded-full border-[2.5px] border-current"></i>Rest
 			</p>
-			<p class="mt-0.5 text-[32px] leading-[1.1] font-extrabold tracking-tight text-ink">
-				{formatClock(left)}<small class="ml-1.5 text-[15px] font-semibold tracking-normal text-ink-2">of {formatClock(total)}</small>
+			<p class="mt-0.5 text-[32px] leading-[1.1] font-extrabold tracking-tight">
+				{formatClock(left)}<small class="ml-1.5 text-[15px] font-semibold tracking-normal opacity-75">of {formatClock(total)}</small>
 			</p>
 		</div>
 		<div class="flex gap-2">
 			<button
 				type="button"
-				class="h-11 rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm"
+				class="h-11 rounded-full bg-white/12 px-4 text-[15px] font-bold"
 				onclick={() => {
 					added += 30;
 					save(endsAt! + 30_000);
@@ -72,21 +74,21 @@
 			</button>
 			<button
 				type="button"
-				class="flex h-11 items-center gap-1.5 rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm"
+				class="flex h-11 items-center gap-1.5 rounded-full bg-white/12 px-4 text-[15px] font-bold"
 				onclick={() => save(null)}
 			>
 				Skip
-				<svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 5.5v13l9-6.5z" fill="currentColor" /><path d="M18.5 5v14" /></svg>
+				<Icon name="skip" size="14px" />
 			</button>
 		</div>
-		<div class="col-span-2 mt-2.5 h-1.5 overflow-hidden rounded-full bg-rest/15">
-			<i class="block h-full rounded-full bg-rest" style="width: {(1 - left / total) * 100}%"></i>
+		<div class="col-span-2 mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/15">
+			<i class="block h-full rounded-full bg-rest-glyph" style="width: {(1 - left / total) * 100}%"></i>
 		</div>
 	</section>
-{:else if seconds}
+{:else if seconds && offer}
 	<button
 		type="button"
-		class="flex h-12 items-center justify-center gap-2 rounded-full bg-rest-soft text-[15px] font-bold text-rest-ink"
+		class="flex h-12 items-center justify-center gap-2 rounded-full bg-rest-field text-[15px] font-bold text-rest-glyph"
 		onclick={start}
 	>
 		<i class="size-2.5 rounded-full border-[2.5px] border-current"></i>Start rest · {formatClock(seconds)}

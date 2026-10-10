@@ -28,21 +28,18 @@
 	--glow-2: rgba(244, 200, 160, 0.5);
 	/* Darker than the mock's #2a72ec so the timer's text passes 4.5:1. */
 	--prep: #1a50b8;
-	--prep-band: #11409e;
 	--prep-card: #0d2a66;
 	--prep-digit: #f3f7ff;
 	--hang: #c6f05b;
-	--hang-band: #a8d63b;
 	--hang-digit: #c6f05b;
-	--on-timer: #f6f9f4;
 	--on-hang: #15201a;
-	--rest: #0d8450;
-	--rest-soft: #dbebdf;
-	--rest-ink: #0b6b41;
-	--rest-card: #0d8450;
-	--rest-digit: #f4fbf6;
 	--rest-on-hero: #6ad9a0;
 	--bad: #c2412d;
+	/* The step page has one look in both themes, so these are set only here. */
+	--run: #15271e;
+	--rest-field: #0f5a50;
+	--rest-plate: #06352f;
+	--rest-glyph: #a4f2df;
 	--elev: 0 1px 1px rgba(21, 32, 26, 0.04), 0 3px 8px rgba(21, 32, 26, 0.05),
 		0 16px 32px -10px rgba(21, 32, 26, 0.16);
 	--elev-sm: 0 1px 2px rgba(21, 32, 26, 0.06), 0 6px 14px -4px rgba(21, 32, 26, 0.12);
@@ -77,19 +74,11 @@
 	--glow-1: rgba(110, 180, 80, 0.2);
 	--glow-2: rgba(60, 120, 110, 0.16);
 	--prep: #1e5bc9;
-	--prep-band: #16489f;
 	--prep-card: #091e4b;
 	--prep-digit: #e8efff;
 	--hang: #aeda45;
-	--hang-band: #8fba2b;
 	--hang-digit: #bfea55;
-	--on-timer: #f6f9f4;
 	--on-hang: #101812;
-	--rest: #12a061;
-	--rest-soft: #11291c;
-	--rest-ink: #63d69b;
-	--rest-card: #173a28;
-	--rest-digit: #6ad9a0;
 	--rest-on-hero: #6ad9a0;
 	--bad: #f07a63;
 	--elev: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 14px 28px -10px rgba(0, 0, 0, 0.7);

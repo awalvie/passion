@@ -41,7 +41,7 @@
 {#snippet round(name: string, path: string, onclick: () => void)}
 	<button
 		type="button"
-		class="relative flex size-9 shrink-0 items-center justify-center rounded-full bg-well text-ink select-none [-webkit-touch-callout:none] before:absolute before:-inset-1 before:content-[''] active:opacity-70 dark:bg-[#2A332C]"
+		class="relative flex size-9 shrink-0 items-center justify-center rounded-full bg-well text-ink select-none [-webkit-touch-callout:none] before:absolute before:-inset-1 before:content-[''] active:opacity-70"
 		aria-label="{name} {label}"
 		onpointerdown={(e) => hold(e, onclick)}
 		onpointerup={stop}
