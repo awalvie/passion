@@ -199,15 +199,28 @@
 
 		<Sheet bind:open={reading} title={step.name} eyebrow="How to">
 			<div class="flex flex-col gap-4 px-1 text-[15px] leading-[1.4] font-semibold text-ink">
+				{#if video?.thumb_url}
+					<a
+						href={video.url}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="relative flex aspect-video items-center justify-center overflow-hidden rounded-[18px] bg-well shadow-card-sm"
+						aria-label="Watch the video"
+					>
+						<img src={video.thumb_url} alt="" class="absolute inset-0 size-full object-cover" />
+						<span class="relative flex size-14 items-center justify-center rounded-full bg-white/90 pl-1 text-on-tint">
+							<Icon name="play" size="1.5rem" />
+						</span>
+					</a>
+				{:else if video}
+					<a href={video.url} target="_blank" rel="noopener noreferrer" class="flex h-12 items-center justify-center gap-2 rounded-full bg-surface text-[15px] font-bold shadow-card-sm">
+						<Icon name="play" size="1rem" />Watch the video
+					</a>
+				{/if}
 				{#if howTo}
 					<Notes text={howTo} />
 				{:else}
 					<p class="text-ink-2">No notes for this exercise yet.</p>
-				{/if}
-				{#if video}
-					<a href={video.url} target="_blank" rel="noopener noreferrer" class="flex h-12 items-center justify-center gap-2 rounded-full bg-surface text-[15px] font-bold shadow-card-sm">
-						<Icon name="play" size="1rem" />Watch the video
-					</a>
 				{/if}
 			</div>
 		</Sheet>
