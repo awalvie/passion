@@ -25,6 +25,7 @@
 		menu,
 		band = null,
 		error = '',
+		reading = $bindable(false),
 		children,
 		buttons
 	}: {
@@ -36,6 +37,7 @@
 		menu: MenuItem[];
 		band?: number | null;
 		error?: string;
+		reading?: boolean;
 		children: Snippet;
 		buttons: Snippet;
 	} = $props();
@@ -61,7 +63,6 @@
 	const howTo = $derived(plainText(step.notes ?? '').trim());
 	const video = $derived(step.media?.find((m) => m.url));
 
-	let reading = $state(false);
 	let noting = $state(false);
 	let draft = $state('');
 

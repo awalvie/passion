@@ -2,7 +2,6 @@
 	import Icon from './Icon.svelte';
 	import { tone } from './audio';
 	import type { MenuItem } from './Menu.svelte';
-	import Notes from './Notes.svelte';
 	import { isFinished, setsOf, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
 	import RunPage from './RunPage.svelte';
@@ -35,7 +34,20 @@
 	const logged = $derived(setsOf(run, step.id));
 	const target = $derived((step.duration_seconds ?? 0) * 1000);
 	const howTo = $derived(plainText(step.notes ?? '').trim());
+	const lines = $derived(
+		howTo
+			.split('\n')
+			.map((l) => l.trim())
+			.filter(Boolean)
+	);
 
+	let reading = $state(false);
+	let box = $state<HTMLElement>();
+	let over = $state(false);
+	$effect(() => {
+		void lines;
+		if (box) over = box.scrollHeight > box.clientHeight + 1;
+	});
 	let timed = $state<Timed | null>(null);
 	let now = $state(Date.now());
 
@@ -123,32 +135,39 @@
 	{next}
 	{menu}
 	{error}
+	bind:reading
 >
-	<p
-		class="mt-10 text-center font-[family-name:var(--font-digits)] leading-none font-bold tracking-[-0.02em] whitespace-nowrap {clockSize} {paused ? 'opacity-55' : ''}"
-		role="timer"
-		aria-live="off"
-	>
-		{clock}
-	</p>
-	{#if finished}
-		<p class="mt-3 text-center text-[17px] font-bold text-(--fg2)">{took ? 'Time logged' : 'Done'}</p>
-	{:else if target}
-		<div class="mx-5 mt-6">
-			<div class="h-3.5 overflow-hidden rounded-full bg-(--glass)">
-				<i class="block h-full rounded-full bg-tint" style="width: {share * 100}%"></i>
+	<div class="mt-10 flex flex-col">
+		<p
+			class="text-center font-[family-name:var(--font-digits)] leading-none font-bold tracking-[-0.02em] whitespace-nowrap {clockSize} {paused ? 'opacity-55' : ''}"
+			role="timer"
+			aria-live="off"
+		>
+			{clock}
+		</p>
+		{#if finished}
+			<p class="mt-3 text-center text-[17px] font-bold text-(--fg2)">{took ? 'Time logged' : 'Done'}</p>
+		{:else if target}
+			<div class="mx-5 mt-6">
+				<div class="h-3.5 overflow-hidden rounded-full bg-(--glass)">
+					<i class="block h-full rounded-full bg-tint" style="width: {share * 100}%"></i>
+				</div>
+				<p class="mt-2.5 flex justify-between font-[family-name:var(--font-digits)] text-lg font-bold tracking-[0.04em] text-(--fg2)">
+					<span><b class="text-(--fg)">{formatClock(ms / 1000)}</b> DONE</span>
+					<span>OF {formatClock(target / 1000)}</span>
+				</p>
 			</div>
-			<p class="mt-2.5 flex justify-between font-[family-name:var(--font-digits)] text-lg font-bold tracking-[0.04em] text-(--fg2)">
-				<span><b class="text-(--fg)">{formatClock(ms / 1000)}</b> DONE</span>
-				<span>OF {formatClock(target / 1000)}</span>
-			</p>
-		</div>
-	{/if}
-	{#if howTo && !finished}
-		<div class="mt-6 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 text-base leading-[1.4] font-semibold text-(--fg2)">
-			<Notes text={howTo} />
-		</div>
-	{/if}
+		{/if}
+		{#if howTo && !finished}
+			<button type="button" class="mx-6 mt-8 flex gap-3.5 text-left" onclick={() => (reading = true)}>
+				<i class="w-[3px] shrink-0 rounded-full bg-tint"></i>
+				<span class="min-w-0">
+					<span bind:this={box} class="block max-h-[4.2em] overflow-hidden text-[17px] leading-[1.4] font-semibold whitespace-pre-line text-(--fg) {over ? 'fade' : ''}">{lines.join('\n')}</span>
+					<span class="mt-2 flex items-center gap-1 text-[14px] font-bold text-(--fg2)">Read all<Icon name="chevron-right" size="15px" stroke={2.6} /></span>
+				</span>
+			</button>
+		{/if}
+	</div>
 
 	{#snippet buttons()}
 		{#if finished}
@@ -172,3 +191,10 @@
 		{/if}
 	{/snippet}
 </RunPage>
+
+<style>
+	/* The last line fades out when the notes run on. */
+	.fade {
+		mask-image: linear-gradient(#000 calc(100% - 1.4em), transparent);
+	}
+</style>
