@@ -195,18 +195,15 @@
 {:else}
 	<NavBar title={run.name} back={{ href: '/', label: 'Today' }}>
 		{#snippet actions()}
-			<button
-				type="button"
-				class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm active:opacity-80"
-				onclick={() => {
-					choosing = null;
-					editing = true;
-				}}
-			>
-				Edit
-			</button>
 			<Menu
 				items={[
+					{
+						label: 'Edit session',
+						onclick: () => {
+							choosing = null;
+							editing = true;
+						}
+					},
 					{ label: 'Finish session', onclick: () => goto(`/run/${run.id}/finish`) },
 					{ label: 'Discard session', danger: true, onclick: discard }
 				]}
