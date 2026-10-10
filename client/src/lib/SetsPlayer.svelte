@@ -165,6 +165,11 @@
 					{/each}
 				</li>
 			{/each}
+			<li class="shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+				<button type="button" class="flex h-[52px] w-full items-center justify-center gap-2 text-[15px] font-bold" onclick={() => openRun.addSet(step, count)}>
+					<span class="flex size-7 items-center justify-center rounded-full bg-(--glass)"><Icon name="plus" size="16px" stroke={2.6} /></span>Add set
+				</button>
+			</li>
 		</ol>
 	</div>
 
