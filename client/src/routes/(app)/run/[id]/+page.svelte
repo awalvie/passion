@@ -134,14 +134,10 @@
 	const askedIn = $derived(run.sections.findIndex((s) => s.items.some((it) => it.choice?.id === asked)));
 	const isOpen = (i: number) => chosen[i] ?? (i === section || i === askedIn);
 
-	// Sections that hold a choice still to pick, asked about until a step is
-	// logged or skipped.
+	// Choices still to pick, asked about until a step is logged or skipped.
 	let later = $state(false);
 	const unpicked = $derived(
-		run.sections.flatMap((s) => {
-			const c = s.items.find((it) => it.choice && it.choice.pick > 0)?.choice;
-			return c ? [{ section: s.name, choice: c }] : [];
-		})
+		run.sections.flatMap((s) => s.items.flatMap((it) => (it.choice && it.choice.pick > 0 ? [it.choice] : [])))
 	);
 	const remind = $derived(!later && !run.finished_at && steps.every((s) => s.status === null) && unpicked.length > 0);
 
@@ -300,12 +296,12 @@
 				{#if remind}
 					<div class="mt-2.5 rounded-3xl bg-(--glass) px-4 pt-3.5 pb-4 shadow-[0_0_0_2px_var(--tint)]">
 						<p class="text-[17px] font-extrabold">
-							{unpicked.length === 1 ? '1 section needs a pick' : `${unpicked.length} sections need a pick`}
+							{unpicked.length === 1 ? '1 pick to make' : `${unpicked.length} picks to make`}
 						</p>
-						<p class="mt-0.5 truncate text-sm font-semibold text-ink-2">{unpicked.map((u) => u.section).join(' · ')}</p>
+						<p class="mt-0.5 truncate text-sm font-semibold text-ink-2">{unpicked.map((c) => c.name).join(' · ')}</p>
 						<div class="mt-3 grid grid-cols-[1fr_1.4fr] gap-2.5">
 							<button type="button" class="flex h-14 items-center justify-center rounded-full bg-(--glass) text-[15px] font-bold text-ink active:opacity-80" onclick={() => (later = true)}>Later</button>
-							<Button href={stopHref(run.id, { choice: unpicked[0].choice })}>Pick now</Button>
+							<Button href={stopHref(run.id, { choice: unpicked[0] })}>Pick now</Button>
 						</div>
 					</div>
 				{/if}
