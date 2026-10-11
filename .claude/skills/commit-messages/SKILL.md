@@ -5,7 +5,7 @@ description: Write commit messages for this project. Use when asked to commit, w
 
 Commit messages follow the style of https://tangled.org/tangled.org/core/commits/master:
 
-- All lowercase
+- Lowercase, except names such as `RunField` or `NEXT`
 - `component:` prefix, using the top-level directory or feature area as the component
 - Imperative mood, present tense ("add", "fix", "remove", "allow", not "added", "fixes")
 - No trailing period
@@ -15,11 +15,11 @@ Commit messages follow the style of https://tangled.org/tangled.org/core/commits
 ## Examples from this project
 
 ```
-open-session: redirect to first exercise on start
-calendar: fix move dialog header layout
-training-cycles: default start date to today
-templates: add kind selector to new exercise form
-start-session-picker: fix select theming in dark mode
+run: add 30 s to a rest
+sets: remove a set with its ×
+climbs: log each go instead of an outcome
+cycle: drag a session to another day
+catalog: stop timing warm-ups and tempo reps
 ```
 
 ## Component naming
@@ -28,14 +28,21 @@ Use the feature area, not the file name:
 
 | Changed area | Prefix |
 |---|---|
-| Open session page | `open-session:` |
+| A running session and its step pages | `run:` |
+| The session screen while it runs | `session:` |
+| The set card | `sets:` |
+| The climb card | `climbs:` |
+| Today tab | `today:` |
+| Plan tab | `plan:` |
+| One cycle | `cycle:` |
 | Session templates | `templates:` |
-| Training cycles | `training-cycles:` |
 | Exercise library | `library:` |
-| Training log | `training-log:` |
-| Dashboard | `dashboard:` |
-| Calendar | `calendar:` |
-| Auth / login | `auth:` |
-| DB models / migrations | `db:` |
-| CSS / static assets | `static:` |
-| Multiple unrelated areas | `*:` |
+| History tab | `history:` |
+| Profile and settings | `profile:` |
+| Shared client parts | `client:` |
+| Handlers | `api:` |
+| Queries and migrations | `db:` |
+| Catalog files | `catalog:` |
+| Docs, readme | `docs:`, `readme:` |
+| Agents, CLAUDE.md | `agents:`, `claude:` |
+| CI, deploy | `ci:`, `deploy:` |
