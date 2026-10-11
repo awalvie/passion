@@ -11,10 +11,6 @@ After implementing any feature, updating a handler, adding a config option, or c
 
 Do not rewrite sections that aren't affected by the change.
 
-## HTMX
-
-Always set `hx-target="this"` on lazy-load divs inside forms. HTMX inherits `hx-target` from ancestor elements, which causes requests to swap into the wrong container.
-
 ## Git commits
 
 Never commit unless the user explicitly asks. Implement changes, then stop — do not run `git add` or `git commit` on your own initiative.
@@ -43,15 +39,15 @@ If a catalog entry cannot meet this, put it in `passion-private-catalog` instead
 - No error handling for scenarios that can't happen — trust internal guarantees.
 - Prefer editing existing files over creating new ones.
 
-## Dropdowns / selects
+## Fields and selects
 
-Always use `class="input text-sm"` (or `class="input"`) on `<select>` elements. This inherits `--panel` background, `--border` border colour, and `--text` foreground from the site theme. Never leave a `<select>` with browser-default styling.
+Use the `.input` class on every field and `<select>`. Never leave one with browser-default styling.
 
 ## UX / design decisions
 
 When a UX issue or design question is ambiguous, ask before implementing. Don't pick a direction and build it.
 
-For all design and UI work, refer to [docs/DESIGN.md](docs/DESIGN.md) first. It documents the site's design philosophy, colour tokens, typography scale, card/badge/button patterns, icon conventions, and layout rules. Follow those patterns rather than inventing new ones.
+For all design and UI work, read "Style a screen" in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) first. It names the tokens, the type scale and the shared components. Follow those rather than inventing new ones.
 
 ## When something is unclear, research first — then ask
 
@@ -68,20 +64,18 @@ Agents live in `.claude/agents/` and each has persistent memory in `.claude/agen
 
 ### When implementing (during changes)
 
-- **pixel** — consult when proposing template or CSS changes. Before finalizing a UI change, ask pixel whether it's consistent with the design system.
-- **schema** — consult when proposing model or query changes. Before finalizing a DB change, ask schema whether it's safe and well-indexed.
+- **pixel** — consult when proposing component or CSS changes. Before finalizing a UI change, ask pixel whether it's consistent with the design system.
 - **copy** — consult when writing new user-facing text. Before finalizing labels, errors, or empty states, ask copy whether the tone is consistent.
 
 ### After implementation (post-change review)
 
 Dispatch these on the changed files after completing a feature:
 
-- **pixel** — on any template/CSS changes
+- **pixel** — on any component/CSS changes
 - **qa** — on any handler or logic changes
 - **simplify** — on any implementation (look for dead code, over-abstraction)
 - **scribe** — on any structural change (sync docs with reality)
 - **copy** — on any new user-facing text
-- **schema** — on any model/query changes
 - **librarian** — on any exercise model or YAML import changes
 
 Run the relevant subset in parallel based on what changed. Not every agent applies to every change.
