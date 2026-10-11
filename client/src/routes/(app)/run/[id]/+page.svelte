@@ -1,16 +1,15 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import type { Snapshot } from '@sveltejs/kit';
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import Menu from '$lib/Menu.svelte';
-	import NavBar from '$lib/NavBar.svelte';
 	import {
 		currentStop,
 		isFinished,
-		secondsSince,
 		sectionMarks,
 		sectionShare,
 		setsOf,
@@ -21,6 +20,7 @@
 		type RunStep,
 		type SectionMark
 	} from '$lib/run';
+	import RunField from '$lib/RunField.svelte';
 	import { openRun } from '$lib/runState.svelte';
 	import { choiceMeta, stepMeta, type Step } from '$lib/template';
 	import type { Exercise } from '$lib/exercise';
@@ -35,15 +35,6 @@
 	const stop = $derived(currentStop(run));
 	const current = $derived(stop?.step);
 	const section = $derived(stop ? run.sections.findIndex((s) => s.items.includes(stop)) : -1);
-
-	let now = $state(Date.now());
-	$effect(() => {
-		const tick = setInterval(() => (now = Date.now()), 1000);
-		return () => clearInterval(tick);
-	});
-	const minutes = $derived(
-		Math.floor((run.finished_at ? (run.elapsed_seconds ?? 0) : secondsSince(run.started_at, now)) / 60)
-	);
 
 	let error = $state('');
 
@@ -117,7 +108,6 @@
 	}
 
 	const marks = $derived(sectionMarks(run, section));
-	const sectionsDone = $derived(marks.filter((m) => m === 'done').length);
 
 	function caption(s: RunSection, m: SectionMark): string {
 		if (!s.items.length) return 'No exercises';
@@ -156,6 +146,14 @@
 
 	let editing = $state(false);
 
+	// The page scrolls inside the field, so coming back from a step puts the
+	// list back where it was.
+	let scroller: HTMLElement;
+	export const snapshot: Snapshot<number> = {
+		capture: () => scroller.scrollTop,
+		restore: (y) => (scroller.scrollTop = y)
+	};
+
 	let naming = $state(false);
 	let sectionName = $state('');
 
@@ -170,7 +168,7 @@
 {#snippet remove(label: string, onclick: () => void)}
 	<button
 		type="button"
-		class="relative flex size-7 shrink-0 items-center justify-center rounded-full bg-well text-ink before:absolute before:-inset-2 before:content-[''] active:opacity-70"
+		class="relative flex size-7 shrink-0 items-center justify-center rounded-full bg-(--glass) text-ink before:absolute before:-inset-2 before:content-[''] active:opacity-70"
 		aria-label={label}
 		{onclick}
 	>
@@ -180,22 +178,13 @@
 
 <svelte:head><title>{run.name}</title></svelte:head>
 
-{#if editing}
-	<NavBar title="Edit session">
-		{#snippet actions()}
-			<button
-				type="button"
-				class="flex h-11 items-center rounded-full bg-tint px-4 text-[15px] font-bold text-on-tint shadow-tint active:opacity-80"
-				onclick={() => (editing = false)}
-			>
-				Done
-			</button>
-		{/snippet}
-	</NavBar>
-{:else}
-	<NavBar title={run.name} back={{ href: '/', label: 'Today' }}>
-		{#snippet actions()}
+<RunField label={run.name} back={editing ? undefined : { href: '/', label: 'Today', swipe: true }}>
+	{#snippet end()}
+		{#if editing}
+			<button type="button" class="flex h-11 items-center rounded-full bg-tint px-4 text-[15px] font-bold text-on-tint active:opacity-80" onclick={() => (editing = false)}>Done</button>
+		{:else}
 			<Menu
+				look="bg-(--pill) text-on-hero"
 				items={[
 					{
 						label: 'Edit session',
@@ -208,364 +197,345 @@
 					{ label: 'Discard session', danger: true, onclick: discard }
 				]}
 			/>
-		{/snippet}
-	</NavBar>
-{/if}
-
-<div class="px-4">
-	<FormError message={error} />
-</div>
-
-{#if editing}
-	<div class="px-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
-		<p class="px-1 pt-1 text-xs font-semibold text-ink-2">Remove with −. Done exercises keep their sets.</p>
-		{#each run.sections as s, i (i)}
-			<div class="flex items-baseline gap-2.5 px-1 pt-[18px] pb-2">
-				<h2 class="min-w-0 truncate text-xl leading-[1.15] font-bold tracking-[-0.01em]">{s.name}</h2>
-				<button
-					type="button"
-					class="ml-auto flex shrink-0 items-center gap-1 text-[15px] font-bold text-ink active:opacity-70"
-					aria-label="Add an exercise to {s.name}"
-					onclick={() => openLibrary(i)}
-				>
-					<Icon name="plus" size="1rem" />
-					Add
-				</button>
-			</div>
-			{#if s.items.length}
-				<ul class="rounded-3xl bg-surface py-1 shadow-card">
-					{#each s.items as item, j (item.step?.id ?? item.choice?.id ?? j)}
-						{#if item.step}
-							{@const reached = item.step.status !== null}
-							{#if j > 0 && s.items[j - 1].choice}
-								<li class="px-3.5 pt-2.5 pb-0.5 text-xs font-semibold tracking-[0.06em] text-ink-3 uppercase">Then</li>
-							{/if}
-							<li class="flex min-h-14 items-center gap-3 px-3.5 py-2.5 {j > 0 && s.items[j - 1].step ? 'shadow-[inset_0_1px_0_var(--line)]' : ''}">
-								{#if reached}
-									<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-ink text-ground dark:bg-ink-2">
-										<Icon name="check" size="1rem" />
-									</span>
-								{:else}
-									{@render remove(`Remove ${item.step.name}`, () => openRun.removeStep(item.step!.id))}
-								{/if}
-								<span class="min-w-0 flex-1">
-									<span class="block truncate text-[15px] font-bold {reached ? 'text-ink-2' : ''}">{item.step.name}</span>
-									<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
-										{item.step.status === 'skipped' ? 'Skipped' : stepMeta(item.step)}
-									</span>
-								</span>
-							</li>
-						{:else}
-							{@const c = item.choice}
-							<li class="px-3.5 pt-2.5 pb-0.5 text-xs font-semibold tracking-[0.06em] text-ink-3 uppercase">
-								{choiceMeta(c)}
-							</li>
-							{#each c.options as o, k (k)}
-								<li class="flex min-h-14 items-center gap-3 px-3.5 py-2.5 {k > 0 ? 'shadow-[inset_0_1px_0_var(--line)]' : ''}">
-									{@render remove(`Remove ${o.name}`, () => openRun.removeOption(c.id, k))}
-									<span class="min-w-0 flex-1">
-										<span class="block truncate text-[15px] font-bold">{o.name}</span>
-										<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{stepMeta(o)}</span>
-									</span>
-								</li>
-							{/each}
-						{/if}
-					{/each}
-				</ul>
-			{/if}
-		{/each}
-		<div class="mt-5">
-			<Button variant="secondary" onclick={() => (naming = true)}>
-				<Icon name="plus" />
-				Add section
-			</Button>
-		</div>
-	</div>
-{:else}
-	<div class="flex flex-col px-4 pt-1 pb-[calc(env(safe-area-inset-bottom)+7rem)]">
-		<section class="rounded-3xl bg-surface px-5 pt-4 pb-[18px] shadow-card">
-			<div class="flex items-start justify-between gap-3">
-				<div>
-					<p class="text-xl leading-tight font-bold tracking-[-0.01em]">{minutes} min</p>
-					<p class="mt-0.5 text-xs font-semibold text-ink-2">{finished} of {steps.length} exercises</p>
-				</div>
-				<div class="text-right">
-					<p class="text-xl leading-tight font-bold tracking-[-0.01em]">
-						{#if run.finished_at}
-							Finished
-						{:else if section >= 0}
-							Section {section + 1} of {run.sections.length}
-						{:else}
-							All done
-						{/if}
-					</p>
-					{#if run.sections.length}
-						<p class="mt-0.5 text-xs font-semibold text-ink-2">
-							{sectionsDone} done · {run.sections.length - sectionsDone} left
-						</p>
-					{/if}
-				</div>
-			</div>
-			<div
-				class="mt-3.5 flex gap-1.5"
-				role="progressbar"
-				aria-valuemin={0}
-				aria-valuemax={steps.length}
-				aria-valuenow={finished}
-			>
-				{#each run.sections as s, i (i)}
-					<span class="h-2 flex-1 overflow-hidden rounded-full {marks[i] === 'done' ? 'bg-ink dark:bg-ink-2' : 'bg-well'}">
-						{#if marks[i] === 'now'}
-							<span class="block h-full rounded-full bg-live" style="width: {sectionShare(s) * 100}%"></span>
-						{/if}
-					</span>
-				{/each}
-			</div>
-		</section>
-
-		{#if remind}
-			<div class="mt-2.5 rounded-3xl bg-surface px-4 pt-3.5 pb-4 shadow-[0_0_0_2px_var(--live),var(--elev)]">
-				<p class="text-[17px] font-extrabold">
-					{unpicked.length === 1 ? '1 section needs a pick' : `${unpicked.length} sections need a pick`}
-				</p>
-				<p class="mt-0.5 truncate text-sm font-semibold text-ink-2">{unpicked.map((u) => u.section).join(' · ')}</p>
-				<div class="mt-3 grid grid-cols-[1fr_1.4fr] gap-2.5">
-					<button type="button" class="flex h-14 items-center justify-center rounded-full bg-well text-[15px] font-bold text-ink active:opacity-80" onclick={() => (later = true)}>Later</button>
-					<Button variant="live" href={stopHref(run.id, { choice: unpicked[0].choice })}>Pick now</Button>
-				</div>
-			</div>
 		{/if}
+	{/snippet}
 
-		<ol class="mt-1.5">
-			{#each run.sections as s, i (i)}
-				{@const m = marks[i]}
-				{@const open = isOpen(i)}
-				<li class="relative">
-					{#if i < run.sections.length - 1}
-						<span
-							aria-hidden="true"
-							class="absolute top-[26px] -bottom-[26px] left-[14.75px] border-l-[2.5px] {m === 'done'
-								? 'border-ink dark:border-ink-2'
-								: 'border-dotted border-ink-3 opacity-70'}"
-						></span>
-					{/if}
-					<button
-						type="button"
-						class="relative flex w-full items-center gap-3.5 pr-1 text-left {m === 'now' ? 'h-11' : 'h-[52px]'}"
-						aria-expanded={open}
-						onclick={() => (chosen[i] = !isOpen(i))}
-					>
-						<SessionDot mark={m} />
-						<span class="min-w-0 flex-1">
-							<span class="block truncate text-[15px] font-bold">{s.name}</span>
-							{#if m !== 'now'}
-								<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{caption(s, m)}</span>
-							{/if}
-						</span>
-						{#if m === 'now'}
-							<span class="shrink-0 rounded-[10px] bg-live px-2.5 py-1 text-xs font-bold text-on-live">You are here</span>
-						{:else}
-							{#if m === 'done'}
-								<span class="flex shrink-0 gap-1" aria-hidden="true">
-									{#each s.items as it, k (k)}
-										<span
-											class="size-[7px] rounded-full {it.step?.status === 'skipped'
-												? 'border-[1.5px] border-ink-3'
-												: 'bg-ink dark:bg-ink-2'}"
-										></span>
-									{/each}
-								</span>
-							{/if}
-							<span class="text-ink-3 transition-transform {open ? 'rotate-90' : ''}">
-								<Icon name="chevron-right" size="1.125rem" />
-							</span>
-						{/if}
-					</button>
-
-					{#if open && s.items.length}
-						<ul class="relative mb-1 ml-[46px] rounded-3xl bg-surface p-2.5 pb-2 shadow-card">
+	<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain" bind:this={scroller}>
+		<h1 class="mt-3 mb-4 px-5 text-center text-[28px] leading-[1.08] font-extrabold tracking-[-0.02em] break-words text-balance">
+			{editing ? 'Edit session' : run.name}
+		</h1>
+		<div class="px-4">
+			<FormError message={error} />
+		</div>
+		{#if editing}
+			<div class="px-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
+				<p class="px-1 pt-1 text-xs font-semibold text-ink-2">Remove with −. Done exercises keep their sets.</p>
+				{#each run.sections as s, i (i)}
+					<div class="flex items-baseline gap-2.5 px-1 pt-[18px] pb-2">
+						<h2 class="min-w-0 truncate text-xl leading-[1.15] font-bold tracking-[-0.01em]">{s.name}</h2>
+						<button
+							type="button"
+							class="ml-auto flex shrink-0 items-center gap-1 text-[15px] font-bold text-ink active:opacity-70"
+							aria-label="Add an exercise to {s.name}"
+							onclick={() => openLibrary(i)}
+						>
+							<Icon name="plus" size="1rem" />
+							Add
+						</button>
+					</div>
+					{#if s.items.length}
+						<ul class="rounded-3xl bg-(--glass) py-1">
 							{#each s.items as item, j (item.step?.id ?? item.choice?.id ?? j)}
-								<li class="[&:not(:first-child)]:mt-1 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
-									{#if item.step}
-										{@const sm = mark(item.step)}
-										<a href="/run/{run.id}/step/{item.step.id}" class="flex items-center gap-3 px-1 py-2.5">
-											<SessionDot mark={sm} small />
-											<span class="min-w-0 flex-1">
-												<span
-													class="block truncate text-[15px] font-bold {sm === 'skipped'
-														? 'text-ink-2 line-through'
-														: sm === 'done'
-															? 'text-ink-2'
-															: ''}"
-												>
-													{item.step.name}
-												</span>
-												<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{stepMeta(item.step)}</span>
-												{#if sm === 'now' && item.step.sets && item.step.kind !== 'climbing'}
-													{@const logged = setsOf(run, item.step.id).length}
-													<span class="mt-2 flex items-center gap-1">
-														{#each Array.from({ length: item.step.sets }, (_, n) => n) as n (n)}
-															<span
-																class="size-2 rounded-full {n < logged
-																	? 'bg-ink dark:bg-ink-2'
-																	: n === logged
-																		? 'bg-live'
-																		: 'bg-well'}"
-															></span>
-														{/each}
-														{#if logged < item.step.sets}
-															<span class="ml-0.5 text-xs font-bold">Set {logged + 1} next</span>
-														{/if}
-													</span>
-												{/if}
-											</span>
-											<span class="text-ink-3"><Icon name="chevron-right" size="1.125rem" /></span>
-										</a>
-									{:else}
-										{@const c = item.choice}
-										<div id="pick-{c.id}" class="scroll-mt-20 pt-0.5 pb-1">
-											<p class="px-1 pt-0.5 pb-2 text-xs font-semibold tracking-[0.06em] text-ink-2 uppercase">
-												{c.name} · {choiceMeta(c)}
-											</p>
-											<div>
-												{#each c.options as o, k (k)}
-													{@const on = choosing === c.id && picked.includes(k)}
-													{@const thumb = o.media.find((md) => md.thumb_url)?.thumb_url}
-													<div class="flex items-center gap-3 px-1 {k > 0 ? 'shadow-[inset_0_1px_0_var(--line)]' : ''}">
-														<button
-															type="button"
-															class="relative flex size-7 shrink-0 items-center justify-center rounded-full before:absolute before:-inset-2 before:content-[''] {on
-																? 'bg-live text-on-live'
-																: 'shadow-[inset_0_0_0_2px_var(--ink-3)]'}"
-															aria-pressed={on}
-															aria-label="Pick {o.name}"
-															onclick={() => toggle(c.id, k)}
-														>
-															{#if on}
-																<Icon name="check" size="1rem" stroke={3} />
-															{/if}
-														</button>
-														<button
-															type="button"
-															class="flex min-h-[60px] min-w-0 flex-1 items-center gap-3 py-2 text-left"
-															onclick={() => preview(c, k)}
-														>
-															{#if thumb}
-																<img src={thumb} alt="" class="size-11 shrink-0 rounded-xl object-cover" />
-															{/if}
-															<span class="min-w-0 flex-1">
-																<span class="block truncate text-[15px] font-bold">{o.name}</span>
-																<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{stepMeta(o)}</span>
-															</span>
-															<span class="text-ink-3"><Icon name="chevron-right" size="1.125rem" /></span>
-														</button>
-													</div>
-												{/each}
-											</div>
-											{#if choosing === c.id}
-												<div class="mt-2.5">
-													<Button
-														disabled={picked.length < Math.max(1, c.pick)}
-														onclick={() => pick(c.id, picked.map((k) => c.options[k]))}
-													>
-														Use {picked.length === 1 ? 'this' : 'these'}
-													</Button>
-												</div>
-											{/if}
-										</div>
+								{#if item.step}
+									{@const reached = item.step.status !== null}
+									{#if j > 0 && s.items[j - 1].choice}
+										<li class="px-3.5 pt-2.5 pb-0.5 text-xs font-semibold tracking-[0.06em] text-ink-3 uppercase">Then</li>
 									{/if}
-								</li>
+									<li class="flex min-h-14 items-center gap-3 px-3.5 py-2.5 {j > 0 && s.items[j - 1].step ? 'shadow-[inset_0_1px_0_var(--line)]' : ''}">
+										{#if reached}
+											<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-rest-on-hero text-on-tint">
+												<Icon name="check" size="1rem" />
+											</span>
+										{:else}
+											{@render remove(`Remove ${item.step.name}`, () => openRun.removeStep(item.step!.id))}
+										{/if}
+										<span class="min-w-0 flex-1">
+											<span class="block truncate text-[15px] font-bold {reached ? 'text-ink-2' : ''}">{item.step.name}</span>
+											<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
+												{item.step.status === 'skipped' ? 'Skipped' : stepMeta(item.step)}
+											</span>
+										</span>
+									</li>
+								{:else}
+									{@const c = item.choice}
+									<li class="px-3.5 pt-2.5 pb-0.5 text-xs font-semibold tracking-[0.06em] text-ink-3 uppercase">
+										{choiceMeta(c)}
+									</li>
+									{#each c.options as o, k (k)}
+										<li class="flex min-h-14 items-center gap-3 px-3.5 py-2.5 {k > 0 ? 'shadow-[inset_0_1px_0_var(--line)]' : ''}">
+											{@render remove(`Remove ${o.name}`, () => openRun.removeOption(c.id, k))}
+											<span class="min-w-0 flex-1">
+												<span class="block truncate text-[15px] font-bold">{o.name}</span>
+												<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{stepMeta(o)}</span>
+											</span>
+										</li>
+									{/each}
+								{/if}
 							{/each}
 						</ul>
 					{/if}
-				</li>
-			{/each}
-		</ol>
-
-		{#if !run.sections.length}
-			<div class="mt-5">
-				<Button variant="secondary" onclick={() => openLibrary()}>Add exercise</Button>
-			</div>
-		{/if}
-	</div>
-{/if}
-
-<Sheet bind:open={picking} eyebrow={into === undefined ? undefined : run.sections[into]?.name} title="Add exercise">
-	<ExercisePicker
-		id="add-exercise"
-		label="Exercise"
-		exercises={library}
-		pick={(e) => {
-			openRun.addStep(e, into);
-			picking = false;
-		}}
-	/>
-</Sheet>
-
-<Sheet bind:open={naming} title="Add section">
-	<form onsubmit={addSection}>
-		<label class="block text-xs font-semibold text-ink-2" for="section-name">Name</label>
-		<input id="section-name" class="mt-1.5 w-full input" maxlength="200" required bind:value={sectionName} />
-		<div class="mt-4">
-			<Button type="submit" disabled={!sectionName.trim()}>Add section</Button>
-		</div>
-	</form>
-</Sheet>
-
-<Sheet bind:open={previewing} eyebrow={shown?.choice.name} title={option?.name ?? ''}>
-	{#if option}
-		<p class="-mt-1 text-xs font-semibold text-ink-2">{stepMeta(option)}</p>
-		{#if videoThumb}
-			<a
-				href={videoThumb.url}
-				target="_blank"
-				rel="noopener"
-				class="relative mt-3.5 block aspect-video max-w-full overflow-hidden rounded-[18px] bg-well"
-				aria-label="Watch {option.name}"
-			>
-				<img src={videoThumb.thumb_url} alt="" class="size-full object-cover" />
-				<span class="absolute top-1/2 left-1/2 flex size-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 pl-0.5 text-on-tint">
-					<Icon name="play" size="1.5rem" />
-				</span>
-			</a>
-		{:else if video}
-			<a href={video.url} target="_blank" rel="noopener" class="mt-3.5 flex items-center gap-2.5 text-[15px] font-bold">
-				<span class="flex size-8 items-center justify-center rounded-full bg-well pl-0.5"><Icon name="play" size="1rem" /></span>
-				Watch video
-			</a>
-		{/if}
-		{#if option.notes?.trim()}
-			<div class="mt-3.5 text-[15px] font-semibold"><Notes text={option.notes} /></div>
-		{/if}
-		<div class="mt-5 grid grid-cols-[1fr_1.4fr] gap-2.5">
-			<button type="button" class="flex h-14 items-center justify-center rounded-full bg-well text-[15px] font-bold text-ink active:opacity-80" onclick={() => (previewing = false)}>Back</button>
-			<Button variant="live" onclick={pickShown}>Pick this</Button>
-		</div>
-	{/if}
-</Sheet>
-
-{#if !editing && !run.finished_at && (stop || steps.length)}
-	<div
-		class="fixed inset-x-0 bottom-0 z-20 mx-auto flex w-full max-w-[430px] gap-2.5 bg-linear-to-t from-ground from-60% to-transparent px-4 pt-6 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]"
-	>
-		{#if stop}
-			<a
-				href="/run/{run.id}/finish"
-				class="flex h-14 shrink-0 items-center gap-2 rounded-full bg-surface px-[22px] text-[15px] font-bold text-ink shadow-card active:opacity-80"
-			>
-				<svg viewBox="0 0 24 24" class="size-[18px]" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4M6 4h11l-2 4 2 4H6" /></svg>
-				Finish
-			</a>
-			<div class="min-w-0 flex-1">
-				<Button variant="live" href={stopHref(run.id, stop)}>
-					<Icon name="play" size="18px" />
-					Continue
-				</Button>
+				{/each}
+				<div class="mt-5">
+					<Button variant="secondary" onclick={() => (naming = true)}>
+						<Icon name="plus" />
+						Add section
+					</Button>
+				</div>
 			</div>
 		{:else}
-			<div class="flex-1">
-				<Button href="/run/{run.id}/finish">Finish session</Button>
+			<div class="flex flex-col px-4 {run.finished_at ? 'pb-[calc(env(safe-area-inset-bottom)+1.5rem)]' : 'pb-6'}">
+				<section class="rounded-3xl bg-(--glass) px-5 pt-4 pb-[18px]">
+					<p class="flex flex-wrap justify-between gap-x-3 font-[family-name:var(--font-digits)] text-sm font-bold tracking-[0.1em] text-(--fg2)">
+						<span>{finished} OF {steps.length} DONE</span>
+						<span>{run.finished_at ? 'FINISHED' : section >= 0 ? `SECTION ${section + 1} OF ${run.sections.length}` : 'ALL DONE'}</span>
+					</p>
+					<div
+						class="mt-3.5 flex gap-1.5"
+						role="progressbar"
+						aria-valuemin={0}
+						aria-valuemax={steps.length}
+						aria-valuenow={finished}
+					>
+						{#each run.sections as s, i (i)}
+							<span class="h-2 flex-1 overflow-hidden rounded-full {marks[i] === 'done' ? 'bg-rest-on-hero' : 'bg-well'}">
+								{#if marks[i] === 'now'}
+									<span class="block h-full rounded-full bg-tint" style="width: {sectionShare(s) * 100}%"></span>
+								{/if}
+							</span>
+						{/each}
+					</div>
+				</section>
+
+				{#if remind}
+					<div class="mt-2.5 rounded-3xl bg-(--glass) px-4 pt-3.5 pb-4 shadow-[0_0_0_2px_var(--tint)]">
+						<p class="text-[17px] font-extrabold">
+							{unpicked.length === 1 ? '1 section needs a pick' : `${unpicked.length} sections need a pick`}
+						</p>
+						<p class="mt-0.5 truncate text-sm font-semibold text-ink-2">{unpicked.map((u) => u.section).join(' · ')}</p>
+						<div class="mt-3 grid grid-cols-[1fr_1.4fr] gap-2.5">
+							<button type="button" class="flex h-14 items-center justify-center rounded-full bg-(--glass) text-[15px] font-bold text-ink active:opacity-80" onclick={() => (later = true)}>Later</button>
+							<Button href={stopHref(run.id, { choice: unpicked[0].choice })}>Pick now</Button>
+						</div>
+					</div>
+				{/if}
+
+				<ol class="mt-1.5">
+					{#each run.sections as s, i (i)}
+						{@const m = marks[i]}
+						{@const open = isOpen(i)}
+						<li class="relative">
+							{#if i < run.sections.length - 1}
+								<span
+									aria-hidden="true"
+									class="absolute top-[26px] -bottom-[26px] left-[14.75px] border-l-[2.5px] {m === 'done'
+										? 'border-rest-on-hero/60'
+										: 'border-dotted border-ink-3 opacity-70'}"
+								></span>
+							{/if}
+							<button
+								type="button"
+								class="relative flex w-full items-center gap-3.5 pr-1 text-left {m === 'now' ? 'h-11' : 'h-[52px]'}"
+								aria-expanded={open}
+								onclick={() => (chosen[i] = !isOpen(i))}
+							>
+								<SessionDot mark={m} />
+								<span class="min-w-0 flex-1">
+									<span class="block truncate text-[15px] font-bold">{s.name}</span>
+									{#if m !== 'now'}
+										<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{caption(s, m)}</span>
+									{/if}
+								</span>
+								{#if m === 'now'}
+									<span class="shrink-0 rounded-[10px] bg-tint px-2.5 py-1 text-xs font-bold text-on-tint">You are here</span>
+								{:else}
+									{#if m === 'done'}
+										<span class="flex shrink-0 gap-1" aria-hidden="true">
+											{#each s.items as it, k (k)}
+												<span
+													class="size-[7px] rounded-full {it.step?.status === 'skipped'
+														? 'border-[1.5px] border-ink-3'
+														: 'bg-rest-on-hero'}"
+												></span>
+											{/each}
+										</span>
+									{/if}
+									<span class="text-ink-3 transition-transform {open ? 'rotate-90' : ''}">
+										<Icon name="chevron-right" size="1.125rem" />
+									</span>
+								{/if}
+							</button>
+
+							{#if open && s.items.length}
+								<ul class="relative mb-1 ml-[46px] rounded-3xl bg-(--glass) p-2.5 pb-2">
+									{#each s.items as item, j (item.step?.id ?? item.choice?.id ?? j)}
+										<li class="[&:not(:first-child)]:mt-1 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+											{#if item.step}
+												{@const sm = mark(item.step)}
+												<a href="/run/{run.id}/step/{item.step.id}" class="flex items-center gap-3 px-1 py-2.5">
+													<SessionDot mark={sm} small />
+													<span class="min-w-0 flex-1">
+														<span
+															class="block truncate text-[15px] font-bold {sm === 'skipped'
+																? 'text-ink-2 line-through'
+																: sm === 'done'
+																	? 'text-ink-2'
+																	: ''}"
+														>
+															{item.step.name}
+														</span>
+														<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{stepMeta(item.step)}</span>
+														{#if sm === 'now' && item.step.sets && item.step.kind !== 'climbing'}
+															{@const logged = setsOf(run, item.step.id).length}
+															<span class="mt-2 flex items-center gap-1">
+																{#each Array.from({ length: item.step.sets }, (_, n) => n) as n (n)}
+																	<span
+																		class="size-2 rounded-full {n < logged
+																			? 'bg-rest-on-hero'
+																			: n === logged
+																				? 'bg-tint'
+																				: 'bg-well'}"
+																	></span>
+																{/each}
+																{#if logged < item.step.sets}
+																	<span class="ml-0.5 text-xs font-bold">Set {logged + 1} next</span>
+																{/if}
+															</span>
+														{/if}
+													</span>
+													<span class="text-ink-3"><Icon name="chevron-right" size="1.125rem" /></span>
+												</a>
+											{:else}
+												{@const c = item.choice}
+												<div id="pick-{c.id}" class="scroll-mt-20 pt-0.5 pb-1">
+													<p class="px-1 pt-0.5 pb-2 text-xs font-semibold tracking-[0.06em] text-ink-2 uppercase">
+														{c.name} · {choiceMeta(c)}
+													</p>
+													<div>
+														{#each c.options as o, k (k)}
+															{@const on = choosing === c.id && picked.includes(k)}
+															{@const thumb = o.media.find((md) => md.thumb_url)?.thumb_url}
+															<div class="flex items-center gap-3 px-1 {k > 0 ? 'shadow-[inset_0_1px_0_var(--line)]' : ''}">
+																<button
+																	type="button"
+																	class="relative flex size-7 shrink-0 items-center justify-center rounded-full before:absolute before:-inset-2 before:content-[''] {on
+																		? 'bg-tint text-on-tint'
+																		: 'shadow-[inset_0_0_0_2px_var(--ink-3)]'}"
+																	aria-pressed={on}
+																	aria-label="Pick {o.name}"
+																	onclick={() => toggle(c.id, k)}
+																>
+																	{#if on}
+																		<Icon name="check" size="1rem" stroke={3} />
+																	{/if}
+																</button>
+																<button
+																	type="button"
+																	class="flex min-h-[60px] min-w-0 flex-1 items-center gap-3 py-2 text-left"
+																	onclick={() => preview(c, k)}
+																>
+																	{#if thumb}
+																		<img src={thumb} alt="" class="size-11 shrink-0 rounded-xl object-cover" />
+																	{/if}
+																	<span class="min-w-0 flex-1">
+																		<span class="block truncate text-[15px] font-bold">{o.name}</span>
+																		<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{stepMeta(o)}</span>
+																	</span>
+																	<span class="text-ink-3"><Icon name="chevron-right" size="1.125rem" /></span>
+																</button>
+															</div>
+														{/each}
+													</div>
+													{#if choosing === c.id}
+														<div class="mt-2.5">
+															<Button
+																disabled={picked.length < Math.max(1, c.pick)}
+																onclick={() => pick(c.id, picked.map((k) => c.options[k]))}
+															>
+																Use {picked.length === 1 ? 'this' : 'these'}
+															</Button>
+														</div>
+													{/if}
+												</div>
+											{/if}
+										</li>
+									{/each}
+								</ul>
+							{/if}
+						</li>
+					{/each}
+				</ol>
+
+				{#if !run.sections.length}
+					<div class="mt-5">
+						<Button variant="secondary" onclick={() => openLibrary()}>Add exercise</Button>
+					</div>
+				{/if}
 			</div>
 		{/if}
 	</div>
-{/if}
+
+	<Sheet bind:open={picking} eyebrow={into === undefined ? undefined : run.sections[into]?.name} title="Add exercise">
+		<ExercisePicker
+			id="add-exercise"
+			label="Exercise"
+			exercises={library}
+			pick={(e) => {
+				openRun.addStep(e, into);
+				picking = false;
+			}}
+		/>
+	</Sheet>
+
+	<Sheet bind:open={naming} title="Add section">
+		<form onsubmit={addSection}>
+			<label class="block text-xs font-semibold text-ink-2" for="section-name">Name</label>
+			<input id="section-name" class="mt-1.5 w-full input" maxlength="200" required bind:value={sectionName} />
+			<div class="mt-4">
+				<Button type="submit" disabled={!sectionName.trim()}>Add section</Button>
+			</div>
+		</form>
+	</Sheet>
+
+	<Sheet bind:open={previewing} eyebrow={shown?.choice.name} title={option?.name ?? ''}>
+		{#if option}
+			<p class="-mt-1 text-xs font-semibold text-ink-2">{stepMeta(option)}</p>
+			{#if videoThumb}
+				<a
+					href={videoThumb.url}
+					target="_blank"
+					rel="noopener"
+					class="relative mt-3.5 block aspect-video max-w-full overflow-hidden rounded-[18px] bg-well"
+					aria-label="Watch {option.name}"
+				>
+					<img src={videoThumb.thumb_url} alt="" class="size-full object-cover" />
+					<span class="absolute top-1/2 left-1/2 flex size-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 pl-0.5 text-on-tint">
+						<Icon name="play" size="1.5rem" />
+					</span>
+				</a>
+			{:else if video}
+				<a href={video.url} target="_blank" rel="noopener" class="mt-3.5 flex items-center gap-2.5 text-[15px] font-bold">
+					<span class="flex size-8 items-center justify-center rounded-full bg-well pl-0.5"><Icon name="play" size="1rem" /></span>
+					Watch video
+				</a>
+			{/if}
+			{#if option.notes?.trim()}
+				<div class="mt-3.5 text-[15px] font-semibold"><Notes text={option.notes} /></div>
+			{/if}
+			<div class="mt-5 grid grid-cols-[1fr_1.4fr] gap-2.5">
+				<button type="button" class="flex h-14 items-center justify-center rounded-full bg-well text-[15px] font-bold text-ink active:opacity-80" onclick={() => (previewing = false)}>Back</button>
+				<Button onclick={pickShown}>Pick this</Button>
+			</div>
+		{/if}
+	</Sheet>
+
+	{#if !editing && !run.finished_at && (stop || steps.length)}
+		<div class="flex shrink-0 gap-2.5 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+			{#if stop}
+				<a href="/run/{run.id}/finish" class="flex h-14 shrink-0 items-center gap-2 rounded-full bg-(--glass) px-[22px] text-[15px] font-bold active:opacity-80">
+					<svg viewBox="0 0 24 24" class="size-[18px]" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4M6 4h11l-2 4 2 4H6" /></svg>
+					Finish
+				</a>
+				<div class="min-w-0 flex-1">
+					<Button href={stopHref(run.id, stop)}>
+						<Icon name="play" size="18px" />
+						Continue
+					</Button>
+				</div>
+			{:else}
+				<div class="flex-1">
+					<Button href="/run/{run.id}/finish">Finish session</Button>
+				</div>
+			{/if}
+		</div>
+	{/if}
+</RunField>
