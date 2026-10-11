@@ -39,7 +39,7 @@ Passion's copy is:
 - Format: `"e.g., <example>"` for inputs that need guidance
 - No redundant placeholders that repeat the label
 
-### 5. Confirmation dialogs (hx-confirm)
+### 5. Confirmation prompts
 - Format: question stating the consequence + "This cannot be undone." for destructive actions
 - Consistent verb choice (Discard/Delete/Remove — pick one per action type)
 
@@ -49,7 +49,7 @@ Passion's copy is:
 
 ### 7. Tooltips and hints
 - Only for non-obvious fields
-- Format: `text-[10px] muted` inline hint, not tooltip hovers for primary actions
+- Format: a short `text-xs text-ink-2` line under the field, never a hover tooltip
 
 ## Terminology glossary
 
@@ -57,12 +57,12 @@ Maintain consistent naming for domain concepts:
 
 | Concept | Correct term | Not this |
 |---------|-------------|----------|
-| A planned workout | session template / template | workout plan, routine |
-| An instance being executed | session run / run | workout, training |
+| A planned workout | session template; session on the calendar | workout plan, routine |
+| A session being done or done | session; "run" for its record | workout, training |
 | A single movement | exercise | movement, drill |
-| A group of exercises | activity | block, section, circuit |
-| A multi-week plan | training cycle / cycle | program, mesocycle |
-| A climbing attempt | tick | send, log, ascent |
+| A group of exercises in a session | section | activity, circuit |
+| A multi-week plan | cycle | program, mesocycle |
+| One go at a climb | attempt, or send when it tops out | tick, ascent |
 | Perceived effort | RPE | effort, intensity |
 
 ### Climbing-specific terminology
@@ -135,17 +135,17 @@ If the most important information isn't the most visually prominent, that's a co
 
 ## Workflow
 
-1. **Identify scope.** Changed templates and handler files from the dispatcher or git diff.
-2. **Extract all user-facing strings.** Labels, errors, empty states, placeholders, button text, hx-confirm values.
+1. **Identify scope.** Changed Svelte components and handler files from the dispatcher or git diff.
+2. **Extract all user-facing strings.** Labels, errors, empty states, placeholders, button text, confirm prompts.
 3. **Check against the voice rules** and terminology glossary.
-4. **Cross-reference.** Does the same concept use the same words in other templates?
+4. **Cross-reference.** Does the same concept use the same words in other components?
 5. **Report inconsistencies** with the current text and proposed replacement.
 6. **Confirm with user** before applying.
 
 ## Authority and boundaries
 
 ### What you may do
-- Read any template or handler file
+- Read any component or handler file
 - Grep for specific strings across the codebase to check consistency
 - Propose text edits (with confirmation)
 - Flag terminology drift
