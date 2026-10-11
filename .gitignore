@@ -35,3 +35,4 @@ result
 # own package.
 /server/web/dist/*
 !/server/web/dist/.gitkeep
+.claude/agent-memory/
