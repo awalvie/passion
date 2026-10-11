@@ -1,19 +1,36 @@
 <script lang="ts">
-	import Icon from './Icon.svelte';
-	import type { Snippet } from 'svelte';
-	import Button from './Button.svelte';
-	import PlayerStepFrame from './PlayerStepFrame.svelte';
+	import { untrack } from 'svelte';
 	import { loadGrades, scaleFor, type Grades } from './grades';
+	import Icon from './Icon.svelte';
 	import { newId } from './id';
+	import type { MenuItem } from './Menu.svelte';
 	import type { Account } from './plan';
-	import { climbsOf, isFinished, type Climb, type Discipline, type Go, type RunStep } from './run';
+	import { climbsOf, isFinished, type Discipline, type Go, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
-	import Stepper from './Stepper.svelte';
+	import RunPage from './RunPage.svelte';
+	import type { NextLine } from './template';
 
-	let { step }: { step: RunStep } = $props();
-
-	type Outcome = 'onsight' | 'flash' | 'redpoint' | 'hangdog' | 'working';
-	const sends: Outcome[] = ['onsight', 'flash', 'redpoint'];
+	let {
+		step,
+		next,
+		nextHref,
+		last,
+		menu,
+		error,
+		leaving,
+		leave,
+		skip
+	}: {
+		step: RunStep;
+		next: NextLine;
+		nextHref: string;
+		last: boolean;
+		menu: MenuItem[];
+		error: string;
+		leaving: boolean;
+		leave: (end: () => void) => Promise<void>;
+		skip: () => void;
+	} = $props();
 
 	const logged = $derived(climbsOf(openRun.run!, step.id));
 
@@ -24,238 +41,173 @@
 			.catch(() => {});
 	});
 
-	// The bar sets every new climb, and starts from the last one logged.
-	const last = $derived(logged.at(-1));
-	let discipline = $state<Discipline>('boulder');
-	let setting = $state<'indoor' | 'outdoor'>('indoor');
-	let ropeStyle = $state('lead');
-	$effect.pre(() => {
-		if (!last) return;
-		discipline = last.discipline;
-		setting = last.setting;
-		ropeStyle = last.rope_style ?? 'lead';
-	});
-
-	const boulder = $derived(discipline === 'boulder');
-	const scale = $derived(info ? scaleFor(info.grades, info.account, boulder) : undefined);
-
-	let grade = $state('');
-	let outcome = $state<Outcome>('flash');
-	let attempts = $state<number | null>(1);
-
-	const outcomes: { value: Outcome; label: string; route?: boolean }[] = [
-		{ value: 'onsight', label: 'Onsight', route: true },
-		{ value: 'flash', label: 'Flash' },
-		{ value: 'redpoint', label: 'Send' },
-		{ value: 'hangdog', label: 'Hangdog', route: true },
-		{ value: 'working', label: 'Working' }
-	];
-
 	const disciplines: Record<Discipline, string> = { boulder: 'Boulder', sport: 'Sport', trad: 'Trad' };
 	const settings = { indoor: 'Indoor', outdoor: 'Outdoor' };
-	const ropes = { lead: 'Lead', top_rope: 'Top rope', auto_belay: 'Auto belay', follow: 'Follow' };
 
-	const shown = $derived(outcomes.filter((o) => !o.route || !boulder));
-
-	// A logged climb opens in the card, and saving rewrites it under its id.
-	let editing = $state<Climb | null>(null);
-
-	function edit(c: Climb) {
-		editing = c;
-		discipline = c.discipline;
-		setting = c.setting;
-		ropeStyle = c.rope_style ?? 'lead';
-		grade = c.grade ?? '';
-		outcome = c.goes.includes('send') ? (c.goes.length === 1 ? 'flash' : 'redpoint') : 'working';
-		attempts = c.goes.length || 1;
-	}
-
-	// A boulder and a route use different scales, and a boulder has no onsight
-	// or hangdog, so the server would refuse what was picked for the other.
-	function setDiscipline(next: Discipline) {
-		if ((next === 'boulder') !== boulder) grade = '';
-		if (next === 'boulder' && (outcome === 'onsight' || outcome === 'hangdog')) outcome = 'flash';
-		discipline = next;
-	}
-
-	function remove() {
-		openRun.removeClimb(editing!.id);
-		editing = null;
-	}
-
-	function log() {
-		const ungraded = info?.grades.ungraded.includes(grade);
-		const position = editing?.position ?? Math.max(-1, ...logged.map((c) => c.position)) + 1;
-		openRun.putClimb(step, editing?.id ?? newId(), {
-			step: step.id,
-			position,
-			discipline,
-			setting,
-			board: boulder ? (editing?.board ?? null) : null,
-			rope_style: boulder ? null : ropeStyle,
-			grade: grade || null,
-			grade_system: grade && !ungraded ? (scale?.system ?? null) : null,
-			goes: goesOf(outcome, Math.max(1, Math.round(attempts ?? 1))),
-			seconds: editing?.seconds ?? null,
-			stars: editing?.stars ?? null,
-			focus: editing?.focus ?? null,
-			notes: editing?.notes ?? null
+	// The climb on the card. It reaches the server at its first go, and stays
+	// the current one until "Add climb", so after a reload the last climb of
+	// an unfinished step is current again.
+	type Current = { id: string; grade: string | null; goes: Go[] };
+	let cur = $state<Current>({ id: '', grade: null, goes: [] });
+	$effect.pre(() => {
+		const id = step.id;
+		untrack(() => {
+			const end = climbsOf(openRun.run!, id).at(-1);
+			cur =
+				end && !isFinished(step)
+					? { id: end.id, grade: end.grade, goes: [...end.goes] }
+					: { id: newId(), grade: end?.grade ?? null, goes: [] };
 		});
-		editing = null;
-		attempts = 1;
+	});
+
+	// The bar takes the last climb's discipline and setting.
+	const base = $derived(logged.at(-1));
+	const discipline = $derived<Discipline>(base?.discipline ?? 'boulder');
+	const setting = $derived(base?.setting ?? 'indoor');
+	const scale = $derived(info ? scaleFor(info.grades, info.account, discipline === 'boulder') : undefined);
+	const gradeList = $derived([...(scale?.grades ?? []), ...(info?.grades.ungraded ?? [])]);
+
+	// The scale a grade belongs to: none for an ungraded label or no grade.
+	// Before the scales load, as offline, a grade kept from an earlier climb
+	// keeps that climb's scale.
+	function systemFor(d: Discipline, grade: string | null) {
+		if (!grade) return null;
+		if (!info) return logged.findLast((l) => l.grade === grade)?.grade_system ?? null;
+		if (info.grades.ungraded.includes(grade)) return null;
+		return scaleFor(info.grades, info.account, d === 'boulder')?.system ?? null;
 	}
 
-	const gradeList = $derived(['', ...(scale?.grades ?? []), ...(info?.grades.ungraded ?? [])]);
+	const ended = $derived(logged.filter((c) => c.id !== cur.id));
+	const sends = $derived(ended.filter((c) => c.sent).length);
 
-	function stepGrade(by: number) {
-		const i = Math.max(0, gradeList.indexOf(grade)) + by;
-		grade = gradeList[Math.min(gradeList.length - 1, Math.max(0, i))];
+	function save(c: Current) {
+		const had = logged.find((l) => l.id === c.id);
+		openRun.putClimb(step, c.id, {
+			step: step.id,
+			position: had?.position ?? Math.max(-1, ...logged.map((l) => l.position)) + 1,
+			discipline: had?.discipline ?? discipline,
+			setting: had?.setting ?? setting,
+			board: had?.board ?? null,
+			rope_style: had?.rope_style ?? (discipline === 'boulder' ? null : (base?.rope_style ?? 'lead')),
+			grade: c.grade,
+			grade_system: systemFor(discipline, c.grade),
+			goes: [...c.goes],
+			seconds: had?.seconds ?? null,
+			stars: had?.stars ?? null,
+			focus: had?.focus ?? null,
+			notes: had?.notes ?? null
+		});
 	}
 
-	function goesOf(o: Outcome, tries: number): Go[] {
-		return sends.includes(o) ? [...Array<Go>(tries - 1).fill('attempt'), 'send'] : Array<Go>(tries).fill('attempt');
+	function go(kind: Go) {
+		cur.goes.push(kind);
+		save(cur);
 	}
 
-	function describe(c: Climb) {
-		const label = c.goes.includes('send') ? 'Send' : 'Working';
-		const tries = c.goes.length ? `${c.goes.length} ${c.goes.length === 1 ? 'try' : 'tries'}` : '';
-		return [label, tries].filter(Boolean).join(' · ');
+	// A second tap on the picked grade clears it: a climb may have no grade.
+	function pick(g: string) {
+		cur.grade = cur.grade === g ? null : g;
+		if (cur.goes.length) save(cur);
 	}
+
+	function addClimb() {
+		cur = { id: newId(), grade: cur.grade, goes: [] };
+	}
+
+	function done() {
+		void leave(() => openRun.finish(step));
+	}
+
+	// Keeps the picked grade, or the middle of the scale, in the middle of the
+	// strip.
+	function center(node: HTMLElement, _key: unknown) {
+		const scroll = () => {
+			const el = node.querySelector<HTMLElement>('[aria-pressed="true"]');
+			const left = el ? el.offsetLeft + el.offsetWidth / 2 : node.scrollWidth / 2;
+			node.scrollTo({ left: left - node.clientWidth / 2, behavior: 'smooth' });
+		};
+		requestAnimationFrame(scroll);
+		return { update: () => requestAnimationFrame(scroll) };
+	}
+
+	const finished = $derived(isFinished(step) && !leaving);
+	const system = $derived(info ? (scaleFor(info.grades, info.account, discipline === 'boulder')?.system.toUpperCase() ?? '') : '');
 </script>
 
-{#snippet divider()}
-	<i class="h-[22px] w-px shrink-0 bg-ink-3/30"></i>
-{/snippet}
-
-{#snippet outcomeButton(o: { value: Outcome; label: string })}
-	<button
-		type="button"
-		class="h-12 rounded-[14px] text-[15px] font-bold shadow-card-sm {outcome === o.value ? 'bg-ink text-ground' : 'bg-surface text-ink'}"
-		aria-pressed={outcome === o.value}
-		onclick={() => (outcome = o.value)}
+{#snippet goDot(g: Go, n: number)}
+	<span
+		class="flex size-[30px] shrink-0 items-center justify-center rounded-full {g === 'send'
+			? 'bg-rest-on-hero text-on-tint'
+			: 'bg-white/14 font-[family-name:var(--font-digits)] text-[15px] font-bold'}"
 	>
-		{o.label}
-	</button>
-{/snippet}
-
-{#snippet pill(label: string, select: Snippet)}
-	<span class="relative flex h-full min-w-0 flex-1 items-center justify-center gap-1 rounded-full text-[15px] font-bold text-ink has-focus-visible:outline-2 has-focus-visible:outline-ink">
-		<span class="truncate">{label}</span>
-		<svg viewBox="0 0 24 24" class="size-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
-		{@render select()}
+		{#if g === 'send'}<Icon name="check" size="15px" stroke={3} /><span class="sr-only">Send</span>{:else}<span class="sr-only">Attempt</span>{n}{/if}
 	</span>
 {/snippet}
 
-{#snippet disciplineSelect()}
-	<select
-		class="input absolute inset-0 h-full min-h-0 cursor-pointer opacity-0"
-		aria-label="Discipline"
-		value={discipline}
-		onchange={(e) => setDiscipline(e.currentTarget.value as Discipline)}
-	>
-		{#each Object.entries(disciplines) as [value, label] (value)}
-			<option {value}>{label}</option>
-		{/each}
-	</select>
-{/snippet}
-
-{#snippet settingSelect()}
-	<select class="input absolute inset-0 h-full min-h-0 cursor-pointer opacity-0" aria-label="Indoor or outdoor" bind:value={setting}>
-		{#each Object.entries(settings) as [value, label] (value)}
-			<option {value}>{label}</option>
-		{/each}
-	</select>
-{/snippet}
-
-{#snippet ropeSelect()}
-	<select class="input absolute inset-0 h-full min-h-0 cursor-pointer opacity-0" aria-label="Rope" bind:value={ropeStyle}>
-		{#each Object.entries(ropes) as [value, label] (value)}
-			<option {value}>{label}</option>
-		{/each}
-	</select>
-{/snippet}
-
-<div class="flex h-12 items-center rounded-full bg-well dark:bg-surface">
-	{@render pill(disciplines[discipline], disciplineSelect)}
-	{@render divider()}
-	{@render pill(settings[setting], settingSelect)}
-	{#if !boulder}
-		{@render divider()}
-		{@render pill(ropes[ropeStyle as keyof typeof ropes] ?? ropeStyle, ropeSelect)}
-	{/if}
-</div>
-
-{#if logged.length || editing || !isFinished(step)}
-	<div class="rounded-3xl bg-surface py-0.5 shadow-card">
-		{#if logged.length}
-			<ol>
-				{#each logged as c, i (c.id)}
-					<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)] {editing?.id === c.id ? 'bg-well' : ''}">
+<RunPage {step} {next} {menu} {error}>
+	<div class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overscroll-contain px-4 pt-6 pb-4">
+		<div class="shrink-0 overflow-hidden rounded-[18px] bg-(--glass)">
+			<div class="flex h-12 items-center gap-2.5 px-3.5 text-[15px] font-semibold text-(--fg2) shadow-[inset_0_-1px_0_rgba(255,255,255,0.06)]">
+				<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--glass) text-(--fg)"><Icon name="mountain" size="15px" stroke={2.4} /></span>
+				<span class="min-w-0 flex-1 truncate"><b class="text-(--fg)">{disciplines[discipline]}</b> · {settings[setting]}</span>
+			</div>
+			<div class="px-3.5 pt-3 pb-3.5">
+				<p class="flex justify-between font-[family-name:var(--font-digits)] text-sm font-bold tracking-[0.1em] text-(--fg2)">
+					<span>CLIMB {ended.length + 1}{system ? ` · ${system}` : ''}</span>
+					{#if ended.length}<span>{sends} OF {ended.length} SENT</span>{/if}
+				</p>
+				<div
+					class="relative -mx-1 mt-2 flex h-[76px] items-center gap-1.5 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] [mask-image:linear-gradient(90deg,transparent,#000_24px,#000_calc(100%-24px),transparent)]"
+					use:center={[cur.grade, gradeList.length]}
+					role="group"
+					aria-label="Grade"
+				>
+					{#each gradeList as g (g)}
 						<button
 							type="button"
-							class="flex h-11 w-full items-center gap-2.5 px-4 text-left text-[15px]"
-							onclick={() => edit(c)}
+							class="shrink-0 rounded-xl px-2.5 font-[family-name:var(--font-digits)] font-bold {cur.grade === g
+								? 'h-[72px] min-w-[92px] rounded-2xl bg-(--fg) text-[46px] text-on-tint'
+								: 'h-14 min-w-14 bg-black/20 text-2xl text-(--fg2)'}"
+							aria-pressed={cur.grade === g}
+							onclick={() => pick(g)}>{g}</button
 						>
-							<span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-bold text-ground dark:bg-ink-2">
-								<span class="sr-only">Climb</span>{i + 1}
-							</span>
-							<span class="font-bold">{c.grade ?? 'No grade'}</span>
-							<span class="min-w-0 flex-1 truncate font-semibold text-ink-2">{describe(c)}</span>
-							<span class="flex shrink-0 text-ink-3"><Icon name="chevron-right" stroke={2.2} /></span>
-						</button>
-					</li>
-				{/each}
-			</ol>
-		{/if}
-
-		{#if editing || !isFinished(step)}
-			{@const number = editing ? logged.findIndex((c) => c.id === editing!.id) + 1 : logged.length + 1}
-			<section class="mx-1.5 my-0.5 rounded-[20px] bg-inset p-2.5">
-				<p class="px-1 pb-2 text-[15px] font-bold">{editing ? 'Edit climb' : 'Climb'} {number}</p>
-				<div class="grid grid-cols-3 gap-2">
-					{#each shown.slice(0, 3) as o (o.value)}
-						{@render outcomeButton(o)}
 					{/each}
 				</div>
-				{#if shown.length > 3}
-					<div class="mt-1.5 grid grid-cols-2 gap-2">
-						{#each shown.slice(3) as o (o.value)}
-							{@render outcomeButton(o)}
-						{/each}
-					</div>
-				{/if}
-				<div class="mt-2 grid grid-cols-2 gap-2">
-					<PlayerStepFrame label="Grade{scale ? ` (${scale.system})` : ''}" chars={grade.length || 1} less={() => stepGrade(-1)} more={() => stepGrade(1)}>
-						<span class="relative block w-full text-center">
-							<span class="block truncate leading-[1.05] font-extrabold tracking-tight {grade ? 'text-ink' : 'text-ink-3'}" aria-hidden="true">
-								{grade || '–'}
-							</span>
-							<select class="input absolute inset-0 h-full min-h-0 cursor-pointer opacity-0" aria-label="Grade" bind:value={grade}>
-								<option value="">No grade</option>
-								{#each scale?.grades ?? [] as g (g)}
-									<option value={g}>{g}</option>
-								{/each}
-								{#each info?.grades.ungraded ?? [] as g (g)}
-									<option value={g}>{g}</option>
-								{/each}
-							</select>
-						</span>
-					</PlayerStepFrame>
-					<Stepper label="Tries" min={1} bind:value={attempts} />
+				<div class="mt-3 flex min-h-9 flex-wrap items-center gap-2">
+					<span class="mr-1 text-[15px] font-bold text-(--fg2)">Goes</span>
+					{#each cur.goes as g, i (i)}{@render goDot(g, i + 1)}{/each}
+					<span
+						class="flex size-[30px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-(--fg2)/60 font-[family-name:var(--font-digits)] text-[15px] font-bold text-(--fg2)"
+						aria-hidden="true">{cur.goes.length + 1}</span
+					>
 				</div>
-				<div class="mt-2.5">
-					<Button onclick={log}>
-						<Icon name="check" size="1.25rem" stroke={2.6} />
-						{editing ? 'Save' : 'Log'} climb {number}
-					</Button>
+				<div class="mt-3 grid grid-cols-2 gap-2.5">
+					<button type="button" class="flex h-14 items-center justify-center gap-2 rounded-full bg-(--glass) text-[17px] font-bold" onclick={() => go('attempt')}>
+						<span class="flex size-8 items-center justify-center rounded-full bg-white/10"><Icon name="plus" size="16px" stroke={2.8} /></span>Attempt
+					</button>
+					<button type="button" class="flex h-14 items-center justify-center gap-2 rounded-full bg-rest-on-hero text-[17px] font-bold text-on-tint" onclick={() => go('send')}>
+						<span class="flex size-8 items-center justify-center rounded-full bg-black/10"><Icon name="check" size="16px" stroke={3} /></span>Send
+					</button>
 				</div>
-				{#if editing}
-					<div class="mt-2 grid grid-cols-2 gap-2">
-						<Button variant="secondary" onclick={() => (editing = null)}>Cancel</Button>
-						<Button variant="danger" onclick={remove}>Remove</Button>
-					</div>
-				{/if}
-			</section>
-		{/if}
+			</div>
+			{#if cur.goes.length}
+				<button type="button" class="flex h-[52px] w-full items-center justify-center gap-2 text-[15px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" onclick={addClimb}>
+					<span class="flex size-7 items-center justify-center rounded-full bg-(--glass)"><Icon name="plus" size="16px" stroke={2.6} /></span>Add climb
+				</button>
+			{/if}
+		</div>
 	</div>
-{/if}
+
+	{#snippet buttons()}
+		{#if finished}
+			<a href={nextHref} class="run-btn bg-live text-on-live">
+				{last ? 'Back to session' : 'Next exercise'}<span class="run-icon"><Icon name="arrow-right" size="16px" stroke={2.6} /></span>
+			</a>
+		{:else}
+			<button type="button" class="run-btn bg-tint text-on-tint" onclick={done}>
+				<span class="run-icon"><Icon name="check" size="16px" stroke={3} /></span>Done
+			</button>
+			<button type="button" class="run-round" aria-label="Skip" onclick={skip}><Icon name="skip" size="26px" /></button>
+		{/if}
+	{/snippet}
+</RunPage>
