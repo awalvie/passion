@@ -10,7 +10,7 @@ database:
   url: postgres://passion@localhost/passion
 
 auth:
-  # How long a sign-in lasts unused. Use slides it forward. Longer than 24h.
+  # How long a sign-in lasts unused. Each use slides it forward. Longer than 24h.
   token_life: 720h
 
 log:
