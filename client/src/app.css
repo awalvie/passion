@@ -225,6 +225,11 @@ body {
 	:is(li > :is(button, a[href]), li > details > summary) {
 		border-radius: 0.75rem;
 	}
+	/* A step page's scroll bars take its contour colour. */
+	.run-tokens * {
+		scrollbar-width: thin;
+		scrollbar-color: rgb(var(--rings) / 0.3) transparent;
+	}
 	/* A long press on a control neither selects its words nor opens the
 	   link preview. */
 	:is(button, a[href], summary) {
