@@ -104,10 +104,10 @@ such as the step page or the set card, is drawn.
   and `text-on-hero-2` is the forest card. `bg-run` is the step page's field, and `prep`,
   `hang` and `rest-field` colour the timer phases on it.
   `text-bad` is for errors.
-- The step page (`client/src/lib/RunPage.svelte`) has one dark look in both themes. It sets
-  the app's tokens dark inside itself, so a stepper, a sheet or the menu on it reads dark
-  without a variant. Its bottom buttons use `run-btn`, `run-chip` and `run-icon` from
-  `app.css`.
+- The running session and its step pages sit on `client/src/lib/RunField.svelte`, which has
+  one dark look in both themes. It sets the app's tokens dark inside itself (`.run-tokens`),
+  so a stepper, a sheet or the menu on it reads dark without a variant. Its buttons are in
+  [DESIGN.md](DESIGN.md).
 - `text-tint` is not for text. Lime has too little contrast on a light page. Use
   `text-link` for a link or a text button. `text-tint` is only for an icon or a mark on a
   dark ground, such as the forest card.
@@ -115,8 +115,8 @@ such as the step page or the set card, is drawn.
   `shadow-tint` and `shadow-live` under a lime or an apricot button.
 - Type: `text-xs` (12 px) for labels, `text-[15px]` for body text, `text-xl` (20 px) for
   card titles and big buttons, `text-[32px]` for the page title. Use weights 600 to 800.
-  `font-sans` asks for Figtree and falls back to the system font, because the font is not
-  self-hosted yet.
+  `font-sans` is Figtree and `font-[family-name:var(--font-digits)]` is Barlow Semi Condensed,
+  both self-hosted from `client/static/fonts/`.
 - `dark:` follows `data-theme`, not the system setting. Use it only when a token cannot
   say it, for example a shadow that differs by theme.
 - Use `Button`, `NavBar`, `Menu`, `TabBar` and `FormError` from `client/src/lib/`, and the
