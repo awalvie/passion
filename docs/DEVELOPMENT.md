@@ -1,7 +1,7 @@
 # Developer guide
 
-How to add to the V2 server. For setup and the make targets, see [readme.md](../readme.md).
-For what to build, see [V2_DESIGN.md](V2_DESIGN.md).
+How to add to the app. For setup and the make targets, see [readme.md](../readme.md).
+For how the data is laid out, see [V2_DESIGN.md](V2_DESIGN.md).
 
 ## Where things go
 
@@ -18,6 +18,7 @@ For what to build, see [V2_DESIGN.md](V2_DESIGN.md).
    [CATALOG_FORMAT.md](CATALOG_FORMAT.md).
 2. Run `make catalog-ids` to give it an id.
 3. Run `make test`. `TestShippedCatalogReads` fails on a bad file, before any server does.
+   For a private tree, run `go run ./server/cmd/catalogcheck <tree>` instead.
 
 ## Add a table
 
@@ -88,9 +89,8 @@ affected.
 
 ## Style a screen
 
-The look comes from `passion-design/final/designs/direction`. Every screen, the Library too,
-uses only its tokens. The classes in [DESIGN.md](DESIGN.md) are V1's, and V2 screens do not
-use them.
+Every screen uses only the tokens below. [DESIGN.md](DESIGN.md) shows how each shared part,
+such as the step page or the set card, is drawn.
 
 - `client/src/tokens.css` holds the tokens, light under `:root` and dark under
   `:root[data-theme='dark']`. `app.html` always sets `data-theme`, so a token needs no media
