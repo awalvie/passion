@@ -10,6 +10,7 @@
 	import RunPage from './RunPage.svelte';
 	import Segmented from './Segmented.svelte';
 	import Sheet from './Sheet.svelte';
+	import Toast from './Toast.svelte';
 	import type { NextLine } from './template';
 
 	let {
@@ -57,14 +58,12 @@
 	let setting = $state<keyof typeof settings>('indoor');
 	let rope = $state<keyof typeof ropes>('lead');
 	const fresh = (grade: string | null): Current => ({ id: newId(), grade, goes: [], focus: null, notes: null });
+	const resume = (c: Climb): Current => ({ id: c.id, grade: c.grade, goes: [...c.goes], focus: c.focus, notes: c.notes });
 	$effect.pre(() => {
 		const id = step.id;
 		untrack(() => {
 			const end = climbsOf(openRun.run!, id).at(-1);
-			cur =
-				end && !isFinished(step)
-					? { id: end.id, grade: end.grade, goes: [...end.goes], focus: end.focus, notes: end.notes }
-					: fresh(end?.grade ?? null);
+			cur = end && !isFinished(step) ? resume(end) : fresh(end?.grade ?? null);
 			discipline = end?.discipline ?? 'boulder';
 			setting = end?.setting ?? 'indoor';
 			rope = (end?.rope_style as keyof typeof ropes | null) ?? 'lead';
@@ -157,6 +156,7 @@
 	}
 
 	function go(kind: Go) {
+		toast = '';
 		cur.goes.push(kind);
 		save(cur);
 	}
@@ -184,8 +184,19 @@
 		if (cur.goes.length) save(cur);
 	}
 
+	// Undo brings the climb just ended back onto the card, until the new one
+	// has a go.
+	let toast = $state('');
+	let undoTo = '';
 	function addClimb() {
+		const c = logged.find((l) => l.id === cur.id)!;
+		toast = [`Climb ${ended.length + 1}`, c.grade, word(c)].filter(Boolean).join(' · ');
+		undoTo = cur.id;
 		cur = fresh(cur.grade);
+	}
+	function undo() {
+		const c = logged.find((l) => l.id === undoTo);
+		if (c) cur = resume(c);
 	}
 
 	function done() {
@@ -392,6 +403,10 @@
 			{/if}
 		</div>
 	</Sheet>
+
+	<div style="--above-bar: calc(env(safe-area-inset-bottom) + {last ? 118 : 212}px)">
+		<Toast bind:message={toast} action="Undo" onaction={undo} />
+	</div>
 
 	{#snippet buttons()}
 		{#if finished}
