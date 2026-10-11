@@ -12,9 +12,10 @@
 
 ---
 
-Passion is being rewritten as a JSON API with a separate client, so that a web app and a
-mobile app can both talk to the same server. [docs/V2_DESIGN.md](docs/V2_DESIGN.md) says
-what the app will do and how the data is arranged. This file says what works today.
+Passion is a self-hosted training app for climbers. A Go server holds the data behind a JSON
+API, and a Svelte client built for the phone runs on it. [docs/V2_DESIGN.md](docs/V2_DESIGN.md)
+says how the data is arranged and why. This file says what works today. The first version,
+on Go templates, HTMX and SQLite, is tagged `v1`.
 
 ## What works today
 
@@ -29,8 +30,10 @@ holds the exercises and the session templates. History lists finished sessions a
 one logged. While a session runs, the client logs sets, per-side sets, climbs, and timed reps
 with prep, hang and rest. A rest can run 30 s longer, and the next timed exercise starts
 when one runs out. It picks from a choice, adds an exercise, and finishes with the journal.
-Writes wait on the phone when there is no signal.
-Every screen has the look of `passion-design/final/designs/direction`, in light and dark.
+A running session has its own dark screen: its steps, the current exercise in a panel at the
+bottom, and a card that names any picks still to make. Each exercise opens on a step page
+with its timer, its sets or its climbs.
+Writes wait on the phone when there is no signal. Every screen comes in light and dark.
 
 - Sign up with an email address and a password, hashed with argon2id.
 - Sign in. Each sign-in mints its own bearer token, so a phone and a laptop hold different
@@ -175,6 +178,7 @@ local development needs no configuration at all.
 | Target | What it does |
 |---|---|
 | `make run` | Build the client and serve on :8080 |
+| `make client` | Install the client's packages and build it into `server/web/dist` |
 | `make watch` | Hot reload. Vite on :5173, air rebuilding the server |
 | `make test` | Run the Go tests and the client's unit tests. Start the database first with `make db-up` |
 | `make openapi` | Regenerate `server/api/swagger.json` from the handler annotations |
@@ -199,7 +203,7 @@ server/cmd/         passion, the server; catalogid, which gives catalog files an
 client/             sveltekit, built into server/web/dist
 catalog/            the shipped catalog, embedded and loaded at startup. See docs/CATALOG_FORMAT.md
 deploy/             the compose file the deploy workflow runs on the server
-docs/               design and requirements
+docs/               design, requirements and plans
 ```
 
 The stack is deliberately small: `net/http` with no router library, `pgx` with no ORM,
