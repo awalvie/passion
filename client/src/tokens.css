@@ -1,7 +1,6 @@
-/* The V2 screens use only these tokens: the palette of
-   passion-design/final/designs/direction. app.html always sets data-theme, so
+/* Every screen uses only these tokens. app.html always sets data-theme, so
    following the system needs no media query here. Names avoid Tailwind's
-   --spacing and --radius-* and every V1 name. */
+   --spacing and --radius-*. */
 :root {
 	color-scheme: light;
 	--ground: #f1eee5;
