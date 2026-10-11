@@ -14,12 +14,12 @@
 	aria-label={labels[mark]}
 >
 	{#if mark === 'done'}
-		<span class="absolute rounded-full bg-ink dark:bg-ink-2 {small ? 'inset-0.5' : 'inset-[5px]'}"></span>
-		<span class="relative flex text-ground"><Icon name="check" size={small ? '0.75rem' : '0.875rem'} stroke={3} /></span>
+		<span class="absolute rounded-full bg-rest-on-hero {small ? 'inset-0.5' : 'inset-[5px]'}"></span>
+		<span class="relative flex text-on-tint"><Icon name="check" size={small ? '0.75rem' : '0.875rem'} stroke={3} /></span>
 	{:else if mark === 'now'}
 		<span class="absolute inset-0 rounded-full {small ? '' : 'bg-ground'}"></span>
-		<span class="absolute inset-0 rounded-full bg-live-halo"></span>
-		<span class="relative rounded-full bg-live {small ? 'size-3' : 'size-[18px]'}"></span>
+		<span class="absolute inset-0 rounded-full bg-tint/25"></span>
+		<span class="relative rounded-full bg-tint {small ? 'size-3' : 'size-[18px]'}"></span>
 	{:else}
 		<span
 			class="absolute rounded-full border-ink-3 {small
