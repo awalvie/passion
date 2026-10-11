@@ -1,6 +1,6 @@
 id: 9a890f27-09f7-47e0-a97c-f51028b618d7
 name: Cable Pull-In
-style: timed_reps
+style: reps_and_sets
 tags:
     - footwork
     - mobility
@@ -58,7 +58,4 @@ media:
       thumb_url: https://i.ytimg.com/vi/CTFPbhPWVOk/maxresdefault.jpg
 sets: 3
 reps: 5
-rep_seconds: 7
-rep_rest_seconds: 3
 set_rest_seconds: 300
-prep_seconds: 5

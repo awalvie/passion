@@ -1,6 +1,6 @@
 id: c790bfca-0ea9-45d3-a5e3-41e938d34221
 name: Tailor's Pose
-style: timed_reps
+style: reps_and_sets
 tags:
     - mobility
     - strength
@@ -81,7 +81,4 @@ media:
       thumb_url: https://i.ytimg.com/vi/RAfCOcAaBSs/maxresdefault.jpg
 sets: 2
 reps: 6
-rep_seconds: 6
-rep_rest_seconds: 3
 set_rest_seconds: 30
-prep_seconds: 5

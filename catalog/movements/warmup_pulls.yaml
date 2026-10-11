@@ -1,6 +1,6 @@
 id: 7f763676-6bff-4c47-9fa1-6e42e13a77f8
 name: Warmup Pulls
-style: timed_reps
+style: reps_and_sets
 tags:
     - fingers
     - warmup
@@ -15,6 +15,4 @@ notes: |-
     each hand is a set; go at your own pace and stop when the fingers feel awake.
 sets: 4
 reps: 2
-rep_seconds: 6
 set_rest_seconds: 60
-prep_seconds: 10
