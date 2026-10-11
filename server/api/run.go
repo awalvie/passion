@@ -325,15 +325,11 @@ type climbRequest struct {
 	// example: font
 	GradeSystem *string `json:"grade_system"`
 
-	// onsight, flash, redpoint, hangdog or working.
+	// Each go in order, attempt or send. A climb done in loops holds many
+	// sends.
 	//
-	// example: flash
-	Outcome *string `json:"outcome"`
-
-	// 1 or more.
-	//
-	// example: 3
-	Attempts *int `json:"attempts"`
+	// example: ["attempt","attempt","send"]
+	Goes []string `json:"goes"`
 
 	// How long it took.
 	//
@@ -367,7 +363,7 @@ type climbBody struct {
 
 	climbRequest
 
-	// True for a graded onsight, flash or redpoint.
+	// True for a graded climb with at least one send.
 	Sent bool `json:"sent"`
 }
 
@@ -784,8 +780,7 @@ func (req climbRequest) fields() db.ClimbFields {
 		RopeStyle:   req.RopeStyle,
 		Grade:       req.Grade,
 		GradeSystem: req.GradeSystem,
-		Outcome:     req.Outcome,
-		Attempts:    req.Attempts,
+		Goes:        req.Goes,
 		Seconds:     req.Seconds,
 		Stars:       req.Stars,
 		Focus:       req.Focus,
@@ -794,6 +789,9 @@ func (req climbRequest) fields() db.ClimbFields {
 }
 
 func toClimbBody(c db.Climb) climbBody {
+	if c.Goes == nil {
+		c.Goes = []string{}
+	}
 	return climbBody{
 		ID:       c.ID,
 		Exercise: c.Exercise,
@@ -806,8 +804,7 @@ func toClimbBody(c db.Climb) climbBody {
 			RopeStyle:   c.RopeStyle,
 			Grade:       c.Grade,
 			GradeSystem: c.GradeSystem,
-			Outcome:     c.Outcome,
-			Attempts:    c.Attempts,
+			Goes:        c.Goes,
 			Seconds:     c.Seconds,
 			Stars:       c.Stars,
 			Focus:       c.Focus,

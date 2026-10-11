@@ -373,3 +373,31 @@ test('a change made offline survives a reload and is sent when the signal is bac
 	]);
 	expect(stored().writes).toStrictEqual([]);
 });
+
+test('putClimb counts a graded climb with any send as sent, and an ungraded one never', async () => {
+	const openRun = await openOffline();
+	const s = openRun.step('s1')!;
+	s.kind = 'climbing';
+	const climb = {
+		step: 's1',
+		position: 0,
+		discipline: 'boulder' as const,
+		setting: 'indoor' as const,
+		board: null,
+		rope_style: null,
+		grade: '6c',
+		grade_system: 'font',
+		goes: ['attempt' as const, 'send' as const, 'attempt' as const],
+		seconds: null,
+		stars: null,
+		focus: null,
+		notes: null
+	};
+
+	openRun.putClimb(s, 'c-1', climb);
+	openRun.putClimb(s, 'c-2', { ...climb, goes: ['attempt'] });
+	openRun.putClimb(s, 'c-3', { ...climb, grade: 'Traverse', grade_system: null, goes: ['send'] });
+
+	expect(openRun.run!.climbs.map((c) => c.sent)).toStrictEqual([true, false, false]);
+	expect(s.status).toBe('done');
+});

@@ -27,8 +27,7 @@ type Climb struct {
 	Grade       *string   `db:"grade"`
 	GradeSystem *string   `db:"grade_system"`
 	GradeRank   *int      `db:"grade_rank"`
-	Outcome     *string   `db:"outcome"`
-	Attempts    *int      `db:"attempts"`
+	Goes        []string  `db:"goes"`
 	Seconds     *int      `db:"seconds"`
 	Stars       *int      `db:"stars"`
 	Focus       *string   `db:"focus"`
@@ -37,18 +36,23 @@ type Climb struct {
 	UpdatedAt   time.Time `db:"updated_at"`
 }
 
-// Sent says whether the climb counts as a send. It follows from how it was
-// climbed, and is never asked (rules 38 and 39).
+// Sent says whether the climb counts as a send: a graded climb with a go that
+// sent it. It follows from how it was climbed, and is never asked (rules 38
+// and 39).
 func (c Climb) Sent() bool {
-	return c.GradeSystem != nil && c.Outcome != nil && sends[*c.Outcome]
+	return c.GradeSystem != nil && slices.Contains(c.Goes, GoSend)
 }
+
+// The two kinds of go on a climb.
+const (
+	GoAttempt = "attempt"
+	GoSend    = "send"
+)
 
 var (
 	disciplines = map[string]bool{"boulder": true, "sport": true, "trad": true}
 	boards      = map[string]bool{"kilter": true, "moon": true, "tension": true, "spray": true, "custom": true}
 	ropeStyles  = map[string]bool{"lead": true, "top_rope": true, "auto_belay": true, "follow": true}
-	outcomes    = map[string]bool{"onsight": true, "flash": true, "redpoint": true, "hangdog": true, "working": true}
-	sends       = map[string]bool{"onsight": true, "flash": true, "redpoint": true}
 )
 
 // ClimbFields is what the person logs for one climb.
@@ -61,12 +65,12 @@ type ClimbFields struct {
 	RopeStyle   *string
 	Grade       *string
 	GradeSystem *string
-	Outcome     *string
-	Attempts    *int
-	Seconds     *int
-	Stars       *int
-	Focus       *string
-	Notes       *string
+	// Each go in order, GoAttempt or GoSend.
+	Goes    []string
+	Seconds *int
+	Stars   *int
+	Focus   *string
+	Notes   *string
 
 	rank *int
 }
@@ -130,13 +134,13 @@ func (f ClimbFields) Clean() (ClimbFields, map[string]string) {
 		}
 	}
 
-	f.Outcome = optional(f.Outcome)
-	if f.Outcome != nil && !outcomes[*f.Outcome] {
-		problems["outcome"] = "must be onsight, flash, redpoint, hangdog or working"
+	if f.Goes == nil {
+		f.Goes = []string{}
 	}
-	checkCount(f.Attempts, "attempts", problems)
-	if f.Attempts != nil && *f.Attempts < 1 {
-		problems["attempts"] = "must be 1 or more"
+	for _, g := range f.Goes {
+		if g != GoAttempt && g != GoSend {
+			problems["goes"] = "must each be attempt or send"
+		}
 	}
 	checkCount(f.Seconds, "seconds", problems)
 	if f.Stars != nil && (*f.Stars < 1 || *f.Stars > 3) {
@@ -152,7 +156,7 @@ func (f ClimbFields) Clean() (ClimbFields, map[string]string) {
 var ErrNoClimb = errors.New("no such climb")
 
 const climbColumns = `id, step, exercise, position, discipline, setting, board, rope_style, grade, grade_system,
-	grade_rank, outcome, attempts, seconds, stars, focus, notes, created_at, updated_at`
+	grade_rank, goes, seconds, stars, focus, notes, created_at, updated_at`
 
 // PutClimb writes one climb by the id the client picked, so a retry writes
 // the same climb (rule 36). A step with a climb counts as done. It takes
@@ -187,16 +191,16 @@ func PutClimb(ctx context.Context, pool *pgxpool.Pool, owner, runID, climbID str
 	// row here, so it reads as a climb that does not exist.
 	rows, err := tx.Query(ctx, `
 		INSERT INTO climb (id, run, owner, step, exercise, position, discipline, setting, board, rope_style,
-			grade, grade_system, grade_rank, outcome, attempts, seconds, stars, focus, notes)
+			grade, grade_system, grade_rank, goes, seconds, stars, focus, notes)
 		VALUES (@id, @run, @owner, @step, @exercise, @position, @discipline, @setting, @board, @rope_style,
-			@grade, @grade_system, @grade_rank, @outcome, @attempts, @seconds, @stars, @focus, @notes)
+			@grade, @grade_system, @grade_rank, @goes, @seconds, @stars, @focus, @notes)
 		ON CONFLICT (id) DO UPDATE SET
 			step = excluded.step, exercise = excluded.exercise, position = excluded.position,
 			discipline = excluded.discipline,
 			setting = excluded.setting, board = excluded.board, rope_style = excluded.rope_style,
 			grade = excluded.grade, grade_system = excluded.grade_system,
-			grade_rank = excluded.grade_rank, outcome = excluded.outcome,
-			attempts = excluded.attempts, seconds = excluded.seconds, stars = excluded.stars,
+			grade_rank = excluded.grade_rank, goes = excluded.goes,
+			seconds = excluded.seconds, stars = excluded.stars,
 			focus = excluded.focus, notes = excluded.notes
 		WHERE climb.run = excluded.run AND climb.owner = excluded.owner
 		RETURNING `+climbColumns, pgx.NamedArgs{
@@ -213,8 +217,7 @@ func PutClimb(ctx context.Context, pool *pgxpool.Pool, owner, runID, climbID str
 		"grade":        f.Grade,
 		"grade_system": f.GradeSystem,
 		"grade_rank":   f.rank,
-		"outcome":      f.Outcome,
-		"attempts":     f.Attempts,
+		"goes":         f.Goes,
 		"seconds":      f.Seconds,
 		"stars":        f.Stars,
 		"focus":        f.Focus,

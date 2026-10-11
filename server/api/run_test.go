@@ -292,7 +292,7 @@ func TestClimbs(t *testing.T) {
 	bob := signedIn(t, h, "bob@example.com")
 	run, hang, climb := runWithSteps(t, h, ada)
 	path := "/api/v1/runs/" + run.ID + "/climbs/0199c3a0-0000-7000-8000-0000000000c1"
-	flash := `{"step": "` + climb + `", "discipline": "boulder", "setting": "indoor", "grade": "6c", "grade_system": "font", "outcome": "flash"}`
+	flash := `{"step": "` + climb + `", "discipline": "boulder", "setting": "indoor", "grade": "6c", "grade_system": "font", "goes": ["attempt", "send", "send"]}`
 
 	for range 2 {
 		rec := send(t, h, http.MethodPut, path, ada, flash)
@@ -303,8 +303,8 @@ func TestClimbs(t *testing.T) {
 		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 			t.Fatal(err)
 		}
-		if !got.Sent || got.Grade == nil || *got.Grade != "6c" {
-			t.Fatalf("climb %+v, want a sent 6c", got)
+		if !got.Sent || got.Grade == nil || *got.Grade != "6c" || len(got.Goes) != 3 {
+			t.Fatalf("climb %+v, want a sent 6c with its three goes", got)
 		}
 	}
 	read := decodeRun(t, send(t, h, http.MethodGet, "/api/v1/runs/"+run.ID, ada, ""))

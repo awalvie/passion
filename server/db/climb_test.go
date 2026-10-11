@@ -42,7 +42,7 @@ func TestPutClimb(t *testing.T) {
 	run := runWith(t, ctx, pool, ada, kinded(runStep(s1, e1, "Bouldering"), "climbing"))
 
 	f := boulder(s1, "6c")
-	f.Position, f.Outcome = 1, ptr("flash")
+	f.Position, f.Goes = 1, []string{db.GoAttempt, db.GoSend, db.GoSend}
 	got, err := db.PutClimb(ctx, pool, ada, run.ID, k1, climb(t, f))
 	if err != nil {
 		t.Fatalf("put: %v", err)
@@ -52,7 +52,7 @@ func TestPutClimb(t *testing.T) {
 	}
 
 	// A retry writes the same climb.
-	f.Outcome = ptr("working")
+	f.Goes = []string{db.GoAttempt, db.GoAttempt}
 	for range 2 {
 		if got, err = db.PutClimb(ctx, pool, ada, run.ID, k1, climb(t, f)); err != nil {
 			t.Fatal(err)
@@ -61,8 +61,11 @@ func TestPutClimb(t *testing.T) {
 	if got.Sent() {
 		t.Fatal("a climb still being worked counts as a send")
 	}
+	if !slices.Equal(got.Goes, []string{db.GoAttempt, db.GoAttempt}) {
+		t.Fatalf("goes %v, want the rewrite's", got.Goes)
+	}
 
-	lap := db.ClimbFields{Step: s1, Discipline: "boulder", Setting: "indoor", Grade: ptr("Traverse"), Outcome: ptr("flash")}
+	lap := db.ClimbFields{Step: s1, Discipline: "boulder", Setting: "indoor", Grade: ptr("Traverse"), Goes: []string{db.GoSend}}
 	if got, err = db.PutClimb(ctx, pool, ada, run.ID, k2, climb(t, lap)); err != nil {
 		t.Fatal(err)
 	}
@@ -257,8 +260,8 @@ func TestCleanClimbFields(t *testing.T) {
 		},
 		"every bad value": {
 			db.ClimbFields{Step: "nope", Position: -1, Discipline: "ice", Setting: "space", RopeStyle: ptr("solo"),
-				Outcome: ptr("sent"), Attempts: ptr(0), Seconds: ptr(-1), Stars: ptr(4)},
-			[]string{"attempts", "discipline", "outcome", "position", "rope_style", "seconds", "setting", "stars", "step"},
+				Goes: []string{db.GoAttempt, "fall"}, Seconds: ptr(-1), Stars: ptr(4)},
+			[]string{"discipline", "goes", "position", "rope_style", "seconds", "setting", "stars", "step"},
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
