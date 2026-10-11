@@ -5,7 +5,7 @@
 	import { newId } from './id';
 	import type { MenuItem } from './Menu.svelte';
 	import type { Account } from './plan';
-	import { climbsOf, isFinished, type Climb, type Discipline, type Go, type RunStep } from './run';
+	import { climbsOf, isFinished, type Climb, type ClimbFields, type Discipline, type Go, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
 	import RunPage from './RunPage.svelte';
 	import Segmented from './Segmented.svelte';
@@ -50,20 +50,21 @@
 	// The climb on the card. It reaches the server at its first go, and stays
 	// the current one until "Add climb", so after a reload the last climb of
 	// an unfinished step is current again.
-	type Current = { id: string; grade: string | null; goes: Go[] };
-	let cur = $state<Current>({ id: '', grade: null, goes: [] });
+	type Current = { id: string; grade: string | null; goes: Go[]; focus: string | null; notes: string | null };
+	let cur = $state<Current>({ id: '', grade: null, goes: [], focus: null, notes: null });
 	// The bar sets every new climb, and starts from the last one logged.
 	let discipline = $state<Discipline>('boulder');
 	let setting = $state<keyof typeof settings>('indoor');
 	let rope = $state<keyof typeof ropes>('lead');
+	const fresh = (grade: string | null): Current => ({ id: newId(), grade, goes: [], focus: null, notes: null });
 	$effect.pre(() => {
 		const id = step.id;
 		untrack(() => {
 			const end = climbsOf(openRun.run!, id).at(-1);
 			cur =
 				end && !isFinished(step)
-					? { id: end.id, grade: end.grade, goes: [...end.goes] }
-					: { id: newId(), grade: end?.grade ?? null, goes: [] };
+					? { id: end.id, grade: end.grade, goes: [...end.goes], focus: end.focus, notes: end.notes }
+					: fresh(end?.grade ?? null);
 			discipline = end?.discipline ?? 'boulder';
 			setting = end?.setting ?? 'indoor';
 			rope = (end?.rope_style as keyof typeof ropes | null) ?? 'lead';
@@ -106,9 +107,26 @@
 			goes: [...c.goes],
 			seconds: had?.seconds ?? null,
 			stars: had?.stars ?? null,
-			focus: had?.focus ?? null,
-			notes: had?.notes ?? null
+			focus: c.focus,
+			notes: c.notes
 		});
+	}
+
+	// A logged climb is written again whole, with what changed.
+	function rewrite(c: Climb, changes: Partial<ClimbFields>) {
+		const { id, exercise: _e, sent: _s, ...fields } = c;
+		openRun.putClimb(step, id, { ...fields, ...changes });
+	}
+
+	let noting = $state<string | null>(null);
+	const notingClimb = $derived(noting === null || noting === cur.id ? null : logged.find((c) => c.id === noting));
+	const notingNumber = $derived(noting === cur.id ? ended.length + 1 : ended.findIndex((c) => c.id === noting) + 1);
+
+	function setNote(key: 'focus' | 'notes', text: string) {
+		const value = text.trim() || null;
+		if (notingClimb) return rewrite(notingClimb, { [key]: value });
+		cur[key] = value;
+		if (cur.goes.length) save(cur);
 	}
 
 	function go(kind: Go) {
@@ -140,7 +158,7 @@
 	}
 
 	function addClimb() {
-		cur = { id: newId(), grade: cur.grade, goes: [] };
+		cur = fresh(cur.grade);
 	}
 
 	function done() {
@@ -225,6 +243,21 @@
 						<span class="flex size-8 items-center justify-center rounded-full bg-black/10"><Icon name="check" size="16px" stroke={3} /></span>Send
 					</button>
 				</div>
+				<div class="mt-2.5 flex flex-col gap-2">
+					{#each [['focus', 'target', 'Focus'], ['notes', 'notepad', 'Note']] as const as [key, icon, label] (key)}
+						<button
+							type="button"
+							class="flex h-11 min-w-0 items-center gap-2 rounded-full px-1.5 text-left text-[15px] font-semibold shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg)_16%,transparent)] {cur[key]
+								? 'text-(--fg)'
+								: 'text-(--fg2)'}"
+							aria-label={cur[key] ? `${label}: ${cur[key]}` : `Add a ${label.toLowerCase()}`}
+							onclick={() => (noting = cur.id)}
+						>
+							<span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-(--glass)"><Icon name={icon} size="16px" stroke={2.4} /></span>
+							<span class="min-w-0 flex-1 truncate pr-2">{cur[key] || label}</span>
+						</button>
+					{/each}
+				</div>
 			</div>
 			{#if cur.goes.length}
 				<button type="button" class="flex h-[52px] w-full items-center justify-center gap-2 text-[15px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" onclick={addClimb}>
@@ -240,21 +273,50 @@
 			</div>
 			<ol class="shrink-0 overflow-hidden rounded-[18px] bg-(--glass)">
 				{#each ended.toReversed() as c, i (c.id)}
-					<li class="flex min-h-16 items-center gap-3 py-2.5 pr-3.5 pl-2.5 {i ? 'shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]' : ''}">
-						<span
-							class="flex h-11 min-w-12 shrink-0 items-center justify-center rounded-xl px-1.5 font-[family-name:var(--font-digits)] text-xl font-bold {c.sent
-								? 'bg-rest-on-hero text-on-tint'
-								: 'bg-white/8 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg)_30%,transparent)]'}">{c.grade ?? '–'}</span
-						>
-						<b class="min-w-0 flex-1 text-base">{word(c)}</b>
-						<span class="flex gap-1" aria-hidden="true">
-							{#each c.goes as g, j (j)}<i class="size-[9px] rounded-full {g === 'send' ? 'bg-rest-on-hero' : 'bg-(--fg2)/45'}"></i>{/each}
-						</span>
+					<li class={i ? 'shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]' : ''}>
+						<button type="button" class="flex min-h-16 w-full items-center gap-3 py-2.5 pr-3.5 pl-2.5 text-left" onclick={() => (noting = c.id)}>
+							<span
+								class="flex h-11 min-w-12 shrink-0 items-center justify-center rounded-xl px-1.5 font-[family-name:var(--font-digits)] text-xl font-bold {c.sent
+									? 'bg-rest-on-hero text-on-tint'
+									: 'bg-white/8 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg)_30%,transparent)]'}">{c.grade ?? '–'}</span
+							>
+							<span class="min-w-0 flex-1">
+								<b class="block text-base">{word(c)}</b>
+								{#if c.notes || c.focus}<span class="block truncate text-sm font-semibold text-(--fg2)">{c.notes ?? `Focus: ${c.focus}`}</span>{/if}
+							</span>
+							<span class="flex gap-1" aria-hidden="true">
+								{#each c.goes as g, j (j)}<i class="size-[9px] rounded-full {g === 'send' ? 'bg-rest-on-hero' : 'bg-(--fg2)/45'}"></i>{/each}
+							</span>
+						</button>
 					</li>
 				{/each}
 			</ol>
 		{/if}
 	</div>
+
+	<Sheet bind:open={() => noting !== null, (v) => !v && (noting = null)} title="Climb {notingNumber}" eyebrow={notingClimb ? word(notingClimb) : 'Now'}>
+		{@const c = notingClimb ?? cur}
+		<div class="flex flex-col gap-4 px-1">
+			<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2"
+				>Focus
+				<textarea
+					class="min-h-20 resize-none rounded-[18px] bg-surface p-3.5 text-[15px] font-semibold text-ink outline-none placeholder:text-ink-3"
+					placeholder="What to work on"
+					value={c.focus ?? ''}
+					onchange={(e) => setNote('focus', e.currentTarget.value)}
+				></textarea>
+			</label>
+			<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2"
+				>Note
+				<textarea
+					class="min-h-24 resize-none rounded-[18px] bg-surface p-3.5 text-[15px] font-semibold text-ink outline-none placeholder:text-ink-3"
+					placeholder="How did it go?"
+					value={c.notes ?? ''}
+					onchange={(e) => setNote('notes', e.currentTarget.value)}
+				></textarea>
+			</label>
+		</div>
+	</Sheet>
 
 	<Sheet bind:open={changing} title="Climbing" eyebrow={step.name}>
 		<div class="flex flex-col gap-3 px-1">
