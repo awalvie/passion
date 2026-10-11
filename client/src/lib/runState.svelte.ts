@@ -179,10 +179,16 @@ class OpenRun {
 	}
 
 	// removeClimb replaces an unsent write of the climb, if any. The server
-	// then answers 404, which counts as done.
-	removeClimb(id: string) {
+	// then answers 404, which counts as done. A step left with no climbs is
+	// open and not done again, as removeSet leaves it.
+	removeClimb(step: RunStep, id: string) {
 		const run = this.run!;
 		run.climbs = run.climbs.filter((c) => c.id !== id);
+		if (!run.climbs.some((c) => c.step === step.id)) {
+			step.status = null;
+			step.elapsed_seconds = null;
+			this.saveBody();
+		}
 		this.#queue('DELETE', `/api/v1/runs/${run.id}/climbs/${id}`);
 	}
 

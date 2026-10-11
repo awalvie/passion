@@ -401,3 +401,34 @@ test('putClimb counts a graded climb with any send as sent, and an ungraded one 
 	expect(openRun.run!.climbs.map((c) => c.sent)).toStrictEqual([true, false, false]);
 	expect(s.status).toBe('done');
 });
+
+test('removeClimb of the last climb reopens the step and queues the body before the delete', async () => {
+	const openRun = await openOffline();
+	const s = openRun.step('s1')!;
+	s.kind = 'climbing';
+	const climb = {
+		step: 's1',
+		position: 0,
+		discipline: 'boulder' as const,
+		setting: 'indoor' as const,
+		board: null,
+		rope_style: null,
+		grade: '6c',
+		grade_system: 'font',
+		goes: ['send' as const],
+		seconds: null,
+		stars: null,
+		focus: null,
+		notes: null
+	};
+	openRun.putClimb(s, 'c-1', climb);
+	openRun.putClimb(s, 'c-2', { ...climb, position: 1 });
+
+	openRun.removeClimb(s, 'c-1');
+	expect(s.status).toBe('done');
+
+	openRun.removeClimb(s, 'c-2');
+	expect(s.status).toBeNull();
+	expect(openRun.run!.climbs).toStrictEqual([]);
+	expect(urls(openRun.writes).slice(-2)).toStrictEqual([bodyUrl, `${bodyUrl}/climbs/c-2`]);
+});

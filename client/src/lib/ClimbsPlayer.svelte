@@ -70,8 +70,11 @@
 			rope = (end?.rope_style as keyof typeof ropes | null) ?? 'lead';
 		});
 	});
-	const scale = $derived(info ? scaleFor(info.grades, info.account, discipline === 'boulder') : undefined);
-	const gradeList = $derived([...(scale?.grades ?? []), ...(info?.grades.ungraded ?? [])]);
+	const gradesFor = (d: Discipline) => {
+		const sc = info ? scaleFor(info.grades, info.account, d === 'boulder') : undefined;
+		return [...(sc?.grades ?? []), ...(info?.grades.ungraded ?? [])];
+	};
+	const gradeList = $derived(gradesFor(discipline));
 
 	// The scale a grade belongs to: none for an ungraded label or no grade.
 	// Before the scales load, as offline, a grade kept from an earlier climb
@@ -118,15 +121,39 @@
 		openRun.putClimb(step, id, { ...fields, ...changes });
 	}
 
-	let noting = $state<string | null>(null);
-	const notingClimb = $derived(noting === null || noting === cur.id ? null : logged.find((c) => c.id === noting));
-	const notingNumber = $derived(noting === cur.id ? ended.length + 1 : ended.findIndex((c) => c.id === noting) + 1);
+	let editing = $state<string | null>(null);
+	const editingClimb = $derived(editing === null || editing === cur.id ? null : logged.find((c) => c.id === editing));
+	const editingNumber = $derived(editing === cur.id ? ended.length + 1 : ended.findIndex((c) => c.id === editing) + 1);
 
 	function setNote(key: 'focus' | 'notes', text: string) {
 		const value = text.trim() || null;
-		if (notingClimb) return rewrite(notingClimb, { [key]: value });
+		if (editingClimb) return rewrite(editingClimb, { [key]: value });
 		cur[key] = value;
 		if (cur.goes.length) save(cur);
+	}
+
+	// A count changed in the sheet keeps the order of the goes it leaves, and
+	// a climb keeps at least one go.
+	function setCount(kind: Go, n: number) {
+		const c = editingClimb ?? cur;
+		const goes = [...c.goes];
+		const have = goes.filter((g) => g === kind).length;
+		if (n < 0 || (n === 0 && goes.length === have)) return;
+		if (n > have) goes.push(kind);
+		else goes.splice(goes.lastIndexOf(kind), 1);
+		if (editingClimb) return rewrite(editingClimb, { goes });
+		cur.goes = goes;
+		save(cur);
+	}
+
+	function setGrade(c: Climb, g: string) {
+		const grade = c.grade === g ? null : g;
+		rewrite(c, { grade, grade_system: systemFor(c.discipline, grade) });
+	}
+
+	function remove(c: Climb) {
+		editing = null;
+		openRun.removeClimb(step, c.id);
 	}
 
 	function go(kind: Go) {
@@ -191,6 +218,46 @@
 	</span>
 {/snippet}
 
+{#snippet strip(selected: string | null, list: string[], onpick: (g: string) => void, big = false)}
+	<div
+		class="relative -mx-1 flex items-center gap-1.5 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] [mask-image:linear-gradient(90deg,transparent,#000_24px,#000_calc(100%-24px),transparent)] {big
+			? 'h-[76px]'
+			: ''}"
+		use:center={[selected, list.length]}
+		role="group"
+		aria-label="Grade"
+	>
+		{#each list as g (g)}
+			<button
+				type="button"
+				class="shrink-0 rounded-xl px-2.5 font-[family-name:var(--font-digits)] font-bold {big
+					? selected === g
+						? 'h-[72px] min-w-[92px] rounded-2xl text-[46px]'
+						: 'h-14 min-w-14 text-2xl'
+					: 'h-11 min-w-12 text-xl'} {selected === g ? 'bg-(--fg) text-on-tint' : 'bg-black/20 text-(--fg2)'}"
+				aria-pressed={selected === g}
+				onclick={() => onpick(g)}>{g}</button
+			>
+		{/each}
+	</div>
+{/snippet}
+
+{#snippet count(kind: Go, label: string, n: number)}
+	<div class="flex items-center gap-2 rounded-[18px] bg-surface p-2 pl-3">
+		<span class="flex size-7 items-center justify-center rounded-full {kind === 'send' ? 'bg-rest-on-hero text-on-tint' : 'bg-white/14'}"
+			><Icon name={kind === 'send' ? 'check' : 'plus'} size="14px" stroke={3} /></span
+		>
+		<span class="min-w-0 flex-1 truncate text-[15px] font-bold">{label}</span>
+		<button type="button" class="flex size-11 items-center justify-center rounded-full bg-well" aria-label="One {label.toLowerCase().slice(0, -1)} less" onclick={() => setCount(kind, n - 1)}
+			><Icon name="minus" size="18px" stroke={2.6} /></button
+		>
+		<span class="w-8 text-center font-[family-name:var(--font-digits)] text-2xl font-bold">{n}</span>
+		<button type="button" class="flex size-11 items-center justify-center rounded-full bg-well" aria-label="One {label.toLowerCase().slice(0, -1)} more" onclick={() => setCount(kind, n + 1)}
+			><Icon name="plus" size="18px" stroke={2.6} /></button
+		>
+	</div>
+{/snippet}
+
 <RunPage {step} {next} {menu} {error}>
 	<div class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overscroll-contain px-4 pt-6 pb-4">
 		<div class="shrink-0 overflow-hidden rounded-[18px] bg-(--glass)">
@@ -210,31 +277,16 @@
 					<span>CLIMB {ended.length + 1}{system ? ` · ${system}` : ''}</span>
 					{#if ended.length}<span>{sends} OF {ended.length} SENT</span>{/if}
 				</p>
-				<div
-					class="relative -mx-1 mt-2 flex h-[76px] items-center gap-1.5 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] [mask-image:linear-gradient(90deg,transparent,#000_24px,#000_calc(100%-24px),transparent)]"
-					use:center={[cur.grade, gradeList.length]}
-					role="group"
-					aria-label="Grade"
-				>
-					{#each gradeList as g (g)}
-						<button
-							type="button"
-							class="shrink-0 rounded-xl px-2.5 font-[family-name:var(--font-digits)] font-bold {cur.grade === g
-								? 'h-[72px] min-w-[92px] rounded-2xl bg-(--fg) text-[46px] text-on-tint'
-								: 'h-14 min-w-14 bg-black/20 text-2xl text-(--fg2)'}"
-							aria-pressed={cur.grade === g}
-							onclick={() => pick(g)}>{g}</button
-						>
-					{/each}
-				</div>
-				<div class="mt-3 flex min-h-9 flex-wrap items-center gap-2">
+				<div class="mt-2">{@render strip(cur.grade, gradeList, pick, true)}</div>
+				<button type="button" class="mt-1.5 flex min-h-11 w-full flex-wrap items-center gap-2 py-1 text-left" aria-label="{cur.goes.length} {cur.goes.length === 1 ? 'go' : 'goes'}, edit" onclick={() => (editing = cur.id)}>
 					<span class="mr-1 text-[15px] font-bold text-(--fg2)">Goes</span>
 					{#each cur.goes as g, i (i)}{@render goDot(g, i + 1)}{/each}
 					<span
 						class="flex size-[30px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-(--fg2)/60 font-[family-name:var(--font-digits)] text-[15px] font-bold text-(--fg2)"
 						aria-hidden="true">{cur.goes.length + 1}</span
 					>
-				</div>
+					{#if cur.goes.length}<span class="ml-auto flex items-center gap-0.5 text-sm font-bold text-(--fg2)">Edit<Icon name="chevron-right" size="16px" stroke={2.6} /></span>{/if}
+				</button>
 				<div class="mt-3 grid grid-cols-2 gap-2.5">
 					<button type="button" class="flex h-14 items-center justify-center gap-2 rounded-full bg-(--glass) text-[17px] font-bold" onclick={() => go('attempt')}>
 						<span class="flex size-8 items-center justify-center rounded-full bg-white/10"><Icon name="plus" size="16px" stroke={2.8} /></span>Attempt
@@ -251,7 +303,7 @@
 								? 'text-(--fg)'
 								: 'text-(--fg2)'}"
 							aria-label={cur[key] ? `${label}: ${cur[key]}` : `Add a ${label.toLowerCase()}`}
-							onclick={() => (noting = cur.id)}
+							onclick={() => (editing = cur.id)}
 						>
 							<span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-(--glass)"><Icon name={icon} size="16px" stroke={2.4} /></span>
 							<span class="min-w-0 flex-1 truncate pr-2">{cur[key] || label}</span>
@@ -274,7 +326,7 @@
 			<ol class="shrink-0 overflow-hidden rounded-[18px] bg-(--glass)">
 				{#each ended.toReversed() as c, i (c.id)}
 					<li class={i ? 'shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]' : ''}>
-						<button type="button" class="flex min-h-16 w-full items-center gap-3 py-2.5 pr-3.5 pl-2.5 text-left" onclick={() => (noting = c.id)}>
+						<button type="button" class="flex min-h-16 w-full items-center gap-3 py-2.5 pr-3.5 pl-2.5 text-left" onclick={() => (editing = c.id)}>
 							<span
 								class="flex h-11 min-w-12 shrink-0 items-center justify-center rounded-xl px-1.5 font-[family-name:var(--font-digits)] text-xl font-bold {c.sent
 									? 'bg-rest-on-hero text-on-tint'
@@ -294,9 +346,17 @@
 		{/if}
 	</div>
 
-	<Sheet bind:open={() => noting !== null, (v) => !v && (noting = null)} title="Climb {notingNumber}" eyebrow={notingClimb ? word(notingClimb) : 'Now'}>
-		{@const c = notingClimb ?? cur}
+	<Sheet bind:open={() => editing !== null, (v) => !v && (editing = null)} title="Climb {editingNumber}" eyebrow={editingClimb ? word(editingClimb) : 'Now'}>
+		{@const c = editingClimb ?? cur}
 		<div class="flex flex-col gap-4 px-1">
+			{#if editingClimb}
+				<div class="flex flex-col gap-1.5">
+					<span class="text-xs font-semibold text-ink-2">Grade</span>
+					{@render strip(editingClimb.grade, gradesFor(editingClimb.discipline), (g) => setGrade(editingClimb!, g))}
+				</div>
+			{/if}
+			{@render count('attempt', 'Attempts', c.goes.filter((g) => g === 'attempt').length)}
+			{@render count('send', 'Sends', c.goes.filter((g) => g === 'send').length)}
 			<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2"
 				>Focus
 				<textarea
@@ -315,6 +375,11 @@
 					onchange={(e) => setNote('notes', e.currentTarget.value)}
 				></textarea>
 			</label>
+			{#if editingClimb}
+				<button type="button" class="flex h-12 items-center justify-center gap-2 rounded-full bg-surface text-[15px] font-bold text-bad" onclick={() => remove(editingClimb!)}>
+					<Icon name="trash-2" size="17px" stroke={2.4} />Delete climb
+				</button>
+			{/if}
 		</div>
 	</Sheet>
 
