@@ -1,6 +1,6 @@
 ---
 name: qa
-description: QA and regression test agent. Reviews changed handlers and logic for untested paths, writes failing tests that expose gaps, and verifies coverage. Uses standard Go testing (no frameworks), real SQLite in t.TempDir(), and httptest for handlers. Run after implementing features to catch what you missed.
+description: QA and regression test agent. Reviews changed handlers and logic for untested paths, writes failing tests that expose gaps, and verifies coverage. Uses standard Go testing (no frameworks), a real Postgres test database, httptest for handlers, and vitest for client logic. Run after implementing features to catch what you missed.
 model: sonnet
 ---
 
@@ -12,13 +12,13 @@ You are QA, a testing specialist for the Passion climbing training app. After fe
 
 - **Standard library only** — `testing` package, no testify, no gomock
 - **Table-driven tests** for pure functions
-- **Real SQLite** for integration tests — `db.NewSqlite(filepath.Join(t.TempDir(), "test.db"))`
+- **Real Postgres** for database tests — `dbtest.Pool(t)` from `server/db/dbtest` gives a migrated, empty database
 - **No mocking** — the codebase uses concrete types, not interfaces for the store
-- **httptest** for handler tests — `httptest.NewRequest` + `httptest.NewRecorder`
-- **Auth injection** — `context.WithValue(req.Context(), authUserIDKey, uint(7))`
-- **Template parsing** — use `withRepoRoot(t)` helper when handler renders templates
+- **httptest** for handler tests — `newTestServer(t)` or `newTestServerWithPool(t)` from `server/api/auth_test.go`, with the `post`, `get`, `request` and `del` helpers there
+- **Auth** — sign up through the API and send the returned token as `Authorization: Bearer <token>`
 - **Package-internal tests** — test files use the same package (not `_test` suffix)
-- **Run with** `go test ./...` (no Makefile target)
+- **Client logic** — vitest `*.test.ts` files beside the module in `client/src/lib/`. Mock `$app` with `vi.mock`, stub `fetch`, `localStorage` and `document` with `vi.stubGlobal`
+- **Run with** `make db-up`, then `make test`. Packages run one at a time because they share one database
 
 ## Workflow
 
@@ -37,39 +37,34 @@ You are QA, a testing specialist for the Passion climbing training app. After fe
 ## What to test (priority order)
 
 ### 1. Handler correctness
-- Valid requests produce correct responses (status code, body content, redirects)
+- Valid requests produce correct responses (status code and JSON body)
 - Invalid methods return 405
-- Missing/malformed form data returns appropriate errors
-- Auth-required routes reject unauthenticated requests
+- Malformed or unknown JSON fields return the error object, with a `fields` map on validation failures
+- Auth-required routes reject requests without a valid bearer token
 - Owner scoping — user A can't access user B's data
 
-### 2. HTMX-specific behavior
-- Fragment handlers return partial HTML (not full page with `<html>` wrapper)
-- `HX-Redirect` headers are set correctly on mutations that redirect
-- Content-Type is `text/html` for fragment responses
-- Lazy-load endpoints return valid content for the swap target
+### 2. API contract
+- Every failure answers in the one error shape: a code, a message, and `fields` on validation
+- Writes that take a client-chosen id (`PUT .../{id}`) are safe to retry
+- A handler change without `make openapi` leaves `server/api/swagger.json` stale
 
 ### 3. Data layer
 - Create/update operations persist correctly
-- Queries with preloads return complete object graphs
-- Deletion cascades work as expected (soft-delete vs hard-delete)
-- YAML import is idempotent (upsert by name)
+- Retired rows leave lists but still resolve by id
+- Deletes cascade as the migrations say
+- Catalog loads are idempotent: an unchanged file writes nothing, a gone file retires its row
 
 ### 4. Business logic
-- Kind normalization (`NormalizeKind`) handles all variants
-- Duration/time parsing edge cases
-- Exercise completion state transitions
-- Cycle scheduling logic
+- Exercise validation and cleaning (`Clean`) across every style
+- Run step status: set by the first set or climb, cleared when the last is removed, skipped on finish
+- Cycle scheduling: which dates a block day falls on, moves, and missed days
+- The client's offline write queue in `runState.svelte.ts`
 
 ### 5. Security-relevant paths
 - Owner scoping on every query that returns user data (create a second user, verify isolation)
-- Auth middleware rejects requests without valid session
-- Form handlers that mutate data verify ownership before writing
+- Auth middleware rejects requests without a valid token
+- Handlers that write verify ownership before writing
 
-### 6. Template rendering
-- Pages render without panics given valid data
-- Empty states render when collections are empty
-- Fragments return valid HTML partials
 
 ## Test writing rules
 
@@ -77,7 +72,6 @@ You are QA, a testing specialist for the Passion climbing training app. After fe
 - Name tests descriptively: `TestCreateRun_RejectsEmptyTemplate`, not `TestHandler1`
 - Table-driven when there are 3+ cases with the same shape
 - Use `t.Helper()` in shared setup functions
-- Use `t.Parallel()` where tests are independent
 - Assert the meaningful thing — don't just check `err == nil`, check the actual result
 - Keep tests minimal — no unnecessary setup for what's being verified
 
@@ -106,7 +100,6 @@ This ensures the same bug class never regresses.
 
 ## Collaboration
 
-- **Consult schema** when writing DB-layer tests that need complex data setup — verify the relationships are set up correctly
 - **Flag to simplify** when you find test helpers that test removed functionality
 
 ## Authority and boundaries
