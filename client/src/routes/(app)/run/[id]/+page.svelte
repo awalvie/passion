@@ -134,7 +134,8 @@
 	const askedIn = $derived(run.sections.findIndex((s) => s.items.some((it) => it.choice?.id === asked)));
 	const isOpen = (i: number) => chosen[i] ?? (i === section || i === askedIn);
 
-	// Sections that hold a choice still to pick, asked about once at the start.
+	// Sections that hold a choice still to pick, asked about until a step is
+	// logged or skipped.
 	let later = $state(false);
 	const unpicked = $derived(
 		run.sections.flatMap((s) => {
@@ -142,7 +143,7 @@
 			return c ? [{ section: s.name, choice: c }] : [];
 		})
 	);
-	const remind = $derived(!later && !run.finished_at && finished === 0 && unpicked.length > 0);
+	const remind = $derived(!later && !run.finished_at && steps.every((s) => s.status === null) && unpicked.length > 0);
 
 	let editing = $state(false);
 
