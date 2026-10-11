@@ -1,26 +1,19 @@
-# Passion V2 — design
+# Passion — design
 
 What the app does and how its data is laid out. Read this before you design anything.
 
-**Don't use the V1 database design.** Don't read `db/models.go` or `db/queries.go` on
-`master`, and don't carry over GORM or SQLite shapes. If you think you need them, ask first
-and wait.
-
-**Do copy the V1 frontend.** This is a backend rewrite. V1's look, and the way its screens
-work, are the target. See "The frontend follows V1".
+**Don't use the V1 database design.** V1 is tagged `v1`. Don't read its `db/models.go` or
+`db/queries.go`, and don't carry over GORM or SQLite shapes. If you think you need them, ask
+first and wait.
 
 ---
 
 ## Start here
 
-**What works.** Sign up, sign in on several devices, see your account, sign out. An exercise
-library and session templates through the API: the shipped catalog and any private ones load
-at startup, and you can add, edit and retire your own. The Go binary serves the Svelte client. API docs are at
-`/api/docs/`, generated from the handlers, and CI fails if the spec goes stale. `make run` to
-try it, `make watch` to develop.
+**What works.** See [readme.md](../readme.md).
 
-**How it's built.** In five parts, in order. Each part holds everything needed to build it,
-and the open decisions that come due there. Part 1 is built. Part 2 is next.
+**How it's built.** In five parts. Each part holds its design and the decisions made there.
+All five have code.
 
 1. Exercises
 2. Session templates
@@ -28,9 +21,8 @@ and the open decisions that come due there. Part 1 is built. Part 2 is next.
 4. Cycles
 5. History and metrics
 
-**What's agreed.** The behaviour in every part, and in the schema only the exercise and
-session template tables.
-Every other table below is a proposal nobody signed off. Don't write a migration from one.
+**Where it and the code differ.** The tables below were written before their migrations.
+Where a table here and a file in `server/db/migrations/` disagree, the migration is right.
 
 **How to work here.** Agree a plan before each step, then write only that. One change per
 commit. Never commit or push unless asked, right then. Don't widen what was asked for.
@@ -732,97 +724,6 @@ Full notes in `.claude/agent-memory/scout/project_person_model_v2.md`.
 ---
 
 ## Reference
-
-### The code today
-
-Auth is done, tested and pushed. It signs you up, signs you in on several devices, tells you
-who you are, and signs one device out.
-
-```
-server/api/        handlers, routing, middleware, the openapi spec and the docs page
-server/db/         pgx queries, goose migrations, the test helper
-server/password/   argon2id hashing
-server/token/      opaque bearer tokens
-server/web/        serves the embedded client
-server/cmd/passion entry point
-client/            sveltekit, built to server/web/dist and embedded in the binary
-```
-
-Seven routes, all in `server/api/api.go`:
-
-```
-GET    /healthz
-GET    /api/openapi.json
-GET    /api/docs/
-POST   /api/v1/accounts          sign up
-POST   /api/v1/tokens            sign in
-GET    /api/v1/accounts/me       who am i
-DELETE /api/v1/tokens/current    sign out
-```
-
-Two tables, in `server/db/migrations/00001_init.sql`: `account` and `auth_token`. Primary keys
-are `uuid DEFAULT uuidv7()`. A `touch_updated_at` trigger keeps `updated_at` right, because
-without an ORM no one place in Go sees every UPDATE.
-
-The whole stack: Go 1.26, `net/http` with no router, Postgres 18, `pgx/v5` with no ORM,
-`goose` for migrations, `golang.org/x/crypto` for argon2id. Three direct dependencies. The
-client is SvelteKit with `adapter-static`, embedded in the binary with `//go:embed`. API docs
-use Scalar, vendored so an offline install still works.
-
-Stdlib first. A dependency has to earn its place. `docs/DEVELOPMENT.md` shows how to add a
-table, a query and an endpoint.
-
-### How to run it
-
-`direnv` loads the nix flake. It brings go, nodejs, pnpm, postgresql 18, air and go-swagger,
-and sets `DATABASE_URL` and `TEST_DATABASE_URL` to a cluster in `.pgdata`.
-
-| Command | What it does |
-|---|---|
-| `make run` | Build the client, start postgres, serve on http://localhost:8080 |
-| `make watch` | Vite on http://localhost:5173 proxying `/api` to the go server. Both halves reload |
-| `make test` | `go test ./... -count=1 -p 1`. Start the database first with `make db-up` |
-| `make openapi` | Regenerate `server/api/swagger.json` from the handler annotations |
-| `make db-up` / `make db-down` | Start or stop the local postgres cluster |
-| `make image` | Build the docker image |
-
-The binary migrates itself when it starts, so upgrading is one command.
-
-CI checks gofmt, `go vet`, a stale OpenAPI spec, and the tests. Green on 2026-09-22.
-
-### The frontend follows V1
-
-This is a backend rewrite. Nobody asked for a new look, and people like V1's. A new screen
-should feel like the same app. Its markup doesn't have to match.
-
-Already carried over:
-
-- `client/src/passion.css` is `static/passion.css`, byte for byte: 4,397 lines, about 82 KB
-  built. All the tokens and the `card`, `input`, `btn` and `muted` classes come with it.
-- The sign-in screen is a port of `templates/login.html`, with the same classes.
-
-Not carried over, and it mustn't be: the HTML templates, HTMX, and anything about how V1
-talked to its server. Screens are rebuilt as Svelte components on the JSON API.
-
-For the look and how a screen behaves, read:
-
-- `docs/DESIGN.md`: colour tokens, type, cards, badges, icons and layout. Follow it instead of
-  inventing.
-- `templates/`: how each screen was laid out.
-- `docs/DESIGN_UX_AUDIT.md`, `docs/ux-review-followups.md`, `docs/IMPLEMENTATION_PROMPT.md`
-  and `docs/plans/`: audits and fixes already done once. Don't repeat the mistakes they record.
-
-Left out on purpose for now: the Inter webfont isn't vendored, so the client falls back to
-the system sans-serif.
-
-### Documents that still describe V1
-
-These are out of date and will mislead you. Don't take a data shape from any of them.
-
-- **`docs/REQUIREMENTS.md`** is useful, but it isn't a spec. See the next section.
-- **`CLAUDE.md`**: its HTMX and `<select>` rules are V1, and it lists a `schema` agent that no
-  longer exists.
-- **`.claude/agents/qa.md`** writes Go tests against SQLite in a temp folder.
 
 ### How to read `docs/REQUIREMENTS.md`
 
