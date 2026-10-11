@@ -11,8 +11,8 @@ Every page says where you are once, in one fixed place for its type.
   short line under it.
 - Pages about one thing (a cycle, a session, an exercise, a past run): a back pill that names
   the parent, then the thing's name as the large heading. The top bar has no title.
-- Task pages (New cycle): a small title centered in the top bar, Cancel at the left in place
-  of the back pill, and Save at the right.
+- Task pages (New cycle): a small title centered in the top bar, a Cancel pill at the left in
+  place of the back pill (Back on later steps), and the main action as a button at the bottom.
 - A centered title stays centered on the screen and is cut off with "…" when it does not
   fit. It never moves toward the pills.
 
@@ -20,7 +20,7 @@ Every page says where you are once, in one fixed place for its type.
 
 Every control is at least 44 px (`size-11`, `h-11`). A control that must look smaller keeps
 its size and grows its target with `relative before:absolute before:-inset-1 before:content-['']`,
-as RowActions does.
+as the set number circle in SetsPlayer does.
 
 ## Shared parts
 
@@ -28,7 +28,8 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
 
 - Page title: `text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]`.
 - Section heading above a card: `text-xl font-bold` on a tab page (Today, Plan, Library),
-  `text-[15px] font-bold` on a page about one thing or a task page. A count beside it is
+  `text-[15px] font-bold` on a page about one thing or a task page, and for a heading inside a
+  card, such as History's months. A count beside it is
   `text-xs font-semibold text-ink-2`, on the same baseline.
 - List divider: an inset hairline on every row after the first,
   `[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]`. No `border-t` or `divide-y`.

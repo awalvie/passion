@@ -33,7 +33,8 @@ when one runs out. It picks from a choice, adds an exercise, and finishes with t
 A running session has its own dark screen: its steps, the current exercise in a panel at the
 bottom, and a card that names any picks still to make. Each exercise opens on a step page
 with its timer, its sets or its climbs.
-Writes wait on the phone when there is no signal. Every screen comes in light and dark.
+Writes wait on the phone when there is no signal. Every other screen follows the light or
+dark theme.
 
 - Sign up with an email address and a password, hashed with argon2id.
 - Sign in. Each sign-in mints its own bearer token, so a phone and a laptop hold different
@@ -192,7 +193,7 @@ CI checks formatting, `go vet`, that the OpenAPI document is not stale, and the 
 
 ```
 server/api/         handlers, routing, middleware, the openapi spec and the docs page
-server/catalog/     catalog trees. Gives each file the id the loader will match it on
+server/catalog/     reads catalog trees, checks them, and loads them at startup
 server/config/      the YAML config file and the environment variables that override it
 server/db/          pgx queries and goose migrations
 server/grades/      the grade scales a climb is logged in
