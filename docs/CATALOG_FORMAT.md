@@ -148,7 +148,8 @@ an id.
 - A deleted file retires its exercise or session. It leaves the library, and still works in
   anything that used it. If the file comes back, so does the row.
 - One bad file stops the whole load and names every bad file, so a half-loaded catalog never
-  happens.
+  happens. To catch that before a start, run `go run ./server/cmd/catalogcheck <tree>...` on
+  a private catalog. It reads the trees as one owner's, against the shipped catalog.
 - An owner with no account yet is skipped until the first start after they sign up.
 - An owner removed from the config has their exercises and sessions retired.
 
