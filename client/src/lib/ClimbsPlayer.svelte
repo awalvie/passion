@@ -5,7 +5,7 @@
 	import { newId } from './id';
 	import type { MenuItem } from './Menu.svelte';
 	import type { Account } from './plan';
-	import { climbsOf, isFinished, type Discipline, type Go, type RunStep } from './run';
+	import { climbsOf, isFinished, type Climb, type Discipline, type Go, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
 	import RunPage from './RunPage.svelte';
 	import Segmented from './Segmented.svelte';
@@ -84,6 +84,13 @@
 
 	const ended = $derived(logged.filter((c) => c.id !== cur.id));
 	const sends = $derived(ended.filter((c) => c.sent).length);
+
+	// An ungraded climb is never a send (rule 39), so it counts its goes.
+	function word(c: Climb) {
+		const n = c.goes.filter((g) => g === 'send').length;
+		if (!c.grade_system) return `${c.goes.length} ${c.goes.length === 1 ? 'go' : 'goes'}`;
+		return n > 1 ? `${n} sends` : n ? (c.goes.length === 1 ? 'Flash' : 'Sent') : 'Not sent';
+	}
 
 	function save(c: Current) {
 		const had = logged.find((l) => l.id === c.id);
@@ -225,6 +232,28 @@
 				</button>
 			{/if}
 		</div>
+
+		{#if ended.length}
+			<div class="flex items-baseline justify-between px-1 pt-1">
+				<b class="text-[15px]">This step</b>
+				<span class="text-sm font-semibold text-(--fg2)">{ended.length} {ended.length === 1 ? 'climb' : 'climbs'} · {sends} sent</span>
+			</div>
+			<ol class="shrink-0 overflow-hidden rounded-[18px] bg-(--glass)">
+				{#each ended.toReversed() as c, i (c.id)}
+					<li class="flex min-h-16 items-center gap-3 py-2.5 pr-3.5 pl-2.5 {i ? 'shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]' : ''}">
+						<span
+							class="flex h-11 min-w-12 shrink-0 items-center justify-center rounded-xl px-1.5 font-[family-name:var(--font-digits)] text-xl font-bold {c.sent
+								? 'bg-rest-on-hero text-on-tint'
+								: 'bg-white/8 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg)_30%,transparent)]'}">{c.grade ?? '–'}</span
+						>
+						<b class="min-w-0 flex-1 text-base">{word(c)}</b>
+						<span class="flex gap-1" aria-hidden="true">
+							{#each c.goes as g, j (j)}<i class="size-[9px] rounded-full {g === 'send' ? 'bg-rest-on-hero' : 'bg-(--fg2)/45'}"></i>{/each}
+						</span>
+					</li>
+				{/each}
+			</ol>
+		{/if}
 	</div>
 
 	<Sheet bind:open={changing} title="Climbing" eyebrow={step.name}>
