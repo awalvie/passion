@@ -54,7 +54,7 @@ Every screen has the look of `passion-design/final/designs/direction`, in light 
   a choice, notes and the end-of-run journal. Finish it, and every step not reached counts as
   skipped.
 - Log a step's sets, and a climbing step's climbs one at a time. A retried write counts once.
-  A climb is a send when it is graded and was an onsight, flash or redpoint.
+  A climb keeps each go, an attempt or a send, and is a send when it is graded and has one.
 - Grades come in Font and V for boulders, French and YDS for routes. Your account says which
   the client offers first.
 - Keep a list of climbing centres, each with the sessions you can do there.

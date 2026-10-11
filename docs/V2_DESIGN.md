@@ -396,9 +396,9 @@ CREATE TABLE climb (
     grade         text        NULL,
     grade_system  text        NULL CHECK (grade_system IN ('font', 'v', 'french', 'yds')),
     grade_rank    int         NULL,
-    outcome       text        NULL
-        CHECK (outcome IN ('onsight', 'flash', 'redpoint', 'hangdog', 'working')),
-    attempts      int         NULL CHECK (attempts >= 1),
+    -- Each go in order. A problem done in loops holds many sends.
+    goes          text[]      NOT NULL DEFAULT '{}'
+        CHECK (goes <@ ARRAY['attempt', 'send']::text[]),
     seconds       int         NULL CHECK (seconds >= 0),
     stars         smallint    NULL CHECK (stars BETWEEN 1 AND 3),
     focus         text        NULL,
@@ -474,9 +474,8 @@ results for a skipped step. So "what you last did" reads `run_set` alone (rule 4
   climbs without reading run bodies. A swap drops a step's climbs as it drops its sets.
 - `grade` is what was logged. An ungraded climb has no `grade_system` and may hold V1's
   ungraded labels, Rainbow or Traverse. `grade_rank` sorts within the system.
-- A send is `grade_system IS NOT NULL AND outcome IN ('onsight', 'flash', 'redpoint')`,
-  worked out when read, never asked (rules 38 and 39). V1's hangdog and working are its two
-  kinds of attempt.
+- A send is `grade_system IS NOT NULL AND 'send' = ANY (goes)`, worked out when read, never
+  asked (rules 38 and 39). A climb with one go that is a send is a flash.
 
 **The API.**
 
@@ -514,7 +513,7 @@ Left for later, because nothing needs it yet and each one adds without a rewrite
 - **A run can start with numbers left empty.** The player counts up, and you type what you
   did. (Decision 5.)
 - **A logged climb holds what V1's tick holds:** indoor or outdoor, board and which board,
-  rope style, grade, outcome (flash, onsight, redpoint, attempt), attempts, stars and notes.
+  rope style, grade, its goes (each an attempt or a send), stars and notes.
 - **Grades default to the French scales**: Font for boulders, French for routes. The profile
   can switch boulders to V and routes to YDS. A climb stores the grade as logged, plus a
   number for sorting.

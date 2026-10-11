@@ -6,11 +6,14 @@
 	import { loadGrades, scaleFor, type Grades } from './grades';
 	import { newId } from './id';
 	import type { Account } from './plan';
-	import { climbsOf, isFinished, type Climb, type Discipline, type Outcome, type RunStep } from './run';
+	import { climbsOf, isFinished, type Climb, type Discipline, type Go, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
 	import Stepper from './Stepper.svelte';
 
 	let { step }: { step: RunStep } = $props();
+
+	type Outcome = 'onsight' | 'flash' | 'redpoint' | 'hangdog' | 'working';
+	const sends: Outcome[] = ['onsight', 'flash', 'redpoint'];
 
 	const logged = $derived(climbsOf(openRun.run!, step.id));
 
@@ -63,8 +66,8 @@
 		setting = c.setting;
 		ropeStyle = c.rope_style ?? 'lead';
 		grade = c.grade ?? '';
-		outcome = c.outcome ?? 'flash';
-		attempts = c.attempts;
+		outcome = c.goes.includes('send') ? (c.goes.length === 1 ? 'flash' : 'redpoint') : 'working';
+		attempts = c.goes.length || 1;
 	}
 
 	// A boulder and a route use different scales, and a boulder has no onsight
@@ -92,8 +95,7 @@
 			rope_style: boulder ? null : ropeStyle,
 			grade: grade || null,
 			grade_system: grade && !ungraded ? (scale?.system ?? null) : null,
-			outcome,
-			attempts: attempts === null ? null : Math.max(1, Math.round(attempts)),
+			goes: goesOf(outcome, Math.max(1, Math.round(attempts ?? 1))),
 			seconds: editing?.seconds ?? null,
 			stars: editing?.stars ?? null,
 			focus: editing?.focus ?? null,
@@ -110,9 +112,13 @@
 		grade = gradeList[Math.min(gradeList.length - 1, Math.max(0, i))];
 	}
 
+	function goesOf(o: Outcome, tries: number): Go[] {
+		return sends.includes(o) ? [...Array<Go>(tries - 1).fill('attempt'), 'send'] : Array<Go>(tries).fill('attempt');
+	}
+
 	function describe(c: Climb) {
-		const label = outcomes.find((o) => o.value === c.outcome)?.label;
-		const tries = c.attempts ? `${c.attempts} ${c.attempts === 1 ? 'try' : 'tries'}` : '';
+		const label = c.goes.includes('send') ? 'Send' : 'Working';
+		const tries = c.goes.length ? `${c.goes.length} ${c.goes.length === 1 ? 'try' : 'tries'}` : '';
 		return [label, tries].filter(Boolean).join(' · ');
 	}
 </script>

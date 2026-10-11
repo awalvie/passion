@@ -65,7 +65,8 @@ export function cleanSet(s: SetFields): SetFields {
 }
 
 export type Discipline = 'boulder' | 'sport' | 'trad';
-export type Outcome = 'onsight' | 'flash' | 'redpoint' | 'hangdog' | 'working';
+// One go on a climb.
+export type Go = 'attempt' | 'send';
 
 export type ClimbFields = {
 	step: string;
@@ -76,8 +77,7 @@ export type ClimbFields = {
 	rope_style: string | null;
 	grade: string | null;
 	grade_system: string | null;
-	outcome: Outcome | null;
-	attempts: number | null;
+	goes: Go[];
 	seconds: number | null;
 	stars: number | null;
 	focus: string | null;

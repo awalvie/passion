@@ -169,8 +169,7 @@ class OpenRun {
 	// writes the same climb. The server marks the step done at its first climb.
 	putClimb(step: RunStep, id: string, fields: ClimbFields) {
 		const run = this.run!;
-		const sent =
-			fields.grade_system !== null && ['onsight', 'flash', 'redpoint'].includes(fields.outcome ?? '');
+		const sent = fields.grade_system !== null && fields.goes.includes('send');
 		const climb: Climb = { ...fields, id, exercise: step.exercise, sent };
 		const i = run.climbs.findIndex((c) => c.id === id);
 		if (i >= 0) run.climbs[i] = climb;

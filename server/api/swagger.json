@@ -1603,13 +1603,6 @@
         "setting"
       ],
       "properties": {
-        "attempts": {
-          "description": "1 or more.",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Attempts",
-          "example": 3
-        },
         "board": {
           "description": "A board, for a boulder: kilter, moon, tension, spray or custom.",
           "type": "string",
@@ -1634,6 +1627,19 @@
           "x-go-name": "Focus",
           "example": "Heel hooks"
         },
+        "goes": {
+          "description": "Each go in order, attempt or send. A climb done in loops holds many\nsends.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Goes",
+          "example": [
+            "attempt",
+            "attempt",
+            "send"
+          ]
+        },
         "grade": {
           "description": "As logged. With no grade_system it can be an ungraded label, Rainbow or\nTraverse.",
           "type": "string",
@@ -1656,12 +1662,6 @@
           "type": "string",
           "x-go-name": "Notes"
         },
-        "outcome": {
-          "description": "onsight, flash, redpoint, hangdog or working.",
-          "type": "string",
-          "x-go-name": "Outcome",
-          "example": "flash"
-        },
         "position": {
           "description": "The order it was climbed in, from 0.",
           "type": "integer",
@@ -1683,7 +1683,7 @@
           "example": 240
         },
         "sent": {
-          "description": "True for a graded onsight, flash or redpoint.",
+          "description": "True for a graded climb with at least one send.",
           "type": "boolean",
           "x-go-name": "Sent"
         },
@@ -1731,13 +1731,6 @@
         "setting"
       ],
       "properties": {
-        "attempts": {
-          "description": "1 or more.",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Attempts",
-          "example": 3
-        },
         "board": {
           "description": "A board, for a boulder: kilter, moon, tension, spray or custom.",
           "type": "string",
@@ -1756,6 +1749,19 @@
           "x-go-name": "Focus",
           "example": "Heel hooks"
         },
+        "goes": {
+          "description": "Each go in order, attempt or send. A climb done in loops holds many\nsends.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Goes",
+          "example": [
+            "attempt",
+            "attempt",
+            "send"
+          ]
+        },
         "grade": {
           "description": "As logged. With no grade_system it can be an ungraded label, Rainbow or\nTraverse.",
           "type": "string",
@@ -1771,12 +1777,6 @@
         "notes": {
           "type": "string",
           "x-go-name": "Notes"
-        },
-        "outcome": {
-          "description": "onsight, flash, redpoint, hangdog or working.",
-          "type": "string",
-          "x-go-name": "Outcome",
-          "example": "flash"
         },
         "position": {
           "description": "The order it was climbed in, from 0.",
@@ -2070,13 +2070,6 @@
         "setting"
       ],
       "properties": {
-        "attempts": {
-          "description": "1 or more.",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Attempts",
-          "example": 3
-        },
         "board": {
           "description": "A board, for a boulder: kilter, moon, tension, spray or custom.",
           "type": "string",
@@ -2100,6 +2093,19 @@
           "type": "string",
           "x-go-name": "Focus",
           "example": "Heel hooks"
+        },
+        "goes": {
+          "description": "Each go in order, attempt or send. A climb done in loops holds many\nsends.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Goes",
+          "example": [
+            "attempt",
+            "attempt",
+            "send"
+          ]
         },
         "grade": {
           "description": "As logged. With no grade_system it can be an ungraded label, Rainbow or\nTraverse.",
@@ -2129,12 +2135,6 @@
           "type": "string",
           "x-go-name": "Notes"
         },
-        "outcome": {
-          "description": "onsight, flash, redpoint, hangdog or working.",
-          "type": "string",
-          "x-go-name": "Outcome",
-          "example": "flash"
-        },
         "position": {
           "description": "The order it was climbed in, from 0.",
           "type": "integer",
@@ -2162,7 +2162,7 @@
           "example": 240
         },
         "sent": {
-          "description": "True for a graded onsight, flash or redpoint.",
+          "description": "True for a graded climb with at least one send.",
           "type": "boolean",
           "x-go-name": "Sent"
         },
