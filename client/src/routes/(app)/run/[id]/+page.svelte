@@ -23,7 +23,7 @@
 	import RunField from '$lib/RunField.svelte';
 	import { openRun } from '$lib/runState.svelte';
 	import { choiceMeta, stepMeta, type Step } from '$lib/template';
-	import type { Exercise } from '$lib/exercise';
+	import { kindOf, type Exercise } from '$lib/exercise';
 	import ExercisePicker from '$lib/ExercisePicker.svelte';
 	import SessionDot from '$lib/SessionDot.svelte';
 	import Notes from '$lib/Notes.svelte';
@@ -519,22 +519,28 @@
 	</Sheet>
 
 	{#if !editing && !run.finished_at && (stop || steps.length)}
-		<div class="flex shrink-0 gap-2.5 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+		<div class="shrink-0 rounded-t-[28px] bg-(--dock) px-4 pt-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" role="group" aria-label="Now">
 			{#if stop}
-				<a href="/run/{run.id}/finish" class="flex h-14 shrink-0 items-center gap-2 rounded-full bg-(--glass) px-[22px] text-[15px] font-bold active:opacity-80">
-					<svg viewBox="0 0 24 24" class="size-[18px]" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4M6 4h11l-2 4 2 4H6" /></svg>
-					Finish
-				</a>
-				<div class="min-w-0 flex-1">
-					<Button href={stopHref(run.id, stop)}>
-						<Icon name="play" size="18px" />
-						Continue
-					</Button>
+				<p class="mb-1.5 pl-1 font-[family-name:var(--font-digits)] text-sm font-bold tracking-[0.1em] text-(--fg2)">NOW</p>
+				<div class="flex min-h-12 items-center gap-3 px-1">
+					<span class="flex size-[34px] shrink-0 items-center justify-center rounded-[10px] bg-(--glass)">
+						<Icon name={stop.step ? kindOf(stop.step.kind).icon : 'list'} size="18px" stroke={2.2} />
+					</span>
+					<span class="flex min-w-0 flex-1 flex-col gap-[3px]">
+						<span class="truncate text-[17px] leading-[1.2] font-bold">{stop.step?.name ?? stop.choice!.name}</span>
+						<span class="truncate text-[15px] font-medium text-(--fg2)">{stop.step ? stepMeta(stop.step) : choiceMeta(stop.choice!)}</span>
+					</span>
+				</div>
+				<div class="mt-5 flex gap-2.5">
+					<a href={stopHref(run.id, stop)} class="run-btn bg-tint text-on-tint">
+						<span class="run-icon"><Icon name="play" size="16px" /></span>Continue
+					</a>
+					<a href="/run/{run.id}/finish" class="run-round" aria-label="Finish session"><Icon name="flag" size="24px" stroke={2.2} /></a>
 				</div>
 			{:else}
-				<div class="flex-1">
-					<Button href="/run/{run.id}/finish">Finish session</Button>
-				</div>
+				<a href="/run/{run.id}/finish" class="run-btn bg-tint text-on-tint">
+					<span class="run-icon"><Icon name="flag" size="16px" stroke={2.4} /></span>Finish session
+				</a>
 			{/if}
 		</div>
 	{/if}
