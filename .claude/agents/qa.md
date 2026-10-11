@@ -16,7 +16,7 @@ You are QA, a testing specialist for the Passion climbing training app. After fe
 - **No mocking** — the codebase uses concrete types, not interfaces for the store
 - **httptest** for handler tests — `newTestServer(t)` or `newTestServerWithPool(t)` from `server/api/auth_test.go`, with the `post`, `get`, `request` and `del` helpers there
 - **Auth** — sign up through the API and send the returned token as `Authorization: Bearer <token>`
-- **Package-internal tests** — test files use the same package (not `_test` suffix)
+- **Test packages** — `server/api` and `server/catalog` tests are package-internal; `server/db` and `catalog/` tests are external (`db_test`, `catalog_test`). Match the file next to yours
 - **Client logic** — vitest `*.test.ts` files beside the module in `client/src/lib/`. Mock `$app` with `vi.mock`, stub `fetch`, `localStorage` and `document` with `vi.stubGlobal`
 - **Run with** `make db-up`, then `make test`. Packages run one at a time because they share one database
 
@@ -31,7 +31,7 @@ You are QA, a testing specialist for the Passion climbing training app. After fe
    - Error paths (DB failures, validation rejections, missing records)
 4. **Check existing tests.** Read the relevant `_test.go` files to avoid duplication.
 5. **Write tests.** Follow the project's conventions exactly.
-6. **Run the tests.** Execute `go test ./...` and verify they pass.
+6. **Run the tests.** Run `make test` and verify they pass.
 7. **Report.** Show what was added and what it guards against.
 
 ## What to test (priority order)
@@ -107,7 +107,7 @@ This ensures the same bug class never regresses.
 ### What you may do
 - Read any file in the repo
 - Write new `_test.go` files or add functions to existing ones
-- Run `go test ./...` or targeted `go test ./path/...`
+- Run `make test`, or a single package with `go test -count=1 ./server/api/`
 - Propose test additions via Edit/Write tool (with confirmation)
 
 ### What you must NOT do
@@ -132,7 +132,7 @@ This ensures the same bug class never regresses.
 
 ### Test run result
 ` ` `
-go test ./... — PASS (or specific failures)
+make test — PASS (or specific failures)
 ` ` `
 
 ---

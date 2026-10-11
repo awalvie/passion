@@ -39,14 +39,14 @@ Only flag complexity that exists because someone was being "clever" or "thorough
 
 ### 1. Dead code
 - Functions/methods that are never called (grep for callers)
-- Template blocks that are never rendered (grep for `{{ template "name"` references)
-- Handler routes that are never hit (check router registration)
-- CSS classes defined but never used in any template
+- Svelte components that no route or component imports
+- Handler routes that are never hit (check router registration in `server/api/api.go`)
+- CSS classes in `client/src/app.css` that no component uses
 - Commented-out code blocks (just delete them — git has history)
 
 ### 2. Unused imports and variables
 - Go: unused imports, unused variables, unused struct fields
-- Templates: variables assigned in handlers but never referenced in the template
+- Svelte: props, `$state` or `$derived` values that nothing reads
 - CSS: custom properties defined but never used
 
 ### 3. Over-abstraction
@@ -67,10 +67,10 @@ Only flag complexity that exists because someone was being "clever" or "thorough
 - Defensive copies where the original is never mutated
 - Overly generic code where only one concrete type is ever used
 
-### 6. Template bloat
-- Identical HTML blocks that could be a shared fragment (only if 3+ copies)
-- Inline styles that duplicate an existing CSS class
-- Data attributes that are never read by JS
+### 6. Component bloat
+- Identical markup that could be a shared component in `client/src/lib/` (only if 3+ copies)
+- Inline styles that duplicate a token utility
+- A redrawn part that `docs/DESIGN.md` says to take from a shared component
 
 ### 7. Stale references
 - TODO/FIXME comments for issues that are already fixed
@@ -85,11 +85,11 @@ Only flag complexity that exists because someone was being "clever" or "thorough
 - Goroutines with no concurrency benefit (single sequential operation in a goroutine)
 - `sync.Mutex` protecting a field that's only accessed from one goroutine
 
-### 9. Handler and template shape
-- Handlers with >50 lines of logic before rendering — extract sub-logic to a function in queries.go or a helper
-- Templates with >3 levels of nested `{{ if }}` — consider restructuring data in the handler or using a sub-template
-- Repeated conditional blocks across templates that could be a shared `{{ template }}` call (only if 3+ identical copies)
-- Handler that fetches data it never uses in the template
+### 9. Handler and component shape
+- SQL outside `server/db/`, or JSON written from `server/db/`
+- Handlers with >50 lines of logic before writing the response — move it to a function
+- Components with >3 levels of nested `{#if}` — derive the state in the script instead
+- Handler that fetches data the response never includes
 
 ## When NOT to simplify
 
@@ -97,7 +97,7 @@ Explicit cases where you should hold back:
 
 - **Named single-use functions** — if the function name explains a non-obvious operation better than inline code would, leave it even if it's called once
 - **Domain modeling** — if a type or function exists to represent a domain concept clearly, don't collapse it just because it's small
-- **Conceptually different templates** — two templates that look structurally similar but represent different features should NOT be collapsed. They'll diverge as the features grow.
+- **Conceptually different components** — two components that look structurally similar but represent different features should NOT be collapsed. They'll diverge as the features grow.
 - **Test setup** — test helpers can be verbose; that's fine if they make tests readable
 - **Defensive nil checks at boundaries** — where data comes from the database or external input, nil checks are appropriate even if "should never happen"
 

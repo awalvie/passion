@@ -123,7 +123,7 @@ Accuracy is the floor. Also check for:
 
 1. **readme.md § Configuration** — add `NEW_VAR` row
 2. **docs/DEVELOPMENT.md § Make targets** — remove `old-target`, add `new-target`
-3. **docs/DESIGN.md § Buttons** — add destructive button pattern
+3. **docs/DESIGN.md § Shared parts** — add the new sheet component
 
 ### Already accurate
 - readme.md § Project structure — no changes needed
