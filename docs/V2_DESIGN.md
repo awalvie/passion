@@ -24,9 +24,6 @@ All five have code.
 **Where it and the code differ.** The tables below were written before their migrations.
 Where a table here and a file in `server/db/migrations/` disagree, the migration is right.
 
-**How to work here.** Agree a plan before each step, then write only that. One change per
-commit. Never commit or push unless asked, right then. Don't widen what was asked for.
-
 ---
 
 ## What the app is
@@ -737,10 +734,3 @@ going. The order of work lives in the five parts of this file, and nowhere else.
 
 The code cites its rule numbers, for example "Rule 51" in `server/cmd/passion/main.go`. Never
 renumber them.
-
-Three corrections went in on 2026-09-22, and more are likely:
-
-- It said "SQLite by default and PostgreSQL optionally". It's Postgres only now.
-- It made activities a level of the catalog, with a session as a group of activities. That's
-  reversed: a section belongs to its session.
-- The catalog counts in its own part 1 were V1's.
