@@ -185,8 +185,8 @@ because widening it only stretches bars that are already over-scaled for their n
   short line under it.
 - Pages about one thing (a cycle, a session, an exercise, a past run): a back pill that names
   the parent, then the thing's name as the large heading. The top bar has no title.
-- Task pages (New cycle, Edit session): a small title centered in the top bar, Cancel at the
-  left in place of the back pill, and Save at the right.
+- Task pages (New cycle): a small title centered in the top bar, Cancel at the left in place
+  of the back pill, and Save at the right.
 - A centered title stays centered on the screen and is cut off with "…" when it does not
   fit. It never moves toward the pills.
 
@@ -270,7 +270,12 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
   colour (`prep`, `hang`, `rest-field`). From the top: the bar (back, the session clock,
   •••), the name centred, How-to and Note as a centred pair of `run-tag` chips, the
   kind's middle, and one bottom panel. Everything above the bottom panel sits on the
-  centre line.
+  centre line. The field, the contours and the bar are `lib/RunField.svelte`.
+- Session screen: the running session sits on the same `RunField` as its steps. Cards are
+  glass, the current section and set are lime (`tint`), done marks are the green check of
+  a done set (`rest-on-hero`), and the bottom panel shows `NOW` with the exercise or pick
+  you are on, then Continue and a round Finish. Edit session stays on the field: the name
+  reads "Edit session", there is no back pill, and Done takes the place of •••.
   - A timer's state (`READY · PREP 10 S`, `WORK · REP 1 OF 2`) is a small-caps label
     centred above its digits.
   - The bottom panel starts with a `NEXT` label and a row for the next exercise: its kind
