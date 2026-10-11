@@ -266,8 +266,7 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
 - Check box: `lib/Checkbox.svelte`, inside a label that gives the 44 px target.
 - Switch between views: `lib/Segmented.svelte` — a white pill on a `bg-well` track, 44 px.
 - Error line: `lib/FormError.svelte`.
-- Step page: `lib/RunPage.svelte` for every step of a running session except climbing. It
-  is one dark look in both themes: the session green (`bg-run`), or the timer's phase
+- Step page: `lib/RunPage.svelte` for every step of a running session. It is one dark look in both themes: the session green (`bg-run`), or the timer's phase
   colour (`prep`, `hang`, `rest-field`). From the top: the bar (back, the session clock,
   •••), the name centred, How-to and Note as a centred pair of `run-tag` chips, the
   kind's middle, and one bottom panel. Everything above the bottom panel sits on the
@@ -286,3 +285,10 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
   `kg` placeholder, and a small × that removes the set. Done is a green row with a check
   (`rest-on-hero`), the current set has a lime ring, number and left bar, and later sets
   are dimmed. Each field shows last time's value under it as `last 20`.
+- Climb card: `lib/ClimbsPlayer.svelte`. One glass card for the climb on the go: a setup
+  row (`Boulder · Indoor`, Change) that opens a sheet, `CLIMB 3 · FONT` with the sends so
+  far, a sideways grade strip with the picked grade large, the goes as circles (grey
+  numbered attempts, green checked sends) that open the edit sheet, then Attempt (glass,
+  never red: an attempt is not a failure) and Send (`rest-on-hero`), Focus and Note rows,
+  and "+ Add climb". The climbs logged sit under the card, newest first, and a tap opens
+  the same sheet with the grade, the counts, and Delete climb.
