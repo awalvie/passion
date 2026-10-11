@@ -8,6 +8,8 @@
 	import { climbsOf, isFinished, type Discipline, type Go, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
 	import RunPage from './RunPage.svelte';
+	import Segmented from './Segmented.svelte';
+	import Sheet from './Sheet.svelte';
 	import type { NextLine } from './template';
 
 	let {
@@ -42,13 +44,18 @@
 	});
 
 	const disciplines: Record<Discipline, string> = { boulder: 'Boulder', sport: 'Sport', trad: 'Trad' };
-	const settings = { indoor: 'Indoor', outdoor: 'Outdoor' };
+	const settings = { indoor: 'Indoor', outdoor: 'Outdoor' } as const;
+	const ropes = { lead: 'Lead', top_rope: 'Top rope', auto_belay: 'Auto belay', follow: 'Follow' } as const;
 
 	// The climb on the card. It reaches the server at its first go, and stays
 	// the current one until "Add climb", so after a reload the last climb of
 	// an unfinished step is current again.
 	type Current = { id: string; grade: string | null; goes: Go[] };
 	let cur = $state<Current>({ id: '', grade: null, goes: [] });
+	// The bar sets every new climb, and starts from the last one logged.
+	let discipline = $state<Discipline>('boulder');
+	let setting = $state<keyof typeof settings>('indoor');
+	let rope = $state<keyof typeof ropes>('lead');
 	$effect.pre(() => {
 		const id = step.id;
 		untrack(() => {
@@ -57,13 +64,11 @@
 				end && !isFinished(step)
 					? { id: end.id, grade: end.grade, goes: [...end.goes] }
 					: { id: newId(), grade: end?.grade ?? null, goes: [] };
+			discipline = end?.discipline ?? 'boulder';
+			setting = end?.setting ?? 'indoor';
+			rope = (end?.rope_style as keyof typeof ropes | null) ?? 'lead';
 		});
 	});
-
-	// The bar takes the last climb's discipline and setting.
-	const base = $derived(logged.at(-1));
-	const discipline = $derived<Discipline>(base?.discipline ?? 'boulder');
-	const setting = $derived(base?.setting ?? 'indoor');
 	const scale = $derived(info ? scaleFor(info.grades, info.account, discipline === 'boulder') : undefined);
 	const gradeList = $derived([...(scale?.grades ?? []), ...(info?.grades.ungraded ?? [])]);
 
@@ -85,10 +90,10 @@
 		openRun.putClimb(step, c.id, {
 			step: step.id,
 			position: had?.position ?? Math.max(-1, ...logged.map((l) => l.position)) + 1,
-			discipline: had?.discipline ?? discipline,
-			setting: had?.setting ?? setting,
-			board: had?.board ?? null,
-			rope_style: had?.rope_style ?? (discipline === 'boulder' ? null : (base?.rope_style ?? 'lead')),
+			discipline,
+			setting,
+			board: discipline === 'boulder' ? (had?.board ?? null) : null,
+			rope_style: discipline === 'boulder' ? null : rope,
 			grade: c.grade,
 			grade_system: systemFor(discipline, c.grade),
 			goes: [...c.goes],
@@ -107,6 +112,23 @@
 	// A second tap on the picked grade clears it: a climb may have no grade.
 	function pick(g: string) {
 		cur.grade = cur.grade === g ? null : g;
+		if (cur.goes.length) save(cur);
+	}
+
+	// A boulder and a route use different scales, so a change between them
+	// clears the grade.
+	let changing = $state(false);
+	function setDiscipline(d: Discipline) {
+		if ((d === 'boulder') !== (discipline === 'boulder')) cur.grade = null;
+		discipline = d;
+		if (cur.goes.length) save(cur);
+	}
+	function setSetting(v: keyof typeof settings) {
+		setting = v;
+		if (cur.goes.length) save(cur);
+	}
+	function setRope(v: keyof typeof ropes) {
+		rope = v;
 		if (cur.goes.length) save(cur);
 	}
 
@@ -147,10 +169,17 @@
 <RunPage {step} {next} {menu} {error}>
 	<div class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overscroll-contain px-4 pt-6 pb-4">
 		<div class="shrink-0 overflow-hidden rounded-[18px] bg-(--glass)">
-			<div class="flex h-12 items-center gap-2.5 px-3.5 text-[15px] font-semibold text-(--fg2) shadow-[inset_0_-1px_0_rgba(255,255,255,0.06)]">
+			<button
+				type="button"
+				class="flex h-12 w-full items-center gap-2.5 px-3.5 text-left text-[15px] font-semibold text-(--fg2) shadow-[inset_0_-1px_0_rgba(255,255,255,0.06)]"
+				onclick={() => (changing = true)}
+			>
 				<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--glass) text-(--fg)"><Icon name="mountain" size="15px" stroke={2.4} /></span>
-				<span class="min-w-0 flex-1 truncate"><b class="text-(--fg)">{disciplines[discipline]}</b> · {settings[setting]}</span>
-			</div>
+				<span class="min-w-0 flex-1 truncate"
+					><b class="text-(--fg)">{disciplines[discipline]}</b> · {settings[setting]}{discipline === 'boulder' ? '' : ` · ${ropes[rope]}`}</span
+				>
+				<span class="flex items-center gap-1">Change<Icon name="chevron-down" size="16px" stroke={2.6} /></span>
+			</button>
 			<div class="px-3.5 pt-3 pb-3.5">
 				<p class="flex justify-between font-[family-name:var(--font-digits)] text-sm font-bold tracking-[0.1em] text-(--fg2)">
 					<span>CLIMB {ended.length + 1}{system ? ` · ${system}` : ''}</span>
@@ -197,6 +226,16 @@
 			{/if}
 		</div>
 	</div>
+
+	<Sheet bind:open={changing} title="Climbing" eyebrow={step.name}>
+		<div class="flex flex-col gap-3 px-1">
+			<Segmented label="Discipline" items={Object.entries(disciplines).map(([d, label]) => ({ label, on: discipline === d, onclick: () => setDiscipline(d as Discipline) }))} />
+			<Segmented label="Indoor or outdoor" items={Object.entries(settings).map(([v, label]) => ({ label, on: setting === v, onclick: () => setSetting(v as keyof typeof settings) }))} />
+			{#if discipline !== 'boulder'}
+				<Segmented label="Rope" items={Object.entries(ropes).map(([v, label]) => ({ label, on: rope === v, onclick: () => setRope(v as keyof typeof ropes) }))} />
+			{/if}
+		</div>
+	</Sheet>
 
 	{#snippet buttons()}
 		{#if finished}
