@@ -1,6 +1,6 @@
 id: 927d6c99-1252-4ce7-a586-3597c63f77ab
 name: Bulgarian Split Squats
-style: timed_reps
+style: reps_and_sets
 tags:
     - mobility
     - strength
@@ -45,6 +45,3 @@ media:
       thumb_url: https://i.ytimg.com/vi/1-GzXim_jtw/maxresdefault.jpg
 sets: 1
 reps: 6
-rep_seconds: 6
-rep_rest_seconds: 3
-prep_seconds: 5
