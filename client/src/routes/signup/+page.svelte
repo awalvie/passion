@@ -126,6 +126,6 @@
 	</form>
 
 	<p class="mt-5 text-center text-[15px] font-semibold text-ink-2">
-		Already registered? <a href="/login" class="font-bold text-link underline">Log in</a>
+		Already registered? <a href="/login" class="font-bold text-ink underline">Log in</a>
 	</p>
 </section>

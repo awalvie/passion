@@ -47,7 +47,7 @@
 				<FilterSelect bind:value={f.tag} label="Labels" all="All labels" options={tags.map((t) => ({ value: t, label: t }))} class="max-w-full flex-1 sm:flex-none" />
 			{/if}
 			{#if filtered}
-				<button type="button" class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-link shadow-card-sm" onclick={clear}>Clear</button>
+				<button type="button" class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm" onclick={clear}>Clear</button>
 			{/if}
 		</div>
 	{/if}

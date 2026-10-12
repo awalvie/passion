@@ -56,7 +56,7 @@
 			{:else}
 				<p class="px-4 py-3 text-xs font-semibold text-ink-2">
 					Nothing matches.
-					<a class="font-bold text-link underline" href="/exercises/new" target="_blank" rel="noopener">Add it to the library</a>
+					<a class="font-bold text-ink underline" href="/exercises/new" target="_blank" rel="noopener">Add it to the library</a>
 					in a new tab, then come back.
 				</p>
 			{/each}
