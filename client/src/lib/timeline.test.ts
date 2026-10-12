@@ -1,10 +1,12 @@
 import { expect, test } from 'vitest';
 import {
 	at,
+	canTime,
 	elapsed,
 	endSet,
 	newClock,
 	rows,
+	timedSet,
 	timeline,
 	togglePause,
 	type Clock,
@@ -18,8 +20,11 @@ const hang: TimedStep = {
 	rep_rest_seconds: 3,
 	set_rest_seconds: 60,
 	prep_seconds: 5,
-	per_side: false
+	per_side: false,
+	ladder: null
 };
+
+const ladder: TimedStep = { ...hang, reps: 3, rep_seconds: null, ladder: [3, 6, 9] };
 
 const kinds = (s: TimedStep) => timeline(s).map((p) => `${p.kind}${p.ms / 1000}`);
 
@@ -29,6 +34,28 @@ test('a set is hangs with rests between, and sets have a longer rest between', (
 		'hang7', 'rest3', 'hang7', 'rest3', 'hang7', 'rest60',
 		'hang7', 'rest3', 'hang7', 'rest3', 'hang7'
 	]);
+});
+
+test('a ladder gives each rep of every set its own time', () => {
+	expect(canTime(ladder)).toBe(true);
+	expect(kinds(ladder)).toStrictEqual([
+		'prep5',
+		'hang3', 'rest3', 'hang6', 'rest3', 'hang9', 'rest60',
+		'hang3', 'rest3', 'hang6', 'rest3', 'hang9'
+	]);
+});
+
+test('a ladder cut short keeps the hangs done', () => {
+	const p = timeline(ladder);
+	const c: Clock = { startedAt: 0, pausedAt: null, pausedMs: 0, skipMs: 0 };
+	const { clock, short } = endSet(p, c, 5000 + 3000 + 3000 + 6000 + 1000, {});
+	expect(short).toStrictEqual({ 0: 2 });
+	expect(rows(p, elapsed(clock, 18_000), short)).toStrictEqual([2]);
+});
+
+test('a set logs one time for every rep, and a ladder set the time of each rep done', () => {
+	expect(timedSet(hang, 3, 10)).toStrictEqual({ reps: 3, seconds: 7, rep_seconds: null, weight_kg: 10 });
+	expect(timedSet(ladder, 2, 10)).toStrictEqual({ reps: 2, seconds: null, rep_seconds: [3, 6], weight_kg: 10 });
 });
 
 test('per side does all reps on the left, then the right, as two blocks', () => {

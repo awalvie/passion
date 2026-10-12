@@ -78,10 +78,11 @@
 		return k < logged.length ? logged[k] : (drafts[k] ?? prefill(k));
 	}
 
+	// A set the timer logged keeps its times.
 	const rows = (upTo: number) =>
 		Array.from({ length: upTo }, (_, k) => {
 			const s = value(k);
-			return { reps: s.reps, seconds: null, weight_kg: s.weight_kg };
+			return { reps: s.reps, seconds: s.seconds, rep_seconds: s.rep_seconds, weight_kg: s.weight_kg };
 		});
 
 	// A tap on an open set logs it and every set before it; on a done set it
@@ -102,6 +103,8 @@
 		const n = text.trim() === '' ? null : Number(text.replace(',', '.'));
 		if (n !== null && !Number.isFinite(n)) return;
 		const s = { ...value(k), [field]: n };
+		// Fewer reps on a ladder set drop the times of the reps taken away.
+		if (field === 'reps' && s.rep_seconds && n !== null) s.rep_seconds = s.rep_seconds.slice(0, n);
 		if (k < logged.length) openRun.setSets(step, logged.map((l, j) => (j === k ? s : l)));
 		else drafts[k] = s;
 	}

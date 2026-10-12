@@ -35,6 +35,7 @@ const exercise = (id: string, name: string): Exercise => ({
 	prep_seconds: null,
 	duration_seconds: null,
 	per_side: false,
+	ladder: null,
 	media: [],
 	retired_at: null
 });

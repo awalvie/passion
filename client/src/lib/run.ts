@@ -52,7 +52,14 @@ export type RunStep = Step & {
 	from_choice?: RunChoice;
 };
 
-export type SetFields = { reps: number | null; seconds: number | null; weight_kg: number | null };
+// rep_seconds holds each rep's time when they differ, as a ladder's, and
+// seconds is then null.
+export type SetFields = {
+	reps: number | null;
+	seconds: number | null;
+	rep_seconds?: number[] | null;
+	weight_kg: number | null;
+};
 
 export type LoggedSet = SetFields & { step: string; number: number; exercise: string };
 
@@ -61,7 +68,8 @@ export type LoggedSet = SetFields & { step: string; number: number; exercise: st
 export function cleanSet(s: SetFields): SetFields {
 	const count = (n: number | null) => (n === null ? null : Math.min(1e6, Math.max(0, Math.round(n))));
 	const weight = s.weight_kg === null ? null : Math.round(Math.min(9999, Math.max(-9999, s.weight_kg)) * 100) / 100;
-	return { reps: count(s.reps), seconds: count(s.seconds), weight_kg: weight };
+	const reps = s.rep_seconds?.length ? s.rep_seconds.map((n) => count(n)!) : null;
+	return { reps: count(s.reps), seconds: reps ? null : count(s.seconds), rep_seconds: reps, weight_kg: weight };
 }
 
 export type Discipline = 'boulder' | 'sport' | 'trad';
