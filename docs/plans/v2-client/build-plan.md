@@ -66,7 +66,7 @@ All routes except login and signup sit under `(app)`, which has the sign-in guar
 | Kind | Set row |
 |---|---|
 | `reps_and_sets` | `{reps, weight_kg}` |
-| `timed_reps` | `{reps: reps done, seconds: rep_seconds, weight_kg}` |
+| `timed_reps` | `{reps: reps done, seconds: rep_seconds, weight_kg}`. A ladder logs `rep_seconds: the ladder's first reps done` and no `seconds` |
 | `open` | `{seconds}` |
 | per side | two rows per set: odd numbers left, even numbers right; progress counts rows / 2 |
 | `climbing` | climbs, not sets |
