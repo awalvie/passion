@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { addDays } from './dates';
+	import { addDays, weekdayLetters } from './dates';
 	import Icon from './Icon.svelte';
 	import type { ScheduledDay } from './plan';
 
@@ -11,10 +11,9 @@
 		selected
 	}: { monday: string; today: string; week: ScheduledDay[]; selected?: string } = $props();
 
-	const letters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 	const days = $derived(
-		letters.map((letter, i) => {
+		weekdayLetters.map((letter, i) => {
 			const date = addDays(monday, i);
 			const sessions = week.filter((d) => d.local_date === date);
 			return {

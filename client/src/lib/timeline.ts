@@ -54,7 +54,7 @@ export function timeline(s: TimedStep, extra: Record<number, number> = {}): Phas
 				push({ kind: 'hang', block, set, side, rep, ms: repSeconds(s, rep) * 1000 });
 				const last = rep === reps;
 				const lastSide = i === sides.length - 1;
-				const rest = !last ? s.rep_rest_seconds : !lastSide ? s.rep_rest_seconds : s.set_rest_seconds;
+				const rest = last && lastSide ? s.set_rest_seconds : s.rep_rest_seconds;
 				if (!(last && lastSide && set === s.sets)) push({ kind: 'rest', block, set, side, rep, ms: (rest ?? 0) * 1000 });
 			}
 			block++;
