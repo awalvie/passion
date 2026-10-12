@@ -3,35 +3,15 @@
 	import { goto } from '$app/navigation';
 	import { tone, unlock } from './audio';
 	import Icon from './Icon.svelte';
-	import type { MenuItem } from './Menu.svelte';
 	import { isFinished, nextStop, setsOf, stepsOf, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
-	import RunPage from './RunPage.svelte';
-	import type { NextLine } from './template';
+	import RunPage, { type PlayerProps } from './RunPage.svelte';
 	import Stepper from './Stepper.svelte';
 	import TimerFlap from './TimerFlap.svelte';
 	import { at, canTime, elapsed, endSet, jump, newClock, repSeconds, rows, startOf, timedSet, timeline, togglePause } from './timeline';
 	import { readTimers, writeTimers, type Timed } from './timerStore';
 
-	let {
-		step,
-		next,
-		nextHref,
-		last,
-		menu,
-		error,
-		leaving,
-		skip
-	}: {
-		step: RunStep;
-		next: NextLine;
-		nextHref: string;
-		last: boolean;
-		menu: MenuItem[];
-		error: string;
-		leaving: boolean;
-		skip: () => void;
-	} = $props();
+	let { step, next, nextHref, last, menu, error, leaving, skip }: PlayerProps = $props();
 
 	const runId = $derived(openRun.run!.id);
 	let timed = $state<Timed | null>(null);
@@ -236,6 +216,8 @@
 		: [{ label: 'Add set', onclick: () => openRun.addSet(step) }, ...menu]}
 	{error}
 	band={timed && phase ? 1 - pos.left / phase.ms : null}
+	done={finished ? { href: nextHref, last } : null}
+	skip={timed ? skipPhase : skip}
 >
 	{#if finished}
 		<div class="flex flex-1 flex-col items-center justify-center gap-3.5 pb-10">
@@ -287,15 +269,10 @@
 	{/if}
 
 	{#snippet buttons()}
-		{#if finished}
-			<a href={nextHref} class="run-btn bg-live text-on-live">
-				{last ? 'Back to session' : 'Next exercise'}<span class="run-icon"><Icon name="arrow-right" size="16px" stroke={2.6} /></span>
-			</a>
-		{:else if !timed}
+		{#if !timed}
 			<button type="button" class="run-btn bg-tint text-on-tint" onclick={start}>
 				<span class="run-icon"><Icon name="play" size="16px" /></span>{logged.length ? 'Continue' : 'Start'}
 			</button>
-			<button type="button" class="run-round" aria-label="Skip" onclick={skip}><Icon name="skip" size="26px" /></button>
 		{:else}
 			<button
 				type="button"
@@ -308,7 +285,6 @@
 			{#if phase?.kind === 'rest'}
 				<button type="button" class="run-chip pl-[18px]" onclick={addRest}>+30 s</button>
 			{/if}
-			<button type="button" class="run-round" aria-label="Skip" onclick={skipPhase}><Icon name="skip" size="26px" /></button>
 		{/if}
 	{/snippet}
 </RunPage>

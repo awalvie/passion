@@ -79,7 +79,7 @@
 		{/snippet}
 	</RunPage>
 {:else if step?.kind === 'timed_reps' && canTime(step)}
-	<TimerPlayer {step} next={stopLine(next)} {nextHref} last={!next} {menu} {error} leaving={leaving === step.id} {skip} />
+	<TimerPlayer {step} next={stopLine(next)} {nextHref} last={!next} {menu} {error} leaving={leaving === step.id} {leave} {skip} />
 {:else if step && (step.kind === 'reps_and_sets' || (step.kind === 'timed_reps' && !canTime(step)))}
 	<SetsPlayer
 		{step}
@@ -93,7 +93,7 @@
 		{skip}
 	/>
 {:else if step?.kind === 'open'}
-	<OpenPlayer {step} next={stopLine(next)} {nextHref} last={!next} {menu} {error} leaving={leaving === step.id} {leave} />
+	<OpenPlayer {step} next={stopLine(next)} {nextHref} last={!next} {menu} {error} leaving={leaving === step.id} {leave} {skip} />
 {:else if step?.kind === 'climbing'}
 	<ClimbsPlayer {step} next={stopLine(next)} {nextHref} last={!next} {menu} {error} leaving={leaving === step.id} {leave} {skip} />
 {:else}

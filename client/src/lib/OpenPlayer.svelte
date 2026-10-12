@@ -1,34 +1,14 @@
 <script lang="ts">
 	import Icon from './Icon.svelte';
 	import { tone } from './audio';
-	import type { MenuItem } from './Menu.svelte';
 	import { isFinished, setsOf, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
-	import RunPage from './RunPage.svelte';
-	import type { NextLine } from './template';
+	import RunPage, { type PlayerProps } from './RunPage.svelte';
 	import { plainText } from './text';
 	import { elapsed, newClock, togglePause } from './timeline';
 	import { formatClock, readTimers, writeTimers, type Timed } from './timerStore';
 
-	let {
-		step,
-		next,
-		nextHref,
-		last,
-		menu,
-		error,
-		leaving,
-		leave
-	}: {
-		step: RunStep;
-		next: NextLine;
-		nextHref: string;
-		last: boolean;
-		menu: MenuItem[];
-		error: string;
-		leaving: boolean;
-		leave: (end: () => void) => Promise<void>;
-	} = $props();
+	let { step, next, nextHref, last, menu, error, leaving, leave }: PlayerProps = $props();
 
 	const run = $derived(openRun.run!);
 	const runId = $derived(run.id);
@@ -135,6 +115,8 @@
 	{menu}
 	{error}
 	bind:reading
+	done={finished ? { href: nextHref, last } : null}
+	{skip}
 >
 	<div class="mt-8 flex flex-col">
 		{#if !finished}
@@ -174,16 +156,10 @@
 	</div>
 
 	{#snippet buttons()}
-		{#if finished}
-			<a href={nextHref} class="run-btn bg-live text-on-live">
-				{last ? 'Back to session' : 'Next exercise'}
-				<span class="run-icon"><Icon name="arrow-right" size="16px" stroke={2.6} /></span>
-			</a>
-		{:else if !timed}
+		{#if !timed}
 			<button type="button" class="run-btn bg-tint text-on-tint" onclick={start}>
 				<span class="run-icon"><Icon name="play" size="16px" /></span>Start
 			</button>
-			<button type="button" class="run-round" aria-label="Skip" onclick={skip}><Icon name="skip" size="26px" /></button>
 		{:else}
 			<button type="button" class="run-round {paused ? 'bg-tint text-on-tint' : 'bg-(--fg) text-(--field)'}" aria-label={paused ? 'Resume' : 'Pause'} onclick={pause}>
 				<Icon name={paused ? 'play' : 'pause'} size="26px" stroke={3} />
@@ -191,7 +167,6 @@
 			<button type="button" class="run-btn {paused ? 'bg-(--glass)' : 'bg-tint text-on-tint'}" onclick={finish}>
 				<span class="run-icon"><Icon name="check" size="16px" stroke={3} /></span>Done
 			</button>
-			<button type="button" class="run-round" aria-label="Skip" onclick={skip}><Icon name="skip" size="26px" /></button>
 		{/if}
 	{/snippet}
 </RunPage>
