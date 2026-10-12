@@ -84,8 +84,14 @@ export function kindOf(kind: Kind) {
 	return kinds.find((k) => k.kind === kind)!;
 }
 
+// setByLadder is true for a count a ladder sets, which no form shows. Only a
+// timed step keeps its ladder.
+export function setByLadder(e: Pick<Exercise, 'kind' | 'ladder'>, c: Count): boolean {
+	return e.kind === 'timed_reps' && Boolean(e.ladder?.length) && (c === 'reps' || c === 'rep_seconds');
+}
+
 // A Draft is an exercise as the form holds it: text boxes hold strings, never null.
-export type Draft = Pick<Exercise, 'name' | 'kind' | 'per_side' | Count> & {
+export type Draft = Pick<Exercise, 'name' | 'kind' | 'per_side' | 'ladder' | Count> & {
 	notes: string;
 	source: string;
 	tags: string;
@@ -107,6 +113,7 @@ export function toDraft(e?: Exercise): Draft {
 		prep_seconds: e?.prep_seconds ?? null,
 		duration_seconds: e?.duration_seconds ?? null,
 		per_side: e?.per_side ?? false,
+		ladder: e?.ladder ?? null,
 		// A new exercise starts with one empty row, as V1's form did.
 		media: (e?.media ?? [{ url: null, thumb_url: null }]).map((m) => ({
 			url: m.url ?? '',
@@ -116,8 +123,8 @@ export function toDraft(e?: Exercise): Draft {
 }
 
 // toBody sends a count only when the form shows it, so switching the type
-// drops the numbers the old type used, and per side goes with them. The server
-// trims the text and drops empty media rows.
+// drops the numbers the old type used, and per side and a ladder go with them.
+// The server trims the text, drops empty media rows and sets reps from a ladder.
 export function toBody(d: Draft, shown: (c: Count) => boolean) {
 	const counts = Object.fromEntries(allCounts.map((c) => [c, shown(c) ? d[c] : null]));
 	return {
@@ -128,12 +135,14 @@ export function toBody(d: Draft, shown: (c: Count) => boolean) {
 		tags: d.tags.split(','),
 		...counts,
 		per_side: allCounts.some(shown) && d.per_side,
+		ladder: d.kind === 'timed_reps' ? d.ladder : null,
 		media: d.media
 	};
 }
 
 const fieldLabels: Record<string, string> = {
 	...countLabels,
+	ladder: 'Ladder',
 	name: 'Name',
 	kind: 'Type',
 	notes: 'Notes',
