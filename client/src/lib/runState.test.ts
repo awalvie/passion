@@ -357,6 +357,28 @@ test('shiftStep goes into an empty section next to it', async () => {
 	expect(order(openRun.run!)).toStrictEqual([['s2'], ['c1', 'c2'], ['s1']]);
 });
 
+test('dropStep counts the place before the step leaves it', async () => {
+	const openRun = await openOffline();
+
+	openRun.dropStep('s2', 1, 2);
+	expect(order(openRun.run!)).toStrictEqual([['s1'], ['c1', 's2', 'c2']]);
+
+	openRun.dropStep('s2', 1, 3);
+	expect(order(openRun.run!)).toStrictEqual([['s1'], ['c1', 'c2', 's2']]);
+
+	openRun.dropStep('s2', 0, 0);
+	expect(order(openRun.run!)).toStrictEqual([['s2', 's1'], ['c1', 'c2']]);
+});
+
+test('dropStep on its own place writes nothing', async () => {
+	const openRun = await openOffline();
+
+	openRun.dropStep('s2', 1, 0);
+	openRun.dropStep('s2', 1, 1);
+
+	expect(openRun.writes).toStrictEqual([]);
+});
+
 test('addSection adds an empty section at the end', async () => {
 	const openRun = await openOffline();
 
