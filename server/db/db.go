@@ -59,7 +59,7 @@ func isInvalidText(err error) bool {
 // cleanID trims and lower-cases an id, and says whether it is a uuid.
 func cleanID(id string) (string, bool) {
 	id = strings.ToLower(strings.TrimSpace(id))
-	return id, uuidText.MatchString(id)
+	return id, UUIDText.MatchString(id)
 }
 
 // missing looks up ids, by path, in table, which is always a constant, and

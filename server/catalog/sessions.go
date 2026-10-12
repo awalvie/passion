@@ -20,10 +20,7 @@ import (
 // swaps in the row id. AppSteps says, in the order the steps come, which of
 // them name a movement the app ships.
 type Session struct {
-	Tree     string
-	Path     string
-	FileID   string
-	Slug     string
+	file
 	Fields   db.SessionTemplateFields
 	AppSteps []bool
 }
@@ -126,6 +123,7 @@ func ReadSessions(app *Tree, exercises []Exercise, trees ...Tree) ([]Session, []
 	}
 
 	var sessions []Session
+	var files []file
 	for _, tree := range trees {
 		entries, err := readDir(tree, "sessions")
 		if errors.Is(err, fs.ErrNotExist) {
@@ -142,10 +140,11 @@ func ReadSessions(app *Tree, exercises []Exercise, trees ...Tree) ([]Session, []
 				continue
 			}
 			sessions = append(sessions, s)
+			files = append(files, s.file)
 		}
 	}
 
-	problems = append(problems, sessionClashes(sessions)...)
+	problems = append(problems, clashes(files)...)
 	if len(problems) > 0 {
 		return nil, warnings, errors.Join(problems...)
 	}
@@ -363,7 +362,7 @@ func (r resolver) session(tree Tree, rel string) (Session, error) {
 		problems = append(problems, "items: a session holds at least one block")
 	}
 
-	s := Session{Tree: tree.Name, Path: rel, FileID: strings.ToLower(f.ID), Slug: slug}
+	s := Session{file: file{Tree: tree.Name, Path: rel, FileID: strings.ToLower(f.ID), Slug: slug}}
 	var sections []db.Section
 	for i, item := range f.Items {
 		if item.Block == "" {
@@ -433,32 +432,10 @@ func checkID(id string) error {
 	switch {
 	case id == "":
 		return errors.New("no id:. Run make catalog-ids")
-	case !uuidPattern.MatchString(strings.ToLower(id)):
+	case !db.UUIDText.MatchString(strings.ToLower(id)):
 		return fmt.Errorf("id: %q is not a uuid", id)
 	}
 	return nil
-}
-
-// sessionClashes finds two session files that would claim one row or one name.
-func sessionClashes(sessions []Session) []error {
-	var problems []error
-	byID := map[string]Session{}
-	bySlug := map[string]Session{}
-	for _, s := range sessions {
-		if first, ok := byID[s.FileID]; ok {
-			problems = append(problems, fmt.Errorf("%s: %s and %s: %s: the same id. Delete the id: line in the copy and run make catalog-ids",
-				first.Tree, first.Path, s.Tree, s.Path))
-		} else {
-			byID[s.FileID] = s
-		}
-		if first, ok := bySlug[s.Slug]; ok {
-			problems = append(problems, fmt.Errorf("%s: %s and %s: %s: the same file name, so the same slug. Rename one",
-				first.Tree, first.Path, s.Tree, s.Path))
-		} else {
-			bySlug[s.Slug] = s
-		}
-	}
-	return problems
 }
 
 // readDir lists the .yaml files of one directory of a tree, and refuses a

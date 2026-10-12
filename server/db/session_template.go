@@ -61,7 +61,7 @@ type Step struct {
 var (
 	hexColor = regexp.MustCompile(`^#[0-9a-f]{6}$`)
 	iconName = regexp.MustCompile(`^[a-z0-9-]{1,32}$`)
-	uuidText = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+	UUIDText = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 )
 
 // Clean trims and checks the fields, and names each problem by its path in

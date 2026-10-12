@@ -24,12 +24,17 @@ type Tree struct {
 
 // Exercise is one file of movements/, checked and ready to load.
 type Exercise struct {
+	file
+	Fields db.ExerciseFields
+	Hash   string
+}
+
+// file names where an entry came from, so two can be told apart.
+type file struct {
 	Tree   string
 	Path   string
 	FileID string
 	Slug   string
-	Fields db.ExerciseFields
-	Hash   string
 }
 
 // movementFile is every key a movements/ file may hold. Decoding refuses any
@@ -65,7 +70,6 @@ var fileKeys = map[string]string{
 
 var (
 	slugPattern = regexp.MustCompile(`^[a-z0-9_]+$`)
-	uuidPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 )
 
 // Read reads the movements/ files of every tree one owner loads. They are read
@@ -74,6 +78,7 @@ var (
 // reported, not just the first.
 func Read(trees ...Tree) ([]Exercise, error) {
 	var exercises []Exercise
+	var files []file
 	var problems []error
 
 	for _, tree := range trees {
@@ -89,10 +94,11 @@ func Read(trees ...Tree) ([]Exercise, error) {
 				continue
 			}
 			exercises = append(exercises, e)
+			files = append(files, e.file)
 		}
 	}
 
-	problems = append(problems, clashes(exercises)...)
+	problems = append(problems, clashes(files)...)
 	if len(problems) > 0 {
 		return nil, errors.Join(problems...)
 	}
@@ -146,32 +152,29 @@ func readFile(tree Tree, rel string) (Exercise, error) {
 	}
 
 	return Exercise{
-		Tree:   tree.Name,
-		Path:   rel,
-		FileID: id,
-		Slug:   slug,
+		file:   file{Tree: tree.Name, Path: rel, FileID: id, Slug: slug},
 		Fields: fields,
 		Hash:   Hash(slug, fields),
 	}, nil
 }
 
 // clashes finds two files that would claim one row or one name.
-func clashes(exercises []Exercise) []error {
+func clashes(files []file) []error {
 	var problems []error
-	byID := map[string]Exercise{}
-	bySlug := map[string]Exercise{}
-	for _, e := range exercises {
-		if first, ok := byID[e.FileID]; ok {
+	byID := map[string]file{}
+	bySlug := map[string]file{}
+	for _, f := range files {
+		if first, ok := byID[f.FileID]; ok {
 			problems = append(problems, fmt.Errorf("%s: %s and %s: %s: the same id. Delete the id: line in the copy and run make catalog-ids",
-				first.Tree, first.Path, e.Tree, e.Path))
+				first.Tree, first.Path, f.Tree, f.Path))
 		} else {
-			byID[e.FileID] = e
+			byID[f.FileID] = f
 		}
-		if first, ok := bySlug[e.Slug]; ok {
+		if first, ok := bySlug[f.Slug]; ok {
 			problems = append(problems, fmt.Errorf("%s: %s and %s: %s: the same file name, so the same slug. Rename one",
-				first.Tree, first.Path, e.Tree, e.Path))
+				first.Tree, first.Path, f.Tree, f.Path))
 		} else {
-			bySlug[e.Slug] = e
+			bySlug[f.Slug] = f
 		}
 	}
 	return problems

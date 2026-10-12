@@ -4,7 +4,6 @@ package catalog
 
 import (
 	"bytes"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +12,8 @@ import (
 	"strings"
 
 	"go.yaml.in/yaml/v3"
+
+	"passion/server/db"
 )
 
 var kindDirs = []string{"movements", "blocks", "sessions"}
@@ -86,7 +87,7 @@ func addID(path string) (string, bool, error) {
 		return id, false, nil
 	}
 
-	id := newID()
+	id := db.NewID()
 	updated := withID(body, id)
 
 	// The insert is plain text, so parse the result to be sure it reads as the
@@ -153,13 +154,4 @@ func withID(body []byte, id string) []byte {
 	out = append(out, body[:at]...)
 	out = append(out, "id: "+id+eol...)
 	return append(out, body[at:]...)
-}
-
-// newID is a random version 4 uuid.
-func newID() string {
-	var b [16]byte
-	rand.Read(b[:])
-	b[6] = b[6]&0x0f | 0x40
-	b[8] = b[8]&0x3f | 0x80
-	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
 }
