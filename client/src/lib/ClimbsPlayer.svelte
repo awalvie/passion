@@ -25,6 +25,7 @@
 	const disciplines: Record<Discipline, string> = { boulder: 'Boulder', sport: 'Sport', trad: 'Trad' };
 	const settings = { indoor: 'Indoor', outdoor: 'Outdoor' } as const;
 	const ropes = { lead: 'Lead', top_rope: 'Top rope', auto_belay: 'Auto belay', follow: 'Follow' } as const;
+	const boards = { none: 'None', kilter: 'Kilter', moon: 'Moon', tension: 'Tension', spray: 'Spray', custom: 'Other' } as const;
 
 	// The climb on the card. It reaches the server at its first go, and stays
 	// the current one until "Add climb", so after a reload the last climb of
@@ -35,6 +36,9 @@
 	let discipline = $state<Discipline>('boulder');
 	let setting = $state<keyof typeof settings>('indoor');
 	let rope = $state<keyof typeof ropes>('lead');
+	let board = $state<keyof typeof boards>('none');
+	// A board is only for a boulder in a gym.
+	const onBoard = $derived(discipline === 'boulder' && setting === 'indoor' && board !== 'none');
 	const fresh = (grade: string | null): Current => ({ id: newId(), grade, goes: [], focus: null, notes: null });
 	const resume = (c: Climb): Current => ({ id: c.id, grade: c.grade, goes: [...c.goes], focus: c.focus, notes: c.notes });
 	$effect.pre(() => {
@@ -45,6 +49,7 @@
 			discipline = end?.discipline ?? 'boulder';
 			setting = end?.setting ?? 'indoor';
 			rope = (end?.rope_style as keyof typeof ropes | null) ?? 'lead';
+			board = (end?.board as keyof typeof boards | null) ?? 'none';
 		});
 	});
 	const gradesFor = (d: Discipline) => {
@@ -80,7 +85,7 @@
 			position: had?.position ?? Math.max(-1, ...logged.map((l) => l.position)) + 1,
 			discipline,
 			setting,
-			board: discipline === 'boulder' ? (had?.board ?? null) : null,
+			board: onBoard ? board : null,
 			rope_style: discipline === 'boulder' ? null : rope,
 			grade: c.grade,
 			grade_system: systemFor(discipline, c.grade),
@@ -159,6 +164,10 @@
 	}
 	function setRope(v: keyof typeof ropes) {
 		rope = v;
+		if (cur.goes.length) save(cur);
+	}
+	function setBoard(v: keyof typeof boards) {
+		board = v;
 		if (cur.goes.length) save(cur);
 	}
 
@@ -257,7 +266,11 @@
 			>
 				<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--glass) text-(--fg)"><Icon name="mountain" size="15px" stroke={2.4} /></span>
 				<span class="min-w-0 flex-1 truncate"
-					><b class="text-(--fg)">{disciplines[discipline]}</b> · {settings[setting]}{discipline === 'boulder' ? '' : ` · ${ropes[rope]}`}</span
+					><b class="text-(--fg)">{disciplines[discipline]}</b> · {settings[setting]}{discipline === 'boulder'
+							? onBoard
+								? ` · ${boards[board]}`
+								: ''
+							: ` · ${ropes[rope]}`}</span
 				>
 				<span class="flex items-center gap-1">Change<Icon name="chevron-down" size="16px" stroke={2.6} /></span>
 			</button>
@@ -378,6 +391,8 @@
 			<Segmented label="Indoor or outdoor" items={Object.entries(settings).map(([v, label]) => ({ label, on: setting === v, onclick: () => setSetting(v as keyof typeof settings) }))} />
 			{#if discipline !== 'boulder'}
 				<Segmented label="Rope" items={Object.entries(ropes).map(([v, label]) => ({ label, on: rope === v, onclick: () => setRope(v as keyof typeof ropes) }))} />
+			{:else if setting === 'indoor'}
+				<Segmented label="Board" items={Object.entries(boards).map(([v, label]) => ({ label, on: board === v, onclick: () => setBoard(v as keyof typeof boards) }))} />
 			{/if}
 		</div>
 	</Sheet>
