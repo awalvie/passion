@@ -36,7 +36,7 @@ Before reviewing, always read these files to ground yourself in the current desi
 ### 1. Token usage
 - No hardcoded hex/rgb/hsl values in components or inline styles
 - All colors use a token, as `var(--token)` or its Tailwind name from `app.css`
-- `text-tint` is never text on a light ground; use `text-link`
+- `text-tint` is never text on a light ground; use `text-ink`
 
 ### 2. Fields and selects
 - Every field and `<select>` has the `.input` class

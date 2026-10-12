@@ -109,7 +109,7 @@ such as the step page or the set card, is drawn.
   so a stepper, a sheet or the menu on it reads dark without a variant. Its buttons are in
   [DESIGN.md](DESIGN.md).
 - `text-tint` is not for text. Lime has too little contrast on a light page. Use
-  `text-link` for a link or a text button. `text-tint` is only for an icon or a mark on a
+  `text-ink` with `font-bold` for a link or a text button. `text-tint` is only for an icon or a mark on a
   dark ground, such as the forest card.
 - Shadows: `shadow-card` for a card, `shadow-card-sm` for a pill or a small button,
   `shadow-tint` and `shadow-live` under a lime or an apricot button.
