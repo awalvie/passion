@@ -83,7 +83,7 @@
 
 <div class="flex flex-col gap-3.5 px-4 pt-2">
 	<header class="px-1">
-		<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">{run.name}</h1>
+		<h1 class="page-title">{run.name}</h1>
 		<p class="mt-1 text-[15px] font-semibold text-ink-2">{date}</p>
 		<p class="mt-0.5 text-[15px] font-semibold text-ink-2">{facts}</p>
 	</header>
@@ -132,7 +132,7 @@
 				<h2 class="mb-1 text-[15px] font-bold">{section.name}</h2>
 				<ul>
 					{#each steps as s (s.id)}
-						<li class="flex gap-3 py-3 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+						<li class="flex gap-3 py-3 list-row">
 							{#if s.status === 'done'}
 								<span class="mt-px flex size-6 shrink-0 items-center justify-center rounded-full bg-ink text-tint dark:bg-[#2A342D]">
 									<Icon name="check" size="0.875rem" stroke={3} />

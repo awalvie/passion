@@ -81,7 +81,7 @@
 <div class="mx-auto grid max-w-5xl gap-3.5 px-4 pt-2 lg:grid-cols-[minmax(0,1fr)_20rem] [&>*]:min-w-0">
 	<div class="flex flex-col gap-3.5">
 		<header class="px-1">
-			<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em] break-words">{saved.name}</h1>
+			<h1 class="page-title break-words">{saved.name}</h1>
 			<p class="mt-1 text-[15px] font-semibold text-ink-2">
 				{locked || 'Changes here do not affect session templates that already use it.'}
 			</p>

@@ -73,7 +73,7 @@
 	{#if shown.length}
 		<ul class="rounded-3xl bg-surface py-1 shadow-card">
 			{#each shown as e (e.id)}
-				<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+				<li class="list-row">
 					<a href="/exercises/{e.id}" class="flex min-h-16 items-center gap-3.5 py-2.5 pr-3 pl-3.5">
 						<span class="sr-only">{kindOf(e.kind).label}. </span>
 						<span class="flex size-10 shrink-0 items-center justify-center rounded-[14px] bg-well text-ink" title={kindOf(e.kind).label}>

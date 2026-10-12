@@ -172,7 +172,7 @@
 <div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
 	<header class="flex items-start justify-between gap-3">
 		<div>
-			<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">Plan</h1>
+			<h1 class="page-title">Plan</h1>
 			{#if data.today}
 				<p class="mt-1 text-[15px] font-semibold text-ink-2">{formatDate(data.today, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
 			{/if}
@@ -235,7 +235,7 @@
 										<span class="shrink-0 rounded-xl px-2.5 py-[5px] text-xs font-bold {tags[d.status]}">{statuses[d.status]}</span>
 									{/if}
 								{/snippet}
-								<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+								<li class="list-row">
 									{#if d.status === 'planned' || d.status === 'missed'}
 										<details class="group">
 											<summary class="flex min-h-[58px] cursor-pointer list-none items-center gap-3.5 py-2 [&::-webkit-details-marker]:hidden">
@@ -306,7 +306,7 @@
 				<ul>
 					{#each ordered as c (c.id)}
 						{@const state = cycleState(c)}
-						<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+						<li class="list-row">
 							<a href="/plan/cycles/{c.id}" class="flex min-h-[58px] items-center gap-3 py-2">
 								<span
 									class="size-2.5 shrink-0 rounded-full {state === 'now'

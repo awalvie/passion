@@ -203,7 +203,7 @@
 	{:else if (onDate.get(panel) ?? []).length}
 		<ul>
 			{#each onDate.get(panel) ?? [] as d (d.id)}
-				<li class="flex min-h-[52px] items-center gap-3 py-2 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+				<li class="flex min-h-[52px] items-center gap-3 py-2 list-row">
 					<SessionIcon icon={d.template_icon} name={d.template_name} state={look(d)} size={32} />
 					<span class="min-w-0 flex-1">
 						<span class="block truncate text-[15px] font-bold">{d.template_name}</span>

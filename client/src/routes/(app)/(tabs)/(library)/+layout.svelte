@@ -21,7 +21,7 @@
 	<div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
 		{#if list}
 			<header class="flex items-start justify-between">
-				<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">Library</h1>
+				<h1 class="page-title">Library</h1>
 				<a
 					href="{list.href}/new"
 					class="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"

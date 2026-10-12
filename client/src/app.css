@@ -94,6 +94,20 @@ body {
 	font-variant-numeric: tabular-nums;
 }
 
+/* An inset hairline above every row after the first. */
+@utility list-row {
+	&:not(:first-child) {
+		box-shadow: inset 0 1px 0 var(--line);
+	}
+}
+
+@utility page-title {
+	font-size: 32px;
+	line-height: 1.1;
+	font-weight: 800;
+	letter-spacing: -0.02em;
+}
+
 /* In the components layer, so a utility such as w-auto still wins. */
 @layer components {
 	.input {

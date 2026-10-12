@@ -33,7 +33,7 @@
 <svelte:head><title>History</title></svelte:head>
 
 <div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
-	<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">History</h1>
+	<h1 class="page-title">History</h1>
 
 	{#each months as m (m.label)}
 		<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-2 shadow-card">
@@ -41,7 +41,7 @@
 			<ul>
 				{#each m.runs as r (r.id)}
 					{@const w = when(r)}
-					<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+					<li class="list-row">
 						<a href="/history/{r.id}" class="flex min-h-[58px] items-center gap-3.5 py-2">
 							<span class="flex w-8 shrink-0 flex-col">
 								<span class="text-xs font-semibold text-ink-2">{w.weekday}</span>

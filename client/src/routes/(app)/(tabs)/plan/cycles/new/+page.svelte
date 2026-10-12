@@ -15,6 +15,7 @@
 	import Icon, { type IconName } from '$lib/Icon.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import { plannedDays, saveCycle } from '$lib/plan';
+	import Section from '$lib/Section.svelte';
 	import SessionIcon from '$lib/SessionIcon.svelte';
 
 	let { data } = $props();
@@ -103,7 +104,7 @@
 	{/if}
 
 	<header class="px-1">
-		<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">{titles[step - 1]}</h1>
+		<h1 class="page-title">{titles[step - 1]}</h1>
 		<p class="mt-1 text-[15px] font-semibold text-ink-2">{hints[step - 1]}</p>
 	</header>
 
@@ -137,8 +138,7 @@
 			{/each}
 		</div>
 	{:else if step === 2}
-		<section class="flex flex-col gap-2">
-			<h2 class="px-1 text-[15px] font-bold">Goals</h2>
+		<Section title="Goals">
 			<GoalList
 				bind:goals={draft.goals}
 				onedit={(i) => {
@@ -146,9 +146,8 @@
 					goalOpen = true;
 				}}
 			/>
-		</section>
-		<section class="flex flex-col gap-2">
-			<h2 class="px-1 text-[15px] font-bold">Notes</h2>
+		</Section>
+		<Section title="Notes">
 			<textarea
 				class="min-h-28 w-full resize-none rounded-3xl bg-surface px-[18px] py-3.5 text-[15px] font-semibold shadow-card [field-sizing:content] placeholder:text-ink-3 focus:shadow-[0_0_0_2px_var(--ink-3)] focus:outline-none"
 				placeholder="Anything to remember about this cycle"
@@ -156,14 +155,14 @@
 				value={draft.notes ?? ''}
 				oninput={(e) => (draft.notes = e.currentTarget.value || null)}
 			></textarea>
-		</section>
+		</Section>
 	{:else if step === 3}
 		<BlockLength bind:value={draft.block_days} max={length} />
 		<BlockDays bind:days={draft.days} blockDays={draft.block_days} from={draft.starts} templates={data.templates} />
 	{:else}
 		<ul class="rounded-3xl bg-surface px-3.5 shadow-card">
 			{#snippet row(icon: IconName, eyebrow: string, to: number, body: import('svelte').Snippet)}
-				<li class="flex min-h-[68px] items-center gap-3 py-2.5 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+				<li class="flex min-h-[68px] items-center gap-3 py-2.5 list-row">
 					<span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-well text-ink"><Icon name={icon} size="1.125rem" /></span>
 					<span class="min-w-0 flex-1">
 						<span class="block text-xs font-semibold text-ink-2">{eyebrow}</span>

@@ -26,13 +26,14 @@ as the set number circle in SetsPlayer does.
 
 These are the one way each part is drawn in `client/src`. Use them; do not redraw them.
 
-- Page title: `text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]`.
-- Section heading above a card: `text-xl font-bold` on a tab page (Today, Plan, Library),
-  `text-[15px] font-bold` on a page about one thing or a task page, and for a heading inside a
-  card, such as History's months. A count beside it is
-  `text-xs font-semibold text-ink-2`, on the same baseline.
-- List divider: an inset hairline on every row after the first,
-  `[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]`. No `border-t` or `divide-y`.
+- Page title: `page-title`.
+- Section heading above a card: `text-xl font-bold` on a tab page (Today, Plan, Library).
+  On a page about one thing or a task page, wrap the section in `lib/Section.svelte`, which
+  draws a `text-[15px] font-bold` heading and puts its `aside`, such as a count, on the same
+  baseline. A heading inside a card, such as History's months, is `text-[15px] font-bold`
+  too. A count is `text-xs font-semibold text-ink-2`.
+- List divider: an inset hairline on every row after the first, `list-row`. No `border-t`
+  or `divide-y`.
 - Icons: `lib/Icon.svelte`, never an inline `<svg>` for a shape it has. `stroke` sets the
   line weight.
 - Check box: `lib/Checkbox.svelte`, inside a label that gives the 44 px target.

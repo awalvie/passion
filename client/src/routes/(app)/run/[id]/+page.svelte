@@ -355,7 +355,7 @@
 							{#if open && s.items.length}
 								<ul class="relative mb-1 ml-[46px] rounded-3xl bg-(--glass) p-2.5 pb-2">
 									{#each s.items as item, j (item.step?.id ?? item.choice?.id ?? j)}
-										<li class="[&:not(:first-child)]:mt-1 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+										<li class="[&:not(:first-child)]:mt-1 list-row">
 											{#if item.step}
 												{@const sm = mark(item.step)}
 												<a href="/run/{run.id}/step/{item.step.id}" class="flex items-center gap-3 px-1 py-2.5">

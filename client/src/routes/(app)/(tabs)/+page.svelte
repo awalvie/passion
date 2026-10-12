@@ -168,7 +168,7 @@
 <div class="relative flex flex-col pt-[env(safe-area-inset-top)]">
 	<header class="flex items-start justify-between gap-3 px-4 pt-3">
 		<div>
-			<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em]">
+			<h1 class="page-title">
 				{other ? formatDate(shown, { weekday: 'long' }) : 'Today'}
 			</h1>
 			<p class="mt-1 text-[15px] font-semibold text-ink-2">
