@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"net/http"
 	"time"
 
@@ -188,12 +187,7 @@ func (s *Server) createExercise(w http.ResponseWriter, r *http.Request, who db.A
 //	  404: notFound
 func (s *Server) readExercise(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	e, err := db.GetExercise(r.Context(), s.pool, who.AccountID, r.PathValue("id"))
-	switch {
-	case errors.Is(err, db.ErrNoExercise):
-		writeNotFound(w)
-		return
-	case err != nil:
-		writeInternal(w, s.log, err)
+	if s.failed(w, err, db.ErrNoExercise) {
 		return
 	}
 	writeJSON(w, http.StatusOK, toExerciseResponse(e))
@@ -220,12 +214,7 @@ func (s *Server) updateExercise(w http.ResponseWriter, r *http.Request, who db.A
 	}
 
 	updated, err := db.UpdateExercise(r.Context(), s.pool, who.AccountID, r.PathValue("id"), fields)
-	switch {
-	case errors.Is(err, db.ErrNoExercise):
-		writeNotFound(w)
-		return
-	case err != nil:
-		writeInternal(w, s.log, err)
+	if s.failed(w, err, db.ErrNoExercise) {
 		return
 	}
 	writeJSON(w, http.StatusOK, toExerciseResponse(updated))
@@ -247,12 +236,7 @@ func (s *Server) updateExercise(w http.ResponseWriter, r *http.Request, who db.A
 //	  404: notFound
 func (s *Server) retireExercise(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	err := db.RetireExercise(r.Context(), s.pool, who.AccountID, r.PathValue("id"))
-	switch {
-	case errors.Is(err, db.ErrNoExercise):
-		writeNotFound(w)
-		return
-	case err != nil:
-		writeInternal(w, s.log, err)
+	if s.failed(w, err, db.ErrNoExercise) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -262,8 +246,7 @@ func (s *Server) retireExercise(w http.ResponseWriter, r *http.Request, who db.A
 // itself when the body is wrong.
 func readExerciseRequest(w http.ResponseWriter, r *http.Request) (db.ExerciseFields, bool) {
 	var req exerciseRequest
-	if err := decodeJSON(w, r, &req); err != nil {
-		writeFieldErrors(w, map[string]string{"body": "could not be read as JSON"})
+	if !decodeJSON(w, r, &req) {
 		return db.ExerciseFields{}, false
 	}
 

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"net/http"
 	"time"
 
@@ -50,12 +49,7 @@ type exerciseHistoryResponse struct {
 //	  404: notFound
 func (s *Server) exerciseHistory(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	history, err := db.ExerciseHistory(r.Context(), s.pool, who.AccountID, r.PathValue("id"))
-	switch {
-	case errors.Is(err, db.ErrNoExercise):
-		writeNotFound(w)
-		return
-	case err != nil:
-		writeInternal(w, s.log, err)
+	if s.failed(w, err, db.ErrNoExercise) {
 		return
 	}
 	out := exerciseHistoryResponse{Sessions: make([]historySessionBody, 0, len(history))}

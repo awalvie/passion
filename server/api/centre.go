@@ -74,8 +74,7 @@ func (s *Server) listCentres(w http.ResponseWriter, r *http.Request, who db.Auth
 //	  422: validationFailed
 func (s *Server) putCentre(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	var req centreRequest
-	if err := decodeJSON(w, r, &req); err != nil {
-		writeFieldErrors(w, map[string]string{"body": "could not be read as JSON"})
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	f, problems := db.CentreFields{Name: req.Name, Sessions: req.Sessions}.Clean()
@@ -112,12 +111,7 @@ func (s *Server) putCentre(w http.ResponseWriter, r *http.Request, who db.Authen
 //	  404: notFound
 func (s *Server) deleteCentre(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	err := db.DeleteCentre(r.Context(), s.pool, who.AccountID, r.PathValue("id"))
-	switch {
-	case errors.Is(err, db.ErrNoCentre):
-		writeNotFound(w)
-		return
-	case err != nil:
-		writeInternal(w, s.log, err)
+	if s.failed(w, err, db.ErrNoCentre) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
