@@ -49,7 +49,7 @@ a shipped exercise by it.
 | `seconds` | no | how long an `open` exercise runs |
 | `media` | no | a list of `{url, thumb_url}`. Either may be left out. Links must be http or https |
 | `per_side` | no | `true` when the numbers count for each side, as in 6 reps per side |
-| `per_set` | no | read, but not stored yet. A start logs how many files use it |
+| `ladder` | no | each rep's seconds when they differ, as `[3, 6, 9]`, each at least 1. Only on `timed_reps`. It sets `reps`, which may be left out but must match the count, and cannot go with `rep_seconds` |
 
 Any other key stops the load and names its line, so a misspelt key is never dropped. This
 holds for blocks and sessions too.

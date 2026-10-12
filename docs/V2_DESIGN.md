@@ -83,6 +83,7 @@ CREATE TABLE exercise (
     prep_seconds      int,
     duration_seconds  int,
     per_side          boolean     NOT NULL DEFAULT false,
+    ladder            int[],
 
     media             jsonb       NOT NULL DEFAULT '[]',
 
@@ -126,6 +127,9 @@ CREATE TRIGGER exercise_touch BEFORE UPDATE ON exercise
 - No weight. What you lift belongs to the plan or the log, not the shared definition.
 - `per_side` says that the numbers count for each side, as in 6 reps per side. A step copies
   it with the other fields and can change it, so the player knows to count each side.
+- `ladder` gives each rep in a set its own time, as 3, 6 then 9 seconds, on a `timed_reps`
+  exercise. It sets `reps`, and never comes with `rep_seconds`, so a set is never timed two
+  ways.
 - `media` is a list of `{url, thumb_url}`, because a private tree gives some exercises several
   clips, and one an image with no video. Nothing queries a clip on its own, so it isn't a table.
 - Exercises are retired with `retired_at`, never deleted.
@@ -135,8 +139,6 @@ Left for later, because nothing needs it yet:
 - Your own version of a shipped exercise that keeps one history. An override table or a
   lineage column would both add to this table without changing it.
 - A re-import that skips rows you edited by hand.
-- Ladders: several timings inside one set, such as 3s, 6s then 9s. A catalog file can say so
-  with `per_set`, which is read but not stored.
 - A careful pass over every shipped exercise's notes and numbers.
 
 ### Catalog cleanup
@@ -364,7 +366,10 @@ CREATE TABLE run_set (
     exercise   uuid         NOT NULL,
     reps       int          NULL CHECK (reps >= 0),
     seconds    int          NULL CHECK (seconds >= 0),
+    -- Each rep's time, for a ladder set. seconds is then NULL.
+    rep_seconds int[]       NULL CHECK (0 <= ALL (rep_seconds)),
     weight_kg  numeric(6,2) NULL,
+    CONSTRAINT run_set_one_time CHECK (seconds IS NULL OR rep_seconds IS NULL),
     PRIMARY KEY (run, step, number),
     FOREIGN KEY (run, owner) REFERENCES run (id, owner) ON DELETE CASCADE
 );
@@ -488,7 +493,10 @@ Left for later, because nothing needs it yet and each one adds without a rewrite
 
 - A table of places, as V1's venues. It can be filled from the names runs already hold.
 - A list of your own boards, and a board's angle.
-- A time for each rep inside a set, `per_set` ladders, and a side on a set.
+- A row for each rep, so one rep of a set can carry its own weight. The same weight stays the
+  default. `run_set.rep_seconds` then moves into those rows.
+- A side on a set.
+- An exercise's history that shows what the plan asked for next to what was done.
 - A run id chosen by the client, so a retried start makes one run.
 - Journal entries with no training behind them (rule 46).
 - A check that stops two tabs overwriting one body. One device records a run, so last write
