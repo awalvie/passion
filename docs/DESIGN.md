@@ -49,7 +49,9 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
   a done set (`rest-on-hero`), and the bottom panel shows `NOW` with the exercise or pick
   you are on, then Continue and a round Finish. The list is also where the session
   changes: an exercise not yet started has a ••• to move or remove it, each open section
-  ends with an Add exercise row, and Add section sits under the list.
+  ends with an Add exercise row, and Add section sits under the list. A hold on such a
+  row lifts it as a card with a lime ring; a lime line marks where it lands, and a folded
+  section it would land in takes a lime wash.
   - A timer's state (`READY · PREP 10 S`, `WORK · REP 1 OF 2`) is a small-caps label
     centred above its digits.
   - The bottom panel starts with a `NEXT` label and a row for the next exercise: its kind

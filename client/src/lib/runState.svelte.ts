@@ -272,6 +272,16 @@ class OpenRun {
 		this.saveBody();
 	}
 
+	// dropStep puts a step before item `before` of `section`, counted while
+	// the step is still in its place, as a drag shows it.
+	dropStep(id: string, section: number, before: number) {
+		const from = this.run!.sections.findIndex((s) => s.items.some((it) => it.step?.id === id));
+		const at = this.run!.sections[from].items.findIndex((it) => it.step?.id === id);
+		const index = from === section && at < before ? before - 1 : before;
+		if (from === section && index === at) return;
+		this.moveStep(id, section, index);
+	}
+
 	// shiftStep moves a step one place up or down. Past the edge of its
 	// section it goes to the end of the section before, or the start of the
 	// one after.

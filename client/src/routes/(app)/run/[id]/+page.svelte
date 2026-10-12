@@ -149,6 +149,87 @@
 		landed(id);
 	}
 
+	// A hold on a step not yet started lifts it; it then follows the finger,
+	// and the drop puts it where the lime line shows. A move before the hold
+	// ends is a scroll, so the hold gives up.
+	let lifted = $state<RunStep | null>(null);
+	let at = $state({ x: 0, y: 0 });
+	// Where the step would land: before item `j` of section `s`, counted
+	// before it leaves its place.
+	let over = $state<{ s: number; j: number } | null>(null);
+	let hold: ReturnType<typeof setTimeout> | undefined;
+	let start = { x: 0, y: 0 };
+	// The click that ends a drag lands on the row it started from; it must not
+	// open that step.
+	let droppedAt = 0;
+
+	$effect(() => {
+		const stop = (e: TouchEvent) => lifted && e.preventDefault();
+		window.addEventListener('touchmove', stop, { passive: false });
+		return () => window.removeEventListener('touchmove', stop);
+	});
+
+	// A finger held near the top or bottom of the list scrolls it.
+	$effect(() => {
+		if (!lifted) return;
+		const t = setInterval(() => {
+			const box = scroller.getBoundingClientRect();
+			if (at.y < box.top + 64) scroller.scrollTop -= 8;
+			else if (at.y > box.bottom - 64) scroller.scrollTop += 8;
+		}, 16);
+		return () => clearInterval(t);
+	});
+
+	function grab(e: PointerEvent, step: RunStep) {
+		if (e.button > 0 || (e.target as Element).closest('button')) return;
+		const el = e.currentTarget as Element;
+		const id = e.pointerId;
+		start = { x: e.clientX, y: e.clientY };
+		at = start;
+		clearTimeout(hold);
+		hold = setTimeout(() => {
+			lifted = step;
+			over = null;
+			el.setPointerCapture(id);
+			navigator.vibrate?.(10);
+		}, 300);
+	}
+
+	function follow(e: PointerEvent) {
+		if (!lifted) {
+			if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 8) clearTimeout(hold);
+			return;
+		}
+		at = { x: e.clientX, y: e.clientY };
+		const slot = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>('[data-slot]');
+		if (!slot) {
+			over = null;
+			return;
+		}
+		const [s, j] = slot.dataset.slot!.split(':').map(Number);
+		const r = slot.getBoundingClientRect();
+		over = { s, j: slot.dataset.row !== undefined && e.clientY > r.top + r.height / 2 ? j + 1 : j };
+	}
+
+	function drop() {
+		clearTimeout(hold);
+		const step = lifted;
+		const to = over;
+		lifted = null;
+		over = null;
+		if (!step) return;
+		droppedAt = performance.now();
+		if (!to) return;
+		openRun.dropStep(step.id, to.s, to.j);
+		landed(step.id);
+	}
+
+	function cancel() {
+		clearTimeout(hold);
+		lifted = null;
+		over = null;
+	}
+
 	// Choices still to pick, asked about until a step is logged or skipped.
 	let later = $state(false);
 	const unpicked = $derived(
@@ -177,6 +258,10 @@
 
 {#snippet tile(icon: IconName)}
 	<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--glass) text-on-hero"><Icon name={icon} size="16px" stroke={2.6} /></span>
+{/snippet}
+
+{#snippet line()}
+	<li aria-hidden="true" class="mx-1 my-0.5 h-[3px] rounded-full bg-tint"></li>
 {/snippet}
 
 <svelte:head><title>{run.name}</title></svelte:head>
@@ -250,7 +335,10 @@
 						{/if}
 						<button
 							type="button"
-							class="relative flex w-full items-center gap-3.5 pr-1 text-left {m === 'now' ? 'h-11' : 'h-[52px]'}"
+							class="relative flex w-full items-center gap-3.5 rounded-[18px] pr-1 text-left {m === 'now' ? 'h-11' : 'h-[52px]'} {lifted && !open && over?.s === i
+								? 'bg-tint/20'
+								: ''}"
+							data-slot="{i}:{s.items.length}"
 							aria-expanded={open}
 							onclick={() => (chosen[i] = !isOpen(i))}
 						>
@@ -284,11 +372,28 @@
 						{#if open && (s.items.length || !run.finished_at)}
 							<ul class="relative mb-1 ml-[46px] rounded-3xl bg-(--glass) p-2.5 pb-2">
 								{#each s.items as item, j (item.step?.id ?? item.choice?.id ?? j)}
-									<li class="flex items-center [&:not(:first-child)]:mt-1 list-row">
+									{#if over?.s === i && over.j === j}{@render line()}{/if}
+									{@const movable = !!item.step && item.step.status === null && !run.finished_at}
+									<li
+										class="flex items-center [&:not(:first-child)]:mt-1 list-row {lifted && lifted === item.step ? 'opacity-30' : ''} {movable
+											? 'select-none [-webkit-touch-callout:none]'
+											: ''}"
+										data-slot="{i}:{j}"
+										data-row
+										onpointerdown={movable ? (e) => grab(e, item.step!) : undefined}
+										onpointermove={follow}
+										onpointerup={drop}
+										onpointercancel={cancel}
+										oncontextmenu={movable ? (e) => e.preventDefault() : undefined}
+									>
 										{#if item.step}
 											{@const sm = mark(item.step)}
-											{@const movable = item.step.status === null && !run.finished_at}
-											<a href="/run/{run.id}/step/{item.step.id}" class="flex min-w-0 flex-1 items-center gap-3 px-1 py-2.5">
+											<a
+												href="/run/{run.id}/step/{item.step.id}"
+												class="flex min-w-0 flex-1 items-center gap-3 px-1 py-2.5"
+												draggable="false"
+												onclick={(e) => performance.now() - droppedAt < 500 && e.preventDefault()}
+											>
 												<SessionDot mark={sm} small />
 												<span class="min-w-0 flex-1">
 													<span
@@ -392,8 +497,9 @@
 										{/if}
 									</li>
 								{/each}
+								{#if over?.s === i && over.j === s.items.length}{@render line()}{/if}
 								{#if !run.finished_at}
-									<li class="[&:not(:first-child)]:mt-1 list-row">
+									<li class="[&:not(:first-child)]:mt-1 list-row" data-slot="{i}:{s.items.length}">
 										<button type="button" class="flex w-full items-center gap-3 px-1 py-2.5 text-[15px] font-bold text-on-hero" onclick={() => openLibrary(i)}>
 											{@render tile('plus')}Add exercise
 										</button>
@@ -494,6 +600,19 @@
 					<span class="run-icon"><Icon name="flag" size="16px" stroke={2.4} /></span>Finish session
 				</a>
 			{/if}
+		</div>
+	{/if}
+
+	{#if lifted}
+		<div
+			class="pointer-events-none fixed z-50 flex w-[min(300px,80vw)] -translate-x-1/2 -translate-y-[calc(100%+16px)] scale-[1.04] items-center gap-3 rounded-[18px] bg-surface px-3.5 py-2.5 shadow-[0_0_0_1.5px_var(--tint),0_18px_40px_rgba(0,0,0,0.5)]"
+			style="left: {at.x}px; top: {at.y}px"
+		>
+			<SessionDot mark="todo" small />
+			<span class="min-w-0 flex-1">
+				<span class="block truncate text-[15px] font-bold">{lifted.name}</span>
+				<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{stepMeta(lifted)}</span>
+			</span>
 		</div>
 	{/if}
 </RunField>
