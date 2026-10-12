@@ -53,7 +53,7 @@
 				name="email"
 				type="email"
 				autocomplete="username"
-				class="mt-1 w-full input"
+				class="mt-1 input"
 				bind:value={email}
 				required
 			/>
@@ -66,7 +66,7 @@
 				name="password"
 				type="password"
 				autocomplete="current-password"
-				class="mt-1 w-full input"
+				class="mt-1 input"
 				bind:value={password}
 				required
 			/>

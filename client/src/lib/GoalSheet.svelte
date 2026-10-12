@@ -48,7 +48,7 @@
 				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
 					{label}
 					<textarea
-						class="input min-h-12 resize-none px-4 py-3 [field-sizing:content] placeholder:text-ink-3"
+						class="input resize-none px-4 py-3 [field-sizing:content] placeholder:text-ink-3"
 						bind:value={draft[key]}
 						maxlength="500"
 						rows="1"

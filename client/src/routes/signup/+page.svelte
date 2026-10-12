@@ -74,7 +74,7 @@
 				id="display_name"
 				name="display_name"
 				autocomplete="name"
-				class="mt-1 w-full input"
+				class="mt-1 input"
 				bind:value={displayName}
 				required
 			/>
@@ -87,7 +87,7 @@
 				name="email"
 				type="email"
 				autocomplete="username"
-				class="mt-1 w-full input"
+				class="mt-1 input"
 				bind:value={email}
 				required
 			/>
@@ -100,7 +100,7 @@
 				name="password"
 				type="password"
 				autocomplete="new-password"
-				class="mt-1 w-full input"
+				class="mt-1 input"
 				minlength="8"
 				maxlength="128"
 				bind:value={password}
@@ -115,7 +115,7 @@
 				name="password_confirm"
 				type="password"
 				autocomplete="new-password"
-				class="mt-1 w-full input"
+				class="mt-1 input"
 				minlength="8"
 				maxlength="128"
 				bind:value={confirm}

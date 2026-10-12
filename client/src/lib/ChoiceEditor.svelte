@@ -29,7 +29,7 @@
 		<div class="grid grid-cols-3 gap-2.5">
 			<div class="col-span-2">
 				<label class="block text-xs font-semibold text-ink-2" for="{id}-name">Name</label>
-				<input id="{id}-name" class="mt-1.5 w-full input" maxlength="200" required bind:value={choice.name} />
+				<input id="{id}-name" class="mt-1.5 input" maxlength="200" required bind:value={choice.name} />
 			</div>
 			<div>
 				<label class="block text-xs font-semibold text-ink-2" for="{id}-pick">Pick at least</label>
@@ -39,7 +39,7 @@
 					min="0"
 					max={choice.options.length}
 					step="1"
-					class="mt-1.5 w-full input text-center"
+					class="mt-1.5 input text-center"
 					required
 					bind:value={choice.pick}
 				/>
@@ -48,7 +48,7 @@
 		<p class="-mt-1 text-xs font-semibold text-ink-3">0 makes the whole choice optional.</p>
 		<div>
 			<label class="block text-xs font-semibold text-ink-2" for="{id}-notes">Notes</label>
-			<textarea id="{id}-notes" rows="2" class="mt-1.5 w-full input" bind:value={choice.notes}></textarea>
+			<textarea id="{id}-notes" rows="2" class="mt-1.5 input" bind:value={choice.notes}></textarea>
 		</div>
 
 		<div class="rounded-2xl px-3.5 shadow-[inset_0_0_0_1px_var(--line)]">

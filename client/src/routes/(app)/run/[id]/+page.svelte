@@ -476,7 +476,7 @@
 	<Sheet bind:open={naming} title="Add section">
 		<form onsubmit={addSection}>
 			<label class="block text-xs font-semibold text-ink-2" for="section-name">Name</label>
-			<input id="section-name" class="mt-1.5 w-full input" maxlength="200" required bind:value={sectionName} />
+			<input id="section-name" class="mt-1.5 input" maxlength="200" required bind:value={sectionName} />
 			<div class="mt-4">
 				<Button type="submit" disabled={!sectionName.trim()}>Add section</Button>
 			</div>

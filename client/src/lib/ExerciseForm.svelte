@@ -18,11 +18,11 @@
 	<div class="grid gap-3.5 sm:grid-cols-2">
 		<div>
 			<label class="block text-xs font-semibold text-ink-2" for="ex-name">Name</label>
-			<input id="ex-name" class="mt-1.5 w-full input" maxlength="200" bind:value={draft.name} required />
+			<input id="ex-name" class="mt-1.5 input" maxlength="200" bind:value={draft.name} required />
 		</div>
 		<div>
 			<label class="block text-xs font-semibold text-ink-2" for="ex-kind">Type</label>
-			<select id="ex-kind" class="mt-1.5 w-full input" bind:value={draft.kind}>
+			<select id="ex-kind" class="mt-1.5 input" bind:value={draft.kind}>
 				{#each kinds as k (k.kind)}
 					<option value={k.kind}>{k.label}</option>
 				{/each}
@@ -34,7 +34,7 @@
 			<input
 				id="ex-source"
 				list="ex-sources"
-				class="mt-1.5 w-full input"
+				class="mt-1.5 input"
 				placeholder="e.g. Power Company Climbing"
 				autocomplete="off"
 				bind:value={draft.source}
@@ -49,7 +49,7 @@
 			<label class="block text-xs font-semibold text-ink-2" for="ex-tags">Labels</label>
 			<input
 				id="ex-tags"
-				class="mt-1.5 w-full input"
+				class="mt-1.5 input"
 				placeholder="comma-separated, e.g. technique, fingers"
 				autocomplete="off"
 				bind:value={draft.tags}
@@ -69,7 +69,7 @@
 							type="number"
 							min="0"
 							step="1"
-							class="mt-1.5 w-full input text-center"
+							class="mt-1.5 input text-center"
 							bind:value={draft[c]}
 						/>
 					</div>
@@ -97,7 +97,7 @@
 
 	<div class="mt-[18px] pt-4 shadow-[inset_0_1px_0_var(--line)]">
 		<label class="block text-xs font-semibold text-ink-2" for="ex-notes">Notes</label>
-		<textarea id="ex-notes" class="mt-1.5 w-full input" rows="4" bind:value={draft.notes}></textarea>
+		<textarea id="ex-notes" class="mt-1.5 input" rows="4" bind:value={draft.notes}></textarea>
 	</div>
 
 	<div class="mt-[18px] pt-4 shadow-[inset_0_1px_0_var(--line)]">
@@ -107,14 +107,14 @@
 				{#each draft.media as m, i (m)}
 					<div class="grid grid-cols-2 gap-2">
 						<input
-							class="w-full input"
+							class="input"
 							placeholder="Thumbnail URL (https://…)"
 							aria-label="Thumbnail URL {i + 1}"
 							bind:value={m.thumb_url}
 						/>
 						<div class="flex items-center gap-1.5">
 							<input
-								class="w-full input"
+								class="input"
 								placeholder="Video URL"
 								aria-label="Video URL {i + 1}"
 								bind:value={m.url}

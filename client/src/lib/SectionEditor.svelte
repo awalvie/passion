@@ -86,7 +86,7 @@
 					<label class="block text-xs font-semibold text-ink-2" for="{id}-choice">Name</label>
 					<input
 						id="{id}-choice"
-						class="mt-1.5 w-full input"
+						class="mt-1.5 input"
 						placeholder="e.g. Drills, Stretches"
 						bind:value={newChoice}
 						onkeydown={(e) => {
@@ -112,11 +112,11 @@
 			<div class="flex flex-col gap-3.5 pb-4">
 				<div>
 					<label class="block text-xs font-semibold text-ink-2" for="{id}-name">Name</label>
-					<input id="{id}-name" class="mt-1.5 w-full input" maxlength="200" required bind:value={section.name} />
+					<input id="{id}-name" class="mt-1.5 input" maxlength="200" required bind:value={section.name} />
 				</div>
 				<div>
 					<label class="block text-xs font-semibold text-ink-2" for="{id}-notes">Notes</label>
-					<textarea id="{id}-notes" rows="2" class="mt-1.5 w-full input" bind:value={section.notes}></textarea>
+					<textarea id="{id}-notes" rows="2" class="mt-1.5 input" bind:value={section.notes}></textarea>
 				</div>
 			</div>
 		</details>
