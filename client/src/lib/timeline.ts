@@ -10,6 +10,7 @@ export type TimedStep = {
 	set_rest_seconds: number | null;
 	prep_seconds: number | null;
 	per_side: boolean;
+	ladder: number[] | null;
 };
 
 // A block is one side of one set. Each block logs one set row.
@@ -25,7 +26,18 @@ export type Phase = {
 export type Clock = { startedAt: number; pausedAt: number | null; pausedMs: number; skipMs: number };
 
 export function canTime(s: TimedStep): boolean {
-	return Boolean(s.rep_seconds && s.reps && s.sets);
+	return Boolean((s.rep_seconds || s.ladder?.length) && s.reps && s.sets);
+}
+
+// repSeconds is how long one rep hangs. A ladder gives each rep its own time.
+export function repSeconds(s: TimedStep, rep: number): number {
+	return s.ladder?.[rep - 1] ?? s.rep_seconds ?? 0;
+}
+
+// timedSet is the row a block logs. A ladder logs the time of each rep done.
+export function timedSet(s: TimedStep, reps: number, weight_kg: number | null) {
+	if (s.ladder?.length) return { reps, seconds: null, rep_seconds: s.ladder.slice(0, reps), weight_kg };
+	return { reps, seconds: s.rep_seconds, rep_seconds: null, weight_kg };
 }
 
 // extra is time added to phases, by their index, as +30 s adds to a rest.
@@ -39,7 +51,7 @@ export function timeline(s: TimedStep, extra: Record<number, number> = {}): Phas
 	for (let set = 1; set <= (s.sets ?? 1); set++) {
 		for (const [i, side] of sides.entries()) {
 			for (let rep = 1; rep <= reps; rep++) {
-				push({ kind: 'hang', block, set, side, rep, ms: (s.rep_seconds ?? 0) * 1000 });
+				push({ kind: 'hang', block, set, side, rep, ms: repSeconds(s, rep) * 1000 });
 				const last = rep === reps;
 				const lastSide = i === sides.length - 1;
 				const rest = !last ? s.rep_rest_seconds : !lastSide ? s.rep_rest_seconds : s.set_rest_seconds;

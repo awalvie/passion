@@ -10,7 +10,7 @@
 	import type { NextLine } from './template';
 	import Stepper from './Stepper.svelte';
 	import TimerFlap from './TimerFlap.svelte';
-	import { at, canTime, elapsed, endSet, jump, newClock, rows, startOf, timeline, togglePause } from './timeline';
+	import { at, canTime, elapsed, endSet, jump, newClock, repSeconds, rows, startOf, timedSet, timeline, togglePause } from './timeline';
 	import { readTimers, writeTimers, type Timed } from './timerStore';
 
 	let {
@@ -122,7 +122,7 @@
 	function log(done: number[]) {
 		openRun.setSets(
 			step,
-			done.map((reps) => ({ reps, seconds: step.rep_seconds, weight_kg: weight }))
+			done.map((reps) => timedSet(step, reps, weight))
 		);
 	}
 
@@ -203,7 +203,7 @@
 		return `${word} · Rep ${phase.rep} of ${step.reps}`;
 	});
 
-	const secs = $derived(timed && phase ? Math.ceil(pos.left / 1000) : (step.rep_seconds ?? 0));
+	const secs = $derived(timed && phase ? Math.ceil(pos.left / 1000) : repSeconds(step, 1));
 	const clock = $derived(secs >= 60 ? `${Math.floor(secs / 60)}${String(secs % 60).padStart(2, '0')}` : String(secs));
 	const look = $derived(timed && phase ? cards[phase.kind] : cards.run);
 	const ready = $derived(!timed && !finished);

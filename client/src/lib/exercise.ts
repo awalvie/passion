@@ -17,6 +17,8 @@ export type Exercise = {
 	prep_seconds: number | null;
 	duration_seconds: number | null;
 	per_side: boolean;
+	// Each rep's seconds when they differ, as 3, 6 then 9. reps matches its length.
+	ladder: number[] | null;
 	media: Media[];
 	retired_at: string | null;
 };
