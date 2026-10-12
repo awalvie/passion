@@ -1,16 +1,34 @@
+<script lang="ts" module>
+	import type { MenuItem } from './Menu.svelte';
+	import type { RunStep } from './run';
+	import type { NextLine } from './template';
+
+	// What the step page hands every player.
+	export type PlayerProps = {
+		step: RunStep;
+		next: NextLine;
+		nextHref: string;
+		last: boolean;
+		menu: MenuItem[];
+		error: string;
+		leaving: boolean;
+		leave: (end: () => void) => Promise<void>;
+		skip: () => void;
+	};
+</script>
+
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { unlock } from './audio';
 	import { kindOf } from './exercise';
 	import Icon from './Icon.svelte';
-	import Menu, { type MenuItem } from './Menu.svelte';
+	import Menu from './Menu.svelte';
 	import Notes from './Notes.svelte';
-	import type { RunStep } from './run';
 	import RunField, { type RunLook } from './RunField.svelte';
 	import { openRun } from './runState.svelte';
 	import SaveStatus from './SaveStatus.svelte';
 	import Sheet from './Sheet.svelte';
-	import type { NextLine, Step } from './template';
+	import type { Step } from './template';
 	import { plainText } from './text';
 
 	let {
@@ -21,6 +39,8 @@
 		band = null,
 		error = '',
 		reading = $bindable(false),
+		done = null,
+		skip,
 		children,
 		buttons
 	}: {
@@ -31,8 +51,12 @@
 		band?: number | null;
 		error?: string;
 		reading?: boolean;
+		// Once the step is over, the dock only goes on: to the next stop, or
+		// back to the session after the last.
+		done?: { href: string; last: boolean } | null;
+		skip?: () => void;
 		children: Snippet;
-		buttons: Snippet;
+		buttons?: Snippet;
 	} = $props();
 
 	const run = $derived(openRun.run!);
@@ -171,7 +195,14 @@
 			<div class="flex min-h-12 items-center gap-3 px-1">{@render upNext(next)}</div>
 		{/if}
 		<div class="flex gap-2.5 {next ? 'mt-5' : ''}">
-			{@render buttons()}
+			{#if done}
+				<a href={done.href} class="run-btn bg-live text-on-live">
+					{done.last ? 'Back to session' : 'Next exercise'}<span class="run-icon"><Icon name="arrow-right" size="16px" stroke={2.6} /></span>
+				</a>
+			{:else}
+				{@render buttons?.()}
+				{#if skip}<button type="button" class="run-round" aria-label="Skip" onclick={skip}><Icon name="skip" size="26px" /></button>{/if}
+			{/if}
 		</div>
 	</div>
 

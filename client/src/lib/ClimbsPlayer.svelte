@@ -3,37 +3,15 @@
 	import { loadGrades, scaleFor, type Grades } from './grades';
 	import Icon from './Icon.svelte';
 	import { newId } from './id';
-	import type { MenuItem } from './Menu.svelte';
 	import type { Account } from './plan';
 	import { climbsOf, isFinished, type Climb, type ClimbFields, type Discipline, type Go, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
-	import RunPage from './RunPage.svelte';
+	import RunPage, { type PlayerProps } from './RunPage.svelte';
 	import Segmented from './Segmented.svelte';
 	import Sheet from './Sheet.svelte';
 	import Toast from './Toast.svelte';
-	import type { NextLine } from './template';
 
-	let {
-		step,
-		next,
-		nextHref,
-		last,
-		menu,
-		error,
-		leaving,
-		leave,
-		skip
-	}: {
-		step: RunStep;
-		next: NextLine;
-		nextHref: string;
-		last: boolean;
-		menu: MenuItem[];
-		error: string;
-		leaving: boolean;
-		leave: (end: () => void) => Promise<void>;
-		skip: () => void;
-	} = $props();
+	let { step, next, nextHref, last, menu, error, leaving, leave, skip }: PlayerProps = $props();
 
 	const logged = $derived(climbsOf(openRun.run!, step.id));
 
@@ -269,7 +247,7 @@
 	</div>
 {/snippet}
 
-<RunPage {step} {next} {menu} {error}>
+<RunPage {step} {next} {menu} {error} done={finished ? { href: nextHref, last } : null} {skip}>
 	<div class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overscroll-contain px-4 pt-6 pb-4">
 		<div class="shrink-0 overflow-hidden rounded-[18px] bg-(--glass)">
 			<button
@@ -409,15 +387,8 @@
 	</div>
 
 	{#snippet buttons()}
-		{#if finished}
-			<a href={nextHref} class="run-btn bg-live text-on-live">
-				{last ? 'Back to session' : 'Next exercise'}<span class="run-icon"><Icon name="arrow-right" size="16px" stroke={2.6} /></span>
-			</a>
-		{:else}
-			<button type="button" class="run-btn bg-tint text-on-tint" onclick={done}>
-				<span class="run-icon"><Icon name="check" size="16px" stroke={3} /></span>Done
-			</button>
-			<button type="button" class="run-round" aria-label="Skip" onclick={skip}><Icon name="skip" size="26px" /></button>
-		{/if}
+		<button type="button" class="run-btn bg-tint text-on-tint" onclick={done}>
+			<span class="run-icon"><Icon name="check" size="16px" stroke={3} /></span>Done
+		</button>
 	{/snippet}
 </RunPage>
