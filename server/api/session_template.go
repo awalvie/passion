@@ -374,6 +374,7 @@ func toStepBody(s db.Step) stepBody {
 			PrepSeconds:     f.PrepSeconds,
 			DurationSeconds: f.DurationSeconds,
 			PerSide:         f.PerSide,
+			Ladder:          f.Ladder,
 			Media:           toMediaBodies(f.Media),
 		},
 	}

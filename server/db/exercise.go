@@ -29,14 +29,15 @@ type Exercise struct {
 	Source *string  `db:"source"`
 	Tags   []string `db:"tags"`
 
-	Sets            *int `db:"sets"`
-	Reps            *int `db:"reps"`
-	SetRestSeconds  *int `db:"set_rest_seconds"`
-	RepSeconds      *int `db:"rep_seconds"`
-	RepRestSeconds  *int `db:"rep_rest_seconds"`
-	PrepSeconds     *int `db:"prep_seconds"`
-	DurationSeconds *int `db:"duration_seconds"`
-	PerSide         bool `db:"per_side"`
+	Sets            *int  `db:"sets"`
+	Reps            *int  `db:"reps"`
+	SetRestSeconds  *int  `db:"set_rest_seconds"`
+	RepSeconds      *int  `db:"rep_seconds"`
+	RepRestSeconds  *int  `db:"rep_rest_seconds"`
+	PrepSeconds     *int  `db:"prep_seconds"`
+	DurationSeconds *int  `db:"duration_seconds"`
+	PerSide         bool  `db:"per_side"`
+	Ladder          []int `db:"ladder"`
 
 	Media []Media `db:"media"`
 
@@ -54,14 +55,15 @@ type ExerciseFields struct {
 	Source *string  `json:"source"`
 	Tags   []string `json:"tags"`
 
-	Sets            *int `json:"sets"`
-	Reps            *int `json:"reps"`
-	SetRestSeconds  *int `json:"set_rest_seconds"`
-	RepSeconds      *int `json:"rep_seconds"`
-	RepRestSeconds  *int `json:"rep_rest_seconds"`
-	PrepSeconds     *int `json:"prep_seconds"`
-	DurationSeconds *int `json:"duration_seconds"`
-	PerSide         bool `json:"per_side"`
+	Sets            *int  `json:"sets"`
+	Reps            *int  `json:"reps"`
+	SetRestSeconds  *int  `json:"set_rest_seconds"`
+	RepSeconds      *int  `json:"rep_seconds"`
+	RepRestSeconds  *int  `json:"rep_rest_seconds"`
+	PrepSeconds     *int  `json:"prep_seconds"`
+	DurationSeconds *int  `json:"duration_seconds"`
+	PerSide         bool  `json:"per_side"`
+	Ladder          []int `json:"ladder"`
 
 	Media []Media `json:"media"`
 }
@@ -113,6 +115,8 @@ func (f ExerciseFields) Clean() (ExerciseFields, map[string]string) {
 		}
 	}
 
+	f = cleanLadder(f, problems)
+
 	f.Notes = optional(f.Notes)
 	f.Source = optional(f.Source)
 	media := []Media{}
@@ -132,6 +136,35 @@ func (f ExerciseFields) Clean() (ExerciseFields, map[string]string) {
 	f.Tags = cleanTags(f.Tags)
 
 	return f, problems
+}
+
+// cleanLadder fills reps from the ladder. A ladder with rep_seconds, or with
+// reps that disagree, could time the set two ways, so it is refused.
+func cleanLadder(f ExerciseFields, problems map[string]string) ExerciseFields {
+	if len(f.Ladder) == 0 {
+		f.Ladder = nil
+		return f
+	}
+	for _, s := range f.Ladder {
+		switch {
+		case s < 1:
+			problems["ladder"] = "cannot hold a time under 1 second"
+		case s > math.MaxInt32:
+			problems["ladder"] = "is too large"
+		}
+	}
+	switch {
+	case f.Kind != "timed_reps":
+		problems["ladder"] = "only goes with timed_reps"
+	case f.RepSeconds != nil:
+		problems["ladder"] = "cannot be set with rep_seconds"
+	case f.Reps == nil:
+		reps := len(f.Ladder)
+		f.Reps = &reps
+	case *f.Reps != len(f.Ladder):
+		problems["reps"] = "must match the ladder"
+	}
+	return f
 }
 
 // cleanName trims a required name and records a problem under key.
@@ -207,6 +240,7 @@ func (f ExerciseFields) args() pgx.NamedArgs {
 		"prep_seconds":     f.PrepSeconds,
 		"duration_seconds": f.DurationSeconds,
 		"per_side":         f.PerSide,
+		"ladder":           f.Ladder,
 		"media":            media,
 	}
 }
@@ -219,11 +253,11 @@ func CreateExercise(ctx context.Context, pool *pgxpool.Pool, owner string, f Exe
 		INSERT INTO exercise (
 			owner, name, kind, notes, source, tags,
 			sets, reps, set_rest_seconds, rep_seconds, rep_rest_seconds, prep_seconds,
-			duration_seconds, per_side, media)
+			duration_seconds, per_side, ladder, media)
 		VALUES (
 			@owner, @name, @kind, @notes, @source, @tags,
 			@sets, @reps, @set_rest_seconds, @rep_seconds, @rep_rest_seconds, @prep_seconds,
-			@duration_seconds, @per_side, @media)
+			@duration_seconds, @per_side, @ladder, @media)
 		RETURNING *`, args)
 	if err != nil {
 		return Exercise{}, fmt.Errorf("insert exercise: %w", err)
@@ -274,7 +308,7 @@ func UpdateExercise(ctx context.Context, pool *pgxpool.Pool, owner, id string, f
 			sets = @sets, reps = @reps, set_rest_seconds = @set_rest_seconds,
 			rep_seconds = @rep_seconds, rep_rest_seconds = @rep_rest_seconds,
 			prep_seconds = @prep_seconds, duration_seconds = @duration_seconds,
-			per_side = @per_side, media = @media
+			per_side = @per_side, ladder = @ladder, media = @media
 		WHERE id = @id AND owner = @owner
 		RETURNING *`, args)
 	if err != nil {

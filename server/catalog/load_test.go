@@ -99,18 +99,28 @@ func TestLoadAllStopsOnAMissingTree(t *testing.T) {
 func TestLoad(t *testing.T) {
 	ctx := context.Background()
 	pool := dbtest.Pool(t)
-	good := "id: " + hangID + "\nname: Hang\nstyle: open\nper_side: true\nper_set:\n    - seconds: 3\n"
+	good := "id: " + hangID + "\nname: Hang\nstyle: timed_reps\nper_side: true\nladder: [3, 6, 9]\n"
 
 	result, warnings, err := Load(ctx, pool, nil, nil, mapTree("catalog", map[string]string{"movements/hang.yaml": good}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Exercises.Written != 1 || len(warnings) != 1 {
+	if result.Exercises.Written != 1 || len(warnings) != 0 {
 		t.Fatalf("wrote %d with warnings %q", result.Exercises.Written, warnings)
 	}
 	var perSide bool
-	if err := pool.QueryRow(ctx, `SELECT per_side FROM exercise WHERE file_id = $1`, hangID).Scan(&perSide); err != nil || !perSide {
-		t.Fatalf("per side %v, %v, want true", perSide, err)
+	var ladder []int
+	var reps *int
+	if err := pool.QueryRow(ctx, `SELECT per_side, ladder, reps FROM exercise WHERE file_id = $1`, hangID).Scan(&perSide, &ladder, &reps); err != nil {
+		t.Fatal(err)
+	}
+	if !perSide || !slices.Equal(ladder, []int{3, 6, 9}) || reps == nil || *reps != 3 {
+		t.Fatalf("per side %v, ladder %v, reps %v", perSide, ladder, reps)
+	}
+
+	// A second start finds the row it wrote unchanged.
+	if result, _, err = Load(ctx, pool, nil, nil, mapTree("catalog", map[string]string{"movements/hang.yaml": good})); err != nil || result.Exercises.Written != 0 {
+		t.Fatalf("second load wrote %d, %v", result.Exercises.Written, err)
 	}
 
 	// One bad file stops the whole tree, so the good row is not retired.

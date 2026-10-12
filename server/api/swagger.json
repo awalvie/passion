@@ -2270,6 +2270,20 @@
           "x-go-name": "Kind",
           "example": "timed_reps"
         },
+        "ladder": {
+          "description": "The seconds of each rep in a set, when they differ. It sets reps, and\nleaves rep_seconds unset.",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "Ladder",
+          "example": [
+            3,
+            6,
+            9
+          ]
+        },
         "media": {
           "description": "Clips of the exercise, in order. An entry with neither link is dropped.",
           "type": "array",
@@ -2367,6 +2381,14 @@
           "type": "string",
           "x-go-name": "Kind",
           "example": "timed_reps"
+        },
+        "ladder": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "Ladder"
         },
         "media": {
           "type": "array",
@@ -3101,6 +3123,20 @@
           "x-go-name": "Kind",
           "example": "timed_reps"
         },
+        "ladder": {
+          "description": "The seconds of each rep in a set, when they differ. It sets reps, and\nleaves rep_seconds unset.",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "Ladder",
+          "example": [
+            3,
+            6,
+            9
+          ]
+        },
         "media": {
           "description": "Clips of the exercise, in order. An entry with neither link is dropped.",
           "type": "array",
@@ -3718,6 +3754,20 @@
           "type": "string",
           "x-go-name": "Kind",
           "example": "timed_reps"
+        },
+        "ladder": {
+          "description": "The seconds of each rep in a set, when they differ. It sets reps, and\nleaves rep_seconds unset.",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "Ladder",
+          "example": [
+            3,
+            6,
+            9
+          ]
         },
         "media": {
           "description": "Clips of the exercise, in order. An entry with neither link is dropped.",

@@ -107,7 +107,7 @@ func ReadSessions(app *Tree, exercises []Exercise, trees ...Tree) ([]Session, []
 
 	var shipped *scope
 	if app != nil {
-		appExercises, _, err := Read(*app)
+		appExercises, err := Read(*app)
 		if err != nil {
 			return nil, warnings, fmt.Errorf("the shipped catalog: %w", err)
 		}

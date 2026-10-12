@@ -11,7 +11,7 @@ import (
 // here first.
 func TestShippedCatalogReads(t *testing.T) {
 	tree := catalog.Tree{Name: "catalog", FS: shipped.Files}
-	exercises, _, err := catalog.Read(tree)
+	exercises, err := catalog.Read(tree)
 	if err != nil {
 		t.Fatal(err)
 	}
