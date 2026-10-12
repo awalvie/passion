@@ -36,7 +36,7 @@
 							type="number"
 							min="0"
 							step="1"
-							class="mt-1.5 min-h-11 w-full input py-2 text-center"
+							class="mt-1.5 min-h-11 input py-2 text-center"
 							bind:value={step[c]}
 						/>
 					</div>
@@ -54,7 +54,7 @@
 		{/if}
 		<div>
 			<label class="block text-xs font-semibold text-ink-2" for="{id}-notes">Notes</label>
-			<textarea id="{id}-notes" rows="3" class="mt-1.5 w-full input" bind:value={step.notes}></textarea>
+			<textarea id="{id}-notes" rows="3" class="mt-1.5 input" bind:value={step.notes}></textarea>
 		</div>
 	</div>
 </details>

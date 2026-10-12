@@ -36,7 +36,7 @@
 		enterkeyhint="search"
 		{id}
 		type="search"
-		class="mt-1.5 w-full input"
+		class="mt-1.5 input"
 		placeholder="Search the library…"
 		autocomplete="off"
 		bind:value={q}

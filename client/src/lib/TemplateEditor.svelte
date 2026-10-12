@@ -169,14 +169,14 @@
 		<div class="flex flex-col gap-3.5 px-[18px] pt-4 pb-[18px] shadow-[inset_0_1px_0_var(--line)]">
 			<div>
 				<label class="block text-xs font-semibold text-ink-2" for="tpl-name">Name</label>
-				<input id="tpl-name" class="mt-1.5 w-full input" maxlength="200" required bind:value={draft.name} />
+				<input id="tpl-name" class="mt-1.5 input" maxlength="200" required bind:value={draft.name} />
 			</div>
 			<div>
 				<label class="block text-xs font-semibold text-ink-2" for="tpl-source">Source</label>
 				<input
 					id="tpl-source"
 					list="tpl-sources"
-					class="mt-1.5 w-full input"
+					class="mt-1.5 input"
 					placeholder="e.g. Power Company Climbing"
 					autocomplete="off"
 					bind:value={draft.source}
@@ -191,7 +191,7 @@
 				<label class="block text-xs font-semibold text-ink-2" for="tpl-tags">Labels</label>
 				<input
 					id="tpl-tags"
-					class="mt-1.5 w-full input"
+					class="mt-1.5 input"
 					placeholder="comma-separated, e.g. technique, indoor"
 					autocomplete="off"
 					bind:value={draft.tags}
@@ -201,7 +201,7 @@
 				<label class="block text-xs font-semibold text-ink-2" for="tpl-needs">Needs</label>
 				<input
 					id="tpl-needs"
-					class="mt-1.5 w-full input"
+					class="mt-1.5 input"
 					placeholder="equipment, e.g. hangboard, kilter, 20mm edge"
 					autocomplete="off"
 					bind:value={draft.needs}
@@ -209,7 +209,7 @@
 			</div>
 			<div>
 				<label class="block text-xs font-semibold text-ink-2" for="tpl-notes">Notes</label>
-				<textarea id="tpl-notes" rows="3" class="mt-1.5 w-full input" bind:value={draft.notes}></textarea>
+				<textarea id="tpl-notes" rows="3" class="mt-1.5 input" bind:value={draft.notes}></textarea>
 			</div>
 			<div>
 				<span class="block text-xs font-semibold text-ink-2">Icon</span>
@@ -299,7 +299,7 @@
 						<label class="block text-xs font-semibold text-ink-2" for="new-section">Name</label>
 						<input
 							id="new-section"
-							class="mt-1.5 w-full input"
+							class="mt-1.5 input"
 							placeholder="e.g. Warm-up, Strength, Cool-down"
 							bind:value={newSection}
 							onkeydown={(e) => {
