@@ -51,10 +51,12 @@
 		].filter(([, v]) => v) as [string, string][]
 	);
 
+	// A ladder set reads 3/6/9s × 10 kg, as its times already count the reps.
 	function setText(s: LoggedSet) {
+		const ladder = s.rep_seconds?.length ? `${s.rep_seconds.join('/')}s` : null;
 		return [
-			s.reps !== null && `${s.reps}`,
-			s.seconds !== null && `${s.seconds}s`,
+			!ladder && s.reps !== null && `${s.reps}`,
+			ladder ?? (s.seconds !== null && `${s.seconds}s`),
 			s.weight_kg !== null && `${s.weight_kg} kg`
 		]
 			.filter(Boolean)

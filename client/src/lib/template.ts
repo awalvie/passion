@@ -28,7 +28,12 @@ export type Choice = { name: string; notes: string | null; pick: number; options
 export function stepMeta(s: Step): string {
 	const kind = kindOf(s.kind).label;
 	if (s.kind === 'open') return `${kind} · ${summary(s) || 'Open-ended'}`;
-	return [kind, summary(s), s.rep_seconds ? `${s.rep_seconds}s rep` : ''].filter(Boolean).join(' · ');
+	return [kind, summary(s), repTime(s)].filter(Boolean).join(' · ');
+}
+
+function repTime(s: Step): string {
+	if (s.ladder?.length) return `${s.ladder.join('/')}s`;
+	return s.rep_seconds ? `${s.rep_seconds}s rep` : '';
 }
 
 export type NextLine = { name: string; detail?: string; step?: Step };
@@ -38,7 +43,7 @@ export function stopLine(stop: { step?: Step; choice?: { name: string } } | unde
 	if (!stop) return { name: 'End of session' };
 	if (stop.choice) return { name: `Pick ${stop.choice.name}` };
 	const s = stop.step!;
-	return { name: s.name, detail: [summary(s), s.rep_seconds ? `${s.rep_seconds}s rep` : ''].filter(Boolean).join(' · '), step: s };
+	return { name: s.name, detail: [summary(s), repTime(s)].filter(Boolean).join(' · '), step: s };
 }
 
 // pick is the fewest options to do, so 0 makes the whole choice optional.
