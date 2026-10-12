@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -79,8 +78,8 @@ type ClimbFields struct {
 func (f ClimbFields) Clean() (ClimbFields, map[string]string) {
 	problems := map[string]string{}
 
-	f.Step = strings.ToLower(strings.TrimSpace(f.Step))
-	if !uuidText.MatchString(f.Step) {
+	var ok bool
+	if f.Step, ok = cleanID(f.Step); !ok {
 		problems["step"] = "must be a step id"
 	}
 	checkCount(&f.Position, "position", problems)
@@ -162,8 +161,8 @@ const climbColumns = `id, step, exercise, position, discipline, setting, board, 
 // the same climb (rule 36). A step with a climb counts as done. It takes
 // fields that went through Clean.
 func PutClimb(ctx context.Context, pool *pgxpool.Pool, owner, runID, climbID string, f ClimbFields) (Climb, error) {
-	climbID = strings.ToLower(strings.TrimSpace(climbID))
-	if !uuidText.MatchString(climbID) {
+	climbID, ok := cleanID(climbID)
+	if !ok {
 		return Climb{}, ErrNoClimb
 	}
 

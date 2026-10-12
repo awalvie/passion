@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -24,10 +23,10 @@ func (f CentreFields) Clean() (CentreFields, map[string]string) {
 	f.Name = cleanName(f.Name, "name", problems)
 
 	sessions := []string{}
-	for i, id := range f.Sessions {
-		id = strings.ToLower(strings.TrimSpace(id))
+	for i, raw := range f.Sessions {
+		id, ok := cleanID(raw)
 		switch {
-		case !uuidText.MatchString(id):
+		case !ok:
 			problems[fmt.Sprintf("sessions[%d]", i)] = "must be a session template id"
 		case !slices.Contains(sessions, id):
 			sessions = append(sessions, id)
@@ -55,25 +54,21 @@ const centreColumns = `id::text, owner::text, name, sessions::text[] AS sessions
 // PutCentre creates the centre under the id the client chose, or replaces it.
 // It takes fields that went through Clean.
 func PutCentre(ctx context.Context, pool *pgxpool.Pool, owner, id string, f CentreFields) (Centre, error) {
-	id = strings.ToLower(strings.TrimSpace(id))
-	if !uuidText.MatchString(id) {
+	id, ok := cleanID(id)
+	if !ok {
 		return Centre{}, ErrNoCentre
 	}
 
-	if len(f.Sessions) > 0 {
-		found, err := visibleTemplates(ctx, pool, owner, f.Sessions)
-		if err != nil {
-			return Centre{}, err
-		}
-		problems := map[string]string{}
-		for i, s := range f.Sessions {
-			if !slices.Contains(found, s) {
-				problems[fmt.Sprintf("sessions[%d]", i)] = "is not a session template you can see"
-			}
-		}
-		if len(problems) > 0 {
-			return Centre{}, &UnknownTemplatesError{Problems: problems}
-		}
+	byPath := map[string]string{}
+	for i, s := range f.Sessions {
+		byPath[fmt.Sprintf("sessions[%d]", i)] = s
+	}
+	problems, err := missing(ctx, pool, "session_template", owner, byPath, "is not a session template you can see")
+	if err != nil {
+		return Centre{}, err
+	}
+	if len(problems) > 0 {
+		return Centre{}, &UnknownTemplatesError{Problems: problems}
 	}
 
 	// An id another account holds matches no row here, so it reads as a

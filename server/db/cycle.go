@@ -131,13 +131,13 @@ func (f CycleFields) Clean() (CycleFields, map[string]string) {
 	}
 	for i, d := range f.Body.Days {
 		path := fmt.Sprintf("days[%d]", i)
-		d.Template = strings.ToLower(strings.TrimSpace(d.Template))
+		var ok bool
+		if d.Template, ok = cleanID(d.Template); !ok {
+			problems[path+".template"] = "must be a session template id"
+		}
 		f.Body.Days[i] = d
 		if d.Day < 1 || d.Day > f.BlockDays {
 			problems[path+".day"] = "must be 1 to block_days"
-		}
-		if !uuidText.MatchString(d.Template) {
-			problems[path+".template"] = "must be a session template id"
 		}
 		if slices.Contains(f.Body.Days[:i], d) {
 			problems[path] = "places the same session on the same day twice"
@@ -176,8 +176,8 @@ func (c Cycle) slots(from time.Time) []Slot {
 // rename leaves the rows, and any the person moved, alone. It takes fields
 // that went through Clean.
 func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f CycleFields) (Cycle, []Slot, error) {
-	id = strings.ToLower(strings.TrimSpace(id))
-	if !uuidText.MatchString(id) {
+	id, ok := cleanID(id)
+	if !ok {
 		return Cycle{}, nil, ErrNoCycle
 	}
 
@@ -328,47 +328,19 @@ func build(ctx context.Context, tx pgx.Tx, c Cycle, today time.Time) ([]Slot, er
 	return leftOut, nil
 }
 
-// checkTemplates lets a retired template through, as a step keeps a retired
-// exercise.
 func checkTemplates(ctx context.Context, tx pgx.Tx, owner string, body CycleBody) error {
-	if len(body.Days) == 0 {
-		return nil
+	byPath := map[string]string{}
+	for i, d := range body.Days {
+		byPath[fmt.Sprintf("days[%d].template", i)] = d.Template
 	}
-	ids := make([]string, 0, len(body.Days))
-	for _, d := range body.Days {
-		ids = append(ids, d.Template)
-	}
-	found, err := visibleTemplates(ctx, tx, owner, ids)
+	problems, err := missing(ctx, tx, "session_template", owner, byPath, "is not a session template you can see")
 	if err != nil {
 		return err
-	}
-
-	problems := map[string]string{}
-	for i, d := range body.Days {
-		if !slices.Contains(found, d.Template) {
-			problems[fmt.Sprintf("days[%d].template", i)] = "is not a session template you can see"
-		}
 	}
 	if len(problems) > 0 {
 		return &UnknownTemplatesError{Problems: problems}
 	}
 	return nil
-}
-
-// visibleTemplates keeps the ids of templates the person can see: shipped
-// ones and their own, retired ones included.
-func visibleTemplates(ctx context.Context, q querier, owner string, ids []string) ([]string, error) {
-	rows, err := q.Query(ctx, `
-		SELECT id::text FROM session_template
-		WHERE id = ANY($1::uuid[]) AND (owner IS NULL OR owner = $2)`, ids, owner)
-	if err != nil {
-		return nil, fmt.Errorf("select session templates: %w", err)
-	}
-	found, err := pgx.CollectRows(rows, pgx.RowTo[string])
-	if err != nil {
-		return nil, fmt.Errorf("read session templates: %w", err)
-	}
-	return found, nil
 }
 
 // ListCycles is every cycle of the person's, latest start first.
