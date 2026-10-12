@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -37,15 +36,15 @@ var (
 
 // ScheduleSession plans a one-off session, with no cycle behind it.
 func ScheduleSession(ctx context.Context, pool *pgxpool.Pool, owner, template string, day time.Time) (ScheduledSession, error) {
-	template = strings.ToLower(strings.TrimSpace(template))
-	if !uuidText.MatchString(template) {
+	template, ok := cleanID(template)
+	if !ok {
 		return ScheduledSession{}, ErrNoSessionTemplate
 	}
-	found, err := visibleTemplates(ctx, pool, owner, []string{template})
+	unseen, err := missing(ctx, pool, "session_template", owner, map[string]string{"template": template}, "")
 	if err != nil {
 		return ScheduledSession{}, err
 	}
-	if len(found) == 0 {
+	if len(unseen) > 0 {
 		return ScheduledSession{}, ErrNoSessionTemplate
 	}
 

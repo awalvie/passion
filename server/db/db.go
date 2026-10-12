@@ -5,6 +5,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -33,6 +36,37 @@ func Open(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
 	}
 
 	return pool, nil
+}
+
+// cleanID trims and lower-cases an id, and says whether it is a uuid.
+func cleanID(id string) (string, bool) {
+	id = strings.ToLower(strings.TrimSpace(id))
+	return id, uuidText.MatchString(id)
+}
+
+// missing looks up ids, by path, in table, which is always a constant, and
+// names each one the person cannot see with msg. Shipped rows and their own
+// count, retired ones included, as a step keeps working on a retired row.
+func missing(ctx context.Context, q querier, table, owner string, byPath map[string]string, msg string) (map[string]string, error) {
+	if len(byPath) == 0 {
+		return nil, nil
+	}
+	rows, err := q.Query(ctx, `SELECT id::text FROM `+table+` WHERE id = ANY($1::uuid[]) AND (owner IS NULL OR owner = $2)`,
+		slices.Collect(maps.Values(byPath)), owner)
+	if err != nil {
+		return nil, fmt.Errorf("select %s ids: %w", table, err)
+	}
+	found, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return nil, fmt.Errorf("read %s ids: %w", table, err)
+	}
+	problems := map[string]string{}
+	for path, id := range byPath {
+		if !slices.Contains(found, id) {
+			problems[path] = msg
+		}
+	}
+	return problems, nil
 }
 
 // oneRow reads the one row a query returns. No row, or an id that is not a

@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"regexp"
-	"slices"
 	"strings"
 	"time"
 
@@ -148,8 +146,8 @@ func (c Choice) clean(path string, problems map[string]string) Choice {
 }
 
 func (s Step) clean(path string, problems map[string]string) Step {
-	s.Exercise = strings.ToLower(strings.TrimSpace(s.Exercise))
-	if !uuidText.MatchString(s.Exercise) {
+	var ok bool
+	if s.Exercise, ok = cleanID(s.Exercise); !ok {
 		problems[path+".exercise"] = "must be an exercise id"
 	}
 
@@ -196,8 +194,6 @@ func (e *UnknownExercisesError) Error() string {
 	return fmt.Sprintf("%d steps name an exercise outside the library", len(e.Problems))
 }
 
-// checkExercises lets a retired exercise through, because a step that holds
-// one keeps working.
 func checkExercises(ctx context.Context, pool *pgxpool.Pool, owner string, body SessionBody) error {
 	steps := map[string]string{}
 	for i, s := range body.Sections {
@@ -213,27 +209,9 @@ func checkExercises(ctx context.Context, pool *pgxpool.Pool, owner string, body 
 			}
 		}
 	}
-	if len(steps) == 0 {
-		return nil
-	}
-
-	ids := slices.Collect(maps.Values(steps))
-	rows, err := pool.Query(ctx, `
-		SELECT id::text FROM exercise
-		WHERE id = ANY($1::uuid[]) AND (owner IS NULL OR owner = $2)`, ids, owner)
+	problems, err := missing(ctx, pool, "exercise", owner, steps, "is not in your library")
 	if err != nil {
-		return fmt.Errorf("select step exercises: %w", err)
-	}
-	found, err := pgx.CollectRows(rows, pgx.RowTo[string])
-	if err != nil {
-		return fmt.Errorf("read step exercises: %w", err)
-	}
-
-	problems := map[string]string{}
-	for path, id := range steps {
-		if !slices.Contains(found, id) {
-			problems[path] = "is not in your library"
-		}
+		return err
 	}
 	if len(problems) > 0 {
 		return &UnknownExercisesError{Problems: problems}

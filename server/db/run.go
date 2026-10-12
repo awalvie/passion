@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -63,9 +62,9 @@ func (b RunBody) Clean() (RunBody, map[string]string) {
 	problems := map[string]string{}
 	seen := map[string]bool{}
 	id := func(raw, path string) string {
-		v := strings.ToLower(strings.TrimSpace(raw))
+		v, ok := cleanID(raw)
 		switch {
-		case !uuidText.MatchString(v):
+		case !ok:
 			problems[path] = "must be a uuid"
 		case seen[v]:
 			problems[path] = "is used twice"
@@ -107,8 +106,8 @@ func (b RunBody) Clean() (RunBody, map[string]string) {
 }
 
 func (c RunChoice) clean(path string, problems map[string]string) RunChoice {
-	c.ID = strings.ToLower(strings.TrimSpace(c.ID))
-	if !uuidText.MatchString(c.ID) {
+	var ok bool
+	if c.ID, ok = cleanID(c.ID); !ok {
 		problems[path+".id"] = "must be a uuid"
 	}
 	c.Choice = c.Choice.clean(path, problems)
@@ -238,9 +237,9 @@ type RunStart struct {
 func (s RunStart) Clean() (RunStart, map[string]string) {
 	problems := map[string]string{}
 	if s.Scheduled != nil {
-		id := strings.ToLower(strings.TrimSpace(*s.Scheduled))
+		id, ok := cleanID(*s.Scheduled)
 		s.Scheduled = &id
-		if !uuidText.MatchString(id) {
+		if !ok {
 			problems["scheduled"] = "must be a scheduled session id"
 		}
 		if s.Template != nil {
@@ -249,9 +248,9 @@ func (s RunStart) Clean() (RunStart, map[string]string) {
 		return s, problems
 	}
 	if s.Template != nil {
-		id := strings.ToLower(strings.TrimSpace(*s.Template))
+		id, ok := cleanID(*s.Template)
 		s.Template = &id
-		if !uuidText.MatchString(id) {
+		if !ok {
 			problems["template"] = "must be a session template id"
 		}
 		return s, problems
