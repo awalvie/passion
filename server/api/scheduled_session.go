@@ -90,15 +90,8 @@ type scheduledDayListResponse struct {
 //	  401: unauthenticated
 //	  422: validationFailed
 func (s *Server) listScheduledSessions(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
-	problems := map[string]string{}
-	query := r.URL.Query()
-	from, okFrom := parseDay(query.Get("from"), "from", problems)
-	to, okTo := parseDay(query.Get("to"), "to", problems)
-	if okFrom && okTo && to.Before(from) {
-		problems["to"] = "must be on or after from"
-	}
-	if len(problems) > 0 {
-		writeFieldErrors(w, problems)
+	from, to, ok := parseRange(w, r)
+	if !ok {
 		return
 	}
 

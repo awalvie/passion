@@ -326,9 +326,9 @@ func runBody(t SessionBody) RunBody {
 		for _, item := range s.Items {
 			switch {
 			case item.Step != nil:
-				section.Items = append(section.Items, RunItem{Step: &RunStep{ID: newID(), Step: *item.Step}})
+				section.Items = append(section.Items, RunItem{Step: &RunStep{ID: NewID(), Step: *item.Step}})
 			case item.Choice != nil:
-				section.Items = append(section.Items, RunItem{Choice: &RunChoice{ID: newID(), Choice: *item.Choice}})
+				section.Items = append(section.Items, RunItem{Choice: &RunChoice{ID: NewID(), Choice: *item.Choice}})
 			}
 		}
 		b.Sections = append(b.Sections, section)
@@ -336,8 +336,8 @@ func runBody(t SessionBody) RunBody {
 	return b
 }
 
-// newID is a random version 4 uuid.
-func newID() string {
+// NewID is a random version 4 uuid.
+func NewID() string {
 	var b [16]byte
 	rand.Read(b[:])
 	b[6] = b[6]&0x0f | 0x40

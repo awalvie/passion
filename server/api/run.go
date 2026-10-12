@@ -718,15 +718,8 @@ type climbListResponse struct {
 //	  401: unauthenticated
 //	  422: validationFailed
 func (s *Server) listClimbs(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
-	problems := map[string]string{}
-	query := r.URL.Query()
-	from, okFrom := parseDay(query.Get("from"), "from", problems)
-	to, okTo := parseDay(query.Get("to"), "to", problems)
-	if okFrom && okTo && to.Before(from) {
-		problems["to"] = "must be on or after from"
-	}
-	if len(problems) > 0 {
-		writeFieldErrors(w, problems)
+	from, to, ok := parseRange(w, r)
+	if !ok {
 		return
 	}
 
@@ -811,6 +804,23 @@ func parseDay(s, key string, problems map[string]string) (time.Time, bool) {
 		return time.Time{}, false
 	}
 	return day, true
+}
+
+// parseRange reads the from and to days of a list, both included. It answers
+// a bad range, and says whether the handler goes on.
+func parseRange(w http.ResponseWriter, r *http.Request) (from, to time.Time, ok bool) {
+	problems := map[string]string{}
+	query := r.URL.Query()
+	from, okFrom := parseDay(query.Get("from"), "from", problems)
+	to, okTo := parseDay(query.Get("to"), "to", problems)
+	if okFrom && okTo && to.Before(from) {
+		problems["to"] = "must be on or after from"
+	}
+	if len(problems) > 0 {
+		writeFieldErrors(w, problems)
+		return from, to, false
+	}
+	return from, to, true
 }
 
 func (req runRequest) fields() db.RunFields {
