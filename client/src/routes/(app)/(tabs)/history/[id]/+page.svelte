@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDate } from '$lib/dates';
 	import Icon from '$lib/Icon.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import { climbsOf, setsOf, stepsOf, type LoggedSet, type RunStep } from '$lib/run';
@@ -7,13 +8,7 @@
 
 	const run = $derived(data.run);
 
-	const date = $derived(
-		new Date(`${run.local_date}T12:00:00`).toLocaleDateString(undefined, {
-			weekday: 'long',
-			day: 'numeric',
-			month: 'long'
-		})
-	);
+	const date = $derived(formatDate(run.local_date, { weekday: 'long', day: 'numeric', month: 'long' }));
 
 	const done = $derived(stepsOf(run).filter((s) => s.status === 'done').length);
 	const facts = $derived(

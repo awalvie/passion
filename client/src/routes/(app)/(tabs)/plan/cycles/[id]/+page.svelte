@@ -7,7 +7,7 @@
 	import BlockLength from '$lib/BlockLength.svelte';
 	import CycleCalendar from '$lib/CycleCalendar.svelte';
 	import Button from '$lib/Button.svelte';
-	import { addDays, cycleWeek, daysBetween, formatDate, weekday } from '$lib/dates';
+	import { addDays, cycleWeek, daysBetween, shortDate, weekday } from '$lib/dates';
 	import DateField from '$lib/DateField.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import GoalList from '$lib/GoalList.svelte';
@@ -24,7 +24,6 @@
 
 	let error = $state('');
 
-	const short = (date: string) => formatDate(date, { day: 'numeric', month: 'short' });
 
 	const when = $derived.by(() => {
 		const c = data.cycle;
@@ -181,7 +180,7 @@
 	<header class="px-1">
 		<h1 class="page-title break-words">{data.cycle.name}</h1>
 		<p class="mt-1 text-[15px] font-semibold text-ink-2">
-			{short(data.cycle.starts)} – {short(data.cycle.ends)} · {when} · {data.cycle.block_days}-day block
+			{shortDate(data.cycle.starts)} – {shortDate(data.cycle.ends)} · {when} · {data.cycle.block_days}-day block
 		</p>
 	</header>
 
@@ -221,7 +220,7 @@
 
 	<Section title="This week">
 		{#snippet aside()}
-			<span class="text-xs font-semibold text-ink-2">{short(data.monday)} – {short(addDays(data.monday, 6))}</span>
+			<span class="text-xs font-semibold text-ink-2">{shortDate(data.monday)} – {shortDate(addDays(data.monday, 6))}</span>
 		{/snippet}
 		<div class="rounded-3xl bg-surface pb-3 shadow-card">
 			<WeekStrip monday={data.monday} today={data.today} week={data.week} />

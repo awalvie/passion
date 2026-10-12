@@ -4,6 +4,7 @@
 	import { urlFilters } from '$lib/filters.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import LibrarySearch from '$lib/LibrarySearch.svelte';
+	import { plural } from '$lib/text';
 
 	let { data } = $props();
 
@@ -26,10 +27,6 @@
 
 	function clear() {
 		f.q = f.source = f.tag = '';
-	}
-
-	function plural(n: number, word: string) {
-		return `${n} ${word}${n === 1 ? '' : 's'}`;
 	}
 </script>
 
