@@ -6,7 +6,7 @@ import {
 	endSet,
 	newClock,
 	rows,
-	timedSet,
+	timedRows,
 	timeline,
 	togglePause,
 	type Clock,
@@ -54,8 +54,26 @@ test('a ladder cut short keeps the hangs done', () => {
 });
 
 test('a set logs one time for every rep, and a ladder set the time of each rep done', () => {
-	expect(timedSet(hang, 3, 10)).toStrictEqual({ reps: 3, seconds: 7, rep_seconds: null, weight_kg: 10 });
-	expect(timedSet(ladder, 2, 10)).toStrictEqual({ reps: 2, seconds: null, rep_seconds: [3, 6], weight_kg: 10 });
+	expect(timedRows(hang, timeline(hang), [3], [], 10)).toStrictEqual([{ reps: 3, seconds: 7, rep_seconds: null, weight_kg: 10 }]);
+	expect(timedRows(ladder, timeline(ladder), [2], [], 10)).toStrictEqual([{ reps: 2, seconds: null, rep_seconds: [3, 6], weight_kg: 10 }]);
+});
+
+// Phase 3 is the second hang of the first set.
+test('a ladder hang skipped early logs the time it was held', () => {
+	const p = timeline(ladder, { 3: -4000 });
+	expect(timedRows(ladder, p, [3], [], null)[0].rep_seconds).toStrictEqual([3, 2, 9]);
+});
+
+test('a hang skipped before 1 s is no rep', () => {
+	expect(timedRows(ladder, timeline(ladder, { 3: -6000 }), [3], [], null)[0]).toMatchObject({ reps: 2, rep_seconds: [3, 9] });
+	expect(timedRows(hang, timeline(hang, { 3: -7000 }), [3], [], null)[0]).toMatchObject({ reps: 2, seconds: 7 });
+});
+
+test('rows already logged stay as they are', () => {
+	const kept = { reps: 2, seconds: null, rep_seconds: [3, 9], weight_kg: null };
+	const out = timedRows(ladder, timeline(ladder), [2, 3], [kept], null);
+	expect(out[0]).toBe(kept);
+	expect(out[1]).toMatchObject({ reps: 3, rep_seconds: [3, 6, 9] });
 });
 
 test('per side does all reps on the left, then the right, as two blocks', () => {

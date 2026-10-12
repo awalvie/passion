@@ -8,7 +8,8 @@ export type Timers = {
 };
 
 // A running timed-reps step: its clock, the blocks cut short, the weight each
-// of its rows logs, and the time added to its phases.
+// of its rows logs, and the time added to its phases. A hang skipped early is
+// shortened to the time it was held.
 export type Timed = {
 	step: string;
 	clock: Clock;

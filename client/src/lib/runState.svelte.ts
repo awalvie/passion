@@ -16,7 +16,7 @@ import {
 } from './run';
 import type { Exercise } from './exercise';
 import { toStep, type Step } from './template';
-import { elapsed, rows, timedSet, timeline } from './timeline';
+import { elapsed, rows, timedRows, timeline } from './timeline';
 import { readTimers } from './timerStore';
 
 // A write waiting for the server. A newer write to the same url replaces an
@@ -280,12 +280,11 @@ class OpenRun {
 		const t = readTimers(run.id).timed;
 		const step = t ? this.step(t.step) : undefined;
 		if (!t || !step || isFinished(step)) return;
-		const done = rows(timeline(step, t.extra), elapsed(t.clock, Date.now()), t.short);
-		if (done.length <= setsOf(run, step.id).length) return;
-		this.setSets(
-			step,
-			done.map((reps) => timedSet(step, reps, t.weight))
-		);
+		const phases = timeline(step, t.extra);
+		const done = rows(phases, elapsed(t.clock, Date.now()), t.short);
+		const logged = setsOf(run, step.id);
+		if (done.length <= logged.length) return;
+		this.setSets(step, timedRows(step, phases, done, logged, t.weight));
 	}
 
 	// unskip brings a skipped step back, with nothing logged.

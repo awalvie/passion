@@ -8,7 +8,7 @@
 	import RunPage, { type PlayerProps } from './RunPage.svelte';
 	import Stepper from './Stepper.svelte';
 	import TimerFlap from './TimerFlap.svelte';
-	import { at, canTime, elapsed, endSet, jump, newClock, repSeconds, rows, startOf, timedSet, timeline, togglePause } from './timeline';
+	import { at, canTime, elapsed, endSet, jump, newClock, repSeconds, rows, startOf, timedRows, timeline, togglePause } from './timeline';
 	import { readTimers, writeTimers, type Timed } from './timerStore';
 
 	let { step, next, nextHref, last, menu, error, leaving, skip }: PlayerProps = $props();
@@ -100,10 +100,7 @@
 	}
 
 	function log(done: number[]) {
-		openRun.setSets(
-			step,
-			done.map((reps) => timedSet(step, reps, weight))
-		);
+		openRun.setSets(step, timedRows(step, phases, done, logged, weight));
 	}
 
 	function stop() {
@@ -127,10 +124,15 @@
 		save({ ...timed!, clock: togglePause(timed!.clock, Date.now()) });
 	}
 
+	// A skipped hang ends where it was held, so its row logs that time.
 	function skipPhase() {
 		const t = Date.now();
-		cut = pos.index + 1 >= phases.length;
-		save({ ...timed!, clock: jump(timed!.clock, t, startOf(phases, pos.index + 1)) });
+		const here = at(phases, elapsed(timed!.clock, t));
+		cut = here.index + 1 >= phases.length;
+		if (phases[here.index]?.kind === 'hang') {
+			const extra = timed!.extra ?? {};
+			save({ ...timed!, extra: { ...extra, [here.index]: (extra[here.index] ?? 0) - here.left } });
+		} else save({ ...timed!, clock: jump(timed!.clock, t, startOf(phases, here.index + 1)) });
 	}
 
 	function addRest() {
