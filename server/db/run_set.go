@@ -13,20 +13,23 @@ import (
 
 // Set is one logged set of one step.
 type Set struct {
-	Step     string   `db:"step"`
-	Number   int      `db:"number"`
-	Exercise string   `db:"exercise"`
-	Reps     *int     `db:"reps"`
-	Seconds  *int     `db:"seconds"`
-	WeightKG *float64 `db:"weight_kg"`
+	Step       string   `db:"step"`
+	Number     int      `db:"number"`
+	Exercise   string   `db:"exercise"`
+	Reps       *int     `db:"reps"`
+	Seconds    *int     `db:"seconds"`
+	RepSeconds []int    `db:"rep_seconds"`
+	WeightKG   *float64 `db:"weight_kg"`
 }
 
 // SetFields is what the person logs for one set. Every number is optional,
-// because a run can start with numbers left empty.
+// because a run can start with numbers left empty. RepSeconds holds each
+// rep's time when they differ, and Seconds is then empty.
 type SetFields struct {
-	Reps     *int
-	Seconds  *int
-	WeightKG *float64
+	Reps       *int
+	Seconds    *int
+	RepSeconds []int
+	WeightKG   *float64
 }
 
 // maxWeightKG is the most numeric(6,2) holds.
@@ -40,6 +43,12 @@ func CheckSets(sets []SetFields) map[string]string {
 		path := fmt.Sprintf("sets[%d]", i)
 		checkCount(s.Reps, path+".reps", problems)
 		checkCount(s.Seconds, path+".seconds", problems)
+		for _, n := range s.RepSeconds {
+			checkCount(&n, path+".rep_seconds", problems)
+		}
+		if s.Seconds != nil && len(s.RepSeconds) > 0 {
+			problems[path+".rep_seconds"] = "cannot be set with seconds"
+		}
 		if s.WeightKG != nil && math.Abs(*s.WeightKG) > maxWeightKG {
 			problems[path+".weight_kg"] = "is too large"
 		}
@@ -86,13 +95,16 @@ func ReplaceSets(ctx context.Context, pool *pgxpool.Pool, owner, runID, stepID s
 		return nil, fmt.Errorf("trim sets: %w", err)
 	}
 	for i, s := range sets {
+		if len(s.RepSeconds) == 0 {
+			s.RepSeconds = nil
+		}
 		if _, err := tx.Exec(ctx, `
-			INSERT INTO run_set (run, owner, step, number, exercise, reps, seconds, weight_kg)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			INSERT INTO run_set (run, owner, step, number, exercise, reps, seconds, rep_seconds, weight_kg)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 			ON CONFLICT (run, step, number) DO UPDATE SET
-				exercise = excluded.exercise, reps = excluded.reps,
-				seconds = excluded.seconds, weight_kg = excluded.weight_kg`,
-			runID, owner, stepID, i+1, step.Exercise, s.Reps, s.Seconds, s.WeightKG); err != nil {
+				exercise = excluded.exercise, reps = excluded.reps, seconds = excluded.seconds,
+				rep_seconds = excluded.rep_seconds, weight_kg = excluded.weight_kg`,
+			runID, owner, stepID, i+1, step.Exercise, s.Reps, s.Seconds, s.RepSeconds, s.WeightKG); err != nil {
 			return nil, fmt.Errorf("write set %d: %w", i+1, err)
 		}
 	}
@@ -173,7 +185,7 @@ type querier interface {
 // runSets lists a run's sets, or one step's when step is not nil.
 func runSets(ctx context.Context, q querier, runID string, step *string) ([]Set, error) {
 	rows, err := q.Query(ctx, `
-		SELECT step, number, exercise, reps, seconds, weight_kg FROM run_set
+		SELECT step, number, exercise, reps, seconds, rep_seconds, weight_kg FROM run_set
 		WHERE run = $1 AND ($2::uuid IS NULL OR step = $2)
 		ORDER BY step, number`, runID, step)
 	if err != nil {
