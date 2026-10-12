@@ -262,7 +262,7 @@ func CreateExercise(ctx context.Context, pool *pgxpool.Pool, owner string, f Exe
 	if err != nil {
 		return Exercise{}, fmt.Errorf("insert exercise: %w", err)
 	}
-	return oneExercise(rows)
+	return oneRow[Exercise](rows, ErrNoExercise, "exercise")
 }
 
 // ListExercises is the person's library: what the app ships and what they
@@ -292,7 +292,7 @@ func GetExercise(ctx context.Context, pool *pgxpool.Pool, owner, id string) (Exe
 	if err != nil {
 		return Exercise{}, fmt.Errorf("select exercise: %w", err)
 	}
-	return oneExercise(rows)
+	return oneRow[Exercise](rows, ErrNoExercise, "exercise")
 }
 
 // UpdateExercise changes one of the person's own exercises. A shipped one
@@ -314,36 +314,15 @@ func UpdateExercise(ctx context.Context, pool *pgxpool.Pool, owner, id string, f
 	if err != nil {
 		return Exercise{}, fmt.Errorf("update exercise: %w", err)
 	}
-	return oneExercise(rows)
+	return oneRow[Exercise](rows, ErrNoExercise, "exercise")
 }
 
 // RetireExercise takes one of the person's own exercises out of their library.
 // Retiring it twice keeps the first date.
 func RetireExercise(ctx context.Context, pool *pgxpool.Pool, owner, id string) error {
-	tag, err := pool.Exec(ctx, `
+	return execOne(ctx, pool, ErrNoExercise, "retire exercise", `
 		UPDATE exercise SET retired_at = coalesce(retired_at, now())
 		WHERE owner = $1 AND id = $2`, owner, id)
-	if isInvalidText(err) {
-		return ErrNoExercise
-	}
-	if err != nil {
-		return fmt.Errorf("retire exercise: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		return ErrNoExercise
-	}
-	return nil
-}
-
-func oneExercise(rows pgx.Rows) (Exercise, error) {
-	exercise, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[Exercise])
-	if errors.Is(err, pgx.ErrNoRows) || isInvalidText(err) {
-		return Exercise{}, ErrNoExercise
-	}
-	if err != nil {
-		return Exercise{}, fmt.Errorf("read exercise: %w", err)
-	}
-	return exercise, nil
 }
 
 // isInvalidText is true when an id is not a uuid, so it cannot name any row.

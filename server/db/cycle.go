@@ -389,32 +389,11 @@ func GetCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string) (Cycle,
 	if err != nil {
 		return Cycle{}, fmt.Errorf("select cycle: %w", err)
 	}
-	return oneCycle(rows)
+	return oneRow[Cycle](rows, ErrNoCycle, "cycle")
 }
 
 // DeleteCycle removes the plan and every day it placed. The runs done under
 // it stay, and so do the one-off days added by hand.
 func DeleteCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string) error {
-	tag, err := pool.Exec(ctx, `DELETE FROM cycle WHERE owner = $1 AND id = $2`, owner, id)
-	if isInvalidText(err) {
-		return ErrNoCycle
-	}
-	if err != nil {
-		return fmt.Errorf("delete cycle: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		return ErrNoCycle
-	}
-	return nil
-}
-
-func oneCycle(rows pgx.Rows) (Cycle, error) {
-	cycle, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[Cycle])
-	if errors.Is(err, pgx.ErrNoRows) || isInvalidText(err) {
-		return Cycle{}, ErrNoCycle
-	}
-	if err != nil {
-		return Cycle{}, fmt.Errorf("read cycle: %w", err)
-	}
-	return cycle, nil
+	return execOne(ctx, pool, ErrNoCycle, "delete cycle", `DELETE FROM cycle WHERE owner = $1 AND id = $2`, owner, id)
 }

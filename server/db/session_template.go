@@ -269,7 +269,7 @@ func CreateSessionTemplate(ctx context.Context, pool *pgxpool.Pool, owner string
 	if err != nil {
 		return SessionTemplate{}, fmt.Errorf("insert session template: %w", err)
 	}
-	return oneSessionTemplate(rows)
+	return oneRow[SessionTemplate](rows, ErrNoSessionTemplate, "session template")
 }
 
 // ListSessionTemplates is what the app ships and what the person wrote,
@@ -299,7 +299,7 @@ func GetSessionTemplate(ctx context.Context, pool *pgxpool.Pool, owner, id strin
 	if err != nil {
 		return SessionTemplate{}, fmt.Errorf("select session template: %w", err)
 	}
-	return oneSessionTemplate(rows)
+	return oneRow[SessionTemplate](rows, ErrNoSessionTemplate, "session template")
 }
 
 // UpdateSessionTemplate replaces one of the person's own session templates. A
@@ -321,34 +321,13 @@ func UpdateSessionTemplate(ctx context.Context, pool *pgxpool.Pool, owner, id st
 	if err != nil {
 		return SessionTemplate{}, fmt.Errorf("update session template: %w", err)
 	}
-	return oneSessionTemplate(rows)
+	return oneRow[SessionTemplate](rows, ErrNoSessionTemplate, "session template")
 }
 
 // RetireSessionTemplate takes one of the person's own session templates out
 // of their list. Retiring it twice keeps the first date.
 func RetireSessionTemplate(ctx context.Context, pool *pgxpool.Pool, owner, id string) error {
-	tag, err := pool.Exec(ctx, `
+	return execOne(ctx, pool, ErrNoSessionTemplate, "retire session template", `
 		UPDATE session_template SET retired_at = coalesce(retired_at, now())
 		WHERE owner = $1 AND id = $2`, owner, id)
-	if isInvalidText(err) {
-		return ErrNoSessionTemplate
-	}
-	if err != nil {
-		return fmt.Errorf("retire session template: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		return ErrNoSessionTemplate
-	}
-	return nil
-}
-
-func oneSessionTemplate(rows pgx.Rows) (SessionTemplate, error) {
-	template, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[SessionTemplate])
-	if errors.Is(err, pgx.ErrNoRows) || isInvalidText(err) {
-		return SessionTemplate{}, ErrNoSessionTemplate
-	}
-	if err != nil {
-		return SessionTemplate{}, fmt.Errorf("read session template: %w", err)
-	}
-	return template, nil
 }

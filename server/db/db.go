@@ -3,8 +3,10 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -31,6 +33,36 @@ func Open(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
 	}
 
 	return pool, nil
+}
+
+// oneRow reads the one row a query returns. No row, or an id that is not a
+// uuid, is notFound.
+func oneRow[T any](rows pgx.Rows, notFound error, what string) (T, error) {
+	var zero T
+	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[T])
+	if errors.Is(err, pgx.ErrNoRows) || isInvalidText(err) {
+		return zero, notFound
+	}
+	if err != nil {
+		return zero, fmt.Errorf("read %s: %w", what, err)
+	}
+	return row, nil
+}
+
+// execOne runs a statement that changes one row. No such row, or an id that
+// is not a uuid, is notFound.
+func execOne(ctx context.Context, pool *pgxpool.Pool, notFound error, what, sql string, args ...any) error {
+	tag, err := pool.Exec(ctx, sql, args...)
+	if isInvalidText(err) {
+		return notFound
+	}
+	if err != nil {
+		return fmt.Errorf("%s: %w", what, err)
+	}
+	if tag.RowsAffected() == 0 {
+		return notFound
+	}
+	return nil
 }
 
 // checkVersion reads the server_version_num form, where 18.6 is 180006.
