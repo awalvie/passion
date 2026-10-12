@@ -3,7 +3,7 @@
 	import type { Snippet } from 'svelte';
 	import DurationInput from '$lib/DurationInput.svelte';
 	import Icon from '$lib/Icon.svelte';
-	import { allCounts, countLabels, kindOf } from '$lib/exercise';
+	import { allCounts, countLabels, kindOf, setByLadder } from '$lib/exercise';
 	import { stepMeta, type Step } from '$lib/template';
 
 	let { step = $bindable(), id, actions }: { step: Step; id: string; actions: Snippet } = $props();
@@ -11,7 +11,7 @@
 	// A step never changes type here, so the numbers on screen are its type's,
 	// plus any it held when the page opened.
 	const held = new Set(allCounts.filter((c) => step[c] != null));
-	const shown = allCounts.filter((c) => kindOf(step.kind).counts.includes(c) || held.has(c));
+	const shown = allCounts.filter((c) => (kindOf(step.kind).counts.includes(c) || held.has(c)) && !setByLadder(step, c));
 	const counts = shown.filter((c) => c !== 'duration_seconds');
 </script>
 

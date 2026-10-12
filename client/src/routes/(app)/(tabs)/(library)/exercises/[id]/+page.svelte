@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
-	import { allCounts, fieldLabel, kindOf, summary, toBody, toDraft, type Count } from '$lib/exercise';
+	import { allCounts, fieldLabel, kindOf, setByLadder, summary, toBody, toDraft, type Count } from '$lib/exercise';
 	import Button from '$lib/Button.svelte';
 	import ExerciseForm from '$lib/ExerciseForm.svelte';
 	import FormError from '$lib/FormError.svelte';
@@ -29,7 +29,7 @@
 	// A number the exercise already holds stays on screen whatever its type, so
 	// a save never drops a value the page did not show.
 	const held = new Set(allCounts.filter((c) => saved[c] != null));
-	const shown = (c: Count) => kindOf(draft.kind).counts.includes(c) || held.has(c);
+	const shown = (c: Count) => (kindOf(draft.kind).counts.includes(c) || held.has(c)) && !setByLadder(draft, c);
 
 	const thumb = saved.media[0];
 
