@@ -452,9 +452,10 @@
 					{/each}
 				</ol>
 
-				{#if !run.sections.length}
-					<div class="mt-5">
+				{#if run.template === null && !run.finished_at}
+					<div class="mt-5 grid grid-cols-2 gap-2.5">
 						<Button variant="secondary" onclick={() => openLibrary()}>Add exercise</Button>
+						<Button variant="secondary" onclick={() => (naming = true)}>Add section</Button>
 					</div>
 				{/if}
 			</div>
