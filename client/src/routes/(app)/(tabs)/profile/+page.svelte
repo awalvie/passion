@@ -18,6 +18,7 @@
 	import NavBar from '$lib/NavBar.svelte';
 	import { hapticsOn, setHaptics, tickBox } from '$lib/haptics';
 	import { clearRunStorage, clearToken } from '$lib/session';
+	import { plural } from '$lib/text';
 
 	let { data } = $props();
 
@@ -92,7 +93,7 @@
 		}
 	}
 
-	const count = (n: number) => (n === 0 ? 'No sessions yet' : n === 1 ? '1 session' : `${n} sessions`);
+	const count = (n: number) => (n === 0 ? 'No sessions yet' : plural(n, 'session'));
 
 	type Theme = 'system' | 'light' | 'dark';
 	const themes: { value: Theme; label: string }[] = [

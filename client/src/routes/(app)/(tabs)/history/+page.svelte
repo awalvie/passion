@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDate, weekday } from '$lib/dates';
 	import type { RunSummary } from '$lib/run';
 
 	let { data } = $props();
@@ -6,10 +7,7 @@
 	const months = $derived.by(() => {
 		const out: { label: string; runs: RunSummary[] }[] = [];
 		for (const r of data.runs) {
-			const label = new Date(`${r.local_date}T12:00:00`).toLocaleDateString(undefined, {
-				month: 'long',
-				year: 'numeric'
-			});
+			const label = formatDate(r.local_date, { month: 'long', year: 'numeric' });
 			if (out.at(-1)?.label !== label) out.push({ label, runs: [] });
 			out.at(-1)!.runs.push(r);
 		}
@@ -17,11 +15,7 @@
 	});
 
 	function when(r: RunSummary) {
-		const d = new Date(`${r.local_date}T12:00:00`);
-		return {
-			weekday: d.toLocaleDateString(undefined, { weekday: 'short' }),
-			day: d.getDate()
-		};
+		return { weekday: weekday(r.local_date), day: Number(r.local_date.slice(8)) };
 	}
 
 	function facts(r: RunSummary) {

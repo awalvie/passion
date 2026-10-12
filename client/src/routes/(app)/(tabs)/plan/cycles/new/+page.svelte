@@ -7,7 +7,7 @@
 	import BlockLength from '$lib/BlockLength.svelte';
 	import Button from '$lib/Button.svelte';
 	import CyclePreview from '$lib/CyclePreview.svelte';
-	import { addDays, daysBetween, formatDate } from '$lib/dates';
+	import { addDays, daysBetween, shortDate } from '$lib/dates';
 	import DateField from '$lib/DateField.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import GoalList from '$lib/GoalList.svelte';
@@ -17,6 +17,7 @@
 	import { plannedDays, saveCycle } from '$lib/plan';
 	import Section from '$lib/Section.svelte';
 	import SessionIcon from '$lib/SessionIcon.svelte';
+	import { plural } from '$lib/text';
 
 	let { data } = $props();
 
@@ -38,21 +39,19 @@
 	const fields: Record<string, string> = { name: 'The name', starts: 'The start', ends: 'The end', block_days: 'The block' };
 	const weeks = $derived(Math.ceil(length / 7));
 	const planned = $derived(plannedDays(draft, data.today));
-	const count = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
 	const titles = ['Name and dates', 'What is it for?', 'What repeats?', 'Check it'];
 	const hints = $derived([
 		'The block comes next.',
 		'All optional. You can add these later.',
 		'Pick the block length, then fill each day.',
-		`${count(planned.length, 'session')} over ${count(weeks, 'week')}.`
+		`${plural(planned.length, 'session')} over ${plural(weeks, 'week')}.`
 	]);
-	const short = (date: string) => formatDate(date, { day: 'numeric', month: 'short' });
 	const byId = $derived(new Map(data.templates.map((t) => [t.id, t])));
 	const blockList = $derived(
 		Array.from({ length: draft.block_days }, (_, i) => draft.days.find((d) => d.day === i + 1)).map((d) => d && byId.get(d.template))
 	);
 	const goalsLine = $derived(
-		[draft.goals.length ? count(draft.goals.length, 'goal') : '', draft.notes ? 'notes' : ''].filter(Boolean).join(' · ') || 'None yet'
+		[draft.goals.length ? plural(draft.goals.length, 'goal') : '', draft.notes ? 'notes' : ''].filter(Boolean).join(' · ') || 'None yet'
 	);
 
 	async function save() {
@@ -99,7 +98,7 @@
 	{#if step === 2 || step === 3}
 		<p class="flex flex-wrap gap-2 text-xs font-bold">
 			<span class="rounded-full bg-surface px-3 py-1.5 shadow-card-sm">{draft.name}</span>
-			<span class="rounded-full bg-surface px-3 py-1.5 shadow-card-sm">{short(draft.starts)} – {short(draft.ends)}</span>
+			<span class="rounded-full bg-surface px-3 py-1.5 shadow-card-sm">{shortDate(draft.starts)} – {shortDate(draft.ends)}</span>
 		</p>
 	{/if}
 
@@ -184,7 +183,7 @@
 				</span>
 			{/snippet}
 			{#snippet goals()}<span class="block truncate text-[15px] font-bold">{goalsLine}</span>{/snippet}
-			{@render row('pencil', `${short(draft.starts)} – ${short(draft.ends)} · ${count(weeks, 'week')}`, 1, name)}
+			{@render row('pencil', `${shortDate(draft.starts)} – ${shortDate(draft.ends)} · ${plural(weeks, 'week')}`, 1, name)}
 			{@render row('repeat', `Block · every ${draft.block_days} days`, 3, block)}
 			{@render row('target', 'Goals and notes', 2, goals)}
 		</ul>

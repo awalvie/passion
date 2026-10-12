@@ -6,7 +6,7 @@
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
 	import CycleYear from '$lib/CycleYear.svelte';
-	import { addDays, cycleWeek, daysBetween, formatDate, mondayOf } from '$lib/dates';
+	import { addDays, cycleWeek, daysBetween, formatDate, mondayOf, shortDate } from '$lib/dates';
 	import DateField from '$lib/DateField.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
@@ -118,13 +118,13 @@
 		if (monday === now) return 'This week';
 		if (monday === addDays(now, 7)) return 'Next week';
 		if (monday === addDays(now, -7)) return 'Last week';
-		return `Week of ${short(monday)}`;
+		return `Week of ${shortDate(monday)}`;
 	}
 
 	// The week's dates, then the cycles its sessions come from.
 	function weekNote(w: (typeof weeks)[number]) {
 		const names = new Set(w.dates.flatMap((g) => g.days.flatMap((d) => (d.cycle ? [cycleNames.get(d.cycle) ?? 'Cycle'] : []))));
-		return [`${short(w.monday)} – ${short(addDays(w.monday, 6))}`, ...names].join(' · ');
+		return [`${shortDate(w.monday)} – ${shortDate(addDays(w.monday, 6))}`, ...names].join(' · ');
 	}
 
 	function rowNote(d: ScheduledDay) {
@@ -156,7 +156,6 @@
 		});
 	});
 
-	const short = (date: string) => formatDate(date, { day: 'numeric', month: 'short' });
 
 	const statuses = { done: 'Done', started: 'Started', missed: 'Missed', planned: '' };
 	const tags = {
@@ -319,7 +318,7 @@
 								<span class="min-w-0 flex-1">
 									<span class="block truncate text-[15px] font-bold">{c.name}</span>
 									<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
-										{short(c.starts)} – {short(c.ends)}{when(c) ? ` · ${when(c)}` : ''}
+										{shortDate(c.starts)} – {shortDate(c.ends)}{when(c) ? ` · ${when(c)}` : ''}
 									</span>
 								</span>
 								{#if state === 'now'}

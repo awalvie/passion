@@ -1,3 +1,8 @@
+// plural counts a word, as 1 week or 3 weeks.
+export function plural(n: number, word: string): string {
+	return `${n} ${word}${n === 1 ? '' : 's'}`;
+}
+
 // plainText drops the markdown markers catalog notes carry, keeping the words
 // and the line breaks, since the app shows notes as plain text.
 export function plainText(md: string): string {

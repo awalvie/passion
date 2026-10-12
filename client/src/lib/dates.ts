@@ -55,6 +55,11 @@ export function daysBetween(from: string, to: string): number {
 	return Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000);
 }
 
+// shortDate is a date as 7 Mar.
+export function shortDate(date: string): string {
+	return formatDate(date, { day: 'numeric', month: 'short' });
+}
+
 export function weekday(date: string): string {
 	return formatDate(date, { weekday: 'short' });
 }
