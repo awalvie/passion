@@ -285,18 +285,6 @@ class OpenRun {
 		else this.moveStep(id, s + 1, 0);
 	}
 
-	// removeOption drops one option of a choice not yet picked. The last
-	// option takes the choice with it.
-	removeOption(choiceId: string, k: number) {
-		const at = this.#choice(choiceId);
-		if (!at) return;
-		const { section, i, choice } = at;
-		choice.options.splice(k, 1);
-		if (!choice.options.length) section.items.splice(i, 1);
-		else choice.pick = Math.min(choice.pick, choice.options.length);
-		this.saveBody();
-	}
-
 	// logTimer logs the blocks a running timer finished, including those after
 	// the person left its step.
 	logTimer() {

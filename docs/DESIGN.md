@@ -47,8 +47,9 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
 - Session screen: the running session sits on the same `RunField` as its steps. Cards are
   glass, the current section and set are lime (`tint`), done marks are the green check of
   a done set (`rest-on-hero`), and the bottom panel shows `NOW` with the exercise or pick
-  you are on, then Continue and a round Finish. Edit session stays on the field: the name
-  reads "Edit session", there is no back pill, and Done takes the place of •••.
+  you are on, then Continue and a round Finish. The list is also where the session
+  changes: an exercise not yet started has a ••• to move or remove it, each open section
+  ends with an Add exercise row, and Add section sits under the list.
   - A timer's state (`READY · PREP 10 S`, `WORK · REP 1 OF 2`) is a small-caps label
     centred above its digits.
   - The bottom panel starts with a `NEXT` label and a row for the next exercise: its kind

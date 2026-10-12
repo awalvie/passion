@@ -156,8 +156,6 @@
 	);
 	const remind = $derived(!later && !run.finished_at && steps.every((s) => s.status === null) && unpicked.length > 0);
 
-	let editing = $state(false);
-
 	// The page scrolls inside the field, so coming back from a step puts the
 	// list back where it was.
 	let scroller: HTMLElement;
@@ -177,334 +175,245 @@
 	}
 </script>
 
-{#snippet remove(label: string, onclick: () => void)}
-	<button
-		type="button"
-		class="relative flex size-7 shrink-0 items-center justify-center rounded-full bg-(--glass) text-ink before:absolute before:-inset-2 before:content-[''] active:opacity-70"
-		aria-label={label}
-		{onclick}
-	>
-		<svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12" /></svg>
-	</button>
-{/snippet}
-
 {#snippet tile(icon: IconName)}
 	<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--glass) text-on-hero"><Icon name={icon} size="16px" stroke={2.6} /></span>
 {/snippet}
 
 <svelte:head><title>{run.name}</title></svelte:head>
 
-<RunField label={run.name} back={editing ? undefined : { href: '/', label: 'Today', swipe: true }}>
+<RunField label={run.name} back={{ href: '/', label: 'Today', swipe: true }}>
 	{#snippet end()}
-		{#if editing}
-			<button type="button" class="flex h-11 items-center rounded-full bg-tint px-4 text-[15px] font-bold text-on-tint active:opacity-80" onclick={() => (editing = false)}>Done</button>
-		{:else}
-			<Menu
-				look="bg-(--pill) text-on-hero"
-				items={[
-					{
-						label: 'Edit session',
-						onclick: () => {
-							choosing = null;
-							editing = true;
-						}
-					},
-					{ label: 'Finish session', onclick: () => goto(`/run/${run.id}/finish`) },
-					{ label: 'Discard session', danger: true, onclick: discard }
-				]}
-			/>
-		{/if}
+		<Menu
+			look="bg-(--pill) text-on-hero"
+			items={[
+				{ label: 'Finish session', onclick: () => goto(`/run/${run.id}/finish`) },
+				{ label: 'Discard session', danger: true, onclick: discard }
+			]}
+		/>
 	{/snippet}
 
 	<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain" bind:this={scroller}>
 		<h1 class="mt-3 mb-4 px-5 text-center text-[28px] leading-[1.08] font-extrabold tracking-[-0.02em] break-words text-balance">
-			{editing ? 'Edit session' : run.name}
+			{run.name}
 		</h1>
 		<div class="px-4">
 			<FormError message={error} />
 		</div>
-		{#if editing}
-			<div class="px-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
-				<p class="px-1 pt-1 text-xs font-semibold text-ink-2">Remove with −. Done exercises keep their sets.</p>
+		<div class="flex flex-col px-4 {run.finished_at ? 'pb-[calc(env(safe-area-inset-bottom)+1.5rem)]' : 'pb-6'}">
+			<section class="rounded-3xl bg-(--glass) px-5 pt-4 pb-[18px]">
+				<p class="flex flex-wrap justify-between gap-x-3 font-[family-name:var(--font-digits)] text-sm font-bold tracking-[0.1em] text-(--fg2)">
+					<span>{finished} OF {steps.length} DONE</span>
+					<span>{run.finished_at ? 'FINISHED' : section >= 0 ? `SECTION ${section + 1} OF ${run.sections.length}` : 'ALL DONE'}</span>
+				</p>
+				<div
+					class="mt-3.5 flex gap-1.5"
+					role="progressbar"
+					aria-valuemin={0}
+					aria-valuemax={steps.length}
+					aria-valuenow={finished}
+				>
+					{#each run.sections as s, i (i)}
+						<span class="h-2 flex-1 overflow-hidden rounded-full {marks[i] === 'done' ? 'bg-rest-on-hero' : 'bg-well'}">
+							{#if marks[i] === 'now'}
+								<span class="block h-full rounded-full bg-tint" style="width: {sectionShare(s) * 100}%"></span>
+							{/if}
+						</span>
+					{/each}
+				</div>
+			</section>
+
+			{#if remind}
+				<div class="mt-2.5 rounded-3xl bg-(--glass) px-4 pt-3.5 pb-4 shadow-[0_0_0_2px_var(--tint)]">
+					<p class="text-[17px] font-extrabold">
+						{unpicked.length === 1 ? '1 pick to make' : `${unpicked.length} picks to make`}
+					</p>
+					<p class="mt-0.5 truncate text-sm font-semibold text-ink-2">{unpicked.map((c) => c.name).join(' · ')}</p>
+					<div class="mt-3 grid grid-cols-[1fr_1.4fr] gap-2.5">
+						<button type="button" class="flex h-14 items-center justify-center rounded-full bg-(--glass) text-[15px] font-bold text-ink active:opacity-80" onclick={() => (later = true)}>Later</button>
+						<Button href={stopHref(run.id, { choice: unpicked[0] })}>Pick now</Button>
+					</div>
+				</div>
+			{/if}
+
+			<ol class="mt-1.5">
 				{#each run.sections as s, i (i)}
-					<div class="flex items-baseline gap-2.5 px-1 pt-[18px] pb-2">
-						<h2 class="min-w-0 truncate text-xl leading-[1.15] font-bold tracking-[-0.01em]">{s.name}</h2>
+					{@const m = marks[i]}
+					{@const open = isOpen(i)}
+					<li class="relative">
+						{#if i < run.sections.length - 1}
+							<span
+								aria-hidden="true"
+								class="absolute top-[26px] -bottom-[26px] left-[14.75px] border-l-[2.5px] {m === 'done'
+									? 'border-rest-on-hero/60'
+									: 'border-dotted border-ink-3 opacity-70'}"
+							></span>
+						{/if}
 						<button
 							type="button"
-							class="ml-auto flex shrink-0 items-center gap-1 text-[15px] font-bold text-ink active:opacity-70"
-							aria-label="Add an exercise to {s.name}"
-							onclick={() => openLibrary(i)}
+							class="relative flex w-full items-center gap-3.5 pr-1 text-left {m === 'now' ? 'h-11' : 'h-[52px]'}"
+							aria-expanded={open}
+							onclick={() => (chosen[i] = !isOpen(i))}
 						>
-							<Icon name="plus" size="1rem" />
-							Add
-						</button>
-					</div>
-					{#if s.items.length}
-						<ul class="rounded-3xl bg-(--glass) py-1">
-							{#each s.items as item, j (item.step?.id ?? item.choice?.id ?? j)}
-								{#if item.step}
-									{@const reached = item.step.status !== null}
-									{#if j > 0 && s.items[j - 1].choice}
-										<li class="px-3.5 pt-2.5 pb-0.5 text-xs font-semibold tracking-[0.06em] text-ink-3 uppercase">Then</li>
-									{/if}
-									<li class="flex min-h-14 items-center gap-3 px-3.5 py-2.5 {j > 0 && s.items[j - 1].step ? 'shadow-[inset_0_1px_0_var(--line)]' : ''}">
-										{#if reached}
-											<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-rest-on-hero text-on-tint">
-												<Icon name="check" size="1rem" />
-											</span>
-										{:else}
-											{@render remove(`Remove ${item.step.name}`, () => openRun.removeStep(item.step!.id))}
-										{/if}
-										<span class="min-w-0 flex-1">
-											<span class="block truncate text-[15px] font-bold {reached ? 'text-ink-2' : ''}">{item.step.name}</span>
-											<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
-												{item.step.status === 'skipped' ? 'Skipped' : stepMeta(item.step)}
-											</span>
-										</span>
-									</li>
-								{:else}
-									{@const c = item.choice}
-									<li class="px-3.5 pt-2.5 pb-0.5 text-xs font-semibold tracking-[0.06em] text-ink-3 uppercase">
-										{choiceMeta(c)}
-									</li>
-									{#each c.options as o, k (k)}
-										<li class="flex min-h-14 items-center gap-3 px-3.5 py-2.5 {k > 0 ? 'shadow-[inset_0_1px_0_var(--line)]' : ''}">
-											{@render remove(`Remove ${o.name}`, () => openRun.removeOption(c.id, k))}
-											<span class="min-w-0 flex-1">
-												<span class="block truncate text-[15px] font-bold">{o.name}</span>
-												<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{stepMeta(o)}</span>
-											</span>
-										</li>
-									{/each}
-								{/if}
-							{/each}
-						</ul>
-					{/if}
-				{/each}
-				<div class="mt-5">
-					<Button variant="secondary" onclick={() => (naming = true)}>
-						<Icon name="plus" />
-						Add section
-					</Button>
-				</div>
-			</div>
-		{:else}
-			<div class="flex flex-col px-4 {run.finished_at ? 'pb-[calc(env(safe-area-inset-bottom)+1.5rem)]' : 'pb-6'}">
-				<section class="rounded-3xl bg-(--glass) px-5 pt-4 pb-[18px]">
-					<p class="flex flex-wrap justify-between gap-x-3 font-[family-name:var(--font-digits)] text-sm font-bold tracking-[0.1em] text-(--fg2)">
-						<span>{finished} OF {steps.length} DONE</span>
-						<span>{run.finished_at ? 'FINISHED' : section >= 0 ? `SECTION ${section + 1} OF ${run.sections.length}` : 'ALL DONE'}</span>
-					</p>
-					<div
-						class="mt-3.5 flex gap-1.5"
-						role="progressbar"
-						aria-valuemin={0}
-						aria-valuemax={steps.length}
-						aria-valuenow={finished}
-					>
-						{#each run.sections as s, i (i)}
-							<span class="h-2 flex-1 overflow-hidden rounded-full {marks[i] === 'done' ? 'bg-rest-on-hero' : 'bg-well'}">
-								{#if marks[i] === 'now'}
-									<span class="block h-full rounded-full bg-tint" style="width: {sectionShare(s) * 100}%"></span>
+							<SessionDot mark={m} />
+							<span class="min-w-0 flex-1">
+								<span class="block truncate text-[15px] font-bold">{s.name}</span>
+								{#if m !== 'now'}
+									<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{caption(s, m)}</span>
 								{/if}
 							</span>
-						{/each}
-					</div>
-				</section>
-
-				{#if remind}
-					<div class="mt-2.5 rounded-3xl bg-(--glass) px-4 pt-3.5 pb-4 shadow-[0_0_0_2px_var(--tint)]">
-						<p class="text-[17px] font-extrabold">
-							{unpicked.length === 1 ? '1 pick to make' : `${unpicked.length} picks to make`}
-						</p>
-						<p class="mt-0.5 truncate text-sm font-semibold text-ink-2">{unpicked.map((c) => c.name).join(' · ')}</p>
-						<div class="mt-3 grid grid-cols-[1fr_1.4fr] gap-2.5">
-							<button type="button" class="flex h-14 items-center justify-center rounded-full bg-(--glass) text-[15px] font-bold text-ink active:opacity-80" onclick={() => (later = true)}>Later</button>
-							<Button href={stopHref(run.id, { choice: unpicked[0] })}>Pick now</Button>
-						</div>
-					</div>
-				{/if}
-
-				<ol class="mt-1.5">
-					{#each run.sections as s, i (i)}
-						{@const m = marks[i]}
-						{@const open = isOpen(i)}
-						<li class="relative">
-							{#if i < run.sections.length - 1}
-								<span
-									aria-hidden="true"
-									class="absolute top-[26px] -bottom-[26px] left-[14.75px] border-l-[2.5px] {m === 'done'
-										? 'border-rest-on-hero/60'
-										: 'border-dotted border-ink-3 opacity-70'}"
-								></span>
-							{/if}
-							<button
-								type="button"
-								class="relative flex w-full items-center gap-3.5 pr-1 text-left {m === 'now' ? 'h-11' : 'h-[52px]'}"
-								aria-expanded={open}
-								onclick={() => (chosen[i] = !isOpen(i))}
-							>
-								<SessionDot mark={m} />
-								<span class="min-w-0 flex-1">
-									<span class="block truncate text-[15px] font-bold">{s.name}</span>
-									{#if m !== 'now'}
-										<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{caption(s, m)}</span>
-									{/if}
-								</span>
-								{#if m === 'now'}
-									<span class="shrink-0 rounded-[10px] bg-tint px-2.5 py-1 text-xs font-bold text-on-tint">You are here</span>
-								{:else}
-									{#if m === 'done'}
-										<span class="flex shrink-0 gap-1" aria-hidden="true">
-											{#each s.items as it, k (k)}
-												<span
-													class="size-[7px] rounded-full {it.step?.status === 'skipped'
-														? 'border-[1.5px] border-ink-3'
-														: 'bg-rest-on-hero'}"
-												></span>
-											{/each}
-										</span>
-									{/if}
-									<span class="text-ink-3 transition-transform {open ? 'rotate-90' : ''}">
-										<Icon name="chevron-right" size="1.125rem" />
+							{#if m === 'now'}
+								<span class="shrink-0 rounded-[10px] bg-tint px-2.5 py-1 text-xs font-bold text-on-tint">You are here</span>
+							{:else}
+								{#if m === 'done'}
+									<span class="flex shrink-0 gap-1" aria-hidden="true">
+										{#each s.items as it, k (k)}
+											<span
+												class="size-[7px] rounded-full {it.step?.status === 'skipped'
+													? 'border-[1.5px] border-ink-3'
+													: 'bg-rest-on-hero'}"
+											></span>
+										{/each}
 									</span>
 								{/if}
-							</button>
-
-							{#if open && (s.items.length || !run.finished_at)}
-								<ul class="relative mb-1 ml-[46px] rounded-3xl bg-(--glass) p-2.5 pb-2">
-									{#each s.items as item, j (item.step?.id ?? item.choice?.id ?? j)}
-										<li class="flex items-center [&:not(:first-child)]:mt-1 list-row">
-											{#if item.step}
-												{@const sm = mark(item.step)}
-												{@const movable = item.step.status === null && !run.finished_at}
-												<a href="/run/{run.id}/step/{item.step.id}" class="flex min-w-0 flex-1 items-center gap-3 px-1 py-2.5">
-													<SessionDot mark={sm} small />
-													<span class="min-w-0 flex-1">
-														<span
-															class="block truncate text-[15px] font-bold {sm === 'skipped'
-																? 'text-ink-2 line-through'
-																: sm === 'done'
-																	? 'text-ink-2'
-																	: ''}"
-														>
-															{item.step.name}
-														</span>
-														<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{stepMeta(item.step)}</span>
-														{#if sm === 'now' && item.step.sets && item.step.kind !== 'climbing'}
-															{@const logged = setsOf(run, item.step.id).length}
-															<span class="mt-2 flex items-center gap-1">
-																{#each Array.from({ length: item.step.sets }, (_, n) => n) as n (n)}
-																	<span
-																		class="size-2 rounded-full {n < logged
-																			? 'bg-rest-on-hero'
-																			: n === logged
-																				? 'bg-tint'
-																				: 'bg-well'}"
-																	></span>
-																{/each}
-																{#if logged < item.step.sets}
-																	<span class="ml-0.5 text-xs font-bold">Set {logged + 1} next</span>
-																{/if}
-															</span>
-														{/if}
-													</span>
-													{#if !movable}
-														<span class="text-ink-3"><Icon name="chevron-right" size="1.125rem" /></span>
-													{/if}
-												</a>
-												{#if movable}
-													{@const id = item.step.id}
-													<Menu
-														label="Actions for {item.step.name}"
-														look="bg-(--glass) text-on-hero"
-														items={[
-															...(i > 0 || j > 0 ? [{ label: 'Move up', onclick: () => shift(id, -1) }] : []),
-															...(i < run.sections.length - 1 || j < s.items.length - 1
-																? [{ label: 'Move down', onclick: () => shift(id, 1) }]
-																: []),
-															{ label: 'Remove', danger: true, onclick: () => openRun.removeStep(id) }
-														]}
-													/>
-												{/if}
-											{:else}
-												{@const c = item.choice}
-												<div id="pick-{c.id}" class="w-full scroll-mt-20 pt-0.5 pb-1">
-													<p class="px-1 pt-0.5 pb-2 text-xs font-semibold tracking-[0.06em] text-ink-2 uppercase">
-														{c.name} · {choiceMeta(c)}
-													</p>
-													<div>
-														{#each c.options as o, k (k)}
-															{@const on = choosing === c.id && picked.includes(k)}
-															{@const thumb = o.media.find((md) => md.thumb_url)?.thumb_url}
-															<div class="flex items-center gap-3 px-1 {k > 0 ? 'shadow-[inset_0_1px_0_var(--line)]' : ''}">
-																<button
-																	type="button"
-																	class="relative flex size-7 shrink-0 items-center justify-center rounded-full before:absolute before:-inset-2 before:content-[''] {on
-																		? 'bg-tint text-on-tint'
-																		: 'shadow-[inset_0_0_0_2px_var(--ink-3)]'}"
-																	aria-pressed={on}
-																	aria-label="Pick {o.name}"
-																	onclick={() => toggle(c.id, k)}
-																>
-																	{#if on}
-																		<Icon name="check" size="1rem" stroke={3} />
-																	{/if}
-																</button>
-																<button
-																	type="button"
-																	class="flex min-h-[60px] min-w-0 flex-1 items-center gap-3 py-2 text-left"
-																	onclick={() => preview(c, k)}
-																>
-																	{#if thumb}
-																		<img src={thumb} alt="" class="size-11 shrink-0 rounded-xl object-cover" />
-																	{/if}
-																	<span class="min-w-0 flex-1">
-																		<span class="block truncate text-[15px] font-bold">{o.name}</span>
-																		<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{stepMeta(o)}</span>
-																	</span>
-																	<span class="text-ink-3"><Icon name="chevron-right" size="1.125rem" /></span>
-																</button>
-															</div>
-														{/each}
-													</div>
-													{#if choosing === c.id}
-														<div class="mt-2.5">
-															<Button
-																disabled={picked.length < Math.max(1, c.pick)}
-																onclick={() => pick(c.id, picked.map((k) => c.options[k]))}
-															>
-																Use {picked.length === 1 ? 'this' : 'these'}
-															</Button>
-														</div>
-													{/if}
-												</div>
-											{/if}
-										</li>
-									{/each}
-									{#if !run.finished_at}
-										<li class="[&:not(:first-child)]:mt-1 list-row">
-											<button type="button" class="flex w-full items-center gap-3 px-1 py-2.5 text-[15px] font-bold text-on-hero" onclick={() => openLibrary(i)}>
-												{@render tile('plus')}Add exercise
-											</button>
-										</li>
-									{/if}
-								</ul>
+								<span class="text-ink-3 transition-transform {open ? 'rotate-90' : ''}">
+									<Icon name="chevron-right" size="1.125rem" />
+								</span>
 							{/if}
-						</li>
-					{/each}
-				</ol>
+						</button>
 
-				{#if !run.finished_at}
-					<div class="mt-5 flex flex-col gap-2.5">
-						{#if !run.sections.length}
-							<Button variant="secondary" onclick={() => openLibrary()}>{@render tile('plus')}Add exercise</Button>
+						{#if open && (s.items.length || !run.finished_at)}
+							<ul class="relative mb-1 ml-[46px] rounded-3xl bg-(--glass) p-2.5 pb-2">
+								{#each s.items as item, j (item.step?.id ?? item.choice?.id ?? j)}
+									<li class="flex items-center [&:not(:first-child)]:mt-1 list-row">
+										{#if item.step}
+											{@const sm = mark(item.step)}
+											{@const movable = item.step.status === null && !run.finished_at}
+											<a href="/run/{run.id}/step/{item.step.id}" class="flex min-w-0 flex-1 items-center gap-3 px-1 py-2.5">
+												<SessionDot mark={sm} small />
+												<span class="min-w-0 flex-1">
+													<span
+														class="block truncate text-[15px] font-bold {sm === 'skipped'
+															? 'text-ink-2 line-through'
+															: sm === 'done'
+																? 'text-ink-2'
+																: ''}"
+													>
+														{item.step.name}
+													</span>
+													<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{stepMeta(item.step)}</span>
+													{#if sm === 'now' && item.step.sets && item.step.kind !== 'climbing'}
+														{@const logged = setsOf(run, item.step.id).length}
+														<span class="mt-2 flex items-center gap-1">
+															{#each Array.from({ length: item.step.sets }, (_, n) => n) as n (n)}
+																<span
+																	class="size-2 rounded-full {n < logged
+																		? 'bg-rest-on-hero'
+																		: n === logged
+																			? 'bg-tint'
+																			: 'bg-well'}"
+																></span>
+															{/each}
+															{#if logged < item.step.sets}
+																<span class="ml-0.5 text-xs font-bold">Set {logged + 1} next</span>
+															{/if}
+														</span>
+													{/if}
+												</span>
+												{#if !movable}
+													<span class="text-ink-3"><Icon name="chevron-right" size="1.125rem" /></span>
+												{/if}
+											</a>
+											{#if movable}
+												{@const id = item.step.id}
+												<Menu
+													label="Actions for {item.step.name}"
+													look="bg-(--glass) text-on-hero"
+													items={[
+														...(i > 0 || j > 0 ? [{ label: 'Move up', onclick: () => shift(id, -1) }] : []),
+														...(i < run.sections.length - 1 || j < s.items.length - 1
+															? [{ label: 'Move down', onclick: () => shift(id, 1) }]
+															: []),
+														{ label: 'Remove', danger: true, onclick: () => openRun.removeStep(id) }
+													]}
+												/>
+											{/if}
+										{:else}
+											{@const c = item.choice}
+											<div id="pick-{c.id}" class="w-full scroll-mt-20 pt-0.5 pb-1">
+												<p class="px-1 pt-0.5 pb-2 text-xs font-semibold tracking-[0.06em] text-ink-2 uppercase">
+													{c.name} · {choiceMeta(c)}
+												</p>
+												<div>
+													{#each c.options as o, k (k)}
+														{@const on = choosing === c.id && picked.includes(k)}
+														{@const thumb = o.media.find((md) => md.thumb_url)?.thumb_url}
+														<div class="flex items-center gap-3 px-1 {k > 0 ? 'shadow-[inset_0_1px_0_var(--line)]' : ''}">
+															<button
+																type="button"
+																class="relative flex size-7 shrink-0 items-center justify-center rounded-full before:absolute before:-inset-2 before:content-[''] {on
+																	? 'bg-tint text-on-tint'
+																	: 'shadow-[inset_0_0_0_2px_var(--ink-3)]'}"
+																aria-pressed={on}
+																aria-label="Pick {o.name}"
+																onclick={() => toggle(c.id, k)}
+															>
+																{#if on}
+																	<Icon name="check" size="1rem" stroke={3} />
+																{/if}
+															</button>
+															<button
+																type="button"
+																class="flex min-h-[60px] min-w-0 flex-1 items-center gap-3 py-2 text-left"
+																onclick={() => preview(c, k)}
+															>
+																{#if thumb}
+																	<img src={thumb} alt="" class="size-11 shrink-0 rounded-xl object-cover" />
+																{/if}
+																<span class="min-w-0 flex-1">
+																	<span class="block truncate text-[15px] font-bold">{o.name}</span>
+																	<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{stepMeta(o)}</span>
+																</span>
+																<span class="text-ink-3"><Icon name="chevron-right" size="1.125rem" /></span>
+															</button>
+														</div>
+													{/each}
+												</div>
+												{#if choosing === c.id}
+													<div class="mt-2.5">
+														<Button
+															disabled={picked.length < Math.max(1, c.pick)}
+															onclick={() => pick(c.id, picked.map((k) => c.options[k]))}
+														>
+															Use {picked.length === 1 ? 'this' : 'these'}
+														</Button>
+													</div>
+												{/if}
+											</div>
+										{/if}
+									</li>
+								{/each}
+								{#if !run.finished_at}
+									<li class="[&:not(:first-child)]:mt-1 list-row">
+										<button type="button" class="flex w-full items-center gap-3 px-1 py-2.5 text-[15px] font-bold text-on-hero" onclick={() => openLibrary(i)}>
+											{@render tile('plus')}Add exercise
+										</button>
+									</li>
+								{/if}
+							</ul>
 						{/if}
-						<Button variant="secondary" onclick={() => (naming = true)}>{@render tile('rows-2')}Add section</Button>
-					</div>
-				{/if}
-			</div>
-		{/if}
+					</li>
+				{/each}
+			</ol>
+
+			{#if !run.finished_at}
+				<div class="mt-5 flex flex-col gap-2.5">
+					{#if !run.sections.length}
+						<Button variant="secondary" onclick={() => openLibrary()}>{@render tile('plus')}Add exercise</Button>
+					{/if}
+					<Button variant="secondary" onclick={() => (naming = true)}>{@render tile('rows-2')}Add section</Button>
+				</div>
+			{/if}
+		</div>
 	</div>
 
 	<Sheet bind:open={picking} eyebrow={into === undefined ? undefined : run.sections[into]?.name} title="Add exercise">
@@ -561,7 +470,7 @@
 		{/if}
 	</Sheet>
 
-	{#if !editing && !run.finished_at && (stop || steps.length)}
+	{#if !run.finished_at && (stop || steps.length)}
 		<div class="shrink-0 rounded-t-[28px] bg-(--dock) px-4 pt-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" role="group" aria-label="Now">
 			{#if stop}
 				<p class="mb-1.5 pl-1 font-[family-name:var(--font-digits)] text-sm font-bold tracking-[0.1em] text-(--fg2)">NOW</p>
