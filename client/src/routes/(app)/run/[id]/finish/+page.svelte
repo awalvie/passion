@@ -81,7 +81,7 @@
 	<label class="flex flex-col gap-2 px-4 py-3.5 list-row">
 		<span class="text-[15px] font-bold">{label}</span>
 		<textarea
-			class="min-h-20 rounded-2xl bg-well p-3 text-[15px] font-medium text-ink outline-none"
+			class="input min-h-20"
 			{value}
 			oninput={(e) => set(e.currentTarget.value)}
 		></textarea>
