@@ -261,6 +261,30 @@ class OpenRun {
 		this.saveBody();
 	}
 
+	// moveStep puts a step at `index` in `section`, counted after it is taken
+	// out of its place.
+	moveStep(id: string, section: number, index: number) {
+		const run = this.run!;
+		const from = run.sections.find((s) => s.items.some((it) => it.step?.id === id))!;
+		const at = from.items.findIndex((it) => it.step?.id === id);
+		const [item] = from.items.splice(at, 1);
+		run.sections[section].items.splice(index, 0, item);
+		this.saveBody();
+	}
+
+	// shiftStep moves a step one place up or down. Past the edge of its
+	// section it goes to the end of the section before, or the start of the
+	// one after.
+	shiftStep(id: string, by: -1 | 1) {
+		const sections = this.run!.sections;
+		const s = sections.findIndex((x) => x.items.some((it) => it.step?.id === id));
+		const at = sections[s].items.findIndex((it) => it.step?.id === id);
+		const inside = at + by >= 0 && at + by < sections[s].items.length;
+		if (inside) this.moveStep(id, s, at + by);
+		else if (by < 0) this.moveStep(id, s - 1, sections[s - 1].items.length);
+		else this.moveStep(id, s + 1, 0);
+	}
+
 	// removeOption drops one option of a choice not yet picked. The last
 	// option takes the choice with it.
 	removeOption(choiceId: string, k: number) {

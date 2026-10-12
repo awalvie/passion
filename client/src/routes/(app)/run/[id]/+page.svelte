@@ -132,7 +132,20 @@
 	// A link to a choice opens its section too.
 	const asked = $derived(page.url.hash.startsWith('#pick-') ? page.url.hash.slice(6) : '');
 	const askedIn = $derived(run.sections.findIndex((s) => s.items.some((it) => it.choice?.id === asked)));
-	const isOpen = (i: number) => chosen[i] ?? (i === section || i === askedIn);
+	// A step moved into another section opens that section, so it does not
+	// vanish into a folded one.
+	let moved = $state(-1);
+	const isOpen = (i: number) => chosen[i] ?? (i === section || i === askedIn || i === moved);
+
+	function landed(id: string) {
+		moved = run.sections.findIndex((s) => s.items.some((it) => it.step?.id === id));
+		delete chosen[moved];
+	}
+
+	function shift(id: string, by: -1 | 1) {
+		openRun.shiftStep(id, by);
+		landed(id);
+	}
 
 	// Choices still to pick, asked about until a step is logged or skipped.
 	let later = $state(false);
@@ -355,10 +368,11 @@
 							{#if open && s.items.length}
 								<ul class="relative mb-1 ml-[46px] rounded-3xl bg-(--glass) p-2.5 pb-2">
 									{#each s.items as item, j (item.step?.id ?? item.choice?.id ?? j)}
-										<li class="[&:not(:first-child)]:mt-1 list-row">
+										<li class="flex items-center [&:not(:first-child)]:mt-1 list-row">
 											{#if item.step}
 												{@const sm = mark(item.step)}
-												<a href="/run/{run.id}/step/{item.step.id}" class="flex items-center gap-3 px-1 py-2.5">
+												{@const movable = item.step.status === null && !run.finished_at}
+												<a href="/run/{run.id}/step/{item.step.id}" class="flex min-w-0 flex-1 items-center gap-3 px-1 py-2.5">
 													<SessionDot mark={sm} small />
 													<span class="min-w-0 flex-1">
 														<span
@@ -389,11 +403,27 @@
 															</span>
 														{/if}
 													</span>
-													<span class="text-ink-3"><Icon name="chevron-right" size="1.125rem" /></span>
+													{#if !movable}
+														<span class="text-ink-3"><Icon name="chevron-right" size="1.125rem" /></span>
+													{/if}
 												</a>
+												{#if movable}
+													{@const id = item.step.id}
+													<Menu
+														label="Actions for {item.step.name}"
+														look="bg-(--glass) text-on-hero"
+														items={[
+															...(i > 0 || j > 0 ? [{ label: 'Move up', onclick: () => shift(id, -1) }] : []),
+															...(i < run.sections.length - 1 || j < s.items.length - 1
+																? [{ label: 'Move down', onclick: () => shift(id, 1) }]
+																: []),
+															{ label: 'Remove', danger: true, onclick: () => openRun.removeStep(id) }
+														]}
+													/>
+												{/if}
 											{:else}
 												{@const c = item.choice}
-												<div id="pick-{c.id}" class="scroll-mt-20 pt-0.5 pb-1">
+												<div id="pick-{c.id}" class="w-full scroll-mt-20 pt-0.5 pb-1">
 													<p class="px-1 pt-0.5 pb-2 text-xs font-semibold tracking-[0.06em] text-ink-2 uppercase">
 														{c.name} · {choiceMeta(c)}
 													</p>
