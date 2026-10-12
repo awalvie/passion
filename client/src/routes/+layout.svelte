@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { beforeNavigate, onNavigate } from '$app/navigation';
 	import { navigating } from '$app/state';
-	import favicon from '$lib/assets/favicon.svg';
 	import EdgeBack from '$lib/EdgeBack.svelte';
 	import { tabOf, tabs } from '$lib/tabs';
 	import '../app.css';
@@ -73,10 +72,6 @@
 
 <!-- iOS Safari applies :active only on a page that listens for touches. -->
 <svelte:body ontouchstart={() => {}} />
-
-<svelte:head>
-	<link rel="icon" href={favicon} />
-</svelte:head>
 
 {#if outline}
 	<div
