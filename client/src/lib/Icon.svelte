@@ -142,6 +142,10 @@
 			['path', { d: 'M18 6 6 18' }],
 			['path', { d: 'm6 6 12 12' }]
 		],
+		'rows-2': [
+			['rect', { width: '18', height: '18', x: '3', y: '3', rx: '2' }],
+			['path', { d: 'M3 12h18' }]
+		],
 		ellipsis: [
 			['circle', { cx: '12', cy: '12', r: '1' }],
 			['circle', { cx: '19', cy: '12', r: '1' }],

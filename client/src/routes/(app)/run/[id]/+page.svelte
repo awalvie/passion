@@ -5,7 +5,7 @@
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
 	import FormError from '$lib/FormError.svelte';
-	import Icon from '$lib/Icon.svelte';
+	import Icon, { type IconName } from '$lib/Icon.svelte';
 	import Menu from '$lib/Menu.svelte';
 	import {
 		currentStop,
@@ -135,7 +135,9 @@
 	// A step moved into another section opens that section, so it does not
 	// vanish into a folded one.
 	let moved = $state(-1);
-	const isOpen = (i: number) => chosen[i] ?? (i === section || i === askedIn || i === moved);
+	// With every step done, the last section stays open for its Add exercise.
+	const isOpen = (i: number) =>
+		chosen[i] ?? (i === section || i === askedIn || i === moved || (section < 0 && i === run.sections.length - 1 && !run.finished_at));
 
 	function landed(id: string) {
 		moved = run.sections.findIndex((s) => s.items.some((it) => it.step?.id === id));
@@ -184,6 +186,10 @@
 	>
 		<svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12" /></svg>
 	</button>
+{/snippet}
+
+{#snippet tile(icon: IconName)}
+	<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--glass) text-on-hero"><Icon name={icon} size="16px" stroke={2.6} /></span>
 {/snippet}
 
 <svelte:head><title>{run.name}</title></svelte:head>
@@ -365,7 +371,7 @@
 								{/if}
 							</button>
 
-							{#if open && s.items.length}
+							{#if open && (s.items.length || !run.finished_at)}
 								<ul class="relative mb-1 ml-[46px] rounded-3xl bg-(--glass) p-2.5 pb-2">
 									{#each s.items as item, j (item.step?.id ?? item.choice?.id ?? j)}
 										<li class="flex items-center [&:not(:first-child)]:mt-1 list-row">
@@ -476,16 +482,25 @@
 											{/if}
 										</li>
 									{/each}
+									{#if !run.finished_at}
+										<li class="[&:not(:first-child)]:mt-1 list-row">
+											<button type="button" class="flex w-full items-center gap-3 px-1 py-2.5 text-[15px] font-bold text-on-hero" onclick={() => openLibrary(i)}>
+												{@render tile('plus')}Add exercise
+											</button>
+										</li>
+									{/if}
 								</ul>
 							{/if}
 						</li>
 					{/each}
 				</ol>
 
-				{#if run.template === null && !run.finished_at}
-					<div class="mt-5 grid grid-cols-2 gap-2.5">
-						<Button variant="secondary" onclick={() => openLibrary()}>Add exercise</Button>
-						<Button variant="secondary" onclick={() => (naming = true)}>Add section</Button>
+				{#if !run.finished_at}
+					<div class="mt-5 flex flex-col gap-2.5">
+						{#if !run.sections.length}
+							<Button variant="secondary" onclick={() => openLibrary()}>{@render tile('plus')}Add exercise</Button>
+						{/if}
+						<Button variant="secondary" onclick={() => (naming = true)}>{@render tile('rows-2')}Add section</Button>
 					</div>
 				{/if}
 			</div>
