@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"slices"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -18,7 +19,7 @@ func mapTree(name string, files map[string]string) Tree {
 
 func readOne(t *testing.T, body string) Exercise {
 	t.Helper()
-	got, _, err := Read(mapTree("mine", map[string]string{"movements/hang.yaml": body}))
+	got, err := Read(mapTree("mine", map[string]string{"movements/hang.yaml": body}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +89,7 @@ func TestHashFollowsContent(t *testing.T) {
 		}
 	}
 
-	renamed, _, err := Read(mapTree("mine", map[string]string{"movements/long_hang.yaml": "id: " + hangID + "\nname: Hang\nstyle: open\n"}))
+	renamed, err := Read(mapTree("mine", map[string]string{"movements/long_hang.yaml": "id: " + hangID + "\nname: Hang\nstyle: open\n"}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,20 +98,20 @@ func TestHashFollowsContent(t *testing.T) {
 	}
 }
 
-func TestReadWarnsOnKeysItDoesNotStore(t *testing.T) {
-	_, warnings, err := Read(mapTree("mine", map[string]string{
-		"movements/hang.yaml": "id: " + hangID + "\nname: Hang\nstyle: timed_reps\nper_side: true\nsets: 3\nper_set:\n    - seconds: 3\n    - seconds: 6\n",
-	}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if strings.Join(warnings, "\n") != "mine: movements/hang.yaml: per_set is not stored yet" {
-		t.Fatalf("warnings %q", warnings)
+func TestReadLadderSetsTheReps(t *testing.T) {
+	ladder := "id: " + hangID + "\nname: Hang\nstyle: timed_reps\nsets: 3\nladder: [3, 6, 9]\n"
+	for _, body := range []string{ladder, ladder + "reps: 3\n"} {
+		f := readOne(t, body).Fields
+		if !slices.Equal(f.Ladder, []int{3, 6, 9}) || f.Reps == nil || *f.Reps != 3 {
+			t.Fatalf("ladder %v, reps %v", f.Ladder, f.Reps)
+		}
 	}
 }
 
 func TestReadRefuses(t *testing.T) {
 	good := "id: " + hangID + "\nname: Hang\nstyle: open\n"
+	timed := "id: " + hangID + "\nname: Hang\nstyle: timed_reps\n"
+	ladder := timed + "ladder: [3, 6, 9]\n"
 	cases := map[string]struct {
 		files map[string]string
 		want  string
@@ -123,6 +124,11 @@ func TestReadRefuses(t *testing.T) {
 		"no name":         {map[string]string{"movements/hang.yaml": "id: " + hangID + "\nstyle: open\n"}, "name is required"},
 		"negative number": {map[string]string{"movements/hang.yaml": good + "seconds: -1\n"}, "seconds cannot be negative"},
 		"script link":     {map[string]string{"movements/hang.yaml": good + "media:\n  - url: javascript:alert(1)\n"}, "media[0] must hold only http or https links"},
+		"ladder and reps": {map[string]string{"movements/hang.yaml": ladder + "reps: 5\n"}, "reps must match the ladder"},
+		"ladder and time": {map[string]string{"movements/hang.yaml": ladder + "rep_seconds: 10\n"}, "ladder cannot be set with rep_seconds"},
+		"zero in ladder":  {map[string]string{"movements/hang.yaml": timed + "ladder: [3, 0, 9]\n"}, "ladder cannot hold a time under 1 second"},
+		"untimed ladder":  {map[string]string{"movements/hang.yaml": good + "ladder: [3, 6, 9]\n"}, "ladder only goes with timed_reps"},
+		"old per_set":     {map[string]string{"movements/hang.yaml": good + "per_set:\n  - seconds: 3\n"}, "field per_set not found"},
 		"two documents":   {map[string]string{"movements/hang.yaml": good + "---\nname: Other\n"}, "more than one document"},
 		"empty file":      {map[string]string{"movements/hang.yaml": ""}, "the file is empty"},
 		"a subdirectory":  {map[string]string{"movements/hang.yaml": good, "movements/old/pull.yaml": good}, "movements/old: a directory"},
@@ -130,7 +136,7 @@ func TestReadRefuses(t *testing.T) {
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			_, _, err := Read(mapTree("mine", c.files))
+			_, err := Read(mapTree("mine", c.files))
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("error %v, want one mentioning %q", err, c.want)
 			}
@@ -145,7 +151,7 @@ func TestReadFindsClashesAcrossTrees(t *testing.T) {
 
 	t.Run("same id", func(t *testing.T) {
 		b := mapTree("kettle", map[string]string{"movements/long_hang.yaml": "id: " + hangID + "\nname: Long Hang\nstyle: open\n"})
-		_, _, err := Read(a, b)
+		_, err := Read(a, b)
 		if err == nil || !strings.Contains(err.Error(), "paradigm: movements/hang.yaml and kettle: movements/long_hang.yaml: the same id") {
 			t.Fatalf("error %v", err)
 		}
@@ -153,7 +159,7 @@ func TestReadFindsClashesAcrossTrees(t *testing.T) {
 
 	t.Run("same name", func(t *testing.T) {
 		b := mapTree("kettle", map[string]string{"movements/hang.yaml": "id: 11111111-1111-4111-8111-111111111111\nname: Hang\nstyle: open\n"})
-		_, _, err := Read(a, b)
+		_, err := Read(a, b)
 		if err == nil || !strings.Contains(err.Error(), "paradigm: movements/hang.yaml and kettle: movements/hang.yaml: the same file name") {
 			t.Fatalf("error %v", err)
 		}
@@ -161,7 +167,7 @@ func TestReadFindsClashesAcrossTrees(t *testing.T) {
 }
 
 func TestReadReportsEveryBadFile(t *testing.T) {
-	_, _, err := Read(mapTree("mine", map[string]string{
+	_, err := Read(mapTree("mine", map[string]string{
 		"movements/a.yaml": "name: A\nstyle: open\n",
 		"movements/b.yaml": "name: B\nstyle: open\n",
 	}))

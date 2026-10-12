@@ -46,21 +46,15 @@ type movementFile struct {
 		ThumbURL *string `yaml:"thumb_url"`
 	} `yaml:"media"`
 
-	Sets           *int `yaml:"sets"`
-	Reps           *int `yaml:"reps"`
-	SetRestSeconds *int `yaml:"set_rest_seconds"`
-	RepSeconds     *int `yaml:"rep_seconds"`
-	RepRestSeconds *int `yaml:"rep_rest_seconds"`
-	PrepSeconds    *int `yaml:"prep_seconds"`
-	Seconds        *int `yaml:"seconds"`
-	PerSide        bool `yaml:"per_side"`
-
-	// Read so that a tree using it loads, but not stored yet.
-	PerSet []struct {
-		Reps     *int     `yaml:"reps"`
-		WeightKG *float64 `yaml:"weight_kg"`
-		Seconds  *int     `yaml:"seconds"`
-	} `yaml:"per_set"`
+	Sets           *int  `yaml:"sets"`
+	Reps           *int  `yaml:"reps"`
+	SetRestSeconds *int  `yaml:"set_rest_seconds"`
+	RepSeconds     *int  `yaml:"rep_seconds"`
+	RepRestSeconds *int  `yaml:"rep_rest_seconds"`
+	PrepSeconds    *int  `yaml:"prep_seconds"`
+	Seconds        *int  `yaml:"seconds"`
+	PerSide        bool  `yaml:"per_side"`
+	Ladder         []int `yaml:"ladder"`
 }
 
 // fileKeys names a Clean problem by the key the file spells it with.
@@ -77,11 +71,9 @@ var (
 // Read reads the movements/ files of every tree one owner loads. They are read
 // together because the owner's rows share one set of slugs and file ids, so a
 // clash between two trees is as fatal as one inside a tree. Every problem is
-// reported, not just the first. The warnings name keys that were read but are
-// not stored yet.
-func Read(trees ...Tree) ([]Exercise, []string, error) {
+// reported, not just the first.
+func Read(trees ...Tree) ([]Exercise, error) {
 	var exercises []Exercise
-	var warnings []string
 	var problems []error
 
 	for _, tree := range trees {
@@ -91,13 +83,10 @@ func Read(trees ...Tree) ([]Exercise, []string, error) {
 			continue
 		}
 		for _, rel := range entries {
-			e, warn, err := readFile(tree, rel)
+			e, err := readFile(tree, rel)
 			if err != nil {
 				problems = append(problems, fmt.Errorf("%s: %s: %w", tree.Name, rel, err))
 				continue
-			}
-			for _, w := range warn {
-				warnings = append(warnings, fmt.Sprintf("%s: %s: %s", tree.Name, rel, w))
 			}
 			exercises = append(exercises, e)
 		}
@@ -105,20 +94,20 @@ func Read(trees ...Tree) ([]Exercise, []string, error) {
 
 	problems = append(problems, clashes(exercises)...)
 	if len(problems) > 0 {
-		return nil, warnings, errors.Join(problems...)
+		return nil, errors.Join(problems...)
 	}
-	return exercises, warnings, nil
+	return exercises, nil
 }
 
-func readFile(tree Tree, rel string) (Exercise, []string, error) {
+func readFile(tree Tree, rel string) (Exercise, error) {
 	slug := strings.TrimSuffix(path.Base(rel), ".yaml")
 
 	var f movementFile
 	if err := decodeFile(tree, rel, &f); err != nil {
-		return Exercise{}, nil, err
+		return Exercise{}, err
 	}
 	if err := checkID(f.ID); err != nil {
-		return Exercise{}, nil, err
+		return Exercise{}, err
 	}
 	id := strings.ToLower(f.ID)
 
@@ -136,6 +125,7 @@ func readFile(tree Tree, rel string) (Exercise, []string, error) {
 		PrepSeconds:     f.PrepSeconds,
 		DurationSeconds: f.Seconds,
 		PerSide:         f.PerSide,
+		Ladder:          f.Ladder,
 	}
 	for _, m := range f.Media {
 		fields.Media = append(fields.Media, db.Media{URL: m.URL, ThumbURL: m.ThumbURL})
@@ -152,12 +142,7 @@ func readFile(tree Tree, rel string) (Exercise, []string, error) {
 			msgs = append(msgs, key+" "+msg)
 		}
 		sort.Strings(msgs)
-		return Exercise{}, nil, errors.New(strings.Join(msgs, ", "))
-	}
-
-	var warnings []string
-	if f.PerSet != nil {
-		warnings = append(warnings, "per_set is not stored yet")
+		return Exercise{}, errors.New(strings.Join(msgs, ", "))
 	}
 
 	return Exercise{
@@ -167,7 +152,7 @@ func readFile(tree Tree, rel string) (Exercise, []string, error) {
 		Slug:   slug,
 		Fields: fields,
 		Hash:   Hash(slug, fields),
-	}, warnings, nil
+	}, nil
 }
 
 // clashes finds two files that would claim one row or one name.

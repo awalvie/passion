@@ -20,7 +20,7 @@ func movement(id, name string) string {
 // readSessions reads trees as one owner's, with app as the shipped catalog.
 func readSessions(t *testing.T, app *Tree, trees ...Tree) ([]Session, []string, error) {
 	t.Helper()
-	exercises, _, err := Read(trees...)
+	exercises, err := Read(trees...)
 	if err != nil {
 		t.Fatalf("read movements: %v", err)
 	}
@@ -133,12 +133,16 @@ func TestReadSessionsProblems(t *testing.T) {
 		"a missing movement": {withBlock("items:\n    - movement: nope\n"), `items[0]: no movement "nope"`},
 		"a shipped name without app:": {withBlock("items:\n    - movement: max_hangs\n"),
 			`write "app:max_hangs"`},
-		"a block with no items":     {withBlock("items: []\n"), "a block holds at least one"},
-		"a menu with numbers":       {withBlock("items:\n    - menu: {name: M, pick: 1, of: [hang]}\n      sets: 3\n"), "a menu carries no numbers"},
-		"a menu with no pick":       {withBlock("items:\n    - menu: {name: M, of: [hang]}\n"), "items[0].menu.pick: is required"},
-		"a pick above the options":  {withBlock("items:\n    - menu: {name: M, pick: 2, of: [hang]}\n"), "items[0].menu.pick: cannot be more than the options"},
-		"a menu with no name":       {withBlock("items:\n    - menu: {pick: 1, of: [hang]}\n"), "items[0].menu.name: is required"},
-		"a negative override":       {withBlock("items:\n    - movement: hang\n      sets: -1\n"), "items[0].step.sets: cannot be negative"},
+		"a block with no items":    {withBlock("items: []\n"), "a block holds at least one"},
+		"a menu with numbers":      {withBlock("items:\n    - menu: {name: M, pick: 1, of: [hang]}\n      sets: 3\n"), "a menu carries no numbers"},
+		"a menu with no pick":      {withBlock("items:\n    - menu: {name: M, of: [hang]}\n"), "items[0].menu.pick: is required"},
+		"a pick above the options": {withBlock("items:\n    - menu: {name: M, pick: 2, of: [hang]}\n"), "items[0].menu.pick: cannot be more than the options"},
+		"a menu with no name":      {withBlock("items:\n    - menu: {pick: 1, of: [hang]}\n"), "items[0].menu.name: is required"},
+		"a negative override":      {withBlock("items:\n    - movement: hang\n      sets: -1\n"), "items[0].step.sets: cannot be negative"},
+		"reps over a ladder": {map[string]string{
+			"movements/hang.yaml": "id: " + hangID + "\nname: Ladder\nstyle: timed_reps\nladder: [3, 6, 9]\n",
+			"blocks/b.yaml":       "id: " + blockID + "\nname: B\nitems:\n    - movement: hang\n      reps: 5\n",
+		}, "items[0].step.reps: must match the ladder"},
 		"an item that is both":      {withBlock("items:\n    - movement: hang\n      menu: {name: M, pick: 1, of: [hang]}\n"), "not both"},
 		"an unknown key on an item": {withBlock("items:\n    - movement: hang\n      weight_kg: 10\n"), "weight_kg"},
 		"a block with no id":        {map[string]string{"movements/hang.yaml": hang, "blocks/b.yaml": "name: B\nitems:\n    - movement: hang\n"}, "no id:"},

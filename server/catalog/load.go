@@ -104,12 +104,11 @@ func logLoad(log *slog.Logger, owner string, result Result, warnings []string) {
 // shipped catalog, which must have loaded first. Every file is read and
 // checked before anything is written, so a bad file loads nothing at all.
 func Load(ctx context.Context, pool *pgxpool.Pool, owner *string, app *Tree, trees ...Tree) (Result, []string, error) {
-	exercises, warnings, err := Read(trees...)
+	exercises, err := Read(trees...)
 	if err != nil {
-		return Result{}, warnings, err
+		return Result{}, nil, err
 	}
-	sessions, sessionWarnings, err := ReadSessions(app, exercises, trees...)
-	warnings = append(warnings, sessionWarnings...)
+	sessions, warnings, err := ReadSessions(app, exercises, trees...)
 	if err != nil {
 		return Result{}, warnings, err
 	}

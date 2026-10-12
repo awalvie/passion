@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -107,6 +108,21 @@ func TestCreateExercise(t *testing.T) {
 	}
 }
 
+func TestCreateExerciseWithALadder(t *testing.T) {
+	h := newTestServer(t)
+	ada := signedIn(t, h, "ada@example.com")
+
+	got := createExercise(t, h, ada, `{"name":"Ladder","kind":"timed_reps","sets":3,"ladder":[3,6,9]}`)
+	if !slices.Equal(got.Ladder, []int{3, 6, 9}) || got.Reps == nil || *got.Reps != 3 {
+		t.Fatalf("ladder %v, reps %v, want the reps taken from the ladder", got.Ladder, got.Reps)
+	}
+
+	plain := createExercise(t, h, ada, `{"name":"Hang","kind":"timed_reps","ladder":[]}`)
+	if plain.Ladder != nil {
+		t.Fatalf("ladder %v, want an empty one stored as not set", plain.Ladder)
+	}
+}
+
 func TestExerciseValidation(t *testing.T) {
 	h := newTestServer(t)
 	ada := signedIn(t, h, "ada@example.com")
@@ -124,6 +140,10 @@ func TestExerciseValidation(t *testing.T) {
 		"javascript video":  {`{"name":"Hang","kind":"open","media":[{"url":"javascript:alert(1)"}]}`, "media[0]"},
 		"ftp thumbnail":     {`{"name":"Hang","kind":"open","media":[{"url":"https://a.example"},{"thumb_url":"ftp://example.com/a.jpg"}]}`, "media[1]"},
 		"link with no host": {`{"name":"Hang","kind":"open","media":[{"url":"https://"}]}`, "media[0]"},
+		"ladder and time":   {`{"name":"Hang","kind":"timed_reps","ladder":[3,6,9],"rep_seconds":10}`, "ladder"},
+		"ladder and reps":   {`{"name":"Hang","kind":"timed_reps","ladder":[3,6,9],"reps":5}`, "reps"},
+		"zero in ladder":    {`{"name":"Hang","kind":"timed_reps","ladder":[3,0,9]}`, "ladder"},
+		"untimed ladder":    {`{"name":"Hang","kind":"open","ladder":[3,6,9]}`, "ladder"},
 		"old video field":   {`{"name":"Hang","kind":"open","video_url":"https://example.com"}`, "body"},
 		"unknown field":     {`{"name":"Hang","kind":"open","weight_kg":10}`, "body"},
 		"not json":          {`hunter2`, "body"},

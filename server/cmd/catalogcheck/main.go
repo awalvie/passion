@@ -36,10 +36,10 @@ func check(locations ...string) ([]string, error) {
 	}
 	app := catalog.Tree{Name: "catalog", FS: shipped.Files}
 
-	exercises, warnings, err := catalog.Read(trees...)
+	exercises, err := catalog.Read(trees...)
 	if err != nil {
-		return warnings, err
+		return nil, err
 	}
-	_, sessionWarnings, err := catalog.ReadSessions(&app, exercises, trees...)
-	return append(warnings, sessionWarnings...), err
+	_, warnings, err := catalog.ReadSessions(&app, exercises, trees...)
+	return warnings, err
 }

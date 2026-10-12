@@ -59,6 +59,12 @@ type exerciseRequest struct {
 	// True when the numbers count for each side, as in 6 reps per side.
 	PerSide bool `json:"per_side"`
 
+	// The seconds of each rep in a set, when they differ. It sets reps, and
+	// leaves rep_seconds unset.
+	//
+	// example: [3, 6, 9]
+	Ladder []int `json:"ladder"`
+
 	// Clips of the exercise, in order. An entry with neither link is dropped.
 	Media []mediaBody `json:"media"`
 }
@@ -94,14 +100,15 @@ type exerciseResponse struct {
 	Source *string  `json:"source"`
 	Tags   []string `json:"tags"`
 
-	Sets            *int `json:"sets"`
-	Reps            *int `json:"reps"`
-	SetRestSeconds  *int `json:"set_rest_seconds"`
-	RepSeconds      *int `json:"rep_seconds"`
-	RepRestSeconds  *int `json:"rep_rest_seconds"`
-	PrepSeconds     *int `json:"prep_seconds"`
-	DurationSeconds *int `json:"duration_seconds"`
-	PerSide         bool `json:"per_side"`
+	Sets            *int  `json:"sets"`
+	Reps            *int  `json:"reps"`
+	SetRestSeconds  *int  `json:"set_rest_seconds"`
+	RepSeconds      *int  `json:"rep_seconds"`
+	RepRestSeconds  *int  `json:"rep_rest_seconds"`
+	PrepSeconds     *int  `json:"prep_seconds"`
+	DurationSeconds *int  `json:"duration_seconds"`
+	PerSide         bool  `json:"per_side"`
+	Ladder          []int `json:"ladder"`
 
 	Media []mediaBody `json:"media"`
 
@@ -289,6 +296,7 @@ func (req exerciseRequest) fields() db.ExerciseFields {
 		PrepSeconds:     req.PrepSeconds,
 		DurationSeconds: req.DurationSeconds,
 		PerSide:         req.PerSide,
+		Ladder:          req.Ladder,
 		Media:           media,
 	}
 }
@@ -318,6 +326,7 @@ func toExerciseResponse(e db.Exercise) exerciseResponse {
 		PrepSeconds:     e.PrepSeconds,
 		DurationSeconds: e.DurationSeconds,
 		PerSide:         e.PerSide,
+		Ladder:          e.Ladder,
 		Media:           toMediaBodies(e.Media),
 		RetiredAt:       e.RetiredAt,
 	}
