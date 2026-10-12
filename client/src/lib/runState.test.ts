@@ -342,6 +342,50 @@ test('addStep with no section given uses the last one', async () => {
 	expect(items(openRun.run!, 1).at(-1)!.step!.exercise).toBe('ex-row');
 });
 
+const order = (r: Run) => r.sections.map((s) => s.items.map((it) => it.step?.id ?? it.choice!.id));
+
+test('moveStep puts the step at the place given and saves the body', async () => {
+	const openRun = await openOffline();
+
+	openRun.moveStep('s1', 1, 2);
+
+	expect(order(openRun.run!)).toStrictEqual([[], ['s2', 'c1', 's1', 'c2']]);
+	expect(urls(openRun.writes)).toStrictEqual([bodyUrl]);
+});
+
+test('shiftStep moves past a choice as one place', async () => {
+	const openRun = await openOffline();
+
+	openRun.shiftStep('s2', 1);
+
+	expect(order(openRun.run!)).toStrictEqual([['s1'], ['c1', 's2', 'c2']]);
+});
+
+test('shiftStep over the edge of a section moves into the next one', async () => {
+	const openRun = await openOffline();
+
+	openRun.shiftStep('s2', -1);
+	expect(order(openRun.run!)).toStrictEqual([['s1', 's2'], ['c1', 'c2']]);
+
+	openRun.shiftStep('s1', 1);
+	openRun.shiftStep('s1', 1);
+	expect(order(openRun.run!)).toStrictEqual([['s2'], ['s1', 'c1', 'c2']]);
+});
+
+test('shiftStep goes into an empty section next to it', async () => {
+	const openRun = await openOffline();
+	openRun.addSection('Cool-down');
+
+	openRun.shiftStep('s2', -1);
+	openRun.shiftStep('s1', 1);
+	openRun.shiftStep('s1', 1);
+	openRun.shiftStep('s1', 1);
+	openRun.shiftStep('s1', 1);
+	openRun.shiftStep('s1', 1);
+
+	expect(order(openRun.run!)).toStrictEqual([['s2'], ['c1', 'c2'], ['s1']]);
+});
+
 test('addSection adds an empty section at the end', async () => {
 	const openRun = await openOffline();
 
