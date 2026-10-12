@@ -121,7 +121,9 @@ such as the step page or the set card, is drawn.
   say it, for example a shadow that differs by theme.
 - Use `Button`, `NavBar`, `Menu`, `TabBar`, `FormError`, `Section` and `HeroCard` (the
   forest card) from `client/src/lib/`, and the `.input` class for every field and
-  `<select>`. `.live-dot` marks a session that is running. `page-title` and `list-row` are
+  `<select>`. A large free-text note on its own on a card or on the step page's field is the
+  one exception: `bg-surface`, `text-[15px] font-semibold` and `placeholder:text-ink-3`.
+  `.live-dot` marks a session that is running. `page-title` and `list-row` are
   utilities in `app.css`.
 
 ## Before you commit

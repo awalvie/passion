@@ -43,6 +43,8 @@ If a catalog entry cannot meet this, put it in `passion-private-catalog` instead
 
 Use the `.input` class on every field and `<select>`. Never leave one with browser-default styling.
 
+The one exception is a large free-text note that sits on its own on a card or on the step page's field, such as "How did it go?". It uses `bg-surface`, `text-[15px] font-semibold` and `placeholder:text-ink-3`, not `.input`.
+
 ## UX / design decisions
 
 When a UX issue or design question is ambiguous, ask before implementing. Don't pick a direction and build it.
