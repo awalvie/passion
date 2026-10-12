@@ -1,6 +1,6 @@
 <script lang="ts">
 	import FormError from './FormError.svelte';
-	import { formatDate, gridWeeks } from './dates';
+	import { byDate, formatDate, gridWeeks, weekdayLetters } from './dates';
 	import type { Cycle, ScheduledDay } from './plan';
 	import SessionIcon, { iconState } from './SessionIcon.svelte';
 
@@ -21,11 +21,7 @@
 	} = $props();
 
 	const weeks = $derived(gridWeeks(cycle.starts, cycle.ends));
-	const byDate = $derived.by(() => {
-		const m = new Map<string, ScheduledDay[]>();
-		for (const d of days) m.set(d.local_date, [...(m.get(d.local_date) ?? []), d]);
-		return m;
-	});
+	const onDate = $derived(byDate(days, (d) => d.local_date));
 	const inCycle = (date: string) => date >= cycle.starts && date <= cycle.ends;
 
 	let chosen = $state('');
@@ -126,7 +122,7 @@
 		<span class="text-xs font-semibold text-ink-2">{weeks.length === 1 ? '1 week' : `${weeks.length} weeks`}</span>
 	</div>
 	<ol class="mt-3 grid grid-cols-7 text-center text-xs font-bold text-ink-2" aria-hidden="true">
-		{#each ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as d, i (i)}
+		{#each weekdayLetters as d, i (i)}
 			<li>{d}</li>
 		{/each}
 	</ol>
@@ -134,7 +130,7 @@
 		{#each weeks as week (week[0])}
 			<div class="grid grid-cols-7">
 				{#each week as date (date)}
-					{@const list = byDate.get(date) ?? []}
+					{@const list = onDate.get(date) ?? []}
 					<button
 						type="button"
 						data-date={date}
@@ -204,9 +200,9 @@
 		<p class="pt-1 pb-2.5 text-[15px] font-semibold text-ink-2">
 			{over ? `Drop to move ${lifted.template_name} here` : 'Drag onto a day from today on'}
 		</p>
-	{:else if (byDate.get(panel) ?? []).length}
+	{:else if (onDate.get(panel) ?? []).length}
 		<ul>
-			{#each byDate.get(panel) ?? [] as d (d.id)}
+			{#each onDate.get(panel) ?? [] as d (d.id)}
 				<li class="flex min-h-[52px] items-center gap-3 py-2 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 					<SessionIcon icon={d.template_icon} name={d.template_name} state={look(d)} size={32} />
 					<span class="min-w-0 flex-1">

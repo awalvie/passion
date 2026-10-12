@@ -7,6 +7,15 @@ export function addDays(date: string, n: number): string {
 	return d.toISOString().slice(0, 10);
 }
 
+export const weekdayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+// byDate groups items under the date each one names.
+export function byDate<T>(items: T[], date: (t: T) => string): Map<string, T[]> {
+	const m = new Map<string, T[]>();
+	for (const t of items) m.set(date(t), [...(m.get(date(t)) ?? []), t]);
+	return m;
+}
+
 export function mondayOf(date: string): string {
 	const day = new Date(`${date}T00:00:00Z`).getUTCDay();
 	return addDays(date, -((day + 6) % 7));

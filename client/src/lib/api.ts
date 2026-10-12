@@ -42,8 +42,7 @@ export async function request<T>(
 		const hit = kept.get(key);
 		if (hit && Date.now() - hit.at < keepFor) return JSON.parse(hit.text);
 	} else {
-		writes++;
-		kept.clear();
+		forget();
 	}
 
 	const res = await fetch(path, {
@@ -71,10 +70,7 @@ export async function request<T>(
 		throw new RequestFailed(res.status, detail);
 	}
 
-	if (method !== 'GET') {
-		writes++;
-		kept.clear();
-	}
+	if (method !== 'GET') forget();
 	if (res.status === 204) return undefined as T;
 	const text = await res.text();
 	if (method === 'GET' && writes === before) kept.set(key, { at: Date.now(), text });
