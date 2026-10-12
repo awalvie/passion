@@ -68,9 +68,7 @@ var fileKeys = map[string]string{
 	"duration_seconds": "seconds",
 }
 
-var (
-	slugPattern = regexp.MustCompile(`^[a-z0-9_]+$`)
-)
+var slugPattern = regexp.MustCompile(`^[a-z0-9_]+$`)
 
 // Read reads the movements/ files of every tree one owner loads. They are read
 // together because the owner's rows share one set of slugs and file ids, so a
