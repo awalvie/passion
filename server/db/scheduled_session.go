@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -135,8 +134,7 @@ func DeleteScheduledSession(ctx context.Context, pool *pgxpool.Pool, owner, id s
 // template breaks the unique index.
 func oneScheduledSession(rows pgx.Rows) (ScheduledSession, error) {
 	s, err := oneRow[ScheduledSession](rows, ErrNoScheduledSession, "scheduled session")
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == uniqueViolation {
+	if hasCode(err, uniqueViolation) {
 		return ScheduledSession{}, ErrAlreadyScheduled
 	}
 	return s, err

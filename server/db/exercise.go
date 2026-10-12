@@ -11,7 +11,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -106,13 +105,7 @@ func (f ExerciseFields) Clean() (ExerciseFields, map[string]string) {
 		"prep_seconds":     f.PrepSeconds,
 		"duration_seconds": f.DurationSeconds,
 	} {
-		switch {
-		case n == nil:
-		case *n < 0:
-			problems[column] = "cannot be negative"
-		case *n > math.MaxInt32:
-			problems[column] = "is too large"
-		}
+		checkCount(n, column, problems)
 	}
 
 	f = cleanLadder(f, problems)
@@ -214,8 +207,6 @@ func isWebLink(s string) bool {
 // ErrNoExercise covers an exercise that does not exist and one this person
 // cannot see or change.
 var ErrNoExercise = errors.New("no such exercise")
-
-const invalidTextRepresentation = "22P02"
 
 func (f ExerciseFields) args() pgx.NamedArgs {
 	tags := f.Tags
@@ -323,10 +314,4 @@ func RetireExercise(ctx context.Context, pool *pgxpool.Pool, owner, id string) e
 	return execOne(ctx, pool, ErrNoExercise, "retire exercise", `
 		UPDATE exercise SET retired_at = coalesce(retired_at, now())
 		WHERE owner = $1 AND id = $2`, owner, id)
-}
-
-// isInvalidText is true when an id is not a uuid, so it cannot name any row.
-func isInvalidText(err error) bool {
-	var pgErr *pgconn.PgError
-	return errors.As(err, &pgErr) && pgErr.Code == invalidTextRepresentation
 }

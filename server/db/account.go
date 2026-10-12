@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"passion/server/grades"
@@ -64,8 +63,6 @@ var (
 	ErrNoAccount   = errors.New("no such account")
 )
 
-const uniqueViolation = "23505"
-
 // NormaliseEmail is the one place an address is cleaned up. The unique index
 // on lower(email) is the backstop, not the rule.
 func NormaliseEmail(s string) string {
@@ -91,11 +88,10 @@ func CreateAccount(ctx context.Context, pool *pgxpool.Pool, email, passwordHash,
 	}
 
 	account, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[Account])
+	if hasCode(err, uniqueViolation) {
+		return Account{}, ErrEmailTaken
+	}
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == uniqueViolation {
-			return Account{}, ErrEmailTaken
-		}
 		return Account{}, fmt.Errorf("insert account: %w", err)
 	}
 	return account, nil
