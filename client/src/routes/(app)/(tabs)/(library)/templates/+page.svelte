@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { distinct } from '$lib/exercise';
+	import FilterSelect from '$lib/FilterSelect.svelte';
 	import { urlFilters } from '$lib/filters.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import LibrarySearch from '$lib/LibrarySearch.svelte';
@@ -40,20 +41,10 @@
 	{#if sources.length || tags.length || filtered}
 		<div class="flex flex-wrap items-center gap-2">
 			{#if sources.length}
-				<select bind:value={f.source} aria-label="Source" class="input min-h-11 max-w-full min-w-0 flex-1 rounded-full px-4 py-0 font-bold sm:flex-none">
-					<option value="">All sources</option>
-					{#each sources as s (s)}
-						<option value={s}>{s}</option>
-					{/each}
-				</select>
+				<FilterSelect bind:value={f.source} label="Source" all="All sources" options={sources.map((s) => ({ value: s, label: s }))} class="max-w-full flex-1 sm:flex-none" />
 			{/if}
 			{#if tags.length}
-				<select bind:value={f.tag} aria-label="Labels" class="input min-h-11 max-w-full min-w-0 flex-1 rounded-full px-4 py-0 font-bold sm:flex-none">
-					<option value="">All labels</option>
-					{#each tags as t (t)}
-						<option value={t}>{t}</option>
-					{/each}
-				</select>
+				<FilterSelect bind:value={f.tag} label="Labels" all="All labels" options={tags.map((t) => ({ value: t, label: t }))} class="max-w-full flex-1 sm:flex-none" />
 			{/if}
 			{#if filtered}
 				<button type="button" class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-link shadow-card-sm" onclick={clear}>Clear</button>

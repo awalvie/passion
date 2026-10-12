@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { distinct, kindOf, kinds, sourcesOf } from '$lib/exercise';
+	import FilterSelect from '$lib/FilterSelect.svelte';
 	import { urlFilters } from '$lib/filters.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import LibrarySearch from '$lib/LibrarySearch.svelte';
@@ -36,27 +37,12 @@
 
 	<!-- Two selects to a row on a phone: four on one row clip their own text. -->
 	<div class="flex flex-wrap items-center gap-2">
-		<select bind:value={f.kind} aria-label="Type" class="input min-h-11 w-[calc(50%-0.25rem)] min-w-0 rounded-full px-4 py-0 font-bold sm:w-auto">
-			<option value="">All types</option>
-			{#each kinds as k (k.kind)}
-				<option value={k.kind}>{k.label}</option>
-			{/each}
-		</select>
+		<FilterSelect bind:value={f.kind} label="Type" all="All types" options={kinds.map((k) => ({ value: k.kind, label: k.label }))} class="w-[calc(50%-0.25rem)] sm:w-auto" />
 		{#if sources.length}
-			<select bind:value={f.source} aria-label="Source" class="input min-h-11 w-[calc(50%-0.25rem)] min-w-0 rounded-full px-4 py-0 font-bold sm:w-auto">
-				<option value="">All sources</option>
-				{#each sources as s (s)}
-					<option value={s}>{s}</option>
-				{/each}
-			</select>
+			<FilterSelect bind:value={f.source} label="Source" all="All sources" options={sources.map((s) => ({ value: s, label: s }))} class="w-[calc(50%-0.25rem)] sm:w-auto" />
 		{/if}
 		{#if tags.length}
-			<select bind:value={f.tag} aria-label="Labels" class="input min-h-11 w-[calc(50%-0.25rem)] min-w-0 rounded-full px-4 py-0 font-bold sm:w-auto">
-				<option value="">All labels</option>
-				{#each tags as t (t)}
-					<option value={t}>{t}</option>
-				{/each}
-			</select>
+			<FilterSelect bind:value={f.tag} label="Labels" all="All labels" options={tags.map((t) => ({ value: t, label: t }))} class="w-[calc(50%-0.25rem)] sm:w-auto" />
 		{/if}
 		{#if filtered}
 			<button type="button" class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-link shadow-card-sm" onclick={clear}>
