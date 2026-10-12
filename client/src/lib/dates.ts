@@ -12,7 +12,12 @@ export const weekdayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 // byDate groups items under the date each one names.
 export function byDate<T>(items: T[], date: (t: T) => string): Map<string, T[]> {
 	const m = new Map<string, T[]>();
-	for (const t of items) m.set(date(t), [...(m.get(date(t)) ?? []), t]);
+	for (const t of items) {
+		const key = date(t);
+		const list = m.get(key);
+		if (list) list.push(t);
+		else m.set(key, [t]);
+	}
 	return m;
 }
 

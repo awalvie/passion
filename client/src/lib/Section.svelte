@@ -6,13 +6,9 @@
 </script>
 
 <section class="flex flex-col gap-2">
-	{#if aside}
-		<div class="flex items-baseline justify-between px-1">
-			<h2 class="text-[15px] font-bold">{title}</h2>
-			{@render aside()}
-		</div>
-	{:else}
-		<h2 class="px-1 text-[15px] font-bold">{title}</h2>
-	{/if}
+	<div class="flex items-baseline justify-between px-1">
+		<h2 class="text-[15px] font-bold">{title}</h2>
+		{@render aside?.()}
+	</div>
 	{@render children()}
 </section>

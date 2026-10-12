@@ -24,7 +24,6 @@
 
 	let error = $state('');
 
-
 	const when = $derived.by(() => {
 		const c = data.cycle;
 		if (data.today > c.ends) return 'Ended';
