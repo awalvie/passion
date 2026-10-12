@@ -109,11 +109,9 @@ func ReplaceSets(ctx context.Context, pool *pgxpool.Pool, owner, runID, stepID s
 		}
 	}
 
-	if len(sets) > 0 && step.Status == nil {
-		done := StepDone
-		step.Status = &done
-		if _, err := tx.Exec(ctx, `UPDATE run SET body = $3 WHERE owner = $1 AND id = $2`, owner, runID, body); err != nil {
-			return nil, fmt.Errorf("mark the step done: %w", err)
+	if len(sets) > 0 {
+		if err := markDone(ctx, tx, owner, runID, body, step); err != nil {
+			return nil, err
 		}
 	}
 
@@ -125,6 +123,20 @@ func ReplaceSets(ctx context.Context, pool *pgxpool.Pool, owner, runID, stepID s
 		return nil, fmt.Errorf("commit sets: %w", err)
 	}
 	return out, nil
+}
+
+// markDone marks a step done the first time something is logged for it. step
+// points into body, which the caller locked.
+func markDone(ctx context.Context, tx pgx.Tx, owner, runID string, body RunBody, step *RunStep) error {
+	if step.Status != nil {
+		return nil
+	}
+	done := StepDone
+	step.Status = &done
+	if _, err := tx.Exec(ctx, `UPDATE run SET body = $3 WHERE owner = $1 AND id = $2`, owner, runID, body); err != nil {
+		return fmt.Errorf("mark the step done: %w", err)
+	}
+	return nil
 }
 
 // lockRunBody reads a run's body and holds the row until the transaction
@@ -154,26 +166,27 @@ func (b RunBody) step(id string) *RunStep {
 	return nil
 }
 
-// pruneSets deletes the sets of every step the body no longer holds, now
-// skips, or now points at another exercise. Swapping an exercise makes a new
-// step.
-func pruneSets(ctx context.Context, tx pgx.Tx, runID string, body RunBody) error {
+// prune deletes from table, always a constant, what was logged for every step
+// the body no longer holds, now skips, or now points at another exercise.
+// Swapping an exercise makes a new step. A kind keeps only steps of that kind.
+func prune(ctx context.Context, tx pgx.Tx, table, kind, runID string, body RunBody) error {
 	var steps, exercises []string
 	for _, s := range body.Sections {
 		for _, item := range s.Items {
-			if st := item.Step; st != nil && (st.Status == nil || *st.Status != StepSkipped) {
+			st := item.Step
+			if st != nil && (st.Status == nil || *st.Status != StepSkipped) && (kind == "" || st.Kind == kind) {
 				steps = append(steps, st.ID)
 				exercises = append(exercises, st.Exercise)
 			}
 		}
 	}
 	_, err := tx.Exec(ctx, `
-		DELETE FROM run_set s
-		WHERE s.run = $1 AND NOT EXISTS (
+		DELETE FROM `+table+` t
+		WHERE t.run = $1 AND NOT EXISTS (
 			SELECT 1 FROM unnest($2::uuid[], $3::uuid[]) AS keep (step, exercise)
-			WHERE keep.step = s.step AND keep.exercise = s.exercise)`, runID, steps, exercises)
+			WHERE keep.step = t.step AND keep.exercise = t.exercise)`, runID, steps, exercises)
 	if err != nil {
-		return fmt.Errorf("prune sets: %w", err)
+		return fmt.Errorf("prune %s: %w", table, err)
 	}
 	return nil
 }

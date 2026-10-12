@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -36,6 +37,23 @@ func Open(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
 	}
 
 	return pool, nil
+}
+
+// The Postgres error codes the app turns into errors of its own.
+const (
+	uniqueViolation           = "23505"
+	foreignKeyViolation       = "23503"
+	invalidTextRepresentation = "22P02"
+)
+
+func hasCode(err error, code string) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == code
+}
+
+// isInvalidText is true when an id is not a uuid, so it cannot name any row.
+func isInvalidText(err error) bool {
+	return hasCode(err, invalidTextRepresentation)
 }
 
 // cleanID trims and lower-cases an id, and says whether it is a uuid.

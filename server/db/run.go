@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -259,8 +258,6 @@ func (s RunStart) Clean() (RunStart, map[string]string) {
 	return s, problems
 }
 
-const foreignKeyViolation = "23503"
-
 // StartRun copies the template now, so that editing it later never reaches
 // the run (rule 5). It takes a RunStart that went through Clean.
 func StartRun(ctx context.Context, pool *pgxpool.Pool, owner string, s RunStart) (Run, error) {
@@ -310,8 +307,7 @@ func StartRun(ctx context.Context, pool *pgxpool.Pool, owner string, s RunStart)
 	}
 	run, err := oneRow[Run](rows, ErrNoRun, "run")
 	// The scheduled session can be taken out between the read and the insert.
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == foreignKeyViolation {
+	if hasCode(err, foreignKeyViolation) {
 		return Run{}, ErrNoScheduledSession
 	}
 	if err != nil {
@@ -441,10 +437,10 @@ func UpdateRun(ctx context.Context, pool *pgxpool.Pool, owner, id string, f RunF
 	if err != nil {
 		return Run{}, err
 	}
-	if err := pruneSets(ctx, tx, run.ID, run.Body); err != nil {
+	if err := prune(ctx, tx, "run_set", "", run.ID, run.Body); err != nil {
 		return Run{}, err
 	}
-	if err := pruneClimbs(ctx, tx, run.ID, run.Body); err != nil {
+	if err := prune(ctx, tx, "climb", "climbing", run.ID, run.Body); err != nil {
 		return Run{}, err
 	}
 	if run.Sets, err = runSets(ctx, tx, run.ID, nil); err != nil {

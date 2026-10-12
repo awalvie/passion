@@ -233,12 +233,8 @@ func PutClimb(ctx context.Context, pool *pgxpool.Pool, owner, runID, climbID str
 		return Climb{}, fmt.Errorf("read climb: %w", err)
 	}
 
-	if step.Status == nil {
-		done := StepDone
-		step.Status = &done
-		if _, err := tx.Exec(ctx, `UPDATE run SET body = $3 WHERE owner = $1 AND id = $2`, owner, runID, body); err != nil {
-			return Climb{}, fmt.Errorf("mark the step done: %w", err)
-		}
+	if err := markDone(ctx, tx, owner, runID, body, step); err != nil {
+		return Climb{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return Climb{}, fmt.Errorf("commit climb: %w", err)
@@ -250,30 +246,6 @@ func PutClimb(ctx context.Context, pool *pgxpool.Pool, owner, runID, climbID str
 func DeleteClimb(ctx context.Context, pool *pgxpool.Pool, owner, runID, climbID string) error {
 	return execOne(ctx, pool, ErrNoClimb, "delete climb",
 		`DELETE FROM climb WHERE owner = $1 AND run = $2 AND id = $3`, owner, runID, climbID)
-}
-
-// pruneClimbs deletes the climbs of every step the body no longer holds, now
-// skips, no longer counts as climbing, or now points at another exercise, as
-// pruneSets does.
-func pruneClimbs(ctx context.Context, tx pgx.Tx, runID string, body RunBody) error {
-	var steps, exercises []string
-	for _, s := range body.Sections {
-		for _, item := range s.Items {
-			if st := item.Step; st != nil && st.Kind == "climbing" && (st.Status == nil || *st.Status != StepSkipped) {
-				steps = append(steps, st.ID)
-				exercises = append(exercises, st.Exercise)
-			}
-		}
-	}
-	_, err := tx.Exec(ctx, `
-		DELETE FROM climb c
-		WHERE c.run = $1 AND NOT EXISTS (
-			SELECT 1 FROM unnest($2::uuid[], $3::uuid[]) AS keep (step, exercise)
-			WHERE keep.step = c.step AND keep.exercise = c.exercise)`, runID, steps, exercises)
-	if err != nil {
-		return fmt.Errorf("prune climbs: %w", err)
-	}
-	return nil
 }
 
 // DatedClimb is a climb with the run it was logged in and that run's day.
