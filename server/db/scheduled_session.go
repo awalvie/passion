@@ -128,29 +128,17 @@ func MoveScheduledSession(ctx context.Context, pool *pgxpool.Pool, owner, id str
 // DeleteScheduledSession takes one session off its day, whether a cycle or
 // the person put it there.
 func DeleteScheduledSession(ctx context.Context, pool *pgxpool.Pool, owner, id string) error {
-	tag, err := pool.Exec(ctx, `DELETE FROM scheduled_session WHERE owner = $1 AND id = $2`, owner, id)
-	if isInvalidText(err) {
-		return ErrNoScheduledSession
-	}
-	if err != nil {
-		return fmt.Errorf("delete scheduled session: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		return ErrNoScheduledSession
-	}
-	return nil
+	return execOne(ctx, pool, ErrNoScheduledSession, "delete scheduled session",
+		`DELETE FROM scheduled_session WHERE owner = $1 AND id = $2`, owner, id)
 }
 
+// oneScheduledSession reads one row. A move onto a day that already holds the
+// template breaks the unique index.
 func oneScheduledSession(rows pgx.Rows) (ScheduledSession, error) {
-	s, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[ScheduledSession])
+	s, err := oneRow[ScheduledSession](rows, ErrNoScheduledSession, "scheduled session")
 	var pgErr *pgconn.PgError
-	switch {
-	case errors.Is(err, pgx.ErrNoRows) || isInvalidText(err):
-		return ScheduledSession{}, ErrNoScheduledSession
-	case errors.As(err, &pgErr) && pgErr.Code == uniqueViolation:
+	if errors.As(err, &pgErr) && pgErr.Code == uniqueViolation {
 		return ScheduledSession{}, ErrAlreadyScheduled
-	case err != nil:
-		return ScheduledSession{}, fmt.Errorf("read scheduled session: %w", err)
 	}
-	return s, nil
+	return s, err
 }

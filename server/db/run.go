@@ -309,7 +309,7 @@ func StartRun(ctx context.Context, pool *pgxpool.Pool, owner string, s RunStart)
 	if err != nil {
 		return Run{}, fmt.Errorf("insert run: %w", err)
 	}
-	run, err := oneRun(rows)
+	run, err := oneRow[Run](rows, ErrNoRun, "run")
 	// The scheduled session can be taken out between the read and the insert.
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == foreignKeyViolation {
@@ -438,7 +438,7 @@ func UpdateRun(ctx context.Context, pool *pgxpool.Pool, owner, id string, f RunF
 	if err != nil {
 		return Run{}, fmt.Errorf("update run: %w", err)
 	}
-	run, err := oneRun(rows)
+	run, err := oneRow[Run](rows, ErrNoRun, "run")
 	if err != nil {
 		return Run{}, err
 	}
@@ -516,22 +516,12 @@ func FinishRun(ctx context.Context, pool *pgxpool.Pool, owner, id string) (Run, 
 // DeleteRun removes one of the person's runs with everything logged in it.
 // A record belongs to its owner, who may delete it (rule 6).
 func DeleteRun(ctx context.Context, pool *pgxpool.Pool, owner, id string) error {
-	tag, err := pool.Exec(ctx, `DELETE FROM run WHERE owner = $1 AND id = $2`, owner, id)
-	if isInvalidText(err) {
-		return ErrNoRun
-	}
-	if err != nil {
-		return fmt.Errorf("delete run: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		return ErrNoRun
-	}
-	return nil
+	return execOne(ctx, pool, ErrNoRun, "delete run", `DELETE FROM run WHERE owner = $1 AND id = $2`, owner, id)
 }
 
 // withLog reads one run from rows, then what was logged in it.
 func withLog(ctx context.Context, q querier, rows pgx.Rows) (Run, error) {
-	run, err := oneRun(rows)
+	run, err := oneRow[Run](rows, ErrNoRun, "run")
 	if err != nil {
 		return Run{}, err
 	}
@@ -540,17 +530,6 @@ func withLog(ctx context.Context, q querier, rows pgx.Rows) (Run, error) {
 	}
 	if run.Climbs, err = runClimbs(ctx, q, run.ID); err != nil {
 		return Run{}, err
-	}
-	return run, nil
-}
-
-func oneRun(rows pgx.Rows) (Run, error) {
-	run, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[Run])
-	if errors.Is(err, pgx.ErrNoRows) || isInvalidText(err) {
-		return Run{}, ErrNoRun
-	}
-	if err != nil {
-		return Run{}, fmt.Errorf("read run: %w", err)
 	}
 	return run, nil
 }

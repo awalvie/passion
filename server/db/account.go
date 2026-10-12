@@ -55,7 +55,7 @@ func SetGrades(ctx context.Context, pool *pgxpool.Pool, id string, g Grades) (Ac
 	if err != nil {
 		return Account{}, fmt.Errorf("update grades: %w", err)
 	}
-	return oneAccount(rows)
+	return oneRow[Account](rows, ErrNoAccount, "account")
 }
 
 var (
@@ -107,18 +107,7 @@ func AccountByEmail(ctx context.Context, pool *pgxpool.Pool, email string) (Acco
 	if err != nil {
 		return Account{}, fmt.Errorf("select account: %w", err)
 	}
-	return oneAccount(rows)
-}
-
-func oneAccount(rows pgx.Rows) (Account, error) {
-	account, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[Account])
-	if errors.Is(err, pgx.ErrNoRows) {
-		return Account{}, ErrNoAccount
-	}
-	if err != nil {
-		return Account{}, fmt.Errorf("read account: %w", err)
-	}
-	return account, nil
+	return oneRow[Account](rows, ErrNoAccount, "account")
 }
 
 // knownTimezone asks Postgres, because it is Postgres that computes local

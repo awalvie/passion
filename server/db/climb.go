@@ -249,17 +249,8 @@ func PutClimb(ctx context.Context, pool *pgxpool.Pool, owner, runID, climbID str
 
 // DeleteClimb removes one climb from one of the person's runs.
 func DeleteClimb(ctx context.Context, pool *pgxpool.Pool, owner, runID, climbID string) error {
-	tag, err := pool.Exec(ctx, `DELETE FROM climb WHERE owner = $1 AND run = $2 AND id = $3`, owner, runID, climbID)
-	if isInvalidText(err) {
-		return ErrNoClimb
-	}
-	if err != nil {
-		return fmt.Errorf("delete climb: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		return ErrNoClimb
-	}
-	return nil
+	return execOne(ctx, pool, ErrNoClimb, "delete climb",
+		`DELETE FROM climb WHERE owner = $1 AND run = $2 AND id = $3`, owner, runID, climbID)
 }
 
 // pruneClimbs deletes the climbs of every step the body no longer holds, now

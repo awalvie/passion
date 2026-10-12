@@ -87,7 +87,7 @@ func PutCentre(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cent
 	if err != nil {
 		return Centre{}, fmt.Errorf("put centre: %w", err)
 	}
-	return oneCentre(rows)
+	return oneRow[Centre](rows, ErrNoCentre, "centre")
 }
 
 // ListCentres is every centre of the person's, by name.
@@ -104,26 +104,5 @@ func ListCentres(ctx context.Context, pool *pgxpool.Pool, owner string) ([]Centr
 }
 
 func DeleteCentre(ctx context.Context, pool *pgxpool.Pool, owner, id string) error {
-	tag, err := pool.Exec(ctx, `DELETE FROM centre WHERE owner = $1 AND id = $2`, owner, id)
-	if isInvalidText(err) {
-		return ErrNoCentre
-	}
-	if err != nil {
-		return fmt.Errorf("delete centre: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		return ErrNoCentre
-	}
-	return nil
-}
-
-func oneCentre(rows pgx.Rows) (Centre, error) {
-	centre, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[Centre])
-	if errors.Is(err, pgx.ErrNoRows) || isInvalidText(err) {
-		return Centre{}, ErrNoCentre
-	}
-	if err != nil {
-		return Centre{}, fmt.Errorf("read centre: %w", err)
-	}
-	return centre, nil
+	return execOne(ctx, pool, ErrNoCentre, "delete centre", `DELETE FROM centre WHERE owner = $1 AND id = $2`, owner, id)
 }
