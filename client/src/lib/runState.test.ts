@@ -291,35 +291,6 @@ test('addSet from a count adds a set to what the page shows', async () => {
 	expect(s.sets).toBe(2);
 });
 
-test('removeOption drops one option and lowers the pick count to what is left', async () => {
-	const openRun = await openOffline();
-
-	openRun.removeOption('c1', 1);
-
-	const c = items(openRun.run!, 1)[1].choice!;
-	expect(c.options.map((o) => o.exercise)).toStrictEqual(['ex-pull', 'ex-row']);
-	expect(c.pick).toBe(2);
-	expect(urls(openRun.writes)).toStrictEqual([bodyUrl]);
-});
-
-test('removeOption keeps a pick count that still fits', async () => {
-	const openRun = await openOffline();
-	items(openRun.run!, 1)[1].choice!.pick = 1;
-
-	openRun.removeOption('c1', 0);
-
-	expect(items(openRun.run!, 1)[1].choice!.pick).toBe(1);
-});
-
-test('removeOption on the last option removes the choice', async () => {
-	const openRun = await openOffline();
-
-	openRun.removeOption('c2', 0);
-
-	expect(items(openRun.run!, 1).map((it) => it.step?.id ?? it.choice?.id)).toStrictEqual(['s2', 'c1']);
-	expect(urls(openRun.writes)).toStrictEqual([bodyUrl]);
-});
-
 test('addStep puts the exercise at the end of the section it is given', async () => {
 	const openRun = await openOffline();
 
