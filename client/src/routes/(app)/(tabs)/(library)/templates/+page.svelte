@@ -69,7 +69,7 @@
 	{#if shown.length}
 		<ul class="rounded-3xl bg-surface py-1 shadow-card">
 			{#each shown as t (t.id)}
-				<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+				<li class="list-row">
 					<a href="/templates/{t.id}" class="flex min-h-16 items-center gap-3 py-2.5 pr-3 pl-[18px]">
 						<span
 							class="size-2.5 shrink-0 rounded-full {t.color ? '' : 'bg-well'}"

@@ -15,6 +15,7 @@
 	import Menu from '$lib/Menu.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import { saveCycle, type Cycle, type ScheduledDay } from '$lib/plan';
+	import Section from '$lib/Section.svelte';
 	import Sheet from '$lib/Sheet.svelte';
 	import Toast from '$lib/Toast.svelte';
 	import WeekStrip from '$lib/WeekStrip.svelte';
@@ -178,7 +179,7 @@
 
 <div class="flex flex-col gap-3.5 px-4 pt-1 pb-[calc(env(safe-area-inset-bottom)+5rem)]">
 	<header class="px-1">
-		<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em] break-words">{data.cycle.name}</h1>
+		<h1 class="page-title break-words">{data.cycle.name}</h1>
 		<p class="mt-1 text-[15px] font-semibold text-ink-2">
 			{short(data.cycle.starts)} – {short(data.cycle.ends)} · {when} · {data.cycle.block_days}-day block
 		</p>
@@ -192,13 +193,12 @@
 		</p>
 	{/if}
 
-	<section class="flex flex-col gap-2">
-		<div class="flex items-baseline justify-between px-1">
-			<h2 class="text-[15px] font-bold">Goals</h2>
+	<Section title="Goals">
+		{#snippet aside()}
 			{#if goals.length}
 				<span class="text-xs font-semibold text-ink-2">{goals.filter((g) => g.done).length} of {goals.length} done</span>
 			{/if}
-		</div>
+		{/snippet}
 		<GoalList
 			bind:goals
 			onchange={savePart}
@@ -207,10 +207,9 @@
 				goalOpen = true;
 			}}
 		/>
-	</section>
+	</Section>
 
-	<section class="flex flex-col gap-2">
-		<h2 class="px-1 text-[15px] font-bold">Notes</h2>
+	<Section title="Notes">
 		<textarea
 			class="min-h-28 w-full resize-none rounded-3xl bg-surface px-[18px] py-3.5 text-[15px] font-semibold shadow-card [field-sizing:content] placeholder:text-ink-3 focus:shadow-[0_0_0_2px_var(--ink-3)] focus:outline-none"
 			placeholder="Anything to remember about this cycle"
@@ -218,13 +217,12 @@
 			bind:value={notes}
 			onblur={() => notes.trim() !== (data.cycle.notes ?? '') && savePart()}
 		></textarea>
-	</section>
+	</Section>
 
-	<section class="flex flex-col gap-2">
-		<div class="flex items-baseline justify-between px-1">
-			<h2 class="text-[15px] font-bold">This week</h2>
+	<Section title="This week">
+		{#snippet aside()}
 			<span class="text-xs font-semibold text-ink-2">{short(data.monday)} – {short(addDays(data.monday, 6))}</span>
-		</div>
+		{/snippet}
 		<div class="rounded-3xl bg-surface pb-3 shadow-card">
 			<WeekStrip monday={data.monday} today={data.today} week={data.week} />
 			<p class="mx-[18px] mt-3 truncate pt-3 text-[15px] font-semibold text-ink-2 shadow-[inset_0_1px_0_var(--line)]">
@@ -235,17 +233,16 @@
 					.join(' · ') || 'Rest day'}
 			</p>
 		</div>
-	</section>
+	</Section>
 
-	<section class="flex flex-col gap-2">
-		<div class="flex items-baseline justify-between px-1">
-			<h2 class="text-[15px] font-bold">Calendar</h2>
+	<Section title="Calendar">
+		{#snippet aside()}
 			{#if data.today <= data.cycle.ends}
 				<span class="text-xs font-semibold text-ink-2">Hold a session to move it</span>
 			{/if}
-		</div>
+		{/snippet}
 		<CycleCalendar cycle={data.cycle} days={data.days} today={data.today} cycleNames={data.cycleNames} onmove={move} />
-	</section>
+	</Section>
 
 </div>
 

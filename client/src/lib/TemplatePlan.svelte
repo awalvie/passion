@@ -4,7 +4,7 @@
 
 	let { sections }: { sections: Section[] } = $props();
 
-	const hairline = '[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]';
+	const hairline = 'list-row';
 	const row = `flex min-h-11 items-center justify-between gap-3 px-4 py-2 text-[15px] font-semibold ${hairline}`;
 </script>
 

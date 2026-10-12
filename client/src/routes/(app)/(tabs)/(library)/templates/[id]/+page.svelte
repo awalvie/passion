@@ -11,6 +11,7 @@
 	import Notes from '$lib/Notes.svelte';
 	import { stepsOf } from '$lib/run';
 	import { startRun } from '$lib/runState.svelte';
+	import Section from '$lib/Section.svelte';
 	import Segmented from '$lib/Segmented.svelte';
 	import { sessionIcons } from '$lib/SessionIcon.svelte';
 	import { choiceMeta, stepMeta, templateFieldLabel, type Choice, type SessionTemplate } from '$lib/template';
@@ -247,8 +248,7 @@
 			{/if}
 
 			{#if drill}
-				<section class="flex flex-col gap-2">
-					<h2 class="px-1 text-[15px] font-bold">Drill</h2>
+				<Section title="Drill">
 					<a
 						href="/exercises/{drill.next.exercise}?from={encodeURIComponent(`/templates/${t.id}`)}"
 						class="flex items-center gap-3 rounded-3xl bg-surface p-3.5 shadow-card"
@@ -262,40 +262,37 @@
 						</span>
 						<span class="text-ink-3"><Icon name="chevron-right" size="1rem" stroke={2.2} /></span>
 					</a>
-				</section>
+				</Section>
 			{/if}
 
 			{#if loads.length}
-				<section class="flex flex-col gap-2">
-					<h2 class="px-1 text-[15px] font-bold">Last time</h2>
+				<Section title="Last time">
 					<div class="rounded-3xl bg-surface py-0.5 shadow-card">
 						{#each shown('loads', loads) as l (l.exercise)}
-							<p class="flex min-h-[52px] items-center gap-3 px-4 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+							<p class="flex min-h-[52px] items-center gap-3 px-4 list-row">
 								<span class="min-w-0 flex-1 truncate text-[15px] font-bold">{l.name}</span>
 								<span class="shrink-0 font-[family-name:var(--font-digits)] text-lg font-bold">{l.text}</span>
 							</p>
 						{/each}
 						{@render more('loads', loads.length)}
 					</div>
-				</section>
+				</Section>
 			{/if}
 
 			{#if note && data.last}
-				<section class="flex flex-col gap-2">
-					<h2 class="px-1 text-[15px] font-bold">Last note</h2>
+				<Section title="Last note">
 					<a href="/history/{data.last.id}" class="rounded-3xl bg-surface p-4 shadow-card">
 						<p class="line-clamp-3 text-[15px] leading-[1.4] font-semibold">{note}</p>
 						<p class="mt-2 text-xs font-semibold text-ink-2">{day(data.last.local_date)}</p>
 					</a>
-				</section>
+				</Section>
 			{/if}
 
 			{#if data.runs.length}
-				<section class="flex flex-col gap-2">
-					<h2 class="px-1 text-[15px] font-bold">Runs</h2>
+				<Section title="Runs">
 					<div class="rounded-3xl bg-surface py-0.5 shadow-card">
 						{#each shown('runs', data.runs) as r (r.id)}
-							<a href="/history/{r.id}" class="flex min-h-[52px] items-center gap-3 px-4 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+							<a href="/history/{r.id}" class="flex min-h-[52px] items-center gap-3 px-4 list-row">
 								<span class="flex-1 text-[15px] font-bold">{day(r.local_date)}</span>
 								{#if r.elapsed_seconds}
 									<span class="text-xs font-semibold text-ink-2">{Math.max(1, Math.round(r.elapsed_seconds / 60))} min</span>
@@ -305,7 +302,7 @@
 						{/each}
 						{@render more('runs', data.runs.length)}
 					</div>
-				</section>
+				</Section>
 			{:else if t.sections.length}
 				<!-- Until a first run fills the Overview, it shows what the session holds. -->
 				<section class="rounded-3xl bg-surface px-[18px] py-1 shadow-card">
@@ -314,7 +311,7 @@
 						<a
 							href="/templates/{t.id}?tab=exercises&open={i}"
 							data-sveltekit-replacestate
-							class="flex min-h-[76px] items-center gap-4 py-2.5 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]"
+							class="flex min-h-[76px] items-center gap-4 py-2.5 list-row"
 						>
 							<span class="w-[34px] shrink-0 font-[family-name:var(--font-digits)] text-[34px] leading-none font-bold text-ink-3 opacity-60">
 								{String(i + 1).padStart(2, '0')}
@@ -337,8 +334,7 @@
 				<p class="px-1 text-xs font-semibold text-ink-2">Not run yet. Your runs, loads and notes show here after the first one.</p>
 			{/if}
 
-			<section class="flex flex-col gap-2">
-				<h2 class="px-1 text-[15px] font-bold">Where you can do it</h2>
+			<Section title="Where you can do it">
 				{#if centres.length}
 					<div class="flex flex-wrap gap-2">
 						{#each centres as c, i (c.id)}
@@ -357,7 +353,7 @@
 				{:else}
 					<a href="/profile" class="flex min-h-11 items-center px-1 text-xs font-semibold text-ink-2">Add your climbing centres in Profile</a>
 				{/if}
-			</section>
+			</Section>
 		{:else}
 			{#each t.sections as section, i (i)}
 				<details class="group rounded-3xl bg-surface shadow-card" open={t.sections.length === 1 || i === opened}>
@@ -436,7 +432,7 @@
 {#snippet row(exercise: string, name: string, meta: string)}
 	<a
 		href="/exercises/{exercise}?from={encodeURIComponent(`/templates/${t.id}?tab=exercises`)}"
-		class="flex min-h-[52px] items-center gap-3 rounded-[14px] px-3 py-2 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]"
+		class="flex min-h-[52px] items-center gap-3 rounded-[14px] px-3 py-2 list-row"
 	>
 		<span class="min-w-0 flex-1">
 			<span class="block text-[15px] font-bold break-words">{name}</span>

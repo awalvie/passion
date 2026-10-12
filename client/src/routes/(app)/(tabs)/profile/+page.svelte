@@ -10,6 +10,7 @@
 	import Checkbox from '$lib/Checkbox.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import { newId } from '$lib/id';
+	import Section from '$lib/Section.svelte';
 	import SessionIcon from '$lib/SessionIcon.svelte';
 	import Sheet from '$lib/Sheet.svelte';
 	import FormError from '$lib/FormError.svelte';
@@ -142,14 +143,13 @@
 
 <div class="flex flex-col gap-3.5 px-4 pt-2 pb-8">
 	<header class="px-1">
-		<h1 class="text-[32px] leading-[1.1] font-extrabold tracking-[-0.02em] break-words">{data.account.display_name || data.account.email}</h1>
+		<h1 class="page-title break-words">{data.account.display_name || data.account.email}</h1>
 		{#if data.account.display_name}
 			<p class="mt-1 truncate text-[15px] font-semibold text-ink-2">{data.account.email}</p>
 		{/if}
 	</header>
 
-	<section class="flex flex-col gap-2">
-		<h2 class="px-1 text-[15px] font-bold">Grades</h2>
+	<Section title="Grades">
 		<div class="flex flex-col gap-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
 			{#each [{ kind: 'boulder', label: 'Boulders', on: boulder }, { kind: 'route', label: 'Routes', on: route }] as const as g (g.kind)}
 				<div class="flex flex-col gap-2">
@@ -168,13 +168,12 @@
 			{/each}
 			<FormError message={gradeError} />
 		</div>
-	</section>
+	</Section>
 
-	<section class="flex flex-col gap-2">
-		<h2 class="px-1 text-[15px] font-bold">Climbing centres</h2>
+	<Section title="Climbing centres">
 		<ul class="rounded-3xl bg-surface px-[18px] shadow-card">
 			{#each data.centres as c (c.id)}
-				<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+				<li class="list-row">
 					<button type="button" class="flex min-h-[58px] w-full items-center gap-3 py-2 text-left" onclick={() => openCentre(c)}>
 						<span class="min-w-0 flex-1">
 							<span class="block truncate text-[15px] font-bold">{c.name}</span>
@@ -184,7 +183,7 @@
 					</button>
 				</li>
 			{/each}
-			<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+			<li class="list-row">
 				<button type="button" class="flex min-h-[52px] w-full items-center gap-3 py-2 text-[15px] font-bold text-ink-2" onclick={() => openCentre(null)}>
 					<span class="flex size-6 shrink-0 items-center justify-center text-ink-3"><Icon name="plus" size="1.125rem" /></span>
 					Add a centre
@@ -194,10 +193,9 @@
 		{#if !data.centres.length}
 			<p class="px-1 text-xs font-semibold text-ink-2">Add the places you train, then mark the sessions each one suits.</p>
 		{/if}
-	</section>
+	</Section>
 
-	<section class="flex flex-col gap-2">
-		<h2 class="px-1 text-[15px] font-bold">App</h2>
+	<Section title="App">
 		<div class="rounded-3xl bg-surface px-[18px] py-2 shadow-card">
 			<div class="flex flex-col gap-2.5 py-3">
 				<h3 class="text-[15px] font-bold">Theme</h3>
@@ -207,7 +205,7 @@
 			{@render toggle('Timer sounds', sound, (on) => setSound((sound = on)))}
 			{@render toggle('Haptics', haptics, (on) => setHaptics((haptics = on)))}
 		</div>
-	</section>
+	</Section>
 
 	<Button variant="danger" onclick={signOut}>Log out</Button>
 </div>
@@ -231,7 +229,7 @@
 				<h3 class="px-1 text-[15px] font-bold">Sessions you can do here</h3>
 				<ul class="rounded-3xl bg-surface px-[18px] shadow-card">
 					{#each data.templates as t (t.id)}
-						<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+						<li class="list-row">
 							<label class="flex min-h-[56px] cursor-pointer items-center gap-3 py-2">
 								<SessionIcon icon={t.icon} name={t.name} size={32} />
 								<span class="min-w-0 flex-1 truncate text-[15px] font-bold">{t.name}</span>

@@ -20,7 +20,7 @@
 
 <ul class="rounded-3xl bg-surface px-[18px] shadow-card">
 	{#each goals as g, i (i)}
-		<li class="flex min-h-[52px] items-start gap-1 py-1.5 [&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+		<li class="flex min-h-[52px] items-start gap-1 py-1.5 list-row">
 			<label class="-ml-2.5 flex size-11 shrink-0 cursor-pointer items-center justify-center">
 				<Checkbox checked={g.done} label={g.text} onchange={(e) => tick(i, e.currentTarget.checked)} />
 			</label>
@@ -35,7 +35,7 @@
 			<span class="flex h-11 shrink-0 items-center text-ink-3"><Icon name="chevron-right" size="1rem" /></span>
 		</li>
 	{/each}
-	<li class="[&:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
+	<li class="list-row">
 		<button type="button" class="flex min-h-[52px] w-full items-center gap-3 py-2 text-[15px] font-bold text-ink-2" onclick={() => onedit(-1)}>
 			<span class="flex size-6 shrink-0 items-center justify-center text-ink-3"><Icon name="plus" size="1.125rem" /></span>
 			Add goal
