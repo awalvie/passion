@@ -51,9 +51,7 @@ const maxSessionBodyBytes = 256 << 10
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	if v != nil {
-		_ = json.NewEncoder(w).Encode(v)
-	}
+	_ = json.NewEncoder(w).Encode(v)
 }
 
 func writeError(w http.ResponseWriter, status int, code, message string) {
@@ -91,22 +89,37 @@ func writeInternal(w http.ResponseWriter, log *slog.Logger, err error) {
 	writeError(w, http.StatusInternalServerError, CodeInternal, "Something went wrong.")
 }
 
+// failed answers err, if there is one, and says whether it did. One of
+// notFound is a 404, anything else a 500.
+func (s *Server) failed(w http.ResponseWriter, err error, notFound ...error) bool {
+	if err == nil {
+		return false
+	}
+	for _, nf := range notFound {
+		if errors.Is(err, nf) {
+			writeNotFound(w)
+			return true
+		}
+	}
+	writeInternal(w, s.log, err)
+	return true
+}
+
 // decodeJSON reads one JSON object, capped, and refuses anything it does not
-// recognise so a typo in a field name is an error rather than silence.
-func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) error {
+// recognise so a typo in a field name is an error rather than silence. It
+// answers a body it refuses, and says whether the handler goes on.
+func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) bool {
 	return decodeJSONUpTo(w, r, dst, maxBodyBytes)
 }
 
-func decodeJSONUpTo(w http.ResponseWriter, r *http.Request, dst any, limit int64) error {
+func decodeJSONUpTo(w http.ResponseWriter, r *http.Request, dst any, limit int64) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, limit)
 
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
-	if err := dec.Decode(dst); err != nil {
-		return err
+	if err := dec.Decode(dst); err != nil || dec.More() {
+		writeFieldErrors(w, map[string]string{"body": "could not be read as JSON"})
+		return false
 	}
-	if dec.More() {
-		return errors.New("body carries more than one json value")
-	}
-	return nil
+	return true
 }

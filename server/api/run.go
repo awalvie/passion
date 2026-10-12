@@ -439,8 +439,7 @@ func (s *Server) listRuns(w http.ResponseWriter, r *http.Request, who db.Authent
 //	  422: validationFailed
 func (s *Server) startRun(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	var req runStartRequest
-	if err := decodeJSON(w, r, &req); err != nil {
-		writeFieldErrors(w, map[string]string{"body": "could not be read as JSON"})
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -489,12 +488,7 @@ func (s *Server) startRun(w http.ResponseWriter, r *http.Request, who db.Authent
 //	  404: notFound
 func (s *Server) readRun(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	run, err := db.GetRun(r.Context(), s.pool, who.AccountID, r.PathValue("id"))
-	switch {
-	case errors.Is(err, db.ErrNoRun):
-		writeNotFound(w)
-		return
-	case err != nil:
-		writeInternal(w, s.log, err)
+	if s.failed(w, err, db.ErrNoRun) {
 		return
 	}
 	writeJSON(w, http.StatusOK, toRunResponse(run))
@@ -516,8 +510,7 @@ func (s *Server) readRun(w http.ResponseWriter, r *http.Request, who db.Authenti
 //	  422: validationFailed
 func (s *Server) updateRun(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	var req runRequest
-	if err := decodeJSONUpTo(w, r, &req, maxSessionBodyBytes); err != nil {
-		writeFieldErrors(w, map[string]string{"body": "could not be read as JSON"})
+	if !decodeJSONUpTo(w, r, &req, maxSessionBodyBytes) {
 		return
 	}
 
@@ -539,12 +532,7 @@ func (s *Server) updateRun(w http.ResponseWriter, r *http.Request, who db.Authen
 	}
 
 	updated, err := db.UpdateRun(r.Context(), s.pool, who.AccountID, r.PathValue("id"), f)
-	switch {
-	case errors.Is(err, db.ErrNoRun):
-		writeNotFound(w)
-		return
-	case err != nil:
-		writeInternal(w, s.log, err)
+	if s.failed(w, err, db.ErrNoRun) {
 		return
 	}
 	writeJSON(w, http.StatusOK, toRunResponse(updated))
@@ -565,12 +553,7 @@ func (s *Server) updateRun(w http.ResponseWriter, r *http.Request, who db.Authen
 //	  404: notFound
 func (s *Server) finishRun(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	run, err := db.FinishRun(r.Context(), s.pool, who.AccountID, r.PathValue("id"))
-	switch {
-	case errors.Is(err, db.ErrNoRun):
-		writeNotFound(w)
-		return
-	case err != nil:
-		writeInternal(w, s.log, err)
+	if s.failed(w, err, db.ErrNoRun) {
 		return
 	}
 	writeJSON(w, http.StatusOK, toRunResponse(run))
@@ -590,12 +573,7 @@ func (s *Server) finishRun(w http.ResponseWriter, r *http.Request, who db.Authen
 //	  404: notFound
 func (s *Server) deleteRun(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	err := db.DeleteRun(r.Context(), s.pool, who.AccountID, r.PathValue("id"))
-	switch {
-	case errors.Is(err, db.ErrNoRun):
-		writeNotFound(w)
-		return
-	case err != nil:
-		writeInternal(w, s.log, err)
+	if s.failed(w, err, db.ErrNoRun) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -618,8 +596,7 @@ func (s *Server) deleteRun(w http.ResponseWriter, r *http.Request, who db.Authen
 //	  422: validationFailed
 func (s *Server) replaceSets(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	var req setRequest
-	if err := decodeJSON(w, r, &req); err != nil {
-		writeFieldErrors(w, map[string]string{"body": "could not be read as JSON"})
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	sets := make([]db.SetFields, 0, len(req.Sets))
@@ -664,8 +641,7 @@ func (s *Server) replaceSets(w http.ResponseWriter, r *http.Request, who db.Auth
 //	  422: validationFailed
 func (s *Server) putClimb(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	var req climbRequest
-	if err := decodeJSON(w, r, &req); err != nil {
-		writeFieldErrors(w, map[string]string{"body": "could not be read as JSON"})
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	f, problems := req.fields().Clean()
@@ -702,12 +678,7 @@ func (s *Server) putClimb(w http.ResponseWriter, r *http.Request, who db.Authent
 //	  404: notFound
 func (s *Server) deleteClimb(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	err := db.DeleteClimb(r.Context(), s.pool, who.AccountID, r.PathValue("id"), r.PathValue("climb"))
-	switch {
-	case errors.Is(err, db.ErrNoClimb):
-		writeNotFound(w)
-		return
-	case err != nil:
-		writeInternal(w, s.log, err)
+	if s.failed(w, err, db.ErrNoClimb) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

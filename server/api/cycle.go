@@ -162,12 +162,7 @@ func (s *Server) listCycles(w http.ResponseWriter, r *http.Request, who db.Authe
 //	  404: notFound
 func (s *Server) readCycle(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	cycle, err := db.GetCycle(r.Context(), s.pool, who.AccountID, r.PathValue("id"))
-	switch {
-	case errors.Is(err, db.ErrNoCycle):
-		writeNotFound(w)
-		return
-	case err != nil:
-		writeInternal(w, s.log, err)
+	if s.failed(w, err, db.ErrNoCycle) {
 		return
 	}
 	writeJSON(w, http.StatusOK, toCycleResponse(cycle))
@@ -194,8 +189,7 @@ func (s *Server) readCycle(w http.ResponseWriter, r *http.Request, who db.Authen
 //	  422: validationFailed
 func (s *Server) putCycle(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	var req cycleRequest
-	if err := decodeJSON(w, r, &req); err != nil {
-		writeFieldErrors(w, map[string]string{"body": "could not be read as JSON"})
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -260,12 +254,7 @@ func (s *Server) putCycle(w http.ResponseWriter, r *http.Request, who db.Authent
 //	  404: notFound
 func (s *Server) deleteCycle(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	err := db.DeleteCycle(r.Context(), s.pool, who.AccountID, r.PathValue("id"))
-	switch {
-	case errors.Is(err, db.ErrNoCycle):
-		writeNotFound(w)
-		return
-	case err != nil:
-		writeInternal(w, s.log, err)
+	if s.failed(w, err, db.ErrNoCycle) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

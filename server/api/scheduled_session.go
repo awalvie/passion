@@ -134,8 +134,7 @@ func (s *Server) listScheduledSessions(w http.ResponseWriter, r *http.Request, w
 //	  422: validationFailed
 func (s *Server) scheduleSession(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	var req scheduleRequest
-	if err := decodeJSON(w, r, &req); err != nil {
-		writeFieldErrors(w, map[string]string{"body": "could not be read as JSON"})
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	problems := map[string]string{}
@@ -175,8 +174,7 @@ func (s *Server) scheduleSession(w http.ResponseWriter, r *http.Request, who db.
 //	  422: validationFailed
 func (s *Server) moveScheduledSession(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	var req moveRequest
-	if err := decodeJSON(w, r, &req); err != nil {
-		writeFieldErrors(w, map[string]string{"body": "could not be read as JSON"})
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	problems := map[string]string{}
@@ -215,12 +213,7 @@ func (s *Server) moveScheduledSession(w http.ResponseWriter, r *http.Request, wh
 //	  404: notFound
 func (s *Server) deleteScheduledSession(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	err := db.DeleteScheduledSession(r.Context(), s.pool, who.AccountID, r.PathValue("id"))
-	switch {
-	case errors.Is(err, db.ErrNoScheduledSession):
-		writeNotFound(w)
-		return
-	case err != nil:
-		writeInternal(w, s.log, err)
+	if s.failed(w, err, db.ErrNoScheduledSession) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

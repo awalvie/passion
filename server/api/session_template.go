@@ -203,12 +203,7 @@ func (s *Server) createSessionTemplate(w http.ResponseWriter, r *http.Request, w
 //	  404: notFound
 func (s *Server) readSessionTemplate(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	t, err := db.GetSessionTemplate(r.Context(), s.pool, who.AccountID, r.PathValue("id"))
-	switch {
-	case errors.Is(err, db.ErrNoSessionTemplate):
-		writeNotFound(w)
-		return
-	case err != nil:
-		writeInternal(w, s.log, err)
+	if s.failed(w, err, db.ErrNoSessionTemplate) {
 		return
 	}
 	writeJSON(w, http.StatusOK, toSessionTemplateResponse(t))
@@ -239,12 +234,7 @@ func (s *Server) updateSessionTemplate(w http.ResponseWriter, r *http.Request, w
 	if writeUnknownExercises(w, err) {
 		return
 	}
-	switch {
-	case errors.Is(err, db.ErrNoSessionTemplate):
-		writeNotFound(w)
-		return
-	case err != nil:
-		writeInternal(w, s.log, err)
+	if s.failed(w, err, db.ErrNoSessionTemplate) {
 		return
 	}
 	writeJSON(w, http.StatusOK, toSessionTemplateResponse(updated))
@@ -266,12 +256,7 @@ func (s *Server) updateSessionTemplate(w http.ResponseWriter, r *http.Request, w
 //	  404: notFound
 func (s *Server) retireSessionTemplate(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	err := db.RetireSessionTemplate(r.Context(), s.pool, who.AccountID, r.PathValue("id"))
-	switch {
-	case errors.Is(err, db.ErrNoSessionTemplate):
-		writeNotFound(w)
-		return
-	case err != nil:
-		writeInternal(w, s.log, err)
+	if s.failed(w, err, db.ErrNoSessionTemplate) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -281,8 +266,7 @@ func (s *Server) retireSessionTemplate(w http.ResponseWriter, r *http.Request, w
 // request itself when the body is wrong.
 func readSessionTemplateRequest(w http.ResponseWriter, r *http.Request) (db.SessionTemplateFields, bool) {
 	var req sessionTemplateRequest
-	if err := decodeJSONUpTo(w, r, &req, maxSessionBodyBytes); err != nil {
-		writeFieldErrors(w, map[string]string{"body": "could not be read as JSON"})
+	if !decodeJSONUpTo(w, r, &req, maxSessionBodyBytes) {
 		return db.SessionTemplateFields{}, false
 	}
 

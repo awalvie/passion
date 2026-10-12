@@ -109,8 +109,7 @@ type signUpResponse struct {
 //	  422: validationFailed
 func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 	var req signUpRequest
-	if err := decodeJSON(w, r, &req); err != nil {
-		writeFieldErrors(w, map[string]string{"body": "could not be read as JSON"})
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -241,8 +240,7 @@ var unknownAddressHash = func() string {
 //	  422: validationFailed
 func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
 	var req signInRequest
-	if err := decodeJSON(w, r, &req); err != nil {
-		writeFieldErrors(w, map[string]string{"body": "could not be read as JSON"})
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -308,8 +306,7 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request, who db.Authenticated
 //	  422: validationFailed
 func (s *Server) setGrades(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	var req gradesBody
-	if err := decodeJSON(w, r, &req); err != nil {
-		writeFieldErrors(w, map[string]string{"body": "could not be read as JSON"})
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	g := db.Grades{Boulder: req.BoulderGrades, Route: req.RouteGrades}

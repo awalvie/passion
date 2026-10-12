@@ -111,13 +111,14 @@ func TestDecodeJSON(t *testing.T) {
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(c.body))
-			err := decodeJSON(httptest.NewRecorder(), r, &payload{})
+			rec := httptest.NewRecorder()
+			ok := decodeJSON(rec, r, &payload{})
 
-			if c.ok && err != nil {
-				t.Fatalf("rejected a good body: %v", err)
+			if c.ok && !ok {
+				t.Fatalf("rejected a good body: %s", rec.Body)
 			}
-			if !c.ok && err == nil {
-				t.Fatal("accepted a bad body")
+			if !c.ok && (ok || rec.Code != http.StatusUnprocessableEntity) {
+				t.Fatalf("accepted a bad body: %d", rec.Code)
 			}
 		})
 	}
