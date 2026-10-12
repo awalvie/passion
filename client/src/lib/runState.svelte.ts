@@ -108,11 +108,36 @@ class OpenRun {
 			localStorage.removeItem(storageKey(this.run.id));
 			localStorage.removeItem(`passion-timer:${this.run.id}`);
 		}
-		this.run = null;
+		this.use(null);
+	}
+
+	// use opens a run with nothing queued, refused or stalled.
+	use(run: Run | null) {
+		this.run = run;
 		this.writes = [];
 		this.refused = '';
 		this.stalled = false;
 		this.here = null;
+	}
+
+	// reopen makes a step not done, with no time.
+	#reopen(step: RunStep) {
+		step.status = null;
+		step.elapsed_seconds = null;
+	}
+
+	// dropSetWrites drops a set write still waiting for a step, which the
+	// server would refuse once the step is gone or skipped.
+	#dropSetWrites(step: string) {
+		this.writes = this.writes.filter((w) => w.url !== `/api/v1/runs/${this.run!.id}/steps/${step}/sets`);
+	}
+
+	// choice finds where a choice sits in the run.
+	#choice(id: string) {
+		for (const section of this.run!.sections) {
+			const i = section.items.findIndex((item) => item.choice?.id === id);
+			if (i >= 0) return { section, i, choice: section.items[i].choice! };
+		}
 	}
 
 	step(id: string): RunStep | undefined {
@@ -185,8 +210,7 @@ class OpenRun {
 		const run = this.run!;
 		run.climbs = run.climbs.filter((c) => c.id !== id);
 		if (!run.climbs.some((c) => c.step === step.id)) {
-			step.status = null;
-			step.elapsed_seconds = null;
+			this.#reopen(step);
 			this.saveBody();
 		}
 		this.#queue('DELETE', `/api/v1/runs/${run.id}/climbs/${id}`);
@@ -195,24 +219,21 @@ class OpenRun {
 	// pick puts the chosen options in the choice's place, as new steps that
 	// remember the choice they came from.
 	pick(choiceId: string, options: Step[]) {
-		for (const section of this.run!.sections) {
-			const i = section.items.findIndex((item) => item.choice?.id === choiceId);
-			if (i < 0) continue;
-			const choice = $state.snapshot(section.items[i].choice!) as RunChoice;
-			const steps = options.map((o) => ({
-				step: {
-					...($state.snapshot(o) as Step),
-					id: newId(),
-					status: null,
-					run_notes: null,
-					elapsed_seconds: null,
-					from_choice: choice
-				}
-			}));
-			section.items.splice(i, 1, ...steps);
-			this.saveBody();
-			return;
-		}
+		const at = this.#choice(choiceId);
+		if (!at) return;
+		const choice = $state.snapshot(at.choice) as RunChoice;
+		const steps = options.map((o) => ({
+			step: {
+				...($state.snapshot(o) as Step),
+				id: newId(),
+				status: null,
+				run_notes: null,
+				elapsed_seconds: null,
+				from_choice: choice
+			}
+		}));
+		at.section.items.splice(at.i, 1, ...steps);
+		this.saveBody();
 	}
 
 	// addStep puts a library exercise at the end of a section, the last one
@@ -236,23 +257,20 @@ class OpenRun {
 	removeStep(id: string) {
 		const run = this.run!;
 		for (const section of run.sections) section.items = section.items.filter((it) => it.step?.id !== id);
-		this.writes = this.writes.filter((w) => w.url !== `/api/v1/runs/${run.id}/steps/${id}/sets`);
+		this.#dropSetWrites(id);
 		this.saveBody();
 	}
 
 	// removeOption drops one option of a choice not yet picked. The last
 	// option takes the choice with it.
 	removeOption(choiceId: string, k: number) {
-		for (const section of this.run!.sections) {
-			const i = section.items.findIndex((item) => item.choice?.id === choiceId);
-			if (i < 0) continue;
-			const choice = section.items[i].choice!;
-			choice.options.splice(k, 1);
-			if (!choice.options.length) section.items.splice(i, 1);
-			else choice.pick = Math.min(choice.pick, choice.options.length);
-			this.saveBody();
-			return;
-		}
+		const at = this.#choice(choiceId);
+		if (!at) return;
+		const { section, i, choice } = at;
+		choice.options.splice(k, 1);
+		if (!choice.options.length) section.items.splice(i, 1);
+		else choice.pick = Math.min(choice.pick, choice.options.length);
+		this.saveBody();
 	}
 
 	// logTimer logs the blocks a running timer finished, including those after
@@ -272,8 +290,7 @@ class OpenRun {
 
 	// unskip brings a skipped step back, with nothing logged.
 	unskip(step: RunStep) {
-		step.status = null;
-		step.elapsed_seconds = null;
+		this.#reopen(step);
 		this.saveBody();
 	}
 
@@ -291,10 +308,7 @@ class OpenRun {
 		const logged = setsOf(this.run!, step.id);
 		const keep = logged.filter((_, k) => Math.floor(k / sides) !== i);
 		step.sets = Math.max(0, count - 1);
-		if (!keep.length) {
-			step.status = null;
-			step.elapsed_seconds = null;
-		}
+		if (!keep.length) this.#reopen(step);
 		this.saveBody();
 		if (keep.length !== logged.length) this.setSets(step, keep);
 	}
@@ -306,7 +320,7 @@ class OpenRun {
 		step.status = 'skipped';
 		step.elapsed_seconds = this.#elapsed(step.id);
 		run.sets = run.sets.filter((s) => s.step !== step.id);
-		this.writes = this.writes.filter((w) => w.url !== `/api/v1/runs/${run.id}/steps/${step.id}/sets`);
+		this.#dropSetWrites(step.id);
 		this.saveBody();
 	}
 
@@ -388,9 +402,6 @@ export type StartBody = { scheduled: string } | { template: string } | { name: s
 export async function startRun(body: StartBody): Promise<Run> {
 	const run = await request<Run>('POST', '/api/v1/runs', body);
 	// The last run's unsent writes stay stored, and go when it opens again.
-	openRun.run = run;
-	openRun.writes = [];
-	openRun.refused = '';
-	openRun.stalled = false;
+	openRun.use(run);
 	return run;
 }
