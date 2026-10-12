@@ -245,6 +245,11 @@ type setFieldsBody struct {
 	// example: 10
 	Seconds *int `json:"seconds"`
 
+	// Each rep's time, when they differ, as a ladder's. seconds is then empty.
+	//
+	// example: [3, 6, 9]
+	RepSeconds []int `json:"rep_seconds"`
+
 	// Added weight. Below zero is assistance, and zero is bodyweight.
 	//
 	// example: 12.5
@@ -619,7 +624,7 @@ func (s *Server) replaceSets(w http.ResponseWriter, r *http.Request, who db.Auth
 	}
 	sets := make([]db.SetFields, 0, len(req.Sets))
 	for _, set := range req.Sets {
-		sets = append(sets, db.SetFields{Reps: set.Reps, Seconds: set.Seconds, WeightKG: set.WeightKG})
+		sets = append(sets, db.SetFields{Reps: set.Reps, Seconds: set.Seconds, RepSeconds: set.RepSeconds, WeightKG: set.WeightKG})
 	}
 	if problems := db.CheckSets(sets); len(problems) > 0 {
 		writeFieldErrors(w, problems)
@@ -821,7 +826,7 @@ func toSetBodies(sets []db.Set) []setBody {
 			Step:          set.Step,
 			Number:        set.Number,
 			Exercise:      set.Exercise,
-			setFieldsBody: setFieldsBody{Reps: set.Reps, Seconds: set.Seconds, WeightKG: set.WeightKG},
+			setFieldsBody: setFieldsBody{Reps: set.Reps, Seconds: set.Seconds, RepSeconds: set.RepSeconds, WeightKG: set.WeightKG},
 		})
 	}
 	return out

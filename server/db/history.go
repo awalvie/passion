@@ -51,7 +51,7 @@ func ExerciseHistory(ctx context.Context, pool *pgxpool.Pool, owner, exercise st
 	}
 
 	rows, err = pool.Query(ctx, `
-		SELECT run::text, step, number, exercise, reps, seconds, weight_kg FROM run_set
+		SELECT run::text, step, number, exercise, reps, seconds, rep_seconds, weight_kg FROM run_set
 		WHERE owner = $1 AND exercise = $2 AND run = ANY($3::uuid[])
 		ORDER BY step, number`, owner, exercise, ids)
 	if err != nil {

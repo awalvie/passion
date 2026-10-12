@@ -3560,6 +3560,20 @@
           "x-go-name": "Number",
           "example": 1
         },
+        "rep_seconds": {
+          "description": "Each rep's time, when they differ, as a ladder's. seconds is then empty.",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "RepSeconds",
+          "example": [
+            3,
+            6,
+            9
+          ]
+        },
         "reps": {
           "type": "integer",
           "format": "int64",
@@ -3593,6 +3607,20 @@
       "type": "object",
       "title": "What one set did. Every number is optional.",
       "properties": {
+        "rep_seconds": {
+          "description": "Each rep's time, when they differ, as a ladder's. seconds is then empty.",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "RepSeconds",
+          "example": [
+            3,
+            6,
+            9
+          ]
+        },
         "reps": {
           "type": "integer",
           "format": "int64",

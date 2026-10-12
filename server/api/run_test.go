@@ -243,7 +243,7 @@ func TestReplaceSets(t *testing.T) {
 	run, hang, climb := runWithSteps(t, h, ada)
 	path := "/api/v1/runs/" + run.ID + "/steps/" + hang + "/sets"
 
-	rec := send(t, h, http.MethodPut, path, ada, `{"sets": [{"seconds": 10, "weight_kg": -5}, {"seconds": 8}]}`)
+	rec := send(t, h, http.MethodPut, path, ada, `{"sets": [{"seconds": 10, "weight_kg": -5}, {"reps": 2, "rep_seconds": [3, 6]}]}`)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d: %s", rec.Code, rec.Body)
 	}
@@ -253,6 +253,9 @@ func TestReplaceSets(t *testing.T) {
 	}
 	if len(written.Sets) != 2 || written.Sets[1].Number != 2 || *written.Sets[0].WeightKG != -5 {
 		t.Fatalf("sets %+v", written.Sets)
+	}
+	if written.Sets[0].RepSeconds != nil || !slices.Equal(written.Sets[1].RepSeconds, []int{3, 6}) {
+		t.Fatalf("rep seconds %v and %v, want none, then a ladder's", written.Sets[0].RepSeconds, written.Sets[1].RepSeconds)
 	}
 
 	read := decodeRun(t, send(t, h, http.MethodGet, "/api/v1/runs/"+run.ID, ada, ""))
@@ -265,6 +268,7 @@ func TestReplaceSets(t *testing.T) {
 		status     int
 	}{
 		"a bad number":              {path, `{"sets": [{"reps": -1}]}`, http.StatusUnprocessableEntity},
+		"two kinds of time":         {path, `{"sets": [{"seconds": 9, "rep_seconds": [3, 6, 9]}]}`, http.StatusUnprocessableEntity},
 		"a climbing step":           {"/api/v1/runs/" + run.ID + "/steps/" + climb + "/sets", `{"sets": []}`, http.StatusUnprocessableEntity},
 		"a step the run lacks":      {"/api/v1/runs/" + run.ID + "/steps/0199c3a0-0000-7000-8000-0000000000ff/sets", `{"sets": []}`, http.StatusNotFound},
 		"a run that does not exist": {"/api/v1/runs/0199c3a0-0000-7000-8000-0000000000ff/steps/" + hang + "/sets", `{"sets": []}`, http.StatusNotFound},

@@ -58,8 +58,8 @@ func TestReplaceSets(t *testing.T) {
 
 	sets := []db.SetFields{
 		{Seconds: ptr(10), WeightKG: ptr(-5.5)},
-		{Seconds: ptr(10), WeightKG: ptr(0.0)},
-		{Seconds: ptr(8)},
+		{Seconds: ptr(10), WeightKG: ptr(0.0), RepSeconds: []int{}},
+		{Reps: ptr(2), RepSeconds: []int{3, 6}},
 	}
 	got, err := db.ReplaceSets(ctx, pool, ada, run.ID, s1, sets)
 	if err != nil {
@@ -71,6 +71,10 @@ func TestReplaceSets(t *testing.T) {
 	if *got[0].WeightKG != -5.5 || *got[1].WeightKG != 0 || got[2].WeightKG != nil {
 		t.Fatalf("weights %v %v %v, want assistance, bodyweight and none kept apart",
 			*got[0].WeightKG, *got[1].WeightKG, got[2].WeightKG)
+	}
+	if got[1].RepSeconds != nil || got[2].Seconds != nil || !slices.Equal(got[2].RepSeconds, []int{3, 6}) {
+		t.Fatalf("rep seconds %v and %v, want none on a plain set and each rep's on a ladder set",
+			got[1].RepSeconds, got[2].RepSeconds)
 	}
 
 	read, err := db.GetRun(ctx, pool, ada, run.ID)
@@ -182,8 +186,15 @@ func TestFinishRunKeepsLoggedStepsDone(t *testing.T) {
 }
 
 func TestCheckSets(t *testing.T) {
-	problems := db.CheckSets([]db.SetFields{{Reps: ptr(-1)}, {WeightKG: ptr(12000.0)}, {Seconds: ptr(10)}})
-	want := []string{"sets[0].reps", "sets[1].weight_kg"}
+	problems := db.CheckSets([]db.SetFields{
+		{Reps: ptr(-1)},
+		{WeightKG: ptr(12000.0)},
+		{Seconds: ptr(10)},
+		{Reps: ptr(3), RepSeconds: []int{3, 6, 9}},
+		{Seconds: ptr(9), RepSeconds: []int{3, 6, 9}},
+		{RepSeconds: []int{3, -6}},
+	})
+	want := []string{"sets[0].reps", "sets[1].weight_kg", "sets[4].rep_seconds", "sets[5].rep_seconds"}
 	if got := slices.Sorted(maps.Keys(problems)); !slices.Equal(got, want) {
 		t.Fatalf("problems %v, want %v", problems, want)
 	}
