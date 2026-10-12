@@ -56,7 +56,7 @@
 		done?: { href: string; last: boolean } | null;
 		skip?: () => void;
 		children: Snippet;
-		buttons?: Snippet;
+		buttons: Snippet;
 	} = $props();
 
 	const run = $derived(openRun.run!);
@@ -200,7 +200,7 @@
 					{done.last ? 'Back to session' : 'Next exercise'}<span class="run-icon"><Icon name="arrow-right" size="16px" stroke={2.6} /></span>
 				</a>
 			{:else}
-				{@render buttons?.()}
+				{@render buttons()}
 				{#if skip}<button type="button" class="run-round" aria-label="Skip" onclick={skip}><Icon name="skip" size="26px" /></button>{/if}
 			{/if}
 		</div>

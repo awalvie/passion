@@ -156,7 +156,6 @@
 		});
 	});
 
-
 	const statuses = { done: 'Done', started: 'Started', missed: 'Missed', planned: '' };
 	const tags = {
 		done: 'bg-well text-ink-2',
