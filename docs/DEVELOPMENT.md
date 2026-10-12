@@ -119,8 +119,9 @@ such as the step page or the set card, is drawn.
   both self-hosted from `client/static/fonts/`.
 - `dark:` follows `data-theme`, not the system setting. Use it only when a token cannot
   say it, for example a shadow that differs by theme.
-- Use `Button`, `NavBar`, `Menu`, `TabBar` and `FormError` from `client/src/lib/`, and the
-  `.input` class for every field and `<select>`.
+- Use `Button`, `NavBar`, `Menu`, `TabBar`, `FormError` and `HeroCard` (the forest card)
+  from `client/src/lib/`, and the `.input` class for every field and `<select>`. `.live-dot`
+  marks a session that is running.
 
 ## Before you commit
 

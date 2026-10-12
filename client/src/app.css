@@ -175,6 +175,14 @@ body {
 		background: var(--glass);
 		color: var(--fg);
 	}
+	/* The dot that marks a session as running. */
+	.live-dot {
+		width: 0.625rem;
+		height: 0.625rem;
+		border-radius: 999px;
+		background: var(--live);
+		box-shadow: 0 0 0 5px var(--live-halo);
+	}
 	/* Every icon on those buttons sits in its own circle. */
 	.run-icon {
 		display: flex;
