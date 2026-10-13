@@ -52,11 +52,9 @@
 			board = (end?.board as keyof typeof boards | null) ?? 'none';
 		});
 	});
-	const gradesFor = (d: Discipline) => {
-		const sc = info ? scaleFor(info.grades, info.account, d === 'boulder') : undefined;
-		return [...(sc?.grades ?? []), ...(info?.grades.ungraded ?? [])];
-	};
+	const gradesFor = (d: Discipline) => (info ? (scaleFor(info.grades, info.account, d === 'boulder')?.grades ?? []) : []);
 	const gradeList = $derived(gradesFor(discipline));
+	const ungraded = $derived(info?.grades.ungraded ?? []);
 
 	// The scale a grade belongs to: none for an ungraded label or no grade.
 	// Before the scales load, as offline, a grade kept from an earlier climb
@@ -240,6 +238,19 @@
 	</div>
 {/snippet}
 
+{#snippet labels(selected: string | null, onpick: (g: string) => void)}
+	<div class="flex gap-1.5" role="group" aria-label="Ungraded">
+		{#each ungraded as g (g)}
+			<button
+				type="button"
+				class="h-11 rounded-xl px-3.5 text-[15px] font-bold {selected === g ? 'bg-(--fg) text-on-tint' : 'bg-black/20 text-(--fg2)'}"
+				aria-pressed={selected === g}
+				onclick={() => onpick(g)}>{g}</button
+			>
+		{/each}
+	</div>
+{/snippet}
+
 {#snippet count(kind: Go, label: string, n: number)}
 	<div class="flex items-center gap-2 rounded-[18px] bg-surface p-2 pl-3">
 		<span class="flex size-7 items-center justify-center rounded-full {kind === 'send' ? 'bg-rest-on-hero text-on-tint' : 'bg-white/14'}"
@@ -280,6 +291,7 @@
 					{#if ended.length}<span>{sends} OF {ended.length} SENT</span>{/if}
 				</p>
 				<div class="mt-2">{@render strip(cur.grade, gradeList, pick, true)}</div>
+				{#if ungraded.length}<div class="mt-2">{@render labels(cur.grade, pick)}</div>{/if}
 				<button type="button" class="mt-1.5 flex min-h-11 w-full flex-wrap items-center gap-2 py-1 text-left" aria-label="{cur.goes.length} {cur.goes.length === 1 ? 'go' : 'goes'}, edit" onclick={() => (editing = cur.id)}>
 					<span class="mr-1 text-[15px] font-bold text-(--fg2)">Goes</span>
 					{#each cur.goes as g, i (i)}{@render goDot(g, i + 1)}{/each}
@@ -355,6 +367,7 @@
 				<div class="flex flex-col gap-1.5">
 					<span class="text-xs font-semibold text-ink-2">Grade</span>
 					{@render strip(editingClimb.grade, gradesFor(editingClimb.discipline), (g) => setGrade(editingClimb!, g))}
+					{#if ungraded.length}{@render labels(editingClimb.grade, (g) => setGrade(editingClimb!, g))}{/if}
 				</div>
 			{/if}
 			{@render count('attempt', 'Attempts', c.goes.filter((g) => g === 'attempt').length)}
