@@ -8,7 +8,6 @@
 	import RowActions from '$lib/RowActions.svelte';
 	import SectionEditor from '$lib/SectionEditor.svelte';
 	import { sessionIcons } from '$lib/SessionIcon.svelte';
-	import TemplatePlan from '$lib/TemplatePlan.svelte';
 	import {
 		moveEntry,
 		templateFieldLabel,
@@ -264,67 +263,59 @@
 		</div>
 	</details>
 
-	<div class="md:grid md:grid-cols-2 md:gap-4">
-		<div class="flex flex-col gap-3.5">
-			{#each draft.sections as section, i (section)}
-				{#snippet sectionActions()}
-					<RowActions
-						label={section.name || 'section'}
-						index={i}
-						count={draft.sections.length}
-						move={(by) => moveEntry(draft.sections, i, by)}
-						remove={() => removeSection(i)}
-					/>
-				{/snippet}
-				<SectionEditor
-					bind:section={draft.sections[i]}
-					id="sec{i}"
-					number={i + 1}
-					open={i === 0}
-					{library}
-					actions={sectionActions}
+	<div class="flex flex-col gap-3.5">
+		{#each draft.sections as section, i (section)}
+			{#snippet sectionActions()}
+				<RowActions
+					label={section.name || 'section'}
+					index={i}
+					count={draft.sections.length}
+					move={(by) => moveEntry(draft.sections, i, by)}
+					remove={() => removeSection(i)}
 				/>
-			{:else}
-				<p class="px-1 text-[15px] font-semibold text-ink-2">No sections yet. Add one below.</p>
-			{/each}
+			{/snippet}
+			<SectionEditor
+				bind:section={draft.sections[i]}
+				id="sec{i}"
+				number={i + 1}
+				open={i === 0}
+				{library}
+				actions={sectionActions}
+			/>
+		{:else}
+			<p class="px-1 text-[15px] font-semibold text-ink-2">No sections yet. Add one below.</p>
+		{/each}
 
-			<details class="rounded-3xl bg-surface px-4 shadow-card" open={!draft.sections.length}>
-				<summary
-					class="flex min-h-14 cursor-pointer list-none items-center gap-2.5 text-[15px] font-bold [&::-webkit-details-marker]:hidden"
-				>
-					<Icon name="plus" />Add section
-				</summary>
-				<div class="grid grid-cols-[1fr_auto] items-end gap-2 pb-4">
-					<div>
-						<label class="block text-xs font-semibold text-ink-2" for="new-section">Name</label>
-						<input
-							id="new-section"
-							class="mt-1.5 input"
-							placeholder="e.g. Warm-up, Strength, Cool-down"
-							bind:value={newSection}
-							onkeydown={(e) => {
-								if (e.key === 'Enter') {
-									e.preventDefault();
-									addSection();
-								}
-							}}
-						/>
-					</div>
-					<button
-						type="button"
-						class="flex h-12 items-center gap-1.5 rounded-full bg-well px-4 text-[15px] font-bold text-ink active:opacity-70"
-						onclick={addSection}
-					>
-						Add
-					</button>
+		<details class="rounded-3xl bg-surface px-4 shadow-card" open={!draft.sections.length}>
+			<summary
+				class="flex min-h-14 cursor-pointer list-none items-center gap-2.5 text-[15px] font-bold [&::-webkit-details-marker]:hidden"
+			>
+				<Icon name="plus" />Add section
+			</summary>
+			<div class="grid grid-cols-[1fr_auto] items-end gap-2 pb-4">
+				<div>
+					<label class="block text-xs font-semibold text-ink-2" for="new-section">Name</label>
+					<input
+						id="new-section"
+						class="mt-1.5 input"
+						placeholder="e.g. Warm-up, Strength, Cool-down"
+						bind:value={newSection}
+						onkeydown={(e) => {
+							if (e.key === 'Enter') {
+								e.preventDefault();
+								addSection();
+							}
+						}}
+					/>
 				</div>
-			</details>
-		</div>
-
-		<!-- On a phone each row already shows its name and numbers, so the plan
-		     would only repeat the editor below it. -->
-		<aside class="hidden md:block">
-			<TemplatePlan sections={draft.sections} />
-		</aside>
+				<button
+					type="button"
+					class="flex h-12 items-center gap-1.5 rounded-full bg-well px-4 text-[15px] font-bold text-ink active:opacity-70"
+					onclick={addSection}
+				>
+					Add
+				</button>
+			</div>
+		</details>
 	</div>
 </form>
