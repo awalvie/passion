@@ -5,7 +5,7 @@
 	import Icon from './Icon.svelte';
 	import { newId } from './id';
 	import type { Account } from './plan';
-	import { climbsOf, isFinished, type Climb, type ClimbFields, type Discipline, type Go, type RunStep } from './run';
+	import { climbsOf, isFinished, stepsOf, type Climb, type ClimbFields, type Discipline, type Go, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
 	import RunPage, { type PlayerProps } from './RunPage.svelte';
 	import Segmented from './Segmented.svelte';
@@ -34,7 +34,9 @@
 	// an unfinished step is current again.
 	type Current = { id: string; grade: string | null; goes: Go[]; seconds: number | null; focus: string | null; notes: string | null };
 	let cur = $state<Current>({ id: '', grade: null, goes: [], seconds: null, focus: null, notes: null });
-	// The bar sets every new climb, and starts from the last one logged.
+	// The bar sets every new climb, and starts from the last one logged in
+	// this step, else in the nearest earlier step. Climbs carry no time, so
+	// session order stands in for when they were logged.
 	let discipline = $state<Discipline>('boulder');
 	let setting = $state<keyof typeof settings>('indoor');
 	let rope = $state<keyof typeof ropes>('lead');
@@ -48,10 +50,13 @@
 		untrack(() => {
 			const end = climbsOf(openRun.run!, id).at(-1);
 			cur = end && !isFinished(step) ? resume(end) : fresh(end?.grade ?? null);
-			discipline = end?.discipline ?? 'boulder';
-			setting = end?.setting ?? 'indoor';
-			rope = (end?.rope_style as keyof typeof ropes | null) ?? 'lead';
-			board = (end?.board as keyof typeof boards | null) ?? 'none';
+			const order = stepsOf(openRun.run!).map((s) => s.id);
+			const before = order.slice(0, order.indexOf(id)).reverse();
+			const bar = end ?? before.map((s) => climbsOf(openRun.run!, s).at(-1)).find(Boolean);
+			discipline = bar?.discipline ?? 'boulder';
+			setting = bar?.setting ?? 'indoor';
+			rope = (bar?.rope_style as keyof typeof ropes | null) ?? 'lead';
+			board = (bar?.board as keyof typeof boards | null) ?? 'none';
 		});
 	});
 	const gradesFor = (d: Discipline) => (info ? (scaleFor(info.grades, info.account, d === 'boulder')?.grades ?? []) : []);
