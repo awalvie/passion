@@ -35,14 +35,14 @@
 <div class="flex flex-col gap-3.5">
 	<LibrarySearch bind:value={f.q} placeholder="Search exercises" label="Search exercises" />
 
-	<!-- Two selects to a row on a phone: four on one row clip their own text. -->
+	<!-- Two selects to a row: four on one row clip their own text. -->
 	<div class="flex flex-wrap items-center gap-2">
-		<FilterSelect bind:value={f.kind} label="Type" all="All types" options={kinds.map((k) => ({ value: k.kind, label: k.label }))} class="w-[calc(50%-0.25rem)] sm:w-auto" />
+		<FilterSelect bind:value={f.kind} label="Type" all="All types" options={kinds.map((k) => ({ value: k.kind, label: k.label }))} class="w-[calc(50%-0.25rem)]" />
 		{#if sources.length}
-			<FilterSelect bind:value={f.source} label="Source" all="All sources" options={sources.map((s) => ({ value: s, label: s }))} class="w-[calc(50%-0.25rem)] sm:w-auto" />
+			<FilterSelect bind:value={f.source} label="Source" all="All sources" options={sources.map((s) => ({ value: s, label: s }))} class="w-[calc(50%-0.25rem)]" />
 		{/if}
 		{#if tags.length}
-			<FilterSelect bind:value={f.tag} label="Labels" all="All labels" options={tags.map((t) => ({ value: t, label: t }))} class="w-[calc(50%-0.25rem)] sm:w-auto" />
+			<FilterSelect bind:value={f.tag} label="Labels" all="All labels" options={tags.map((t) => ({ value: t, label: t }))} class="w-[calc(50%-0.25rem)]" />
 		{/if}
 		{#if filtered}
 			<button type="button" class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm" onclick={clear}>

@@ -15,7 +15,7 @@
 </script>
 
 <fieldset {disabled} class="min-w-0">
-	<div class="grid gap-3.5 sm:grid-cols-2">
+	<div class="grid gap-3.5">
 		<div>
 			<label class="block text-xs font-semibold text-ink-2" for="ex-name">Name</label>
 			<input id="ex-name" class="mt-1.5 input" maxlength="200" bind:value={draft.name} required />

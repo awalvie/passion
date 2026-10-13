@@ -78,7 +78,7 @@
 	{/snippet}
 </NavBar>
 
-<div class="mx-auto grid max-w-5xl gap-3.5 px-4 pt-2 lg:grid-cols-[minmax(0,1fr)_20rem] [&>*]:min-w-0">
+<div class="grid gap-3.5 px-4 pt-2 [&>*]:min-w-0">
 	<div class="flex flex-col gap-3.5">
 		<header class="px-1">
 			<h1 class="page-title break-words">{saved.name}</h1>
@@ -100,8 +100,7 @@
 		</form>
 	</div>
 
-	<!-- On a phone the preview goes above the form rather than below a long field list. -->
-	<aside class="order-first lg:order-none">
+	<aside class="order-first">
 		<div class="rounded-3xl bg-surface p-2.5 shadow-card">
 			<div class="flex aspect-[16/10] items-center justify-center overflow-hidden rounded-[18px] bg-well">
 				{#if thumb?.thumb_url}

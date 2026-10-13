@@ -38,10 +38,10 @@
 	{#if sources.length || tags.length || filtered}
 		<div class="flex flex-wrap items-center gap-2">
 			{#if sources.length}
-				<FilterSelect bind:value={f.source} label="Source" all="All sources" options={sources.map((s) => ({ value: s, label: s }))} class="max-w-full flex-1 sm:flex-none" />
+				<FilterSelect bind:value={f.source} label="Source" all="All sources" options={sources.map((s) => ({ value: s, label: s }))} class="max-w-full flex-1" />
 			{/if}
 			{#if tags.length}
-				<FilterSelect bind:value={f.tag} label="Labels" all="All labels" options={tags.map((t) => ({ value: t, label: t }))} class="max-w-full flex-1 sm:flex-none" />
+				<FilterSelect bind:value={f.tag} label="Labels" all="All labels" options={tags.map((t) => ({ value: t, label: t }))} class="max-w-full flex-1" />
 			{/if}
 			{#if filtered}
 				<button type="button" class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm" onclick={clear}>Clear</button>
