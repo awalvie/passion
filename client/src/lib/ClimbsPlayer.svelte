@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import DurationInput from './DurationInput.svelte';
 	import { loadGrades, scaleFor, type Grades } from './grades';
 	import Icon from './Icon.svelte';
 	import { newId } from './id';
@@ -9,6 +10,7 @@
 	import RunPage, { type PlayerProps } from './RunPage.svelte';
 	import Segmented from './Segmented.svelte';
 	import Sheet from './Sheet.svelte';
+	import { formatClock } from './timerStore';
 	import Toast from './Toast.svelte';
 
 	let { step, next, nextHref, last, menu, error, leaving, leave, skip }: PlayerProps = $props();
@@ -30,8 +32,8 @@
 	// The climb on the card. It reaches the server at its first go, and stays
 	// the current one until "Add climb", so after a reload the last climb of
 	// an unfinished step is current again.
-	type Current = { id: string; grade: string | null; goes: Go[]; focus: string | null; notes: string | null };
-	let cur = $state<Current>({ id: '', grade: null, goes: [], focus: null, notes: null });
+	type Current = { id: string; grade: string | null; goes: Go[]; seconds: number | null; focus: string | null; notes: string | null };
+	let cur = $state<Current>({ id: '', grade: null, goes: [], seconds: null, focus: null, notes: null });
 	// The bar sets every new climb, and starts from the last one logged.
 	let discipline = $state<Discipline>('boulder');
 	let setting = $state<keyof typeof settings>('indoor');
@@ -39,8 +41,8 @@
 	let board = $state<keyof typeof boards>('none');
 	// A board is only for a boulder in a gym.
 	const onBoard = $derived(discipline === 'boulder' && setting === 'indoor' && board !== 'none');
-	const fresh = (grade: string | null): Current => ({ id: newId(), grade, goes: [], focus: null, notes: null });
-	const resume = (c: Climb): Current => ({ id: c.id, grade: c.grade, goes: [...c.goes], focus: c.focus, notes: c.notes });
+	const fresh = (grade: string | null): Current => ({ id: newId(), grade, goes: [], seconds: null, focus: null, notes: null });
+	const resume = (c: Climb): Current => ({ id: c.id, grade: c.grade, goes: [...c.goes], seconds: c.seconds, focus: c.focus, notes: c.notes });
 	$effect.pre(() => {
 		const id = step.id;
 		untrack(() => {
@@ -88,7 +90,7 @@
 			grade: c.grade,
 			grade_system: systemFor(discipline, c.grade),
 			goes: [...c.goes],
-			seconds: had?.seconds ?? null,
+			seconds: c.seconds,
 			stars: had?.stars ?? null,
 			focus: c.focus,
 			notes: c.notes
@@ -109,6 +111,16 @@
 		const value = text.trim() || null;
 		if (editingClimb) return rewrite(editingClimb, { [key]: value });
 		cur[key] = value;
+		if (cur.goes.length) save(cur);
+	}
+
+	function setSeconds(seconds: number | null) {
+		if (editingClimb) {
+			if (seconds !== editingClimb.seconds) rewrite(editingClimb, { seconds });
+			return;
+		}
+		if (seconds === cur.seconds) return;
+		cur.seconds = seconds;
 		if (cur.goes.length) save(cur);
 	}
 
@@ -347,7 +359,7 @@
 									: 'bg-white/8 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg)_30%,transparent)]'}">{c.grade ?? '–'}</span
 							>
 							<span class="min-w-0 flex-1">
-								<b class="block text-base">{word(c)}</b>
+								<b class="block text-base">{word(c)}{c.seconds ? ` · ${formatClock(c.seconds)}` : ''}</b>
 								{#if c.notes || c.focus}<span class="block truncate text-sm font-semibold text-(--fg2)">{c.notes ?? `Focus: ${c.focus}`}</span>{/if}
 							</span>
 							<span class="flex gap-1" aria-hidden="true">
@@ -372,6 +384,15 @@
 			{/if}
 			{@render count('attempt', 'Attempts', c.goes.filter((g) => g === 'attempt').length)}
 			{@render count('send', 'Sends', c.goes.filter((g) => g === 'send').length)}
+			<div class="flex flex-col gap-1.5">
+				<span class="text-xs font-semibold text-ink-2">Time on the wall</span>
+				<!-- Sheet keeps its content mounted: closed, the boxes would write onto the next climb. -->
+				{#if editing !== null}
+					{#key editing}
+						<DurationInput bind:seconds={() => c.seconds, setSeconds} id="climb-time" small hours={false} />
+					{/key}
+				{/if}
+			</div>
 			<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2"
 				>Focus
 				<textarea
