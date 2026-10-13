@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import DurationInput from './DurationInput.svelte';
+	import ClockInput from './ClockInput.svelte';
 	import { loadGrades, scaleFor, type Grades } from './grades';
 	import Icon from './Icon.svelte';
 	import { newId } from './id';
@@ -109,6 +109,8 @@
 	}
 
 	let editing = $state<string | null>(null);
+	// The climb whose time field the sheet opened. A climb with a time shows it.
+	let timing = $state<string | null>(null);
 	const editingClimb = $derived(editing === null || editing === cur.id ? null : logged.find((c) => c.id === editing));
 	const editingNumber = $derived(editing === cur.id ? ended.length + 1 : ended.findIndex((c) => c.id === editing) + 1);
 
@@ -389,15 +391,6 @@
 			{/if}
 			{@render count('attempt', 'Attempts', c.goes.filter((g) => g === 'attempt').length)}
 			{@render count('send', 'Sends', c.goes.filter((g) => g === 'send').length)}
-			<div class="flex flex-col gap-1.5">
-				<span class="text-xs font-semibold text-ink-2">Time on the wall</span>
-				<!-- Sheet keeps its content mounted: closed, the boxes would write onto the next climb. -->
-				{#if editing !== null}
-					{#key editing}
-						<DurationInput bind:seconds={() => c.seconds, setSeconds} id="climb-time" small hours={false} />
-					{/key}
-				{/if}
-			</div>
 			<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2"
 				>Focus
 				<textarea
@@ -416,6 +409,20 @@
 					onchange={(e) => setNote('notes', e.currentTarget.value)}
 				></textarea>
 			</label>
+			<!-- Sheet keeps its content mounted: closed, the field would write onto the next climb. -->
+			{#if editing !== null && (c.seconds !== null || timing === editing)}
+				<!-- Clearing the time must not swap the field out under the finger. -->
+				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2" onfocusin={() => (timing = editing)}
+					>Time on the wall
+					{#key editing}
+						<ClockInput bind:seconds={() => c.seconds, setSeconds} id="climb-time" autofocus={c.seconds === null} />
+					{/key}
+				</label>
+			{:else}
+				<button type="button" class="flex h-12 items-center justify-center gap-2 rounded-full bg-surface text-[15px] font-bold text-ink-2" onclick={() => (timing = editing)}>
+					<Icon name="plus" size="17px" stroke={2.4} />Add time
+				</button>
+			{/if}
 			{#if editingClimb}
 				<button type="button" class="flex h-12 items-center justify-center gap-2 rounded-full bg-surface text-[15px] font-bold text-bad" onclick={() => remove(editingClimb!)}>
 					<Icon name="trash-2" size="17px" stroke={2.4} />Delete climb
