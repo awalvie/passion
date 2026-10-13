@@ -22,7 +22,7 @@
 	} from '$lib/run';
 	import RunField from '$lib/RunField.svelte';
 	import { openRun } from '$lib/runState.svelte';
-	import { choiceMeta, stepMeta, type Step } from '$lib/template';
+	import { choiceMeta, stepMeta, toStep, type Step } from '$lib/template';
 	import { kindOf, type Exercise } from '$lib/exercise';
 	import ExercisePicker from '$lib/ExercisePicker.svelte';
 	import SessionDot from '$lib/SessionDot.svelte';
@@ -52,6 +52,10 @@
 	let library = $state<Exercise[]>([]);
 	let picking = $state(false);
 	let into = $state<number>();
+	// The exercise shown before it is added. Each opening remounts the picker,
+	// so it starts with an empty search.
+	let candidate = $state<Exercise | null>(null);
+	let opened = $state(0);
 
 	async function openLibrary(section?: number) {
 		error = '';
@@ -61,6 +65,8 @@
 				library = exercises.filter((e) => !e.retired_at);
 			}
 			into = section;
+			candidate = null;
+			opened++;
 			picking = true;
 		} catch (e) {
 			error = describe(e, (f) => f);
@@ -77,8 +83,6 @@
 	let previewing = $state(false);
 	let shown = $state<{ choice: RunChoice; k: number }>();
 	const option = $derived(shown?.choice.options[shown.k]);
-	const video = $derived(option?.media.find((md) => md.url));
-	const videoThumb = $derived(option?.media.find((md) => md.url && md.thumb_url));
 
 	function preview(choice: RunChoice, k: number) {
 		shown = { choice, k };
@@ -258,6 +262,34 @@
 
 {#snippet tile(icon: IconName)}
 	<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--glass) text-on-hero"><Icon name={icon} size="16px" stroke={2.6} /></span>
+{/snippet}
+
+{#snippet howTo(step: Step)}
+	{@const video = step.media.find((md) => md.url)}
+	{@const thumb = step.media.find((md) => md.url && md.thumb_url)}
+	<p class="-mt-1 text-xs font-semibold text-ink-2">{stepMeta(step)}</p>
+	{#if thumb}
+		<a
+			href={thumb.url}
+			target="_blank"
+			rel="noopener"
+			class="relative mt-3.5 block aspect-video max-w-full overflow-hidden rounded-[18px] bg-well"
+			aria-label="Watch {step.name}"
+		>
+			<img src={thumb.thumb_url} alt="" class="size-full object-cover" />
+			<span class="absolute top-1/2 left-1/2 flex size-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 pl-0.5 text-on-tint">
+				<Icon name="play" size="1.5rem" />
+			</span>
+		</a>
+	{:else if video}
+		<a href={video.url} target="_blank" rel="noopener" class="mt-3.5 flex items-center gap-2.5 text-[15px] font-bold">
+			<span class="flex size-8 items-center justify-center rounded-full bg-well pl-0.5"><Icon name="play" size="1rem" /></span>
+			Watch video
+		</a>
+	{/if}
+	{#if step.notes?.trim()}
+		<div class="mt-3.5 text-[15px] font-semibold"><Notes text={step.notes} /></div>
+	{/if}
 {/snippet}
 
 {#snippet line()}
@@ -522,16 +554,24 @@
 		</div>
 	</div>
 
-	<Sheet bind:open={picking} eyebrow={into === undefined ? undefined : run.sections[into]?.name} title="Add exercise">
-		<ExercisePicker
-			id="add-exercise"
-			label="Exercise"
-			exercises={library}
-			pick={(e) => {
-				openRun.addStep(e, into);
-				picking = false;
-			}}
-		/>
+	<Sheet bind:open={picking} eyebrow={into === undefined ? undefined : run.sections[into]?.name} title={candidate?.name ?? 'Add exercise'}>
+		<div hidden={!!candidate}>
+			{#key opened}
+				<ExercisePicker id="add-exercise" label="Exercise" exercises={library} keep pick={(e) => (candidate = e)} />
+			{/key}
+		</div>
+		{#if candidate}
+			{@render howTo(toStep(candidate))}
+			<div class="mt-5 grid grid-cols-[1fr_1.4fr] gap-2.5">
+				<button type="button" class="flex h-14 items-center justify-center rounded-full bg-well text-[15px] font-bold text-ink active:opacity-80" onclick={() => (candidate = null)}>Back</button>
+				<Button
+					onclick={() => {
+						openRun.addStep(candidate!, into);
+						picking = false;
+					}}>Add</Button
+				>
+			</div>
+		{/if}
 	</Sheet>
 
 	<Sheet bind:open={naming} title="Add section">
@@ -546,29 +586,7 @@
 
 	<Sheet bind:open={previewing} eyebrow={shown?.choice.name} title={option?.name ?? ''}>
 		{#if option}
-			<p class="-mt-1 text-xs font-semibold text-ink-2">{stepMeta(option)}</p>
-			{#if videoThumb}
-				<a
-					href={videoThumb.url}
-					target="_blank"
-					rel="noopener"
-					class="relative mt-3.5 block aspect-video max-w-full overflow-hidden rounded-[18px] bg-well"
-					aria-label="Watch {option.name}"
-				>
-					<img src={videoThumb.thumb_url} alt="" class="size-full object-cover" />
-					<span class="absolute top-1/2 left-1/2 flex size-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 pl-0.5 text-on-tint">
-						<Icon name="play" size="1.5rem" />
-					</span>
-				</a>
-			{:else if video}
-				<a href={video.url} target="_blank" rel="noopener" class="mt-3.5 flex items-center gap-2.5 text-[15px] font-bold">
-					<span class="flex size-8 items-center justify-center rounded-full bg-well pl-0.5"><Icon name="play" size="1rem" /></span>
-					Watch video
-				</a>
-			{/if}
-			{#if option.notes?.trim()}
-				<div class="mt-3.5 text-[15px] font-semibold"><Notes text={option.notes} /></div>
-			{/if}
+			{@render howTo(option)}
 			<div class="mt-5 grid grid-cols-[1fr_1.4fr] gap-2.5">
 				<button type="button" class="flex h-14 items-center justify-center rounded-full bg-well text-[15px] font-bold text-ink active:opacity-80" onclick={() => (previewing = false)}>Back</button>
 				<Button onclick={pickShown}>Pick this</Button>
