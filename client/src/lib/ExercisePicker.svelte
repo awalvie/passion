@@ -5,8 +5,9 @@
 		exercises,
 		id,
 		label = 'Add exercise',
+		keep = false,
 		pick
-	}: { exercises: Exercise[]; id: string; label?: string; pick: (e: Exercise) => void } = $props();
+	}: { exercises: Exercise[]; id: string; label?: string; keep?: boolean; pick: (e: Exercise) => void } = $props();
 
 	let q = $state('');
 
@@ -17,7 +18,8 @@
 
 	function choose(e: Exercise) {
 		pick(e);
-		q = '';
+		// A preview goes back to the same search.
+		if (!keep) q = '';
 	}
 
 	// Enter would otherwise submit the whole editor.
