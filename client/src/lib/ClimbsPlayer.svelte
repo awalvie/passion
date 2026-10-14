@@ -35,7 +35,7 @@
 	type Current = { id: string; grade: string | null; goes: Go[]; seconds: number | null; focus: string | null; notes: string | null };
 	let cur = $state<Current>({ id: '', grade: null, goes: [], seconds: null, focus: null, notes: null });
 	// The bar sets every new climb, and starts from the last one logged in
-	// this step, else in the nearest earlier step. Climbs carry no time, so
+	// this step, else in the nearest earlier step. Climbs carry no timestamp, so
 	// session order stands in for when they were logged.
 	let discipline = $state<Discipline>('boulder');
 	let setting = $state<keyof typeof settings>('indoor');
