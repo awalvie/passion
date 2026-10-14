@@ -51,8 +51,8 @@
 			const end = climbsOf(openRun.run!, id).at(-1);
 			cur = end && !isFinished(step) ? resume(end) : fresh(end?.grade ?? null);
 			const order = stepsOf(openRun.run!).map((s) => s.id);
-			const before = order.slice(0, order.indexOf(id)).reverse();
-			const bar = end ?? before.map((s) => climbsOf(openRun.run!, s).at(-1)).find(Boolean);
+			const before = order.slice(0, order.indexOf(id));
+			const bar = end ?? before.map((s) => climbsOf(openRun.run!, s).at(-1)).findLast(Boolean);
 			discipline = bar?.discipline ?? 'boulder';
 			setting = bar?.setting ?? 'indoor';
 			rope = (bar?.rope_style as keyof typeof ropes | null) ?? 'lead';
