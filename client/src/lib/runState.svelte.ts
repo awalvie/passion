@@ -23,7 +23,8 @@ import { readTimers } from './timerStore';
 // older one, since each carries the whole list or the whole run.
 type Write = { seq: number; method: 'PUT' | 'DELETE'; url: string; body?: unknown };
 
-type Stored = { run: Run; writes: Write[] };
+// opened holds when each step was first reached, so a reload keeps its time.
+type Stored = { run: Run; writes: Write[]; opened?: Record<string, number> };
 
 const storageKey = (id: string) => `passion-pending:${id}`;
 
@@ -73,6 +74,9 @@ class OpenRun {
 			this.stalled = false;
 		}
 		const stored = readStored(id);
+		for (const [step, at] of Object.entries(stored?.opened ?? {})) {
+			if (!this.#openedAt.has(step)) this.#openedAt.set(step, at);
+		}
 		const useStored = () => {
 			this.run = stored!.run;
 			this.writes = stored!.writes;
@@ -176,7 +180,9 @@ class OpenRun {
 	// where the time written when they move on starts.
 	opened(step: string) {
 		this.here = step;
-		if (!this.#openedAt.has(step)) this.#openedAt.set(step, Date.now());
+		if (this.#openedAt.has(step)) return;
+		this.#openedAt.set(step, Date.now());
+		this.#store();
 	}
 
 	#elapsed(step: string) {
@@ -357,7 +363,9 @@ class OpenRun {
 		const run = this.run;
 		if (!run) return;
 		try {
-			const stored: Stored = { run: $state.snapshot(run) as Run, writes: $state.snapshot(this.writes) };
+			const steps = new Set(stepsOf(run).map((s) => s.id));
+			const opened = Object.fromEntries([...this.#openedAt].filter(([step]) => steps.has(step)));
+			const stored: Stored = { run: $state.snapshot(run) as Run, writes: $state.snapshot(this.writes), opened };
 			localStorage.setItem(storageKey(run.id), JSON.stringify(stored));
 		} catch {
 			/* the queue in memory still sends */

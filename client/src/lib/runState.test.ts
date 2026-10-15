@@ -412,6 +412,45 @@ test('a change made offline survives a reload and is sent when the signal is bac
 	expect(stored().writes).toStrictEqual([]);
 });
 
+test('a reload during a step keeps the time since the step was opened', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	try {
+		vi.setSystemTime(0);
+		const first = await openOffline();
+		first.opened('s1');
+
+		vi.setSystemTime(600_000);
+		const openRun = await openFresh();
+		const s = openRun.step('s1')!;
+		openRun.opened('s1');
+		openRun.finish(s);
+
+		expect(s.elapsed_seconds).toBe(600);
+	} finally {
+		vi.useRealTimers();
+	}
+});
+
+test('an online reload keeps the opened time when the server copy wins', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	try {
+		vi.setSystemTime(0);
+		online();
+		const first = await openFresh();
+		first.opened('s1');
+
+		vi.setSystemTime(600_000);
+		const openRun = await openFresh();
+		const s = openRun.step('s1')!;
+		openRun.opened('s1');
+		openRun.finish(s);
+
+		expect(s.elapsed_seconds).toBe(600);
+	} finally {
+		vi.useRealTimers();
+	}
+});
+
 test('putClimb counts a graded climb with any send as sent, and an ungraded one never', async () => {
 	const openRun = await openOffline();
 	const s = openRun.step('s1')!;
