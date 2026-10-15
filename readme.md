@@ -200,7 +200,7 @@ server/grades/      the grade scales a climb is logged in
 server/password/    argon2id hashing
 server/token/       opaque bearer tokens
 server/web/         serves the client, embedded with //go:embed
-server/cmd/         passion, the server; catalogid, which gives catalog files an id; and catalogcheck, which checks a private catalog without a database
+server/cmd/         passion, the server; catalogid, which gives catalog files an id; catalogcheck, which checks a private catalog without a database; and seed, which fills a local server with sample sessions
 client/             sveltekit, built into server/web/dist
 catalog/            the shipped catalog, embedded and loaded at startup. See docs/CATALOG_FORMAT.md
 deploy/             the compose file the deploy workflow runs on the server
