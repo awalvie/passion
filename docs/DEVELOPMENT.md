@@ -117,17 +117,19 @@ such as the step page or the set card, is drawn.
 - Shadows: `shadow-card` for a card, `shadow-card-sm` for a pill or a small button,
   `shadow-tint` and `shadow-live` under a lime or an apricot button.
 - Type: `text-xs` (12 px) for labels, `text-[15px]` for body text, `text-xl` (20 px) for
-  card titles and big buttons, `text-[32px]` for the page title. Use weights 600 to 800.
+  card titles and big buttons, `text-[32px]` for the page title. Use weights 600 to 800,
+  except `reading` (15 px, weight 500) for long notes the person wrote.
   `font-sans` is Figtree and `font-[family-name:var(--font-digits)]` is Barlow Semi Condensed,
-  both self-hosted from `client/static/fonts/`.
+  both self-hosted from `client/static/fonts/`. `digits` sets a number on a card, such as a
+  time, a weight or a grade, in bold Barlow.
 - `dark:` follows `data-theme`, not the system setting. Use it only when a token cannot
   say it, for example a shadow that differs by theme.
 - Use `Button`, `NavBar`, `Menu`, `TabBar`, `FormError`, `Section` and `HeroCard` (the
   forest card) from `client/src/lib/`, and the `.input` class for every field and
   `<select>`. A large free-text note on its own on a card or on the step page's field is the
   one exception: `bg-surface`, `text-[15px] font-semibold` and `placeholder:text-ink-3`.
-  `.live-dot` marks a session that is running. `page-title` and `list-row` are
-  utilities in `app.css`.
+  `.live-dot` marks a session that is running. `page-title`, `list-row`, `reading` and
+  `digits` are utilities in `app.css`.
 
 ## Before you commit
 
