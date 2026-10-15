@@ -3,6 +3,7 @@
 	import { formatDuration } from '$lib/exercise';
 	import Icon from '$lib/Icon.svelte';
 	import NavBar from '$lib/NavBar.svelte';
+	import Section from '$lib/Section.svelte';
 	import { climbsOf, setsOf, type LoggedSet, type RunStep } from '$lib/run';
 
 	let { data } = $props();
@@ -43,7 +44,7 @@
 
 	const thoughts = $derived(
 		[
-			['Went well', run.went_well],
+			['What went well', run.went_well],
 			['Next time', run.next_focus],
 			['', run.notes]
 		].filter(([, v]) => v) as [string, string][]
@@ -71,6 +72,13 @@
 	}
 </script>
 
+<!-- Notes as typed, with blank lines turned into paragraph gaps. -->
+{#snippet note(text: string, cls = '')}
+	<div class="flex flex-col gap-2.5 reading {cls}">
+		{#each text.split(/\n\s*\n/) as p, i (i)}<p>{p.trim()}</p>{/each}
+	</div>
+{/snippet}
+
 <svelte:head><title>{run.name}</title></svelte:head>
 
 <NavBar back={{ href: '/history', label: 'History' }}>
@@ -79,47 +87,52 @@
 	{/snippet}
 </NavBar>
 
-<div class="flex flex-col gap-3.5 px-4 pt-2">
+<div class="flex flex-col gap-7 px-4 pt-2">
 	<header class="px-1">
 		<h1 class="page-title text-balance">{run.name}</h1>
 		<p class="mt-2 text-[15px] font-semibold text-ink-2">{when}</p>
 	</header>
 
 	{#if scores.length || words.length || thoughts.length}
-		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-			<h2 class="text-[15px] font-bold">Journal</h2>
-			{#if scores.length}
-				<dl class="grid grid-cols-3 gap-3">
-					{#each scores as [label, value, max] (label)}
-						<div class="flex flex-col gap-1">
-							<dt class="text-xs font-semibold text-ink-2">{label}</dt>
-							<dd class="flex flex-col gap-1">
-								<span class="text-xl leading-none font-bold">{value}<span class="ml-1 text-xs font-semibold text-ink-2">/ {max}</span></span>
-								<span class="h-1.5 overflow-hidden rounded-full bg-well">
-									<span class="block h-full rounded-full bg-ink dark:bg-ink-2" style="width: {(value! / max) * 100}%"></span>
-								</span>
-							</dd>
-						</div>
-					{/each}
-				</dl>
-			{/if}
-			{#if words.length}
-				<dl class="grid grid-cols-3 gap-3">
-					{#each words as [label, value] (label)}
-						<div>
-							<dt class="text-xs font-semibold text-ink-2">{label}</dt>
-							<dd class="text-[15px] font-bold capitalize">{value}</dd>
-						</div>
-					{/each}
-				</dl>
-			{/if}
-			{#each thoughts as [label, text] (label)}
-				<div class="flex flex-col gap-1 rounded-[18px] bg-well px-4 py-3.5 text-[15px] font-semibold">
-					{#if label}<span class="text-xs font-semibold text-ink-2">{label}</span>{/if}
-					{text}
-				</div>
-			{/each}
-		</section>
+		<Section title="Journal">
+			<div class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
+				{#each thoughts as [label, text] (label)}
+					<div class="flex flex-col gap-1">
+						{#if label}<span class="text-xs font-bold text-ink-2">{label}</span>{/if}
+						{@render note(text)}
+					</div>
+				{/each}
+				{#if scores.length || words.length}
+					<div class="flex flex-col gap-3.5 {thoughts.length ? 'mt-0.5 pt-4 shadow-[inset_0_1px_0_var(--line)]' : ''}">
+						{#if scores.length}
+							<dl class="grid grid-cols-3 gap-4">
+								{#each scores as [label, value, max] (label)}
+									<div class="flex flex-col gap-1">
+										<dt class="text-xs font-semibold text-ink-2">{label}</dt>
+										<dd class="flex flex-col gap-1">
+											<span class="flex items-baseline gap-1"><span class="digits text-xl">{value}</span><span class="text-xs font-semibold text-ink-2">/ {max}</span></span>
+											<span class="h-1.5 overflow-hidden rounded-full bg-well">
+												<span class="block h-full rounded-full bg-ink-2" style="width: {(value! / max) * 100}%"></span>
+											</span>
+										</dd>
+									</div>
+								{/each}
+							</dl>
+						{/if}
+						{#if words.length}
+							<dl class="grid grid-cols-3 gap-4">
+								{#each words as [label, value], i (label)}
+									<div class={i === words.length - 1 ? 'col-span-2' : ''}>
+										<dt class="text-xs font-semibold text-ink-2">{label}</dt>
+										<dd class="mt-0.5 text-[15px] font-bold first-letter:uppercase">{value}</dd>
+									</div>
+								{/each}
+							</dl>
+						{/if}
+					</div>
+				{/if}
+			</div>
+		</Section>
 	{/if}
 
 	{#each run.sections as section, i (i)}
