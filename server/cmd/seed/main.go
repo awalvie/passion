@@ -25,9 +25,10 @@ const (
 )
 
 type set struct {
-	Reps     *int     `json:"reps"`
-	Seconds  *int     `json:"seconds"`
-	WeightKG *float64 `json:"weight_kg"`
+	Reps       *int     `json:"reps"`
+	Seconds    *int     `json:"seconds"`
+	RepSeconds []int    `json:"rep_seconds"`
+	WeightKG   *float64 `json:"weight_kg"`
 }
 
 type climb struct {
@@ -77,6 +78,14 @@ func ptr[T any](v T) *T { return &v }
 func reps(n int, kg float64) set { return set{Reps: &n, WeightKG: &kg} }
 func hold(s int) set             { return set{Seconds: &s} }
 func hang(s int, kg float64) set { return set{Seconds: &s, WeightKG: &kg} }
+func repeat(n, s int) set        { return set{Reps: &n, Seconds: &s} }
+func ladder(kg float64, s ...int) set {
+	return set{RepSeconds: s, WeightKG: &kg}
+}
+
+func route(grade string, style string, goes ...string) climb {
+	return climb{Discipline: "sport", Setting: "outdoor", RopeStyle: &style, Grade: &grade, GradeSystem: ptr("french"), Goes: goes}
+}
 
 func boulder(grade string, goes ...string) climb {
 	return climb{Discipline: "boulder", Setting: "indoor", Grade: &grade, GradeSystem: ptr("font"), Goes: goes}
@@ -95,6 +104,39 @@ func (c climb) note(text string) climb { c.Notes = &text; return c }
 func (c climb) aim(text string) climb  { c.Focus = &text; return c }
 
 var week = []day{
+	{
+		ago: 12, name: "Crag day", minutes: 310, place: "Sector Cave",
+		journal: journal{Sleep: ptr(5), Energy: ptr(4), RPE: ptr(8), Focus: ptr("projects"), Setting: ptr("outdoor"),
+			WentWell:  ptr("Finally linked the crux into the top section. Clipping from the good jug instead of the crimp saved a lot."),
+			NextFocus: ptr("Warm up on two routes, not one. The first go was wasted on cold fingers.")},
+		steps: []step{
+			{section: "Warmup", exercise: "Easy Lead Mileage", climbs: []climb{
+				route("6a", "lead", "send"),
+				route("6b", "lead", "send").note("Polished feet low down, trust them anyway."),
+			}},
+			{section: "Main", exercise: "Redpoint Lead Attempts", notes: "Conditions were good until about three, then the sun hit the wall.",
+				climbs: []climb{
+					route("7a", "lead", "attempt", "attempt", "send").aim("Breathe at the rest before the roof").
+						note("First go: fell at the undercling, pumped. Second go: made the crux but missed the clip.\n\nThird go felt smooth. Shaking out longer at the kneebar made the difference."),
+					route("7a+", "lead", "attempt").note("Bolt-to-bolt to work the moves. The start is fine, the middle needs a better left foot."),
+				}},
+			{section: "Cooldown", exercise: "Frog Stretch", sets: []set{hold(60), hold(60)}},
+		},
+	},
+	{
+		ago: 8, name: "Fingers and pulls", minutes: 70,
+		journal: journal{Sleep: ptr(4), Energy: ptr(3), RPE: ptr(6), Focus: ptr("strength"), Setting: ptr("indoor")},
+		steps: []step{
+			{section: "Warmup", exercise: "Pulse Raiser", sets: []set{hold(420)}},
+			{section: "Hangboard", exercise: "Repeaters 7:3 (20 mm Edge)", sets: []set{repeat(6, 7), repeat(6, 7), repeat(5, 7)}},
+			{section: "Hangboard", exercise: "Isometric Hang", notes: "Left ring finger a bit tender on the last ladder. Keep an eye on it.",
+				sets: []set{ladder(5, 3, 6, 9), ladder(5, 3, 6, 9), ladder(7.5, 3, 6)}},
+			{section: "Pulling", exercise: "Weighted Pull-ups", sets: []set{reps(6, -10), reps(6, -10), reps(5, 0)}},
+			{section: "Pulling", exercise: "Bar/Ring Rows", sets: []set{reps(12, 0), reps(12, 0), reps(10, 0)}},
+			{section: "Core", exercise: "Copenhagen Adduction", sets: []set{reps(8, 0), reps(8, 0)}},
+			{section: "Cooldown", exercise: "Pigeon Pose", sets: []set{hold(90), hold(90)}},
+		},
+	},
 	{
 		ago: 6, name: "Open session", minutes: 123, place: "Home wall",
 		journal: journal{Sleep: ptr(3), Energy: ptr(3), RPE: ptr(4), Focus: ptr("endurance"), Setting: ptr("indoor"),
