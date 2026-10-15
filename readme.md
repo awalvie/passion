@@ -181,6 +181,7 @@ local development needs no configuration at all.
 | `make run` | Build the client and serve on :8080 |
 | `make client` | Install the client's packages and build it into `server/web/dist` |
 | `make watch` | Hot reload. Vite on :5173, air rebuilding the server |
+| `make seed` | Fill the running local server with a week of sample sessions for `dev@passion.local`, password `passion-dev`. `SEED_FLAGS=-reset` deletes them and seeds again |
 | `make test` | Run the Go tests and the client's unit tests. Start the database first with `make db-up` |
 | `make openapi` | Regenerate `server/api/swagger.json` from the handler annotations |
 | `make db-up` / `make db-down` | Start or stop the local postgres cluster |

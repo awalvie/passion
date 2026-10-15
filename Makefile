@@ -4,7 +4,7 @@ IMAGE ?= passion:dev
 
 CATALOG_DIR ?= catalog
 
-.PHONY: catalog-ids client db-up db-down image openapi run test watch
+.PHONY: catalog-ids client db-up db-down image openapi run seed test watch
 
 # LC_ALL=C is set here rather than in the shell: initdb reads the ambient
 # locale and a mismatched glibc locale archive makes it refuse to run, but
@@ -43,6 +43,10 @@ watch: db-up
 		air --build.cmd "go build -o ./tmp/passion ./server/cmd/passion" \
 			--build.bin ./tmp/passion \
 			--build.include_ext go,tpl,tmpl,html,json
+
+# Run with make run or make watch going. SEED_FLAGS=-reset seeds again.
+seed:
+	go run ./server/cmd/seed $(SEED_FLAGS)
 
 # --scan-models is required: a swagger:model that no route references is
 # silently left out of the spec without it.

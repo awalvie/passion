@@ -82,6 +82,9 @@ Test handlers with `httptest` against `newTestServer(t)`, from `auth_test.go`. S
 4. For filters a list keeps in the URL, use `urlFilters` from `client/src/lib/filters.svelte.ts`.
 5. Style it with the token utilities. See the next section.
 6. Run `pnpm --dir client check`.
+7. To try it on real data, run `make seed` with the server going, and sign in as
+   `dev@passion.local` with the password `passion-dev`. Add a case to `week` in
+   `server/cmd/seed/main.go` when the screen needs one.
 
 Under `make watch`, a class used for the first time in a new file can be missing from the dev
 stylesheet. Run `touch client/src/app.css` and Vite rebuilds it. The production build is not
