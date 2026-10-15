@@ -1,3 +1,4 @@
+import { formatDuration } from './exercise';
 import type { Section as PlanSection, Step } from './template';
 
 // The shapes of server/api/run.go's responses.
@@ -189,6 +190,17 @@ export function setsOf(r: Pick<Run, 'sets'>, step: string): LoggedSet[] {
 
 export function climbsOf(r: Pick<Run, 'climbs'>, step: string): Climb[] {
 	return r.climbs.filter((c) => c.step === step).sort((a, b) => a.position - b.position);
+}
+
+// stepTime is the time a past step shows: what the person logged, exactly,
+// else how long the step ran, to the minute. A set exercise keeps its times
+// on its sets.
+export function stepTime(r: Pick<Run, 'sets' | 'climbs'>, s: RunStep): string | null {
+	if (s.status !== 'done' || (s.kind !== 'open' && s.kind !== 'climbing')) return null;
+	const logged = (s.kind === 'open' ? setsOf(r, s.id) : climbsOf(r, s.id)).flatMap((x) => (x.seconds ? [x.seconds] : []));
+	if (logged.length) return formatDuration(logged.reduce((a, b) => a + b));
+	if (s.elapsed_seconds === null) return null;
+	return formatDuration(s.elapsed_seconds < 60 ? s.elapsed_seconds : Math.round(s.elapsed_seconds / 60) * 60);
 }
 
 // secondsSince is the session clock: the time from the start to now.
