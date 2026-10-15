@@ -95,6 +95,20 @@ export type ClimbFields = {
 
 export type Climb = ClimbFields & { id: string; exercise: string; sent: boolean };
 
+export const disciplines: Record<Discipline, string> = { boulder: 'Boulder', sport: 'Sport', trad: 'Trad' };
+// Where a climb was, kept apart from the journal's free-text setting.
+export const settings = { indoor: 'Indoor', outdoor: 'Outdoor' } as const;
+export const ropes = { lead: 'Lead', top_rope: 'Top rope', auto_belay: 'Auto belay', follow: 'Follow' } as const;
+export const boards = { none: 'None', kilter: 'Kilter', moon: 'Moon', tension: 'Tension', spray: 'Spray', custom: 'Other' } as const;
+
+// climbWord says how a climb went. An ungraded climb is never a send (rule
+// 39), so it counts its goes.
+export function climbWord(c: Pick<Climb, 'goes' | 'grade_system'>) {
+	const n = c.goes.filter((g) => g === 'send').length;
+	if (!c.grade_system) return `${c.goes.length} ${c.goes.length === 1 ? 'go' : 'goes'}`;
+	return n > 1 ? `${n} sends` : n ? (c.goes.length === 1 ? 'Flash' : 'Sent') : 'Not sent';
+}
+
 export type RunSummary = {
 	id: string;
 	template: string | null;

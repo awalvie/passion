@@ -1,5 +1,13 @@
 import { expect, test } from 'vitest';
-import { stepTime, type Climb, type LoggedSet, type RunStep } from './run';
+import { climbWord, stepTime, type Climb, type LoggedSet, type RunStep } from './run';
+
+test('climbWord names a flash, a send, many sends and no send, and counts goes on an ungraded climb', () => {
+	expect(climbWord({ grade_system: 'font', goes: ['send'] })).toBe('Flash');
+	expect(climbWord({ grade_system: 'font', goes: ['attempt', 'send'] })).toBe('Sent');
+	expect(climbWord({ grade_system: 'font', goes: ['send', 'attempt', 'send'] })).toBe('2 sends');
+	expect(climbWord({ grade_system: 'font', goes: ['attempt'] })).toBe('Not sent');
+	expect(climbWord({ grade_system: null, goes: ['send', 'attempt'] })).toBe('2 goes');
+});
 
 const step = (kind: RunStep['kind'], status: RunStep['status'], elapsed: number | null) =>
 	({ id: 's1', kind, status, elapsed_seconds: elapsed }) as RunStep;
