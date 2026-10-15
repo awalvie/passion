@@ -4,7 +4,7 @@
 	import Icon from '$lib/Icon.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import Section from '$lib/Section.svelte';
-	import { climbsOf, setsOf, stepTime, type LoggedSet, type RunStep } from '$lib/run';
+	import { boards, climbsOf, climbWord, disciplines, ropes, settings, setsOf, stepTime, type LoggedSet, type RunStep } from '$lib/run';
 
 	let { data } = $props();
 
@@ -79,7 +79,20 @@
 		if (s.kind === 'open') return '';
 		if (s.kind === 'climbing') {
 			const climbs = climbsOf(run, s.id);
-			return climbs.map((c) => `${c.grade ?? '?'}${c.sent ? ' ✓' : ''}`).join(', ') || 'No climbs';
+			const c = climbs[0];
+			if (!c) return 'No climbs';
+			const graded = climbs.filter((c) => c.grade_system).length;
+			const sent = climbs.filter((c) => c.sent).length;
+			return [
+				disciplines[c.discipline],
+				settings[c.setting],
+				c.discipline === 'boulder'
+					? c.setting === 'indoor' && c.board && c.board !== 'none' && boards[c.board as keyof typeof boards]
+					: c.rope_style && ropes[c.rope_style as keyof typeof ropes],
+				`${climbs.length} climb${climbs.length === 1 ? '' : 's'}${graded ? `, ${sent} sent` : ''}`
+			]
+				.filter(Boolean)
+				.join(' · ');
 		}
 		const n = setsOf(run, s.id).length;
 		return n ? `${n} set${n === 1 ? '' : 's'}` : 'Nothing logged';
@@ -168,6 +181,7 @@
 						{@const time = stepTime(run, s)}
 						{@const info = meta(s)}
 						{@const sets = s.kind === 'reps_and_sets' || s.kind === 'timed_reps' ? setsOf(run, s.id) : []}
+						{@const climbs = s.kind === 'climbing' ? climbsOf(run, s.id) : []}
 						<article class="rounded-3xl bg-surface px-[18px] py-4 shadow-card">
 							<div class="flex items-baseline gap-3">
 								<div class="min-w-0 flex-1">
@@ -186,6 +200,42 @@
 										</li>
 									{/each}
 								</ul>
+							{/if}
+							{#if climbs.length}
+								<ol class="mt-1.5">
+									{#each climbs as c (c.id)}
+										<!-- One go on an ungraded climb says nothing worth a word. -->
+										{@const result = c.grade_system || c.goes.length > 1 ? climbWord(c) : ''}
+										{#if c.grade || result || c.seconds || c.focus || c.notes}
+											<li class="pt-3 list-row [&:not(:first-child)]:mt-3">
+												{#if c.grade || result || c.seconds}
+													<div class="flex items-baseline gap-3">
+														{#if c.grade}
+															<span class="min-w-12 {c.grade_system ? 'digits text-xl' : 'text-[15px] font-bold'}">{c.grade}</span>
+														{/if}
+														<span class="flex-1 text-xs font-bold {c.sent ? '' : 'text-ink-2'}">
+															{#if c.sent}
+																<span class="mr-1.5 inline-flex size-[18px] items-center justify-center rounded-full bg-rest-on-hero align-[-2px] text-on-tint">
+																	<Icon name="check" size="12px" stroke={3} />
+																</span>
+															{/if}{result}
+														</span>
+														{#if c.seconds}{@render amount(formatDuration(c.seconds))}{/if}
+													</div>
+												{/if}
+												{#if c.focus}
+													<p class="mt-2.5 flex items-start first:mt-0 gap-2 text-[15px] leading-5 font-semibold text-ink-2">
+														<span class="flex size-5 shrink-0 items-center justify-center rounded-full bg-well">
+															<Icon name="target" size="0.75rem" stroke={2.4} />
+														</span>
+														{c.focus}
+													</p>
+												{/if}
+												{#if c.notes}{@render note(c.notes, 'mt-2.5 first:mt-0')}{/if}
+											</li>
+										{/if}
+									{/each}
+								</ol>
 							{/if}
 							{#if s.run_notes}{@render note(s.run_notes, 'mt-3')}{/if}
 						</article>
