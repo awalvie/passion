@@ -5,7 +5,21 @@
 	import Icon from './Icon.svelte';
 	import { newId } from './id';
 	import type { Account } from './plan';
-	import { climbsOf, isFinished, stepsOf, type Climb, type ClimbFields, type Discipline, type Go, type RunStep } from './run';
+	import {
+		boards,
+		climbsOf,
+		climbWord as word,
+		disciplines,
+		isFinished,
+		ropes,
+		settings,
+		stepsOf,
+		type Climb,
+		type ClimbFields,
+		type Discipline,
+		type Go,
+		type RunStep
+	} from './run';
 	import { openRun } from './runState.svelte';
 	import RunPage, { type PlayerProps } from './RunPage.svelte';
 	import Segmented from './Segmented.svelte';
@@ -23,11 +37,6 @@
 			.then((g) => (info = g))
 			.catch(() => {});
 	});
-
-	const disciplines: Record<Discipline, string> = { boulder: 'Boulder', sport: 'Sport', trad: 'Trad' };
-	const settings = { indoor: 'Indoor', outdoor: 'Outdoor' } as const;
-	const ropes = { lead: 'Lead', top_rope: 'Top rope', auto_belay: 'Auto belay', follow: 'Follow' } as const;
-	const boards = { none: 'None', kilter: 'Kilter', moon: 'Moon', tension: 'Tension', spray: 'Spray', custom: 'Other' } as const;
 
 	// The climb on the card. It reaches the server at its first go, and stays
 	// the current one until "Add climb", so after a reload the last climb of
@@ -75,13 +84,6 @@
 
 	const ended = $derived(logged.filter((c) => c.id !== cur.id));
 	const sends = $derived(ended.filter((c) => c.sent).length);
-
-	// An ungraded climb is never a send (rule 39), so it counts its goes.
-	function word(c: Climb) {
-		const n = c.goes.filter((g) => g === 'send').length;
-		if (!c.grade_system) return `${c.goes.length} ${c.goes.length === 1 ? 'go' : 'goes'}`;
-		return n > 1 ? `${n} sends` : n ? (c.goes.length === 1 ? 'Flash' : 'Sent') : 'Not sent';
-	}
 
 	function save(c: Current) {
 		const had = logged.find((l) => l.id === c.id);
