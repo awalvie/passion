@@ -50,14 +50,10 @@
 		].filter(([, v]) => v) as [string, string][]
 	);
 
-	// A ladder set reads 3/6/9s × 10 kg, as its times already count the reps.
-	function setText(s: LoggedSet) {
-		const ladder = s.rep_seconds?.length ? `${s.rep_seconds.join('/')}s` : null;
-		return [
-			!ladder && s.reps !== null && `${s.reps}`,
-			ladder ?? (s.seconds !== null && `${s.seconds}s`),
-			s.weight_kg !== null && `${s.weight_kg} kg`
-		]
+	// A ladder set reads 3/6/9 s, as its times already count the reps.
+	function work(s: LoggedSet) {
+		const ladder = s.rep_seconds?.length ? `${s.rep_seconds.join('/')} s` : null;
+		return [!ladder && s.reps !== null && `${s.reps} reps`, ladder ?? (s.seconds !== null && `${s.seconds} s`)]
 			.filter(Boolean)
 			.join(' × ');
 	}
@@ -85,7 +81,8 @@
 			const climbs = climbsOf(run, s.id);
 			return climbs.map((c) => `${c.grade ?? '?'}${c.sent ? ' ✓' : ''}`).join(', ') || 'No climbs';
 		}
-		return setsOf(run, s.id).map(setText).join(', ') || 'Nothing logged';
+		const n = setsOf(run, s.id).length;
+		return n ? `${n} set${n === 1 ? '' : 's'}` : 'Nothing logged';
 	}
 </script>
 
@@ -170,6 +167,7 @@
 						{@const s = b.step}
 						{@const time = stepTime(run, s)}
 						{@const info = meta(s)}
+						{@const sets = s.kind === 'reps_and_sets' || s.kind === 'timed_reps' ? setsOf(run, s.id) : []}
 						<article class="rounded-3xl bg-surface px-[18px] py-4 shadow-card">
 							<div class="flex items-baseline gap-3">
 								<div class="min-w-0 flex-1">
@@ -178,6 +176,17 @@
 								</div>
 								{#if time}<span class="shrink-0">{@render amount(time)}</span>{/if}
 							</div>
+							{#if sets.length}
+								<ul class="mt-2.5">
+									{#each sets as set (set.number)}
+										<li class="flex items-baseline gap-3.5 py-2 list-row">
+											<span class="w-3 digits text-[15px] text-ink-2">{set.number}</span>
+											<span class="flex-1">{@render amount(work(set))}</span>
+											{#if set.weight_kg !== null}{@render amount(`${set.weight_kg} kg`)}{/if}
+										</li>
+									{/each}
+								</ul>
+							{/if}
 							{#if s.run_notes}{@render note(s.run_notes, 'mt-3')}{/if}
 						</article>
 					{:else}
