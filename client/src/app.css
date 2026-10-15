@@ -107,6 +107,20 @@ html {
 	}
 }
 
+/* Long notes the person wrote, kept lighter than labels so paragraphs read easily. */
+@utility reading {
+	font-size: 15px;
+	line-height: 1.55;
+	font-weight: 500;
+	white-space: pre-line;
+}
+
+/* A number on a card, such as a time, a weight or a grade. */
+@utility digits {
+	font-family: var(--font-digits);
+	font-weight: 700;
+}
+
 @utility page-title {
 	font-size: 32px;
 	line-height: 1.1;
