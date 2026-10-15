@@ -73,3 +73,15 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
   never red: an attempt is not a failure) and Send (`rest-on-hero`), Focus and Note rows,
   and "+ Add climb". The climbs logged sit under the card, newest first, and a tap opens
   the same sheet with the grade, the counts, and Delete climb.
+- Past session: `routes/(app)/(tabs)/history/[id]`. The date line carries the start, the
+  end and the length. Journal and each section are `Section` headings with cards under
+  them.
+  - An exercise card's head is the name, a grey line under it, and its time on the name's
+    baseline at the right. A value is its number in `digits text-xl` with the unit small
+    and grey (`7m 25s`, `15 kg`).
+  - Sets are numbered `list-row` rows, work on the left and weight on the right. Climbs
+    are rows of grade, result and time; a send has the green check disc (`rest-on-hero`).
+  - Notes are `reading`, split into paragraphs at blank lines. A climb's focus has the
+    `target` icon in a `bg-well` circle.
+  - Steps skipped or never done read as one grey line under the cards, `Skipped · A, B`
+    or `Not done · C`, with a `minus` in a `bg-well` circle.
