@@ -1,21 +1,24 @@
 <script lang="ts">
-	import { formatDate } from '$lib/dates';
+	import { formatDate, timeOfDay } from '$lib/dates';
+	import { formatDuration } from '$lib/exercise';
 	import Icon from '$lib/Icon.svelte';
 	import NavBar from '$lib/NavBar.svelte';
-	import { climbsOf, setsOf, stepsOf, type LoggedSet, type RunStep } from '$lib/run';
+	import { climbsOf, setsOf, type LoggedSet, type RunStep } from '$lib/run';
 
 	let { data } = $props();
 
 	const run = $derived(data.run);
 
-	const date = $derived(formatDate(run.local_date, { weekday: 'long', day: 'numeric', month: 'long' }));
-
-	const done = $derived(stepsOf(run).filter((s) => s.status === 'done').length);
-	const facts = $derived(
+	// The end follows the session clock, so it matches the length beside it
+	// even when the person ended the session late.
+	const ended = $derived(
+		run.elapsed_seconds === null ? null : new Date(Date.parse(run.started_at) + run.elapsed_seconds * 1000).toISOString()
+	);
+	const when = $derived(
 		[
-			run.elapsed_seconds !== null && `${Math.round(run.elapsed_seconds / 60)} min`,
-			run.place,
-			`${done} exercise${done === 1 ? '' : 's'}`
+			formatDate(run.local_date, { weekday: 'long', day: 'numeric', month: 'long' }),
+			[run.started_at, ended].flatMap((t) => (t ? [timeOfDay(t, run.timezone)] : [])).join('–'),
+			run.elapsed_seconds !== null && formatDuration(Math.max(1, Math.round(run.elapsed_seconds / 60)) * 60)
 		]
 			.filter(Boolean)
 			.join(' · ')
@@ -34,7 +37,7 @@
 	const words = $derived(
 		[
 			['Focus', run.focus],
-			['Where', run.setting]
+			['Where', [run.setting, run.place].filter(Boolean).join(', ')]
 		].filter(([, v]) => v) as [string, string][]
 	);
 
@@ -70,7 +73,7 @@
 
 <svelte:head><title>{run.name}</title></svelte:head>
 
-<NavBar title={run.name} heading={false} back={{ href: '/history', label: 'History' }}>
+<NavBar back={{ href: '/history', label: 'History' }}>
 	{#snippet actions()}
 		<a href="/run/{run.id}" class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm">Edit</a>
 	{/snippet}
@@ -78,9 +81,8 @@
 
 <div class="flex flex-col gap-3.5 px-4 pt-2">
 	<header class="px-1">
-		<h1 class="page-title">{run.name}</h1>
-		<p class="mt-1 text-[15px] font-semibold text-ink-2">{date}</p>
-		<p class="mt-0.5 text-[15px] font-semibold text-ink-2">{facts}</p>
+		<h1 class="page-title text-balance">{run.name}</h1>
+		<p class="mt-2 text-[15px] font-semibold text-ink-2">{when}</p>
 	</header>
 
 	{#if scores.length || words.length || thoughts.length}

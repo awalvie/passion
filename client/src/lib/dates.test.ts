@@ -1,5 +1,11 @@
 import { expect, test } from 'vitest';
-import { addDays, cycleWeek, gridWeeks, mondayOf, weekday, yearSpan } from './dates';
+import { addDays, cycleWeek, gridWeeks, mondayOf, timeOfDay, weekday, yearSpan } from './dates';
+
+test('timeOfDay reads the clock in the zone the session ran in', () => {
+	expect(timeOfDay('2026-10-13T14:26:00Z', 'Europe/Oslo')).toBe('16:26');
+	expect(timeOfDay('2026-10-13T14:26:00Z', 'America/New_York')).toBe('10:26');
+	expect(timeOfDay('2026-10-13T22:10:00Z', 'Europe/Oslo')).toBe('00:10');
+});
 
 test('mondayOf finds the Monday on or before a date', () => {
 	expect(mondayOf('2026-10-01')).toBe('2026-09-28');
