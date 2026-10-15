@@ -28,6 +28,8 @@
 	} = $props();
 
 	const run = $derived(openRun.run!);
+	// A finished run being edited shows the time it took, not a running clock.
+	const done = $derived(run.finished_at !== null);
 
 	// Text, glass and contour colours for each field. The field keeps one look
 	// in both themes; the app's tokens are set dark inside it, so a stepper,
@@ -58,9 +60,11 @@
 		<svg viewBox={runRings.viewBox} class="absolute inset-0 size-full" style="color: rgb(var(--rings) / 0.07)">
 			<path d={runRings.d} fill="none" stroke="currentColor" stroke-width="1.2" />
 		</svg>
-		<svg viewBox={runRings.viewBox} class="pulse absolute inset-0 size-full" style="color: rgb(var(--rings) / 0.35)">
-			<path d={runRings.d} fill="none" stroke="currentColor" stroke-width="1.2" />
-		</svg>
+		{#if !done}
+			<svg viewBox={runRings.viewBox} class="pulse absolute inset-0 size-full" style="color: rgb(var(--rings) / 0.35)">
+				<path d={runRings.d} fill="none" stroke="currentColor" stroke-width="1.2" />
+			</svg>
+		{/if}
 	</div>
 
 	<div class="run-tokens relative mx-auto flex h-full w-full max-w-[430px] flex-col pt-[env(safe-area-inset-top)]">
@@ -72,13 +76,19 @@
 			{:else}
 				<span class="size-11"></span>
 			{/if}
-			<span
-				class="flex h-9 items-center gap-2 rounded-full border-[1.5px] border-live bg-(--pill) px-3 font-[family-name:var(--font-digits)] text-lg font-bold text-on-hero [animation:run-beat_4s_ease-out_infinite]"
-				aria-label="Session time"
-			>
-				<i class="size-[9px] rounded-full bg-live"></i>
-				{sessionClock(secondsSince(run.started_at, now))}
-			</span>
+			{#if done}
+				<span class="flex h-9 items-center rounded-full bg-(--pill) px-3 font-[family-name:var(--font-digits)] text-lg font-bold text-on-hero" aria-label="Session time">
+					{sessionClock(run.elapsed_seconds ?? secondsSince(run.started_at, Date.parse(run.finished_at!)))}
+				</span>
+			{:else}
+				<span
+					class="flex h-9 items-center gap-2 rounded-full border-[1.5px] border-live bg-(--pill) px-3 font-[family-name:var(--font-digits)] text-lg font-bold text-on-hero [animation:run-beat_4s_ease-out_infinite]"
+					aria-label="Session time"
+				>
+					<i class="size-[9px] rounded-full bg-live"></i>
+					{sessionClock(secondsSince(run.started_at, now))}
+				</span>
+			{/if}
 			{@render end()}
 		</div>
 		{@render children()}
