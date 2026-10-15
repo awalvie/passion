@@ -56,6 +56,12 @@ export function formatDate(date: string, o: Intl.DateTimeFormatOptions): string 
 	return new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, { ...o, timeZone: 'UTC' });
 }
 
+// timeOfDay is an instant as 16:26 in the given zone, so a session logged
+// abroad keeps the clock time it had there.
+export function timeOfDay(at: string, timeZone: string): string {
+	return new Date(at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone });
+}
+
 export function daysBetween(from: string, to: string): number {
 	return Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000);
 }
