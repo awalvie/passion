@@ -4,7 +4,7 @@
 	import Icon from '$lib/Icon.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import Section from '$lib/Section.svelte';
-	import { climbsOf, setsOf, type LoggedSet, type RunStep } from '$lib/run';
+	import { climbsOf, setsOf, stepTime, type LoggedSet, type RunStep } from '$lib/run';
 
 	let { data } = $props();
 
@@ -62,8 +62,25 @@
 			.join(' × ');
 	}
 
-	function logText(s: RunStep) {
-		if (s.status === 'skipped') return 'Skipped';
+	// A step never done reads as one grey line, which runs of them share.
+	type Block = { step: RunStep } | { label: string; names: string[] };
+	function blocks(steps: RunStep[]): Block[] {
+		const out: Block[] = [];
+		for (const s of steps) {
+			if (s.status === 'done') {
+				out.push({ step: s });
+				continue;
+			}
+			const label = s.status === 'skipped' ? 'Skipped' : 'Not done';
+			const last = out.at(-1);
+			if (last && 'label' in last && last.label === label) last.names.push(s.name);
+			else out.push({ label, names: [s.name] });
+		}
+		return out;
+	}
+
+	function meta(s: RunStep) {
+		if (s.kind === 'open') return '';
 		if (s.kind === 'climbing') {
 			const climbs = climbsOf(run, s.id);
 			return climbs.map((c) => `${c.grade ?? '?'}${c.sent ? ' ✓' : ''}`).join(', ') || 'No climbs';
@@ -71,6 +88,15 @@
 		return setsOf(run, s.id).map(setText).join(', ') || 'Nothing logged';
 	}
 </script>
+
+<!-- A value as 18m 30s, with the numbers bold and the units small. -->
+{#snippet amount(text: string)}
+	<span class="text-xs font-semibold text-ink-2">
+		{#each text.split(/([\d.]+)/) as part, i (i)}
+			{#if i % 2}<span class="mr-0.5 digits text-xl text-ink">{part}</span>{:else}{part}{/if}
+		{/each}
+	</span>
+{/snippet}
 
 <!-- Notes as typed, with blank lines turned into paragraph gaps. -->
 {#snippet note(text: string, cls = '')}
@@ -138,29 +164,32 @@
 	{#each run.sections as section, i (i)}
 		{@const steps = section.items.flatMap((item) => (item.step ? [item.step] : []))}
 		{#if steps.length}
-			<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-1 shadow-card">
-				<h2 class="mb-1 text-[15px] font-bold">{section.name}</h2>
-				<ul>
-					{#each steps as s (s.id)}
-						<li class="flex gap-3 py-3 list-row">
-							{#if s.status === 'done'}
-								<span class="mt-px flex size-6 shrink-0 items-center justify-center rounded-full bg-ink text-tint dark:bg-[#2A342D]">
-									<Icon name="check" size="0.875rem" stroke={3} />
-								</span>
-							{:else}
-								<span class="mt-px size-6 shrink-0 rounded-full bg-well"></span>
-							{/if}
-							<span class="min-w-0 flex-1">
-								<span class="block text-[15px] font-bold {s.status === 'skipped' ? 'text-ink-2' : ''}">{s.name}</span>
-								<span class="mt-0.5 block text-xs font-semibold text-ink-2">{logText(s)}</span>
-								{#if s.run_notes}
-									<span class="mt-1 block text-[15px] font-semibold">{s.run_notes}</span>
-								{/if}
+			<Section title={section.name}>
+				{#each blocks(steps) as b, j (j)}
+					{#if 'step' in b}
+						{@const s = b.step}
+						{@const time = stepTime(run, s)}
+						{@const info = meta(s)}
+						<article class="rounded-3xl bg-surface px-[18px] py-4 shadow-card">
+							<div class="flex items-baseline gap-3">
+								<div class="min-w-0 flex-1">
+									<h3 class="text-[15px] font-bold">{s.name}</h3>
+									{#if info}<p class="mt-0.5 text-xs font-semibold text-ink-2">{info}</p>{/if}
+								</div>
+								{#if time}<span class="shrink-0">{@render amount(time)}</span>{/if}
+							</div>
+							{#if s.run_notes}{@render note(s.run_notes, 'mt-3')}{/if}
+						</article>
+					{:else}
+						<p class="flex items-start gap-2.5 px-[18px] {j ? 'mt-1' : ''} text-xs leading-5 font-semibold text-ink-2">
+							<span class="flex size-5 shrink-0 items-center justify-center rounded-full bg-well">
+								<Icon name="minus" size="0.75rem" stroke={2.4} />
 							</span>
-						</li>
-					{/each}
-				</ul>
-			</section>
+							<span><b class="font-bold">{b.label}</b> · {b.names.join(', ')}</span>
+						</p>
+					{/if}
+				{/each}
+			</Section>
 		{/if}
 	{/each}
 </div>
