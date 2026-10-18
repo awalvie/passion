@@ -127,6 +127,13 @@ class OpenRun {
 	// reopen makes a step not done, with no time.
 	#reopen(step: RunStep) {
 		step.status = null;
+		this.#resume(step);
+	}
+
+	// resume restarts a finished step's clock from the time it already had, so a
+	// return to add a set does not count the time away.
+	#resume(step: RunStep) {
+		if (step.elapsed_seconds !== null) this.#openedAt.set(step.id, Date.now() - step.elapsed_seconds * 1000);
 		step.elapsed_seconds = null;
 	}
 
@@ -165,7 +172,7 @@ class OpenRun {
 	// left with no sets is not done any more.
 	unlog(step: RunStep, keep: SetFields[]) {
 		if (!keep.length) step.status = null;
-		step.elapsed_seconds = null;
+		this.#resume(step);
 		this.saveBody();
 		this.setSets(step, keep);
 	}
@@ -325,7 +332,7 @@ class OpenRun {
 	// shows one row for a step planned with none, so it passes its own count.
 	addSet(step: RunStep, count = step.sets ?? 0) {
 		step.sets = count + 1;
-		step.elapsed_seconds = null;
+		this.#resume(step);
 		this.saveBody();
 	}
 
