@@ -451,6 +451,86 @@ test('an online reload keeps the opened time when the server copy wins', async (
 	}
 });
 
+test('a finished step reopened later counts its first time plus the new visit, across a reload', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	try {
+		vi.setSystemTime(0);
+		const first = await openOffline();
+		first.opened('s1');
+		vi.setSystemTime(600_000);
+		first.finish(first.step('s1')!);
+
+		vi.setSystemTime(4_200_000);
+		first.addSet(first.step('s1')!);
+		const openRun = await openFresh();
+		openRun.opened('s1');
+		vi.setSystemTime(4_500_000);
+		openRun.finish(openRun.step('s1')!);
+
+		expect(openRun.step('s1')!.elapsed_seconds).toBe(900);
+	} finally {
+		vi.useRealTimers();
+	}
+});
+
+test('a finished step unlogged later counts on from its time', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	try {
+		vi.setSystemTime(0);
+		const openRun = await openOffline();
+		const s = openRun.step('s1')!;
+		openRun.opened('s1');
+		openRun.setSets(s, [{ reps: 5, seconds: null, weight_kg: null }]);
+		vi.setSystemTime(600_000);
+		openRun.finish(s);
+		vi.setSystemTime(4_200_000);
+		openRun.unlog(s, []);
+		vi.setSystemTime(4_500_000);
+		openRun.finish(s);
+
+		expect(s.elapsed_seconds).toBe(900);
+	} finally {
+		vi.useRealTimers();
+	}
+});
+
+test('a step never finished keeps counting from when it was first opened', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	try {
+		vi.setSystemTime(0);
+		const openRun = await openOffline();
+		openRun.opened('s1');
+		vi.setSystemTime(4_200_000);
+		openRun.addSet(openRun.step('s1')!);
+		vi.setSystemTime(4_500_000);
+		openRun.finish(openRun.step('s1')!);
+
+		expect(openRun.step('s1')!.elapsed_seconds).toBe(4500);
+	} finally {
+		vi.useRealTimers();
+	}
+});
+
+test('an unskipped step counts on from the time it had when skipped', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	try {
+		vi.setSystemTime(0);
+		const openRun = await openOffline();
+		const s = openRun.step('s1')!;
+		openRun.opened('s1');
+		vi.setSystemTime(300_000);
+		openRun.skip(s);
+		vi.setSystemTime(4_000_000);
+		openRun.unskip(s);
+		vi.setSystemTime(4_100_000);
+		openRun.finish(s);
+
+		expect(s.elapsed_seconds).toBe(400);
+	} finally {
+		vi.useRealTimers();
+	}
+});
+
 test('putClimb counts a graded climb with any send as sent, and an ungraded one never', async () => {
 	const openRun = await openOffline();
 	const s = openRun.step('s1')!;
