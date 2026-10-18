@@ -47,9 +47,6 @@
 									<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{facts(r)}</span>
 								{/if}
 							</span>
-							{#if r.template === null}
-								<span class="shrink-0 rounded-xl bg-ink px-2.5 py-[5px] text-xs font-bold text-ground">Open</span>
-							{/if}
 						</a>
 					</li>
 				{/each}
