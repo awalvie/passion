@@ -152,7 +152,10 @@
 		rewrite(c, { grade, grade_system: systemFor(c.discipline, grade) });
 	}
 
+	// Blurs first, as Sheet does, so a note typed into the deleted climb does
+	// not land on the climb on the card.
 	function remove(c: Climb) {
+		(document.activeElement as HTMLElement | null)?.blur();
 		editing = null;
 		openRun.removeClimb(step, c.id);
 	}
