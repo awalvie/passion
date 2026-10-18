@@ -66,15 +66,17 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
   `kg` placeholder, and a small × that removes the set. Done is a green row with a check
   (`rest-on-hero`), the current set has a lime ring, number and left bar, and later sets
   are dimmed. Each field shows last time's value under it as `last 20`.
-- Climb card: `lib/ClimbsPlayer.svelte`. One glass card for the climb on the go: a setup
-  row (`Boulder · Indoor`, Change) that opens a sheet, `CLIMB 3 · FONT` with the sends so
+- Climb card: `lib/ClimbsPlayer.svelte`. The page reads as a log, top to bottom: the setup
+  row (`Boulder · Indoor`, Change) that opens a sheet, the climbs logged oldest first, then
+  one glass card for the climb on the go. The card is `CLIMB 3 · FONT` with the sends so
   far, a sideways grade strip with the picked grade large, the goes as circles (grey
   numbered attempts, green checked sends) that open the edit sheet, then Attempt (glass,
   never red: an attempt is not a failure) and Send (`rest-on-hero`), Focus and Note rows,
-  and "+ Add climb". The climbs logged sit under the card, newest first, and a tap opens
-  the same sheet with the grade, the counts, and Delete climb. Until the session has a
-  climb, the setup row has a lime inset ring and reads "Check first" until it is opened or
-  a climb is logged.
+  and "+ Add climb". A tap on a logged climb opens the same sheet with the grade, the
+  counts, and Delete climb. The card is taller than the view, so on open of a step that
+  has climbs and after Add climb the list scrolls to put Send near the bottom, above the undo note, with the newest
+  climb just above the card. Until the session has a climb, the setup row has a lime inset
+  ring and reads "Check first" until it is opened or a climb is logged.
 - Past session: `routes/(app)/(tabs)/history/[id]`. The date line carries the start, the
   end and the length. Journal and each section are `Section` headings with cards under
   them.

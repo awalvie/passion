@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import ClockInput from './ClockInput.svelte';
 	import { loadGrades, scaleFor, type Grades } from './grades';
 	import Icon from './Icon.svelte';
@@ -170,6 +170,31 @@
 		save(cur);
 	}
 
+	// The list sits above the card, which is taller than the view, so the view
+	// is moved to keep Send in reach with the newest climb just above the card.
+	// Send stays clear of the undo note, which is fixed over the list.
+	let scroller: HTMLElement;
+	let sendButton: HTMLElement;
+	let addButton = $state<HTMLElement>();
+	let toastBox: HTMLElement;
+	function park() {
+		let floor = scroller.getBoundingClientRect().bottom;
+		const note = toastBox.querySelector<HTMLElement>('[role="status"]');
+		// Measured from its fixed bottom: the note is still sliding in.
+		if (note) floor = Math.min(floor, innerHeight - parseFloat(getComputedStyle(note).bottom) - note.offsetHeight);
+		scroller.scrollTop += sendButton.getBoundingClientRect().bottom + 12 - floor;
+	}
+	// Again once the grades load: the ungraded labels push the card down.
+	$effect(() => {
+		void step.id;
+		void info;
+		untrack(() => {
+			// The player stays mounted from step to step, and so does the scroll.
+			if (logged.length && !finished) park();
+			else scroller.scrollTop = 0;
+		});
+	});
+
 	// A second tap on the picked grade clears it: a climb may have no grade.
 	function pick(g: string) {
 		cur.grade = cur.grade === g ? null : g;
@@ -201,15 +226,18 @@
 	// has a go.
 	let toast = $state('');
 	let undoTo = '';
-	function addClimb() {
+	async function addClimb() {
 		const c = logged.find((l) => l.id === cur.id)!;
 		toast = [`Climb ${ended.length + 1}`, c.grade, word(c)].filter(Boolean).join(' · ');
 		undoTo = cur.id;
 		cur = fresh(cur.grade);
+		await tick();
+		park();
 	}
 	function undo() {
 		const c = logged.find((l) => l.id === undoTo);
 		if (c) cur = resume(c);
+		void tick().then(() => addButton?.scrollIntoView({ block: 'nearest' }));
 	}
 
 	function done() {
@@ -297,32 +325,60 @@
 {/snippet}
 
 <RunPage {step} {next} {menu} {error} done={finished ? { href: nextHref, last } : null} {skip}>
-	<div class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overscroll-contain px-4 pt-6 pb-4">
-		<div class="shrink-0 overflow-hidden rounded-[18px] bg-(--glass)">
-			<button
-				type="button"
-				class="flex h-12 w-full items-center gap-2.5 px-3.5 text-left text-[15px] font-semibold text-(--fg2) {check
-					? 'rounded-t-[18px] shadow-[inset_0_0_0_2px_var(--tint)]'
-					: 'shadow-[inset_0_-1px_0_rgba(255,255,255,0.06)]'}"
-				onclick={() => {
-					looked = true;
-					changing = true;
-				}}
+	<div bind:this={scroller} class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overscroll-contain px-4 pt-6 pb-4">
+		<button
+			type="button"
+			class="flex h-12 w-full shrink-0 items-center gap-2.5 rounded-[18px] bg-(--glass) px-3.5 text-left text-[15px] font-semibold text-(--fg2) {check
+				? 'shadow-[inset_0_0_0_2px_var(--tint)]'
+				: ''}"
+			onclick={() => {
+				looked = true;
+				changing = true;
+			}}
+		>
+			<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--glass) text-(--fg)"><Icon name="mountain" size="15px" stroke={2.4} /></span>
+			<span class="min-w-0 flex-1 truncate"
+				><b class="text-(--fg)">{disciplines[discipline]}</b> · {settings[setting]}{discipline === 'boulder'
+						? onBoard
+							? ` · ${boards[board]}`
+							: ''
+						: ` · ${ropes[rope]}`}</span
 			>
-				<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--glass) text-(--fg)"><Icon name="mountain" size="15px" stroke={2.4} /></span>
-				<span class="min-w-0 flex-1 truncate"
-					><b class="text-(--fg)">{disciplines[discipline]}</b> · {settings[setting]}{discipline === 'boulder'
-							? onBoard
-								? ` · ${boards[board]}`
-								: ''
-							: ` · ${ropes[rope]}`}</span
-				>
-				{#if check}
-					<span class="flex shrink-0 items-center gap-1 font-bold text-(--fg)">Check first<Icon name="chevron-down" size="16px" stroke={2.6} /></span>
-				{:else}
-					<span class="flex items-center gap-1">Change<Icon name="chevron-down" size="16px" stroke={2.6} /></span>
-				{/if}
-			</button>
+			{#if check}
+				<span class="flex shrink-0 items-center gap-1 font-bold text-(--fg)">Check first<Icon name="chevron-down" size="16px" stroke={2.6} /></span>
+			{:else}
+				<span class="flex items-center gap-1">Change<Icon name="chevron-down" size="16px" stroke={2.6} /></span>
+			{/if}
+		</button>
+
+		{#if ended.length}
+			<div class="flex items-baseline justify-between px-1 pt-1">
+				<b class="text-[15px]">This step</b>
+				<span class="text-sm font-semibold text-(--fg2)">{ended.length} {ended.length === 1 ? 'climb' : 'climbs'} · {sends} sent</span>
+			</div>
+			<ol class="shrink-0 overflow-hidden rounded-[18px] bg-(--glass)">
+				{#each ended as c, i (c.id)}
+					<li class={i ? 'shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]' : ''}>
+						<button type="button" class="flex min-h-16 w-full items-center gap-3 py-2.5 pr-3.5 pl-2.5 text-left" onclick={() => (editing = c.id)}>
+							<span
+								class="flex h-11 min-w-12 shrink-0 items-center justify-center rounded-xl px-1.5 font-[family-name:var(--font-digits)] text-xl font-bold {c.sent
+									? 'bg-rest-on-hero text-on-tint'
+									: 'bg-white/8 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg)_30%,transparent)]'}">{c.grade ?? '–'}</span
+							>
+							<span class="min-w-0 flex-1">
+								<b class="block text-base">{word(c)}{c.seconds ? ` · ${formatClock(c.seconds)}` : ''}</b>
+								{#if c.notes || c.focus}<span class="block truncate text-sm font-semibold text-(--fg2)">{c.notes ?? `Focus: ${c.focus}`}</span>{/if}
+							</span>
+							<span class="flex gap-1" aria-hidden="true">
+								{#each c.goes as g, j (j)}<i class="size-[9px] rounded-full {g === 'send' ? 'bg-rest-on-hero' : 'bg-(--fg2)/45'}"></i>{/each}
+							</span>
+						</button>
+					</li>
+				{/each}
+			</ol>
+		{/if}
+
+		<div class="shrink-0 overflow-hidden rounded-[18px] bg-(--glass)">
 			<div class="px-3.5 pt-3 pb-3.5">
 				<p class="flex justify-between font-[family-name:var(--font-digits)] text-sm font-bold tracking-[0.1em] text-(--fg2)">
 					<span>CLIMB {ended.length + 1}{system ? ` · ${system}` : ''}</span>
@@ -343,7 +399,7 @@
 					<button type="button" class="flex h-14 items-center justify-center gap-2 rounded-full bg-(--glass) text-[17px] font-bold" onclick={() => go('attempt')}>
 						<span class="flex size-8 items-center justify-center rounded-full bg-white/10"><Icon name="plus" size="16px" stroke={2.8} /></span>Attempt
 					</button>
-					<button type="button" class="flex h-14 items-center justify-center gap-2 rounded-full bg-rest-on-hero text-[17px] font-bold text-on-tint" onclick={() => go('send')}>
+					<button bind:this={sendButton} type="button" class="flex h-14 items-center justify-center gap-2 rounded-full bg-rest-on-hero text-[17px] font-bold text-on-tint" onclick={() => go('send')}>
 						<span class="flex size-8 items-center justify-center rounded-full bg-black/10"><Icon name="check" size="16px" stroke={3} /></span>Send
 					</button>
 				</div>
@@ -364,38 +420,11 @@
 				</div>
 			</div>
 			{#if cur.goes.length}
-				<button type="button" class="flex h-[52px] w-full items-center justify-center gap-2 text-[15px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" onclick={addClimb}>
+				<button bind:this={addButton} type="button" class="flex h-[52px] w-full items-center justify-center gap-2 text-[15px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" onclick={addClimb}>
 					<span class="flex size-7 items-center justify-center rounded-full bg-(--glass)"><Icon name="plus" size="16px" stroke={2.6} /></span>Add climb
 				</button>
 			{/if}
 		</div>
-
-		{#if ended.length}
-			<div class="flex items-baseline justify-between px-1 pt-1">
-				<b class="text-[15px]">This step</b>
-				<span class="text-sm font-semibold text-(--fg2)">{ended.length} {ended.length === 1 ? 'climb' : 'climbs'} · {sends} sent</span>
-			</div>
-			<ol class="shrink-0 overflow-hidden rounded-[18px] bg-(--glass)">
-				{#each ended.toReversed() as c, i (c.id)}
-					<li class={i ? 'shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]' : ''}>
-						<button type="button" class="flex min-h-16 w-full items-center gap-3 py-2.5 pr-3.5 pl-2.5 text-left" onclick={() => (editing = c.id)}>
-							<span
-								class="flex h-11 min-w-12 shrink-0 items-center justify-center rounded-xl px-1.5 font-[family-name:var(--font-digits)] text-xl font-bold {c.sent
-									? 'bg-rest-on-hero text-on-tint'
-									: 'bg-white/8 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg)_30%,transparent)]'}">{c.grade ?? '–'}</span
-							>
-							<span class="min-w-0 flex-1">
-								<b class="block text-base">{word(c)}{c.seconds ? ` · ${formatClock(c.seconds)}` : ''}</b>
-								{#if c.notes || c.focus}<span class="block truncate text-sm font-semibold text-(--fg2)">{c.notes ?? `Focus: ${c.focus}`}</span>{/if}
-							</span>
-							<span class="flex gap-1" aria-hidden="true">
-								{#each c.goes as g, j (j)}<i class="size-[9px] rounded-full {g === 'send' ? 'bg-rest-on-hero' : 'bg-(--fg2)/45'}"></i>{/each}
-							</span>
-						</button>
-					</li>
-				{/each}
-			</ol>
-		{/if}
 	</div>
 
 	<Sheet bind:open={() => editing !== null, (v) => !v && (editing = null)} title="Climb {editingNumber}" eyebrow={editingClimb ? word(editingClimb) : 'Now'}>
@@ -462,7 +491,7 @@
 		</div>
 	</Sheet>
 
-	<div style="--above-bar: calc(env(safe-area-inset-bottom) + {last ? 118 : 212}px)">
+	<div bind:this={toastBox} style="--above-bar: calc(env(safe-area-inset-bottom) + {last ? 118 : 212}px)">
 		<Toast bind:message={toast} action="Undo" onaction={undo} />
 	</div>
 
