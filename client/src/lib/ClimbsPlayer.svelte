@@ -54,6 +54,9 @@
 	const onBoard = $derived(discipline === 'boulder' && setting === 'indoor' && board !== 'none');
 	const fresh = (grade: string | null): Current => ({ id: newId(), grade, goes: [], seconds: null, focus: null, notes: null });
 	const resume = (c: Climb): Current => ({ id: c.id, grade: c.grade, goes: [...c.goes], seconds: c.seconds, focus: c.focus, notes: c.notes });
+	// A bar that starts from defaults asks for a look until it is opened or a
+	// climb is logged.
+	let looked = $state(true);
 	$effect.pre(() => {
 		const id = step.id;
 		untrack(() => {
@@ -66,6 +69,7 @@
 			setting = bar?.setting ?? 'indoor';
 			rope = (bar?.rope_style as keyof typeof ropes | null) ?? 'lead';
 			board = (bar?.board as keyof typeof boards | null) ?? 'none';
+			looked = !!bar;
 		});
 	});
 	const gradesFor = (d: Discipline) => (info ? (scaleFor(info.grades, info.account, d === 'boulder')?.grades ?? []) : []);
@@ -225,6 +229,7 @@
 	}
 
 	const finished = $derived(isFinished(step) && !leaving);
+	const check = $derived(!looked && !logged.length && !finished);
 	const system = $derived(info ? (scaleFor(info.grades, info.account, discipline === 'boulder')?.system.toUpperCase() ?? '') : '');
 </script>
 
@@ -296,8 +301,13 @@
 		<div class="shrink-0 overflow-hidden rounded-[18px] bg-(--glass)">
 			<button
 				type="button"
-				class="flex h-12 w-full items-center gap-2.5 px-3.5 text-left text-[15px] font-semibold text-(--fg2) shadow-[inset_0_-1px_0_rgba(255,255,255,0.06)]"
-				onclick={() => (changing = true)}
+				class="flex h-12 w-full items-center gap-2.5 px-3.5 text-left text-[15px] font-semibold text-(--fg2) {check
+					? 'rounded-t-[18px] shadow-[inset_0_0_0_2px_var(--tint)]'
+					: 'shadow-[inset_0_-1px_0_rgba(255,255,255,0.06)]'}"
+				onclick={() => {
+					looked = true;
+					changing = true;
+				}}
 			>
 				<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--glass) text-(--fg)"><Icon name="mountain" size="15px" stroke={2.4} /></span>
 				<span class="min-w-0 flex-1 truncate"
@@ -307,7 +317,11 @@
 								: ''
 							: ` · ${ropes[rope]}`}</span
 				>
-				<span class="flex items-center gap-1">Change<Icon name="chevron-down" size="16px" stroke={2.6} /></span>
+				{#if check}
+					<span class="flex shrink-0 items-center gap-1 font-bold text-(--fg)">Check first<Icon name="chevron-down" size="16px" stroke={2.6} /></span>
+				{:else}
+					<span class="flex items-center gap-1">Change<Icon name="chevron-down" size="16px" stroke={2.6} /></span>
+				{/if}
 			</button>
 			<div class="px-3.5 pt-3 pb-3.5">
 				<p class="flex justify-between font-[family-name:var(--font-digits)] text-sm font-bold tracking-[0.1em] text-(--fg2)">
