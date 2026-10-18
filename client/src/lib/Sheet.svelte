@@ -44,11 +44,18 @@
 		(e.currentTarget as Element).setPointerCapture(e.pointerId);
 	}
 
+	// iOS leaves a field focused when the tap or swipe that closes the sheet
+	// lands outside it, so blur first and let its change handler save.
+	function close() {
+		(document.activeElement as HTMLElement | null)?.blur();
+		open = false;
+	}
+
 	function release() {
 		if (drag === null) return;
 		if (drag > Math.min(120, dialog.offsetHeight / 4)) {
 			flung = true;
-			open = false;
+			close();
 		} else drag = null;
 	}
 </script>
@@ -68,10 +75,10 @@
 	}}
 	oncancel={(e) => {
 		e.preventDefault();
-		open = false;
+		close();
 	}}
 	onclick={(e) => {
-		if (e.target === dialog) open = false;
+		if (e.target === dialog) close();
 	}}
 >
 	<div class="px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
@@ -95,7 +102,7 @@
 					type="button"
 					class="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"
 					aria-label="Close"
-					onclick={() => (open = false)}
+					onclick={close}
 				>
 					<Icon name="x" size="1.25rem" />
 				</button>
