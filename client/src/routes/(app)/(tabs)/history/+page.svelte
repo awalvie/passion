@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { formatDate, weekday } from '$lib/dates';
+	import { formatDuration } from '$lib/exercise';
 	import type { RunSummary } from '$lib/run';
 
 	let { data } = $props();
@@ -19,8 +20,8 @@
 	}
 
 	function facts(r: RunSummary) {
-		const minutes = r.elapsed_seconds === null ? '' : `${Math.round(r.elapsed_seconds / 60)} min`;
-		return [minutes, r.place].filter(Boolean).join(' · ');
+		const length = r.elapsed_seconds === null ? '' : formatDuration(Math.max(1, Math.round(r.elapsed_seconds / 60)) * 60);
+		return [length, r.place].filter(Boolean).join(' · ');
 	}
 </script>
 
