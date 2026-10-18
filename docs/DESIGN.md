@@ -72,7 +72,9 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
   numbered attempts, green checked sends) that open the edit sheet, then Attempt (glass,
   never red: an attempt is not a failure) and Send (`rest-on-hero`), Focus and Note rows,
   and "+ Add climb". The climbs logged sit under the card, newest first, and a tap opens
-  the same sheet with the grade, the counts, and Delete climb.
+  the same sheet with the grade, the counts, and Delete climb. Until the session has a
+  climb, the setup row has a lime inset ring and reads "Check first" until it is opened or
+  a climb is logged.
 - Past session: `routes/(app)/(tabs)/history/[id]`. The date line carries the start, the
   end and the length. Journal and each section are `Section` headings with cards under
   them.
