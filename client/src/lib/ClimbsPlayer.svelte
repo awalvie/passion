@@ -146,9 +146,11 @@
 		if (n < 0 || (n === 0 && goes.length === have)) return;
 		if (n > have) goes.push(kind);
 		else goes.splice(goes.lastIndexOf(kind), 1);
-		if (editingClimb) return rewrite(editingClimb, { goes });
-		cur.goes = goes;
-		save(cur);
+		keepSend(() => {
+			if (editingClimb) return rewrite(editingClimb, { goes });
+			cur.goes = goes;
+			save(cur);
+		});
 	}
 
 	function setGrade(c: Climb, g: string) {
@@ -161,13 +163,24 @@
 	function remove(c: Climb) {
 		(document.activeElement as HTMLElement | null)?.blur();
 		editing = null;
-		openRun.removeClimb(step, c.id);
+		keepSend(() => openRun.removeClimb(step, c.id));
 	}
 
 	function go(kind: Go) {
 		toast = '';
-		cur.goes.push(kind);
-		save(cur);
+		keepSend(() => {
+			cur.goes.push(kind);
+			save(cur);
+		});
+	}
+
+	// A row leaving the list, or a Goes row that wraps, would move Send out
+	// from under the thumb. The list turns off the browser's own scroll
+	// anchoring, which Safari lacks, so this is the only correction.
+	function keepSend(change: () => void) {
+		const was = sendButton.getBoundingClientRect().bottom;
+		change();
+		void tick().then(() => (scroller.scrollTop += sendButton.getBoundingClientRect().bottom - was));
 	}
 
 	// The list sits above the card, which is taller than the view, so the view
@@ -331,7 +344,7 @@
 {/snippet}
 
 <RunPage {step} {next} {menu} {error} done={finished ? { href: nextHref, last } : null} {skip}>
-	<div bind:this={scroller} class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overscroll-contain px-4 pt-6 pb-4">
+	<div bind:this={scroller} class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overscroll-contain px-4 pt-6 pb-4 [overflow-anchor:none]">
 		<button
 			type="button"
 			class="flex h-12 w-full shrink-0 items-center gap-2.5 rounded-[18px] bg-(--glass) px-3.5 text-left text-[15px] font-semibold text-(--fg2) {check
