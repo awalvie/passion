@@ -27,7 +27,8 @@ as the set number circle in SetsPlayer does.
 These are the one way each part is drawn in `client/src`. Use them; do not redraw them.
 
 - Page title: `page-title`.
-- Section heading above a card: `text-xl font-bold` on a tab page (Today, Plan, Library).
+- Section heading above a card: `text-xl font-bold` on a tab page (Today, Plan). Library's
+  lists have none: the switch above them already names them.
   On a page about one thing or a task page, wrap the section in `lib/Section.svelte`, which
   draws a `text-[15px] font-bold` heading and puts its `aside`, such as a count, on the same
   baseline. A heading inside a card, such as History's months, is `text-[15px] font-bold`
@@ -39,6 +40,10 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
 - Check box: `lib/Checkbox.svelte`, inside a label that gives the 44 px target.
 - Switch between views: `lib/Segmented.svelte` — a white pill on a `bg-well` track, 44 px.
 - Error line: `lib/FormError.svelte`.
+- Library row: a 32 px tile, the name in up to two lines, then `lib/OriginMark.svelte` — a
+  lock for your private catalog, a person for one you made, nothing for built-in. An
+  exercise's tile is its kind icon on `bg-well`; a session's is its icon or first letter on
+  its colour. No chevron.
 - Step page: `lib/RunPage.svelte` for every step of a running session. It is one dark look in both themes: the session green (`bg-run`), or the timer's phase
   colour (`prep`, `hang`, `rest-field`). From the top: the bar (back, the session clock,
   •••), the name centred, How-to and Note as a centred pair of `run-tag` chips, the

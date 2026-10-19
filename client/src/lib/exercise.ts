@@ -27,6 +27,13 @@ export type Exercise = {
 
 export type Media = { url: string | null; thumb_url: string | null };
 
+export type Origin = 'builtin' | 'private' | 'yours';
+
+// originOf says where a library exercise or session came from.
+export function originOf(r: { shipped: boolean; private: boolean }): Origin {
+	return r.shipped ? 'builtin' : r.private ? 'private' : 'yours';
+}
+
 export type Kind = 'reps_and_sets' | 'timed_reps' | 'climbing' | 'open';
 
 export type Count =
