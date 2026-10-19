@@ -4,6 +4,7 @@ import { fieldLabel, kindOf, summary, type Exercise } from './exercise';
 export type SessionTemplate = {
 	id: string;
 	shipped: boolean;
+	private: boolean;
 	name: string;
 	notes: string | null;
 	source: string | null;
@@ -20,7 +21,7 @@ export type Section = { name: string; notes: string | null; items: Item[] };
 export type Item = { step: Step; choice?: never } | { choice: Choice; step?: never };
 
 // A step is a library exercise's id and the session's own copy of its fields.
-export type Step = { exercise: string } & Omit<Exercise, 'id' | 'shipped' | 'retired_at'>;
+export type Step = { exercise: string } & Omit<Exercise, 'id' | 'shipped' | 'private' | 'retired_at'>;
 
 export type Choice = { name: string; notes: string | null; pick: number; options: Step[] };
 
@@ -56,7 +57,7 @@ export function choiceMeta(c: Choice): string {
 
 // toStep copies a library exercise into a new step.
 export function toStep(e: Exercise): Step {
-	const { id, shipped, retired_at, ...fields } = e;
+	const { id, shipped, private: _, retired_at, ...fields } = e;
 	return { exercise: id, ...fields, tags: [...e.tags], media: e.media.map((m) => ({ ...m })) };
 }
 

@@ -4,6 +4,8 @@ import type { IconName } from './Icon.svelte';
 export type Exercise = {
 	id: string;
 	shipped: boolean;
+	// True when it comes from your private catalog, not one you made in the app.
+	private: boolean;
 	name: string;
 	kind: Kind;
 	notes: string | null;

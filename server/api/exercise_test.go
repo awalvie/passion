@@ -200,6 +200,32 @@ func TestListExercises(t *testing.T) {
 	}
 }
 
+func TestPrivateExercise(t *testing.T) {
+	h, pool := newTestServerWithPool(t)
+	ada := signedIn(t, h, "ada@example.com")
+
+	insertShipped(t, pool, "Max Hangs")
+	createExercise(t, h, ada, `{"name":"Bench Press","kind":"reps_and_sets"}`)
+	// A private catalog row is the owner's and has a slug, as the catalog loader writes it.
+	_, err := pool.Exec(context.Background(),
+		`INSERT INTO exercise (name, kind, owner, slug) SELECT 'Dumbbell Row', 'reps_and_sets', id, 'dumbbell_row' FROM account WHERE email = 'ada@example.com'`)
+	if err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+
+	var got exerciseListResponse
+	if err := json.Unmarshal(send(t, h, http.MethodGet, "/api/v1/exercises", ada, "").Body.Bytes(), &got); err != nil {
+		t.Fatalf("response: %v", err)
+	}
+	private := map[string]bool{}
+	for _, e := range got.Exercises {
+		private[e.Name] = e.Private
+	}
+	if !private["Dumbbell Row"] || private["Bench Press"] || private["Max Hangs"] {
+		t.Fatalf("private %v, want only the catalog row", private)
+	}
+}
+
 // Empty lists must still be lists, or a client reading them breaks.
 func TestEmptyListsAreNotNull(t *testing.T) {
 	h := newTestServer(t)
