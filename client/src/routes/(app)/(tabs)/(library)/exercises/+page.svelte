@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { distinct, kindOf, kinds, originOf, sourcesOf } from '$lib/exercise';
 	import { urlFilters } from '$lib/filters.svelte';
+	import FilterLine from '$lib/FilterLine.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import LibraryFilters from '$lib/LibraryFilters.svelte';
 	import LibrarySearch from '$lib/LibrarySearch.svelte';
@@ -14,17 +15,23 @@
 	const sources = $derived(sourcesOf(data.exercises));
 	const tags = $derived(distinct(data.exercises.flatMap((e) => e.tags)));
 
+	const section = $derived(data.exercises.filter((e) => !f.kind || e.kind === f.kind));
+	const filters = $derived([f.origin, f.source, f.tag].filter(Boolean).length);
+
 	const shown = $derived.by(() => {
 		const needle = f.q.trim().toLowerCase();
-		return data.exercises.filter(
+		return section.filter(
 			(e) =>
 				e.name.toLowerCase().includes(needle) &&
-				(!f.kind || e.kind === f.kind) &&
 				(!f.origin || originOf(e) === f.origin) &&
 				(!f.source || e.source === f.source) &&
 				(!f.tag || e.tags.includes(f.tag))
 		);
 	});
+
+	function clear() {
+		f.q = f.origin = f.source = f.tag = '';
+	}
 </script>
 
 <svelte:head><title>Exercises</title></svelte:head>
@@ -36,6 +43,10 @@
 	</div>
 
 	<Tabs bind:value={f.kind} label="Type" options={[{ value: '', label: 'All' }, ...kinds.map((k) => ({ value: k.kind, label: k.label }))]} />
+
+	{#if (f.q.trim() || filters) && shown.length}
+		<FilterLine shown={shown.length} total={section.length} {filters} onclear={clear} />
+	{/if}
 
 	{#if shown.length}
 		<ul class="rounded-3xl bg-surface py-1 shadow-card">
@@ -53,6 +64,13 @@
 			{/each}
 		</ul>
 	{:else}
-		<p class="rounded-3xl bg-surface p-[18px] text-center text-[15px] font-semibold text-ink-2 shadow-card">No exercises match your search.</p>
+		<div class="flex flex-col items-center gap-3 rounded-3xl bg-surface p-[18px] text-center text-[15px] font-semibold text-ink-2 shadow-card">
+			{#if f.q.trim() || filters}
+				Nothing matches.
+				<button type="button" class="h-11 rounded-full bg-well px-5 text-[15px] font-bold text-ink" onclick={clear}>Clear</button>
+			{:else}
+				{f.kind ? 'No exercises of this type yet.' : 'No exercises yet.'}
+			{/if}
+		</div>
 	{/if}
 </div>
