@@ -223,9 +223,7 @@
 						</span>
 					{/if}
 					{#if t.shipped}
-						<span class="flex h-8 items-center gap-1.5 rounded-full px-3 text-[15px] font-semibold shadow-[inset_0_0_0_1.5px_rgba(242,246,234,0.2)]">
-							<Icon name="lock" size="0.875rem" />Built in
-						</span>
+						<span class="flex h-8 items-center rounded-full bg-white/10 px-3 text-[15px] font-semibold">Built in</span>
 					{/if}
 				</div>
 			{/if}
