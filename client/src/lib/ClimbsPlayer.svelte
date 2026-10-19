@@ -226,6 +226,12 @@
 	// has a go.
 	let toast = $state('');
 	let undoTo = '';
+	// The player stays mounted from step to step, and a note left from the
+	// last one would undo a climb this step does not have.
+	$effect.pre(() => {
+		void step.id;
+		toast = '';
+	});
 	async function addClimb() {
 		const c = logged.find((l) => l.id === cur.id)!;
 		toast = [`Climb ${ended.length + 1}`, c.grade, word(c)].filter(Boolean).join(' · ');
