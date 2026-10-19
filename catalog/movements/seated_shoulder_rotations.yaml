@@ -1,0 +1,18 @@
+id: b2fe96c9-0312-46d5-802d-5b12263b63b9
+name: Seated Shoulder Rotations
+style: reps_and_sets
+tags:
+    - antagonist
+    - shoulder
+notes: |-
+    Sit with your elbow resting on a raised knee, a light dumbbell held upright.
+
+    Turn the forearm down and back up in a slow arc. The upper arm stays still.
+source: Lattice Training
+media:
+    - url: https://www.youtube.com/watch?v=dVE_lFoJJLw&t=215s
+      thumb_url: https://i.ytimg.com/vi/dVE_lFoJJLw/hqdefault.jpg
+sets: 2
+reps: 12
+per_side: true
+set_rest_seconds: 30

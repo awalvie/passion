@@ -1,0 +1,7 @@
+id: 89c0831e-04a6-4d3d-8951-e4ac16084878
+name: Prehab
+notes: About 6 min, all light. Do it straight after the climbing.
+items:
+    - movement: seated_shoulder_rotations
+    - movement: hammer_curl
+    - movement: reverse_wrist_curl
