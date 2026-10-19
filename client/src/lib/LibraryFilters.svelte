@@ -1,23 +1,33 @@
 <script lang="ts">
+	import type { Origin } from './exercise';
 	import { haptic } from './haptics';
 	import Icon from './Icon.svelte';
+	import Segmented from './Segmented.svelte';
 	import Sheet from './Sheet.svelte';
 
 	// The filter button beside the search field and the sheet it opens. '' keeps
 	// every row. shown is how many rows the filters leave, for the sheet's button.
 	let {
+		origin = $bindable(),
 		source = $bindable(),
 		tag = $bindable(),
 		sources,
 		tags,
 		shown,
 		noun
-	}: { source: string; tag: string; sources: string[]; tags: string[]; shown: number; noun: string } = $props();
+	}: { origin: string; source: string; tag: string; sources: string[]; tags: string[]; shown: number; noun: string } = $props();
 
 	let open = $state(false);
 	let page = $state<'source' | 'tag' | null>(null);
 
-	const on = $derived([source, tag].filter(Boolean).length);
+	const on = $derived([origin, source, tag].filter(Boolean).length);
+
+	const origins: [Origin | '', string][] = [
+		['', 'Any'],
+		['builtin', 'Built-in'],
+		['private', 'Private'],
+		['yours', 'Yours']
+	];
 
 	const pages = {
 		source: { title: 'Source', options: () => sources },
@@ -61,7 +71,9 @@
 			{/each}
 		</ul>
 	{:else}
-		<ul class="rounded-3xl bg-surface py-1 shadow-card">
+		<h3 class="mb-2 px-1 text-xs font-bold tracking-wide text-ink-2 uppercase">Origin</h3>
+		<Segmented label="Origin" items={origins.map(([v, label]) => ({ label, on: origin === v, onclick: () => (origin = v) }))} />
+		<ul class="mt-4 rounded-3xl bg-surface py-1 shadow-card">
 			{#each [['source', source], ['tag', tag]] as const as [key, value] (key)}
 				{#if value || pages[key].options().length}
 					<li class="list-row">
