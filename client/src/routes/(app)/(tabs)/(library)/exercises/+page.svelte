@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { distinct, kindOf, kinds, sourcesOf } from '$lib/exercise';
+	import { distinct, kindOf, kinds, originOf, sourcesOf } from '$lib/exercise';
 	import FilterSelect from '$lib/FilterSelect.svelte';
 	import { urlFilters } from '$lib/filters.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import LibrarySearch from '$lib/LibrarySearch.svelte';
+	import OriginMark from '$lib/OriginMark.svelte';
 
 	let { data } = $props();
 
@@ -51,29 +52,17 @@
 		{/if}
 	</div>
 
-	<div class="flex items-baseline justify-between px-1 pt-1">
-		<h2 class="text-xl font-bold">Exercise library</h2>
-		<span class="text-xs font-semibold text-ink-2">{shown.length} {shown.length === 1 ? 'exercise' : 'exercises'}</span>
-	</div>
-
 	{#if shown.length}
 		<ul class="rounded-3xl bg-surface py-1 shadow-card">
 			{#each shown as e (e.id)}
 				<li class="list-row">
-					<a href="/exercises/{e.id}" class="flex min-h-16 items-center gap-3.5 py-2.5 pr-3 pl-3.5">
+					<a href="/exercises/{e.id}" class="flex min-h-[52px] items-center gap-3 py-2 pr-3.5 pl-3">
 						<span class="sr-only">{kindOf(e.kind).label}. </span>
-						<span class="flex size-10 shrink-0 items-center justify-center rounded-[14px] bg-well text-ink" title={kindOf(e.kind).label}>
-							<Icon name={kindOf(e.kind).icon} size="1.25rem" />
+						<span class="flex size-8 shrink-0 items-center justify-center rounded-[11px] bg-well text-ink" title={kindOf(e.kind).label}>
+							<Icon name={kindOf(e.kind).icon} size="1rem" />
 						</span>
-						<span class="min-w-0 flex-1">
-							<span class="block truncate text-[15px] font-bold">{e.name}</span>
-							{#if e.tags.length || e.source}
-								<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
-									{[...e.tags, e.source].filter(Boolean).join(' · ')}
-								</span>
-							{/if}
-						</span>
-						<span class="flex shrink-0 text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.2} /></span>
+						<span class="line-clamp-2 min-w-0 flex-1 text-[15px] leading-snug font-bold">{e.name}</span>
+						<OriginMark origin={originOf(e)} />
 					</a>
 				</li>
 			{/each}

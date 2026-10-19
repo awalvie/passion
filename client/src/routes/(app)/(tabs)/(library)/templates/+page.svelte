@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { distinct } from '$lib/exercise';
+	import { distinct, originOf } from '$lib/exercise';
 	import FilterSelect from '$lib/FilterSelect.svelte';
 	import { urlFilters } from '$lib/filters.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import LibrarySearch from '$lib/LibrarySearch.svelte';
-	import { plural } from '$lib/text';
+	import OriginMark from '$lib/OriginMark.svelte';
+	import { sessionIcons } from '$lib/SessionIcon.svelte';
 
 	let { data } = $props();
 
@@ -49,34 +50,21 @@
 		</div>
 	{/if}
 
-	<div class="flex items-baseline justify-between px-1 pt-1">
-		<h2 class="text-xl font-bold">Your session templates</h2>
-		<span class="text-xs font-semibold text-ink-2">{plural(shown.length, 'template')}</span>
-	</div>
-
 	{#if shown.length}
 		<ul class="rounded-3xl bg-surface py-1 shadow-card">
 			{#each shown as t (t.id)}
+				{@const icon = sessionIcons.find(([name]) => name === t.icon)?.[0]}
 				<li class="list-row">
-					<a href="/templates/{t.id}" class="flex min-h-16 items-center gap-3 py-2.5 pr-3 pl-[18px]">
+					<a href="/templates/{t.id}" class="flex min-h-[52px] items-center gap-3 py-2 pr-3.5 pl-3">
 						<span
-							class="size-2.5 shrink-0 rounded-full {t.color ? '' : 'bg-well'}"
-							style={t.color ? `background:${t.color}` : undefined}
+							class="flex size-8 shrink-0 items-center justify-center rounded-[11px] text-[13px] font-extrabold text-ink {t.color ? '' : 'bg-well'}"
+							style={t.color ? `background: color-mix(in oklab, ${t.color} 22%, var(--surface))` : undefined}
 							aria-hidden="true"
-						></span>
-						<span class="min-w-0 flex-1">
-							<span class="block truncate text-[15px] font-bold">{t.name}</span>
-							<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
-								{[plural(t.sections.length, 'section'), ...t.tags].join(' · ')}
-							</span>
+						>
+							{#if icon}<Icon name={icon} size="1rem" />{:else}{t.name.trim().charAt(0).toUpperCase()}{/if}
 						</span>
-						{#if t.source}
-							<span class="inline-flex max-w-[40%] shrink-0 items-center gap-1 rounded-xl bg-well px-2.5 py-[5px] text-xs font-bold text-ink-2">
-								<Icon name="book-marked" size="0.75rem" />
-								<span class="truncate">{t.source}</span>
-							</span>
-						{/if}
-						<span class="flex shrink-0 text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.2} /></span>
+						<span class="line-clamp-2 min-w-0 flex-1 text-[15px] leading-snug font-bold">{t.name}</span>
+						<OriginMark origin={originOf(t)} />
 					</a>
 				</li>
 			{/each}
