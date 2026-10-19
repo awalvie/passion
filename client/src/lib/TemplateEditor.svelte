@@ -147,8 +147,8 @@
 			class="flex min-h-20 cursor-pointer list-none items-center gap-3.5 px-4 py-3.5 [&::-webkit-details-marker]:hidden"
 		>
 			<span
-				class="flex size-12 shrink-0 items-center justify-center rounded-[15px] text-xl font-bold {draft.color ? 'text-white' : 'bg-well text-ink'}"
-				style={draft.color ? `background:${draft.color}` : ''}
+				class="flex size-12 shrink-0 items-center justify-center rounded-[15px] text-xl font-bold text-ink {draft.color ? '' : 'bg-well'}"
+				style={draft.color ? `background: color-mix(in oklab, ${draft.color} 22%, var(--surface))` : ''}
 				aria-hidden="true"
 			>
 				{#if icon}
