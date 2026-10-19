@@ -50,8 +50,9 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
 - Error line: `lib/FormError.svelte`.
 - Library row: a 32 px tile, the name in up to two lines, then `lib/OriginMark.svelte` — a
   lock for your private catalog, a person for one you made, nothing for built-in. An
-  exercise's tile is its kind icon on `bg-well`; a session's is its icon or first letter on
-  its colour. No chevron.
+  exercise's tile is its kind icon on `bg-well`; a session's is its icon or first letter in
+  `text-ink` on a soft tint of its colour (22% mixed into `--surface`), as in the session
+  editor. No chevron.
 - Step page: `lib/RunPage.svelte` for every step of a running session. It is one dark look in both themes: the session green (`bg-run`), or the timer's phase
   colour (`prep`, `hang`, `rest-field`). From the top: the bar (back, the session clock,
   •••), the name centred, How-to and Note as a centred pair of `run-tag` chips, the
