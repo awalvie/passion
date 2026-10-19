@@ -41,7 +41,7 @@
 		error = '';
 		doing = 'duplicate';
 		try {
-			const { id, shipped, retired_at, ...fields } = t;
+			const { id, shipped, private: _, retired_at, ...fields } = t;
 			const copy = await request<SessionTemplate>('POST', '/api/v1/session-templates', {
 				...fields,
 				name: `${t.name} (copy)`

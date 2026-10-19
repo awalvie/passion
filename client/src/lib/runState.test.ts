@@ -22,6 +22,7 @@ class MemoryStorage {
 const exercise = (id: string, name: string): Exercise => ({
 	id,
 	shipped: true,
+	private: false,
 	name,
 	kind: 'reps_and_sets',
 	notes: null,

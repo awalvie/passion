@@ -2415,6 +2415,11 @@
           "format": "int64",
           "x-go-name": "PrepSeconds"
         },
+        "private": {
+          "description": "True when it comes from a private catalog of yours, not one you made in the app.",
+          "type": "boolean",
+          "x-go-name": "Private"
+        },
         "rep_rest_seconds": {
           "type": "integer",
           "format": "int64",
@@ -3511,6 +3516,11 @@
         "notes": {
           "type": "string",
           "x-go-name": "Notes"
+        },
+        "private": {
+          "description": "True when it comes from a private catalog of yours, not one you made in the app.",
+          "type": "boolean",
+          "x-go-name": "Private"
         },
         "retired_at": {
           "description": "When it left the list. A retired session template still reads.",

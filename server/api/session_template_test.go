@@ -199,6 +199,32 @@ func TestListSessionTemplates(t *testing.T) {
 	}
 }
 
+func TestPrivateSessionTemplate(t *testing.T) {
+	h, pool := newTestServerWithPool(t)
+	ada := signedIn(t, h, "ada@example.com")
+
+	insertShippedSessionTemplate(t, pool, "Power")
+	createSessionTemplate(t, h, ada, `{"name":"Endurance"}`)
+	// A private catalog row is the owner's and has a slug, as the catalog loader writes it.
+	_, err := pool.Exec(context.Background(),
+		`INSERT INTO session_template (name, body, owner, slug) SELECT 'Limit', '{"sections": []}', id, 'limit' FROM account WHERE email = 'ada@example.com'`)
+	if err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+
+	var got sessionTemplateListResponse
+	if err := json.Unmarshal(send(t, h, http.MethodGet, "/api/v1/session-templates", ada, "").Body.Bytes(), &got); err != nil {
+		t.Fatalf("response: %v", err)
+	}
+	private := map[string]bool{}
+	for _, s := range got.SessionTemplates {
+		private[s.Name] = s.Private
+	}
+	if !private["Limit"] || private["Endurance"] || private["Power"] {
+		t.Fatalf("private %v, want only the catalog row", private)
+	}
+}
+
 // Empty lists must still be lists, or a client reading them breaks.
 func TestSessionTemplateEmptyListsAreNotNull(t *testing.T) {
 	h := newTestServer(t)

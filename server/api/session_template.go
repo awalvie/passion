@@ -113,6 +113,9 @@ type sessionTemplateResponse struct {
 	// True when the app ships it. Nobody can change a shipped session template.
 	Shipped bool `json:"shipped"`
 
+	// True when it comes from a private catalog of yours, not one you made in the app.
+	Private bool `json:"private"`
+
 	// example: Power
 	Name string `json:"name"`
 
@@ -389,6 +392,7 @@ func toSessionTemplateResponse(t db.SessionTemplate) sessionTemplateResponse {
 	return sessionTemplateResponse{
 		ID:        t.ID,
 		Shipped:   t.Owner == nil,
+		Private:   t.Owner != nil && t.Slug != nil,
 		Name:      t.Name,
 		Notes:     t.Notes,
 		Source:    t.Source,

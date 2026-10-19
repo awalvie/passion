@@ -89,6 +89,9 @@ type exerciseResponse struct {
 	// True when the app ships it. Nobody can change a shipped exercise.
 	Shipped bool `json:"shipped"`
 
+	// True when it comes from a private catalog of yours, not one you made in the app.
+	Private bool `json:"private"`
+
 	// example: Repeaters 7:3
 	Name string `json:"name"`
 
@@ -296,6 +299,7 @@ func toExerciseResponse(e db.Exercise) exerciseResponse {
 	return exerciseResponse{
 		ID:              e.ID,
 		Shipped:         e.Owner == nil,
+		Private:         e.Owner != nil && e.Slug != nil,
 		Name:            e.Name,
 		Kind:            e.Kind,
 		Notes:           e.Notes,
