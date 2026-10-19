@@ -107,6 +107,15 @@
 		...(locked ? [] : [{ label: 'Retire', danger: true, onclick: retire }])
 	]);
 
+	// needs is free text, written as a list: "Hangboard, Tindeq, barbell or dumbbells".
+	const needs = $derived(
+		(t.needs ?? '')
+			.split(',')
+			.map((n) => n.trim())
+			.filter(Boolean)
+			.map((n) => n.charAt(0).toUpperCase() + n.slice(1))
+	);
+
 	const tab = $derived(page.url.searchParams.get('tab') === 'exercises' ? 'exercises' : 'overview');
 	const icon = $derived(sessionIcons.find(([name]) => name === t.icon)?.[0]);
 	// A pick-one section carries its badge in its own header, not a second title.
@@ -197,7 +206,7 @@
 				</span>
 			{/if}
 			<h1 class="text-[40px] leading-[1.05] font-extrabold tracking-[-0.02em] break-words">{t.name}</h1>
-			{#if t.tags.length || t.source || t.needs || t.shipped || minutes || planned}
+			{#if t.tags.length || t.source || t.shipped || minutes || planned}
 				<div class="mt-3 flex flex-wrap gap-2">
 					{#if planned}
 						<span class="flex h-8 items-center rounded-full bg-tint px-3 text-[15px] font-bold text-on-tint">{planned}</span>
@@ -211,11 +220,6 @@
 					{#if t.source}
 						<span class="flex h-8 items-center gap-1.5 rounded-full bg-white/10 px-3 text-[15px] font-semibold">
 							<Icon name="book-marked" size="0.875rem" />{t.source}
-						</span>
-					{/if}
-					{#if t.needs}
-						<span class="flex h-8 items-center gap-1.5 rounded-full px-3 text-[15px] font-semibold shadow-[inset_0_0_0_1.5px_rgba(242,246,234,0.2)]">
-							<Icon name="backpack" size="0.875rem" />{t.needs}
 						</span>
 					{/if}
 					{#if t.shipped}
@@ -245,6 +249,16 @@
 			{/if}
 			{#if t.notes}
 				<Notes text={t.notes} class="rounded-[18px] bg-well px-4 py-3.5 text-[15px] font-semibold dark:bg-surface" />
+			{/if}
+
+			{#if needs.length}
+				<Section title="You need">
+					<ul class="flex flex-wrap gap-1.5">
+						{#each needs as n (n)}
+							<li class="flex h-8 items-center rounded-full bg-well px-3 text-sm font-semibold text-ink-2 dark:bg-surface">{n}</li>
+						{/each}
+					</ul>
+				</Section>
 			{/if}
 
 			{#if drill}
