@@ -42,6 +42,9 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
 - Sections of one list: `lib/Tabs.svelte` — underlined words on a hairline, which scroll
   sideways, as Library's exercise types. A tab moves to another part of the list; a filter
   narrows the part you are in, so the two never look alike.
+- Filters on a list: `lib/LibraryFilters.svelte` — a round button beside the search field
+  that opens one sheet. Each filter is a row that opens its own list inside the sheet, with
+  a back button. With a filter on, the button turns ink and carries a lime count.
 - Error line: `lib/FormError.svelte`.
 - Library row: a 32 px tile, the name in up to two lines, then `lib/OriginMark.svelte` — a
   lock for your private catalog, a person for one you made, nothing for built-in. An

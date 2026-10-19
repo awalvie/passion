@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { distinct, kindOf, kinds, originOf, sourcesOf } from '$lib/exercise';
-	import FilterSelect from '$lib/FilterSelect.svelte';
 	import { urlFilters } from '$lib/filters.svelte';
 	import Icon from '$lib/Icon.svelte';
+	import LibraryFilters from '$lib/LibraryFilters.svelte';
 	import LibrarySearch from '$lib/LibrarySearch.svelte';
 	import OriginMark from '$lib/OriginMark.svelte';
 	import Tabs from '$lib/Tabs.svelte';
@@ -25,33 +25,17 @@
 		);
 	});
 
-	const filtered = $derived(Boolean(f.q || f.kind || f.source || f.tag));
-
-	function clear() {
-		f.q = f.kind = f.source = f.tag = '';
-	}
 </script>
 
 <svelte:head><title>Exercises</title></svelte:head>
 
 <div class="flex flex-col gap-3.5">
-	<LibrarySearch bind:value={f.q} placeholder="Search exercises" label="Search exercises" />
+	<div class="flex items-center gap-2">
+		<div class="min-w-0 flex-1"><LibrarySearch bind:value={f.q} placeholder="Search exercises" label="Search exercises" /></div>
+		<LibraryFilters bind:source={f.source} bind:tag={f.tag} {sources} {tags} shown={shown.length} noun="exercise" />
+	</div>
 
 	<Tabs bind:value={f.kind} label="Type" options={[{ value: '', label: 'All' }, ...kinds.map((k) => ({ value: k.kind, label: k.label }))]} />
-
-	<div class="flex flex-wrap items-center gap-2">
-		{#if sources.length}
-			<FilterSelect bind:value={f.source} label="Source" all="All sources" options={sources.map((s) => ({ value: s, label: s }))} class="w-[calc(50%-0.25rem)]" />
-		{/if}
-		{#if tags.length}
-			<FilterSelect bind:value={f.tag} label="Labels" all="All labels" options={tags.map((t) => ({ value: t, label: t }))} class="w-[calc(50%-0.25rem)]" />
-		{/if}
-		{#if filtered}
-			<button type="button" class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm" onclick={clear}>
-				Clear
-			</button>
-		{/if}
-	</div>
 
 	{#if shown.length}
 		<ul class="rounded-3xl bg-surface py-1 shadow-card">
