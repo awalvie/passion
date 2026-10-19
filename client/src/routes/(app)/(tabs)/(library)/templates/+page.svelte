@@ -9,7 +9,7 @@
 
 	let { data } = $props();
 
-	const f = urlFilters('/templates', ['q', 'source', 'tag']);
+	const f = urlFilters('/templates', ['q', 'origin', 'source', 'tag']);
 
 	const sources = $derived(distinct(data.templates.flatMap((t) => (t.source ? [t.source] : []))));
 	const tags = $derived(distinct(data.templates.flatMap((t) => t.tags)));
@@ -19,11 +19,11 @@
 		return data.templates.filter(
 			(t) =>
 				t.name.toLowerCase().includes(needle) &&
+				(!f.origin || originOf(t) === f.origin) &&
 				(!f.source || t.source === f.source) &&
 				(!f.tag || t.tags.includes(f.tag))
 		);
 	});
-
 </script>
 
 <svelte:head><title>Session templates</title></svelte:head>
@@ -31,7 +31,7 @@
 <div class="flex flex-col gap-3.5">
 	<div class="flex items-center gap-2">
 		<div class="min-w-0 flex-1"><LibrarySearch bind:value={f.q} placeholder="Search sessions" label="Search session templates" /></div>
-		<LibraryFilters bind:source={f.source} bind:tag={f.tag} {sources} {tags} shown={shown.length} noun="session" />
+		<LibraryFilters bind:origin={f.origin} bind:source={f.source} bind:tag={f.tag} {sources} {tags} shown={shown.length} noun="session" />
 	</div>
 
 	{#if shown.length}

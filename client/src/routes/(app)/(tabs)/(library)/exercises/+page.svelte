@@ -9,7 +9,7 @@
 
 	let { data } = $props();
 
-	const f = urlFilters('/exercises', ['q', 'kind', 'source', 'tag']);
+	const f = urlFilters('/exercises', ['q', 'kind', 'origin', 'source', 'tag']);
 
 	const sources = $derived(sourcesOf(data.exercises));
 	const tags = $derived(distinct(data.exercises.flatMap((e) => e.tags)));
@@ -20,11 +20,11 @@
 			(e) =>
 				e.name.toLowerCase().includes(needle) &&
 				(!f.kind || e.kind === f.kind) &&
+				(!f.origin || originOf(e) === f.origin) &&
 				(!f.source || e.source === f.source) &&
 				(!f.tag || e.tags.includes(f.tag))
 		);
 	});
-
 </script>
 
 <svelte:head><title>Exercises</title></svelte:head>
@@ -32,7 +32,7 @@
 <div class="flex flex-col gap-3.5">
 	<div class="flex items-center gap-2">
 		<div class="min-w-0 flex-1"><LibrarySearch bind:value={f.q} placeholder="Search exercises" label="Search exercises" /></div>
-		<LibraryFilters bind:source={f.source} bind:tag={f.tag} {sources} {tags} shown={shown.length} noun="exercise" />
+		<LibraryFilters bind:origin={f.origin} bind:source={f.source} bind:tag={f.tag} {sources} {tags} shown={shown.length} noun="exercise" />
 	</div>
 
 	<Tabs bind:value={f.kind} label="Type" options={[{ value: '', label: 'All' }, ...kinds.map((k) => ({ value: k.kind, label: k.label }))]} />
