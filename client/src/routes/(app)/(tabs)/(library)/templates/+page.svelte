@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { distinct, originOf } from '$lib/exercise';
 	import { urlFilters } from '$lib/filters.svelte';
+	import FilterLine from '$lib/FilterLine.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import LibraryFilters from '$lib/LibraryFilters.svelte';
 	import LibrarySearch from '$lib/LibrarySearch.svelte';
@@ -14,6 +15,8 @@
 	const sources = $derived(distinct(data.templates.flatMap((t) => (t.source ? [t.source] : []))));
 	const tags = $derived(distinct(data.templates.flatMap((t) => t.tags)));
 
+	const filters = $derived([f.origin, f.source, f.tag].filter(Boolean).length);
+
 	const shown = $derived.by(() => {
 		const needle = f.q.trim().toLowerCase();
 		return data.templates.filter(
@@ -24,6 +27,10 @@
 				(!f.tag || t.tags.includes(f.tag))
 		);
 	});
+
+	function clear() {
+		f.q = f.origin = f.source = f.tag = '';
+	}
 </script>
 
 <svelte:head><title>Session templates</title></svelte:head>
@@ -33,6 +40,10 @@
 		<div class="min-w-0 flex-1"><LibrarySearch bind:value={f.q} placeholder="Search sessions" label="Search session templates" /></div>
 		<LibraryFilters bind:origin={f.origin} bind:source={f.source} bind:tag={f.tag} {sources} {tags} shown={shown.length} noun="session" />
 	</div>
+
+	{#if (f.q.trim() || filters) && shown.length}
+		<FilterLine shown={shown.length} total={data.templates.length} {filters} onclear={clear} />
+	{/if}
 
 	{#if shown.length}
 		<ul class="rounded-3xl bg-surface py-1 shadow-card">
@@ -54,6 +65,13 @@
 			{/each}
 		</ul>
 	{:else}
-		<p class="rounded-3xl bg-surface p-[18px] text-center text-[15px] font-semibold text-ink-2 shadow-card">No session templates match your search.</p>
+		<div class="flex flex-col items-center gap-3 rounded-3xl bg-surface p-[18px] text-center text-[15px] font-semibold text-ink-2 shadow-card">
+			{#if f.q.trim() || filters}
+				Nothing matches.
+				<button type="button" class="h-11 rounded-full bg-well px-5 text-[15px] font-bold text-ink" onclick={clear}>Clear</button>
+			{:else}
+				No session templates yet.
+			{/if}
+		</div>
 	{/if}
 </div>

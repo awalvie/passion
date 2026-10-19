@@ -45,6 +45,8 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
 - Filters on a list: `lib/LibraryFilters.svelte` — a round button beside the search field
   that opens one sheet. Each filter is a row that opens its own list inside the sheet, with
   a back button. With a filter on, the button turns ink and carries a lime count.
+  While a search or filter is on and rows remain, `lib/FilterLine.svelte` sits above the list: `32 of 72 ·
+  2 filters` for the tab you are in, and a Clear that leaves the tab alone.
 - Error line: `lib/FormError.svelte`.
 - Library row: a 32 px tile, the name in up to two lines, then `lib/OriginMark.svelte` — a
   lock for your private catalog, a person for one you made, nothing for built-in. An
