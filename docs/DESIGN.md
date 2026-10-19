@@ -39,6 +39,9 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
   line weight.
 - Check box: `lib/Checkbox.svelte`, inside a label that gives the 44 px target.
 - Switch between views: `lib/Segmented.svelte` — a white pill on a `bg-well` track, 44 px.
+- Sections of one list: `lib/Tabs.svelte` — underlined words on a hairline, which scroll
+  sideways, as Library's exercise types. A tab moves to another part of the list; a filter
+  narrows the part you are in, so the two never look alike.
 - Error line: `lib/FormError.svelte`.
 - Library row: a 32 px tile, the name in up to two lines, then `lib/OriginMark.svelte` — a
   lock for your private catalog, a person for one you made, nothing for built-in. An

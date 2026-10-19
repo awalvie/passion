@@ -5,6 +5,7 @@
 	import Icon from '$lib/Icon.svelte';
 	import LibrarySearch from '$lib/LibrarySearch.svelte';
 	import OriginMark from '$lib/OriginMark.svelte';
+	import Tabs from '$lib/Tabs.svelte';
 
 	let { data } = $props();
 
@@ -36,9 +37,9 @@
 <div class="flex flex-col gap-3.5">
 	<LibrarySearch bind:value={f.q} placeholder="Search exercises" label="Search exercises" />
 
-	<!-- Two selects to a row: four on one row clip their own text. -->
+	<Tabs bind:value={f.kind} label="Type" options={[{ value: '', label: 'All' }, ...kinds.map((k) => ({ value: k.kind, label: k.label }))]} />
+
 	<div class="flex flex-wrap items-center gap-2">
-		<FilterSelect bind:value={f.kind} label="Type" all="All types" options={kinds.map((k) => ({ value: k.kind, label: k.label }))} class="w-[calc(50%-0.25rem)]" />
 		{#if sources.length}
 			<FilterSelect bind:value={f.source} label="Source" all="All sources" options={sources.map((s) => ({ value: s, label: s }))} class="w-[calc(50%-0.25rem)]" />
 		{/if}
