@@ -352,10 +352,7 @@
 		</button>
 
 		{#if ended.length}
-			<div class="flex items-baseline justify-between px-1 pt-1">
-				<b class="text-[15px]">This step</b>
-				<span class="text-sm font-semibold text-(--fg2)">{ended.length} {ended.length === 1 ? 'climb' : 'climbs'} · {sends} sent</span>
-			</div>
+			<b class="px-1 pt-1 text-[15px]">This step</b>
 			<ol class="shrink-0 overflow-hidden rounded-[18px] bg-(--glass)">
 				{#each ended as c, i (c.id)}
 					<li class={i ? 'shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]' : ''}>
