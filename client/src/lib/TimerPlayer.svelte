@@ -176,8 +176,12 @@
 	const setOver = $derived(phase?.kind === 'rest' && phase.rep === step.reps && upcoming?.set !== phase.set);
 	const setsDone = $derived(phase ? (setOver ? phase.set : phase.set - 1) : 0);
 
+	// Before Start the digits show what counts down first: the prep, which runs
+	// once, unless Continue skips it.
+	const prepFirst = $derived(!logged.length && (step.prep_seconds ?? 0) > 0);
+
 	const status = $derived.by(() => {
-		if (!timed || !phase) return setsLogged ? `Ready · ${setsLogged} of ${step.sets} logged` : step.prep_seconds ? `Ready · Prep ${s(step.prep_seconds)}` : 'Ready';
+		if (!timed || !phase) return setsLogged ? `Ready · ${setsLogged} of ${step.sets} logged` : prepFirst ? `Ready · Prep, then ${s(repSeconds(step, 1))} work` : 'Ready';
 		// On a per-side step a hang names its side instead of "Work", so the
 		// line stays one line.
 		if (phase.kind === 'prep') return phase.side ? `Prep · ${phase.side}` : 'Prep';
@@ -185,7 +189,7 @@
 		return `${word} · Rep ${phase.rep} of ${step.reps}`;
 	});
 
-	const secs = $derived(timed && phase ? Math.ceil(pos.left / 1000) : repSeconds(step, 1));
+	const secs = $derived(timed && phase ? Math.ceil(pos.left / 1000) : prepFirst ? step.prep_seconds! : repSeconds(step, 1));
 	const clock = $derived(secs >= 60 ? `${Math.floor(secs / 60)}${String(secs % 60).padStart(2, '0')}` : String(secs));
 	const look = $derived(timed && phase ? cards[phase.kind] : cards.run);
 	const ready = $derived(!timed && !finished);
