@@ -20,7 +20,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { unlock } from './audio';
-	import { kindOf } from './exercise';
 	import Icon from './Icon.svelte';
 	import Menu from './Menu.svelte';
 	import Notes from './Notes.svelte';
@@ -173,28 +172,24 @@
 		aria-label="Exercise"
 	>
 		{#snippet upNext(n: NextLine)}
-			<span class="flex size-[34px] shrink-0 items-center justify-center rounded-[10px] bg-(--glass)">
-				<Icon name={n.step ? kindOf(n.step.kind).icon : 'list'} size="18px" stroke={2.2} />
-			</span>
-			<span class="flex min-w-0 flex-1 flex-col gap-[3px]">
+			<span class="flex min-w-0 flex-1 flex-col gap-0.5">
+				<span class="truncate text-sm font-medium text-(--fg2)">
+					<b class="font-[family-name:var(--font-digits)] font-bold tracking-[0.1em]">NEXT</b>{n.detail ? ` · ${n.detail}` : ''}
+				</span>
 				<span class="truncate text-[17px] leading-[1.2] font-bold">{n.name}</span>
-				{#if n.detail}<span class="truncate text-[15px] font-medium text-(--fg2)">{n.detail}</span>{/if}
 			</span>
 		{/snippet}
-		{#if next}
-			<p class="mb-1.5 pl-1 font-[family-name:var(--font-digits)] text-sm font-bold tracking-[0.1em] text-(--fg2)">NEXT</p>
-		{/if}
 		{#if next?.step}
-			<button type="button" class="flex min-h-12 w-full items-center gap-3 px-1 text-left" onclick={() => (peeking = true)}>
+			<button type="button" class="flex min-h-11 w-full items-center gap-2.5 px-1 text-left" onclick={() => (peeking = true)}>
 				{@render upNext(next)}
 				<span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-(--glass) text-(--fg2)" aria-hidden="true">
 					<Icon name="chevron-right" size="18px" stroke={2.4} />
 				</span>
 			</button>
 		{:else if next}
-			<div class="flex min-h-12 items-center gap-3 px-1">{@render upNext(next)}</div>
+			<div class="flex min-h-11 items-center gap-2.5 px-1">{@render upNext(next)}</div>
 		{/if}
-		<div class="flex gap-2.5 {next ? 'mt-5' : ''}">
+		<div class="flex gap-2.5 {next ? 'mt-4' : ''}">
 			{#if done}
 				<a href={done.href} class="run-btn bg-live text-on-live">
 					{done.last ? 'Back to session' : 'Next exercise'}<span class="run-icon"><Icon name="arrow-right" size="16px" stroke={2.6} /></span>
