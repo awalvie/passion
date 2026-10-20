@@ -60,8 +60,9 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
   centre line. The field, the contours and the bar are `lib/RunField.svelte`.
 - Session screen: the running session sits on the same `RunField` as its steps. Cards are
   glass, the current section and set are lime (`tint`), done marks are the green check of
-  a done set (`rest-on-hero`), and the bottom panel shows `NOW` with the exercise or pick
-  you are on, then Continue and a round Finish. The list is also where the session
+  a done set (`rest-on-hero`), and the bottom panel shows the exercise or pick you are on
+  in the same one-row form as a step's `NEXT` (`NOW · 4×2` above the name), then Continue
+  and a round Finish. The list is also where the session
   changes: an exercise not yet started has a ••• to move or remove it, each open section
   ends with an Add exercise row, and Add section sits under the list. A hold on such a
   row lifts it as a card with a lime ring; a lime line marks where it lands, and a folded

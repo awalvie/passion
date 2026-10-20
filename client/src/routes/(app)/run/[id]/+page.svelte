@@ -23,7 +23,7 @@
 	import RunField from '$lib/RunField.svelte';
 	import { openRun } from '$lib/runState.svelte';
 	import { choiceMeta, stepMeta, toStep, type Step } from '$lib/template';
-	import { kindOf, type Exercise } from '$lib/exercise';
+	import type { Exercise } from '$lib/exercise';
 	import ExercisePicker from '$lib/ExercisePicker.svelte';
 	import SessionDot from '$lib/SessionDot.svelte';
 	import Notes from '$lib/Notes.svelte';
@@ -597,17 +597,13 @@
 	{#if !run.finished_at && (stop || steps.length)}
 		<div class="shrink-0 rounded-t-[28px] bg-(--dock) px-4 pt-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" role="group" aria-label="Now">
 			{#if stop}
-				<p class="mb-1.5 pl-1 font-[family-name:var(--font-digits)] text-sm font-bold tracking-[0.1em] text-(--fg2)">NOW</p>
-				<div class="flex min-h-12 items-center gap-3 px-1">
-					<span class="flex size-[34px] shrink-0 items-center justify-center rounded-[10px] bg-(--glass)">
-						<Icon name={stop.step ? kindOf(stop.step.kind).icon : 'list'} size="18px" stroke={2.2} />
+				<div class="flex min-h-11 flex-col justify-center gap-0.5 px-1">
+					<span class="truncate text-sm font-medium text-(--fg2)">
+						<b class="font-[family-name:var(--font-digits)] font-bold tracking-[0.1em]">NOW</b> · {stop.step ? stepMeta(stop.step) : choiceMeta(stop.choice!)}
 					</span>
-					<span class="flex min-w-0 flex-1 flex-col gap-[3px]">
-						<span class="truncate text-[17px] leading-[1.2] font-bold">{stop.step?.name ?? stop.choice!.name}</span>
-						<span class="truncate text-[15px] font-medium text-(--fg2)">{stop.step ? stepMeta(stop.step) : choiceMeta(stop.choice!)}</span>
-					</span>
+					<span class="truncate text-[17px] leading-[1.2] font-bold">{stop.step?.name ?? stop.choice!.name}</span>
 				</div>
-				<div class="mt-5 flex gap-2.5">
+				<div class="mt-4 flex gap-2.5">
 					<a href={stopHref(run.id, stop)} class="run-btn bg-tint text-on-tint">
 						<span class="run-icon"><Icon name="play" size="16px" /></span>Continue
 					</a>
