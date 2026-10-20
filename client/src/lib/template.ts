@@ -39,7 +39,7 @@ function repTime(s: Step): string {
 
 export type NextLine = { name: string; detail?: string; step?: Step };
 
-// stopLine names where the step page goes next, under its NEXT label.
+// stopLine names where the step page goes next, beside its NEXT label.
 export function stopLine(stop: { step?: Step; choice?: { name: string } } | undefined): NextLine {
 	if (!stop) return { name: 'End of session' };
 	if (stop.choice) return { name: `Pick ${stop.choice.name}` };

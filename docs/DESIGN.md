@@ -68,9 +68,9 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
   section it would land in takes a lime wash.
   - A timer's state (`READY · PREP 10 S`, `WORK · REP 1 OF 2`) is a small-caps label
     centred above its digits.
-  - The bottom panel starts with a `NEXT` label and a row for the next exercise: its kind
-    icon in a glass tile, the name, the dose under it, and a chevron that opens its how-to.
-    `NEXT` never names a timer phase.
+  - The bottom panel starts with one row for the next exercise: a small `NEXT · 1×6 · 10s
+    rep` line, the name under it, and a chevron that opens its how-to. No icon tile, so the
+    panel stays short. `NEXT` never names a timer phase.
   - The buttons are `run-btn` (a main action, `bg-tint`, or `bg-live` to go on),
     `run-chip` (a small one such as +30 s), `run-round` (Skip, pause) and `run-icon` (the
     circle around an icon on either).
