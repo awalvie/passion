@@ -227,47 +227,51 @@
 			<span class="text-[17px] font-bold text-(--fg2)">{setsLogged} of {step.sets} {step.sets === 1 ? 'set' : 'sets'} logged</span>
 		</div>
 	{:else}
-		<p class="mt-8 shrink-0 text-center font-[family-name:var(--font-digits)] text-[17px] leading-none font-bold tracking-[0.08em] text-(--fg2) uppercase">{status}</p>
-		<div
-			class="mt-3 flex shrink-0 items-end justify-center gap-2 {ready
-				? '[--h:min(260px,28svh,62vw)]'
-				: clock.length === 1
-					? '[--h:min(300px,34svh,76vw)]'
-					: '[--h:min(260px,28svh,62vw)]'} {paused ? 'opacity-55' : ''}"
-			role="img"
-			aria-live="off"
-			aria-label="{secs} {secs === 1 ? 'second' : 'seconds'}{timed ? ' left' : ''}"
-		>
-			<!-- A hidden twin of the unit keeps the digits on the centre line. -->
-			{#if secs < 60}
-				<span class="invisible mr-0.5 pb-5 font-[family-name:var(--font-digits)] text-[44px] leading-none font-bold" aria-hidden="true">s</span>
-			{/if}
-			{#each clock.split('') as digit, i (i)}
-				{#if secs >= 60 && i === clock.length - 2}
-					<div class="flex w-4 flex-col items-center gap-[calc(var(--h)*0.127)] self-center" aria-hidden="true">
-						<i class="size-4 rounded-full bg-current {look.digit}"></i>
-						<i class="size-4 rounded-full bg-current {look.digit}"></i>
-					</div>
+		<!-- The digits take what the other rows leave (245, 200 or 172 px of them),
+		     and keep that height whatever the count, so nothing moves while it runs. -->
+		<div class="flex min-h-0 flex-1 flex-col [container-type:size]">
+			<p class="mt-8 shrink-0 text-center font-[family-name:var(--font-digits)] text-[17px] leading-none font-bold tracking-[0.08em] text-(--fg2) uppercase">{status}</p>
+			<div
+				class="mt-3 flex shrink-0 items-end justify-center gap-2 {ready
+					? '[--h:clamp(100px,calc(100cqh-245px),min(260px,62vw))]'
+					: weight
+						? '[--h:clamp(100px,calc(100cqh-200px),min(260px,62vw))]'
+						: '[--h:clamp(100px,calc(100cqh-172px),min(260px,62vw))]'} {paused ? 'opacity-55' : ''}"
+				role="img"
+				aria-live="off"
+				aria-label="{secs} {secs === 1 ? 'second' : 'seconds'}{timed ? ' left' : ''}"
+			>
+				<!-- A hidden twin of the unit keeps the digits on the centre line. -->
+				{#if secs < 60}
+					<span class="invisible mr-0.5 pb-5 font-[family-name:var(--font-digits)] text-[44px] leading-none font-bold" aria-hidden="true">s</span>
 				{/if}
-				<TimerFlap {digit} wide={clock.length === 1} {look} />
-			{/each}
-			{#if secs < 60}
-				<span class="ml-0.5 pb-5 font-[family-name:var(--font-digits)] text-[44px] leading-none font-bold">s</span>
+				{#each clock.split('') as digit, i (i)}
+					{#if secs >= 60 && i === clock.length - 2}
+						<div class="flex w-4 flex-col items-center gap-[calc(var(--h)*0.127)] self-center" aria-hidden="true">
+							<i class="size-4 rounded-full bg-current {look.digit}"></i>
+							<i class="size-4 rounded-full bg-current {look.digit}"></i>
+						</div>
+					{/if}
+					<TimerFlap {digit} wide={clock.length === 1} {look} />
+				{/each}
+				{#if secs < 60}
+					<span class="ml-0.5 pb-5 font-[family-name:var(--font-digits)] text-[44px] leading-none font-bold">s</span>
+				{/if}
+			</div>
+
+			<div class="mt-4 flex flex-col gap-1.5 px-6">
+				{@render bar('Set', phase?.set ?? Math.min(setsLogged + 1, step.sets ?? 1), step.sets ?? 1, timed ? setsDone : setsLogged)}
+				{@render bar('Rep', timed && phase ? (phase.kind === 'rest' ? Math.min(phase.rep, step.reps ?? 1) : phase.rep) : 1, step.reps ?? 1, timed ? repsDone : 0)}
+			</div>
+
+			{#if ready}
+				<div class="mx-4 mt-3">
+					<Stepper label="Added weight, kg" step={2.5} min={-200} placeholder="–" bind:value={weight} />
+				</div>
+			{:else if weight}
+				<p class="mt-2 px-6 text-[15px] font-semibold text-(--fg2)">{weight > 0 ? '+' : ''}{weight} kg</p>
 			{/if}
 		</div>
-
-		<div class="mt-4 flex flex-col gap-1.5 px-6">
-			{@render bar('Set', phase?.set ?? Math.min(setsLogged + 1, step.sets ?? 1), step.sets ?? 1, timed ? setsDone : setsLogged)}
-			{@render bar('Rep', timed && phase ? (phase.kind === 'rest' ? Math.min(phase.rep, step.reps ?? 1) : phase.rep) : 1, step.reps ?? 1, timed ? repsDone : 0)}
-		</div>
-
-		{#if ready}
-			<div class="mx-4 mt-3">
-				<Stepper label="Added weight, kg" step={2.5} min={-200} placeholder="–" bind:value={weight} />
-			</div>
-		{:else if weight}
-			<p class="mt-2 px-6 text-[15px] font-semibold text-(--fg2)">{weight > 0 ? '+' : ''}{weight} kg</p>
-		{/if}
 	{/if}
 
 	{#snippet buttons()}
