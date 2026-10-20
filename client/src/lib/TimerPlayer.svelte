@@ -227,13 +227,13 @@
 			<span class="text-[17px] font-bold text-(--fg2)">{setsLogged} of {step.sets} {step.sets === 1 ? 'set' : 'sets'} logged</span>
 		</div>
 	{:else}
-		<!-- The digits take what the other rows leave (245, 200 or 172 px of them),
+		<!-- The digits take what the other rows leave (265, 200 or 172 px of them),
 		     and keep that height whatever the count, so nothing moves while it runs. -->
 		<div class="flex min-h-0 flex-1 flex-col [container-type:size]">
 			<p class="mt-8 shrink-0 text-center font-[family-name:var(--font-digits)] text-[17px] leading-none font-bold tracking-[0.08em] text-(--fg2) uppercase">{status}</p>
 			<div
 				class="mt-3 flex shrink-0 items-end justify-center gap-2 {ready
-					? '[--h:clamp(100px,calc(100cqh-245px),min(260px,62vw))]'
+					? '[--h:clamp(100px,calc(100cqh-265px),min(260px,62vw))]'
 					: weight
 						? '[--h:clamp(100px,calc(100cqh-200px),min(260px,62vw))]'
 						: '[--h:clamp(100px,calc(100cqh-172px),min(260px,62vw))]'} {paused ? 'opacity-55' : ''}"
@@ -265,7 +265,7 @@
 			</div>
 
 			{#if ready}
-				<div class="mx-4 mt-3">
+				<div class="mx-4 mt-3 mb-5">
 					<Stepper label="Added weight, kg" step={2.5} min={-200} placeholder="–" bind:value={weight} />
 				</div>
 			{:else if weight}
