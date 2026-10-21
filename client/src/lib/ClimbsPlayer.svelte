@@ -271,8 +271,16 @@
 		void tick().then(() => addButton?.scrollIntoView({ block: 'nearest' }));
 	}
 
+	// A card left with a focus, a note or a time but no go was still climbed,
+	// so Done logs it as one attempt.
 	function done() {
-		void leave(() => openRun.finish(step));
+		void leave(() => {
+			if (!cur.goes.length && (cur.focus || cur.notes || cur.seconds)) {
+				cur.goes.push('attempt');
+				save(cur);
+			}
+			openRun.finish(step);
+		});
 	}
 
 	// Keeps the picked grade, or the middle of the scale, in the middle of the
