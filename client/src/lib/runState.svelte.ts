@@ -24,7 +24,10 @@ import { readTimers } from './timerStore';
 type Write = { seq: number; method: 'PUT' | 'DELETE'; url: string; body?: unknown };
 
 // opened holds when each step was first reached, so a reload keeps its time.
-type Stored = { run: Run; writes: Write[]; opened?: Record<string, number> };
+type Stored = { run: Run; writes: Write[]; opened?: Record<string, number>; drafts?: Record<string, ClimbDraft> };
+
+// The climb on a step's card before its first go.
+export type ClimbDraft = { id: string; grade: string | null; seconds: number | null; focus: string | null; notes: string | null };
 
 const storageKey = (id: string) => `passion-pending:${id}`;
 
@@ -67,6 +70,7 @@ class OpenRun {
 	#seq = 0;
 	#flushing = false;
 	#openedAt = new Map<string, number>();
+	#drafts = new Map<string, ClimbDraft>();
 
 	async load(id: string) {
 		if (this.run?.id !== id) {
@@ -76,6 +80,9 @@ class OpenRun {
 		const stored = readStored(id);
 		for (const [step, at] of Object.entries(stored?.opened ?? {})) {
 			if (!this.#openedAt.has(step)) this.#openedAt.set(step, at);
+		}
+		for (const [step, d] of Object.entries(stored?.drafts ?? {})) {
+			if (!this.#drafts.has(step)) this.#drafts.set(step, d);
 		}
 		const useStored = () => {
 			this.run = stored!.run;
@@ -189,6 +196,16 @@ class OpenRun {
 		this.here = step;
 		if (this.#openedAt.has(step)) return;
 		this.#openedAt.set(step, Date.now());
+		this.#store();
+	}
+
+	draft(step: string): ClimbDraft | null {
+		return this.#drafts.get(step) ?? null;
+	}
+
+	setDraft(step: string, draft: ClimbDraft | null) {
+		if (draft) this.#drafts.set(step, draft);
+		else this.#drafts.delete(step);
 		this.#store();
 	}
 
@@ -372,7 +389,8 @@ class OpenRun {
 		try {
 			const steps = new Set(stepsOf(run).map((s) => s.id));
 			const opened = Object.fromEntries([...this.#openedAt].filter(([step]) => steps.has(step)));
-			const stored: Stored = { run: $state.snapshot(run) as Run, writes: $state.snapshot(this.writes), opened };
+			const drafts = Object.fromEntries([...this.#drafts].filter(([step]) => steps.has(step)));
+			const stored: Stored = { run: $state.snapshot(run) as Run, writes: $state.snapshot(this.writes), opened, drafts };
 			localStorage.setItem(storageKey(run.id), JSON.stringify(stored));
 		} catch {
 			/* the queue in memory still sends */
