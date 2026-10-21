@@ -93,8 +93,9 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
   never red: an attempt is not a failure) and Send (`rest-on-hero`), Focus and Note rows,
   and "+ Add climb". A tap on a logged climb opens the same sheet with the grade, the
   counts, and Delete climb. The card is taller than the view, so on open of a step that
-  has climbs and after Add climb the list scrolls to put Send near the bottom, above the undo note, with the newest
-  climb just above the card. Until the session has a climb, the setup row has a lime inset
+  has climbs and after Add climb the list scrolls to put Send near the bottom, with the newest
+  climb just above the card. That climb takes a faint green wash that fades over 2.4 s, and
+  there is no undo note: a tap on it opens the sheet with Delete. Until the session has a climb, the setup row has a lime inset
   ring and reads "Check first" until it is opened or a climb is logged.
 - Past session: `routes/(app)/(tabs)/history/[id]`. The date line carries the start, the
   end and the length. Journal and each section are `Section` headings with cards under

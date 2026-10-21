@@ -25,7 +25,6 @@
 	import Segmented from './Segmented.svelte';
 	import Sheet from './Sheet.svelte';
 	import { formatClock } from './timerStore';
-	import Toast from './Toast.svelte';
 
 	let { step, next, nextHref, last, menu, error, leaving, leave, skip }: PlayerProps = $props();
 
@@ -177,7 +176,7 @@
 	}
 
 	function go(kind: Go) {
-		toast = '';
+		added = null;
 		keepSend(() => {
 			cur.goes.push(kind);
 			save(cur);
@@ -195,17 +194,10 @@
 
 	// The list sits above the card, which is taller than the view, so the view
 	// is moved to keep Send in reach with the newest climb just above the card.
-	// Send stays clear of the undo note, which is fixed over the list.
 	let scroller: HTMLElement;
 	let sendButton: HTMLElement;
-	let addButton = $state<HTMLElement>();
-	let toastBox: HTMLElement;
 	function park() {
-		let floor = scroller.getBoundingClientRect().bottom;
-		const note = toastBox.querySelector<HTMLElement>('[role="status"]');
-		// Measured from its fixed bottom: the note is still sliding in.
-		if (note) floor = Math.min(floor, innerHeight - parseFloat(getComputedStyle(note).bottom) - note.offsetHeight);
-		scroller.scrollTop += sendButton.getBoundingClientRect().bottom + 12 - floor;
+		scroller.scrollTop += sendButton.getBoundingClientRect().bottom + 12 - scroller.getBoundingClientRect().bottom;
 	}
 	// Again once the grades load: the ungraded labels push the card down.
 	$effect(() => {
@@ -245,30 +237,20 @@
 		keep();
 	}
 
-	// Undo brings the climb just ended back onto the card, until the new one
-	// has a go.
-	let toast = $state('');
-	let undoTo = '';
-	// The player stays mounted from step to step, and a note left from the
-	// last one would undo a climb this step does not have.
+	// The climb just logged is marked for a moment, until the new one has a go.
+	let added = $state<string | null>(null);
+	let addedTimer: ReturnType<typeof setTimeout> | undefined;
 	$effect.pre(() => {
 		void step.id;
-		toast = '';
+		added = null;
 	});
 	async function addClimb() {
-		const c = logged.find((l) => l.id === cur.id)!;
-		toast = [`Climb ${ended.length + 1}`, c.grade, word(c)].filter(Boolean).join(' · ');
-		undoTo = cur.id;
+		added = cur.id;
+		clearTimeout(addedTimer);
+		addedTimer = setTimeout(() => (added = null), 2400);
 		cur = fresh(cur.grade);
 		await tick();
 		park();
-	}
-	function undo() {
-		const c = logged.find((l) => l.id === undoTo);
-		if (!c) return;
-		cur = resume(c);
-		openRun.setDraft(step.id, null);
-		void tick().then(() => addButton?.scrollIntoView({ block: 'nearest' }));
 	}
 
 	// A card left with a focus, a note or a time but no go was still climbed,
@@ -394,7 +376,7 @@
 			<b class="px-1 pt-1 text-[15px]">This step</b>
 			<ol class="shrink-0 overflow-hidden rounded-[18px] bg-(--glass)">
 				{#each ended as c, i (c.id)}
-					<li class={i ? 'shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]' : ''}>
+					<li class="{i ? 'shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]' : ''} {c.id === added ? 'climb-added' : ''}">
 						<button type="button" class="flex min-h-16 w-full items-center gap-3 py-2.5 pr-3.5 pl-2.5 text-left" onclick={() => (editing = c.id)}>
 							<span
 								class="flex h-11 min-w-12 shrink-0 items-center justify-center rounded-xl px-1.5 font-[family-name:var(--font-digits)] text-xl font-bold {c.sent
@@ -456,7 +438,7 @@
 				</div>
 			</div>
 			{#if cur.goes.length}
-				<button bind:this={addButton} type="button" class="flex h-[52px] w-full items-center justify-center gap-2 text-[15px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" onclick={addClimb}>
+				<button type="button" class="flex h-[52px] w-full items-center justify-center gap-2 text-[15px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" onclick={addClimb}>
 					<span class="flex size-7 items-center justify-center rounded-full bg-(--glass)"><Icon name="plus" size="16px" stroke={2.6} /></span>Add climb
 				</button>
 			{/if}
@@ -527,13 +509,25 @@
 		</div>
 	</Sheet>
 
-	<div bind:this={toastBox} style="--above-bar: calc(env(safe-area-inset-bottom) + {last ? 118 : 212}px)">
-		<Toast bind:message={toast} action="Undo" onaction={undo} />
-	</div>
-
 	{#snippet buttons()}
 		<button type="button" class="run-btn bg-tint text-on-tint" onclick={done}>
 			<span class="run-icon"><Icon name="check" size="16px" stroke={3} /></span>Done
 		</button>
 	{/snippet}
 </RunPage>
+
+<style>
+	/* A short green wash on the climb just logged, so the list says it took it. */
+	.climb-added {
+		animation: climb-added 2.4s ease-out;
+	}
+	@keyframes climb-added {
+		0%,
+		35% {
+			background: color-mix(in srgb, var(--rest-on-hero) 24%, transparent);
+		}
+		to {
+			background: transparent;
+		}
+	}
+</style>
