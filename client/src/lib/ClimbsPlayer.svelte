@@ -61,7 +61,8 @@
 		const id = step.id;
 		untrack(() => {
 			const end = climbsOf(openRun.run!, id).at(-1);
-			cur = end && !isFinished(step) ? resume(end) : fresh(end?.grade ?? null);
+			const draft = openRun.draft(id);
+			cur = draft ? { ...draft, goes: [] } : end && !isFinished(step) ? resume(end) : fresh(end?.grade ?? null);
 			const order = stepsOf(openRun.run!).map((s) => s.id);
 			const before = order.slice(0, order.indexOf(id));
 			const bar = end ?? before.map((s) => climbsOf(openRun.run!, s).at(-1)).findLast(Boolean);
@@ -106,6 +107,15 @@
 			focus: c.focus,
 			notes: c.notes
 		});
+		if (openRun.draft(step.id)) openRun.setDraft(step.id, null);
+	}
+
+	// A climb with no go has no place on the server yet, so what is set on it
+	// waits on the phone and survives the app being closed.
+	function keep() {
+		if (cur.goes.length) return save(cur);
+		const { goes: _g, ...draft } = $state.snapshot(cur);
+		openRun.setDraft(step.id, draft);
 	}
 
 	// A logged climb is written again whole, with what changed.
@@ -124,7 +134,7 @@
 		const value = text.trim() || null;
 		if (editingClimb) return rewrite(editingClimb, { [key]: value });
 		cur[key] = value;
-		if (cur.goes.length) save(cur);
+		keep();
 	}
 
 	function setSeconds(seconds: number | null) {
@@ -134,7 +144,7 @@
 		}
 		if (seconds === cur.seconds) return;
 		cur.seconds = seconds;
-		if (cur.goes.length) save(cur);
+		keep();
 	}
 
 	// A count changed in the sheet keeps the order of the goes it leaves, and
@@ -211,7 +221,7 @@
 	// A second tap on the picked grade clears it: a climb may have no grade.
 	function pick(g: string) {
 		cur.grade = cur.grade === g ? null : g;
-		if (cur.goes.length) save(cur);
+		keep();
 	}
 
 	// A boulder and a route use different scales, so a change between them
@@ -220,19 +230,19 @@
 	function setDiscipline(d: Discipline) {
 		if ((d === 'boulder') !== (discipline === 'boulder')) cur.grade = null;
 		discipline = d;
-		if (cur.goes.length) save(cur);
+		keep();
 	}
 	function setSetting(v: keyof typeof settings) {
 		setting = v;
-		if (cur.goes.length) save(cur);
+		keep();
 	}
 	function setRope(v: keyof typeof ropes) {
 		rope = v;
-		if (cur.goes.length) save(cur);
+		keep();
 	}
 	function setBoard(v: keyof typeof boards) {
 		board = v;
-		if (cur.goes.length) save(cur);
+		keep();
 	}
 
 	// Undo brings the climb just ended back onto the card, until the new one
@@ -255,7 +265,9 @@
 	}
 	function undo() {
 		const c = logged.find((l) => l.id === undoTo);
-		if (c) cur = resume(c);
+		if (!c) return;
+		cur = resume(c);
+		openRun.setDraft(step.id, null);
 		void tick().then(() => addButton?.scrollIntoView({ block: 'nearest' }));
 	}
 
