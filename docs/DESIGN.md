@@ -70,6 +70,9 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
   - A timer's state (`READY · PREP, THEN 10 S WORK`, `WORK · REP 1 OF 2`) is a small-caps
     label centred above its digits. Before Start the digits show what counts down first:
     the prep if there is one, else the first rep.
+  - Added weight is a `run-tag` chip under the Set and Rep bars. Before Start it opens a
+    sheet with the stepper. While running it only shows the weight, and with none it keeps
+    its row empty, so the digits are one height in every state.
   - The bottom panel starts with one row for the next exercise: a small `NEXT · 1×6 · 10s
     rep` line, the name under it, and a chevron that opens its how-to. No icon tile, so the
     panel stays short. `NEXT` never names a timer phase.
