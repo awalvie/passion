@@ -1,6 +1,6 @@
 id: b869ef91-f645-4a13-a181-65a22b27de66
 name: 90/90 Hold
-style: timed_reps
+style: open
 tags:
     - cooldown
     - mobility
@@ -11,8 +11,3 @@ notes: |-
 media:
     - url: https://www.youtube.com/watch?v=VYvMMw8z3rE
       thumb_url: https://i.ytimg.com/vi/VYvMMw8z3rE/maxresdefault.jpg
-sets: 1
-reps: 2
-rep_seconds: 45
-set_rest_seconds: 0
-prep_seconds: 10

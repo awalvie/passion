@@ -1,6 +1,6 @@
 id: f8f1f791-9384-4920-a429-57b15f137b9b
 name: Forearms & Fingers
-style: timed_reps
+style: open
 tags:
     - cooldown
     - fingers
@@ -13,8 +13,3 @@ notes: |-
 media:
     - url: https://www.youtube.com/watch?v=fTIW6qSYnX4
       thumb_url: https://i.ytimg.com/vi/fTIW6qSYnX4/maxresdefault.jpg
-sets: 1
-reps: 4
-rep_seconds: 30
-set_rest_seconds: 0
-prep_seconds: 10
