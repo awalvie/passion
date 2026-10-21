@@ -7,6 +7,7 @@
 	import { openRun } from './runState.svelte';
 	import RunPage, { type PlayerProps } from './RunPage.svelte';
 	import Stepper from './Stepper.svelte';
+	import Sheet from './Sheet.svelte';
 	import TimerFlap from './TimerFlap.svelte';
 	import { at, canTime, elapsed, endSet, jump, newClock, repSeconds, rows, startOf, timedRows, timeline, togglePause } from './timeline';
 	import { readTimers, writeTimers, type Timed } from './timerStore';
@@ -28,6 +29,8 @@
 	// A per-side set logs two rows, one for each side.
 	const sides = $derived(step.per_side ? 2 : 1);
 	let weight = $state<number | null>(null);
+	const weightLabel = $derived(weight ? `${weight > 0 ? '+' : ''}${weight} kg` : 'Add weight');
+	let weighing = $state(false);
 	let now = $state(Date.now());
 
 	$effect.pre(() => {
@@ -231,16 +234,12 @@
 			<span class="text-[17px] font-bold text-(--fg2)">{setsLogged} of {step.sets} {step.sets === 1 ? 'set' : 'sets'} logged</span>
 		</div>
 	{:else}
-		<!-- The digits take what the other rows leave (265, 200 or 172 px of them),
+		<!-- The digits take what the other rows leave (240 px of them),
 		     and keep that height whatever the count, so nothing moves while it runs. -->
 		<div class="flex min-h-0 flex-1 flex-col [container-type:size]">
 			<p class="mt-8 shrink-0 text-center font-[family-name:var(--font-digits)] text-[17px] leading-none font-bold tracking-[0.08em] text-(--fg2) uppercase">{status}</p>
 			<div
-				class="mt-3 flex shrink-0 items-end justify-center gap-2 {ready
-					? '[--h:clamp(100px,calc(100cqh-265px),min(260px,62vw))]'
-					: weight
-						? '[--h:clamp(100px,calc(100cqh-200px),min(260px,62vw))]'
-						: '[--h:clamp(100px,calc(100cqh-172px),min(260px,62vw))]'} {paused ? 'opacity-55' : ''}"
+				class="mt-3 flex shrink-0 items-end justify-center gap-2 [--h:clamp(100px,calc(100cqh-240px),min(260px,62vw))] {paused ? 'opacity-55' : ''}"
 				role="img"
 				aria-live="off"
 				aria-label="{secs} {secs === 1 ? 'second' : 'seconds'}{timed ? ' left' : ''}"
@@ -268,15 +267,24 @@
 				{@render bar('Rep', timed && phase ? (phase.kind === 'rest' ? Math.min(phase.rep, step.reps ?? 1) : phase.rep) : 1, step.reps ?? 1, timed ? repsDone : 0)}
 			</div>
 
-			{#if ready}
-				<div class="mx-4 mt-3 mb-5">
-					<Stepper label="Added weight, kg" step={2.5} min={-200} placeholder="–" bind:value={weight} />
-				</div>
-			{:else if weight}
-				<p class="mt-2 px-6 text-[15px] font-semibold text-(--fg2)">{weight > 0 ? '+' : ''}{weight} kg</p>
-			{/if}
+			<!-- The chip keeps its row while running with no weight, so the digits keep their size. -->
+			<div class="mt-3 mb-4 flex justify-center">
+				{#if ready}
+					<button type="button" class="run-tag" aria-label={weight ? `Added weight ${weightLabel}` : undefined} onclick={() => (weighing = true)}>
+						<Icon name="dumbbell" size="17px" stroke={2.2} />{weightLabel}
+					</button>
+				{:else}
+					<span class="run-tag {weight ? '' : 'invisible'}">
+						<Icon name="dumbbell" size="17px" stroke={2.2} />{weightLabel}
+					</span>
+				{/if}
+			</div>
 		</div>
 	{/if}
+
+	<Sheet bind:open={weighing} title="Added weight" eyebrow={step.name}>
+		<Stepper label="kg" step={2.5} min={-200} placeholder="–" bind:value={weight} />
+	</Sheet>
 
 	{#snippet buttons()}
 		{#if !timed}
