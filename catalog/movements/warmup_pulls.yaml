@@ -1,6 +1,6 @@
 id: 7f763676-6bff-4c47-9fa1-6e42e13a77f8
 name: Warmup Pulls
-style: reps_and_sets
+style: open
 tags:
     - fingers
     - warmup
@@ -11,8 +11,5 @@ notes: |-
     Build gently to a firm pull over 5-8s, then relax. Pull with the fingers, not
     by yanking from the shoulder.
 
-    Sub-max only this cycle — this is a warm-up, never a maximal effort. One pull
-    each hand is a set; go at your own pace and stop when the fingers feel awake.
-sets: 4
-reps: 2
-set_rest_seconds: 60
+    Sub-max only this cycle — this is a warm-up, never a maximal effort. Swap hands
+    at your own pace and stop when the fingers feel awake.
