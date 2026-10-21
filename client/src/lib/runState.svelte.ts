@@ -446,8 +446,11 @@ class OpenRun {
 export const openRun = new OpenRun();
 
 addEventListener('online', () => void openRun.flush());
+// iOS can close a backgrounded app without a blur, so a field still being
+// typed in is blurred on the way out and its change handler saves it.
 document.addEventListener('visibilitychange', () => {
 	if (document.visibilityState === 'visible') void openRun.flush();
+	else (document.activeElement as HTMLElement | null)?.blur();
 });
 
 export type StartBody = { scheduled: string } | { template: string } | { name: string };
