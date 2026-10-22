@@ -40,7 +40,8 @@
 			went_well: wentWell.trim() || null,
 			next_focus: nextFocus.trim() || null,
 			notes: notes.trim() || null,
-			elapsed_seconds: r.elapsed_seconds ?? secondsSince(r.started_at)
+			// A finished run keeps its length, even an unknown one.
+			elapsed_seconds: editing ? r.elapsed_seconds : (r.elapsed_seconds ?? secondsSince(r.started_at))
 		});
 		openRun.saveBody();
 		try {
