@@ -49,6 +49,11 @@
 				error = `Not saved yet. ${editing ? 'Saving' : 'Finish'} needs a signal. It is kept on this phone, so try again.`;
 				return;
 			}
+			// The queue drops a refused write, so an edit would vanish without this.
+			if (editing && openRun.refused) {
+				error = openRun.refused;
+				return;
+			}
 			if (!editing) await request<Run>('POST', `/api/v1/runs/${r.id}/finish`);
 			await goto(`/history/${r.id}`);
 			openRun.forget();
