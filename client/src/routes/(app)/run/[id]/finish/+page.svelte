@@ -8,6 +8,8 @@
 	import { openRun } from '$lib/runState.svelte';
 
 	const run = $derived(openRun.run!);
+	// A finished run comes here from History to edit its journal.
+	const editing = !!openRun.run!.finished_at;
 
 	// The journal is optional, so each field starts from what the run holds.
 	let sleep = $state(openRun.run!.sleep);
@@ -28,7 +30,7 @@
 		busy = true;
 		error = '';
 		const r = openRun.run!;
-		openRun.logTimer();
+		if (!editing) openRun.logTimer();
 		Object.assign(r, {
 			sleep,
 			energy,
@@ -43,10 +45,10 @@
 		openRun.saveBody();
 		try {
 			if (!(await openRun.settle())) {
-				error = 'Not saved yet. Finish needs a signal. It is kept on this phone, so try again.';
+				error = `Not saved yet. ${editing ? 'Saving' : 'Finish'} needs a signal. It is kept on this phone, so try again.`;
 				return;
 			}
-			await request<Run>('POST', `/api/v1/runs/${r.id}/finish`);
+			if (!editing) await request<Run>('POST', `/api/v1/runs/${r.id}/finish`);
 			await goto(`/history/${r.id}`);
 			openRun.forget();
 		} catch (e) {
@@ -88,9 +90,9 @@
 	</label>
 {/snippet}
 
-<svelte:head><title>Finish {run.name}</title></svelte:head>
+<svelte:head><title>{editing ? 'Journal' : 'Finish'} {run.name}</title></svelte:head>
 
-<NavBar title="Finish" back={{ href: `/run/${run.id}`, label: 'Session' }} />
+<NavBar title={editing ? 'Journal' : 'Finish'} back={{ href: editing ? `/history/${run.id}` : `/run/${run.id}`, label: 'Session' }} />
 
 <div class="flex flex-col gap-3 px-4 pt-1 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
 	<p class="px-1 text-[15px] font-semibold text-ink-2">All optional. It helps to read it before the next session.</p>
@@ -129,6 +131,6 @@
 
 	<FormError message={error} />
 	<div class="mt-2">
-		<Button disabled={busy} onclick={finish}>{busy ? 'Finishing…' : 'Finish session'}</Button>
+		<Button disabled={busy} onclick={finish}>{editing ? (busy ? 'Saving…' : 'Save') : busy ? 'Finishing…' : 'Finish session'}</Button>
 	</div>
 </div>
