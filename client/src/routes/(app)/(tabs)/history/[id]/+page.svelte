@@ -133,7 +133,7 @@
 		<a href="/run/{run.id}/finish" class="flex min-h-16 items-center gap-3 rounded-3xl bg-surface px-4 py-3 shadow-card">
 			<span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-well text-ink-2"><Icon name="pencil" size="17px" stroke={2.2} /></span>
 			<span class="flex-1 text-[15px] font-bold">Add a journal</span>
-			<Icon name="chevron-right" size="18px" stroke={2.4} />
+			<span class="text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.4} /></span>
 		</a>
 	{:else}
 		<Section title="Journal">
