@@ -100,6 +100,9 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
 - Past session: `routes/(app)/(tabs)/history/[id]`. The date line carries the start, the
   end and the length. Journal and each section are `Section` headings with cards under
   them.
+  - The journal card is one link to the finish form, which reads "Journal" with Save for a
+    finished run. A pencil in a `bg-well` circle sits in its top right corner. A run with no
+    journal shows an "Add a journal" row in its place. The top Edit opens the session screen.
   - An exercise card's head is the name, a grey line under it, and its time on the name's
     baseline at the right. A value is its number in `digits text-xl` with the unit small
     and grey (`7m 25s`, `15 kg`).
