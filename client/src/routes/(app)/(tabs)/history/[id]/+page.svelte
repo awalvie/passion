@@ -129,17 +129,25 @@
 		<p class="mt-2 text-[15px] font-semibold text-ink-2">{when}</p>
 	</header>
 
-	{#if scores.length || words.length || thoughts.length}
+	{#if !scores.length && !words.length && !thoughts.length}
+		<a href="/run/{run.id}/finish" class="flex min-h-16 items-center gap-3 rounded-3xl bg-surface px-4 py-3 shadow-card">
+			<span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-well text-ink-2"><Icon name="pencil" size="17px" stroke={2.2} /></span>
+			<span class="flex-1 text-[15px] font-bold">Add a journal</span>
+			<Icon name="chevron-right" size="18px" stroke={2.4} />
+		</a>
+	{:else}
 		<Section title="Journal">
-			<div class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-				{#each thoughts as [label, text] (label)}
-					<div class="flex flex-col gap-1">
+			<!-- The whole card opens the journal form; the first row leaves room for the pencil. -->
+			<a href="/run/{run.id}/finish" class="relative flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
+				<span class="absolute top-3.5 right-3.5 flex size-9 items-center justify-center rounded-full bg-well text-ink-2"><Icon name="pencil" size="16px" stroke={2.2} /><span class="sr-only">Edit journal</span></span>
+				{#each thoughts as [label, text], i (label)}
+					<div class="flex flex-col gap-1 {i ? '' : 'pr-11'}">
 						{#if label}<span class="text-xs font-bold text-ink-2">{label}</span>{/if}
 						{@render note(text)}
 					</div>
 				{/each}
 				{#if scores.length || words.length}
-					<div class="flex flex-col gap-3.5 {thoughts.length ? 'mt-0.5 pt-4 shadow-[inset_0_1px_0_var(--line)]' : ''}">
+					<div class="flex flex-col gap-3.5 {thoughts.length ? 'mt-0.5 pt-4 shadow-[inset_0_1px_0_var(--line)]' : 'pr-11'}">
 						{#if scores.length}
 							<dl class="grid grid-cols-3 gap-4">
 								{#each scores as [label, value, max] (label)}
@@ -167,7 +175,7 @@
 						{/if}
 					</div>
 				{/if}
-			</div>
+			</a>
 		</Section>
 	{/if}
 
