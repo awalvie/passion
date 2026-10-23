@@ -1,7 +1,8 @@
 id: 89c0831e-04a6-4d3d-8951-e4ac16084878
 name: Prehab
-notes: About 6 min, all light. Do it straight after the climbing.
+notes: All light. Do it straight after the climbing, the retraction laps on the wall first, then about 6 min of exercises.
 items:
+    - movement: shoulder_retraction
     - movement: seated_shoulder_rotations
     - movement: hammer_curl
     - movement: reverse_wrist_curl
