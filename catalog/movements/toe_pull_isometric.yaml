@@ -1,0 +1,20 @@
+id: 774acdb8-9d27-43af-b565-62efbbeeb0ff
+name: Toe-Pull Isometric
+style: timed_reps
+tags:
+    - footwork
+    - warmup
+notes: |-
+    On the wall, good handholds, one foot on a solid foothold. Pull the hold
+    toward you with the toes and ankle, as if to drag it off the wall, without
+    moving.
+
+    Build the effort over the reps, from easy to hard. Calf, hamstring and glute
+    should join in. Each side.
+source: Paradigm Climbing
+per_side: true
+sets: 1
+reps: 3
+rep_seconds: 5
+rep_rest_seconds: 10
+prep_seconds: 5

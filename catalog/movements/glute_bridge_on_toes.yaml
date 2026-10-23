@@ -1,0 +1,18 @@
+id: f48af648-9ae2-494d-be2e-283cf7bf6813
+name: Glute Bridge on Toes
+style: timed_reps
+tags:
+    - footwork
+    - strength
+    - warmup
+notes: |-
+    On your back, one foot raised on a bench or step, pressing through the toes,
+    the other leg in the air. Lift the hips and hold, glute tight, hips level.
+    Each side.
+source: DeadPoint Performance
+per_side: true
+sets: 2
+reps: 1
+rep_seconds: 20
+set_rest_seconds: 20
+prep_seconds: 5
