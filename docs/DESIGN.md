@@ -85,8 +85,9 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
   `kg` placeholder, and a small × that removes the set. Done is a green row with a check
   (`rest-on-hero`), the current set has a lime ring, number and left bar, and later sets
   are dimmed. Each field shows last time's value under it as `last 20`.
-- Climb card: `lib/ClimbsPlayer.svelte`. The page reads as a log, top to bottom: the setup
-  row (`Boulder · Indoor`, Change) that opens a sheet, the climbs logged oldest first, then
+- Climb card: `lib/ClimbsPlayer.svelte`. The page reads as a log, top to bottom: a two-line
+  setup card (`Sport · Indoor`, then the rope or board) with a solid light Change pill
+  (`bg-(--fg)`, `text-on-tint`) that opens a sheet, the climbs logged oldest first, then
   one glass card for the climb on the go. The card is `CLIMB 3 · FONT` with the sends so
   far, a sideways grade strip with the picked grade large, the goes as circles (grey
   numbered attempts, green checked sends) that open the edit sheet, then Attempt (glass,
@@ -95,8 +96,8 @@ These are the one way each part is drawn in `client/src`. Use them; do not redra
   counts, and Delete climb. The card is taller than the view, so on open of a step that
   has climbs and after Add climb the list scrolls to put Send near the bottom, with the newest
   climb just above the card. That climb takes a faint green wash that fades over 2.4 s, and
-  there is no undo note: a tap on it opens the sheet with Delete. Until the session has a climb, the setup row has a lime inset
-  ring and reads "Check first" until it is opened or a climb is logged.
+  there is no undo note: a tap on it opens the sheet with Delete. Until the session has a climb, the setup card has a lime inset
+  ring and its pill reads "Check first" until it is opened or a climb is logged.
 - Past session: `routes/(app)/(tabs)/history/[id]`. The date line carries the start, the
   end and the length. Journal and each section are `Section` headings with cards under
   them.

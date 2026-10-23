@@ -280,6 +280,7 @@
 
 	const finished = $derived(isFinished(step) && !leaving);
 	const check = $derived(!looked && !logged.length && !finished);
+	const detail = $derived(discipline !== 'boulder' ? ropes[rope] : setting === 'indoor' ? (onBoard ? boards[board] : 'No board') : '');
 	const system = $derived(info ? (scaleFor(info.grades, info.account, discipline === 'boulder')?.system.toUpperCase() ?? '') : '');
 </script>
 
@@ -350,7 +351,7 @@
 	<div bind:this={scroller} class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overscroll-contain px-4 pt-6 pb-4 [overflow-anchor:none]">
 		<button
 			type="button"
-			class="flex h-12 w-full shrink-0 items-center gap-2.5 rounded-[18px] bg-(--glass) px-3.5 text-left text-[15px] font-semibold text-(--fg2) {check
+			class="flex w-full shrink-0 items-center gap-3 rounded-[18px] bg-(--glass) py-2.5 pr-2.5 pl-3 text-left {check
 				? 'shadow-[inset_0_0_0_2px_var(--tint)]'
 				: ''}"
 			onclick={() => {
@@ -358,19 +359,12 @@
 				changing = true;
 			}}
 		>
-			<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--glass) text-(--fg)"><Icon name="mountain" size="15px" stroke={2.4} /></span>
-			<span class="min-w-0 flex-1 truncate"
-				><b class="text-(--fg)">{disciplines[discipline]}</b> · {settings[setting]}{discipline === 'boulder'
-						? onBoard
-							? ` · ${boards[board]}`
-							: ''
-						: ` · ${ropes[rope]}`}</span
-			>
-			{#if check}
-				<span class="flex shrink-0 items-center gap-1 font-bold text-(--fg)">Check first<Icon name="chevron-down" size="16px" stroke={2.6} /></span>
-			{:else}
-				<span class="flex items-center gap-1">Change<Icon name="chevron-down" size="16px" stroke={2.6} /></span>
-			{/if}
+			<span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-(--glass) text-(--fg)"><Icon name="mountain" size="18px" stroke={2.4} /></span>
+			<span class="min-w-0 flex-1">
+				<b class="block truncate text-base text-(--fg)">{disciplines[discipline]} · {settings[setting]}</b>
+				{#if detail}<span class="block truncate text-sm font-semibold text-(--fg2)">{detail}</span>{/if}
+			</span>
+			<span class="flex h-11 shrink-0 items-center rounded-full bg-(--fg) px-4 text-[15px] font-bold text-on-tint">{check ? 'Check first' : 'Change'}</span>
 		</button>
 
 		{#if ended.length}
