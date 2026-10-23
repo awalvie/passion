@@ -9,6 +9,7 @@
 	import Menu from '$lib/Menu.svelte';
 	import {
 		currentStop,
+		climbsOf,
 		isFinished,
 		sectionMarks,
 		sectionShare,
@@ -112,6 +113,20 @@
 	}
 
 	const marks = $derived(sectionMarks(run, section));
+
+	// Skip section skips the steps nothing was logged on; a step under way is
+	// left for its own Skip.
+	const untouched = (s: RunSection) =>
+		stepsIn(s).filter((st) => st.status === null && !setsOf(run, st.id).length && !climbsOf(run, st.id).length);
+	const stepsIn = (s: RunSection) => s.items.flatMap((it) => (it.step ? [it.step] : []));
+	function sectionMenu(s: RunSection) {
+		if (run.finished_at) return [];
+		const skipped = stepsIn(s).filter((st) => st.status === 'skipped');
+		return [
+			...(untouched(s).length ? [{ label: 'Skip section', onclick: () => untouched(s).forEach((st) => openRun.skip(st)) }] : []),
+			...(skipped.length ? [{ label: 'Undo skips', onclick: () => skipped.forEach((st) => openRun.unskip(st)) }] : [])
+		];
+	}
 
 	function caption(s: RunSection, m: SectionMark): string {
 		if (!s.items.length) return 'No exercises';
@@ -362,6 +377,7 @@
 				{#each run.sections as s, i (i)}
 					{@const m = marks[i]}
 					{@const open = isOpen(i)}
+					{@const actions = open ? sectionMenu(s) : []}
 					<li class="relative">
 						{#if i < run.sections.length - 1}
 							<span
@@ -371,41 +387,46 @@
 									: 'border-dotted border-ink-3 opacity-70'}"
 							></span>
 						{/if}
-						<button
-							type="button"
-							class="relative flex w-full items-center gap-3.5 rounded-[18px] pr-1 text-left {m === 'now' ? 'h-11' : 'h-[52px]'} {lifted && !open && over?.s === i
-								? 'bg-tint/20'
-								: ''}"
-							data-slot="{i}:{s.items.length}"
-							aria-expanded={open}
-							onclick={() => (chosen[i] = !isOpen(i))}
-						>
-							<SessionDot mark={m} />
-							<span class="min-w-0 flex-1">
-								<span class="block truncate text-[15px] font-bold">{s.name}</span>
-								{#if m !== 'now'}
-									<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{caption(s, m)}</span>
-								{/if}
-							</span>
-							{#if m === 'now'}
-								<span class="shrink-0 rounded-[10px] bg-tint px-2.5 py-1 text-xs font-bold text-on-tint">You are here</span>
-							{:else}
-								{#if m === 'done'}
-									<span class="flex shrink-0 gap-1" aria-hidden="true">
-										{#each s.items as it, k (k)}
-											<span
-												class="size-[7px] rounded-full {it.step?.status === 'skipped'
-													? 'border-[1.5px] border-ink-3'
-													: 'bg-rest-on-hero'}"
-											></span>
-										{/each}
+						<div class="flex items-center gap-1">
+							<button
+								type="button"
+								class="relative flex min-w-0 flex-1 items-center gap-3.5 rounded-[18px] pr-1 text-left {m === 'now' ? 'h-11' : 'h-[52px]'} {lifted && !open && over?.s === i
+									? 'bg-tint/20'
+									: ''}"
+								data-slot="{i}:{s.items.length}"
+								aria-expanded={open}
+								onclick={() => (chosen[i] = !isOpen(i))}
+							>
+								<SessionDot mark={m} />
+								<span class="min-w-0 flex-1">
+									<span class="block truncate text-[15px] font-bold">{s.name}</span>
+									{#if m !== 'now'}
+										<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{caption(s, m)}</span>
+									{/if}
+								</span>
+								{#if m === 'now'}
+									<span class="shrink-0 rounded-[10px] bg-tint px-2.5 py-1 text-xs font-bold text-on-tint">You are here</span>
+								{:else}
+									{#if m === 'done'}
+										<span class="flex shrink-0 gap-1" aria-hidden="true">
+											{#each s.items as it, k (k)}
+												<span
+													class="size-[7px] rounded-full {it.step?.status === 'skipped'
+														? 'border-[1.5px] border-ink-3'
+														: 'bg-rest-on-hero'}"
+												></span>
+											{/each}
+										</span>
+									{/if}
+									<span class="text-ink-3 transition-transform {open ? 'rotate-90' : ''}">
+										<Icon name="chevron-right" size="1.125rem" />
 									</span>
 								{/if}
-								<span class="text-ink-3 transition-transform {open ? 'rotate-90' : ''}">
-									<Icon name="chevron-right" size="1.125rem" />
-								</span>
+							</button>
+							{#if actions.length}
+								<Menu label="Actions for {s.name}" look="bg-(--glass) text-on-hero" items={actions} />
 							{/if}
-						</button>
+						</div>
 
 						{#if open && (s.items.length || !run.finished_at)}
 							<ul class="relative mb-1 ml-[46px] rounded-3xl bg-(--glass) p-2.5 pb-2">
