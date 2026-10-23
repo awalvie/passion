@@ -16,9 +16,9 @@ export function setSound(on: boolean) {
 
 // unlock must run inside a tap.
 export function unlock() {
-	// Plays through the silent switch, like a timer app, where Safari offers it.
+	// Ambient mixes with music from other apps, so tones follow the silent switch.
 	const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
-	if (session) session.type = 'playback';
+	if (session) session.type = 'ambient';
 	ctx ??= new AudioContext();
 	void ctx.resume();
 }
