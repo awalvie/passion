@@ -39,7 +39,7 @@
 		busy = true;
 		try {
 			await request('PUT', `/api/v1/exercises/${saved.id}`, toBody(draft, shown));
-			await goto('/exercises');
+			await goto(from ?? '/exercises');
 			notice.text = 'Exercise saved';
 		} catch (e) {
 			error = describe(e, fieldLabel);
@@ -56,7 +56,7 @@
 		busy = true;
 		try {
 			await request('POST', `/api/v1/exercises/${saved.id}/retire`);
-			await goto('/exercises');
+			await goto(from ?? '/exercises');
 		} catch (e) {
 			error = describe(e, fieldLabel);
 		} finally {
