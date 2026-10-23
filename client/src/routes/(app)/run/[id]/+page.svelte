@@ -115,6 +115,7 @@
 
 	function caption(s: RunSection, m: SectionMark): string {
 		if (!s.items.length) return 'No exercises';
+		if (m === 'skipped') return 'Skipped';
 		if (m === 'done') {
 			const skipped = s.items.filter((it) => it.step?.status === 'skipped');
 			const tail =
