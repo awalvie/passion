@@ -1,0 +1,17 @@
+id: 41f27aa9-92a0-48e6-9f9f-7b8b40381247
+name: High-Step Hold
+style: timed_reps
+tags:
+    - footwork
+    - mobility
+    - warmup
+notes: |-
+    Hands on the wall, one foot up on a hold or box near hip height. Pull the
+    hips in over that foot and hold, chest up, back leg light. Each side.
+source: DeadPoint Performance
+per_side: true
+sets: 2
+reps: 1
+rep_seconds: 15
+set_rest_seconds: 30
+prep_seconds: 5
