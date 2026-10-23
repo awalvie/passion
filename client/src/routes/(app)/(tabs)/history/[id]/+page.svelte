@@ -193,7 +193,17 @@
 						<article class="rounded-3xl bg-surface px-[18px] py-4 shadow-card">
 							<div class="flex items-baseline gap-3">
 								<div class="min-w-0 flex-1">
-									<h3 class="text-[15px] font-bold">{s.name}</h3>
+									<h3 class="text-[15px] font-bold">
+										{#if s.kind === 'open'}
+											{s.name}
+										{:else}
+											<a
+												href="/history/exercise/{s.exercise}?from=/history/{run.id}&name={encodeURIComponent(s.name)}"
+												class="inline-flex items-center gap-0.5"
+												>{s.name}<span class="text-ink-3"><Icon name="chevron-right" size="15px" stroke={2.6} /></span></a
+											>
+										{/if}
+									</h3>
 									{#if info}<p class="mt-0.5 text-xs font-semibold text-ink-2">{info}</p>{/if}
 								</div>
 								{#if time}<span class="shrink-0">{@render amount(time)}</span>{/if}
