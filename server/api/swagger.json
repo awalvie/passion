@@ -1670,7 +1670,7 @@
           "example": 0
         },
         "rope_style": {
-          "description": "For a route: lead, top_rope, auto_belay or follow.",
+          "description": "For a route: lead, top_rope, auto_belay, auto_belay_rope or follow.",
           "type": "string",
           "x-go-name": "RopeStyle",
           "example": "lead"
@@ -1786,7 +1786,7 @@
           "example": 0
         },
         "rope_style": {
-          "description": "For a route: lead, top_rope, auto_belay or follow.",
+          "description": "For a route: lead, top_rope, auto_belay, auto_belay_rope or follow.",
           "type": "string",
           "x-go-name": "RopeStyle",
           "example": "lead"
@@ -2143,7 +2143,7 @@
           "example": 0
         },
         "rope_style": {
-          "description": "For a route: lead, top_rope, auto_belay or follow.",
+          "description": "For a route: lead, top_rope, auto_belay, auto_belay_rope or follow.",
           "type": "string",
           "x-go-name": "RopeStyle",
           "example": "lead"
