@@ -298,7 +298,12 @@
 
 <svelte:head><title>{run.name}</title></svelte:head>
 
-<RunField label={run.name} back={{ href: '/', label: 'Today', swipe: true }}>
+<RunField
+	label={run.name}
+	back={run.finished_at
+		? { href: `/history/${run.id}`, label: 'History', swipe: true }
+		: { href: '/', label: 'Today', swipe: true }}
+>
 	{#snippet end()}
 		<Menu
 			look="bg-(--pill) text-on-hero"
