@@ -228,6 +228,7 @@
 		setting = v;
 		keep();
 	}
+	const autoBelay = $derived(rope === 'auto_belay' || rope === 'auto_belay_rope');
 	function setRope(v: keyof typeof ropes) {
 		rope = v;
 		keep();
@@ -502,7 +503,23 @@
 			<Segmented label="Discipline" items={Object.entries(disciplines).map(([d, label]) => ({ label, on: discipline === d, onclick: () => setDiscipline(d as Discipline) }))} />
 			<Segmented label="Indoor or outdoor" items={Object.entries(settings).map(([v, label]) => ({ label, on: setting === v, onclick: () => setSetting(v as keyof typeof settings) }))} />
 			{#if discipline !== 'boulder'}
-				<Segmented label="Rope" items={Object.entries(ropes).map(([v, label]) => ({ label, on: rope === v, onclick: () => setRope(v as keyof typeof ropes) }))} />
+				<Segmented
+					label="Rope"
+					items={(['lead', 'top_rope', 'auto_belay', 'follow'] as const).map((v) => ({
+						label: ropes[v],
+						on: v === 'auto_belay' ? autoBelay : rope === v,
+						onclick: () => !(v === 'auto_belay' && autoBelay) && setRope(v)
+					}))}
+				/>
+				{#if autoBelay}
+					<Segmented
+						label="Trailing rope"
+						items={[
+							{ label: 'Without rope', on: rope === 'auto_belay', onclick: () => setRope('auto_belay') },
+							{ label: 'With rope', on: rope === 'auto_belay_rope', onclick: () => setRope('auto_belay_rope') }
+						]}
+					/>
+				{/if}
 			{:else if setting === 'indoor'}
 				<Segmented label="Board" items={Object.entries(boards).map(([v, label]) => ({ label, on: board === v, onclick: () => setBoard(v as keyof typeof boards) }))} />
 			{/if}

@@ -314,7 +314,7 @@ type climbRequest struct {
 	// example: moon
 	Board *string `json:"board"`
 
-	// For a route: lead, top_rope, auto_belay or follow.
+	// For a route: lead, top_rope, auto_belay, auto_belay_rope or follow.
 	//
 	// example: lead
 	RopeStyle *string `json:"rope_style"`

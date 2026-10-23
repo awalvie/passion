@@ -51,7 +51,7 @@ const (
 var (
 	disciplines = map[string]bool{"boulder": true, "sport": true, "trad": true}
 	boards      = map[string]bool{"kilter": true, "moon": true, "tension": true, "spray": true, "custom": true}
-	ropeStyles  = map[string]bool{"lead": true, "top_rope": true, "auto_belay": true, "follow": true}
+	ropeStyles  = map[string]bool{"lead": true, "top_rope": true, "auto_belay": true, "auto_belay_rope": true, "follow": true}
 )
 
 // ClimbFields is what the person logs for one climb.
@@ -104,7 +104,7 @@ func (f ClimbFields) Clean() (ClimbFields, map[string]string) {
 	case f.Discipline == "boulder":
 		problems["rope_style"] = "is only for a route"
 	case !ropeStyles[*f.RopeStyle]:
-		problems["rope_style"] = "must be lead, top_rope, auto_belay or follow"
+		problems["rope_style"] = "must be lead, top_rope, auto_belay, auto_belay_rope or follow"
 	}
 
 	f.Grade = optional(f.Grade)
