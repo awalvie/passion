@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { climbWord, stepTime, type Climb, type LoggedSet, type RunStep } from './run';
+import { climbWord, sectionMarks, stepTime, type Climb, type LoggedSet, type Run, type RunStep } from './run';
 
 test('climbWord names a flash, a send, many sends and no send, and counts goes on an ungraded climb', () => {
 	expect(climbWord({ grade_system: 'font', goes: ['send'] })).toBe('Flash');
@@ -35,4 +35,17 @@ test('stepTime shows nothing for a skipped step, a set exercise or no time', () 
 	expect(stepTime(none, step('open', 'skipped', 600))).toBeNull();
 	expect(stepTime(none, step('reps_and_sets', 'done', 600))).toBeNull();
 	expect(stepTime(none, step('open', 'done', null))).toBeNull();
+});
+
+test('sectionMarks marks a section with every step skipped as skipped, not done', () => {
+	const section = (...steps: RunStep[]) => ({ items: steps.map((s) => ({ step: s })) });
+	const run = {
+		sections: [
+			section(step('open', 'skipped', null)),
+			section(step('open', 'skipped', null), step('open', 'done', 60)),
+			section(step('open', null, null)),
+			section(step('open', null, null))
+		]
+	} as unknown as Pick<Run, 'sections'>;
+	expect(sectionMarks(run, 3)).toEqual(['skipped', 'done', 'todo', 'now']);
 });

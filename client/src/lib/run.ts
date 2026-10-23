@@ -181,14 +181,15 @@ export function stopHref(run: string, stop: RunItem | undefined): string {
 	return stop.step ? `/run/${run}/step/${stop.step.id}` : `/run/${run}#pick-${stop.choice.id}`;
 }
 
-export type SectionMark = 'done' | 'now' | 'todo';
+export type SectionMark = 'done' | 'skipped' | 'now' | 'todo';
 
-// sectionMarks marks the section at `at` as now, and a section whose items
-// are all finished as done.
+// sectionMarks marks the section at `at` as now, a section whose items are
+// all skipped as skipped, and one whose items are all finished as done.
 export function sectionMarks(r: Pick<Run, 'sections'>, at: number): SectionMark[] {
 	return r.sections.map((s, i) => {
 		if (i === at) return 'now';
-		return s.items.length && s.items.every((it) => it.step && isFinished(it.step)) ? 'done' : 'todo';
+		if (!s.items.length || !s.items.every((it) => it.step && isFinished(it.step))) return 'todo';
+		return s.items.every((it) => it.step!.status === 'skipped') ? 'skipped' : 'done';
 	});
 }
 
