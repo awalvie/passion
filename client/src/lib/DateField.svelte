@@ -10,8 +10,9 @@
 		label,
 		name,
 		min,
+		max,
 		disabled = false
-	}: { value: string; label: string; name?: string; min?: string; disabled?: boolean } = $props();
+	}: { value: string; label: string; name?: string; min?: string; max?: string; disabled?: boolean } = $props();
 </script>
 
 <span class="input relative flex h-12 items-center gap-2 px-4 focus-within:outline-2 focus-within:outline-ink {disabled ? 'opacity-50' : ''}">
@@ -24,6 +25,7 @@
 		{name}
 		bind:value
 		{min}
+		{max}
 		{disabled}
 		required
 		onclick={(e) => {
