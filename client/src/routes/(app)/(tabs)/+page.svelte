@@ -5,7 +5,7 @@
 	import Bars from '$lib/Bars.svelte';
 	import Button from '$lib/Button.svelte';
 	import { addDays, cycleWeek, dayDate, daysBetween, formatDate, fullDate } from '$lib/dates';
-	import { formatDuration } from '$lib/exercise';
+	import { formatDuration, formatMinutes } from '$lib/exercise';
 	import FormError from '$lib/FormError.svelte';
 	import HeroCard from '$lib/HeroCard.svelte';
 	import Icon from '$lib/Icon.svelte';
@@ -271,7 +271,7 @@
 						<li class="list-row">
 							<a href="/history/{r.id}" class="flex min-h-[60px] items-center gap-3">
 								<span class="min-w-0 flex-1 truncate text-xl font-bold tracking-tight">{r.name}</span>
-								{#if r.elapsed_seconds}<span class="digits text-xl">{formatDuration(Math.max(1, Math.round(r.elapsed_seconds / 60)) * 60)}</span>{/if}
+								{#if r.elapsed_seconds}<span class="digits text-xl">{formatMinutes(r.elapsed_seconds)}</span>{/if}
 							</a>
 						</li>
 					{/each}

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fullDate, timeOfDay } from '$lib/dates';
-	import { formatDuration } from '$lib/exercise';
+	import { formatDuration, formatMinutes } from '$lib/exercise';
 	import Icon from '$lib/Icon.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import Section from '$lib/Section.svelte';
@@ -20,7 +20,7 @@
 		[
 			fullDate(run.local_date),
 			[run.started_at, ended].flatMap((t) => (t ? [timeOfDay(t, run.timezone)] : [])).join('–'),
-			run.elapsed_seconds !== null && formatDuration(Math.max(1, Math.round(run.elapsed_seconds / 60)) * 60)
+			run.elapsed_seconds !== null && formatMinutes(run.elapsed_seconds)
 		]
 			.filter(Boolean)
 			.join(' · ')
