@@ -16,9 +16,6 @@ export function setSound(on: boolean) {
 
 // unlock must run inside a tap.
 export function unlock() {
-	// Ambient mixes with music from other apps, so tones follow the silent switch.
-	const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
-	if (session) session.type = 'ambient';
 	ctx ??= new AudioContext();
 	void ctx.resume();
 }
@@ -35,6 +32,10 @@ document.addEventListener('visibilitychange', () => {
 
 export function tone(hz: number, ms: number) {
 	if (!ctx || !soundOn()) return;
+	// Playback sounds on silent, as a timer on the wall must; it can pause
+	// music from other apps, so it is set only once a tone plays.
+	const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+	if (session) session.type = 'playback';
 	const osc = ctx.createOscillator();
 	const gain = ctx.createGain();
 	const t = ctx.currentTime;
