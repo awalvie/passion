@@ -1,3 +1,4 @@
+import { request } from './api';
 import { fieldLabel, kindOf, summary, type Exercise } from './exercise';
 
 // The shapes of server/api/session_template.go's responses.
@@ -123,4 +124,9 @@ export function templateFieldLabel(path: string): string {
 	const field = rest && (templateLabels[rest] ?? fieldLabel(rest));
 	if (!where.length) return field;
 	return field ? `${where.join(', ')}: ${field}` : where.join(', ');
+}
+
+// loadTemplates is the template list, which leaves out retired templates.
+export async function loadTemplates(): Promise<SessionTemplate[]> {
+	return (await request<{ session_templates: SessionTemplate[] }>('GET', '/api/v1/session-templates')).session_templates;
 }
