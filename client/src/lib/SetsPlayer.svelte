@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { request } from './api';
+	import ExerciseHistory from './ExerciseHistory.svelte';
 	import { formatDate } from './dates';
 	import Icon from './Icon.svelte';
 	import { isFinished, setsOf, type HistorySession, type RunStep, type SetFields } from './run';
@@ -109,7 +110,6 @@
 	const current = $derived(finished ? -1 : doneSets);
 	const select = (e: FocusEvent) => (e.currentTarget as HTMLInputElement).select();
 	const day = (date: string) => formatDate(date, { weekday: 'short', day: 'numeric', month: 'short' });
-	const short = (s: SetFields) => [s.reps !== null ? `${s.reps}` : '', s.weight_kg !== null ? `${s.weight_kg} kg` : ''].filter(Boolean).join(' × ') || '–';
 </script>
 
 {#snippet field(k: number, key: 'reps' | 'weight_kg', state: 'done' | 'now' | 'later', label: string)}
@@ -203,26 +203,7 @@
 	</div>
 
 	<Sheet bind:open={browsing} title="History" eyebrow={step.name}>
-		<div class="flex flex-col gap-3 px-1">
-			{#each sessions.slice(0, 5) as session (session.run)}
-				<section class="rounded-[22px] bg-surface p-4 shadow-card-sm">
-					<p class="text-xs font-semibold text-ink-2">{day(session.local_date)}</p>
-					<ol class="mt-2 flex flex-col gap-1.5">
-						{#each { length: Math.ceil(session.sets.length / sides) }, i (i)}
-							<li class="flex items-baseline gap-3 text-[15px] font-semibold">
-								<span class="w-12 shrink-0 text-ink-2">Set {i + 1}</span>
-								<span class="font-[family-name:var(--font-digits)] text-lg font-bold">
-									{session.sets
-										.slice(i * sides, (i + 1) * sides)
-										.map(short)
-										.join(' / ')}
-								</span>
-							</li>
-						{/each}
-					</ol>
-				</section>
-			{/each}
-		</div>
+		<div class="px-1"><ExerciseHistory {sessions} {sides} rows={5} /></div>
 	</Sheet>
 
 	{#snippet buttons()}
