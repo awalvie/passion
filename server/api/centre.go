@@ -47,8 +47,7 @@ type centreListResponse struct {
 //	  401: unauthenticated
 func (s *Server) listCentres(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	list, err := db.ListCentres(r.Context(), s.pool, who.AccountID)
-	if err != nil {
-		writeInternal(w, s.log, err)
+	if s.failed(w, err) {
 		return
 	}
 	out := centreListResponse{Centres: make([]centreResponse, 0, len(list))}

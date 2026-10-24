@@ -96,8 +96,7 @@ func (s *Server) listScheduledSessions(w http.ResponseWriter, r *http.Request, w
 	}
 
 	list, err := db.ListScheduledSessions(r.Context(), s.pool, who.AccountID, from, to)
-	if err != nil {
-		writeInternal(w, s.log, err)
+	if s.failed(w, err) {
 		return
 	}
 	out := scheduledDayListResponse{Days: make([]scheduledDayBody, 0, len(list))}

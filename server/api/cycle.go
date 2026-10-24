@@ -139,8 +139,7 @@ type cycleListResponse struct {
 //	  401: unauthenticated
 func (s *Server) listCycles(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	list, err := db.ListCycles(r.Context(), s.pool, who.AccountID)
-	if err != nil {
-		writeInternal(w, s.log, err)
+	if s.failed(w, err) {
 		return
 	}
 	out := cycleListResponse{Cycles: make([]cycleResponse, 0, len(list))}

@@ -402,8 +402,7 @@ type runListResponse struct {
 //	  401: unauthenticated
 func (s *Server) listRuns(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	list, err := db.ListRuns(r.Context(), s.pool, who.AccountID)
-	if err != nil {
-		writeInternal(w, s.log, err)
+	if s.failed(w, err) {
 		return
 	}
 
@@ -724,8 +723,7 @@ func (s *Server) listClimbs(w http.ResponseWriter, r *http.Request, who db.Authe
 	}
 
 	list, err := db.ListClimbs(r.Context(), s.pool, who.AccountID, from, to)
-	if err != nil {
-		writeInternal(w, s.log, err)
+	if s.failed(w, err) {
 		return
 	}
 	out := climbListResponse{Climbs: make([]datedClimbBody, 0, len(list))}

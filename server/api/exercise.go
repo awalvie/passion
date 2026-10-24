@@ -138,8 +138,7 @@ type exerciseListResponse struct {
 //	  401: unauthenticated
 func (s *Server) listExercises(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	list, err := db.ListExercises(r.Context(), s.pool, who.AccountID)
-	if err != nil {
-		writeInternal(w, s.log, err)
+	if s.failed(w, err) {
 		return
 	}
 
@@ -169,8 +168,7 @@ func (s *Server) createExercise(w http.ResponseWriter, r *http.Request, who db.A
 	}
 
 	created, err := db.CreateExercise(r.Context(), s.pool, who.AccountID, fields)
-	if err != nil {
-		writeInternal(w, s.log, err)
+	if s.failed(w, err) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, toExerciseResponse(created))
