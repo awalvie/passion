@@ -8,7 +8,7 @@
 	let {
 		n,
 		height,
-		grid = [],
+		grid,
 		ticks,
 		small = false,
 		children
@@ -16,7 +16,7 @@
 		n: number;
 		height: number;
 		// at is how far up the plot the line sits, 0 to 1.
-		grid?: { at: number; label: string }[];
+		grid: { at: number; label: string }[];
 		ticks?: string[];
 		small?: boolean;
 		children: Snippet;
@@ -27,7 +27,7 @@
 
 <div class="flex {small ? '' : 'gap-2'}">
 	{#if grid.some((g) => g.label)}
-		<div class="relative w-7 shrink-0" style:height="{height}px">
+		<div class="relative min-w-7 shrink-0 text-xs" style:width="{Math.max(...grid.map((g) => g.label.length))}ch" style:height="{height}px">
 			{#each grid as g (g.at)}
 				<span class="absolute right-0 -translate-y-1/2 digits text-xs leading-none font-semibold text-ink-3" style:top={top(g.at)}>{g.label}</span>
 			{/each}

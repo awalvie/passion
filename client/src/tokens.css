@@ -31,6 +31,8 @@
 	--hang-digit: #c6f05b;
 	--on-hang: #15201a;
 	--rest-on-hero: #6ad9a0;
+	/* Deeper than the dark theme's so a chart's marks pass 3:1 on a light card. */
+	--chart: #2f9e68;
 	--bad: #c2412d;
 	/* The step page has one look in both themes, so these are set only here. */
 	--run: #15271e;
@@ -70,6 +72,7 @@
 	--hang: #aeda45;
 	--hang-digit: #bfea55;
 	--on-hang: #101812;
+	--chart: #6ad9a0;
 	--bad: #f07a63;
 	--elev: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 14px 28px -10px rgba(0, 0, 0, 0.7);
 	--elev-sm: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 6px 14px -4px rgba(0, 0, 0, 0.6);

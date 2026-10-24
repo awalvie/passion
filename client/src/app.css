@@ -70,6 +70,7 @@
 	--color-hang-digit: var(--hang-digit);
 	--color-on-hang: var(--on-hang);
 	--color-rest-on-hero: var(--rest-on-hero);
+	--color-chart: var(--chart);
 	--color-bad: var(--bad);
 	--color-run: var(--run);
 	--color-rest-field: var(--rest-field);

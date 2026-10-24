@@ -2,7 +2,7 @@
 	import Bars from '$lib/Bars.svelte';
 	import { formatDate, weekday } from '$lib/dates';
 	import { formatDuration } from '$lib/exercise';
-	import GradeDots from '$lib/GradeDots.svelte';
+	import Dots from '$lib/Dots.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import { counts, gradeScale, grades, hours, isBoulder } from '$lib/progress';
 	import type { RunSummary } from '$lib/run';
@@ -58,15 +58,15 @@
 		<nav class="grid grid-cols-3 gap-2.5" aria-label="Progress">
 			<a href="/history/progress?view=time" class="flex min-w-0 flex-col rounded-3xl bg-surface px-3.5 pt-3 pb-3.5 shadow-card">
 				{@render tile('Time', hoursLabel(time.at(-1)!), 'this week')}
-				<span class="mt-3.5"><Bars parts={[{ values: time, cls: 'bg-rest-on-hero' }]} height={30} small /></span>
+				<span class="mt-3.5"><Bars parts={[{ values: time, cls: 'bg-chart' }]} height={30} small /></span>
 			</a>
 			<a href="/history/progress?view=climbs" class="flex min-w-0 flex-col rounded-3xl bg-surface px-3.5 pt-3 pb-3.5 shadow-card">
 				{@render tile('Climbs', String(climbs.at(-1)!.boulders + climbs.at(-1)!.routes), 'this week')}
 				<span class="mt-3.5">
 					<Bars
 						parts={[
-							{ values: climbs.map((c) => c.boulders), cls: 'bg-rest-on-hero' },
-							{ values: climbs.map((c) => c.routes), cls: 'bg-[color-mix(in_oklab,var(--rest-on-hero),var(--hero-2))]' }
+							{ values: climbs.map((c) => c.boulders), cls: 'bg-chart' },
+							{ values: climbs.map((c) => c.routes), cls: 'bg-chart/50' }
 						]}
 						height={30}
 						small
@@ -76,7 +76,13 @@
 			<a href="/history/progress?view=grade" class="flex min-w-0 flex-col rounded-3xl bg-surface px-3.5 pt-3 pb-3.5 shadow-card">
 				{@render tile('Top send', top ?? '–', '10 weeks')}
 				<span class="mt-3.5">
-					{#if main}<GradeDots points={main.points} grades={main.scale.grades} height={30} small />{:else}<span class="block h-[30px]"></span>{/if}
+					{#if main}<Dots
+							n={main.points.length}
+							marks={main.points.flatMap((v, i) => (v === null ? [] : [{ i, v, best: true }]))}
+							label={(g) => main.scale.grades[g]}
+							height={30}
+							small
+						/>{:else}<span class="block h-[30px]"></span>{/if}
 				</span>
 			</a>
 		</nav>

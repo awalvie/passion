@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Bars from '$lib/Bars.svelte';
-	import GradeDots from '$lib/GradeDots.svelte';
+	import Dots from '$lib/Dots.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import { counts, gradeScale, grades, hours, isBoulder, ranges } from '$lib/progress';
 	import Segmented from '$lib/Segmented.svelte';
@@ -11,8 +11,8 @@
 	const href = (view: string, range: string) => `?view=${view}&range=${range}`;
 	const round = (h: number) => Math.round(h * 10) / 10;
 	const ticks = $derived(data.buckets.map((b) => b.tick));
-	const boulderFill = 'bg-rest-on-hero';
-	const routeFill = 'bg-[color-mix(in_oklab,var(--rest-on-hero),var(--hero-2))]';
+	const boulderFill = 'bg-chart';
+	const routeFill = 'bg-chart/50';
 
 	const time = $derived(hours(data.runs, data.buckets));
 	const totalHours = $derived(time.reduce((a, b) => a + b, 0));
@@ -89,7 +89,7 @@
 				{@render stat(`A ${per}`, round(totalHours / data.buckets.length))}
 				{@render stat('Sessions', data.runs.length)}
 			</dl>
-			<Bars parts={[{ values: time, cls: 'bg-rest-on-hero' }]} format={(h) => `${round(h)}h`} {ticks} />
+			<Bars parts={[{ values: time, cls: 'bg-chart' }]} format={(h) => `${round(h)}h`} {ticks} />
 		</section>
 		{#if bySession.length}
 			<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-2 shadow-card">
@@ -131,7 +131,12 @@
 					<h2 class="text-[15px] font-bold">{d.label}</h2>
 					{#if d.top}<span class="text-xs font-semibold text-ink-2">Hardest send <span class="digits text-[17px] text-ink">{d.top}</span></span>{/if}
 				</div>
-				<GradeDots points={d.points} grades={d.scale.grades} {ticks} />
+				<Dots
+					n={d.points.length}
+					marks={d.points.flatMap((v, i) => (v === null ? [] : [{ i, v, best: true }]))}
+					label={(g) => d.scale.grades[g]}
+					{ticks}
+				/>
 			</section>
 		{:else}
 			<section class="rounded-3xl bg-surface p-5 shadow-card">
