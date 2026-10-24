@@ -94,7 +94,6 @@
 	function send(change: Partial<Cycle> = {}) {
 		const next = saving.then(async () => {
 			const body = { ...$state.snapshot(data.cycle), goals: $state.snapshot(goals), notes: notes.trim() || null, ...change };
-			body.days = body.days.filter((d) => d.day <= body.block_days);
 			const result = await saveCycle(body);
 			await invalidateAll();
 			return result;
