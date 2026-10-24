@@ -195,13 +195,13 @@ func (s *Server) putCycle(w http.ResponseWriter, r *http.Request, who db.Authent
 	problems := map[string]string{}
 	f := db.CycleFields{Name: req.Name, BlockDays: req.BlockDays, Notes: req.Notes}
 	for _, g := range req.Goals {
-		f.Goals = append(f.Goals, db.Goal{Text: g.Text, Done: g.Done, Before: g.Before, After: g.After, How: g.How})
+		f.Goals = append(f.Goals, db.Goal(g))
 	}
 	starts, okStarts := parseDay(req.Starts, "starts", problems)
 	ends, okEnds := parseDay(req.Ends, "ends", problems)
 	f.Starts, f.Ends = starts, ends
 	for _, d := range req.Days {
-		f.Body.Days = append(f.Body.Days, db.CycleDay{Day: d.Day, Template: d.Template})
+		f.Body.Days = append(f.Body.Days, db.CycleDay(d))
 	}
 	f, more := f.Clean()
 	if !okStarts || !okEnds {
@@ -262,11 +262,11 @@ func (s *Server) deleteCycle(w http.ResponseWriter, r *http.Request, who db.Auth
 func toCycleResponse(c db.Cycle) cycleResponse {
 	days := make([]cycleDayBody, 0, len(c.Body.Days))
 	for _, d := range c.Body.Days {
-		days = append(days, cycleDayBody{Day: d.Day, Template: d.Template})
+		days = append(days, cycleDayBody(d))
 	}
 	goals := make([]goalBody, 0, len(c.Goals))
 	for _, g := range c.Goals {
-		goals = append(goals, goalBody{Text: g.Text, Done: g.Done, Before: g.Before, After: g.After, How: g.How})
+		goals = append(goals, goalBody(g))
 	}
 	return cycleResponse{
 		ID:        c.ID,
