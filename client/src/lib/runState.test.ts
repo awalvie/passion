@@ -590,3 +590,17 @@ test('removeClimb of the last climb reopens the step and queues the body before 
 	expect(openRun.run!.climbs).toStrictEqual([]);
 	expect(urls(openRun.writes).slice(-2)).toStrictEqual([bodyUrl, `${bodyUrl}/climbs/c-2`]);
 });
+
+// Writes already queued on a phone sit under these keys, so they must not move.
+test('a timer and a queued write keep their storage keys, and signing out clears both', async () => {
+	const { writeTimers } = await import('./timerStore');
+	const { clearRunStorage } = await import('./session');
+	writeTimers('run-1', { rest: { endsAt: 1 } });
+	localStorage.setItem('passion-pending:run-1', '{}');
+	localStorage.setItem('passion-token', 't');
+	expect(localStorage.getItem('passion-timer:run-1')).toBe('{"rest":{"endsAt":1}}');
+
+	clearRunStorage();
+
+	expect(Object.keys(localStorage)).toStrictEqual(['passion-token']);
+});
