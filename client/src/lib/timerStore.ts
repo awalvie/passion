@@ -1,3 +1,4 @@
+import { timerPrefix } from './session';
 import type { Clock } from './timeline';
 
 // A run's clocks live in localStorage as end times, not counters, so a locked
@@ -18,7 +19,7 @@ export type Timed = {
 	extra?: Record<number, number>;
 };
 
-const key = (runId: string) => `passion-timer:${runId}`;
+const key = (runId: string) => `${timerPrefix}${runId}`;
 
 export function readTimers(runId: string): Timers {
 	try {

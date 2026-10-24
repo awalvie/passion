@@ -15,10 +15,15 @@ export function clearToken() {
 	localStorage.removeItem(key);
 }
 
+// A run's timers and its unsent writes are stored under these, followed by the
+// run's id.
+export const timerPrefix = 'passion-timer:';
+export const pendingPrefix = 'passion-pending:';
+
 // clearRunStorage drops the running timers and unsent writes, which belong to
 // the account that signs out.
 export function clearRunStorage() {
 	for (const k of Object.keys(localStorage)) {
-		if (k.startsWith('passion-timer:') || k.startsWith('passion-pending:')) localStorage.removeItem(k);
+		if (k.startsWith(timerPrefix) || k.startsWith(pendingPrefix)) localStorage.removeItem(k);
 	}
 }
