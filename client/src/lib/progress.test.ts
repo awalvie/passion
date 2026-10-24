@@ -6,6 +6,7 @@ import {
 	buckets,
 	climbMarks,
 	figure,
+	averageSend,
 	filterName,
 	flashRate,
 	goesPerSend,
@@ -21,6 +22,7 @@ import {
 	sendRate,
 	setMarks,
 	setValue,
+	spread,
 	tenWeeks,
 	topSend,
 	type DatedClimb
@@ -142,6 +144,20 @@ test('the rates count graded climbs only', () => {
 	expect(goesPerSend(cs.slice(0, 3))).toBe(2);
 	expect(sendRate([go(null, ['send'])])).toBeNull();
 	expect(goesPerSend([])).toBeNull();
+});
+
+test('averageSend is the mean grade sent, to the nearest grade', () => {
+	expect(averageSend([climb('6a', true), climb('6c', true), climb('7a', false)], scale)).toBe(1);
+	expect(averageSend([climb('7a', false)], scale)).toBeNull();
+});
+
+test('spread counts each grade from the easiest climbed to the hardest', () => {
+	expect(spread([climb('7a', false), climb('6b', true), climb('6b', false), climb('5c', true)], scale)).toEqual([
+		{ grade: '6b', sent: 1, not: 1 },
+		{ grade: '6c', sent: 0, not: 0 },
+		{ grade: '7a', sent: 0, not: 1 }
+	]);
+	expect(spread([climb('5c', true)], scale)).toEqual([]);
 });
 
 test('perBucket gives each bucket its own figure and null where it has no climbs', () => {

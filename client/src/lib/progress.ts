@@ -202,6 +202,25 @@ export function grades(climbs: DatedClimb[], bs: Bucket[], scale: Scale): (numbe
 	return bs.map((b) => hardest(climbs.filter((c) => within(b, c.local_date)), scale));
 }
 
+// averageSend is the mean grade of the sends, as a position in the scale
+// rounded to the nearest grade, or null when none is graded in it.
+export function averageSend(climbs: Climb[], scale: Scale): number | null {
+	const sent = climbs.filter((c) => c.sent).map((c) => rank(c, scale)).filter((i) => i >= 0);
+	return sent.length ? Math.round(sent.reduce((a, b) => a + b, 0) / sent.length) : null;
+}
+
+// spread is the climbs sent and not sent at each grade, from the easiest
+// graded climb to the hardest, the grades between kept so gaps show.
+export function spread(climbs: Climb[], scale: Scale): { grade: string; sent: number; not: number }[] {
+	const rows = scale.grades.map((grade) => ({ grade, sent: 0, not: 0 }));
+	for (const c of climbs) {
+		const i = rank(c, scale);
+		if (i >= 0) rows[i][c.sent ? 'sent' : 'not']++;
+	}
+	const lo = rows.findIndex((r) => r.sent || r.not);
+	return lo < 0 ? [] : rows.slice(lo, rows.findLastIndex((r) => r.sent || r.not) + 1);
+}
+
 // An exercise's history charts one measure: the added weight where any set
 // carries some, then the time under load where the sets are timed, then reps.
 export type Measure = 'kg' | 's' | 'reps';
