@@ -130,7 +130,7 @@
 	function rowNote(d: ScheduledDay) {
 		const n = templates.get(d.template)?.sections.length ?? 0;
 		const sections = n === 1 ? '1 section' : n ? `${n} sections` : '';
-		return [d.cycle ? '' : 'One-off', sections].filter(Boolean).join(' · ');
+		return [statuses[d.status], d.cycle ? '' : 'One-off', sections].filter(Boolean).join(' · ');
 	}
 
 	function when(c: { starts: string; ends: string }) {
@@ -156,13 +156,7 @@
 		});
 	});
 
-	const statuses = { done: 'Done', started: 'Started', missed: 'Missed', planned: '' };
-	const tags = {
-		done: 'bg-well text-ink-2',
-		started: 'bg-ink text-ground',
-		missed: 'text-ink-2 shadow-[inset_0_0_0_1.5px_var(--ink-3)]',
-		planned: ''
-	};
+	const statuses = { done: '', started: 'Started', missed: 'Missed', planned: '' };
 </script>
 
 <svelte:head><title>Plan</title></svelte:head>
@@ -229,9 +223,6 @@
 											<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{note}</span>
 										{/if}
 									</span>
-									{#if statuses[d.status]}
-										<span class="shrink-0 rounded-xl px-2.5 py-[5px] text-xs font-bold {tags[d.status]}">{statuses[d.status]}</span>
-									{/if}
 								{/snippet}
 								<li class="list-row">
 									{#if d.status === 'planned' || d.status === 'missed'}
