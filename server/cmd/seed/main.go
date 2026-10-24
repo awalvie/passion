@@ -1,6 +1,6 @@
-// Command seed fills a running local server with a week of sessions, through
-// its own API, so screens can be tried on real data. It signs in as
-// dev@passion.local, or signs that account up first.
+// Command seed fills a running local server with sixteen weeks of sessions and
+// a cycle two weeks in, through its own API, so screens can be tried on real
+// data. It signs in as dev@passion.local, or signs that account up first.
 //
 //	go run ./server/cmd/seed [-addr http://localhost:8080] [-reset]
 package main
@@ -12,6 +12,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"os"
 	"time"
@@ -69,7 +70,10 @@ type day struct {
 	minutes int
 	place   string
 	journal journal
-	open    bool
+	// planned is a cycle day: the seed schedules it, then runs it from there.
+	// A missed one is scheduled and never run.
+	planned bool
+	missed  bool
 	steps   []step
 }
 
@@ -79,8 +83,12 @@ func reps(n int, kg float64) set { return set{Reps: &n, WeightKG: &kg} }
 func hold(s int) set             { return set{Seconds: &s} }
 func hang(s int, kg float64) set { return set{Seconds: &s, WeightKG: &kg} }
 func repeat(n, s int) set        { return set{Reps: &n, Seconds: &s} }
+func iso(n, s int, kg float64) set {
+	return set{Reps: &n, Seconds: &s, WeightKG: &kg}
+}
 func ladder(kg float64, s ...int) set {
-	return set{RepSeconds: s, WeightKG: &kg}
+	n := len(s)
+	return set{Reps: &n, RepSeconds: s, WeightKG: &kg}
 }
 
 func route(grade string, style string, goes ...string) climb {
@@ -103,7 +111,27 @@ func (c climb) on(board string) climb  { c.Board = &board; return c }
 func (c climb) note(text string) climb { c.Notes = &text; return c }
 func (c climb) aim(text string) climb  { c.Focus = &text; return c }
 
+// week is one varied fortnight before history, for the cases the rotation
+// never has.
 var week = []day{
+	{
+		ago: 13, name: "Pyramid pulls", minutes: 50,
+		steps: []step{
+			{section: "Warmup", exercise: "Pulse Raiser", sets: []set{hold(300)}},
+			{section: "Main", exercise: "Weighted Pull-ups", notes: "Up the pyramid and one back-off set.",
+				sets: []set{reps(5, 0), reps(5, 5), reps(4, 7.5), reps(3, 10), reps(3, 12.5), reps(2, 15), reps(1, 17.5), reps(6, 2.5)}},
+		},
+	},
+	{
+		ago: 10, name: "Volume boulders", minutes: 90,
+		steps: []step{
+			{section: "Main", exercise: "Sub Limit for Guaranteed Improvement", climbs: []climb{
+				boulder("6b", "send"), boulder("6b", "send"), boulder("6b", "attempt", "send"), boulder("6b", "send"),
+				boulder("6b", "send"), boulder("6b", "attempt"), boulder("6b", "send"), boulder("6b", "send"),
+				boulder("6b", "attempt", "attempt", "send"), boulder("6b", "send"),
+			}},
+		},
+	},
 	{
 		ago: 12, name: "Crag day", minutes: 310, place: "Sector Cave",
 		journal: journal{Sleep: ptr(5), Energy: ptr(4), RPE: ptr(8), Focus: ptr("projects"), Setting: ptr("outdoor"),
@@ -129,8 +157,8 @@ var week = []day{
 		steps: []step{
 			{section: "Warmup", exercise: "Pulse Raiser", sets: []set{hold(420)}},
 			{section: "Hangboard", exercise: "Repeaters 7:3 (20 mm Edge)", sets: []set{repeat(6, 7), repeat(6, 7), repeat(5, 7)}},
-			{section: "Hangboard", exercise: "Isometric Hang", notes: "Left ring finger a bit tender on the last ladder. Keep an eye on it.",
-				sets: []set{ladder(5, 3, 6, 9), ladder(5, 3, 6, 9), ladder(7.5, 3, 6)}},
+			{section: "Hangboard", exercise: "Isometric Hang", notes: "Left ring finger a bit tender on the last set. Keep an eye on it.",
+				sets: []set{iso(6, 10, 5), iso(6, 10, 5), iso(4, 10, 7.5)}},
 			{section: "Pulling", exercise: "Weighted Pull-ups", sets: []set{reps(6, -10), reps(6, -10), reps(5, 0)}},
 			{section: "Pulling", exercise: "Bar/Ring Rows", sets: []set{reps(12, 0), reps(12, 0), reps(10, 0)}},
 			{section: "Core", exercise: "Copenhagen Adduction", sets: []set{reps(8, 0), reps(8, 0)}},
@@ -193,14 +221,123 @@ var week = []day{
 			}},
 		},
 	},
-	{
-		ago: 0, name: "Open session", open: true,
-		steps: []step{
-			{section: "Warmup", exercise: "General Warmup", sets: []set{hold(420)}},
-			{section: "Drills", exercise: "Silent Feet", climbs: []climb{boulder("5c", "attempt")}},
-			{section: "Drills", exercise: "Traverse Circuit"},
-		},
-	},
+}
+
+type cycle struct {
+	name      string
+	startsAgo int
+	weeks     int
+	goals     []map[string]any
+}
+
+// cycles cover history, each starting on a Limit Session so its days follow
+// the rotation. The last is two weeks in.
+var cycles = []cycle{
+	{name: "Summer base", startsAgo: 97, weeks: 6, goals: []map[string]any{
+		{"text": "Train four days a week", "done": true, "how": "Same four sessions every week"},
+	}},
+	{name: "Power block", startsAgo: 55, weeks: 5, goals: []map[string]any{
+		{"text": "Send a 7a boulder", "done": true, "before": "6c+", "after": "7a"},
+		{"text": "Weighted pull-up +15 kg for 5", "before": "+7.5 kg", "after": "+12.5 kg"},
+	}},
+	{name: "Autumn base", startsAgo: 20, weeks: 6, goals: []map[string]any{
+		{"text": "Send a 7a+ boulder", "how": "Limit Session every week"},
+		{"text": "Redpoint a 7a+ route", "before": "7a", "how": "Lead after every Limit Session"},
+	}},
+}
+
+var cycleDays = map[int]string{1: "Limit Session", 3: "Integrated Strength", 5: "Endurance", 7: "Lead"}
+
+var font = []string{"6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b"}
+
+// history is fourteen weeks of the four-session rotation up to today, three
+// cycles of it, slowly getting stronger. A bad week drags and its Endurance
+// is missed, as is this week's. Today's Lead is left for the plan.
+func history(r *rand.Rand) []day {
+	var days []day
+	// tries is how a climb went: up to two failed goes, then a send or not.
+	tries := func(sendsInTen int) []string {
+		goes := make([]string, r.Intn(3))
+		for i := range goes {
+			goes[i] = "attempt"
+		}
+		if r.Intn(10) < sendsInTen {
+			return append(goes, "send")
+		}
+		return append(goes, "attempt")
+	}
+	for w := 0; w < 14; w++ {
+		ago := (13 - w) * 7
+		bad := r.Intn(5) == 0
+		var j journal
+		if w%3 == 0 {
+			j = journal{Sleep: ptr(2 + r.Intn(4)), Energy: ptr(2 + r.Intn(4)), RPE: ptr(6 + r.Intn(4)), Setting: ptr("indoor")}
+		}
+
+		var project, sub []climb
+		for range 3 + r.Intn(3) {
+			project = append(project, boulder(font[min(4+w/4+r.Intn(2), len(font)-1)], tries(4)...))
+		}
+		for range 4 + r.Intn(3) {
+			c := boulder(font[2+r.Intn(3)], tries(8)...)
+			if r.Intn(2) == 0 {
+				c = c.on("moon")
+			}
+			sub = append(sub, c)
+		}
+		days = append(days, day{ago: ago + 6, name: "Limit Session", minutes: 100 + r.Intn(30), journal: j, planned: true,
+			steps: []step{
+				{section: "Warmup", exercise: "Pulse Raiser", sets: []set{hold(360 + 30*r.Intn(5))}},
+				{section: "Hard Bouldering", exercise: "Short-Term Project", climbs: project},
+				{section: "Sub-Limit Board", exercise: "Sub Limit for Guaranteed Improvement", climbs: sub},
+			}})
+
+		pull := 2.5 * float64(w/2)
+		lift := 70 + 2.5*float64(w)
+		edge := 2.5 * float64(w/3)
+		ladders := []set{ladder(edge, 3, 6, 9), ladder(edge, 3, 6, 9), ladder(edge, 3, 6, 9)}
+		pulls := []set{reps(5, pull), reps(5, pull), reps(5, pull), reps(4, pull)}
+		if bad {
+			ladders[2] = ladder(edge, 3, 6)
+			pulls = []set{reps(5, pull-2.5), reps(4, pull-2.5), reps(3, pull-2.5)}
+		}
+		days = append(days, day{ago: ago + 4, name: "Integrated Strength", minutes: 80 + r.Intn(20), planned: true,
+			steps: []step{
+				{section: "Warmup", exercise: "General Warmup", sets: []set{hold(420 + 30*r.Intn(4))}},
+				{section: "Strength A", exercise: "Hangboard Ladder: Half Crimp", sets: ladders},
+				{section: "Strength A", exercise: "Deadlift", sets: []set{reps(5, lift), reps(5, lift), reps(5, lift)}},
+				{section: "Strength B", exercise: "Density Hang: Drag", sets: []set{hang(15, edge+5), hang(15, edge+5), hang(15, edge+5), hang(12, edge+5)}},
+				{section: "Strength C", exercise: "Weighted Pull-ups", sets: pulls},
+				{section: "Strength C", exercise: "Hanging Straight Leg Raise", sets: []set{reps(6+w/3, 0), reps(6+w/3, 0), reps(5+w/3, 0)}},
+			}})
+
+		repeaters := []set{repeat(6, 7), repeat(6, 7), repeat(6, 7), repeat(5+r.Intn(2), 7)}
+		var laps []climb
+		for range 4 + r.Intn(3) {
+			grade := []string{"6a", "6a+", "6b", "6b+"}[min(w/4+r.Intn(2), 3)]
+			laps = append(laps, climb{Discipline: "sport", Setting: "indoor", RopeStyle: ptr("auto_belay"), Grade: &grade, GradeSystem: ptr("french"),
+				Goes: []string{"send"}, Seconds: ptr(150 + 10*w + 10*r.Intn(6))})
+		}
+		days = append(days, day{ago: ago + 2, name: "Endurance", minutes: 70 + r.Intn(20), planned: true, missed: bad || ago == 0,
+			steps: []step{
+				{section: "Warmup", exercise: "Pulse Raiser", sets: []set{hold(360 + 30*r.Intn(5))}},
+				{section: "Hangboard", exercise: "Repeaters 7:3 (20 mm Edge)", sets: repeaters},
+				{section: "Main", exercise: "Mock Lead (Auto-Belay)", climbs: laps},
+			}})
+		if ago == 0 {
+			break
+		}
+		redpoints := []climb{route("7a", "lead", tries(3)...)}
+		if w >= 6 {
+			redpoints = append(redpoints, route("7a+", "lead", tries(2)...))
+		}
+		days = append(days, day{ago: ago, name: "Lead", minutes: 150 + r.Intn(60), journal: j, planned: true,
+			steps: []step{
+				{section: "Warmup", exercise: "Easy Lead Mileage", climbs: []climb{route("6a", "lead", "send"), route("6b", "lead", "send")}},
+				{section: "Main", exercise: "Redpoint Lead Attempts", climbs: redpoints},
+			}})
+	}
+	return days
 }
 
 func main() {
@@ -236,6 +373,35 @@ func run(c *client, reset bool) error {
 			return err
 		}
 	}
+	var old struct {
+		Cycles []struct {
+			ID string `json:"id"`
+		} `json:"cycles"`
+	}
+	if err := c.do("GET", "/api/v1/cycles", nil, &old); err != nil {
+		return err
+	}
+	for _, cy := range old.Cycles {
+		if err := c.do("DELETE", "/api/v1/cycles/"+cy.ID, nil, nil); err != nil {
+			return err
+		}
+	}
+	// A cycle takes its own days with it; the ones scheduled by hand stay.
+	var scheduled struct {
+		Days []struct {
+			ID string `json:"id"`
+		} `json:"days"`
+	}
+	now := time.Now()
+	window := "?from=" + now.AddDate(0, 0, -150).Format(time.DateOnly) + "&to=" + now.AddDate(0, 0, 60).Format(time.DateOnly)
+	if err := c.do("GET", "/api/v1/scheduled-sessions"+window, nil, &scheduled); err != nil {
+		return err
+	}
+	for _, d := range scheduled.Days {
+		if err := c.do("DELETE", "/api/v1/scheduled-sessions/"+d.ID, nil, nil); err != nil {
+			return err
+		}
+	}
 
 	var library struct {
 		Exercises []struct {
@@ -251,12 +417,48 @@ func run(c *client, reset bool) error {
 		byName[e.Name] = stepBody{Exercise: e.ID, exercise: e.exercise}
 	}
 
+	var templates struct {
+		SessionTemplates []struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"session_templates"`
+	}
+	if err := c.do("GET", "/api/v1/session-templates", nil, &templates); err != nil {
+		return err
+	}
+	c.templates = map[string]string{}
+	for _, t := range templates.SessionTemplates {
+		c.templates[t.Name] = t.ID
+	}
+	for _, name := range cycleDays {
+		if _, ok := c.templates[name]; !ok {
+			return fmt.Errorf("no session template named %q", name)
+		}
+	}
+
+	days := history(rand.New(rand.NewSource(1)))
 	for _, d := range week {
+		d.ago += 98
+		days = append(days, d)
+	}
+	for _, d := range days {
+		for _, s := range d.steps {
+			if _, ok := byName[s.exercise]; !ok {
+				return fmt.Errorf("no exercise named %q in the library of %s", s.exercise, email)
+			}
+		}
+	}
+	for _, d := range days {
 		if err := c.seed(d, byName); err != nil {
 			return fmt.Errorf("%s, %d days ago: %w", d.name, d.ago, err)
 		}
 	}
-	fmt.Printf("Seeded %d runs. Sign in as %s with password %s.\n", len(week), email, password)
+	for _, cy := range cycles {
+		if err := c.plan(cy); err != nil {
+			return fmt.Errorf("cycle %s: %w", cy.name, err)
+		}
+	}
+	fmt.Printf("Seeded %d days and %d cycles. Sign in as %s with password %s.\n", len(days), len(cycles), email, password)
 	return nil
 }
 
@@ -301,10 +503,23 @@ func (c *client) seed(d day, library map[string]stepBody) error {
 	started := time.Date(date.Year(), date.Month(), date.Day(), 17, 30, 0, 0, time.Local)
 	localDate := started.Format(time.DateOnly)
 
+	start := map[string]any{"name": d.name, "started_at": started, "local_date": localDate}
+	if d.planned {
+		var scheduled struct {
+			ID string `json:"id"`
+		}
+		if err := c.do("POST", "/api/v1/scheduled-sessions", map[string]any{"template": c.templates[d.name], "local_date": localDate}, &scheduled); err != nil {
+			return err
+		}
+		if d.missed {
+			return nil
+		}
+		start = map[string]any{"scheduled": scheduled.ID, "started_at": started, "local_date": localDate}
+	}
 	var created struct {
 		ID string `json:"id"`
 	}
-	if err := c.do("POST", "/api/v1/runs", map[string]any{"name": d.name, "started_at": started, "local_date": localDate}, &created); err != nil {
+	if err := c.do("POST", "/api/v1/runs", start, &created); err != nil {
 		return err
 	}
 
@@ -366,15 +581,29 @@ func (c *client) seed(d day, library map[string]stepBody) error {
 		}
 	}
 
-	if d.open {
-		return nil
-	}
 	return c.do("POST", "/api/v1/runs/"+created.ID+"/finish", nil, nil)
+}
+
+// plan saves a cycle. The server places its days from today on; the days
+// before are the ones the seed scheduled with its runs.
+func (c *client) plan(cy cycle) error {
+	var days []map[string]any
+	for day, name := range cycleDays {
+		days = append(days, map[string]any{"day": day, "template": c.templates[name]})
+	}
+	starts := time.Now().AddDate(0, 0, -cy.startsAgo)
+	body := map[string]any{
+		"name": cy.name, "starts": starts.Format(time.DateOnly), "ends": starts.AddDate(0, 0, cy.weeks*7-1).Format(time.DateOnly),
+		"block_days": 7, "days": days, "goals": cy.goals,
+	}
+	return c.do("PUT", "/api/v1/cycles/"+db.NewID(), body, nil)
 }
 
 type client struct {
 	addr  string
 	token string
+	// templates maps a session template's name to its id.
+	templates map[string]string
 }
 
 var errUnauthorized = errors.New("unauthorized")
