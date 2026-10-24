@@ -1,3 +1,4 @@
+import { request } from './api';
 import type { IconName } from './Icon.svelte';
 
 // The shape of server/api/exercise.go's exerciseResponse.
@@ -201,4 +202,8 @@ export function formatDuration(seconds: number): string {
 // less than 1m.
 export function formatMinutes(seconds: number): string {
 	return formatDuration(Math.max(1, Math.round(seconds / 60)) * 60);
+}
+
+export async function loadExercises(): Promise<Exercise[]> {
+	return (await request<{ exercises: Exercise[] }>('GET', '/api/v1/exercises')).exercises;
 }

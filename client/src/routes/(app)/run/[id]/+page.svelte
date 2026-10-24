@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import type { Snapshot } from '@sveltejs/kit';
-	import { describe, request } from '$lib/api';
+	import { describe } from '$lib/api';
 	import Button from '$lib/Button.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon, { type IconName } from '$lib/Icon.svelte';
@@ -24,7 +24,7 @@
 	import RunField from '$lib/RunField.svelte';
 	import { openRun } from '$lib/runState.svelte';
 	import { choiceMeta, stepMeta, toStep, type Step } from '$lib/template';
-	import type { Exercise } from '$lib/exercise';
+	import { loadExercises, type Exercise } from '$lib/exercise';
 	import ExercisePicker from '$lib/ExercisePicker.svelte';
 	import SessionDot from '$lib/SessionDot.svelte';
 	import Notes from '$lib/Notes.svelte';
@@ -62,8 +62,7 @@
 		error = '';
 		try {
 			if (!library.length) {
-				const { exercises } = await request<{ exercises: Exercise[] }>('GET', '/api/v1/exercises');
-				library = exercises.filter((e) => !e.retired_at);
+				library = (await loadExercises()).filter((e) => !e.retired_at);
 			}
 			into = section;
 			candidate = null;

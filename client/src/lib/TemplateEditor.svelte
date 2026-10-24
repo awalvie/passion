@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
-	import { describe, request } from '$lib/api';
-	import type { Exercise } from '$lib/exercise';
+	import { describe } from '$lib/api';
+	import { loadExercises, type Exercise } from '$lib/exercise';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import RowActions from '$lib/RowActions.svelte';
@@ -47,7 +47,7 @@
 	let library = $state(untrack(() => exercises));
 	async function reload() {
 		try {
-			library = (await request<{ exercises: Exercise[] }>('GET', '/api/v1/exercises')).exercises;
+			library = await loadExercises();
 		} catch {
 			/* keep the list it has */
 		}
