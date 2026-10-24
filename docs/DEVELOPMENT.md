@@ -106,7 +106,7 @@ such as the step page or the set card, is drawn.
   `text-on-live` is apricot, for a session that is running. `bg-hero` with `text-on-hero`
   and `text-on-hero-2` is the forest card. `bg-run` is the step page's field, and `prep`,
   `hang` and `rest-field` colour the timer phases on it.
-  `text-bad` is for errors.
+  `text-bad` is for errors. `chart` colours the marks of every chart.
 - The running session and its step pages sit on `client/src/lib/RunField.svelte`, which has
   one dark look in both themes. It sets the app's tokens dark inside itself (`.run-tokens`),
   so a stepper, a sheet or the menu on it reads dark without a variant. Its buttons are in

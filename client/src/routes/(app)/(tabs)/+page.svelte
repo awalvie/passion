@@ -322,14 +322,7 @@
 				</span>
 			</p>
 			<div class="mt-4">
-				<Bars
-					parts={[
-						{ values: time.map((v, i) => (i < time.length - 1 ? v : 0)), cls: 'bg-ink/15 dark:bg-white/15' },
-						{ values: time.map((v, i) => (i === time.length - 1 ? v : 0)), cls: 'bg-ink dark:bg-tint' }
-					]}
-					height={44}
-					small
-				/>
+				<Bars parts={[{ values: time, cls: 'bg-chart' }]} height={44} small />
 			</div>
 			<p class="mt-1.5 text-xs font-semibold text-ink-3">Last 10 weeks</p>
 		</section>
