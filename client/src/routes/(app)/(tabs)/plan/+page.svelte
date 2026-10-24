@@ -267,7 +267,9 @@
 											</form>
 										</details>
 									{:else}
-										<div class="flex min-h-[58px] items-center gap-3.5 py-2">{@render row()}</div>
+										<a href={d.status === 'done' ? `/history/${d.run}` : `/run/${d.run}`} class="flex min-h-[58px] items-center gap-3.5 py-2">
+											{@render row()}
+										</a>
 									{/if}
 								</li>
 							{/each}
