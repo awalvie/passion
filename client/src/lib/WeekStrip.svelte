@@ -8,8 +8,10 @@
 		today,
 		week,
 		// Given on Today, where a tap on a day opens it in place of today.
-		selected
-	}: { monday: string; today: string; week: ScheduledDay[]; selected?: string } = $props();
+		selected,
+		// Dates with a finished run, so days trained without a plan show done too.
+		ran
+	}: { monday: string; today: string; week: ScheduledDay[]; selected?: string; ran?: string[] } = $props();
 
 
 	const days = $derived(
@@ -20,7 +22,7 @@
 				date,
 				letter,
 				number: Number(date.slice(8)),
-				done: sessions.some((d) => d.status === 'done'),
+				done: sessions.some((d) => d.status === 'done') || !!ran?.includes(date),
 				missed: sessions.some((d) => d.status === 'missed'),
 				planned: sessions.length > 0
 			};
@@ -32,8 +34,8 @@
 	{#each days as d (d.date)}
 		<li class="w-11">
 			<svelte:element
-				this={selected && (d.date === today || d.planned) ? 'a' : 'div'}
-				href={!selected ? undefined : d.date === today ? '/' : d.planned ? `/?day=${d.date}` : undefined}
+				this={selected && (d.date === today || d.planned || d.done) ? 'a' : 'div'}
+				href={!selected ? undefined : d.date === today ? '/' : d.planned || d.done ? `/?day=${d.date}` : undefined}
 				class="flex flex-col items-center gap-1.5"
 				data-sveltekit-replacestate
 				data-sveltekit-noscroll

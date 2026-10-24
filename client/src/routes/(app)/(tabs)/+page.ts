@@ -2,10 +2,8 @@ import { request, unreachable } from '$lib/api';
 import { loadCentres } from '$lib/centres';
 import { addDays, mondayOf } from '$lib/dates';
 import { loadToday, localToday, type Cycle, type ScheduledDay } from '$lib/plan';
-import type { Climb } from '$lib/run';
 import { openRun } from '$lib/runState.svelte';
 import type { SessionTemplate } from '$lib/template';
-import { bestWeight, tracked } from '$lib/tracked';
 
 export async function load({ parent }) {
 	// The card shows the live session from the run itself, which works offline
@@ -14,10 +12,12 @@ export async function load({ parent }) {
 	try {
 		const today = await loadToday();
 		const monday = mondayOf(today);
-		const [{ days: week }, cycles] = await Promise.all([
+		const sunday = addDays(monday, 6);
+		const [{ days }, cycles] = await Promise.all([
+			// Next week too, so on a Sunday the next session still shows.
 			request<{ days: ScheduledDay[] }>(
 				'GET',
-				`/api/v1/scheduled-sessions?from=${monday}&to=${addDays(monday, 6)}`
+				`/api/v1/scheduled-sessions?from=${monday}&to=${addDays(monday, 13)}`
 			),
 			// The week and the card still show without the cycle names.
 			request<{ cycles: Cycle[] }>('GET', '/api/v1/cycles').then(
@@ -25,25 +25,20 @@ export async function load({ parent }) {
 				() => [] as Cycle[]
 			)
 		]);
-		const days = week.filter((d) => d.local_date === today);
-		const cycle = cycles.find((c) => c.starts <= today && today <= c.ends);
-		const exercise = tracked()[0];
+		const week = days.filter((d) => d.local_date <= sunday);
+		const next =
+			days
+				.filter((d) => d.local_date > today && d.status === 'planned')
+				.sort((a, b) => a.local_date.localeCompare(b.local_date))[0] ?? null;
 		// Only someone who has logged nothing yet sees the first-week card.
 		const { runs } = await parent();
-		const [templates, sends, best, centres] = await Promise.all([
+		const [templates, centres] = await Promise.all([
 			Promise.all(
 				// The whole week's, so a tap on another day needs no load.
-				[...new Set(week.map((d) => d.template))].map((id) =>
+				[...new Set([...week, ...(next ? [next] : [])].map((d) => d.template))].map((id) =>
 					request<SessionTemplate>('GET', `/api/v1/session-templates/${id}`)
 				)
 			),
-			cycle
-				? request<{ climbs: Climb[] }>('GET', `/api/v1/climbs?from=${cycle.starts}&to=${today}`).then(
-						(r) => r.climbs.filter((c) => c.sent).length
-					)
-				: null,
-			// An exercise of another account only leaves the tile to choose again.
-			cycle && exercise ? bestWeight(exercise, cycle.starts, today).catch(() => null) : null,
 			runs?.length === 0 ? loadCentres().then((c) => c.length) : null
 		]);
 		await live;
@@ -51,12 +46,9 @@ export async function load({ parent }) {
 			today,
 			monday,
 			week,
-			days,
+			next,
 			cycles,
 			templates: new Map(templates.map((t) => [t.id, t])),
-			cycleStarts: cycle?.starts ?? null,
-			sends,
-			best,
 			centres,
 			offline: false
 		};
@@ -69,12 +61,9 @@ export async function load({ parent }) {
 			today,
 			monday: mondayOf(today),
 			week: [] as ScheduledDay[],
-			days: [] as ScheduledDay[],
+			next: null,
 			cycles: [] as Cycle[],
 			templates: new Map<string, SessionTemplate>(),
-			cycleStarts: null,
-			sends: null,
-			best: null,
 			centres: null,
 			offline: true
 		};

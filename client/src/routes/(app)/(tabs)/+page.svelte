@@ -1,21 +1,20 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
-	import { describe, request } from '$lib/api';
+	import { describe } from '$lib/api';
+	import Bars from '$lib/Bars.svelte';
+	import Button from '$lib/Button.svelte';
 	import { addDays, cycleWeek, daysBetween, formatDate } from '$lib/dates';
-	import { formatDuration, type Exercise } from '$lib/exercise';
-	import ExercisePicker from '$lib/ExercisePicker.svelte';
+	import { formatDuration } from '$lib/exercise';
 	import FormError from '$lib/FormError.svelte';
 	import HeroCard from '$lib/HeroCard.svelte';
 	import Icon from '$lib/Icon.svelte';
-	import LiveCard from '$lib/LiveCard.svelte';
 	import type { ScheduledDay } from '$lib/plan';
+	import { buckets, hours } from '$lib/progress';
+	import { currentStop, secondsSince, type Run, type RunSummary } from '$lib/run';
 	import { openRun, startRun, type StartBody } from '$lib/runState.svelte';
-	import SessionCard from '$lib/SessionCard.svelte';
-	import Sheet from '$lib/Sheet.svelte';
 	import Topo from '$lib/Topo.svelte';
 	import { topTopo } from '$lib/topo';
-	import { bestWeight, track } from '$lib/tracked';
 	import WeekStrip from '$lib/WeekStrip.svelte';
 
 	let { data } = $props();
@@ -40,34 +39,31 @@
 		}
 	}
 
+	let now = $state(Date.now());
+	$effect(() => {
+		if (!live) return;
+		const tick = setInterval(() => (now = Date.now()), 1000);
+		return () => clearInterval(tick);
+	});
+	// Runs come from the layout, which can lose the signal on its own.
+	const offline = $derived(data.offline || data.runs === null);
+
+	const sunday = $derived(addDays(data.monday, 6));
+	const finished = $derived((data.runs ?? []).filter((r) => r.finished_at !== null));
+	const thisWeek = (r: RunSummary) => data.monday <= r.local_date && r.local_date <= sunday;
+
 	// A tap on the week strip shows that day in place of today.
 	const shown = $derived.by(() => {
 		const day = page.url.searchParams.get('day');
 		return Array.from({ length: 7 }, (_, i) => addDays(data.monday, i)).includes(day ?? '') ? day! : data.today;
 	});
 	const other = $derived(shown !== data.today);
-	const shownDays = $derived(other ? data.week.filter((d) => d.local_date === shown) : data.days);
+	const shownDays = $derived(data.week.filter((d) => d.local_date === shown));
 
 	const live = $derived(data.live && openRun.run?.id === data.live.id ? openRun.run : null);
-	const days = $derived(shownDays.filter((d) => d.run !== live?.id && d.status !== 'done'));
+	const planned = $derived(shownDays.filter((d) => d.status !== 'done' && !(live && d.run === live.id)));
 	// A run belongs to the day it was done, and to the planned day it ran for.
-	const done = $derived(
-		(data.runs ?? []).filter(
-			(r) =>
-				r.finished_at !== null &&
-				(r.local_date === shown || shownDays.some((d) => d.run === r.id))
-		)
-	);
-
-	async function discard() {
-		error = '';
-		try {
-			await openRun.discard();
-			await invalidateAll();
-		} catch (e) {
-			error = describe(e, (f) => f);
-		}
-	}
+	const done = $derived(finished.filter((r) => r.local_date === shown || shownDays.some((d) => d.run === r.id)));
 
 	const date = $derived(formatDate(shown, { weekday: 'long', day: 'numeric', month: 'long' }));
 
@@ -77,43 +73,46 @@
 		return n > 0 ? `in ${n} days` : `${-n} days ago`;
 	}
 
-	// The cycle of today's first session, or else any cycle that covers today.
-	const cycle = $derived(
-		data.cycles.find((c) => c.id === data.days.find((d) => d.cycle)?.cycle) ??
-			data.cycles.find((c) => c.starts <= data.today && data.today <= c.ends)
-	);
+	function when(date: string) {
+		const n = daysBetween(data.today, date);
+		return n === 1 ? 'Tomorrow' : n < 7 ? formatDate(date, { weekday: 'long' }) : formatDate(date, { weekday: 'short', day: 'numeric', month: 'short' });
+	}
+
+	const cycle = $derived(data.cycles.find((c) => c.starts <= data.today && data.today <= c.ends));
 	const progress = $derived(cycle ? cycleWeek(cycle.starts, cycle.ends, data.today) : null);
 
-	const sessionsThisWeek = $derived(
-		data.runs?.filter(
-			(r) => r.finished_at !== null && data.monday <= r.local_date && r.local_date <= addDays(data.monday, 6)
-		).length
+	const weekPlanned = $derived(data.week.length);
+	const weekDone = $derived(data.week.filter((d) => d.status === 'done').length);
+	const missed = $derived(
+		data.week.filter((d) => d.status === 'missed').sort((a, b) => a.local_date.localeCompare(b.local_date))
+	);
+	const ranThisWeek = $derived(finished.filter(thisWeek));
+	const ranLastWeek = $derived(
+		finished.filter((r) => addDays(data.monday, -7) <= r.local_date && r.local_date < data.monday).length
 	);
 
-	let best = $derived(data.best);
-	let library = $state<Exercise[]>([]);
-	let choosing = $state(false);
-
-	async function choose() {
-		error = '';
-		try {
-			const { exercises } = await request<{ exercises: Exercise[] }>('GET', '/api/v1/exercises');
-			library = exercises.filter((e) => !e.retired_at);
-			choosing = true;
-		} catch (e) {
-			error = describe(e, (f) => f);
-		}
+	// The usual length is to five minutes; more exact than that it cannot be.
+	function factsOf(d: ScheduledDay) {
+		const past = finished.filter((r) => r.local_date < data.today && r.template === d.template);
+		const timed = past.filter((r) => r.elapsed_seconds);
+		const mean = timed.reduce((s, r) => s + r.elapsed_seconds!, 0) / timed.length;
+		const last = past.map((r) => r.local_date).sort().at(-1);
+		return {
+			usual: timed.length ? formatDuration(Math.max(1, Math.round(mean / 300)) * 300) : null,
+			since: last ? daysBetween(last, data.today) : null
+		};
 	}
 
-	async function follow(e: Exercise) {
-		track(e.id);
-		choosing = false;
-		try {
-			best = await bestWeight(e.id, data.cycleStarts!, data.today);
-		} catch (err) {
-			error = describe(err, (f) => f);
-		}
-	}
+	const stop = $derived(live ? currentStop(live) : null);
+	const at = $derived(live && stop ? live.sections.findIndex((s) => s.items.includes(stop)) : -1);
+
+	const bs = $derived(buckets('10w', data.today));
+	const time = $derived(hours(finished, bs));
+	// The usual week is the mean of the full weeks before this one that have
+	// any training, once there are three of them.
+	const trained = $derived(time.slice(0, -1).filter((h) => h > 0));
+	const usual = $derived(trained.length >= 3 ? trained.reduce((a, b) => a + b, 0) / trained.length : null);
+	const tenths = (n: number) => (Math.round(n * 10) / 10).toFixed(1);
 
 	// The first-week card, for someone who has logged nothing yet.
 	const setup = $derived(
@@ -144,15 +143,7 @@
 	}
 	const settingUp = $derived(!setupHidden && (setup?.some((s) => !s.done) ?? false));
 
-	function label(d: ScheduledDay) {
-		if (other) {
-			const when = formatDate(d.local_date, { weekday: 'short', day: 'numeric', month: 'short' });
-			return `${d.status === 'missed' ? 'Missed' : 'Planned'} · ${when}`;
-		}
-		const c = data.cycles.find((x) => x.id === d.cycle);
-		if (!c) return d.cycle ? 'Cycle' : 'One-off';
-		return `${c.name} · Week ${cycleWeek(c.starts, c.ends, data.today).week}`;
-	}
+	const empty = $derived(!other && !live && !planned.length && !done.length && !data.next && !offline);
 </script>
 
 <svelte:head><title>Today</title></svelte:head>
@@ -185,31 +176,12 @@
 				>
 					<Icon name="undo-2" size="1.125rem" />Today
 				</a>
-			{:else if progress && progress.of <= 8}
-				<div class="flex min-w-0 flex-col gap-1.5 rounded-[20px] bg-surface px-3 py-2 text-xs font-bold shadow-card-sm">
-					<span>Week {progress.week} of {progress.of}</span>
-					<span class="flex min-w-0 gap-[3px]">
-						{#each Array.from({ length: progress.of }, (_, i) => i + 1) as w (w)}
-							<i
-								class="h-1 w-3.5 min-w-0 rounded-sm {w < progress.week
-									? 'bg-ink dark:bg-tint'
-									: w === progress.week
-										? 'bg-[linear-gradient(90deg,var(--ink)_50%,var(--well)_50%)] dark:bg-[linear-gradient(90deg,var(--tint)_50%,var(--well)_50%)]'
-										: 'bg-well'}"
-							></i>
-						{/each}
-					</span>
-				</div>
-			{:else if progress}
-				<span class="rounded-full bg-surface px-3 py-2 text-xs font-bold shadow-card-sm">Week {progress.week} of {progress.of}</span>
 			{/if}
 			<a href="/profile" class="flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm" aria-label="Profile">
 				<Icon name="settings" size="1.25rem" />
 			</a>
 		</div>
 	</header>
-
-	<WeekStrip monday={data.monday} today={data.today} week={data.week} selected={shown} />
 
 	<div class="px-4"><FormError message={error} /></div>
 
@@ -250,123 +222,208 @@
 		</HeroCard>
 	{/if}
 
-	{#if live}
-		<LiveCard run={live} ondiscard={discard} />
+	<section class="mx-4 mt-3.5 rounded-3xl bg-surface pt-4 pb-1 shadow-card">
+		<div class="flex items-baseline justify-between gap-3 px-5">
+			<h2 class="text-[15px] font-bold">This week</h2>
+			{#if cycle && progress}<p class="truncate text-xs font-semibold text-ink-2">{cycle.name} · Week {progress.week} of {progress.of}</p>{/if}
+		</div>
+		<WeekStrip monday={data.monday} today={data.today} week={data.week} selected={shown} ran={ranThisWeek.map((r) => r.local_date)} />
+		<div class="px-5 pt-4 pb-3">
+			{#if offline}
+				<p class="text-[15px] font-semibold text-ink-2">No signal</p>
+			{:else if weekPlanned}
+				<p class="flex items-baseline gap-1.5"><b class="digits text-[32px] leading-none">{weekDone}</b><span class="text-[15px] font-semibold text-ink-2">of {weekPlanned} done</span></p>
+			{:else}
+				<p class="flex items-baseline gap-1.5">
+					<b class="digits text-[32px] leading-none">{ranThisWeek.length}</b><span class="text-[15px] font-semibold text-ink-2">{ranThisWeek.length === 1 ? 'session' : 'sessions'} · {ranLastWeek} last week</span>
+				</p>
+			{/if}
+		</div>
+		{#if missed.length}
+			<ul class="px-5">
+				{#each missed as d (d.id)}
+					<li class="list-row">
+						<a href="/plan" class="flex min-h-[60px] items-center gap-3">
+							<span class="min-w-0 flex-1">
+								<span class="block truncate text-[15px] font-bold">{d.template_name}</span>
+								<span class="block text-xs font-semibold text-ink-2">Missed {formatDate(d.local_date, { weekday: 'long' })}</span>
+							</span>
+							<span class="flex items-center gap-0.5 text-xs font-bold text-ink">Plan<Icon name="chevron-right" size="14px" /></span>
+						</a>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</section>
+
+	{#if live && !other}
+		{@render liveSlot(live)}
+	{:else}
+		{#each planned as d, i (d.id)}
+			{@render sessionSlot(d, !other && i === 0)}
+		{/each}
+		{#if done.length}
+			<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+				<p class="text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">{other ? 'Done' : 'Done today'}</p>
+				<ul class="mt-1">
+					{#each done as r (r.id)}
+						<li class="list-row">
+							<a href="/history/{r.id}" class="flex min-h-[60px] items-center gap-3">
+								<span class="min-w-0 flex-1 truncate text-xl font-bold tracking-tight">{r.name}</span>
+								{#if r.elapsed_seconds}<span class="digits text-xl">{formatDuration(Math.max(1, Math.round(r.elapsed_seconds / 60)) * 60)}</span>{/if}
+							</a>
+						</li>
+					{/each}
+				</ul>
+				{#if !other && !planned.length && data.next}{@render nextUp(data.next)}{/if}
+			</section>
+		{:else if other && !planned.length}
+			<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+				<p class="text-[28px] leading-tight font-extrabold tracking-tight">Nothing on this day</p>
+			</section>
+		{:else if !planned.length}
+			{#if offline}
+				<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+					<p class="text-[28px] leading-tight font-extrabold tracking-tight">No signal</p>
+					<p class="mt-1 text-[15px] font-semibold text-ink-2">The plan cannot load. A running session still works.</p>
+				</section>
+			{:else if data.next}
+				<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+					<p class="text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">Today</p>
+					<p class="mt-1 text-[28px] leading-tight font-extrabold tracking-tight">Rest day</p>
+					{@render nextUp(data.next)}
+				</section>
+			{:else}
+				<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+					<p class="text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">Today</p>
+					<p class="mt-1 text-[28px] leading-tight font-extrabold tracking-tight">Nothing planned</p>
+					<p class="mt-1 text-[15px] font-semibold text-ink-2">Log as you go, or plan the week ahead.</p>
+					<div class="mt-4">
+						<Button disabled={starting !== null} onclick={() => start({ name: 'Open session' })}>
+							{starting === 'open' ? 'Starting…' : 'Open session'}
+						</Button>
+					</div>
+					<div class="mt-2.5"><Button variant="secondary" href="/plan">Plan a session</Button></div>
+				</section>
+			{/if}
+		{/if}
 	{/if}
 
-	{#each days as d (d.id)}
-		<SessionCard
-			day={d}
-			template={data.templates.get(d.template)}
-			label={label(d)}
-			starting={starting !== null}
-			busy={starting === d.id}
-			startLabel={other ? 'Start now' : 'Start'}
-			onstart={() => start({ scheduled: d.id })}
-		/>
-	{/each}
-
-	{#each done as r (r.id)}
-		<a href="/history/{r.id}" class="mx-4 mt-3 flex items-center gap-3 rounded-3xl bg-surface py-3 pr-3.5 pl-3 shadow-card">
-			<span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink text-tint">
-				<Icon name="check" size="1.125rem" stroke={2.6} />
-			</span>
-			<span class="min-w-0 flex-1">
-				<span class="block truncate text-[15px] font-bold">{r.name}</span>
-				<span class="block text-xs font-semibold text-ink-2">
-					Done{r.elapsed_seconds ? ` · ${formatDuration(Math.max(1, Math.round(r.elapsed_seconds / 60)) * 60)}` : ''}
+	{#if !offline}
+		<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+			<div class="flex items-baseline justify-between">
+				<h2 class="text-[15px] font-bold">Hours a week</h2>
+				<a href="/history/progress" class="-my-3 flex h-11 items-center gap-0.5 text-xs font-bold text-ink">Progress<Icon name="chevron-right" size="14px" /></a>
+			</div>
+			<p class="mt-2 flex items-baseline gap-1.5">
+				<b class="digits text-[32px] leading-none">{tenths(time.at(-1) ?? 0)}</b>
+				<span class="text-[15px] font-semibold text-ink-2">
+					{#if usual === null}h this week{:else}h of a usual <b class="digits text-ink">{tenths(usual)}</b> h week{/if}
 				</span>
-			</span>
-			<span class="text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.2} /></span>
-		</a>
-	{/each}
-
-	{#if !live && !days.length && !done.length && !settingUp}
-		<section class="mx-4 mt-3.5 flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-card">
-			<p class="text-xl font-bold tracking-tight">
-				{data.offline ? 'No signal' : other ? 'Nothing planned' : 'Nothing planned today'}
 			</p>
-			<p class="text-[15px] font-semibold text-ink-2">
-				{data.offline
-					? 'The plan cannot load. A running session still works.'
-					: other
-						? 'Nothing on this day.'
-						: 'Plan a session, or start one from the library.'}
-			</p>
-			{#if !data.offline && !other}
-				<a href="/plan" class="flex h-12 items-center justify-center rounded-full bg-tint text-[15px] font-bold text-on-tint shadow-tint">
-					Plan a session
-				</a>
-			{/if}
+			<div class="mt-4">
+				<Bars
+					parts={[
+						{ values: time.map((v, i) => (i < time.length - 1 ? v : 0)), cls: 'bg-ink/15 dark:bg-white/15' },
+						{ values: time.map((v, i) => (i === time.length - 1 ? v : 0)), cls: 'bg-ink dark:bg-tint' }
+					]}
+					height={44}
+					small
+				/>
+			</div>
+			<p class="mt-1.5 text-xs font-semibold text-ink-3">Last 10 weeks</p>
 		</section>
 	{/if}
 
-	{#if !data.live}
-		<section class="mx-4 mt-3.5 rounded-3xl bg-surface py-0.5 shadow-card">
+	{#if !live && !empty && !other && !offline}
+		<section class="mx-4 mt-3.5 rounded-3xl bg-surface shadow-card">
 			<button
 				type="button"
-				class="flex min-h-[60px] w-full items-center gap-3 px-4 text-left disabled:opacity-50"
+				class="flex min-h-[60px] w-full items-center gap-3 px-5 text-left disabled:opacity-50"
 				disabled={starting !== null}
 				onclick={() => start({ name: 'Open session' })}
 			>
-				{@render action('plus', starting === 'open' ? 'Starting…' : 'Open session', 'Log as you go')}
+				<span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-well"><Icon name="plus" size="1.125rem" /></span>
+				<span class="min-w-0 flex-1">
+					<span class="block text-[15px] font-bold">{starting === 'open' ? 'Starting…' : 'Open session'}</span>
+					<span class="block text-xs font-semibold text-ink-2">Log as you go</span>
+				</span>
 			</button>
-			<a href="/templates" class="flex min-h-[60px] items-center gap-3 px-4 shadow-[inset_0_1px_0_var(--line)]">
-				{@render action('stack', 'Other session', 'From the library')}
-			</a>
 		</section>
-	{/if}
-
-	{#if sessionsThisWeek !== undefined || data.cycleStarts}
-		<div class="flex items-center justify-between px-5 pt-4 pb-2">
-			<h2 class="text-xl font-bold">{data.cycleStarts ? 'This cycle' : 'This week'}</h2>
-			{#if data.cycleStarts}
-				<button type="button" class="-my-3.5 flex h-11 items-center gap-0.5 text-xs font-bold text-ink-2" onclick={choose}>
-					Choose<Icon name="chevron-right" size="14px" />
-				</button>
-			{/if}
-		</div>
-		<div class="grid grid-cols-[1fr_1fr_1.25fr] gap-2.5 px-4">
-			{#if sessionsThisWeek !== undefined}
-				{@render stat(String(sessionsThisWeek), '', 'Sessions this week')}
-			{/if}
-			{#if data.sends !== null}
-				{@render stat(String(data.sends), '', 'Sends this cycle')}
-			{/if}
-			{#if data.cycleStarts && best}
-				{@render stat(best.kg === null ? '–' : String(best.kg), best.kg === null ? '' : 'kg', `Best ${best.name}`)}
-			{:else if data.cycleStarts}
-				<button
-					type="button"
-					class="flex min-h-[92px] flex-col items-start justify-between gap-2 rounded-[22px] bg-surface p-3.5 text-left shadow-card"
-					onclick={choose}
-				>
-					<span class="flex size-8 items-center justify-center rounded-full bg-well"><Icon name="plus" size="1.125rem" /></span>
-					<span class="text-xs font-semibold text-ink-2">Choose an exercise to see its best</span>
-				</button>
-			{/if}
-		</div>
 	{/if}
 </div>
 
-<Sheet bind:open={choosing} title="Track an exercise">
-	<ExercisePicker id="track-exercise" label="Exercise" exercises={library} pick={follow} />
-</Sheet>
-
-{#snippet action(icon: 'plus' | 'stack', title: string, caption: string)}
-	<span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-well"><Icon name={icon} size="1.125rem" /></span>
-	<span class="min-w-0 flex-1">
-		<span class="block text-[15px] font-bold">{title}</span>
-		<span class="block text-xs font-semibold text-ink-2">{caption}</span>
-	</span>
-	<span class="text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.2} /></span>
+{#snippet facts(usual: string | null, since: number | null)}
+	{#if usual || since !== null}
+		<div class="mt-3 flex gap-8">
+			{#if usual}
+				<p class="flex flex-col"><b class="digits text-xl">{usual}</b><span class="text-xs font-semibold text-ink-2">Usually</span></p>
+			{/if}
+			{#if since !== null}
+				<p class="flex flex-col">
+					<b class="digits text-xl">{since === 1 ? '1 day' : `${since} days`}</b><span class="text-xs font-semibold text-ink-2">Since last time</span>
+				</p>
+			{/if}
+		</div>
+	{:else}
+		<p class="mt-1 text-[15px] font-semibold text-ink-2">First time</p>
+	{/if}
 {/snippet}
 
-{#snippet stat(value: string, unit: string, caption: string)}
-	<div class="flex min-h-[92px] flex-col justify-between gap-2 rounded-[22px] bg-surface p-3.5 shadow-card">
-		<p class="text-[32px] leading-[1.1] font-extrabold tracking-tight">
-			{value}{#if unit}<small class="ml-[3px] text-[15px] font-semibold tracking-normal text-ink-2">{unit}</small>{/if}
+{#snippet sessionSlot(d: ScheduledDay, primary: boolean)}
+	{@const f = factsOf(d)}
+	<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+		<p class="flex items-center gap-2 text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">
+			<i class="size-2 rounded-full" style:background={data.templates.get(d.template)?.color ?? 'var(--ink-3)'}></i>
+			{other ? (d.status === 'missed' ? 'Missed' : 'Planned') : 'Today'}
 		</p>
-		<p class="text-xs font-semibold text-ink-2">{caption}</p>
+		<a href="/templates/{d.template}" class="mt-1 block truncate text-[28px] leading-tight font-extrabold tracking-tight">{d.template_name}</a>
+		{@render facts(f.usual, f.since)}
+		<div class="mt-4">
+			{#if d.status === 'started' && d.run}
+				<Button variant="live" href="/run/{d.run}">Back to session</Button>
+			{:else}
+				<Button variant={primary ? 'primary' : 'secondary'} disabled={starting !== null} onclick={() => start({ scheduled: d.id })}>
+					{starting === d.id ? 'Starting…' : primary ? 'Start' : 'Start now'}
+				</Button>
+			{/if}
+		</div>
+	</section>
+{/snippet}
+
+{#snippet nextUp(d: ScheduledDay)}
+	{@const f = factsOf(d)}
+	<div class="mt-4 rounded-2xl bg-well p-4">
+		<p class="flex items-center gap-2 text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">
+			<i class="size-2 rounded-full" style:background={data.templates.get(d.template)?.color ?? 'var(--ink-3)'}></i>
+			Next · {when(d.local_date)}
+		</p>
+		<a href="/templates/{d.template}" class="mt-1 block truncate text-xl font-extrabold tracking-tight">{d.template_name}</a>
+		{@render facts(f.usual, f.since)}
+		<div class="mt-4">
+			<Button variant="secondary" disabled={starting !== null} onclick={() => start({ scheduled: d.id })}>
+				{starting === d.id ? 'Starting…' : 'Start now'}
+			</Button>
+		</div>
 	</div>
+{/snippet}
+
+{#snippet liveSlot(run: Run)}
+	<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+		<p class="flex items-center gap-2.5 pl-1 text-xs font-bold tracking-[0.08em] text-ink-2 uppercase"><i class="live-dot"></i>Running</p>
+		<p class="mt-1 truncate text-[28px] leading-tight font-extrabold tracking-tight">{run.name}</p>
+		<div class="mt-3 flex gap-8">
+			<p class="flex flex-col">
+				<b class="digits text-xl">{formatDuration(Math.max(1, Math.floor(secondsSince(run.started_at, now) / 60)) * 60)}</b>
+				<span class="text-xs font-semibold text-ink-2">So far</span>
+			</p>
+			{#if at >= 0}
+				<p class="flex min-w-0 flex-col">
+					<b class="digits text-xl">{at + 1} of {run.sections.length}</b>
+					<span class="truncate text-xs font-semibold text-ink-2">{run.sections[at].name}</span>
+				</p>
+			{/if}
+		</div>
+		<div class="mt-4"><Button variant="live" href="/run/{run.id}">Back to session</Button></div>
+	</section>
 {/snippet}
