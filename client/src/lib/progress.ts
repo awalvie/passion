@@ -1,39 +1,80 @@
-import { addDays, formatDate, mondayOf } from './dates';
+import { addDays, daysBetween, formatDate, mondayOf } from './dates';
 import type { Scale } from './grades';
 import type { Climb, HistorySession, RunSummary, SetFields } from './run';
 
 export type DatedClimb = Climb & { run: string; local_date: string };
 
-export type Range = '10w' | '6m' | '1y';
-export const ranges: { range: Range; label: string }[] = [
-	{ range: '10w', label: '10 weeks' },
-	{ range: '6m', label: '6 months' },
-	{ range: '1y', label: 'Year' }
-];
+// A span of days a chart covers: the last ten weeks, a cycle, or any two days.
+export type Span = { key: string; from: string; to: string; cycle: { id: string; name: string } | null };
+
+// tenWeeks ends with the week holding today.
+export function tenWeeks(today: string): Span {
+	return { key: '10w', from: addDays(mondayOf(today), -63), to: today, cycle: null };
+}
+
+// readSpan reads a span from a URL's range: 10w, cycle:<id> or from:to. Any
+// other value is the last ten weeks, and a custom span ends today at the latest.
+export function readSpan(key: string | null, today: string, cycles: { id: string; name: string; starts: string; ends: string }[]): Span {
+	const c = key?.startsWith('cycle:') ? cycles.find((c) => c.id === key.slice(6)) : undefined;
+	if (c && c.starts <= today) return { key: key!, from: c.starts, to: c.ends, cycle: { id: c.id, name: c.name } };
+	const m = key?.match(/^(\d{4}-\d{2}-\d{2}):(\d{4}-\d{2}-\d{2})$/);
+	if (m && real(m[1]) && real(m[2]) && m[1] <= m[2] && m[1] <= today) return { key: key!, from: m[1], to: m[2] < today ? m[2] : today, cycle: null };
+	return tenWeeks(today);
+}
+
+// A URL can name a day no calendar has, such as Feb 30.
+const real = (day: string) => {
+	const t = Date.parse(`${day}T00:00:00Z`);
+	return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === day;
+};
+
+// monthsBack is the custom span of the last n months, ending today. A day the
+// earlier month lacks becomes its last, so a month back from Mar 31 starts
+// Mar 1.
+export function monthsBack(n: number, today: string): string {
+	const [y, m, d] = today.split('-').map(Number);
+	const month = new Date(Date.UTC(y, m - 1 - n, 1));
+	const last = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 0)).getUTCDate();
+	month.setUTCDate(Math.min(d, last));
+	return `${addDays(month.toISOString().slice(0, 10), 1)}:${today}`;
+}
 
 // tick is the month's name on a chart's time axis, set only on the bucket a
-// month starts in.
+// month starts in, or a cycle's week number.
 export type Bucket = { from: string; to: string; tick: string };
 
-// buckets splits a range ending today into weeks, or into months for a year,
-// oldest first, the last one holding today.
-export function buckets(range: Range, today: string): Bucket[] {
-	if (range === '1y') {
-		return Array.from({ length: 12 }, (_, i) => {
-			const d = new Date(`${today.slice(0, 7)}-01T00:00:00Z`);
-			d.setUTCMonth(d.getUTCMonth() - (11 - i));
-			const from = d.toISOString().slice(0, 10);
-			d.setUTCMonth(d.getUTCMonth() + 1);
-			return { from, to: addDays(d.toISOString().slice(0, 10), -1), tick: formatDate(from, { month: 'short' }) };
-		});
+const nextMonth = (first: string) => {
+	const d = new Date(`${first}T00:00:00Z`);
+	d.setUTCMonth(d.getUTCMonth() + 1);
+	return d.toISOString().slice(0, 10);
+};
+
+// buckets splits a span into weeks, or into months past 190 days, oldest
+// first. A cycle's weeks count from its first day; other weeks run Monday to
+// Sunday. The first bucket starts no earlier than the span. now is the
+// bucket holding today, or -1 for a span that is over.
+export function buckets(s: Span, today: string): { buckets: Bucket[]; now: number; per: 'week' | 'month' } {
+	const out: Bucket[] = [];
+	const per = !s.cycle && daysBetween(s.from, s.to) > 190 ? 'month' : 'week';
+	if (s.cycle) {
+		// A long cycle names every fourth week, so the ticks stay readable.
+		const every = daysBetween(s.from, s.to) > 16 * 7 ? 4 : 1;
+		for (let from = s.from, w = 1; from <= s.to; from = addDays(from, 7), w++) {
+			const to = addDays(from, 6);
+			out.push({ from, to: to < s.to ? to : s.to, tick: (w - 1) % every ? '' : `W${w}` });
+		}
+	} else if (per === 'month') {
+		for (let first = `${s.from.slice(0, 7)}-01`; first <= s.to; first = nextMonth(first)) {
+			out.push({ from: first < s.from ? s.from : first, to: addDays(nextMonth(first), -1), tick: formatDate(first, { month: 'short' }) });
+		}
+	} else {
+		for (let monday = mondayOf(s.from); monday <= s.to; monday = addDays(monday, 7)) {
+			const to = addDays(monday, 6);
+			const tick = monday.slice(0, 7) === to.slice(0, 7) && !monday.endsWith('-01') ? '' : formatDate(to, { month: 'short' });
+			out.push({ from: monday < s.from ? s.from : monday, to, tick });
+		}
 	}
-	const n = range === '10w' ? 10 : 26;
-	const last = mondayOf(today);
-	return Array.from({ length: n }, (_, i) => {
-		const from = addDays(last, -7 * (n - 1 - i));
-		const to = addDays(from, 6);
-		return { from, to, tick: from.slice(0, 7) === to.slice(0, 7) && !from.endsWith('-01') ? '' : formatDate(to, { month: 'short' }) };
-	});
+	return { buckets: out, now: out.findIndex((b) => b.from <= today && today <= b.to), per };
 }
 
 const within = (b: Bucket, date: string) => b.from <= date && date <= b.to;

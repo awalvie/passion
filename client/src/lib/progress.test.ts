@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
 import type { Scale } from './grades';
-import { bestSet, climbMarks, figure, headline, measure, setMarks, setValue, topSend } from './progress';
+import { addDays } from './dates';
+import { bestSet, buckets, climbMarks, figure, headline, measure, monthsBack, readSpan, setMarks, setValue, tenWeeks, topSend } from './progress';
 import type { Climb, HistorySession, SetFields } from './run';
 
 const set = (s: Partial<SetFields>) => ({ reps: null, seconds: null, rep_seconds: null, weight_kg: null, ...s });
@@ -100,4 +101,74 @@ test('figure keeps a weighted hold its seconds in a row', () => {
 	expect(figure(set({ reps: 3, rep_seconds: [3, 6, 9], weight_kg: 10 }), 'kg', true)).toEqual(['10', 'kg']);
 	expect(figure(set({ seconds: 90 }), 's')).toEqual(['1:30', 'min']);
 	expect(figure(set({ reps: 5, weight_kg: -20 }), 'kg')).toEqual(['5 × -20', 'kg']);
+});
+
+// Saturday.
+const today = '2026-10-24';
+const cycles = [{ id: 'c', name: 'Base', starts: '2026-10-01', ends: '2026-10-21' }];
+
+test('ten weeks run Monday to Sunday, ticked where a month starts', () => {
+	const { buckets: bs, now, per } = buckets(tenWeeks(today), today);
+	expect(bs.map((b) => b.from)).toEqual([
+		'2026-08-17', '2026-08-24', '2026-08-31', '2026-09-07', '2026-09-14',
+		'2026-09-21', '2026-09-28', '2026-10-05', '2026-10-12', '2026-10-19'
+	]);
+	expect(bs.at(-1)!.to).toBe('2026-10-25');
+	expect(bs.map((b) => b.tick)).toEqual(['', '', 'Sep', '', '', '', 'Oct', '', '', '']);
+	expect(now).toBe(9);
+	expect(per).toBe('week');
+});
+
+test("a cycle's weeks count from its first day", () => {
+	const past = buckets(readSpan('cycle:c', today, cycles), today);
+	expect(past.buckets).toEqual([
+		{ from: '2026-10-01', to: '2026-10-07', tick: 'W1' },
+		{ from: '2026-10-08', to: '2026-10-14', tick: 'W2' },
+		{ from: '2026-10-15', to: '2026-10-21', tick: 'W3' }
+	]);
+	expect(past.now).toBe(-1);
+	expect(buckets(readSpan('cycle:c', '2026-10-10', cycles), '2026-10-10').now).toBe(1);
+});
+
+test('a custom span starts its first bucket on its first day', () => {
+	const { buckets: bs, now } = buckets(readSpan('2026-09-25:2026-10-24', today, cycles), today);
+	expect(bs[0]).toEqual({ from: '2026-09-25', to: '2026-09-27', tick: '' });
+	expect(bs.at(-1)!.from).toBe('2026-10-19');
+	expect(now).toBe(bs.length - 1);
+});
+
+test('a custom span splits into months past 190 days', () => {
+	const weeks = buckets(readSpan(`${addDays(today, -190)}:${today}`, today, cycles), today);
+	expect(weeks.per).toBe('week');
+	const from = addDays(today, -191);
+	const months = buckets(readSpan(`${from}:${today}`, today, cycles), today);
+	expect(months.per).toBe('month');
+	expect(months.buckets[0].from).toBe(from);
+	expect(months.buckets[0].tick).toBe('Apr');
+	expect(months.buckets.at(-1)).toEqual({ from: '2026-10-01', to: '2026-10-31', tick: 'Oct' });
+});
+
+test('readSpan falls back to ten weeks and stops a span at today', () => {
+	expect(readSpan(null, today, cycles).key).toBe('10w');
+	expect(readSpan('6m', today, cycles).key).toBe('10w');
+	expect(readSpan('cycle:nope', today, cycles).key).toBe('10w');
+	expect(readSpan('cycle:c', '2026-09-01', cycles).key).toBe('10w');
+	expect(readSpan('2026-10-20:2026-10-01', today, cycles).key).toBe('10w');
+	expect(readSpan('2026-11-01:2026-11-30', today, cycles).key).toBe('10w');
+	expect(readSpan('2026-10-01:2026-12-31', today, cycles).to).toBe(today);
+	expect(readSpan('2026-02-30:2026-03-01', today, cycles).key).toBe('10w');
+});
+
+test('monthsBack ends today and starts the day after the same date', () => {
+	expect(monthsBack(1, today)).toBe('2026-09-25:2026-10-24');
+	expect(monthsBack(12, today)).toBe('2025-10-25:2026-10-24');
+	expect(monthsBack(1, '2026-03-31')).toBe('2026-03-01:2026-03-31');
+	expect(monthsBack(6, '2026-08-31')).toBe('2026-03-01:2026-08-31');
+	expect(monthsBack(12, '2028-02-29')).toBe('2027-03-01:2028-02-29');
+});
+
+test('a cycle longer than 16 weeks names every fourth week', () => {
+	const long = [{ id: 'l', name: 'Year', starts: '2026-01-05', ends: '2026-12-27' }];
+	const ticks = buckets(readSpan('cycle:l', today, long), today).buckets.map((b) => b.tick);
+	expect(ticks.slice(0, 6)).toEqual(['W1', '', '', '', 'W5', '']);
 });

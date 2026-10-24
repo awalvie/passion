@@ -10,7 +10,7 @@
 	import HeroCard from '$lib/HeroCard.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import type { ScheduledDay } from '$lib/plan';
-	import { buckets, hours } from '$lib/progress';
+	import { buckets, hours, tenWeeks } from '$lib/progress';
 	import { currentStop, secondsSince, type Run, type RunSummary } from '$lib/run';
 	import { openRun, startRun, type StartBody } from '$lib/runState.svelte';
 	import { plural } from '$lib/text';
@@ -107,7 +107,7 @@
 	const stop = $derived(live ? currentStop(live) : null);
 	const at = $derived(live && stop ? live.sections.findIndex((s) => s.items.includes(stop)) : -1);
 
-	const bs = $derived(buckets('10w', data.today));
+	const bs = $derived(buckets(tenWeeks(data.today), data.today).buckets);
 	const time = $derived(hours(finished, bs));
 	// The usual week is the mean of the full weeks before this one that have
 	// any training, once there are three of them.
