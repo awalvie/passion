@@ -17,10 +17,11 @@
 	const totals = $derived(parts[0].values.map((_, i) => parts.reduce((s, p) => s + p.values[i], 0)));
 	const at = $derived(now ?? totals.length - 1);
 	const max = $derived(Math.max(...totals, 0));
-	// The smallest round step that splits the tallest bar into at most four.
+	// The smallest round step that splits the tallest bar into at most four. A
+	// step of 2.5 would label counts 3 and 8.
 	const step = $derived.by(() => {
 		const e = 10 ** Math.floor(Math.log10(max || 1));
-		return [1, 2, 2.5, 5, 10].map((m) => m * e).find((s) => max / s <= 4)!;
+		return [1, 2, 5, 10].map((m) => m * e).find((s) => max / s <= 4)!;
 	});
 	const ceiling = $derived(small ? max || 1 : Math.ceil(max / step) * step || step);
 	// Room above the tallest bar for its number.
