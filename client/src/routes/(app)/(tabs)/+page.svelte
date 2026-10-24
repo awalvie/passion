@@ -222,25 +222,25 @@
 		</HeroCard>
 	{/if}
 
-	<section class="mx-4 mt-3.5 rounded-3xl bg-surface pt-4 pb-1 shadow-card">
-		<div class="flex items-baseline justify-between gap-3 px-5">
-			<h2 class="text-[15px] font-bold">This week</h2>
-			{#if cycle && progress}<p class="truncate text-xs font-semibold text-ink-2">{cycle.name} · Week {progress.week} of {progress.of}</p>{/if}
+	<section class="mx-4 mt-3.5 rounded-3xl bg-surface pt-4 shadow-card {missed.length ? 'pb-1' : 'pb-4'}">
+		<div class="flex items-start justify-between gap-3 px-5">
+			<div class="min-w-0">
+				<h2 class="text-[15px] font-bold">This week</h2>
+				{#if cycle && progress}<p class="mt-0.5 truncate text-xs font-semibold text-ink-2">{cycle.name} · Week {progress.week} of {progress.of}</p>{/if}
+			</div>
+			<p class="shrink-0 text-[15px] font-semibold text-ink-2">
+				{#if offline}
+					No signal
+				{:else if weekPlanned}
+					<b class="digits text-ink">{weekDone} of {weekPlanned}</b> done
+				{:else}
+					<b class="digits text-ink">{ranThisWeek.length}</b> {ranThisWeek.length === 1 ? 'session' : 'sessions'} · {ranLastWeek} last week
+				{/if}
+			</p>
 		</div>
 		<WeekStrip monday={data.monday} today={data.today} week={data.week} selected={shown} ran={ranThisWeek.map((r) => r.local_date)} />
-		<div class="px-5 pt-4 pb-3">
-			{#if offline}
-				<p class="text-[15px] font-semibold text-ink-2">No signal</p>
-			{:else if weekPlanned}
-				<p class="flex items-baseline gap-1.5"><b class="digits text-[32px] leading-none">{weekDone}</b><span class="text-[15px] font-semibold text-ink-2">of {weekPlanned} done</span></p>
-			{:else}
-				<p class="flex items-baseline gap-1.5">
-					<b class="digits text-[32px] leading-none">{ranThisWeek.length}</b><span class="text-[15px] font-semibold text-ink-2">{ranThisWeek.length === 1 ? 'session' : 'sessions'} · {ranLastWeek} last week</span>
-				</p>
-			{/if}
-		</div>
 		{#if missed.length}
-			<ul class="px-5">
+			<ul class="mt-3 px-5">
 				{#each missed as d (d.id)}
 					<li class="list-row">
 						<a href="/plan" class="flex min-h-[60px] items-center gap-3">
