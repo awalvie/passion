@@ -7,13 +7,27 @@
 	import Dots from '$lib/Dots.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import NavBar from '$lib/NavBar.svelte';
-	import { counts, gradeScale, grades, hours, isBoulder, monthsBack } from '$lib/progress';
+	import {
+		boardsOpen,
+		counts,
+		filterGroups,
+		filterName,
+		filterQuery,
+		gradeScale,
+		grades,
+		hours,
+		isBoulder,
+		monthsBack,
+		passes,
+		type ClimbFilter,
+		type FilterGroup
+	} from '$lib/progress';
 	import Segmented from '$lib/Segmented.svelte';
 	import Sheet from '$lib/Sheet.svelte';
 
 	let { data } = $props();
 
-	const href = (view: string, range: string) => `?view=${view}&range=${range}`;
+	const href = (view: string, range: string, filter = data.filter) => `?view=${view}&range=${range}${filterQuery(filter)}`;
 	const round = (h: number) => Math.round(h * 10) / 10;
 	const ticks = $derived(data.buckets.map((b) => b.tick));
 	// A week still to come counts for nothing in an average.
@@ -62,13 +76,14 @@
 		return [...m].sort((a, b) => b[1].h - a[1].h);
 	});
 
-	const climbs = $derived(counts(data.climbs, data.buckets));
-	const sent = $derived(data.climbs.filter((c) => c.sent).length);
+	const shown = $derived(data.climbs.filter((c) => passes(c, data.filter)));
+	const climbs = $derived(counts(shown, data.buckets));
+	const sent = $derived(shown.filter((c) => c.sent).length);
 
 	const disciplines = $derived(
 		[
-			{ label: 'Boulders', climbs: data.climbs.filter(isBoulder) },
-			{ label: 'Routes', climbs: data.climbs.filter((c) => !isBoulder(c)) }
+			{ label: 'Boulders', climbs: shown.filter(isBoulder) },
+			{ label: 'Routes', climbs: shown.filter((c) => !isBoulder(c)) }
 		].flatMap((d) => {
 			const scale = gradeScale(d.climbs, data.scales);
 			if (!scale) return [];
@@ -77,6 +92,24 @@
 			return [{ ...d, scale, points, top: tops.length ? scale.grades[Math.max(...tops)] : null }];
 		})
 	);
+
+	let filtering = $state(false);
+	let draft = $state<ClimbFilter>({ discipline: [], setting: [], board: [] });
+	const groups = Object.keys(filterGroups) as FilterGroup[];
+
+	function openFilter() {
+		draft = structuredClone(data.filter);
+		filtering = true;
+	}
+
+	function toggle(g: FilterGroup, v: string) {
+		draft[g] = draft[g].includes(v) ? draft[g].filter((x) => x !== v) : [...draft[g], v];
+	}
+
+	function applyFilter(f: ClimbFilter) {
+		filtering = false;
+		goto(href(data.view, data.span.key, { ...f, board: boardsOpen(f) ? f.board : [] }), { replaceState: true, noScroll: true });
+	}
 </script>
 
 <svelte:head><title>Progress</title></svelte:head>
@@ -131,9 +164,19 @@
 			<span class="truncate">Custom</span>
 		</button>
 	</nav>
-	<p class="-mt-1.5 px-1 text-xs font-semibold text-ink-2">
-		{data.span.cycle && custom ? `${data.span.cycle.name} · ` : ''}{shortDate(data.span.from)} – {shortDate(data.span.to)}
-	</p>
+	<div class="mt-1 flex flex-col px-1">
+		{#if data.view === 'time'}
+			<h2 class="text-xl font-bold tracking-tight">All sessions</h2>
+		{:else}
+			<button type="button" class="-my-2 flex min-h-11 items-center gap-1 self-start text-left text-xl font-bold tracking-tight" aria-haspopup="dialog" onclick={openFilter}>
+				{filterName(data.filter)}
+				<Icon name="chevron-down" size="1.125rem" stroke={2.6} />
+			</button>
+		{/if}
+		<p class="text-xs font-semibold text-ink-2">
+			{data.span.cycle && custom ? `${data.span.cycle.name} · ` : ''}{shortDate(data.span.from)} – {shortDate(data.span.to)}
+		</p>
+	</div>
 
 	{#if data.view === 'time'}
 		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
@@ -158,11 +201,15 @@
 				</ul>
 			</section>
 		{/if}
+	{:else if !shown.length}
+		<section class="rounded-3xl bg-surface p-5 shadow-card">
+			<p class="text-[15px] font-semibold text-ink-2">{filterQuery(data.filter) ? 'No climbs match in this range.' : 'No climbs in this range.'}</p>
+		</section>
 	{:else if data.view === 'climbs'}
 		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
 			<dl class="grid grid-cols-3 gap-3">
-				{@render stat('Climbs', data.climbs.length)}
-				{@render stat(`A ${data.per}`, round(data.climbs.length / passed))}
+				{@render stat('Climbs', shown.length)}
+				{@render stat(`A ${data.per}`, round(shown.length / passed))}
 				{@render stat('Sent', sent)}
 			</dl>
 			<Bars
@@ -174,8 +221,8 @@
 				now={data.now}
 			/>
 			<div class="flex gap-4 text-xs font-semibold text-ink-2">
-				{@render key(boulderFill, 'Boulders')}
-				{@render key(routeFill, 'Routes')}
+				{#if shown.some(isBoulder)}{@render key(boulderFill, 'Boulders')}{/if}
+				{#if shown.some((c) => !isBoulder(c))}{@render key(routeFill, 'Routes')}{/if}
 			</div>
 		</section>
 	{:else}
@@ -243,4 +290,31 @@
 			<Button onclick={() => pick(`${from}:${to}`)} disabled={!from || !to || to < from || from > data.today}>Show</Button>
 		</div>
 	</div>
+</Sheet>
+
+<Sheet bind:open={filtering} title="Show">
+	<div class="flex flex-col gap-3.5">
+		{#each groups as g (g)}
+			{@const closed = g === 'board' && !boardsOpen(draft)}
+			<h2 class="mt-1 px-1 text-[15px] font-bold {closed ? 'text-ink-3' : ''}">{filterGroups[g].label}</h2>
+			<div class="flex flex-wrap gap-1.5">
+				{#each Object.entries(filterGroups[g].options) as [v, label] (v)}
+					{@const on = !closed && draft[g].includes(v)}
+					<button
+						type="button"
+						class="flex h-11 items-center rounded-full px-4 text-[15px] font-bold disabled:opacity-40 {on ? 'bg-ink text-ground' : 'bg-surface text-ink shadow-card-sm'}"
+						aria-pressed={on}
+						disabled={closed}
+						onclick={() => toggle(g, v)}>{label}</button
+					>
+				{/each}
+			</div>
+		{/each}
+	</div>
+	{#snippet footer()}
+		<div class="grid grid-cols-[1fr_2fr] items-center gap-2">
+			<Button variant="secondary" onclick={() => applyFilter({ discipline: [], setting: [], board: [] })}>All climbs</Button>
+			<Button onclick={() => applyFilter(draft)}>Apply</Button>
+		</div>
+	{/snippet}
 </Sheet>

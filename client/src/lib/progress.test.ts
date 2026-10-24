@@ -1,7 +1,24 @@
 import { expect, test } from 'vitest';
 import type { Scale } from './grades';
 import { addDays } from './dates';
-import { bestSet, buckets, climbMarks, figure, headline, measure, monthsBack, readSpan, setMarks, setValue, tenWeeks, topSend } from './progress';
+import {
+	bestSet,
+	buckets,
+	climbMarks,
+	figure,
+	filterName,
+	filterQuery,
+	headline,
+	measure,
+	monthsBack,
+	passes,
+	readFilter,
+	readSpan,
+	setMarks,
+	setValue,
+	tenWeeks,
+	topSend
+} from './progress';
 import type { Climb, HistorySession, SetFields } from './run';
 
 const set = (s: Partial<SetFields>) => ({ reps: null, seconds: null, rep_seconds: null, weight_kg: null, ...s });
@@ -52,6 +69,52 @@ test('climbMarks marks one best send and leaves unsent climbs hollow', () => {
 		{ i: 1, v: 3, best: false, hollow: true }
 	]);
 	expect(climbMarks([climb('7a', false)], 0, scale)).toEqual([{ i: 0, v: 3, best: false, hollow: true }]);
+});
+
+test('a filter widens within a group and narrows across groups', () => {
+	const c = (discipline: string, setting: string, board: string | null, rope_style: string | null) =>
+		({ discipline, setting, board, rope_style }) as Climb;
+	const moon = c('boulder', 'indoor', 'moon', null);
+	const gym = c('boulder', 'indoor', null, null);
+	const crag = c('boulder', 'outdoor', null, null);
+	const lead = c('sport', 'indoor', null, 'lead');
+	const belay = c('sport', 'indoor', null, 'auto_belay_rope');
+	const trad = c('trad', 'outdoor', null, 'lead');
+	const all = [moon, gym, crag, lead, belay, trad];
+	const keep = (q: string) => all.filter((x) => passes(x, readFilter(new URLSearchParams(q))));
+	expect(keep('')).toEqual(all);
+	expect(keep('discipline=sport,trad')).toEqual([lead, belay, trad]);
+	expect(keep('discipline=sport,trad&setting=indoor')).toEqual([lead, belay]);
+	expect(keep('discipline=trad')).toEqual([trad]);
+	expect(keep('board=moon')).toEqual([moon]);
+	// A board closes when only outdoor is picked.
+	expect(keep('setting=outdoor&board=moon')).toEqual([crag, trad]);
+	expect(keep('discipline=nope&board=none')).toEqual(all);
+	// A board narrows boulders, not the routes picked beside them.
+	expect(keep('discipline=boulder,sport&board=moon')).toEqual([moon, lead, belay]);
+	expect(keep('discipline=constructor&board=toString')).toEqual(all);
+});
+
+test('a filter goes to the URL and back', () => {
+	const f = readFilter(new URLSearchParams('discipline=boulder&board=moon,kilter&rope=lead'));
+	expect(filterQuery(f)).toBe('&discipline=boulder&board=moon,kilter');
+	expect(filterQuery(readFilter(new URLSearchParams('discipline=sport&board=moon')))).toBe('&discipline=sport');
+});
+
+test('filterName says what the filter shows', () => {
+	const name = (q: string) => filterName(readFilter(new URLSearchParams(q)));
+	expect(name('discipline=boulder,sport&board=moon')).toBe('Moon boulders and sport routes');
+	expect(name('discipline=sport,sport')).toBe('Sport routes');
+	expect(name('')).toBe('All climbs');
+	expect(name('discipline=sport,trad&setting=indoor')).toBe('Indoor routes');
+	expect(name('discipline=sport,trad&setting=indoor,outdoor')).toBe('Routes');
+	expect(name('discipline=sport')).toBe('Sport routes');
+	expect(name('discipline=trad&setting=outdoor')).toBe('Outdoor trad routes');
+	expect(name('discipline=boulder,sport')).toBe('Boulders and sport routes');
+	expect(name('discipline=boulder,sport,trad&setting=indoor')).toBe('Indoor boulders and routes');
+	expect(name('board=tension,spray')).toBe('Tension, Spray boulders');
+	expect(name('discipline=boulder&setting=outdoor')).toBe('Outdoor boulders');
+	expect(name('setting=indoor')).toBe('Indoor climbs');
 });
 
 test('topSend is the hardest sent climb on the scale', () => {

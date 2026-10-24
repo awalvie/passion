@@ -1,7 +1,7 @@
 import { request } from '$lib/api';
 import { loadGrades } from '$lib/grades';
 import { loadToday, type Cycle } from '$lib/plan';
-import { buckets, readSpan, type DatedClimb } from '$lib/progress';
+import { buckets, readFilter, readSpan, type DatedClimb } from '$lib/progress';
 import type { RunSummary } from '$lib/run';
 
 const views = ['time', 'climbs', 'grade'] as const;
@@ -23,6 +23,7 @@ export async function load({ url }) {
 		view,
 		today,
 		span,
+		filter: readFilter(url.searchParams),
 		...chart,
 		// The cycles the sheet offers: those begun, the latest first.
 		cycles: cycles.filter((c) => c.starts <= today).sort((a, b) => b.starts.localeCompare(a.starts)),

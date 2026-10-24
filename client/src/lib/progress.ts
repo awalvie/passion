@@ -1,6 +1,6 @@
 import { addDays, daysBetween, formatDate, mondayOf } from './dates';
 import type { Scale } from './grades';
-import type { Climb, HistorySession, RunSummary, SetFields } from './run';
+import { boards, disciplines, settings, type Climb, type HistorySession, type RunSummary, type SetFields } from './run';
 
 export type DatedClimb = Climb & { run: string; local_date: string };
 
@@ -85,6 +85,58 @@ export function hours(runs: RunSummary[], bs: Bucket[]): number[] {
 }
 
 export const isBoulder = (c: Pick<Climb, 'discipline'>) => c.discipline === 'boulder';
+
+// A filter on climbs, grouped as a climb's setup is. A climb shows when it
+// matches a pick in every group that has one.
+export const filterGroups = {
+	discipline: { label: 'Discipline', options: disciplines },
+	setting: { label: 'Indoor or outdoor', options: settings },
+	board: { label: 'Board', options: { kilter: boards.kilter, moon: boards.moon, tension: boards.tension, spray: boards.spray, custom: boards.custom } }
+};
+export type FilterGroup = keyof typeof filterGroups;
+export type ClimbFilter = Record<FilterGroup, string[]>;
+const groups = Object.keys(filterGroups) as FilterGroup[];
+
+// A board is only for an indoor boulder, so boards close when only routes or
+// only outdoor is picked.
+export const boardsOpen = (f: ClimbFilter) =>
+	(!f.discipline.length || f.discipline.includes('boulder')) && !(f.setting.length === 1 && f.setting[0] === 'outdoor');
+
+export function readFilter(params: URLSearchParams): ClimbFilter {
+	const f = {} as ClimbFilter;
+	for (const g of groups) f[g] = [...new Set((params.get(g) ?? '').split(','))].filter((v) => Object.hasOwn(filterGroups[g].options, v));
+	if (!boardsOpen(f)) f.board = [];
+	return f;
+}
+
+// filterName says what the filter shows as the owner would, such as Indoor
+// routes or Tension, Spray boulders. A board means an indoor boulder, and
+// sport with trad is every route.
+export function filterName(f: ClimbFilter): string {
+	const names = f.board.map((b) => filterGroups.board.options[b as keyof typeof filterGroups.board.options]);
+	const routes = f.discipline.filter((d) => d !== 'boulder');
+	const kinds = [
+		names.length ? `${names.join(', ')} boulders` : f.discipline.includes('boulder') ? 'boulders' : '',
+		routes.length === 2 ? 'routes' : routes.length ? `${routes[0]} routes` : ''
+	].filter(Boolean);
+	const where = !names.length && f.setting.length === 1 ? settings[f.setting[0] as keyof typeof settings] : '';
+	const words = [where, kinds.join(' and ') || 'climbs'].filter(Boolean).join(' ');
+	return words === 'climbs' ? 'All climbs' : words[0].toUpperCase() + words.slice(1);
+}
+
+// filterQuery is the filter as URL parameters, each led by &.
+export const filterQuery = (f: ClimbFilter) =>
+	groups
+		.filter((g) => f[g].length)
+		.map((g) => `&${g}=${f[g].join(',')}`)
+		.join('');
+
+// A board narrows only boulders: a route still shows when its discipline was
+// picked.
+export const passes = (c: Pick<Climb, FilterGroup>, f: ClimbFilter) =>
+	(!f.discipline.length || f.discipline.includes(c.discipline)) &&
+	(!f.setting.length || f.setting.includes(c.setting)) &&
+	(!f.board.length || (isBoulder(c) ? f.board.includes(c.board ?? '') : f.discipline.includes(c.discipline)));
 
 // counts is the number of climbs in each bucket, boulders and routes apart.
 export function counts(climbs: DatedClimb[], bs: Bucket[]): { boulders: number; routes: number }[] {
