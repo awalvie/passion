@@ -74,7 +74,7 @@
 				</span>
 			</a>
 			<a href="/history/progress?view=grade" class="flex min-w-0 flex-col rounded-3xl bg-surface px-3.5 pt-3 pb-3.5 shadow-card">
-				{@render tile('Top send', top ?? '–', '10 weeks')}
+				{@render tile('Hardest send', top ?? '–', '10 weeks')}
 				<span class="mt-3.5">
 					{#if main}<Dots
 							n={main.points.length}
