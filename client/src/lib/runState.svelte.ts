@@ -15,6 +15,7 @@ import {
 	type SetFields
 } from './run';
 import type { Exercise } from './exercise';
+import { pendingPrefix, timerPrefix } from './session';
 import { toStep, type Step } from './template';
 import { elapsed, rows, timedRows, timeline } from './timeline';
 import { readTimers } from './timerStore';
@@ -29,7 +30,7 @@ type Stored = { run: Run; writes: Write[]; opened?: Record<string, number>; draf
 // The climb on a step's card before its first go.
 export type ClimbDraft = { id: string; grade: string | null; seconds: number | null; focus: string | null; notes: string | null };
 
-const storageKey = (id: string) => `passion-pending:${id}`;
+const storageKey = (id: string) => `${pendingPrefix}${id}`;
 
 function readStored(id: string): Stored | null {
 	try {
@@ -44,8 +45,8 @@ function readStored(id: string): Stored | null {
 // storedRuns are the unfinished runs this phone holds a copy of, newest first.
 export function storedRuns(): Run[] {
 	return Object.keys(localStorage)
-		.filter((k) => k.startsWith('passion-pending:'))
-		.flatMap((k) => readStored(k.slice('passion-pending:'.length))?.run ?? [])
+		.filter((k) => k.startsWith(pendingPrefix))
+		.flatMap((k) => readStored(k.slice(pendingPrefix.length))?.run ?? [])
 		.filter((r) => r.finished_at === null)
 		.sort((a, b) => b.started_at.localeCompare(a.started_at));
 }
@@ -117,7 +118,7 @@ class OpenRun {
 	forget() {
 		if (this.run) {
 			localStorage.removeItem(storageKey(this.run.id));
-			localStorage.removeItem(`passion-timer:${this.run.id}`);
+			localStorage.removeItem(`${timerPrefix}${this.run.id}`);
 		}
 		this.use(null);
 	}
