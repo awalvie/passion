@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { plural } from './text';
+
 	// The line above a filtered list: how much is left of the part you are in,
 	// and a way out. Clear leaves the tab alone.
 	let { shown, total, filters, onclear }: { shown: number; total: number; filters: number; onclear: () => void } = $props();
@@ -6,7 +8,7 @@
 
 <div class="flex items-center justify-between gap-3 px-1">
 	<span class="min-w-0 truncate text-xs font-bold text-ink-2">
-		{shown} of {total}{filters ? ` · ${filters} ${filters === 1 ? 'filter' : 'filters'}` : ''}
+		{shown} of {total}{filters ? ` · ${plural(filters, 'filter')}` : ''}
 	</span>
 	<button
 		type="button"

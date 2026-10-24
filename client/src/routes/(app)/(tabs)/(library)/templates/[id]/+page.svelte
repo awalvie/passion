@@ -16,7 +16,7 @@
 	import { sessionIcons } from '$lib/SessionIcon.svelte';
 	import { choiceMeta, stepMeta, templateFieldLabel, type Choice, type SessionTemplate } from '$lib/template';
 	import { formatDate, weekday } from '$lib/dates';
-	import { plainText } from '$lib/text';
+	import { plainText, plural } from '$lib/text';
 	import Topo from '$lib/Topo.svelte';
 	import { heroTopo } from '$lib/topo';
 
@@ -148,7 +148,7 @@
 			const sets = data.last!.sets.filter((x) => x.exercise === exercise);
 			const top = sets.reduce((a, b) => ((b.weight_kg ?? -Infinity) > (a.weight_kg ?? -Infinity) ? b : a));
 			if (top.weight_kg === null) return [];
-			const dose = top.reps ? `${sets.length}×${top.reps}` : `${sets.length} set${sets.length === 1 ? '' : 's'}`;
+			const dose = top.reps ? `${sets.length}×${top.reps}` : plural(sets.length, 'set');
 			return [{ exercise, name: names.get(exercise) ?? 'Exercise', text: `${dose} · ${top.weight_kg} kg` }];
 		});
 	});
@@ -377,7 +377,7 @@
 								<span class="mt-1 inline-block rounded-full bg-tint px-2.5 py-0.5 text-xs font-bold text-on-tint">{pickLabel(only(section)!)}</span>
 							{:else}
 								<span class="block text-xs font-semibold text-ink-2">
-									{steps(section)} exercise{steps(section) === 1 ? '' : 's'}
+									{plural(steps(section), 'exercise')}
 								</span>
 							{/if}
 						</span>

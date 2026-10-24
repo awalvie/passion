@@ -4,6 +4,7 @@
 	import Icon from './Icon.svelte';
 	import Segmented from './Segmented.svelte';
 	import Sheet from './Sheet.svelte';
+	import { plural } from './text';
 
 	// The filter button beside the search field and the sheet it opens. '' keeps
 	// every row. shown is how many rows the filters leave, for the sheet's button.
@@ -89,7 +90,7 @@
 	{/if}
 	{#snippet footer()}
 		<button type="button" class="flex h-14 w-full items-center justify-center rounded-full bg-tint text-[15px] font-extrabold text-on-tint" onclick={() => (open = false)} use:haptic>
-			Show {shown} {shown === 1 ? noun : `${noun}s`}
+			Show {plural(shown, noun)}
 		</button>
 	{/snippet}
 </Sheet>

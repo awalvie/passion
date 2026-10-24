@@ -3,6 +3,7 @@
 	import { byDate, formatDate, gridWeeks, weekdayLetters } from './dates';
 	import type { Cycle, ScheduledDay } from './plan';
 	import SessionIcon, { iconState } from './SessionIcon.svelte';
+	import { plural } from './text';
 
 	// days holds every row in the cycle's dates, from any cycle. onmove puts a
 	// session on another day, and throws when the server refuses.
@@ -119,7 +120,7 @@
 <section class="rounded-3xl bg-surface px-3 pt-4 pb-3 shadow-card" aria-label="Calendar">
 	<div class="flex items-baseline justify-between px-1.5">
 		<h3 class="text-[15px] font-bold">{months}</h3>
-		<span class="text-xs font-semibold text-ink-2">{weeks.length === 1 ? '1 week' : `${weeks.length} weeks`}</span>
+		<span class="text-xs font-semibold text-ink-2">{plural(weeks.length, 'week')}</span>
 	</div>
 	<ol class="mt-3 grid grid-cols-7 text-center text-xs font-bold text-ink-2" aria-hidden="true">
 		{#each weekdayLetters as d, i (i)}
