@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { beforeNavigate } from '$app/navigation';
 	import { describe } from '$lib/api';
 	import { loadExercises, type Exercise } from '$lib/exercise';
 	import FormError from '$lib/FormError.svelte';
@@ -15,6 +14,7 @@
 		toTemplateDraft,
 		type SessionTemplate
 	} from '$lib/template';
+	import { guardUnsaved } from '$lib/unsaved';
 
 	let {
 		template,
@@ -35,12 +35,7 @@
 	// The API replaces the whole template, so nothing is kept until Save.
 	const clean = JSON.stringify(draft);
 	let saving = false;
-	beforeNavigate((navigation) => {
-		if (saving || JSON.stringify(draft) === clean) return;
-		// A reload or a closed tab can only get the browser's own prompt.
-		if (navigation.type === 'leave') navigation.cancel();
-		else if (!confirm('Discard your unsaved changes?')) navigation.cancel();
-	});
+	guardUnsaved(() => !saving && JSON.stringify(draft) !== clean);
 
 	// A missing exercise is made in another tab, so the list reloads when the
 	// user comes back to this one.
