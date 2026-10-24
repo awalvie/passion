@@ -10,25 +10,32 @@
 	}: { exercises: Exercise[]; id: string; label?: string; keep?: boolean; pick: (e: Exercise) => void } = $props();
 
 	let q = $state('');
+	let browsing = $state(false);
 
 	const matches = $derived.by(() => {
 		const needle = q.trim().toLowerCase();
-		return needle ? exercises.filter((e) => e.name.toLowerCase().includes(needle)) : [];
+		return needle ? exercises.filter((e) => e.name.toLowerCase().includes(needle)) : browsing ? exercises : [];
 	});
 
 	function choose(e: Exercise) {
 		pick(e);
 		// A preview goes back to the same search.
-		if (!keep) q = '';
+		if (!keep) {
+			q = '';
+			browsing = false;
+		}
 	}
 
 	// Enter would otherwise submit the whole editor.
 	function key(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
 			event.preventDefault();
-			if (matches.length) choose(matches[0]);
+			if (q.trim() && matches.length) choose(matches[0]);
 		}
-		if (event.key === 'Escape') q = '';
+		if (event.key === 'Escape') {
+			q = '';
+			browsing = false;
+		}
 	}
 </script>
 
@@ -44,7 +51,12 @@
 		bind:value={q}
 		onkeydown={key}
 	/>
-	{#if q.trim()}
+	{#if !q.trim()}
+		<button type="button" class="flex min-h-11 items-center text-xs font-bold text-ink" aria-expanded={browsing} onclick={() => (browsing = !browsing)}>
+			{browsing ? 'Hide the library' : 'Browse the library'}
+		</button>
+	{/if}
+	{#if q.trim() || browsing}
 		<div
 			class="mt-2 max-h-80 overflow-y-auto overscroll-contain [&>:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)] rounded-2xl bg-surface shadow-card-sm"
 		>
