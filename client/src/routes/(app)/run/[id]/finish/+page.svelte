@@ -6,6 +6,7 @@
 	import NavBar from '$lib/NavBar.svelte';
 	import { secondsSince, type Run } from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
+	import { guardUnsaved } from '$lib/unsaved';
 
 	const run = $derived(openRun.run!);
 	// A finished run comes here from History to edit its journal.
@@ -23,6 +24,11 @@
 
 	let busy = $state(false);
 	let error = $state('');
+
+	const fields = () => JSON.stringify([sleep, energy, rpe, focus, setting, wentWell, nextFocus, notes]);
+	const clean = fields();
+	let leaving = false;
+	guardUnsaved(() => !leaving && fields() !== clean);
 
 	const focuses = ['strength', 'endurance', 'technique', 'projects', 'general'];
 
@@ -55,6 +61,7 @@
 				return;
 			}
 			if (!editing) await request<Run>('POST', `/api/v1/runs/${r.id}/finish`);
+			leaving = true;
 			await goto(`/history/${r.id}`);
 			openRun.forget();
 		} catch (e) {
