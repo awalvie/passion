@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"path"
+	"slices"
 	"sort"
 	"strings"
 
@@ -116,7 +118,7 @@ func ReadSessions(app *Tree, exercises []Exercise, trees ...Tree) ([]Session, []
 	}
 
 	r := resolver{own: own, app: shipped, blocks: map[string]blockResult{}}
-	for _, slug := range sortedKeys(own.blocks) {
+	for _, slug := range slices.Sorted(maps.Keys(own.blocks)) {
 		if _, err := r.block(slug, false); err != nil {
 			problems = append(problems, err)
 		}
@@ -484,13 +486,4 @@ func decodeFile(tree Tree, rel string, v any) error {
 		return errors.New("more than one document. Delete the second --- and everything after it")
 	}
 	return nil
-}
-
-func sortedKeys[V any](m map[string]V) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
 }
