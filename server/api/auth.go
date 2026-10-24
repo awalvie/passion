@@ -123,8 +123,7 @@ func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 	// take the same time. Otherwise the clock answers "does this person have
 	// an account" however careful the response is.
 	hash, err := s.hash(func() (string, error) { return password.Hash(req.Password) })
-	if err != nil {
-		writeInternal(w, s.log, err)
+	if s.failed(w, err) {
 		return
 	}
 
@@ -142,8 +141,7 @@ func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	issued, err := s.issueToken(r, account.ID)
-	if err != nil {
-		writeInternal(w, s.log, err)
+	if s.failed(w, err) {
 		return
 	}
 
@@ -266,8 +264,7 @@ func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	issued, err := s.issueToken(r, account.ID)
-	if err != nil {
-		writeInternal(w, s.log, err)
+	if s.failed(w, err) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, issued)
@@ -316,8 +313,7 @@ func (s *Server) setGrades(w http.ResponseWriter, r *http.Request, who db.Authen
 	}
 
 	account, err := db.SetGrades(r.Context(), s.pool, who.AccountID, g)
-	if err != nil {
-		writeInternal(w, s.log, err)
+	if s.failed(w, err) {
 		return
 	}
 	writeJSON(w, http.StatusOK, toAccountResponse(account))
@@ -339,8 +335,7 @@ func (s *Server) setGrades(w http.ResponseWriter, r *http.Request, who db.Authen
 //	  204: description: Signed out
 //	  401: unauthenticated
 func (s *Server) signOut(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
-	if err := db.DeleteAuthToken(r.Context(), s.pool, who.TokenID); err != nil {
-		writeInternal(w, s.log, err)
+	if s.failed(w, db.DeleteAuthToken(r.Context(), s.pool, who.TokenID)) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

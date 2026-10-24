@@ -150,8 +150,7 @@ type sessionTemplateListResponse struct {
 //	  401: unauthenticated
 func (s *Server) listSessionTemplates(w http.ResponseWriter, r *http.Request, who db.Authenticated) {
 	list, err := db.ListSessionTemplates(r.Context(), s.pool, who.AccountID)
-	if err != nil {
-		writeInternal(w, s.log, err)
+	if s.failed(w, err) {
 		return
 	}
 
@@ -185,8 +184,7 @@ func (s *Server) createSessionTemplate(w http.ResponseWriter, r *http.Request, w
 	if writeUnknownExercises(w, err) {
 		return
 	}
-	if err != nil {
-		writeInternal(w, s.log, err)
+	if s.failed(w, err) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, toSessionTemplateResponse(created))
