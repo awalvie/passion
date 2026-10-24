@@ -7,6 +7,7 @@
 	import RowActions from '$lib/RowActions.svelte';
 	import StepEditor from '$lib/StepEditor.svelte';
 	import { choiceMeta, moveEntry, toStep, type Section } from '$lib/template';
+	import { plural } from '$lib/text';
 
 	let {
 		section = $bindable(),
@@ -36,7 +37,7 @@
 
 	const only = $derived(section.items.length === 1 ? section.items[0].choice : undefined);
 	const count = $derived(
-		only ? choiceMeta(only) : `${section.items.length} exercise${section.items.length === 1 ? '' : 's'}`
+		only ? choiceMeta(only) : plural(section.items.length, 'exercise')
 	);
 	const quiet =
 		'flex min-h-13 cursor-pointer list-none items-center gap-2.5 text-[15px] font-bold [&::-webkit-details-marker]:hidden';

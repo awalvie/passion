@@ -13,6 +13,7 @@
 	import { buckets, hours } from '$lib/progress';
 	import { currentStop, secondsSince, type Run, type RunSummary } from '$lib/run';
 	import { openRun, startRun, type StartBody } from '$lib/runState.svelte';
+	import { plural } from '$lib/text';
 	import Topo from '$lib/Topo.svelte';
 	import { topTopo } from '$lib/topo';
 	import WeekStrip from '$lib/WeekStrip.svelte';
@@ -354,7 +355,7 @@
 			{/if}
 			{#if since !== null}
 				<p class="flex flex-col">
-					<b class="digits text-xl">{since === 1 ? '1 day' : `${since} days`}</b><span class="text-xs font-semibold text-ink-2">Since last time</span>
+					<b class="digits text-xl">{plural(since, 'day')}</b><span class="text-xs font-semibold text-ink-2">Since last time</span>
 				</p>
 			{/if}
 		</div>

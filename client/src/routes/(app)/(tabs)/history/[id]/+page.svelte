@@ -5,6 +5,7 @@
 	import NavBar from '$lib/NavBar.svelte';
 	import Section from '$lib/Section.svelte';
 	import { boards, climbsOf, climbWord, disciplines, ropes, settings, setsOf, stepTime, type LoggedSet, type RunStep } from '$lib/run';
+	import { plural } from '$lib/text';
 
 	let { data } = $props();
 
@@ -89,13 +90,13 @@
 				c.discipline === 'boulder'
 					? c.setting === 'indoor' && c.board && c.board !== 'none' && boards[c.board as keyof typeof boards]
 					: c.rope_style && ropes[c.rope_style as keyof typeof ropes],
-				`${climbs.length} climb${climbs.length === 1 ? '' : 's'}${graded ? `, ${sent} sent` : ''}`
+				`${plural(climbs.length, 'climb')}${graded ? `, ${sent} sent` : ''}`
 			]
 				.filter(Boolean)
 				.join(' · ');
 		}
 		const n = setsOf(run, s.id).length;
-		return n ? `${n} set${n === 1 ? '' : 's'}` : 'Nothing logged';
+		return n ? plural(n, 'set') : 'Nothing logged';
 	}
 </script>
 

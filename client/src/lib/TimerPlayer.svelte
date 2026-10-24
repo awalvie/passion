@@ -9,6 +9,7 @@
 	import Stepper from './Stepper.svelte';
 	import Sheet from './Sheet.svelte';
 	import TimerFlap from './TimerFlap.svelte';
+	import { plural } from './text';
 	import { at, canTime, elapsed, endSet, jump, newClock, repSeconds, rows, startOf, timedRows, timeline, togglePause } from './timeline';
 	import { readTimers, writeTimers, type Timed } from './timerStore';
 
@@ -242,7 +243,7 @@
 				class="mt-3 flex shrink-0 items-end justify-center gap-2 [--h:clamp(100px,calc(100cqh-240px),min(260px,62vw))] {paused ? 'opacity-55' : ''}"
 				role="img"
 				aria-live="off"
-				aria-label="{secs} {secs === 1 ? 'second' : 'seconds'}{timed ? ' left' : ''}"
+				aria-label="{plural(secs, 'second')}{timed ? ' left' : ''}"
 			>
 				<!-- A hidden twin of the unit keeps the digits on the centre line. -->
 				{#if secs < 60}

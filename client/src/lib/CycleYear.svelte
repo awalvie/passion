@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { yearSpan } from './dates';
 	import type { Cycle } from './plan';
+	import { plural } from './text';
 
 	let { cycles, today }: { cycles: Cycle[]; today: string } = $props();
 
@@ -37,7 +38,7 @@
 <section class="rounded-3xl bg-surface px-[18px] pt-4 pb-3 shadow-card" aria-label="{year} cycles">
 	<div class="flex items-baseline justify-between">
 		<h2 class="text-[15px] font-bold">{year}</h2>
-		<span class="text-xs font-semibold text-ink-2">{bars.length === 1 ? '1 cycle' : `${bars.length} cycles`}</span>
+		<span class="text-xs font-semibold text-ink-2">{plural(bars.length, 'cycle')}</span>
 	</div>
 	<div class="relative mt-3" style="height: {lanes * 14 + 18}px">
 		{#each bars as b (b.cycle.id)}
