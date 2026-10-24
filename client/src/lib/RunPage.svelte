@@ -19,7 +19,7 @@
 
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { unlock } from './audio';
+	import { setSound, soundOn, unlock } from './audio';
 	import Icon from './Icon.svelte';
 	import Menu from './Menu.svelte';
 	import Notes from './Notes.svelte';
@@ -40,6 +40,7 @@
 		reading = $bindable(false),
 		done = null,
 		skip,
+		sounds = false,
 		children,
 		buttons
 	}: {
@@ -54,11 +55,14 @@
 		// back to the session after the last.
 		done?: { href: string; last: boolean } | null;
 		skip?: () => void;
+		// A player that plays tones shows a switch for them in the bar.
+		sounds?: boolean;
 		children: Snippet;
 		buttons: Snippet;
 	} = $props();
 
 	const run = $derived(openRun.run!);
+	let sound = $state(soundOn());
 
 	let noting = $state(false);
 	let peeking = $state(false);
@@ -141,7 +145,20 @@
 {/snippet}
 
 <RunField {look} label={step.name} back={{ href: `/run/${run.id}`, label: 'Back to the session' }} {band}>
-	{#snippet end()}<Menu look="bg-(--pill) text-on-hero" items={menu} />{/snippet}
+	{#snippet end()}
+		{#if sounds}
+			<button
+				type="button"
+				class="flex size-11 items-center justify-center rounded-full bg-(--pill) text-on-hero"
+				aria-label="Timer sounds"
+				aria-pressed={sound}
+				onclick={() => setSound((sound = !sound))}
+			>
+				<Icon name={sound ? 'volume-2' : 'volume-x'} size="1.25rem" />
+			</button>
+		{/if}
+		<Menu look="bg-(--pill) text-on-hero" items={menu} />
+	{/snippet}
 
 	<div class="flex flex-col gap-2 px-4 empty:hidden">
 		<SaveStatus />

@@ -111,6 +111,7 @@
 
 <RunPage
 	{step}
+	sounds
 	{next}
 	{menu}
 	{error}

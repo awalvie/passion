@@ -68,7 +68,8 @@
 	</div>
 
 	<div class="run-tokens relative mx-auto flex h-full w-full max-w-[430px] flex-col pt-[env(safe-area-inset-top)]">
-		<div class="flex h-14 shrink-0 items-center justify-between px-4">
+		<!-- Three columns keep the clock centred however many buttons sit at the end. -->
+		<div class="grid h-14 shrink-0 grid-cols-[1fr_auto_1fr] items-center px-4">
 			{#if back}
 				<a href={back.href} data-back={back.swipe || undefined} class="flex size-11 items-center justify-center rounded-full bg-(--pill) text-on-hero" aria-label={back.label}>
 					<Icon name="chevron-left" size="22px" stroke={2.6} />
@@ -89,7 +90,7 @@
 					{sessionClock(secondsSince(run.started_at, now))}
 				</span>
 			{/if}
-			{@render end()}
+			<div class="flex justify-end gap-2">{@render end()}</div>
 		</div>
 		{@render children()}
 	</div>

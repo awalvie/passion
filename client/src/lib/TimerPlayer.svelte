@@ -214,6 +214,7 @@
 
 <RunPage
 	{step}
+	sounds
 	look={timed && phase ? phase.kind : 'run'}
 	{next}
 	menu={timed
