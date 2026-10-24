@@ -216,21 +216,23 @@
 		></textarea>
 	</Section>
 
-	<Section title="This week">
-		{#snippet aside()}
-			<span class="text-xs font-semibold text-ink-2">{shortDate(data.monday)} – {shortDate(addDays(data.monday, 6))}</span>
-		{/snippet}
-		<div class="rounded-3xl bg-surface pb-3 shadow-card">
-			<WeekStrip monday={data.monday} today={data.today} week={data.week} />
-			<p class="mx-[18px] mt-3 truncate pt-3 text-[15px] font-semibold text-ink-2 shadow-[inset_0_1px_0_var(--line)]">
-				<b class="text-ink">Today</b>
-				{data.week
-					.filter((d) => d.local_date === data.today)
-					.map((d) => d.template_name)
-					.join(' · ') || 'Rest day'}
-			</p>
-		</div>
-	</Section>
+	{#if data.cycle.starts <= data.today && data.today <= data.cycle.ends}
+		<Section title="This week">
+			{#snippet aside()}
+				<span class="text-xs font-semibold text-ink-2">{shortDate(data.monday)} – {shortDate(addDays(data.monday, 6))}</span>
+			{/snippet}
+			<div class="rounded-3xl bg-surface pb-3 shadow-card">
+				<WeekStrip monday={data.monday} today={data.today} week={data.week} />
+				<p class="mx-[18px] mt-3 truncate pt-3 text-[15px] font-semibold text-ink-2 shadow-[inset_0_1px_0_var(--line)]">
+					<b class="text-ink">Today</b>
+					{data.week
+						.filter((d) => d.local_date === data.today)
+						.map((d) => d.template_name)
+						.join(' · ') || 'Rest day'}
+				</p>
+			</div>
+		</Section>
+	{/if}
 
 	<Section title="Calendar">
 		{#snippet aside()}
