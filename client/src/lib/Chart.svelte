@@ -11,6 +11,7 @@
 		grid,
 		ticks,
 		small = false,
+		now,
 		children
 	}: {
 		n: number;
@@ -19,8 +20,13 @@
 		grid: { at: number; label: string }[];
 		ticks?: string[];
 		small?: boolean;
+		// now is the slot holding today, -1 when the range is over. It is the
+		// newest slot unless given.
+		now?: number;
 		children: Snippet;
 	} = $props();
+
+	const at = $derived(now ?? n - 1);
 
 	const top = (at: number) => `${(1 - at) * height}px`;
 </script>
@@ -45,7 +51,7 @@
 				{#each ticks as t, i (i)}
 					{#if t}
 						<span
-							class="absolute -translate-x-1/2 digits text-xs leading-none font-semibold whitespace-nowrap {i === n - 1 ? 'text-ink' : 'text-ink-3'}"
+							class="absolute -translate-x-1/2 digits text-xs leading-none font-semibold whitespace-nowrap {i === at ? 'text-ink' : 'text-ink-3'}"
 							style:left="{((i + 0.5) / n) * 100}%">{t}</span
 						>
 					{/if}

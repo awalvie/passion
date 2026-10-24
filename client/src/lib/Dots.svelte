@@ -13,8 +13,9 @@
 		zero = false,
 		height = 120,
 		ticks,
-		small = false
-	}: { n: number; marks: Mark[]; label: (v: number) => string; zero?: boolean; height?: number; ticks?: string[]; small?: boolean } = $props();
+		small = false,
+		now
+	}: { n: number; marks: Mark[]; label: (v: number) => string; zero?: boolean; height?: number; ticks?: string[]; small?: boolean; now?: number } = $props();
 
 	const all = $derived(marks.map((m) => m.v));
 	const lo = $derived(Math.min(...all, ...(zero || !all.length ? [0] : [])));
@@ -31,7 +32,7 @@
 	const line = $derived(marks.filter((m) => m.best).sort((a, b) => a.i - b.i));
 </script>
 
-<Chart {n} {height} {grid} {ticks} {small}>
+<Chart {n} {height} {grid} {ticks} {small} {now}>
 	<svg class="absolute inset-0 size-full overflow-visible" viewBox="0 0 100 {height}" preserveAspectRatio="none" aria-hidden="true">
 		<polyline
 			points={line.map((m) => `${x(m.i)},${y(m.v)}`).join(' ')}

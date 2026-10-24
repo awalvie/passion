@@ -2,18 +2,20 @@
 	import Chart from './Chart.svelte';
 
 	// Stacked bars, one per bucket, the newest on the right. Each part names its
-	// colour class. Gridlines give the scale, and the newest bar carries its
-	// number.
+	// colour class. Gridlines give the scale, and the bar holding today, the
+	// newest unless now says otherwise, carries its number.
 	type Part = { values: number[]; cls: string };
 	let {
 		parts,
 		height = 120,
 		ticks,
 		small = false,
+		now,
 		format = (n: number) => String(Math.round(n))
-	}: { parts: Part[]; height?: number; ticks?: string[]; small?: boolean; format?: (n: number) => string } = $props();
+	}: { parts: Part[]; height?: number; ticks?: string[]; small?: boolean; now?: number; format?: (n: number) => string } = $props();
 
 	const totals = $derived(parts[0].values.map((_, i) => parts.reduce((s, p) => s + p.values[i], 0)));
+	const at = $derived(now ?? totals.length - 1);
 	const max = $derived(Math.max(...totals, 0));
 	// The smallest round step that splits the tallest bar into at most four.
 	const step = $derived.by(() => {
@@ -31,12 +33,11 @@
 	const gap = $derived(small ? 1.5 : totals.length > 16 ? 2 : 4);
 </script>
 
-<Chart n={totals.length} {height} {grid} {ticks} {small}>
+<Chart n={totals.length} {height} {grid} {ticks} {small} now={at}>
 	<div class="absolute inset-0 flex items-end" style:gap="{gap}px" style:padding-inline="{gap / 2}px">
 		{#each totals as total, i (i)}
-			{@const now = i === totals.length - 1}
 			<span class="relative flex h-full min-w-0 flex-1 flex-col justify-end">
-				{#if !small && total && now && totals.length <= 16}
+				{#if !small && total && i === at && totals.length <= 16}
 					<span class="absolute digits text-[15px] leading-none whitespace-nowrap text-ink inset-x-[-8px] text-center" style:bottom="{(total / ceiling) * plot + 5}px"
 						>{format(total)}</span
 					>
