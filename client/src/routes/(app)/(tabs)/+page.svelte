@@ -4,7 +4,7 @@
 	import { describe } from '$lib/api';
 	import Bars from '$lib/Bars.svelte';
 	import Button from '$lib/Button.svelte';
-	import { addDays, cycleWeek, daysBetween, formatDate } from '$lib/dates';
+	import { addDays, cycleWeek, dayDate, daysBetween, formatDate, fullDate } from '$lib/dates';
 	import { formatDuration } from '$lib/exercise';
 	import FormError from '$lib/FormError.svelte';
 	import HeroCard from '$lib/HeroCard.svelte';
@@ -66,7 +66,7 @@
 	// A run belongs to the day it was done, and to the planned day it ran for.
 	const done = $derived(finished.filter((r) => r.local_date === shown || shownDays.some((d) => d.run === r.id)));
 
-	const date = $derived(formatDate(shown, { weekday: 'long', day: 'numeric', month: 'long' }));
+	const date = $derived(fullDate(shown));
 
 	function away(n: number) {
 		if (n === 1) return 'tomorrow';
@@ -76,7 +76,7 @@
 
 	function when(date: string) {
 		const n = daysBetween(data.today, date);
-		return n === 1 ? 'Tomorrow' : n < 7 ? formatDate(date, { weekday: 'long' }) : formatDate(date, { weekday: 'short', day: 'numeric', month: 'short' });
+		return n === 1 ? 'Tomorrow' : n < 7 ? formatDate(date, { weekday: 'long' }) : dayDate(date);
 	}
 
 	const cycle = $derived(data.cycles.find((c) => c.starts <= data.today && data.today <= c.ends));

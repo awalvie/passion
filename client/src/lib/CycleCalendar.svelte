@@ -1,6 +1,6 @@
 <script lang="ts">
 	import FormError from './FormError.svelte';
-	import { byDate, formatDate, gridWeeks, weekdayLetters } from './dates';
+	import { byDate, formatDate, fullDate, gridWeeks, weekdayLetters } from './dates';
 	import type { Cycle, ScheduledDay } from './plan';
 	import SessionIcon, { iconState } from './SessionIcon.svelte';
 	import { plural } from './text';
@@ -141,7 +141,7 @@
 							{lifted && !target(date) && date !== lifted.local_date ? 'opacity-40' : ''}"
 						disabled={!inCycle(date)}
 						aria-pressed={date === selected}
-						aria-label="{formatDate(date, { weekday: 'long', day: 'numeric', month: 'long' })}{list.length
+						aria-label="{fullDate(date)}{list.length
 							? `: ${list.map((d) => d.template_name).join(', ')}`
 							: ''}"
 						onclick={() => {
@@ -196,7 +196,7 @@
 	class="rounded-3xl px-[18px] pt-3.5 pb-2 shadow-card {lifted ? 'bg-tint/25 outline-2 -outline-offset-2 outline-dashed outline-ink-3' : 'bg-surface'}"
 	aria-live="polite"
 >
-	<h3 class="text-[15px] font-bold">{formatDate(panel, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
+	<h3 class="text-[15px] font-bold">{fullDate(panel)}</h3>
 	{#if lifted}
 		<p class="pt-1 pb-2.5 text-[15px] font-semibold text-ink-2">
 			{over ? `Drop to move ${lifted.template_name} here` : 'Drag onto a day from today on'}

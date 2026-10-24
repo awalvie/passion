@@ -74,3 +74,13 @@ export function shortDate(date: string): string {
 export function weekday(date: string): string {
 	return formatDate(date, { weekday: 'short' });
 }
+
+// fullDate is a date as Thursday 1 October, in the reader's order.
+export function fullDate(date: string): string {
+	return formatDate(date, { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+// dayDate is a date as Thu 1 Oct, in the reader's order.
+export function dayDate(date: string): string {
+	return formatDate(date, { weekday: 'short', day: 'numeric', month: 'short' });
+}

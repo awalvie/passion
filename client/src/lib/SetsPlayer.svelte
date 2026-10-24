@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { request } from './api';
 	import ExerciseHistory from './ExerciseHistory.svelte';
-	import { formatDate } from './dates';
+	import { dayDate } from './dates';
 	import Icon from './Icon.svelte';
 	import { isFinished, setsOf, type HistorySession, type RunStep, type SetFields } from './run';
 	import { openRun } from './runState.svelte';
@@ -109,7 +109,6 @@
 	const finished = $derived(isFinished(step) && !leaving);
 	const current = $derived(finished ? -1 : doneSets);
 	const select = (e: FocusEvent) => (e.currentTarget as HTMLInputElement).select();
-	const day = (date: string) => formatDate(date, { weekday: 'short', day: 'numeric', month: 'short' });
 </script>
 
 {#snippet field(k: number, key: 'reps' | 'weight_kg', state: 'done' | 'now' | 'later', label: string)}
@@ -144,7 +143,7 @@
 						onclick={() => (browsing = true)}
 					>
 						<span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--glass) text-(--fg)"><Icon name="history" size="15px" stroke={2.4} /></span>
-						<span class="min-w-0 flex-1 truncate">Last time · <b class="text-(--fg)">{day(history.local_date)}</b></span>
+						<span class="min-w-0 flex-1 truncate">Last time · <b class="text-(--fg)">{dayDate(history.local_date)}</b></span>
 						<span class="flex items-center gap-1">History<Icon name="chevron-right" size="16px" stroke={2.6} /></span>
 					</button>
 				</li>
