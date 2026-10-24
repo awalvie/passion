@@ -177,7 +177,7 @@ func readScope(exercises []Exercise, trees []Tree) (scope, []error, []string) {
 			continue
 		}
 		for _, rel := range entries {
-			slug := strings.TrimSuffix(path.Base(rel), ".yaml")
+			slug := slugOf(rel)
 			if first, ok := s.paths[slug]; ok {
 				problems = append(problems, fmt.Errorf("%s: %s and %s: %s: the same file name, so the same block. Rename one",
 					s.tree[slug], first, tree.Name, rel))
@@ -350,7 +350,7 @@ type brokenBlock struct{ err error }
 func (b *brokenBlock) Error() string { return b.err.Error() }
 
 func (r resolver) session(tree Tree, rel string) (Session, error) {
-	slug := strings.TrimSuffix(path.Base(rel), ".yaml")
+	slug := slugOf(rel)
 	var f sessionFile
 	if err := decodeFile(tree, rel, &f); err != nil {
 		return Session{}, err
@@ -462,6 +462,10 @@ func readDir(tree Tree, dir string) ([]string, error) {
 		files = append(files, rel)
 	}
 	return files, nil
+}
+
+func slugOf(rel string) string {
+	return strings.TrimSuffix(path.Base(rel), ".yaml")
 }
 
 // decodeFile reads one YAML document into v, and refuses any key v lacks.

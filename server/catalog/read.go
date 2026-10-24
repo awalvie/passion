@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"path"
 	"regexp"
 	"sort"
 	"strings"
@@ -104,7 +103,7 @@ func Read(trees ...Tree) ([]Exercise, error) {
 }
 
 func readFile(tree Tree, rel string) (Exercise, error) {
-	slug := strings.TrimSuffix(path.Base(rel), ".yaml")
+	slug := slugOf(rel)
 
 	var f movementFile
 	if err := decodeFile(tree, rel, &f); err != nil {
