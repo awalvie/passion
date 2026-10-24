@@ -21,7 +21,9 @@ on Go templates, HTMX and SQLite, is tagged `v1`.
 
 Accounts, authentication, an exercise library, session templates and runs, through the API.
 The client is a phone app with four tabs. Today shows the day's planned sessions and starts
-one, or an open session. A tap on a planned day in the week strip shows that day instead.
+one, or an open session. On a rest day it shows the next session. It counts the week's
+sessions done against planned, names the missed ones, and shows the hours trained this week
+against the usual. A tap on a planned day in the week strip shows that day instead.
 A session's page shows its runs, the last note and loads, and the next drill to try, with
 its exercises on a second tab. A running session follows you across the tabs as a mini
 player. Plan lists the sessions from a week ago to four weeks ahead. It
