@@ -226,7 +226,7 @@
 								{/snippet}
 								<li class="list-row">
 									{#if d.status === 'planned' || d.status === 'missed'}
-										<details>
+										<details class="group">
 											<summary class="flex min-h-[58px] cursor-pointer list-none items-center gap-3.5 py-2 [&::-webkit-details-marker]:hidden">
 												{@render row()}
 												{#if d.status === 'planned' && d.local_date === data.today && !data.live}
@@ -243,6 +243,8 @@
 													>
 														<Icon name="play" size="1.125rem" />
 													</button>
+												{:else}
+													<span class="shrink-0 text-ink-3 transition-transform group-open:rotate-90"><Icon name="chevron-right" size="1rem" /></span>
 												{/if}
 											</summary>
 											<form
@@ -267,6 +269,7 @@
 									{:else}
 										<a href={d.status === 'done' ? `/history/${d.run}` : `/run/${d.run}`} class="flex min-h-[58px] items-center gap-3.5 py-2">
 											{@render row()}
+											<span class="shrink-0 text-ink-3"><Icon name="chevron-right" size="1rem" /></span>
 										</a>
 									{/if}
 								</li>
