@@ -264,7 +264,7 @@ func readExerciseRequest(w http.ResponseWriter, r *http.Request) (db.ExerciseFie
 func (req exerciseRequest) fields() db.ExerciseFields {
 	media := make([]db.Media, 0, len(req.Media))
 	for _, m := range req.Media {
-		media = append(media, db.Media{URL: m.URL, ThumbURL: m.ThumbURL})
+		media = append(media, db.Media(m))
 	}
 	return db.ExerciseFields{
 		Name:            req.Name,
@@ -288,7 +288,7 @@ func (req exerciseRequest) fields() db.ExerciseFields {
 func toMediaBodies(media []db.Media) []mediaBody {
 	out := make([]mediaBody, 0, len(media))
 	for _, m := range media {
-		out = append(out, mediaBody{URL: m.URL, ThumbURL: m.ThumbURL})
+		out = append(out, mediaBody(m))
 	}
 	return out
 }

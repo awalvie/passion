@@ -600,7 +600,7 @@ func (s *Server) replaceSets(w http.ResponseWriter, r *http.Request, who db.Auth
 	}
 	sets := make([]db.SetFields, 0, len(req.Sets))
 	for _, set := range req.Sets {
-		sets = append(sets, db.SetFields{Reps: set.Reps, Seconds: set.Seconds, RepSeconds: set.RepSeconds, WeightKG: set.WeightKG})
+		sets = append(sets, db.SetFields(set))
 	}
 	if problems := db.CheckSets(sets); len(problems) > 0 {
 		writeFieldErrors(w, problems)
@@ -828,15 +828,7 @@ func (req runRequest) fields() db.RunFields {
 		ElapsedSeconds: req.ElapsedSeconds,
 		Place:          req.Place,
 		Notes:          req.Notes,
-		Journal: db.Journal{
-			Sleep:     req.Sleep,
-			Energy:    req.Energy,
-			RPE:       req.RPE,
-			Focus:     req.Focus,
-			Setting:   req.Setting,
-			WentWell:  req.WentWell,
-			NextFocus: req.NextFocus,
-		},
+		Journal:        db.Journal(req.journalBody),
 	}
 }
 
@@ -935,17 +927,9 @@ func toRunResponse(run db.Run) runResponse {
 		ElapsedSeconds: run.ElapsedSeconds,
 		Place:          run.Place,
 		Notes:          run.Notes,
-		journalBody: journalBody{
-			Sleep:     j.Sleep,
-			Energy:    j.Energy,
-			RPE:       j.RPE,
-			Focus:     j.Focus,
-			Setting:   j.Setting,
-			WentWell:  j.WentWell,
-			NextFocus: j.NextFocus,
-		},
-		Sets:   toSetBodies(run.Sets),
-		Climbs: toClimbBodies(run.Climbs),
+		journalBody:    journalBody(j),
+		Sets:           toSetBodies(run.Sets),
+		Climbs:         toClimbBodies(run.Climbs),
 	}
 }
 
