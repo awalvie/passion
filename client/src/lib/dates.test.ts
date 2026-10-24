@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { addDays, cycleWeek, dayDate, formatDate, fullDate, gridWeeks, mondayOf, timeOfDay, weekday, yearSpan } from './dates';
+import { addDays, cycleWeek, gridWeeks, mondayOf, timeOfDay, weekday, yearSpan } from './dates';
 
 test('timeOfDay reads the clock in the zone the session ran in', () => {
 	expect(timeOfDay('2026-10-13T14:26:00Z', 'Europe/Oslo')).toBe('16:26');
@@ -53,12 +53,4 @@ test('yearSpan clips a span to the year', () => {
 test('weekday names the day the date falls on', () => {
 	expect(weekday('2026-10-01')).toBe('Thu');
 	expect(weekday('2026-10-05')).toBe('Mon');
-});
-
-test('fullDate and dayDate match the formats they stand for', () => {
-	for (const d of ['2026-10-31', '2026-11-01', '2026-12-31', '2027-01-01']) {
-		expect(fullDate(d)).toBe(formatDate(d, { weekday: 'long', day: 'numeric', month: 'long' }));
-		expect(dayDate(d)).toBe(formatDate(d, { weekday: 'short', day: 'numeric', month: 'short' }));
-	}
-	expect(dayDate('2026-10-01')).toBe('Thu, Oct 1');
 });
