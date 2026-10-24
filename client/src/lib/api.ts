@@ -1,3 +1,4 @@
+import { error } from '@sveltejs/kit';
 import { goto } from '$app/navigation';
 import { clearToken, token } from './session';
 
@@ -15,6 +16,13 @@ export class RequestFailed extends Error {
 	) {
 		super(error.message);
 	}
+}
+
+// notFound is a loader's catch: a 404 from the server shows the page's own Not
+// found, and every other failure goes on as it was.
+export function notFound(e: unknown): never {
+	if (e instanceof RequestFailed && e.status === 404) error(404, 'Not found');
+	throw e;
 }
 
 // A GET answer is kept for two minutes, so going back to a page shows it at

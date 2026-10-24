@@ -1,5 +1,4 @@
-import { error } from '@sveltejs/kit';
-import { RequestFailed, request } from '$lib/api';
+import { notFound, request } from '$lib/api';
 import { loadCentres } from '$lib/centres';
 import { addDays } from '$lib/dates';
 import { loadToday, type ScheduledDay } from '$lib/plan';
@@ -29,7 +28,6 @@ export async function load({ params, parent }) {
 		]);
 		return { template, centres, runs: past, last, next };
 	} catch (e) {
-		if (e instanceof RequestFailed && e.status === 404) error(404, 'Not found');
-		throw e;
+		notFound(e);
 	}
 }

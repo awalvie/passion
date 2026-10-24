@@ -1,5 +1,5 @@
-import { error, redirect } from '@sveltejs/kit';
-import { RequestFailed, request } from '$lib/api';
+import { redirect } from '@sveltejs/kit';
+import { notFound, request } from '$lib/api';
 import { loadExercises, sourcesOf } from '$lib/exercise';
 import type { SessionTemplate } from '$lib/template';
 
@@ -12,7 +12,6 @@ export async function load({ params }) {
 		if (template.shipped || template.retired_at) redirect(307, `/templates/${params.id}`);
 		return { template, exercises, sources: sourcesOf(exercises) };
 	} catch (e) {
-		if (e instanceof RequestFailed && e.status === 404) error(404, 'Not found');
-		throw e;
+		notFound(e);
 	}
 }
