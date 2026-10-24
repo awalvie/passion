@@ -1,14 +1,14 @@
 import { request } from '$lib/api';
 import { addDays, mondayOf } from '$lib/dates';
 import { loadToday, type Cycle, type ScheduledDay } from '$lib/plan';
-import type { SessionTemplate } from '$lib/template';
+import { loadTemplates } from '$lib/template';
 
 export async function load({ params }) {
-	const [today, cycle, { cycles }, { session_templates }] = await Promise.all([
+	const [today, cycle, { cycles }, templates] = await Promise.all([
 		loadToday(),
 		request<Cycle>('GET', `/api/v1/cycles/${params.id}`),
 		request<{ cycles: Cycle[] }>('GET', '/api/v1/cycles'),
-		request<{ session_templates: SessionTemplate[] }>('GET', '/api/v1/session-templates')
+		loadTemplates()
 	]);
 	// One call covers the cycle and this week, which may lie outside it.
 	const monday = mondayOf(today);
@@ -19,7 +19,7 @@ export async function load({ params }) {
 		today,
 		monday,
 		cycle,
-		templates: session_templates,
+		templates,
 		// Every row in the cycle's dates, so a day another cycle or a one-off
 		// holds does not look free.
 		days: days.filter((d) => d.local_date >= cycle.starts && d.local_date <= cycle.ends),
