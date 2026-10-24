@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatDate, timeOfDay } from '$lib/dates';
+	import { fullDate, timeOfDay } from '$lib/dates';
 	import { formatDuration } from '$lib/exercise';
 	import Icon from '$lib/Icon.svelte';
 	import NavBar from '$lib/NavBar.svelte';
@@ -18,7 +18,7 @@
 	);
 	const when = $derived(
 		[
-			formatDate(run.local_date, { weekday: 'long', day: 'numeric', month: 'long' }),
+			fullDate(run.local_date),
 			[run.started_at, ended].flatMap((t) => (t ? [timeOfDay(t, run.timezone)] : [])).join('–'),
 			run.elapsed_seconds !== null && formatDuration(Math.max(1, Math.round(run.elapsed_seconds / 60)) * 60)
 		]

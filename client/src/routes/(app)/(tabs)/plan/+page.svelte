@@ -6,7 +6,7 @@
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
 	import CycleYear from '$lib/CycleYear.svelte';
-	import { addDays, cycleWeek, daysBetween, formatDate, mondayOf, shortDate } from '$lib/dates';
+	import { addDays, cycleWeek, daysBetween, formatDate, fullDate, mondayOf, shortDate } from '$lib/dates';
 	import DateField from '$lib/DateField.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
@@ -172,7 +172,7 @@
 		<div>
 			<h1 class="page-title">Plan</h1>
 			{#if data.today}
-				<p class="mt-1 text-[15px] font-semibold text-ink-2">{formatDate(data.today, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+				<p class="mt-1 text-[15px] font-semibold text-ink-2">{fullDate(data.today)}</p>
 			{/if}
 		</div>
 		{#if !data.offline}
