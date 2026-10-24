@@ -13,12 +13,17 @@
 		filterGroups,
 		filterName,
 		filterQuery,
+		flashRate,
+		goesPerSend,
 		gradeScale,
 		grades,
 		hours,
 		isBoulder,
+		mixOf,
 		monthsBack,
 		passes,
+		perBucket,
+		sendRate,
 		type ClimbFilter,
 		type FilterGroup
 	} from '$lib/progress';
@@ -29,11 +34,13 @@
 
 	const href = (view: string, range: string, filter = data.filter) => `?view=${view}&range=${range}${filterQuery(filter)}`;
 	const round = (h: number) => Math.round(h * 10) / 10;
+	const pct = (v: number | null) => (v === null ? '–' : `${v}%`);
 	const ticks = $derived(data.buckets.map((b) => b.tick));
 	// A week still to come counts for nothing in an average.
 	const passed = $derived(data.now === -1 ? data.buckets.length : data.now + 1);
 	const boulderFill = 'bg-chart';
 	const routeFill = 'bg-chart/50';
+	const line = (points: (number | null)[]) => points.flatMap((v, i) => (v === null ? [] : [{ i, v, best: true }]));
 
 	// Two ranges sit on the row; Custom opens the rest.
 	const suggested = $derived([
@@ -79,7 +86,16 @@
 	const shown = $derived(data.climbs.filter((c) => passes(c, data.filter)));
 	const climbs = $derived(counts(shown, data.buckets));
 	const sent = $derived(shown.filter((c) => c.sent).length);
+	const sendRates = $derived(perBucket(shown, data.buckets, sendRate));
+	const flashRates = $derived(perBucket(shown, data.buckets, flashRate));
+	// Where the climbing was, most first.
+	const mix = $derived.by(() => {
+		const m = new Map<string, number>();
+		for (const c of shown) m.set(mixOf(c), (m.get(mixOf(c)) ?? 0) + 1);
+		return [...m].sort((a, b) => b[1] - a[1]);
+	});
 
+	// Boulders and routes apart, as their grades are on different scales.
 	const disciplines = $derived(
 		[
 			{ label: 'Boulders', climbs: shown.filter(isBoulder) },
@@ -123,6 +139,13 @@
 
 {#snippet key(cls: string, label: string)}
 	<span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full {cls}"></span>{label}</span>
+{/snippet}
+
+{#snippet head(title: string, figure?: string, small?: string)}
+	<div class="flex items-baseline justify-between gap-3">
+		<h2 class="text-[15px] font-bold">{title}</h2>
+		{#if figure}<span class="text-xs font-semibold text-ink-2">{small} <span class="digits text-[17px] text-ink">{figure}</span></span>{/if}
+	</div>
 {/snippet}
 
 <NavBar back={{ href: '/history', label: 'History' }} title="Progress" />
@@ -225,20 +248,38 @@
 				{#if shown.some((c) => !isBoulder(c))}{@render key(routeFill, 'Routes')}{/if}
 			</div>
 		</section>
+		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
+			{@render head('Send rate', pct(sendRate(shown)), 'Overall')}
+			<Dots n={data.buckets.length} marks={line(sendRates)} label={(v) => `${v}%`} zero {ticks} now={data.now} />
+		</section>
+		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
+			<h2 class="text-[15px] font-bold">First go</h2>
+			<dl class="grid grid-cols-3 gap-3">
+				{@render stat('Flash rate', pct(flashRate(shown)))}
+				{@render stat('Goes a send', goesPerSend(shown) ?? '–')}
+			</dl>
+			<Dots n={data.buckets.length} marks={line(flashRates)} label={(v) => `${v}%`} zero {ticks} now={data.now} />
+			<p class="-mt-2 text-xs font-semibold text-ink-2">Flash rate each {data.per}</p>
+		</section>
+		<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-3 shadow-card">
+			<h2 class="mb-2 text-[15px] font-bold">Where</h2>
+			<ul class="flex flex-col gap-3">
+				{#each mix as [where, n] (where)}
+					<li class="flex flex-col gap-1.5">
+						<span class="flex items-baseline justify-between gap-3 text-[15px] font-bold">
+							{where}
+							<span class="digits">{n}</span>
+						</span>
+						<span class="h-2 rounded-full bg-well"><span class="block h-full rounded-full bg-chart" style:width="{(n / mix[0][1]) * 100}%"></span></span>
+					</li>
+				{/each}
+			</ul>
+		</section>
 	{:else}
 		{#each disciplines as d (d.label)}
 			<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-				<div class="flex items-baseline justify-between gap-3">
-					<h2 class="text-[15px] font-bold">{d.label}</h2>
-					{#if d.top}<span class="text-xs font-semibold text-ink-2">Hardest send <span class="digits text-[17px] text-ink">{d.top}</span></span>{/if}
-				</div>
-				<Dots
-					n={d.points.length}
-					marks={d.points.flatMap((v, i) => (v === null ? [] : [{ i, v, best: true }]))}
-					label={(g) => d.scale.grades[g]}
-					{ticks}
-					now={data.now}
-				/>
+				{@render head(d.label, d.top ?? undefined, 'Hardest send')}
+				<Dots n={d.points.length} marks={line(d.points)} label={(g) => d.scale.grades[g]} {ticks} now={data.now} />
 			</section>
 		{:else}
 			<section class="rounded-3xl bg-surface p-5 shadow-card">

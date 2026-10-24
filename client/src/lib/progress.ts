@@ -138,6 +138,38 @@ export const passes = (c: Pick<Climb, FilterGroup>, f: ClimbFilter) =>
 	(!f.setting.length || f.setting.includes(c.setting)) &&
 	(!f.board.length || (isBoulder(c) ? f.board.includes(c.board ?? '') : f.discipline.includes(c.discipline)));
 
+// mixOf is where a climb was, for the mix of climbing: on which board, in
+// the gym or outside.
+export function mixOf(c: Pick<Climb, FilterGroup>): string {
+	if (!isBoulder(c)) return c.setting === 'outdoor' ? 'Outdoor routes' : 'Indoor routes';
+	if (c.setting === 'outdoor') return 'Outdoor boulders';
+	return c.board && c.board !== 'none' ? `${boards[c.board as keyof typeof boards]} board` : 'Gym boulders';
+}
+
+// The rates below count graded climbs only: an ungraded climb is never a send.
+const graded = <T extends Pick<Climb, 'grade_system'>>(climbs: T[]) => climbs.filter((c) => c.grade_system);
+const percent = (part: number, whole: number) => (whole ? Math.round((part / whole) * 100) : null);
+
+// sendRate is the share of graded climbs sent, as a whole percent.
+export const sendRate = (climbs: Pick<Climb, 'sent' | 'grade_system'>[]) => percent(graded(climbs).filter((c) => c.sent).length, graded(climbs).length);
+
+// flashRate is the share of graded climbs sent on the first go.
+export const flashRate = (climbs: Pick<Climb, 'goes' | 'grade_system'>[]) => percent(graded(climbs).filter((c) => c.goes[0] === 'send').length, graded(climbs).length);
+
+// goesPerSend is how many goes a send took on average, to one decimal.
+export function goesPerSend(climbs: Pick<Climb, 'goes' | 'sent'>[]): number | null {
+	const sent = climbs.filter((c) => c.sent);
+	return sent.length ? Math.round((sent.reduce((n, c) => n + c.goes.indexOf('send') + 1, 0) / sent.length) * 10) / 10 : null;
+}
+
+// perBucket is a figure for each bucket's climbs, null for a bucket without any.
+export function perBucket<T extends DatedClimb>(climbs: T[], bs: Bucket[], figure: (cs: T[]) => number | null): (number | null)[] {
+	return bs.map((b) => {
+		const mine = climbs.filter((c) => within(b, c.local_date));
+		return mine.length ? figure(mine) : null;
+	});
+}
+
 // counts is the number of climbs in each bucket, boulders and routes apart.
 export function counts(climbs: DatedClimb[], bs: Bucket[]): { boulders: number; routes: number }[] {
 	return bs.map((b) => {

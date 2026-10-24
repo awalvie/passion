@@ -7,17 +7,23 @@ import {
 	climbMarks,
 	figure,
 	filterName,
+	flashRate,
+	goesPerSend,
+	mixOf,
 	filterQuery,
 	headline,
 	measure,
 	monthsBack,
 	passes,
+	perBucket,
 	readFilter,
 	readSpan,
+	sendRate,
 	setMarks,
 	setValue,
 	tenWeeks,
-	topSend
+	topSend,
+	type DatedClimb
 } from './progress';
 import type { Climb, HistorySession, SetFields } from './run';
 
@@ -115,6 +121,38 @@ test('filterName says what the filter shows', () => {
 	expect(name('board=tension,spray')).toBe('Tension, Spray boulders');
 	expect(name('discipline=boulder&setting=outdoor')).toBe('Outdoor boulders');
 	expect(name('setting=indoor')).toBe('Indoor climbs');
+});
+
+test('mixOf says where a climb was', () => {
+	const c = (discipline: string, setting: string, board: string | null) => mixOf({ discipline, setting, board } as Climb);
+	expect([c('boulder', 'indoor', 'moon'), c('boulder', 'indoor', 'none'), c('boulder', 'outdoor', null), c('trad', 'outdoor', null), c('sport', 'indoor', null)]).toEqual([
+		'Moon board',
+		'Gym boulders',
+		'Outdoor boulders',
+		'Outdoor routes',
+		'Indoor routes'
+	]);
+});
+
+test('the rates count graded climbs only', () => {
+	const go = (grade: string | null, goes: string[]) => ({ grade, grade_system: grade && 'font', goes, sent: goes.includes('send') }) as Climb;
+	const cs = [go('6a', ['send']), go('6a', ['attempt', 'attempt', 'send']), go('6a', ['attempt']), go(null, ['send'])];
+	expect(sendRate(cs)).toBe(67);
+	expect(flashRate(cs)).toBe(33);
+	expect(goesPerSend(cs.slice(0, 3))).toBe(2);
+	expect(sendRate([go(null, ['send'])])).toBeNull();
+	expect(goesPerSend([])).toBeNull();
+});
+
+test('perBucket gives each bucket its own figure and null where it has no climbs', () => {
+	const bs = [
+		{ from: '2026-10-05', to: '2026-10-11', tick: '' },
+		{ from: '2026-10-12', to: '2026-10-18', tick: '' },
+		{ from: '2026-10-19', to: '2026-10-25', tick: '' }
+	];
+	const at = (local_date: string, grade: string, sent: boolean) => ({ ...climb(grade, sent), local_date, run: 'r' }) as DatedClimb;
+	const cs = [at('2026-10-05', '6a', true), at('2026-10-11', '6a', false), at('2026-10-19', '6a', true)];
+	expect(perBucket(cs, bs, sendRate)).toEqual([50, null, 100]);
 });
 
 test('topSend is the hardest sent climb on the scale', () => {
