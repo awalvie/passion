@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Bars from '$lib/Bars.svelte';
 	import { formatDate, weekday } from '$lib/dates';
-	import { formatDuration } from '$lib/exercise';
+	import { formatMinutes } from '$lib/exercise';
 	import Dots from '$lib/Dots.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import { counts, gradeScale, grades, hours, isBoulder } from '$lib/progress';
@@ -20,7 +20,7 @@
 	});
 
 	function facts(r: RunSummary) {
-		const length = r.elapsed_seconds === null ? '' : formatDuration(Math.max(1, Math.round(r.elapsed_seconds / 60)) * 60);
+		const length = r.elapsed_seconds === null ? '' : formatMinutes(r.elapsed_seconds);
 		return [length, r.place].filter(Boolean).join(' · ');
 	}
 

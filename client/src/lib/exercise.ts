@@ -196,3 +196,9 @@ export function formatDuration(seconds: number): string {
 	].filter(([n]) => n);
 	return parts.map(([n, unit]) => `${n}${unit}`).join(' ') || '0s';
 }
+
+// formatMinutes is a length rounded to the nearest minute, as 1h 31m, and never
+// less than 1m.
+export function formatMinutes(seconds: number): string {
+	return formatDuration(Math.max(1, Math.round(seconds / 60)) * 60);
+}
