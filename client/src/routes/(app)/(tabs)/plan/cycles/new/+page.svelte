@@ -59,7 +59,6 @@
 		error = '';
 		try {
 			const body = $state.snapshot(draft);
-			body.days = body.days.filter((d) => d.day <= body.block_days);
 			const { leftOut } = await saveCycle(body);
 			await goto(`/plan/cycles/${draft.id}`, { replaceState: true, state: { leftOut } });
 		} catch (e) {
