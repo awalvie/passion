@@ -6,12 +6,18 @@
 	import { fieldLabel, kindOf, toBody, toDraft, type Count } from '$lib/exercise';
 	import ExerciseForm from '$lib/ExerciseForm.svelte';
 	import FormError from '$lib/FormError.svelte';
+	import { guardUnsaved } from '$lib/unsaved';
+	import { untrack } from 'svelte';
 
 	let { data } = $props();
 
 	let draft = $state(toDraft());
 	let error = $state('');
 	let busy = $state(false);
+
+	const clean = untrack(() => JSON.stringify(draft));
+	let leaving = false;
+	guardUnsaved(() => !leaving && JSON.stringify(draft) !== clean);
 
 	const shown = (c: Count) => kindOf(draft.kind).counts.includes(c);
 
@@ -21,6 +27,7 @@
 		busy = true;
 		try {
 			await request('POST', '/api/v1/exercises', toBody(draft, shown));
+			leaving = true;
 			await goto('/exercises');
 			notice.text = 'Exercise saved';
 		} catch (e) {

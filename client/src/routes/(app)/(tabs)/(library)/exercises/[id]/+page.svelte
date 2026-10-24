@@ -10,6 +10,7 @@
 	import Icon from '$lib/Icon.svelte';
 	import Menu from '$lib/Menu.svelte';
 	import NavBar from '$lib/NavBar.svelte';
+	import { guardUnsaved } from '$lib/unsaved';
 	import { untrack } from 'svelte';
 
 	let { data } = $props();
@@ -19,6 +20,10 @@
 	let draft = $state(toDraft(saved));
 	let error = $state('');
 	let busy = $state(false);
+
+	const clean = untrack(() => JSON.stringify(draft));
+	let leaving = false;
+	guardUnsaved(() => !leaving && JSON.stringify(draft) !== clean);
 
 	const locked = saved.shipped
 		? 'The app ships this exercise, so it cannot be changed.'
@@ -39,6 +44,7 @@
 		busy = true;
 		try {
 			await request('PUT', `/api/v1/exercises/${saved.id}`, toBody(draft, shown));
+			leaving = true;
 			await goto(from ?? '/exercises');
 			notice.text = 'Exercise saved';
 		} catch (e) {
@@ -56,6 +62,7 @@
 		busy = true;
 		try {
 			await request('POST', `/api/v1/exercises/${saved.id}/retire`);
+			leaving = true;
 			await goto(from ?? '/exercises');
 		} catch (e) {
 			error = describe(e, fieldLabel);
