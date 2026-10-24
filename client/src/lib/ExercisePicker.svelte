@@ -13,7 +13,7 @@
 
 	const matches = $derived.by(() => {
 		const needle = q.trim().toLowerCase();
-		return needle ? exercises.filter((e) => e.name.toLowerCase().includes(needle)).slice(0, 8) : [];
+		return needle ? exercises.filter((e) => e.name.toLowerCase().includes(needle)) : [];
 	});
 
 	function choose(e: Exercise) {
@@ -45,7 +45,9 @@
 		onkeydown={key}
 	/>
 	{#if q.trim()}
-		<div class="mt-2 overflow-hidden [&>:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)] rounded-2xl bg-surface shadow-card-sm">
+		<div
+			class="mt-2 max-h-80 overflow-y-auto overscroll-contain [&>:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)] rounded-2xl bg-surface shadow-card-sm"
+		>
 			{#each matches as e (e.id)}
 				<button
 					type="button"
