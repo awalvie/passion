@@ -241,6 +241,8 @@ type runSummaryBody struct {
 	//
 	// example: Europe/London
 	Timezone string `json:"timezone"`
+	// True when the journal, notes or place has anything in it.
+	HasJournal bool `json:"has_journal"`
 }
 
 // swagger:model runListResponse
@@ -277,6 +279,7 @@ func (s *Server) listRuns(w http.ResponseWriter, r *http.Request, who db.Authent
 			FinishedAt:     run.FinishedAt,
 			ElapsedSeconds: run.ElapsedSeconds,
 			Place:          run.Place,
+			HasJournal:     run.HasJournal,
 		})
 	}
 	writeJSON(w, http.StatusOK, out)

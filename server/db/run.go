@@ -103,6 +103,8 @@ type RunSummary struct {
 	FinishedAt     *time.Time `db:"finished_at"`
 	ElapsedSeconds *int       `db:"elapsed_seconds"`
 	Place          *string    `db:"place"`
+	// Anything written in the journal, notes or place, as History shows it.
+	HasJournal bool `db:"has_journal"`
 }
 
 // ErrNoRun covers a run that does not exist and one this person cannot see.
@@ -215,7 +217,8 @@ func NewID() string {
 // ListRuns is every run of the person's, finished or not, newest day first.
 func ListRuns(ctx context.Context, pool *pgxpool.Pool, owner string) ([]RunSummary, error) {
 	rows, err := pool.Query(ctx, `
-		SELECT id, template, name, local_date, started_at, timezone, finished_at, elapsed_seconds, place
+		SELECT id, template, name, local_date, started_at, timezone, finished_at, elapsed_seconds, place,
+			num_nonnulls(sleep, energy, rpe, focus, setting, went_well, next_focus, notes, place) > 0 AS has_journal
 		FROM run
 		WHERE owner = $1
 		ORDER BY local_date DESC, started_at DESC, id DESC`, owner)

@@ -287,6 +287,29 @@ func TestListRuns(t *testing.T) {
 	if !slices.Equal(names, []string{"Thursday", "Tuesday"}) {
 		t.Fatalf("listed %q, want Ada's, newest day first", names)
 	}
+	if list[0].HasJournal || list[1].HasJournal {
+		t.Fatalf("listed %+v, want no journal yet", list)
+	}
+
+	f, problems := db.RunFields{
+		Name:      list[1].Name,
+		StartedAt: list[1].StartedAt,
+		LocalDate: list[1].LocalDate,
+		Journal:   db.Journal{RPE: ptr(7)},
+	}.Clean()
+	if len(problems) != 0 {
+		t.Fatalf("problems %v", problems)
+	}
+	if _, err := db.UpdateRun(ctx, pool, ada, list[1].ID, f); err != nil {
+		t.Fatal(err)
+	}
+	list, err = db.ListRuns(ctx, pool, ada)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if list[0].HasJournal || !list[1].HasJournal {
+		t.Fatalf("listed %+v, want only Tuesday with a journal", list)
+	}
 }
 
 func TestDeleteRun(t *testing.T) {

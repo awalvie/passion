@@ -3247,6 +3247,11 @@
           "format": "date-time",
           "x-go-name": "FinishedAt"
         },
+        "has_journal": {
+          "description": "True when the journal, notes or place has anything in it.",
+          "type": "boolean",
+          "x-go-name": "HasJournal"
+        },
         "id": {
           "type": "string",
           "x-go-name": "ID"
