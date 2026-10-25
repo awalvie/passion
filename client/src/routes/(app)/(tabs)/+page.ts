@@ -35,15 +35,7 @@ export async function load({ parent }) {
 				.sort((a, b) => a.local_date.localeCompare(b.local_date))[0] ?? null;
 		// Only someone who has logged nothing yet sees the first-week card.
 		const { runs } = await parent();
-		const [templates, centres] = await Promise.all([
-			Promise.all(
-				// The whole week's, so a tap on another day needs no load.
-				[...new Set([...week, ...(next ? [next] : [])].map((d) => d.template))].map((id) =>
-					request<SessionTemplate>('GET', `/api/v1/session-templates/${id}`)
-				)
-			),
-			runs?.length === 0 ? loadCentres().then((c) => c.length) : null
-		]);
+		const centres = runs?.length === 0 ? (await loadCentres()).length : null;
 		await live;
 		return {
 			today,
@@ -52,7 +44,6 @@ export async function load({ parent }) {
 			days,
 			next,
 			cycles,
-			templates: new Map(templates.map((t) => [t.id, t])),
 			library,
 			centres,
 			offline: false
@@ -69,7 +60,6 @@ export async function load({ parent }) {
 			days: [] as ScheduledDay[],
 			next: null,
 			cycles: [] as Cycle[],
-			templates: new Map<string, SessionTemplate>(),
 			library: [] as SessionTemplate[],
 			centres: null,
 			offline: true

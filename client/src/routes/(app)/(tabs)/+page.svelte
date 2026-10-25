@@ -172,7 +172,7 @@
 		}
 		return out;
 	});
-	const sessionsById = $derived(new Map([...data.library.map((t) => [t.id, t] as const), ...data.templates]));
+	const sessionsById = $derived(new Map(data.library.map((t) => [t.id, t])));
 
 	function weekTitle(monday: string) {
 		if (monday === data.monday) return 'This week';
