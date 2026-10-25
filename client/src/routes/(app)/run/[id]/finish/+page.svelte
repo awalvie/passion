@@ -118,6 +118,7 @@
 			<p class="text-[15px] font-bold">How long was it?</p>
 			<p class="text-xs font-semibold text-ink-2">Started {dayDate(run.local_date)} at {timeOfDay(run.started_at, run.timezone)}.</p>
 			<DurationInput id="length" bind:seconds={length} />
+			{#if !((length ?? 0) >= 1)}<p class="mt-1 text-xs font-semibold text-ink-2">Finish needs a length.</p>{/if}
 		</div>
 		<p class="px-1 text-[15px] font-semibold text-ink-2">The rest is optional.</p>
 	{:else}
