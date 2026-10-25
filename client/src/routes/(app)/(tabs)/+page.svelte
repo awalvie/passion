@@ -266,7 +266,7 @@
 	class="absolute inset-x-0 top-0 h-80 w-full text-[var(--topo)] [mask-image:linear-gradient(#000_30%,transparent)]"
 />
 
-<div class="relative pt-[env(safe-area-inset-top)] lg:grid lg:max-w-[1280px] lg:grid-cols-[minmax(0,1fr)_460px]">
+<div class="relative pt-[env(safe-area-inset-top)] lg:mx-auto lg:grid lg:max-w-[1280px] lg:grid-cols-[minmax(0,1fr)_460px]">
 	{@render days()}
 	<div class="flex flex-col lg:border-l lg:border-line lg:pt-3">
 		<header class="flex items-start justify-between gap-3 px-4 pt-3 {other ? '' : 'lg:hidden'}">
