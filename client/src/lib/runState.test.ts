@@ -604,3 +604,85 @@ test('a timer and a queued write keep their storage keys, and signing out clears
 
 	expect(Object.keys(localStorage)).toStrictEqual(['passion-token']);
 });
+
+const putPending = (id: string, over: Partial<Run>) =>
+	localStorage.setItem(`passion-pending:${id}`, JSON.stringify({ run: { ...newRun(), id, ...over }, writes: [] }));
+
+test('storedRuns lists the unfinished runs on the phone, newest first, and drops a broken copy', async () => {
+	const { storedRuns } = await import('./runState.svelte');
+	putPending('old', { started_at: '2026-10-01T08:00:00Z' });
+	putPending('new', { started_at: '2026-10-03T08:00:00Z' });
+	putPending('done', { started_at: '2026-10-02T08:00:00Z', finished_at: '2026-10-02T09:00:00Z' });
+	localStorage.setItem('passion-pending:broken', '{nope');
+	localStorage.setItem('passion-timer:old', '{}');
+
+	expect(storedRuns().map((r) => r.id)).toStrictEqual(['new', 'old']);
+	expect(localStorage.getItem('passion-pending:broken')).toBeNull();
+	expect(localStorage.getItem('passion-timer:old')).toBe('{}');
+});
+
+test('storedRuns is empty when the phone holds nothing', async () => {
+	const { storedRuns } = await import('./runState.svelte');
+	expect(storedRuns()).toStrictEqual([]);
+});
+
+test('discardRun deletes nothing when the person says no', async () => {
+	const { discardRun } = await import('./runState.svelte');
+	online();
+	vi.stubGlobal('confirm', vi.fn(() => false));
+	putPending('run-1', {});
+
+	expect(await discardRun({ id: 'run-1', name: 'Strength' })).toBe(false);
+
+	expect(fetch).not.toHaveBeenCalled();
+	expect(localStorage.getItem('passion-pending:run-1')).not.toBeNull();
+});
+
+test('discardRun deletes the run on the server, then its copy and timers on the phone', async () => {
+	const { discardRun } = await import('./runState.svelte');
+	online();
+	const confirm = vi.fn(() => true);
+	vi.stubGlobal('confirm', confirm);
+	putPending('run-1', {});
+	putPending('run-2', {});
+	localStorage.setItem('passion-timer:run-1', '{}');
+	localStorage.setItem('passion-timer:run-2', '{}');
+
+	expect(await discardRun({ id: 'run-1', name: 'Strength' })).toBe(true);
+
+	expect(confirm).toHaveBeenCalledWith('Discard “Strength”? Everything logged in it is deleted.');
+	expect(vi.mocked(fetch).mock.calls.map(([url, init]) => [url, init?.method])).toStrictEqual([[bodyUrl, 'DELETE']]);
+	expect(Object.keys(localStorage).sort()).toStrictEqual(['passion-pending:run-2', 'passion-timer:run-2']);
+});
+
+// Without a signal the run is still on the server, so the phone must keep its
+// copy for a second try.
+test('discardRun keeps the phone copy when the server cannot be reached', async () => {
+	const { discardRun } = await import('./runState.svelte');
+	offline();
+	vi.stubGlobal('confirm', vi.fn(() => true));
+	putPending('run-1', {});
+	localStorage.setItem('passion-timer:run-1', '{}');
+
+	await expect(discardRun({ id: 'run-1', name: 'Strength' })).rejects.toThrow();
+
+	expect(Object.keys(localStorage).sort()).toStrictEqual(['passion-pending:run-1', 'passion-timer:run-1']);
+});
+
+// The finish page sends the journal and the length in a body write, then calls
+// finish. A refused body write is dropped from the queue and settle still says
+// every write went, so the caller must read refused, or the run finishes
+// without what was typed.
+test('settle says every write went when the server refused one, and refused says why', async () => {
+	const openRun = await openOffline();
+	vi.stubGlobal(
+		'fetch',
+		vi.fn(async () => Response.json({ error: { code: 'invalid', message: 'elapsed_seconds is too large' } }, { status: 422 }))
+	);
+	openRun.run!.elapsed_seconds = 3.6e12;
+	openRun.saveBody();
+
+	expect(await openRun.settle()).toBe(true);
+	expect(openRun.writes).toStrictEqual([]);
+	expect(openRun.refused).toBe('elapsed_seconds is too large');
+});
