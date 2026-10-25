@@ -1,3 +1,4 @@
+import { addDays } from './dates';
 import { formatDuration } from './exercise';
 import { localToday } from './plan';
 import type { Section as PlanSection, Step } from './template';
@@ -229,6 +230,9 @@ export function secondsSince(startedAt: string, now = Date.now()): number {
 
 // isStale says an unfinished run was left open. It runs until 04:00 after its
 // day, so a session that goes past midnight still is one.
+// The hour is read off the wall, so the night the clocks move changes nothing.
 export function isStale(r: Pick<Run, 'finished_at' | 'local_date' | 'timezone'>, now = new Date()): boolean {
-	return !r.finished_at && r.local_date < localToday(r.timezone, new Date(now.getTime() - 4 * 3600_000));
+	const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: r.timezone, hour: 'numeric', hourCycle: 'h23' }).format(now));
+	const today = localToday(r.timezone, now);
+	return !r.finished_at && r.local_date < (hour < 4 ? addDays(today, -1) : today);
 }

@@ -58,3 +58,46 @@ test('isStale keeps an unfinished run open until 04:00 after its day', () => {
 	expect(isStale(open, at('2026-10-25T04:00:00+05:30'))).toBe(true);
 	expect(isStale({ ...open, finished_at: '2026-10-24T20:00:00Z' }, at('2026-10-27T12:00:00+05:30'))).toBe(false);
 });
+
+// The cutoff is 04:00 wall time in the run's own zone, wherever the phone is now.
+test.each([
+	['Pacific/Auckland', '2026-10-24', '2026-10-24T14:59:59Z', false],
+	['Pacific/Auckland', '2026-10-24', '2026-10-24T15:00:00Z', true],
+	['America/Los_Angeles', '2026-10-24', '2026-10-25T10:59:59Z', false],
+	['America/Los_Angeles', '2026-10-24', '2026-10-25T11:00:00Z', true],
+	['UTC', '2026-12-31', '2027-01-01T03:59:59Z', false],
+	['UTC', '2026-12-31', '2027-01-01T04:00:00Z', true],
+	['UTC', '2028-02-29', '2028-03-01T03:59:59Z', false],
+	['UTC', '2028-02-29', '2028-03-01T04:00:00Z', true]
+])('isStale in %s for a run of %s is judged at %s: %s', (timezone, local_date, now, want) => {
+	expect(isStale({ finished_at: null, local_date, timezone }, new Date(now))).toBe(want);
+});
+
+test('isStale is false on the day itself, and for a day still to come', () => {
+	const at = (local_date: string) => isStale({ finished_at: null, local_date, timezone: 'UTC' }, new Date('2026-10-24T12:00:00Z'));
+	expect(at('2026-10-24')).toBe(false);
+	expect(at('2026-10-25')).toBe(false);
+	expect(at('2026-10-23')).toBe(true);
+});
+
+// A write-up of a day already gone starts with that day on it, so it is stale
+// from the first second, and the finish page asks for its length.
+test('isStale holds for a run opened now on a past day', () => {
+	const now = new Date('2026-10-24T12:00:00Z');
+	expect(isStale({ finished_at: null, local_date: '2026-03-07', timezone: 'Europe/Oslo' }, now)).toBe(true);
+});
+
+// 04:00 on the wall, as the owner reads it, even on the night the clocks move.
+// Europe/Berlin fell back at 01:00Z on 2026-10-25.
+test('isStale holds until 04:00 on the wall on the night the clocks go back', () => {
+	const open = { finished_at: null, local_date: '2026-10-24', timezone: 'Europe/Berlin' };
+	expect(isStale(open, new Date('2026-10-25T02:30:00Z')), '03:30 on the wall').toBe(false);
+	expect(isStale(open, new Date('2026-10-25T03:00:00Z')), '04:00 on the wall').toBe(true);
+});
+
+// Europe/Berlin sprang forward at 01:00Z on 2026-03-29.
+test('isStale turns at 04:00 on the wall on the night the clocks go forward', () => {
+	const open = { finished_at: null, local_date: '2026-03-28', timezone: 'Europe/Berlin' };
+	expect(isStale(open, new Date('2026-03-29T01:59:00Z')), '03:59 on the wall').toBe(false);
+	expect(isStale(open, new Date('2026-03-29T02:00:00Z')), '04:00 on the wall').toBe(true);
+});
