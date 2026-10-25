@@ -1,162 +1,112 @@
 # Catalog format
 
-A catalog is a directory of YAML files. The app ships one in `catalog/`. A private catalog
-uses the same format, and the config file says who owns it.
+A catalog is a folder of YAML files. The app comes with one catalog in `catalog/`. A private
+catalog has the same layout:
 
 ```
-<tree>/
-  movements/<slug>.yaml    one exercise per file
-  blocks/<slug>.yaml       a group of exercises that sessions share
-  sessions/<slug>.yaml     one session template per file
+movements/   one exercise in each file (required)
+blocks/      sections that sessions share
+sessions/    one session in each file
 ```
 
-A directory inside any of the three stops the load. Anything else in the tree is ignored.
+A file name has only lower case letters, digits and underscores. Other files use the name
+without `.yaml` to refer to the file.
 
-## A file
+If a file has a key that the loader does not know, the load stops. The error gives the line
+number.
+
+## Exercises
 
 ```yaml
-# catalog/movements/repeaters_7_3_20_mm_edge.yaml, shortened
 id: 693a8297-678c-4c14-8ee9-9b3582f4f588
 name: Repeaters 7:3 (20 mm Edge)
 style: timed_reps
 tags: [endurance, fingers, hangboard]
-notes: |-
-    Submaximal. Keep 1-2 reps in reserve on the last set.
+notes: Keep 1-2 reps in reserve on the last set.
 sets: 4
 reps: 6
 rep_seconds: 7
 rep_rest_seconds: 3
 set_rest_seconds: 180
-prep_seconds: 10
-media:
-    - url: https://www.youtube.com/watch?v=...
-      thumb_url: https://i.ytimg.com/vi/.../hqdefault.jpg
 ```
 
-The file name is the slug: lower case letters, digits and underscores. A private file refers to
-a shipped exercise by it.
+An exercise must have an `id`, a `name` and a `style`. The `style` is `reps_and_sets`,
+`timed_reps`, `climbing` or `open`. It sets the screen that the exercise uses during a session.
 
-| Key | Required | Holds |
-|---|---|---|
-| `id` | yes | a uuid. `make catalog-ids` writes it. Never type one by hand |
-| `name` | yes | up to 200 characters |
-| `style` | yes | `reps_and_sets`, `timed_reps`, `climbing` or `open`. It picks the player screen |
-| `tags` | no | a list of words |
-| `notes` | no | text, read on a phone mid-session, so keep it short |
-| `source` | no | the coach or method it is known by |
-| `sets`, `reps` | no | whole numbers, 0 or more |
-| `set_rest_seconds`, `rep_seconds`, `rep_rest_seconds`, `prep_seconds` | no | seconds |
-| `seconds` | no | how long an `open` exercise runs |
-| `media` | no | a list of `{url, thumb_url}`. Either may be left out. Links must be http or https |
-| `per_side` | no | `true` when the numbers count for each side, as in 6 reps per side |
-| `ladder` | no | each rep's seconds when they differ, as `[3, 6, 9]`, each at least 1. Only on `timed_reps`. It sets `reps`, which may be left out but must match the count, and cannot go with `rep_seconds` |
+These keys hold numbers: `sets`, `reps`, `seconds`, `rep_seconds`, `rep_rest_seconds`,
+`set_rest_seconds` and `prep_seconds`.
 
-Any other key stops the load and names its line, so a misspelt key is never dropped. This
-holds for blocks and sessions too.
+If each rep of a `timed_reps` exercise has a different time, use `ladder: [3, 6, 9]`. Do not
+use `rep_seconds` with a ladder.
 
-## A block
+If the numbers are for each side, set `per_side: true`.
+
+The keys `tags`, `notes`, `source` and `media` are optional.
+
+## Blocks
+
+A block is a section that more than one session uses, for example a warm-up. When the
+catalog loads, each session gets its own copy of the block.
 
 ```yaml
-# an example block, built from shipped exercises
-id: 0199c3a0-0000-7000-8000-000000000001
+id: f8830077-4e8a-4088-9b6b-2a3da7d29538
 name: Drills
 items:
     - movement: silent_feet
       sets: 2
     - menu:
         name: Drills
-        notes: One drill per session.
         pick: 1
         of: [soft_hands, down_climbing]
 ```
 
-A block exists only in files, so that several sessions can share one warm-up. The loader
-copies it into each session that uses it, as a section. Edit the block file, and every one of
-those sessions changes on the next start.
+A `movement` gives the name of an exercise. It can change the numbers of the exercise for
+this block only.
 
-| Key | Required | Holds |
-|---|---|---|
-| `id` | yes | a uuid. `make catalog-ids` writes it |
-| `name` | yes | the section's name, up to 200 characters |
-| `notes` | no | the section's notes |
-| `items` | yes | at least one `movement:` or `menu:` |
-| `tags`, `source`, `role` | no | read, but not stored. A start logs how many files use them |
+A `menu` gives a choice of exercises. It must have `pick`, which is the number to do. If
+`pick` is 0, the person can skip the menu.
 
-A `movement:` item names an exercise. It can also set `sets`, `reps`, `set_rest_seconds`,
-`rep_seconds`, `rep_rest_seconds`, `prep_seconds` or `seconds`, which replace the exercise's
-own for this use.
-
-A `menu:` item is a choice. It has a `name`, optional `notes`, a `pick` and `of`, a list of
-exercises. `pick` is the fewest to do. `pick: 0` means that you can skip the whole choice. A
-menu carries no numbers of its own.
-
-## A session
+## Sessions
 
 ```yaml
-# catalog/sessions/boulder_session.yaml, shortened
 id: bfbfa010-1020-4c47-85ce-38d8cfec9ae0
 name: Boulder Session
 color: '#ef4444'
-needs: bouldering wall
+icon: mountain
 items:
     - block: warm_up
     - block: drills
 ```
 
-| Key | Required | Holds |
-|---|---|---|
-| `id` | yes | a uuid. `make catalog-ids` writes it |
-| `name` | yes | up to 200 characters |
-| `items` | yes | at least one `block:`. A session holds only blocks |
-| `notes`, `source`, `needs` | no | text. `needs` is what the session needs to run |
-| `color` | no | written `'#rrggbb'`. Quote it, or YAML reads it as a comment |
-| `tags` | no | a list of words |
+A session is a list of blocks. It can also have `notes`, `needs`, `source`, `tags`, `color`
+and `icon`. Put quotes around the `color`. If you do not, YAML reads it as a comment.
 
-Each step in the session holds its own copy of the exercise, taken from the exercise's file.
+## Ids and names
 
-## Names
+To give a new file its id, run `make catalog-ids`. Do not write an id yourself. If you copy
+a file to make a new one, delete the `id` line first.
 
-A block names exercises, and a session names blocks, by file name.
+The id connects a file to its row in the database. Thus you can rename or move a file and
+keep its history.
 
-- A bare name means the catalog of the file that holds it. So the exercises in a shipped block
-  are shipped ones.
-- `app:<name>` means the catalog the app ships. The shipped catalog itself never uses it.
-- A name that no file holds stops the load and names the file. If the app ships that name,
-  the error says to write `app:<name>`.
+A name without a prefix refers to a file in the same catalog. In a private catalog,
+`app:down_climbing` refers to the exercise that comes with the app.
 
-## The id
+If you delete a file, its exercise or session is retired. It goes out of the library, but the
+sessions that use it continue to work.
 
-The loader matches a file to its row by the `id`, so renaming or moving a file keeps its row
-and its history.
+If you edit a catalog item in the app, the edit stays until its file changes. Then the file
+replaces the edit.
 
-- Run `make catalog-ids` on a new file. For another tree, add `CATALOG_DIR=<tree>`. It fills
-  in only a missing `id`, and never changes one.
-- To start a new exercise from an old file, delete the `id:` line in the copy first. Two files
-  with one id stop the load.
-- Two people who load the same tree each get their own rows, so a copy of someone's tree is
-  fine as it is.
+To examine a private catalog without the server, run
+`go run ./server/cmd/catalogcheck <tree>...`.
 
-## Loading
+## What can go in `catalog/`
 
-Every start loads the shipped catalog, then each private catalog in the config for each of its
-owners. All of one owner's catalogs load together, so two of them cannot share a file name or
-an id.
+The repository's licence covers `catalog/`, so all of it is public:
 
-- Exercises load first, then sessions.
-- A file that did not change is not written. A session counts as changed when a block or an
-  exercise it copies changes.
-- A deleted file retires its exercise or session. It leaves the library, and still works in
-  anything that used it. If the file comes back, so does the row.
-- One bad file stops the whole load and names every bad file, so a half-loaded catalog never
-  happens. To catch that before a start, run `go run ./server/cmd/catalogcheck <tree>...` on
-  a private catalog. It reads the trees as one owner's, against the shipped catalog.
-- An owner with no account yet is skipped until the first start after they sign up.
-- An owner removed from the config has their exercises and sessions retired.
+- Write notes in your own words.
+- Do not copy the sessions of a paid programme.
+- You can use sets, reps and rest times, because they are facts.
 
-An edit made in the app to an exercise or a session from a catalog stays until its file
-changes. Then the file wins. Edit the file instead.
-
-## What belongs in `catalog/`
-
-`catalog/` is published under the repository's licence. Content from a paid programme belongs
-in a private catalog. See the rules in `CLAUDE.md`.
+Put all other content in a private catalog.
