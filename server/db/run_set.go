@@ -65,7 +65,7 @@ type StepProblem string
 func (p StepProblem) Error() string { return string(p) }
 
 // ReplaceSets writes one step's sets whole: rows past the new count go, and
-// the rest are upserted, so a retry writes the same rows (rule 36). A step
+// the rest are upserted, so a retry writes the same rows. A step
 // with sets counts as done.
 func ReplaceSets(ctx context.Context, pool *pgxpool.Pool, owner, runID, stepID string, sets []SetFields) ([]Set, error) {
 	stepID = strings.ToLower(stepID)

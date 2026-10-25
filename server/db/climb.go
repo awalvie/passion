@@ -36,8 +36,7 @@ type Climb struct {
 }
 
 // Sent says whether the climb counts as a send: a graded climb with a go that
-// sent it. It follows from how it was climbed, and is never asked (rules 38
-// and 39).
+// sent it. It follows from how it was climbed, and is never asked.
 func (c Climb) Sent() bool {
 	return c.GradeSystem != nil && slices.Contains(c.Goes, GoSend)
 }
@@ -158,7 +157,7 @@ const climbColumns = `id, step, exercise, position, discipline, setting, board, 
 	grade_rank, goes, seconds, stars, focus, notes, created_at, updated_at`
 
 // PutClimb writes one climb by the id the client picked, so a retry writes
-// the same climb (rule 36). A step with a climb counts as done. It takes
+// the same climb. A step with a climb counts as done. It takes
 // fields that went through Clean.
 func PutClimb(ctx context.Context, pool *pgxpool.Pool, owner, runID, climbID string, f ClimbFields) (Climb, error) {
 	climbID, ok := cleanID(climbID)

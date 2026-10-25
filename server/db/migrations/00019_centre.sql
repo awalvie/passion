@@ -1,6 +1,6 @@
 -- +goose Up
 -- A place the person climbs or trains, and the sessions they can do there.
--- The client picks the id, so a retried create makes one centre (rule 37).
+-- The client picks the id, so a retried create makes one centre.
 CREATE TABLE centre (
     id          uuid        PRIMARY KEY,
     owner       uuid        NOT NULL REFERENCES account (id) ON DELETE CASCADE,

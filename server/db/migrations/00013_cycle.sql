@@ -1,5 +1,5 @@
 -- +goose Up
--- The client picks the id, so a retried create makes one cycle (rule 37).
+-- The client picks the id, so a retried create makes one cycle.
 CREATE TABLE cycle (
     id          uuid        PRIMARY KEY,
     owner       uuid        NOT NULL REFERENCES account (id) ON DELETE CASCADE,
@@ -22,7 +22,7 @@ CREATE TRIGGER cycle_touch BEFORE UPDATE ON cycle
 
 -- One row per session on a day. A cycle writes its rows when it is built; a
 -- one-off has no cycle. The unique key keeps a day from holding the same
--- session twice (rule 37).
+-- session twice.
 CREATE TABLE scheduled_session (
     id          uuid        PRIMARY KEY DEFAULT uuidv7(),
     owner       uuid        NOT NULL REFERENCES account (id) ON DELETE CASCADE,

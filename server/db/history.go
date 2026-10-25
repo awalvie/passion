@@ -20,9 +20,9 @@ type HistoryRun struct {
 }
 
 // ExerciseHistory is every finished run that logged the exercise, newest day
-// first. An unfinished run counts for nothing (rule 45), and a skipped step
-// keeps no rows (rule 47). The id need not be in the library: a step typed
-// into a run has an id of its own, and its history is its own (rule 12).
+// first. An unfinished run counts for nothing, and a skipped step keeps no
+// rows. The id need not be in the library: a step typed into a run has an id
+// of its own, and its history is its own.
 func ExerciseHistory(ctx context.Context, pool *pgxpool.Pool, owner, exercise string) ([]HistoryRun, error) {
 	exercise, ok := cleanID(exercise)
 	if !ok {

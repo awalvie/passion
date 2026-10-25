@@ -11,8 +11,7 @@ import (
 )
 
 // ScheduledSession is one session planned for one day. A future one follows
-// its template, so editing the template tonight changes what tomorrow asks
-// (rule 5).
+// its template, so editing the template tonight changes what tomorrow asks.
 type ScheduledSession struct {
 	ID        string    `db:"id"`
 	Owner     string    `db:"owner"`
@@ -28,8 +27,7 @@ var (
 	// person cannot see.
 	ErrNoScheduledSession = errors.New("no such scheduled session")
 
-	// ErrAlreadyScheduled refuses a second copy of a session on one day
-	// (rule 37).
+	// ErrAlreadyScheduled refuses a second copy of a session on one day.
 	ErrAlreadyScheduled = errors.New("that day already holds that session")
 )
 
@@ -80,7 +78,7 @@ type ScheduledDay struct {
 }
 
 // ListScheduledSessions lists the person's days from one date to another,
-// both included. "Today" is the person's, in their own zone (rule 43).
+// both included. "Today" is the person's, in their own zone.
 func ListScheduledSessions(ctx context.Context, pool *pgxpool.Pool, owner string, from, to time.Time) ([]ScheduledDay, error) {
 	rows, err := pool.Query(ctx, `
 		SELECT s.*, t.name AS template_name, t.icon AS template_icon, r.id AS run,

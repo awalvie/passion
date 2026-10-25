@@ -14,7 +14,7 @@ type Scale struct {
 
 // Scales lists every system. A grade's rank is its place in its list, so a
 // grade must never be removed or moved: old climbs sort by the rank they were
-// logged with (rule 40). Add a new grade at the end, or recompute the ranks
+// logged with. Add a new grade at the end, or recompute the ranks
 // in a migration.
 var Scales = []Scale{
 	{System: "font", Boulder: true, Grades: []string{
@@ -46,7 +46,7 @@ var Scales = []Scale{
 }
 
 // Ungraded are V1's labels for climbing that has no grade, such as a lap. A
-// climb with one of them is never a send (rule 39).
+// climb with one of them is never a send.
 var Ungraded = []string{"Rainbow", "Traverse"}
 
 // Find returns the scale for a system.

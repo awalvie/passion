@@ -147,7 +147,7 @@ func (s RunStart) Clean() (RunStart, map[string]string) {
 }
 
 // StartRun copies the template now, so that editing it later never reaches
-// the run (rule 5). It takes a RunStart that went through Clean.
+// the run. It takes a RunStart that went through Clean.
 func StartRun(ctx context.Context, pool *pgxpool.Pool, owner string, s RunStart) (Run, error) {
 	if s.Scheduled != nil {
 		var template string
@@ -379,7 +379,6 @@ func FinishRun(ctx context.Context, pool *pgxpool.Pool, owner, id string) (Run, 
 }
 
 // DeleteRun removes one of the person's runs with everything logged in it.
-// A record belongs to its owner, who may delete it (rule 6).
 func DeleteRun(ctx context.Context, pool *pgxpool.Pool, owner, id string) error {
 	return execOne(ctx, pool, ErrNoRun, "delete run", `DELETE FROM run WHERE owner = $1 AND id = $2`, owner, id)
 }
