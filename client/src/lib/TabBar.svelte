@@ -15,8 +15,8 @@
 	import { formatClock, readTimers, sessionClock } from './timerStore';
 
 	// live is the open session. The phone shows it as a mini player above the
-	// tabs where player is true, and a wide screen as a cell on the rail.
-	let { live, player }: { live: RunSummary | null; player: boolean } = $props();
+	// tabs, and a wide screen as a cell on the rail.
+	let { live }: { live: RunSummary | null } = $props();
 
 	let now = $state(Date.now());
 	$effect(() => {
@@ -89,7 +89,7 @@
 	style:view-transition-name="tabbar"
 	aria-label="Main"
 >
-	{#if live && player}
+	{#if live}
 		<a
 			href={stopHref(live.id, stop)}
 			class="mx-3 mb-2 flex h-15 items-center gap-3 rounded-[22px] bg-hero py-2 pr-2 pl-4 text-on-hero shadow-[0_14px_30px_-10px_rgba(21,32,26,0.55)] dark:shadow-[0_14px_30px_-10px_rgba(0,0,0,0.7),inset_0_0_0_1px_rgba(255,255,255,0.08)]"

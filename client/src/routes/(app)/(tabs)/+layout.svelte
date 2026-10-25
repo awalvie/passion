@@ -11,8 +11,9 @@
 	// Creating a cycle is a task with its own bottom button, so it hides the
 	// tabs and the mini player.
 	const task = $derived(page.url.pathname === '/plan/cycles/new');
-	// Today shows the open session as a card, so it needs no mini player.
-	const player = $derived(page.url.pathname !== '/');
+	// Today shows the open session as a card, so it needs no mini player, unless
+	// another day is open there in its place.
+	const player = $derived(page.url.pathname !== '/' || page.url.searchParams.has('day'));
 	const live = $derived(player ? data.live : null);
 
 	// Back after a while away, the app fetches its pages again.
@@ -44,5 +45,5 @@
 </div>
 
 {#if !task}
-	<TabBar live={data.live} {player} />
+	<TabBar {live} />
 {/if}
