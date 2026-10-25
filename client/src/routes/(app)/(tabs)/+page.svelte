@@ -204,7 +204,11 @@
 			'data-sveltekit-keepfocus': ''
 		};
 	}
-	const pick = (date: string) => (other && date === shown ? '-mx-2 rounded-2xl bg-well px-2' : '');
+	// A picked day's entries shade as one block, with no hairline between them.
+	const pick = (date: string, i: number, n: number) =>
+		other && date === shown
+			? `-mx-2 bg-well px-2 ${i ? 'shadow-none!' : 'rounded-t-2xl'} ${i === n - 1 ? 'rounded-b-2xl' : ''}`
+			: '';
 
 	function sectionsOf(template: string) {
 		const n = sessionsById.get(template)?.sections.length ?? 0;
@@ -531,7 +535,7 @@
 					<ul class="rounded-3xl bg-surface px-[18px] py-1 shadow-card">
 						{#each w.dates as g (g.date)}
 							{#each g.entries as e, i (e.run?.id ?? e.plan?.id)}
-								<li class="list-row flex items-center gap-3.5 {pick(g.date)}">
+								<li class="list-row flex items-center gap-3.5 {pick(g.date, i, g.entries.length)}">
 									{#if e.run}
 										{@const r = e.run}
 										{@const open = r.finished_at === null}
