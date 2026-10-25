@@ -1,15 +1,18 @@
 # Passion — Claude Code instructions
 
-## Keep the README current
+## Keep the docs current
 
-After implementing any feature, updating a handler, adding a config option, or changing the project structure, update [readme.md](readme.md) to reflect the change. Specifically:
+After implementing a feature, changing a handler, adding a config option, or changing the project structure, update the doc it touches:
 
-- New config variables → add a row to the Configuration table
-- New top-level directory or renamed one → update Project structure
-- New developer workflow pattern → add or update [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
-- Removed or renamed Make targets → update the Make targets table
+- A feature a person would notice → its section in [readme.md](readme.md)
+- New config key or variable → the configuration table in [docs/DEPLOY.md](docs/DEPLOY.md)
+- New or renamed top-level directory → "Where things go" in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+- New, removed or renamed Make target → the targets table in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+- New developer workflow pattern → [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+- New table or a change to what a record keeps → "The data" in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+- New shared component or layout rule → "Style a screen" in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
 
-Do not rewrite sections that aren't affected by the change.
+Write the docs in plain, short English. Do not rewrite sections the change does not touch.
 
 ## Git commits
 
