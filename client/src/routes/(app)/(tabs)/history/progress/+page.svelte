@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import Bars from '$lib/Bars.svelte';
 	import Button from '$lib/Button.svelte';
-	import { shortDate } from '$lib/dates';
+	import { formatDate, shortDate } from '$lib/dates';
 	import DateField from '$lib/DateField.svelte';
 	import Dots from '$lib/Dots.svelte';
 	import Icon from '$lib/Icon.svelte';
@@ -60,6 +60,9 @@
 		{ label: '1 year', key: monthsBack(12, data.today) },
 		{ label: data.today.slice(0, 4), key: `${data.today.slice(0, 4)}-01-01:${data.today}` }
 	]);
+	// A span across a new year names both years, or a year back reads as no time.
+	const spanDate = (date: string) =>
+		data.span.from.slice(0, 4) === data.span.to.slice(0, 4) ? shortDate(date) : formatDate(date, { day: 'numeric', month: 'short', year: 'numeric' });
 	let picking = $state(false);
 	let from = $state('');
 	let to = $state('');
@@ -214,7 +217,7 @@
 			</button>
 		{/if}
 		<p class="text-xs font-semibold text-ink-2">
-			{data.span.cycle && custom ? `${data.span.cycle.name} · ` : ''}{shortDate(data.span.from)} – {shortDate(data.span.to)}
+			{data.span.cycle && custom ? `${data.span.cycle.name} · ` : ''}{spanDate(data.span.from)} – {spanDate(data.span.to)}
 		</p>
 	</div>
 
