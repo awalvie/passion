@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { beforeNavigate, onNavigate } from '$app/navigation';
-	import { navigating } from '$app/state';
+	import { navigating, page } from '$app/state';
 	import EdgeBack from '$lib/EdgeBack.svelte';
 	import { tabOf, tabs } from '$lib/tabs';
 	import '../app.css';
@@ -52,6 +52,9 @@
 	});
 	const outlineRoot = $derived(navigating.to?.url ? isRoot(navigating.to.url) : false);
 
+	// Today has a wide layout of its own, beside the rail.
+	const wide = $derived(page.route.id === '/(app)/(tabs)');
+
 	onNavigate((navigation) => {
 		if (!document.startViewTransition || kind === 'none') return;
 		// The outline already slid in, so the page only fades over it. With
@@ -95,6 +98,10 @@
 	</div>
 {/if}
 
-<div class="mx-auto min-h-dvh w-full max-w-[430px] bg-ground text-ink">
+<div
+	class="mx-auto min-h-dvh w-full max-w-[430px] bg-ground text-ink {wide
+		? 'lg:max-w-none lg:pl-[calc(6rem+env(safe-area-inset-left))]'
+		: ''}"
+>
 	{@render children()}
 </div>

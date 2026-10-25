@@ -14,10 +14,11 @@ export async function load({ parent }) {
 		const monday = mondayOf(today);
 		const sunday = addDays(monday, 6);
 		const [{ days }, cycles, library] = await Promise.all([
-			// Next week too, so on a Sunday the next session still shows.
+			// Next week too, so on a Sunday the next session still shows, and
+			// last week for the days a wide screen lists.
 			request<{ days: ScheduledDay[] }>(
 				'GET',
-				`/api/v1/scheduled-sessions?from=${monday}&to=${addDays(monday, 13)}`
+				`/api/v1/scheduled-sessions?from=${addDays(monday, -7)}&to=${addDays(monday, 13)}`
 			),
 			// The week and the card still show without the cycle names.
 			request<{ cycles: Cycle[] }>('GET', '/api/v1/cycles').then(
@@ -27,7 +28,7 @@ export async function load({ parent }) {
 			// Today still shows without Your sessions.
 			loadTemplates().catch(() => [] as SessionTemplate[])
 		]);
-		const week = days.filter((d) => d.local_date <= sunday);
+		const week = days.filter((d) => monday <= d.local_date && d.local_date <= sunday);
 		const next =
 			days
 				.filter((d) => d.local_date > today && d.status === 'planned')
@@ -48,6 +49,7 @@ export async function load({ parent }) {
 			today,
 			monday,
 			week,
+			days,
 			next,
 			cycles,
 			templates: new Map(templates.map((t) => [t.id, t])),
@@ -64,6 +66,7 @@ export async function load({ parent }) {
 			today,
 			monday: mondayOf(today),
 			week: [] as ScheduledDay[],
+			days: [] as ScheduledDay[],
 			next: null,
 			cycles: [] as Cycle[],
 			templates: new Map<string, SessionTemplate>(),
