@@ -148,6 +148,8 @@
 
 	// Each listed day with something on it, and today.
 	type Entry = { run: RunSummary; plan?: never } | { plan: ScheduledDay; run?: never };
+	// Runs in the order they started, then plans still to do.
+	const startOf = (e: Entry) => (e.run ? Date.parse(e.run.started_at) : Infinity);
 	// A run shows on the planned day it ran for, else on the day it was done.
 	const listed = $derived.by(() => {
 		const runs = new Map((data.runs ?? []).map((r) => [r.id, r]));
@@ -162,7 +164,7 @@
 				...(data.runs ?? [])
 					.filter((r) => r.local_date === date && !claimed.has(r.id))
 					.map((run) => ({ run }))
-			].sort((a, b) => (a.run?.started_at ?? '~').localeCompare(b.run?.started_at ?? '~'));
+			].sort((a, b) => startOf(a) - startOf(b) || 0);
 			if (!entries.length && date !== data.today) continue;
 			const monday = mondayOf(date);
 			if (out.at(-1)?.monday !== monday) out.push({ monday, dates: [] });
