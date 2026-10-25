@@ -9,13 +9,17 @@ export function soundOn(): boolean {
 	return localStorage.getItem(soundKey) !== 'off';
 }
 
+// setSound must run inside a tap, so switching on can unlock.
 export function setSound(on: boolean) {
 	if (on) localStorage.removeItem(soundKey);
 	else localStorage.setItem(soundKey, 'off');
+	unlock();
 }
 
-// unlock must run inside a tap.
+// unlock must run inside a tap. Playback pauses music from other apps, so
+// with the sound off it is left alone.
 export function unlock() {
+	if (!soundOn()) return;
 	// Playback sounds on silent, as a timer on the wall must. It is set once,
 	// before the context starts: set again on each tone, iOS went quiet.
 	const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
