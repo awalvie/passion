@@ -1,145 +1,144 @@
-# Developer guide
+# Develop
 
-How to add to the app. For setup and the make targets, see [readme.md](../readme.md).
-For how the data is laid out, see [V2_DESIGN.md](V2_DESIGN.md).
+## Set up
+
+The repository has a nix flake with all the tools. The flake also sets `DATABASE_URL` and
+`TEST_DATABASE_URL` to a local Postgres in `.pgdata`.
+
+1. Run `nix develop`. If you use direnv, it loads the flake for you.
+2. Run `make watch`. This starts Postgres, Vite on port 5173 and Go on port 8080.
+3. Run `make seed`. This adds sixteen weeks of sample training.
+4. Open <http://localhost:5173>.
+5. Sign in as `dev@passion.local` with the password `passion-dev`.
+
+The tests erase the test database. Do not set `TEST_DATABASE_URL` to a database with data that
+you want to keep.
+
+If a screen needs data that the seed does not have, add it to `server/cmd/seed/main.go`.
+
+| Target | What it does |
+|---|---|
+| `make run` | Starts Postgres, builds the client and serves on port 8080 |
+| `make watch` | Runs the client and the server, and reloads them when you edit |
+| `make seed` | Adds sample training. `SEED_FLAGS=-reset` starts again |
+| `make test` | Runs the Go tests and the client tests |
+| `make openapi` | Makes `server/api/swagger.json` again |
+| `make db-up`, `make db-down` | Starts or stops Postgres |
+| `make client` | Builds the client into `server/web/dist` |
+| `make image` | Builds the Docker image |
+| `make catalog-ids` | Gives an id to new catalog files. Set `CATALOG_DIR=<tree>` for a different tree |
 
 ## Where things go
 
-- `server/db/` holds every SQL statement. It writes no JSON.
-- `server/api/` holds the handlers. It writes no SQL.
-- `server/db/migrations/` holds the schema, one goose file per change.
-- `server/catalog/` reads catalog files and loads them through `db`. It writes no SQL.
-- `server/config/` reads the config file.
+```
+server/api/       HTTP handlers. No SQL here
+server/db/        all the SQL, and the migrations
+server/catalog/   loads the catalog files at start
+server/cmd/       passion, seed, catalogid and catalogcheck
+client/           the SvelteKit app
+catalog/          the exercises and sessions that come with the app
+deploy/           the compose file that the deploy workflow uses
+```
 
-## Add to the catalog
+The server has four dependencies: pgx, goose, x/crypto and yaml. Do not add a fifth without
+a strong reason.
 
-1. Write `catalog/movements/<slug>.yaml` for an exercise, `catalog/blocks/<slug>.yaml` for a
-   block, or `catalog/sessions/<slug>.yaml` for a session. The keys are in
-   [CATALOG_FORMAT.md](CATALOG_FORMAT.md).
-2. Run `make catalog-ids` to give it an id.
-3. Run `make test`. `TestShippedCatalogReads` fails on a bad file, before any server does.
-   For a private tree, run `go run ./server/cmd/catalogcheck <tree>` instead.
+## The data
+
+The migrations in `server/db/migrations/` give the full schema. This is a summary:
+
+- An exercise is one movement with its numbers, for example sets, reps and rest.
+- A session template is a list of sections. Each step keeps its own copy of the numbers.
+- A run is one session that you did. It keeps a copy of the template from its start.
+- Sets and climbs are in their own tables.
+- A cycle is a block of days that repeats between two dates.
+- When you save a cycle, the server makes a `scheduled_session` row for each day.
+- A centre is a place where you train.
+
+Exercises and templates are not deleted. They are retired, because old runs point to them. A
+run that is not finished does not count in any chart.
 
 ## Add a table
 
-1. Add the next numbered file to `server/db/migrations/`, for example `00002_exercise.sql`,
-   with `-- +goose Up` and `-- +goose Down` sections.
-2. If the table has `updated_at`, attach the trigger that already exists:
-
-   ```sql
-   CREATE TRIGGER exercise_touch BEFORE UPDATE ON exercise
-       FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
-   ```
-
-3. That's it. The binary migrates itself when it starts, and the test helper empties every
-   table on its own, so nothing else needs to know about the new table.
+1. Add the next numbered file to `server/db/migrations/`.
+2. If the table has an `updated_at` column, attach the `touch_updated_at()` trigger. Copy it
+   from another table.
 
 ## Add a query
 
-Put it in `server/db/`, one file per table, like `account.go`.
-
-- Read rows with `RETURNING *` or `SELECT *` and `pgx.RowToStructByName`. The struct needs a
-  `db:` tag for every column, so a new column means a new field in the same commit.
-- A nullable column scans into a pointer, like `*int`.
-- Give each expected failure a named error, like `ErrNoAccount`, and wrap everything else with
-  `fmt.Errorf("what failed: %w", err)`.
-
-Test it in the same package with `dbtest.Pool(t)`. That gives you a migrated, empty database.
-See `account_test.go`.
+1. Put the query in `server/db/`, in the file for its table.
+2. Read rows with `pgx.RowToStructByName`. Give each column a `db:` tag.
+3. If a column can be null, use a pointer for its field.
+4. Test the query with `dbtest.Pool(t)`. This gives a real, empty database.
 
 ## Add an endpoint
 
-1. Write the handler as a method on `Server`. If it needs a signed-in person, give it the
-   `authenticatedHandler` signature so it receives `db.Authenticated`.
-2. Register it in `Routes` in `server/api/api.go`, wrapped in `s.authenticated(...)` if it
-   needs sign-in.
-3. Read the body with `decodeJSON`. It rejects unknown fields, so a typo in a field name is an
-   error.
-4. Collect validation problems in a `map[string]string` and send them with
-   `writeFieldErrors`. Send success with `writeJSON`, and anything unexpected with
-   `writeInternal`, which logs the reason and keeps it out of the response.
-5. Document it for OpenAPI:
-   - a `swagger:route` comment on the handler, listing its responses
-   - `swagger:model` on the request and response structs, with `example:` and `required:` on
-     each field
-   - a `swagger:parameters` wrapper for the body and a `swagger:response` wrapper for each
-     response, in `server/api/openapi.go`
-6. Run `make openapi` and commit `server/api/swagger.json`. CI fails if it's stale.
-
-Test handlers with `httptest` against `newTestServer(t)`, from `auth_test.go`. See
-`api_test.go`.
+1. Write the handler as a method on `Server`.
+2. Add it to `Routes` in `server/api/api.go`.
+3. If the endpoint needs a signed-in user, wrap it in `s.authenticated`.
+4. Read the request body with `decodeJSON`.
+5. Reply with `writeJSON`, `writeFieldErrors` or `writeInternal`.
+6. Add the `swagger:` comments, then run `make openapi`. CI fails if `swagger.json` is old.
+7. Test the handler with `httptest` and `newTestServer(t)`.
 
 ## Add a screen
 
-1. Put a page that needs sign-in under `client/src/routes/(app)/`. Its layout sends a
-   signed-out visitor to `/login`. A page with the tab bar goes in `(app)/(tabs)/`, and a
-   Library page in `(app)/(tabs)/(library)/`. None of these groups change the URL.
-2. Call the API with `request` from `client/src/lib/api.ts`. A failure throws
-   `RequestFailed`, and `describe` turns it into one line for a form.
-3. A change to a run goes through `openRun` in `client/src/lib/runState.svelte.ts`, not
-   `request`. It changes the run on the phone first and queues the write, so a gym with no
-   signal loses nothing.
-4. For filters a list keeps in the URL, use `urlFilters` from `client/src/lib/filters.svelte.ts`.
-5. Style it with the token utilities. See the next section.
-6. Run `pnpm --dir client check`.
-7. To try it on real data, run `make seed` with the server going, and sign in as
-   `dev@passion.local` with the password `passion-dev`. The seed must grow with the app: when a
-   screen needs a case it lacks, add it to `week` or `history` in `server/cmd/seed/main.go`.
+1. If the page needs a signed-in user, put it under `client/src/routes/(app)/`.
+2. If the page has the tab bar, put it under `(app)/(tabs)/`.
+3. Call the API with `request` from `lib/api.ts`.
+4. To change a running session, use `openRun` from `lib/runState.svelte.ts`. Do not use
+   `request`. `openRun` saves on the phone first.
+5. Keep the filters of a list in the URL with `urlFilters`.
 
-Under `make watch`, a class used for the first time in a new file can be missing from the dev
-stylesheet. Run `touch client/src/app.css` and Vite rebuilds it. The production build is not
-affected.
+If a new class does not show under `make watch`, run `touch client/src/app.css`.
+
+## Add to the catalog
+
+1. Write the file. [CATALOG_FORMAT.md](CATALOG_FORMAT.md) gives the format.
+2. Run `make catalog-ids`.
+3. Restart the server.
+
+Content from a paid programme goes in a private catalog. Do not put it in `catalog/`.
 
 ## Style a screen
 
-Every screen uses only the tokens below. [DESIGN.md](DESIGN.md) shows how each shared part,
-such as the step page or the set card, is drawn.
+The colour tokens are in `client/src/tokens.css`. Each token has a light value and a dark
+value. A new colour needs both.
 
-- `client/src/tokens.css` holds the tokens, light under `:root` and dark under
-  `:root[data-theme='dark']`. `app.html` always sets `data-theme`, so a token needs no media
-  query. A new colour goes in both blocks.
-- `client/src/app.css` maps them into Tailwind in `@theme inline`. A new token needs a line
-  there before it has a utility.
-- Colours: `bg-ground` for the page, `bg-surface` for cards, `bg-well` for fields and
-  wells, `text-ink`, `text-ink-2` and `text-ink-3` for text, `border-line` for hairlines.
-  `bg-tint` with `text-on-tint` is lime, for Start, Log and the active tab. `bg-live` with
-  `text-on-live` is apricot, for a session that is running. `bg-hero` with `text-on-hero`
-  and `text-on-hero-2` is the forest card. `bg-run` is the step page's field, and `prep`,
-  `hang` and `rest-field` colour the timer phases on it.
-  `text-bad` is for errors. `chart` colours the marks of every chart.
-- The running session and its step pages sit on `client/src/lib/RunField.svelte`, which has
-  one dark look in both themes. It sets the app's tokens dark inside itself (`.run-tokens`),
-  so a stepper, a sheet or the menu on it reads dark without a variant. Its buttons are in
-  [DESIGN.md](DESIGN.md).
-- `text-tint` is not for text. Lime has too little contrast on a light page. Use
-  `text-ink` with `font-bold` for a link or a text button. `text-tint` is only for an icon or a mark on a
-  dark ground, such as the forest card.
-- Shadows: `shadow-card` for a card, `shadow-card-sm` for a pill or a small button,
-  `shadow-tint` and `shadow-live` under a lime or an apricot button.
-- Type: `text-xs` (12 px) for labels, `text-[15px]` for body text, `text-xl` (20 px) for
-  card titles and big buttons, `text-[32px]` for the page title. Use weights 600 to 800,
-  except `reading` (15 px, weight 500) for long notes the person wrote.
-  `font-sans` is Figtree and `font-[family-name:var(--font-digits)]` is Barlow Semi Condensed,
-  both self-hosted from `client/static/fonts/`. `digits` sets a number on a card, such as a
-  time, a weight or a grade, in bold Barlow.
-- Width: the phone layout is the default. From Tailwind's `md` (768 px) up, `TabBar` draws
-  a rail on the left in place of the tab bar, and a page stays a 430 px column unless it
-  has a wide layout of its own. Today has one: from `lg` (1024 px) up, it lists the days
-  from last week to the end of next beside its cards, and a click opens a day there.
-- `dark:` follows `data-theme`, not the system setting. Use it only when a token cannot
-  say it, for example a shadow that differs by theme.
-- Use `Button`, `NavBar`, `Menu`, `TabBar`, `FormError`, `Section` and `HeroCard` (the
-  forest card) from `client/src/lib/`, and the `.input` class for every field and
-  `<select>`. A large free-text note on its own on a card or on the step page's field is the
-  one exception: `bg-surface`, `text-[15px] font-semibold` and `placeholder:text-ink-3`.
-  `.live-dot` marks a session that is running. `page-title`, `list-row`, `reading` and
-  `digits` are utilities in `app.css`.
+- Backgrounds: `bg-ground` for the page, `bg-surface` for cards, `bg-well` for fields.
+- Text: `text-ink`, `text-ink-2` and `text-ink-3`. Lines use `border-line`.
+- Lime (`bg-tint`) shows Start, Log and the current tab. Do not use lime for text.
+- Apricot (`bg-live`) shows a running session. Dark green (`bg-hero`) is for the forest card.
+- Errors use `text-bad`. Charts use `chart`.
+- Type: `text-xs` for labels, `text-[15px]` for body text, `text-xl` for card titles.
+- The page title uses `page-title`. Numbers use `digits`. Notes from the user use `reading`.
+- Each field and `<select>` uses the `.input` class.
+
+Use the parts in `client/src/lib/` before you make a new one:
+
+- `Section` for a heading above a card.
+- `Segmented` to change between views of the same data.
+- `Tabs` to move between parts of a list.
+- `LibraryFilters` and `FilterLine` to filter a list.
+- `Button`, `Sheet`, `Menu`, `Icon`, `Checkbox` and `FormError`.
+
+Layout rules:
+
+- Each control is at least 44 px. If a control looks smaller, make its tap area larger.
+- Rows in a list use the `list-row` class for the line between them. Do not use `border-t` or
+  `divide-y`.
+- A row that opens a different page ends with a chevron.
+- A chart card starts with a label and one number. The chart comes after them.
+- Draw charts with `Chart`, `Bars` and `Dots`.
+- On a phone, the tabs are at the bottom. From `md` (768 px), they are in a rail on the left.
+- From `lg` (1024 px), Today uses a wide layout. The other pages stay in one column.
+- The pages of a running session are on `RunField`. They look the same in light and dark
+  mode.
 
 ## Before you commit
 
-- `make db-up`, then `make test`. Tests share one database, so they run one package at a time.
-  `make test` also runs the client's `*.test.ts` files with vitest. It loads `vite.config.ts`,
-  so a test can import modules that use runes or `$app`. There is no browser: mock `$app`
-  modules with `vi.mock`, and stub `fetch`, `localStorage` and `document` with `vi.stubGlobal`.
-- `gofmt` and `go vet` must be clean. CI checks both.
-- `make openapi`, if you touched a handler or a request or response struct.
+1. Run `make test`.
+2. Run `gofmt` and `go vet`.
+3. If you changed a handler, run `make openapi`.
+
+CI does all of these on each push.
