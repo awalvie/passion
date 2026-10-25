@@ -3,7 +3,7 @@ import { loadCentres } from '$lib/centres';
 import { addDays, mondayOf } from '$lib/dates';
 import { loadToday, localToday, type Cycle, type ScheduledDay } from '$lib/plan';
 import { openRun } from '$lib/runState.svelte';
-import type { SessionTemplate } from '$lib/template';
+import { loadTemplates, type SessionTemplate } from '$lib/template';
 
 export async function load({ parent }) {
 	// The card shows the live session from the run itself, which works offline
@@ -13,7 +13,7 @@ export async function load({ parent }) {
 		const today = await loadToday();
 		const monday = mondayOf(today);
 		const sunday = addDays(monday, 6);
-		const [{ days }, cycles] = await Promise.all([
+		const [{ days }, cycles, library] = await Promise.all([
 			// Next week too, so on a Sunday the next session still shows.
 			request<{ days: ScheduledDay[] }>(
 				'GET',
@@ -23,7 +23,9 @@ export async function load({ parent }) {
 			request<{ cycles: Cycle[] }>('GET', '/api/v1/cycles').then(
 				(r) => r.cycles,
 				() => [] as Cycle[]
-			)
+			),
+			// Today still shows without Your sessions.
+			loadTemplates().catch(() => [] as SessionTemplate[])
 		]);
 		const week = days.filter((d) => d.local_date <= sunday);
 		const next =
@@ -49,6 +51,7 @@ export async function load({ parent }) {
 			next,
 			cycles,
 			templates: new Map(templates.map((t) => [t.id, t])),
+			library,
 			centres,
 			offline: false
 		};
@@ -64,6 +67,7 @@ export async function load({ parent }) {
 			next: null,
 			cycles: [] as Cycle[],
 			templates: new Map<string, SessionTemplate>(),
+			library: [] as SessionTemplate[],
 			centres: null,
 			offline: true
 		};

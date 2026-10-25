@@ -14,6 +14,7 @@
 	import { buckets, hours, tenWeeks } from '$lib/progress';
 	import { currentStop, secondsSince, type Run, type RunSummary } from '$lib/run';
 	import { discardRun, openRun, startRun, type StartBody } from '$lib/runState.svelte';
+	import SessionIcon from '$lib/SessionIcon.svelte';
 	import { plural } from '$lib/text';
 	import Topo from '$lib/Topo.svelte';
 	import { topTopo } from '$lib/topo';
@@ -26,7 +27,7 @@
 	let error = $state('');
 
 	async function start(body: StartBody) {
-		starting = 'scheduled' in body ? body.scheduled : 'open';
+		starting = 'scheduled' in body ? body.scheduled : 'template' in body ? body.template : 'open';
 		error = '';
 		try {
 			const run = await startRun(body);
@@ -120,6 +121,26 @@
 			usual: timed.length ? formatDuration(Math.max(1, Math.round(mean / 300)) * 300) : null,
 			since: last ? daysBetween(last, data.today) : null
 		};
+	}
+
+	// Your own sessions, and the built-in ones you have run, the last done
+	// first. finished is newest first, so a template's first run is its last.
+	const lastDone = $derived(new Map(finished.toReversed().map((r) => [r.template, r.local_date])));
+	const mine = $derived(
+		data.library
+			.filter((t) => !t.shipped || lastDone.has(t.id))
+			.sort((a, b) => (lastDone.get(b.id) ?? '').localeCompare(lastDone.get(a.id) ?? ''))
+	);
+	// A session planned for today starts as that plan, so the day counts as done.
+	function startMine(template: string) {
+		const d = data.week.find((d) => d.local_date === data.today && d.status === 'planned' && d.template === template);
+		start(d ? { scheduled: d.id } : { template });
+	}
+	function doneWhen(template: string) {
+		const last = lastDone.get(template);
+		if (!last) return 'Not done yet';
+		const n = daysBetween(last, data.today);
+		return n ? `Last done ${away(-n)}` : 'Done today';
 	}
 
 	const stop = $derived(live ? currentStop(live) : null);
@@ -348,6 +369,39 @@
 			<div class="mt-4"><Button variant="secondary" href="/run/{r.id}/finish">Finish session</Button></div>
 		</section>
 	{/each}
+
+	{#if !other && mine.length}
+		<section class="mx-4 mt-3.5 rounded-3xl bg-surface px-5 pt-4 pb-1 shadow-card">
+			<div class="flex items-baseline justify-between">
+				<h2 class="text-[15px] font-bold">Your sessions</h2>
+				<a href="/templates" class="-my-3 flex h-11 items-center gap-0.5 text-xs font-bold text-ink">Library<Icon name="chevron-right" size="14px" /></a>
+			</div>
+			<ul class="mt-1">
+				{#each mine.slice(0, 4) as t (t.id)}
+					<li class="list-row flex items-center gap-3">
+						<a href="/templates/{t.id}" class="flex min-h-[60px] min-w-0 flex-1 items-center gap-3">
+							<SessionIcon icon={t.icon} name={t.name} />
+							<span class="min-w-0 flex-1">
+								<span class="block truncate text-[15px] font-bold">{t.name}</span>
+								<span class="block text-xs font-semibold text-ink-2">{doneWhen(t.id)}</span>
+							</span>
+						</a>
+						{#if !live}
+							<button
+								type="button"
+								class="flex size-11 shrink-0 items-center justify-center rounded-full bg-well text-ink disabled:opacity-50"
+								aria-label="Start {t.name}"
+								disabled={starting !== null}
+								onclick={() => startMine(t.id)}
+							>
+								<Icon name="play" size="1rem" />
+							</button>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
 
 	{#if !offline}
 		<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
