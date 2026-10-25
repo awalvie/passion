@@ -1,4 +1,5 @@
 import { formatDuration } from './exercise';
+import { localToday } from './plan';
 import type { Section as PlanSection, Step } from './template';
 
 // The shapes of server/api/run.go's responses.
@@ -221,4 +222,10 @@ export function stepTime(r: Pick<Run, 'sets' | 'climbs'>, s: RunStep): string | 
 // secondsSince is the session clock: the time from the start to now.
 export function secondsSince(startedAt: string, now = Date.now()): number {
 	return Math.max(0, Math.floor((now - Date.parse(startedAt)) / 1000));
+}
+
+// isStale says an unfinished run was left open. It runs until 04:00 after its
+// day, so a session that goes past midnight still is one.
+export function isStale(r: Pick<Run, 'finished_at' | 'local_date' | 'timezone'>, now = new Date()): boolean {
+	return !r.finished_at && r.local_date < localToday(r.timezone, new Date(now.getTime() - 4 * 3600_000));
 }

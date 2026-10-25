@@ -2,15 +2,20 @@
 	import { goto } from '$app/navigation';
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
+	import { dayDate, timeOfDay } from '$lib/dates';
+	import DurationInput from '$lib/DurationInput.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import NavBar from '$lib/NavBar.svelte';
-	import { secondsSince, type Run } from '$lib/run';
+	import { isStale, secondsSince, type Run } from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
 	import { guardUnsaved } from '$lib/unsaved';
 
 	const run = $derived(openRun.run!);
 	// A finished run comes here from History to edit its journal.
 	const editing = !!openRun.run!.finished_at;
+	// The clock of a run left open says days, so its length is asked for.
+	const stale = isStale(openRun.run!);
+	let length = $state(openRun.run!.elapsed_seconds);
 
 	// The journal is optional, so each field starts from what the run holds.
 	let sleep = $state(openRun.run!.sleep);
@@ -25,7 +30,7 @@
 	let busy = $state(false);
 	let error = $state('');
 
-	const fields = () => JSON.stringify([sleep, energy, rpe, focus, setting, wentWell, nextFocus, notes]);
+	const fields = () => JSON.stringify([length, sleep, energy, rpe, focus, setting, wentWell, nextFocus, notes]);
 	const clean = fields();
 	let leaving = false;
 	guardUnsaved(() => !leaving && fields() !== clean);
@@ -47,7 +52,7 @@
 			next_focus: nextFocus.trim() || null,
 			notes: notes.trim() || null,
 			// A finished run keeps its length, even an unknown one.
-			elapsed_seconds: editing ? r.elapsed_seconds : (r.elapsed_seconds ?? secondsSince(r.started_at))
+			elapsed_seconds: editing ? r.elapsed_seconds : stale ? Math.round(length!) : (r.elapsed_seconds ?? secondsSince(r.started_at))
 		});
 		openRun.saveBody();
 		try {
@@ -108,7 +113,16 @@
 <NavBar title={editing ? 'Journal' : 'Finish'} back={{ href: editing ? `/history/${run.id}` : `/run/${run.id}`, label: 'Session' }} />
 
 <div class="flex flex-col gap-3 px-4 pt-1 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
-	<p class="px-1 text-[15px] font-semibold text-ink-2">All optional. It helps to read it before the next session.</p>
+	{#if stale}
+		<div class="flex flex-col gap-1 rounded-3xl bg-surface p-4 shadow-card">
+			<p class="text-[15px] font-bold">How long was it?</p>
+			<p class="text-xs font-semibold text-ink-2">Started {dayDate(run.local_date)} at {timeOfDay(run.started_at, run.timezone)}.</p>
+			<DurationInput id="length" bind:seconds={length} />
+		</div>
+		<p class="px-1 text-[15px] font-semibold text-ink-2">The rest is optional.</p>
+	{:else}
+		<p class="px-1 text-[15px] font-semibold text-ink-2">All optional. It helps to read it before the next session.</p>
+	{/if}
 
 	<div class="rounded-3xl bg-surface shadow-card">
 		{@render rating('Sleep', 5, sleep, (v) => (sleep = v))}
@@ -144,6 +158,6 @@
 
 	<FormError message={error} />
 	<div class="mt-2">
-		<Button disabled={busy} onclick={finish}>{editing ? (busy ? 'Saving…' : 'Save') : busy ? 'Finishing…' : 'Finish session'}</Button>
+		<Button disabled={busy || (stale && !((length ?? 0) >= 1))} onclick={finish}>{editing ? (busy ? 'Saving…' : 'Save') : busy ? 'Finishing…' : 'Finish session'}</Button>
 	</div>
 </div>

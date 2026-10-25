@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { climbWord, sectionMarks, stepTime, type Climb, type LoggedSet, type Run, type RunStep } from './run';
+import { climbWord, isStale, sectionMarks, stepTime, type Climb, type LoggedSet, type Run, type RunStep } from './run';
 
 test('climbWord names a flash, a send, many sends and no send, and counts goes on an ungraded climb', () => {
 	expect(climbWord({ grade_system: 'font', goes: ['send'] })).toBe('Flash');
@@ -48,4 +48,13 @@ test('sectionMarks marks a section with every step skipped as skipped, not done'
 		]
 	} as unknown as Pick<Run, 'sections'>;
 	expect(sectionMarks(run, 3)).toEqual(['skipped', 'done', 'todo', 'now']);
+});
+
+test('isStale keeps an unfinished run open until 04:00 after its day', () => {
+	const open = { finished_at: null, local_date: '2026-10-24', timezone: 'Asia/Kolkata' };
+	const at = (iso: string) => new Date(iso);
+	expect(isStale(open, at('2026-10-24T23:30:00+05:30'))).toBe(false);
+	expect(isStale(open, at('2026-10-25T03:59:00+05:30'))).toBe(false);
+	expect(isStale(open, at('2026-10-25T04:00:00+05:30'))).toBe(true);
+	expect(isStale({ ...open, finished_at: '2026-10-24T20:00:00Z' }, at('2026-10-27T12:00:00+05:30'))).toBe(false);
 });
