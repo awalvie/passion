@@ -291,6 +291,11 @@
 								<span class="min-w-0 flex-1 truncate text-xl font-bold tracking-tight">{r.name}</span>
 								{#if r.elapsed_seconds}<span class="digits text-xl">{formatMinutes(r.elapsed_seconds)}</span>{/if}
 							</a>
+							{#if r.has_journal === false}
+								<a href="/run/{r.id}/finish" class="-mt-3 flex min-h-11 w-fit items-center gap-0.5 text-xs font-bold text-ink-2">
+									Add a journal<Icon name="chevron-right" size="14px" />
+								</a>
+							{/if}
 						</li>
 					{/each}
 				</ul>

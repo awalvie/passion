@@ -120,6 +120,8 @@ export type RunSummary = {
 	finished_at: string | null;
 	elapsed_seconds: number | null;
 	place: string | null;
+	// Missing from the runs kept on the phone.
+	has_journal?: boolean;
 };
 
 // The shape of server/api/history.go's response.
