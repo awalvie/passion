@@ -156,7 +156,7 @@
 		});
 	});
 
-	const statuses = { done: '', started: 'Started', missed: 'Missed', planned: '' };
+	const statuses = { done: 'Done', started: 'Started', missed: 'Missed', planned: '' };
 </script>
 
 <svelte:head><title>Plan</title></svelte:head>
