@@ -238,3 +238,114 @@ func TestPutCycleWaitsForARunStarting(t *testing.T) {
 		t.Fatalf("the run points at %v, want the day it started from kept", scheduled)
 	}
 }
+
+// A day started on another date stays on its own date: a missed day started
+// now is started, then done, and a day started early is not planned any more.
+func TestListScheduledSessionsFollowsADayStartedOnAnotherDate(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	hang := insertSessionTemplate(t, pool, ada, "Hang")
+
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	schedule := func(offset int) db.ScheduledSession {
+		t.Helper()
+		s, err := db.ScheduleSession(ctx, pool, ada, hang, today.AddDate(0, 0, offset))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	late, early, twice := schedule(-3), schedule(2), schedule(-2)
+
+	status := func() map[string]db.ScheduledDay {
+		t.Helper()
+		list, err := db.ListScheduledSessions(ctx, pool, ada, today.AddDate(0, 0, -3), today.AddDate(0, 0, 2))
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := map[string]db.ScheduledDay{}
+		for _, d := range list {
+			out[d.ID] = d
+		}
+		return out
+	}
+	if got := status(); got[late.ID].Status != "missed" || got[early.ID].Status != "planned" || got[late.ID].Run != nil {
+		t.Fatalf("before: %q, %q, want missed and planned", got[late.ID].Status, got[early.ID].Status)
+	}
+
+	lateRun := startRun(t, ctx, pool, ada, db.RunStart{Scheduled: &late.ID, StartedAt: time.Now()})
+	startRun(t, ctx, pool, ada, db.RunStart{Scheduled: &early.ID, StartedAt: time.Now()})
+	got := status()
+	if got[late.ID].Status != "started" || got[late.ID].Run == nil || *got[late.ID].Run != lateRun.ID || got[late.ID].LocalDate.Format(time.DateOnly) != today.AddDate(0, 0, -3).Format(time.DateOnly) {
+		t.Fatalf("a missed day started now is %+v, want started, with its run, on its own date", got[late.ID])
+	}
+	if got[early.ID].Status != "started" {
+		t.Fatalf("a day started early is %q, want started", got[early.ID].Status)
+	}
+
+	if _, err := db.FinishRun(ctx, pool, ada, lateRun.ID); err != nil {
+		t.Fatal(err)
+	}
+	if got := status(); got[late.ID].Status != "done" {
+		t.Fatalf("after the finish the day is %q, want done", got[late.ID].Status)
+	}
+
+	// A run left open and a later one finished: the finished one is the day's.
+	left := startRun(t, ctx, pool, ada, db.RunStart{Scheduled: &twice.ID, StartedAt: time.Now().Add(-time.Hour)})
+	again := startRun(t, ctx, pool, ada, db.RunStart{Scheduled: &twice.ID, StartedAt: time.Now()})
+	if got := status(); got[twice.ID].Status != "started" || *got[twice.ID].Run != again.ID {
+		t.Fatalf("two open runs: %+v, want started with the newest", got[twice.ID])
+	}
+	if _, err := db.FinishRun(ctx, pool, ada, left.ID); err != nil {
+		t.Fatal(err)
+	}
+	if got := status(); got[twice.ID].Status != "done" || *got[twice.ID].Run != left.ID {
+		t.Fatalf("one finished: %+v, want done with the finished run, though the other is newer", got[twice.ID])
+	}
+}
+
+// Whether a day is missed is the account's own day, so zones a day apart see
+// the same date differently.
+func TestListScheduledSessionsCountsMissedInTheAccountsOwnZone(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+
+	for _, zone := range []string{"Pacific/Kiritimati", "Pacific/Pago_Pago"} {
+		t.Run(zone, func(t *testing.T) {
+			loc, err := time.LoadLocation(zone)
+			if err != nil {
+				t.Fatal(err)
+			}
+			account, err := db.CreateAccount(ctx, pool, zone+"@example.com", "hash", "Ada", zone)
+			if err != nil {
+				t.Fatal(err)
+			}
+			hang := insertSessionTemplate(t, pool, account.ID, "Hang")
+			now := time.Now().In(loc)
+			today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+
+			want := map[string]string{}
+			for offset, status := range map[int]string{-1: "missed", 0: "planned", 1: "planned"} {
+				s, err := db.ScheduleSession(ctx, pool, account.ID, hang, today.AddDate(0, 0, offset))
+				if err != nil {
+					t.Fatal(err)
+				}
+				want[s.ID] = status
+			}
+
+			list, err := db.ListScheduledSessions(ctx, pool, account.ID, today.AddDate(0, 0, -1), today.AddDate(0, 0, 1))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(list) != 3 {
+				t.Fatalf("listed %d days, want 3", len(list))
+			}
+			for _, d := range list {
+				if d.Status != want[d.ID] {
+					t.Errorf("%s in %s is %q, want %q (today there is %s)", d.LocalDate.Format(time.DateOnly), zone, d.Status, want[d.ID], today.Format(time.DateOnly))
+				}
+			}
+		})
+	}
+}
