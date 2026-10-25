@@ -22,7 +22,7 @@
 
 	let { data } = $props();
 
-	// The day being started, or 'open'.
+	// The day or session being started, or 'open'.
 	let starting = $state<string | null>(null);
 	let error = $state('');
 
@@ -146,11 +146,11 @@
 		return n ? `Last done ${away(-n)}` : 'Done today';
 	}
 
-	// Each listed day with something on it, and today.
 	type Entry = { run: RunSummary; plan?: never } | { plan: ScheduledDay; run?: never };
 	// Runs in the order they started, then plans still to do.
 	const startOf = (e: Entry) => (e.run ? Date.parse(e.run.started_at) : Infinity);
-	// A run shows on the planned day it ran for, else on the day it was done.
+	// Each listed day with something on it, and today. A run shows on the
+	// planned day it ran for, else on the day it was done.
 	const listed = $derived.by(() => {
 		const runs = new Map((data.runs ?? []).map((r) => [r.id, r]));
 		const claimed = new Set(data.days.map((d) => d.run));

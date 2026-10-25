@@ -56,7 +56,7 @@
 
 	beforeNavigate(({ from }) => {
 		if (!from) return;
-		// Today always reopens on today, not on a day picked from its strip.
+		// Today always reopens on today, not on a day picked from its strip or list.
 		const at = from.url.pathname === '/' ? '/' : from.url.pathname + from.url.search;
 		scrolled.set(at, scrollY);
 		const i = tabOf(from.url.pathname);
