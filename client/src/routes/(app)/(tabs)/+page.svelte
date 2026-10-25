@@ -196,7 +196,7 @@
 					<Icon name="undo-2" size="1.125rem" />Today
 				</a>
 			{/if}
-			<a href="/profile" class="flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm" aria-label="Profile">
+			<a href="/profile" class="flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm md:hidden" aria-label="Profile">
 				<Icon name="settings" size="1.25rem" />
 			</a>
 		</div>

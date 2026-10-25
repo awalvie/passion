@@ -8,14 +8,15 @@
 <script lang="ts">
 	import { beforeNavigate, goto, preloadData } from '$app/navigation';
 	import { navigating, page } from '$app/state';
-	import Icon from './Icon.svelte';
+	import Icon, { type IconName } from './Icon.svelte';
 	import { currentStop, isFinished, setsOf, secondsSince, stepsOf, stopHref, type RunItem, type RunSummary } from './run';
 	import { openRun, storedRun } from './runState.svelte';
 	import { tabOf, tabs, under } from './tabs';
 	import { formatClock, readTimers, sessionClock } from './timerStore';
 
-	// live is the open session, shown as a mini player above the tabs.
-	let { live }: { live: RunSummary | null } = $props();
+	// live is the open session. The phone shows it as a mini player above the
+	// tabs where player is true, and a wide screen as a cell on the rail.
+	let { live, player }: { live: RunSummary | null; player: boolean } = $props();
 
 	let now = $state(Date.now());
 	$effect(() => {
@@ -84,11 +85,11 @@
 </script>
 
 <nav
-	class="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[430px]"
+	class="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[430px] md:hidden"
 	style:view-transition-name="tabbar"
 	aria-label="Main"
 >
-	{#if live}
+	{#if live && player}
 		<a
 			href={stopHref(live.id, stop)}
 			class="mx-3 mb-2 flex h-15 items-center gap-3 rounded-[22px] bg-hero py-2 pr-2 pl-4 text-on-hero shadow-[0_14px_30px_-10px_rgba(21,32,26,0.55)] dark:shadow-[0_14px_30px_-10px_rgba(0,0,0,0.7),inset_0_0_0_1px_rgba(255,255,255,0.08)]"
@@ -141,3 +142,43 @@
 		</div>
 	</div>
 </nav>
+
+<!-- Only one of the two bars is ever drawn, so they share the transition name. -->
+<nav
+	class="fixed inset-y-0 left-0 z-30 hidden w-[calc(6rem+env(safe-area-inset-left))] flex-col items-center gap-2 overflow-y-auto border-r border-line bg-[var(--bar)] pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-4 pl-[env(safe-area-inset-left)] md:flex"
+	style:view-transition-name="tabbar"
+	aria-label="Main"
+>
+	{#each tabs as t, i (t.href)}
+		{@render railItem(t.href, t.icon, t.label, i === active, (e) => open(e, i))}
+	{/each}
+	<span class="flex-1"></span>
+	{#if live}
+		<a
+			href={stopHref(live.id, stop)}
+			class="flex w-20 shrink-0 flex-col items-center gap-1.5 rounded-[18px] bg-hero px-1.5 pt-3 pb-2.5 text-center text-on-hero shadow-card-sm"
+			aria-label="Back to {live.name}"
+		>
+			<span class="size-2.5 rounded-full bg-live shadow-[0_0_0_4px_var(--live-halo)] motion-safe:animate-pulse"></span>
+			<span class="w-full truncate text-xs font-bold text-on-hero-2">{live.name}</span>
+			<span class="font-[family-name:var(--font-digits)] text-xl leading-none font-bold {restLeft > 0 ? 'text-live' : ''}">
+				{restLeft > 0 ? formatClock(restLeft) : sessionClock(secondsSince(live.started_at, now))}
+			</span>
+		</a>
+	{/if}
+	{@render railItem('/profile', 'settings', 'Profile', under(navigating.to?.url.pathname ?? page.url.pathname, '/profile'))}
+</nav>
+
+{#snippet railItem(href: string, icon: IconName, label: string, on: boolean, onclick?: (e: MouseEvent) => void)}
+	<a
+		{href}
+		class="flex min-h-14 w-20 shrink-0 flex-col items-center justify-center gap-1 text-xs font-bold {on ? 'text-ink' : 'text-ink-2'}"
+		aria-current={on ? 'page' : undefined}
+		{onclick}
+	>
+		<span class="flex h-8 w-14 items-center justify-center rounded-full transition-colors duration-200 {on ? 'bg-tint text-on-tint' : ''}">
+			<Icon name={icon} size="1.375rem" />
+		</span>
+		{label}
+	</a>
+{/snippet}

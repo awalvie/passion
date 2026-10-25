@@ -122,6 +122,9 @@ such as the step page or the set card, is drawn.
   `font-sans` is Figtree and `font-[family-name:var(--font-digits)]` is Barlow Semi Condensed,
   both self-hosted from `client/static/fonts/`. `digits` sets a number on a card, such as a
   time, a weight or a grade, in bold Barlow.
+- Width: the phone layout is the default. From Tailwind's `md` (768 px) up, `TabBar` draws
+  a rail on the left in place of the tab bar, and a page stays a 430 px column unless it
+  has a wide layout of its own.
 - `dark:` follows `data-theme`, not the system setting. Use it only when a token cannot
   say it, for example a shadow that differs by theme.
 - Use `Button`, `NavBar`, `Menu`, `TabBar`, `FormError`, `Section` and `HeroCard` (the

@@ -12,7 +12,8 @@
 	// tabs and the mini player.
 	const task = $derived(page.url.pathname === '/plan/cycles/new');
 	// Today shows the open session as a card, so it needs no mini player.
-	const live = $derived(page.url.pathname === '/' ? null : data.live);
+	const player = $derived(page.url.pathname !== '/');
+	const live = $derived(player ? data.live : null);
 
 	// Back after a while away, the app fetches its pages again.
 	$effect(() => {
@@ -29,19 +30,19 @@
 <PullRefresh />
 
 <!-- --above-bar is where a bar stuck to the bottom of a page, or a toast, sits
-     clear of the tab bar and the open session's mini player. -->
+     clear of the tab bar and the open session's mini player. A wide screen
+     has the rail on the left instead. -->
 <div
-	class={task ? '' : live ? 'pb-[calc(9.25rem+env(safe-area-inset-bottom))]' : 'pb-[calc(5rem+env(safe-area-inset-bottom))]'}
-	style:--above-bar={task
-		? 'calc(1rem + env(safe-area-inset-bottom))'
+	class="{task
+		? '[--above-bar:calc(1rem+env(safe-area-inset-bottom))]'
 		: live
-			? 'calc(9rem + env(safe-area-inset-bottom))'
-			: 'calc(4.75rem + env(safe-area-inset-bottom))'}
+			? 'pb-[calc(9.25rem+env(safe-area-inset-bottom))] [--above-bar:calc(9rem+env(safe-area-inset-bottom))] md:pb-8'
+			: 'pb-[calc(5rem+env(safe-area-inset-bottom))] [--above-bar:calc(4.75rem+env(safe-area-inset-bottom))] md:pb-8'} md:[--above-bar:calc(1rem+env(safe-area-inset-bottom))]"
 >
 	{@render children()}
 	<Toast bind:message={notice.text} duration={2000} />
 </div>
 
 {#if !task}
-	<TabBar {live} />
+	<TabBar live={data.live} {player} />
 {/if}
