@@ -105,6 +105,7 @@
 		data.week.filter((d) => d.status === 'missed').sort((a, b) => a.local_date.localeCompare(b.local_date))
 	);
 	const ranThisWeek = $derived(finished.filter(thisWeek));
+	const extra = $derived(ranThisWeek.filter((r) => !data.week.some((d) => d.run === r.id)).length);
 	const ranLastWeek = $derived(
 		finished.filter((r) => addDays(data.monday, -7) <= r.local_date && r.local_date < data.monday).length
 	);
@@ -250,7 +251,7 @@
 				{#if offline}
 					No signal
 				{:else if weekPlanned}
-					<b class="digits text-ink">{weekDone} of {weekPlanned}</b> done
+					<b class="digits text-ink">{weekDone} of {weekPlanned}</b> done{extra ? ` · ${extra} extra` : ''}
 				{:else}
 					<b class="digits text-ink">{ranThisWeek.length}</b> {ranThisWeek.length === 1 ? 'session' : 'sessions'} · {ranLastWeek} last week
 				{/if}
