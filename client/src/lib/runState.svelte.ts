@@ -51,6 +51,16 @@ export function storedRuns(): Run[] {
 		.sort((a, b) => b.started_at.localeCompare(a.started_at));
 }
 
+// discardRun deletes a run once the person confirms, with this phone's copy of
+// it. It leaves the open run alone, so Today can discard a stale run.
+export async function discardRun(run: { id: string; name: string }): Promise<boolean> {
+	if (!confirm(`Discard “${run.name}”? Everything logged in it is deleted.`)) return false;
+	await request('DELETE', `/api/v1/runs/${run.id}`);
+	localStorage.removeItem(storageKey(run.id));
+	localStorage.removeItem(`${timerPrefix}${run.id}`);
+	return true;
+}
+
 // storedRun is this phone's copy of a run, if it holds one.
 export function storedRun(id: string): Run | null {
 	return readStored(id)?.run ?? null;
@@ -107,9 +117,7 @@ class OpenRun {
 	// discard deletes the run once the person confirms. It leaves for Today
 	// before it forgets the run, because the open page reads it.
 	async discard() {
-		const run = this.run!;
-		if (!confirm(`Discard “${run.name}”? Everything logged in it is deleted.`)) return;
-		await request('DELETE', `/api/v1/runs/${run.id}`);
+		if (!(await discardRun(this.run!))) return;
 		await goto('/');
 		this.forget();
 	}

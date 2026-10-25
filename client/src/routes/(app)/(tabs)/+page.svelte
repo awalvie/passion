@@ -9,10 +9,11 @@
 	import FormError from '$lib/FormError.svelte';
 	import HeroCard from '$lib/HeroCard.svelte';
 	import Icon from '$lib/Icon.svelte';
+	import Menu from '$lib/Menu.svelte';
 	import type { ScheduledDay } from '$lib/plan';
 	import { buckets, hours, tenWeeks } from '$lib/progress';
 	import { currentStop, secondsSince, type Run, type RunSummary } from '$lib/run';
-	import { openRun, startRun, type StartBody } from '$lib/runState.svelte';
+	import { discardRun, openRun, startRun, type StartBody } from '$lib/runState.svelte';
 	import { plural } from '$lib/text';
 	import Topo from '$lib/Topo.svelte';
 	import { topTopo } from '$lib/topo';
@@ -40,6 +41,15 @@
 		}
 	}
 
+	async function discard(r: RunSummary) {
+		error = '';
+		try {
+			if (await discardRun(r)) await invalidateAll();
+		} catch (e) {
+			error = describe(e, (f) => f);
+		}
+	}
+
 	let now = $state(Date.now());
 	$effect(() => {
 		if (!live) return;
@@ -62,7 +72,14 @@
 	const shownDays = $derived(data.week.filter((d) => d.local_date === shown));
 
 	const live = $derived(data.live && openRun.run?.id === data.live.id ? openRun.run : null);
-	const planned = $derived(shownDays.filter((d) => d.status !== 'done' && !(live && d.run === live.id)));
+	// A day whose run was left open shows as that run's Not finished card.
+	const planned = $derived(
+		shownDays.filter((d) => d.status !== 'done' && !(live && d.run === live.id) && !data.stale.some((r) => r.id === d.run))
+	);
+	// Today lists every run left open; another day only its own.
+	const stale = $derived(
+		other ? data.stale.filter((r) => r.local_date === shown || shownDays.some((d) => d.run === r.id)) : data.stale
+	);
 	// A run belongs to the day it was done, and to the planned day it ran for.
 	const done = $derived(finished.filter((r) => r.local_date === shown || shownDays.some((d) => d.run === r.id)));
 
@@ -279,9 +296,11 @@
 				{#if !other && !planned.length && data.next}{@render nextUp(data.next)}{/if}
 			</section>
 		{:else if other && !planned.length}
-			<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
-				<p class="text-[28px] leading-tight font-extrabold tracking-tight">Nothing on this day</p>
-			</section>
+			{#if !stale.length}
+				<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+					<p class="text-[28px] leading-tight font-extrabold tracking-tight">Nothing on this day</p>
+				</section>
+			{/if}
 		{:else if !planned.length}
 			{#if offline}
 				<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
@@ -309,6 +328,20 @@
 			{/if}
 		{/if}
 	{/if}
+
+	{#each stale as r (r.id)}
+		<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+			<div class="flex items-start justify-between gap-3">
+				<div class="min-w-0">
+					<p class="text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">Not finished</p>
+					<p class="mt-1 truncate text-xl font-extrabold tracking-tight">{r.name}</p>
+					<p class="mt-1 text-[15px] font-semibold text-ink-2">Started {dayDate(r.local_date)}. It counts once it is finished.</p>
+				</div>
+				<Menu look="bg-well text-ink" items={[{ label: 'Discard session', danger: true, onclick: () => discard(r) }]} />
+			</div>
+			<div class="mt-4"><Button variant="secondary" href="/run/{r.id}/finish">Finish session</Button></div>
+		</section>
+	{/each}
 
 	{#if !offline}
 		<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">

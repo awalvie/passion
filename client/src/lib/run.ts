@@ -116,6 +116,7 @@ export type RunSummary = {
 	name: string;
 	local_date: string;
 	started_at: string;
+	timezone: string;
 	finished_at: string | null;
 	elapsed_seconds: number | null;
 	place: string | null;
