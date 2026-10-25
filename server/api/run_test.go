@@ -427,3 +427,50 @@ func TestRunsNeedSignIn(t *testing.T) {
 		})
 	}
 }
+
+func TestListRunsSaysEachRunsZoneAndWhetherItHasAJournal(t *testing.T) {
+	h := newTestServer(t)
+	ada := signedIn(t, h, "ada@example.com")
+	bob := signedIn(t, h, "bob@example.com")
+
+	startRunFor(t, h, ada, `{"name": "Plain", "local_date": "2026-03-03"}`)
+	noted := startRunFor(t, h, ada, `{"name": "Noted", "local_date": "2026-03-05"}`)
+	body := runRequestFrom(t, noted, func(b map[string]any) { b["went_well"] = "Heel hooks" })
+	if rec := send(t, h, http.MethodPut, "/api/v1/runs/"+noted.ID, ada, body); rec.Code != http.StatusOK {
+		t.Fatalf("put: status %d: %s", rec.Code, rec.Body)
+	}
+	if rec := send(t, h, http.MethodPost, "/api/v1/runs/"+noted.ID+"/finish", ada, ""); rec.Code != http.StatusOK {
+		t.Fatalf("finish: status %d: %s", rec.Code, rec.Body)
+	}
+
+	list := func(bearer string) []map[string]any {
+		t.Helper()
+		rec := send(t, h, http.MethodGet, "/api/v1/runs", bearer, "")
+		var got struct {
+			Runs []map[string]any `json:"runs"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+			t.Fatalf("list: %v (%s)", err, rec.Body)
+		}
+		return got.Runs
+	}
+
+	runs := list(ada)
+	if len(runs) != 2 {
+		t.Fatalf("listed %d runs, want 2: %v", len(runs), runs)
+	}
+	// Newest day first: Noted, then Plain.
+	for i, want := range []struct {
+		name     string
+		journal  bool
+		finished bool
+	}{{"Noted", true, true}, {"Plain", false, false}} {
+		r := runs[i]
+		if r["name"] != want.name || r["has_journal"] != want.journal || r["timezone"] != "Europe/Oslo" || (r["finished_at"] != nil) != want.finished {
+			t.Fatalf("run %d is %v, want %s in Europe/Oslo, has_journal %v, finished %v", i, r, want.name, want.journal, want.finished)
+		}
+	}
+	if got := list(bob); len(got) != 0 {
+		t.Fatalf("Bob sees %v, want none of Ada's runs", got)
+	}
+}
