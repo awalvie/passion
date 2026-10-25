@@ -266,14 +266,14 @@
 			</div>
 		</section>
 		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-			{@render head('Send rate', pct(sendRate(shown)), 'Overall')}
+			{@render head('Climbs sent', pct(sendRate(shown)), 'Overall')}
 			<Dots n={data.buckets.length} marks={line(sendRates)} label={(v) => `${v}%`} zero {ticks} now={data.now} />
 		</section>
 		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
 			<h2 class="text-[15px] font-bold">First go</h2>
 			<dl class="grid grid-cols-3 gap-3">
 				{@render stat('Flash rate', pct(flashRate(shown)))}
-				{@render stat('Goes a send', goesPerSend(shown) ?? '–')}
+				{@render stat('Tries per send', goesPerSend(shown) ?? '–')}
 			</dl>
 			<Dots n={data.buckets.length} marks={line(flashRates)} label={(v) => `${v}%`} zero {ticks} now={data.now} />
 			<p class="-mt-2 text-xs font-semibold text-ink-2">Flash rate each {data.per}</p>
