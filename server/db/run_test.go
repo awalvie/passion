@@ -330,3 +330,76 @@ func TestDeleteRun(t *testing.T) {
 		t.Fatalf("got %v after delete, want ErrNoRun", err)
 	}
 }
+
+func TestListRunsHasJournalForEveryJournalField(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+
+	for name, c := range map[string]struct {
+		edit func(*db.RunFields)
+		want bool
+	}{
+		"nothing":    {func(*db.RunFields) {}, false},
+		"sleep":      {func(f *db.RunFields) { f.Sleep = ptr(3) }, true},
+		"energy":     {func(f *db.RunFields) { f.Energy = ptr(2) }, true},
+		"rpe":        {func(f *db.RunFields) { f.RPE = ptr(9) }, true},
+		"focus":      {func(f *db.RunFields) { f.Focus = ptr("technique") }, true},
+		"setting":    {func(f *db.RunFields) { f.Setting = ptr("indoor") }, true},
+		"went well":  {func(f *db.RunFields) { f.WentWell = ptr("Heel hooks") }, true},
+		"next focus": {func(f *db.RunFields) { f.NextFocus = ptr("Rest more") }, true},
+		"notes":      {func(f *db.RunFields) { f.Notes = ptr("Tweaky left finger") }, true},
+		"place":      {func(f *db.RunFields) { f.Place = ptr("The Castle") }, true},
+		"blank text": {func(f *db.RunFields) {
+			f.WentWell, f.NextFocus, f.Notes, f.Place = ptr(" "), ptr(""), ptr("\n"), ptr("  ")
+		}, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			run := startRun(t, ctx, pool, ada, db.RunStart{Name: name, StartedAt: time.Now()})
+			f, problems := db.RunFields{Name: run.Name, StartedAt: run.StartedAt, LocalDate: run.LocalDate}.Clean()
+			if len(problems) != 0 {
+				t.Fatalf("problems %v", problems)
+			}
+			c.edit(&f)
+			f, problems = f.Clean()
+			if len(problems) != 0 {
+				t.Fatalf("problems %v", problems)
+			}
+			if _, err := db.UpdateRun(ctx, pool, ada, run.ID, f); err != nil {
+				t.Fatal(err)
+			}
+
+			list, err := db.ListRuns(ctx, pool, ada)
+			if err != nil {
+				t.Fatal(err)
+			}
+			i := slices.IndexFunc(list, func(r db.RunSummary) bool { return r.ID == run.ID })
+			if i < 0 {
+				t.Fatalf("run %s is not listed", run.ID)
+			}
+			if list[i].HasJournal != c.want {
+				t.Fatalf("has journal %v, want %v", list[i].HasJournal, c.want)
+			}
+		})
+	}
+}
+
+func TestListRunsKeepsTheZoneEachRunWasDayedIn(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	account, err := db.CreateAccount(ctx, pool, "ada@example.com", "hash", "Ada", "Pacific/Auckland")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 20:00 UTC on the 1st is already the 2nd in Auckland.
+	startRun(t, ctx, pool, account.ID, db.RunStart{Name: "Open", StartedAt: time.Date(2026, 1, 1, 20, 0, 0, 0, time.UTC)})
+
+	list, err := db.ListRuns(ctx, pool, account.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 1 || list[0].Timezone != "Pacific/Auckland" || list[0].LocalDate.Format(time.DateOnly) != "2026-01-02" || list[0].FinishedAt != nil {
+		t.Fatalf("listed %+v, want an unfinished run of 2026-01-02 in Pacific/Auckland", list)
+	}
+}
