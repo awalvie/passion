@@ -125,7 +125,7 @@ such as the step page or the set card, is drawn.
 - Width: the phone layout is the default. From Tailwind's `md` (768 px) up, `TabBar` draws
   a rail on the left in place of the tab bar, and a page stays a 430 px column unless it
   has a wide layout of its own. Today has one: from `lg` (1024 px) up, it lists the days
-  from last week to the end of next beside its cards.
+  from last week to the end of next beside its cards, and a click opens a day there.
 - `dark:` follows `data-theme`, not the system setting. Use it only when a token cannot
   say it, for example a shadow that differs by theme.
 - Use `Button`, `NavBar`, `Menu`, `TabBar`, `FormError`, `Section` and `HeroCard` (the

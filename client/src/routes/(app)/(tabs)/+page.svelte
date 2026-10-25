@@ -64,13 +64,16 @@
 	const finished = $derived((data.runs ?? []).filter((r) => r.finished_at !== null));
 	const thisWeek = (r: RunSummary) => data.monday <= r.local_date && r.local_date <= sunday;
 
-	// A tap on the week strip shows that day in place of today.
+	// The days a wide screen lists beside Today, last week to the end of next.
+	const span = $derived(Array.from({ length: 21 }, (_, i) => addDays(data.monday, i - 7)));
+	// A tap on the week strip, or on a listed day, shows that day in place of
+	// today.
 	const shown = $derived.by(() => {
 		const day = page.url.searchParams.get('day');
-		return Array.from({ length: 7 }, (_, i) => addDays(data.monday, i)).includes(day ?? '') ? day! : data.today;
+		return span.includes(day ?? '') ? day! : data.today;
 	});
 	const other = $derived(shown !== data.today);
-	const shownDays = $derived(data.week.filter((d) => d.local_date === shown));
+	const shownDays = $derived(data.days.filter((d) => d.local_date === shown));
 
 	const live = $derived(data.live && openRun.run?.id === data.live.id ? openRun.run : null);
 	// A day whose run was left open shows as that run's Not finished card.
@@ -143,8 +146,6 @@
 		return n ? `Last done ${away(-n)}` : 'Done today';
 	}
 
-	// The days a wide screen lists beside Today, last week to the end of next.
-	const span = $derived(Array.from({ length: 21 }, (_, i) => addDays(data.monday, i - 7)));
 	// Each listed day with something on it, and today.
 	type Entry = { run: RunSummary; plan?: never } | { plan: ScheduledDay; run?: never };
 	// A run shows on the planned day it ran for, else on the day it was done.
@@ -190,6 +191,18 @@
 					: plural(ran, 'session');
 		return [`${shortDate(monday)} – ${shortDate(end)}`, ...cycles, count].filter(Boolean).join(' · ');
 	}
+
+	// A listed day opens beside the list, in place of today.
+	function dayLink(date: string) {
+		return {
+			href: date === data.today ? '/' : `/?day=${date}`,
+			'aria-current': date === shown ? ('date' as const) : undefined,
+			'data-sveltekit-replacestate': '',
+			'data-sveltekit-noscroll': '',
+			'data-sveltekit-keepfocus': ''
+		};
+	}
+	const pick = (date: string) => (other && date === shown ? '-mx-2 rounded-2xl bg-well px-2' : '');
 
 	function sectionsOf(template: string) {
 		const n = sessionsById.get(template)?.sections.length ?? 0;
@@ -516,15 +529,12 @@
 					<ul class="rounded-3xl bg-surface px-[18px] py-1 shadow-card">
 						{#each w.dates as g (g.date)}
 							{#each g.entries as e, i (e.run?.id ?? e.plan?.id)}
-								<li class="list-row flex items-center gap-3.5">
+								<li class="list-row flex items-center gap-3.5 {pick(g.date)}">
 									{#if e.run}
 										{@const r = e.run}
 										{@const open = r.finished_at === null}
 										{@const left = data.stale.some((s) => s.id === r.id)}
-										<a
-											href={left ? `/run/${r.id}/finish` : open ? `/run/${r.id}` : `/history/${r.id}`}
-											class="flex min-h-[58px] min-w-0 flex-1 items-center gap-3.5 py-2"
-										>
+										<a {...dayLink(g.date)} class="flex min-h-[58px] min-w-0 flex-1 items-center gap-3.5 py-2">
 											{@render dayCell(g.date, i === 0)}
 											<SessionIcon icon={sessionsById.get(r.template ?? '')?.icon ?? null} name={r.name} state={open ? 'started' : 'done'} size={36} />
 											<span class="min-w-0 flex-1">
@@ -553,10 +563,7 @@
 									{:else if e.plan}
 										{@const d = e.plan}
 										{@const usual = d.status === 'planned' ? factsOf(d).usual : null}
-										<a
-											href={d.status === 'missed' ? '/plan' : `/templates/${d.template}`}
-											class="flex min-h-[58px] min-w-0 flex-1 items-center gap-3.5 py-2"
-										>
+										<a {...dayLink(g.date)} class="flex min-h-[58px] min-w-0 flex-1 items-center gap-3.5 py-2">
 											{@render dayCell(g.date, i === 0)}
 											<SessionIcon icon={d.template_icon} name={d.template_name} state={iconState(d, data.today)} size={36} />
 											<span class="min-w-0 flex-1">
@@ -565,18 +572,18 @@
 													{d.status === 'missed' ? 'Missed' : sectionsOf(d.template)}
 												</span>
 											</span>
-											{#if d.status === 'missed'}
-												<span class="flex shrink-0 items-center gap-0.5 text-xs font-bold text-ink">Plan<Icon name="chevron-right" size="14px" /></span>
-											{:else if usual}
+											{#if usual}
 												<span class="shrink-0 text-xs font-semibold text-ink-3">Usually {usual}</span>
 											{/if}
 										</a>
 									{/if}
 								</li>
 							{:else}
-								<li class="list-row flex min-h-[58px] items-center gap-3.5 py-2">
-									{@render dayCell(g.date, true)}
-									<span class="text-[15px] font-semibold text-ink-2">Nothing yet</span>
+								<li class="list-row">
+									<a {...dayLink(g.date)} class="flex min-h-[58px] items-center gap-3.5 py-2">
+										{@render dayCell(g.date, true)}
+										<span class="text-[15px] font-semibold text-ink-2">Nothing yet</span>
+									</a>
 								</li>
 							{/each}
 						{/each}
@@ -621,7 +628,7 @@
 	{@const f = factsOf(d)}
 	<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
 		<p class="flex items-center gap-2 text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">
-			<i class="size-2 rounded-full" style:background={data.templates.get(d.template)?.color ?? 'var(--ink-3)'}></i>
+			<i class="size-2 rounded-full" style:background={sessionsById.get(d.template)?.color ?? 'var(--ink-3)'}></i>
 			{other ? (d.status === 'missed' ? 'Missed' : 'Planned') : 'Today'}
 		</p>
 		<a href="/templates/{d.template}" class="mt-1 block truncate text-[28px] leading-tight font-extrabold tracking-tight">{d.template_name}</a>
@@ -642,7 +649,7 @@
 	{@const f = factsOf(d)}
 	<div class="mt-4 rounded-2xl bg-well p-4">
 		<p class="flex items-center gap-2 text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">
-			<i class="size-2 rounded-full" style:background={data.templates.get(d.template)?.color ?? 'var(--ink-3)'}></i>
+			<i class="size-2 rounded-full" style:background={sessionsById.get(d.template)?.color ?? 'var(--ink-3)'}></i>
 			Next · {when(d.local_date)}
 		</p>
 		<a href="/templates/{d.template}" class="mt-1 block truncate text-xl font-extrabold tracking-tight">{d.template_name}</a>
