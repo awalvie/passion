@@ -385,7 +385,7 @@
 									{#if r.elapsed_seconds}<span class="digits text-xl">{formatMinutes(r.elapsed_seconds)}</span>{/if}
 								</a>
 								{#if r.has_journal === false}
-									<a href="/run/{r.id}/finish" class="-mt-3 -mb-3 flex min-h-11 w-fit items-center gap-0.5 text-xs font-bold text-ink-2">
+									<a href="/run/{r.id}/finish" class="-mt-3 -mb-3 flex min-h-11 w-fit items-center gap-0.5 text-xs font-bold text-ink">
 										Add a journal<Icon name="chevron-right" size="14px" />
 									</a>
 								{/if}
@@ -558,7 +558,7 @@
 											{/if}
 										</a>
 										{#if !open && r.has_journal === false}
-											<a href="/run/{r.id}/finish" class="hidden min-h-11 shrink-0 items-center gap-0.5 text-xs font-bold text-ink-2 xl:flex">
+											<a href="/run/{r.id}/finish" class="hidden min-h-11 shrink-0 items-center gap-0.5 text-xs font-bold text-ink xl:flex">
 												Add a journal<Icon name="chevron-right" size="14px" />
 											</a>
 										{/if}
