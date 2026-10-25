@@ -54,14 +54,15 @@
 			// A finished run keeps its length, even an unknown one.
 			elapsed_seconds: editing ? r.elapsed_seconds : stale ? Math.round(length!) : (r.elapsed_seconds ?? secondsSince(r.started_at))
 		});
+		openRun.refused = '';
 		openRun.saveBody();
 		try {
 			if (!(await openRun.settle())) {
 				error = `Not saved yet. ${editing ? 'Saving' : 'Finish'} needs a signal. It is kept on this phone, so try again.`;
 				return;
 			}
-			// The queue drops a refused write, so an edit would vanish without this.
-			if (editing && openRun.refused) {
+			// The queue drops a refused write, so the journal would vanish without this.
+			if (openRun.refused) {
 				error = openRun.refused;
 				return;
 			}
