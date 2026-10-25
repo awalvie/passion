@@ -237,8 +237,15 @@
 			</section>
 		{/if}
 	{:else if !shown.length}
-		<section class="rounded-3xl bg-surface p-5 shadow-card">
-			<p class="text-[15px] font-semibold text-ink-2">{filterQuery(data.filter) ? 'No climbs match in this range.' : 'No climbs in this range.'}</p>
+		<section class="flex flex-col items-start gap-1 rounded-3xl bg-surface p-5 shadow-card">
+			{#if filterQuery(data.filter) && data.climbs.length}
+				<p class="text-[15px] font-semibold text-ink-2">No climbs match in this range.</p>
+				<button type="button" class="-mb-3 flex min-h-11 items-center gap-0.5 text-[15px] font-bold text-ink" onclick={() => applyFilter({ discipline: [], setting: [], board: [] })}>
+					Show all climbs<Icon name="chevron-right" size="16px" />
+				</button>
+			{:else}
+				<p class="text-[15px] font-semibold text-ink-2">No climbs in this range.</p>
+			{/if}
 		</section>
 	{:else if data.view === 'climbs'}
 		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
