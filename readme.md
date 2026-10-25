@@ -23,13 +23,18 @@ Accounts, authentication, an exercise library, session templates and runs, throu
 The client is a phone app with four tabs. Today shows the day's planned sessions and starts
 one, or an open session. On a rest day it shows the next session. It counts the week's
 sessions done against planned, names the missed ones, and shows the hours trained this week
-against the usual. A tap on a planned day in the week strip shows that day instead.
+against the usual. A tap on a day in the week strip shows that day instead. Your sessions
+lists your own sessions, the last done first, each with a start button. A session left open
+from an earlier day shows as Not finished, to finish with its length or discard. A done
+session with no journal offers to add one. On a laptop a rail replaces the tabs, and Today
+lists the days from last week to the end of next beside its cards. A click opens a day there.
 A session's page shows its runs, the last note and loads, and the next drill to try, with
 its exercises on a second tab. A running session follows you across the tabs as a mini
 player. Plan lists the sessions from a week ago to four weeks ahead. It
 adds a one-off session, moves or removes one, and makes, edits and deletes cycles. Library
 holds the exercises and the session templates. History lists finished sessions and what each
-one logged. While a session runs, the client logs sets, per-side sets, climbs, and timed reps
+one logged. Its Progress page charts time, climbs and grades over ten weeks, the running cycle
+or any dates, and filters the climbs by discipline, indoor or outdoor, and board. While a session runs, the client logs sets, per-side sets, climbs, and timed reps
 with prep, hang and rest. A rest can run 30 s longer, and the next timed exercise starts
 when one runs out. It picks from a choice, adds an exercise, and finishes with the journal.
 A running session has its own dark screen: its steps, the current exercise in a panel at the
@@ -96,8 +101,8 @@ For development, `make watch` reloads both halves. Vite serves the client on
 3. Open Passion from the Home Screen and sign in there. The Home Screen app keeps its own
    storage, so a sign-in in Safari does not carry over.
 
-Timer tones play once you tap Start. Turn them off, and haptics too, in Profile, from the gear
-on Today.
+Timer tones play once you tap Start, even with the phone on silent. Turn them off from the
+speaker on a step, or in Profile, from the gear on Today. Haptics turn off there too.
 
 ## API
 
