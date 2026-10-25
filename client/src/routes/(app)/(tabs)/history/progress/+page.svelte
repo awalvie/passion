@@ -92,7 +92,6 @@
 
 	const shown = $derived(data.climbs.filter((c) => passes(c, data.filter)));
 	const climbs = $derived(counts(shown, data.buckets));
-	const sent = $derived(shown.filter((c) => c.sent).length);
 	const sendRates = $derived(perBucket(shown, data.buckets, sendRate));
 	const flashRates = $derived(perBucket(shown, data.buckets, flashRate));
 	// Where the climbing was, most first.
@@ -159,13 +158,6 @@
 
 {#snippet key(cls: string, label: string)}
 	<span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full {cls}"></span>{label}</span>
-{/snippet}
-
-{#snippet head(title: string, figure?: string, small?: string)}
-	<div class="flex items-baseline justify-between gap-3">
-		<h2 class="text-[15px] font-bold">{title}</h2>
-		{#if figure}<span class="text-xs font-semibold text-ink-2">{small} <span class="digits text-[17px] text-ink">{figure}</span></span>{/if}
-	</div>
 {/snippet}
 
 <NavBar back={{ href: '/history', label: 'History' }} title="Progress" />
@@ -253,7 +245,7 @@
 			<dl class="grid grid-cols-3 gap-3">
 				{@render stat('Climbs', shown.length)}
 				{@render stat(`A ${data.per}`, round(shown.length / passed))}
-				{@render stat('Sent', sent)}
+				{@render stat('Tries per send', goesPerSend(shown) ?? '–')}
 			</dl>
 			<Bars
 				parts={[
@@ -269,17 +261,12 @@
 			</div>
 		</section>
 		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-			{@render head('Climbs sent', pct(sendRate(shown)), 'Overall')}
+			<dl>{@render stat('Climbs sent', pct(sendRate(shown)))}</dl>
 			<Dots n={data.buckets.length} marks={line(sendRates)} label={(v) => `${v}%`} zero {ticks} now={data.now} />
 		</section>
 		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-			<h2 class="text-[15px] font-bold">First go</h2>
-			<dl class="grid grid-cols-3 gap-3">
-				{@render stat('Flash rate', pct(flashRate(shown)))}
-				{@render stat('Tries per send', goesPerSend(shown) ?? '–')}
-			</dl>
+			<dl>{@render stat('Flash rate', pct(flashRate(shown)))}</dl>
 			<Dots n={data.buckets.length} marks={line(flashRates)} label={(v) => `${v}%`} zero {ticks} now={data.now} />
-			<p class="-mt-2 text-xs font-semibold text-ink-2">Flash rate each {data.per}</p>
 		</section>
 		<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-3 shadow-card">
 			<h2 class="mb-2 text-[15px] font-bold">Where</h2>
@@ -298,11 +285,11 @@
 	{:else}
 		{#each disciplines as d (d.label)}
 			<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-				{@render head(`${d.label}, hardest send`, d.top ?? undefined, 'Best')}
+				<dl>{@render stat(`${d.label}, hardest send`, d.top ?? '–')}</dl>
 				<Dots n={d.points.length} marks={line(d.points)} label={(g) => d.scale.grades[g]} {ticks} now={data.now} />
 			</section>
 			<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-				{@render head(`${d.label}, average send`, d.average ?? undefined, 'Overall')}
+				<dl>{@render stat(`${d.label}, average send`, d.average ?? '–')}</dl>
 				<Dots n={d.averages.length} marks={line(d.averages)} label={(g) => d.scale.grades[g]} {ticks} now={data.now} />
 			</section>
 			<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
