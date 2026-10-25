@@ -1,261 +1,97 @@
-<p align="center">
-  <strong>Passion</strong><br>
-  <sub>A self-hosted climbing training app. Go and Postgres on the back, Svelte on the front.</sub>
-</p>
+<h1 align="center">Passion</h1>
+
+<p align="center">A training log and planner for climbers that you host yourself.</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Go-1.26-00ADD8?style=flat-square&logo=go&logoColor=white" alt="Go 1.26">
   <img src="https://img.shields.io/badge/PostgreSQL-18-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL 18">
   <img src="https://img.shields.io/badge/Svelte-5-FF3E00?style=flat-square&logo=svelte&logoColor=white" alt="Svelte 5">
-  <img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS 4">
+  <img src="https://img.shields.io/badge/licence-PolyForm_Noncommercial-555?style=flat-square" alt="PolyForm Noncommercial">
 </p>
 
----
+<p align="center"><img src="docs/screenshots/laptop-today.png" alt="Today on a laptop: last week, this week and next beside today's session" width="900"></p>
 
-Passion is a self-hosted training app for climbers. A Go server holds the data behind a JSON
-API, and a Svelte client built for the phone runs on it. [docs/V2_DESIGN.md](docs/V2_DESIGN.md)
-says how the data is arranged and why. This file says what works today. The first version,
-on Go templates, HTMX and SQLite, is tagged `v1`.
+Passion is a training app for climbers. You use it to plan your training, log your sessions
+and see your progress. It runs in a web browser on a phone or a computer. You host it on
+your own server.
 
-## What works today
+## Plan
 
-Accounts, authentication, an exercise library, session templates and runs, through the API.
-The client is a phone app with four tabs. Today shows the day's planned sessions and starts
-one, or an open session. On a rest day it shows the next session. It counts the week's
-sessions done against planned, names the missed ones, and shows the hours trained this week
-against the usual. A tap on a day in the week strip shows that day instead. Your sessions
-lists your own sessions, the last done first, each with a start button. A session left open
-from an earlier day shows as Not finished, to finish with its length or discard. A done
-session with no journal offers to add one. On a laptop a rail replaces the tabs, and Today
-lists the days from last week to the end of next beside its cards. A click opens a day there.
-A session's page shows its runs, the last note and loads, and the next drill to try, with
-its exercises on a second tab. A running session follows you across the tabs as a mini
-player. Plan lists the sessions from a week ago to four weeks ahead. It
-adds a one-off session, moves or removes one, and makes, edits and deletes cycles. Library
-holds the exercises and the session templates. History lists finished sessions and what each
-one logged. Its Progress page charts time, climbs and grades over ten weeks, the running cycle
-or any dates, and filters the climbs by discipline, indoor or outdoor, and board. While a session runs, the client logs sets, per-side sets, climbs, and timed reps
-with prep, hang and rest. A rest can run 30 s longer, and the next timed exercise starts
-when one runs out. It picks from a choice, adds an exercise, and finishes with the journal.
-A running session has its own dark screen: its steps, the current exercise in a panel at the
-bottom, and a card that names any picks still to make. Each exercise opens on a step page
-with its timer, its sets or its climbs.
-Writes wait on the phone when there is no signal. Every other screen follows the light or
-dark theme.
+A cycle is a block of days that repeats for some weeks. You put a session on each day that
+you train. The Today page shows the session for today and your numbers from the last time.
+It also lists your sessions and the date that you last did each one. Thus you can start a
+session without a plan. A day that you miss stays on the calendar as missed.
 
-- Sign up with an email address and a password, hashed with argon2id.
-- Sign in. Each sign-in mints its own bearer token, so a phone and a laptop hold different
-  ones and signing out of either leaves the other working.
-- A token lasts thirty days by default and slides forward when it is used.
-- Read your own account.
-- Sign out one device.
-- List your exercise library, and create, edit and retire exercises of your own.
-- The shipped exercises load at startup, and so does any private catalog in the config. A
-  start writes only the files that changed. If you edit an exercise from your catalog in the
-  app, the edit stays until its file changes, and then the file wins. Edit the file instead.
-- List session templates, and create, edit and retire your own. A session holds named
-  sections of exercises and choices such as "pick 1 of these 3". Each step keeps its own copy
-  of the exercise, so you can change its numbers for that session only.
-- The shipped session templates and any private ones load at startup too, from `blocks/` and
-  `sessions/` beside `movements/`. See [docs/CATALOG_FORMAT.md](docs/CATALOG_FORMAT.md).
-- Start a run from a session template, or an open run that starts empty. The run copies the
-  template when it starts, so a later edit to the template never reaches it. A write-up of a
-  day already gone names that day.
-- Change anything in a run while you train or long after: its steps, their order, a pick from
-  a choice, notes and the end-of-run journal. Finish it, and every step not reached counts as
-  skipped.
-- Log a step's sets, and a climbing step's climbs one at a time. A retried write counts once.
-  A climb keeps each go, an attempt or a send, and is a send when it is graded and has one.
-- Grades come in Font and V for boulders, French and YDS for routes. Your account says which
-  the client offers first.
-- Keep a list of climbing centres, each with the sessions you can do there.
-- Plan a cycle: a block of days that repeats between two dates, with sessions on some of its
-  days. The app places each session on the dates it falls, from today on. Move one day, take
-  one out, or schedule a one-off by hand. A day gone by with no run shows as missed.
-- Start a run from a scheduled day, and the day counts as done once the run is finished.
-- Read an exercise's history: every finished run that logged it, with its sets or climbs.
+<p align="center">
+  <img src="docs/screenshots/phone-today.png" alt="Today on a phone" width="240">
+  <img src="docs/screenshots/phone-plan.png" alt="The schedule for last week and this week" width="240">
+  <img src="docs/screenshots/phone-cycle.png" alt="A six-week cycle on a calendar" width="240">
+</p>
 
-The Go binary serves everything: the API, the Svelte client, and browsable API
-documentation. It migrates its own database on the way up, so an upgrade never needs a
-second command.
+## Train
 
-## Quick start
+You do a session one step at a time. For each set, you log the reps and the weight. Your
+numbers from the last time show below each field. Hangs and repeaters use a timer with
+prep, work and rest. The timer sounds also play when an iPhone is on silent.
 
-The repository ships a nix flake with every tool it needs. With `direnv`, `cd` into the
-directory and the shell is ready. Without it, run `nix develop`.
+For climbs, you log each try as an attempt or a send. The app finds your sends and flashes
+from these tries. You can add, move or skip exercises during the session. If you lose
+signal, the phone keeps your log and sends it to the server later.
 
-```sh
-make run     # build the client, start postgres, serve on http://localhost:8080
-```
+<p align="center">
+  <img src="docs/screenshots/phone-session.png" alt="A session in progress" width="240">
+  <img src="docs/screenshots/phone-timer.png" alt="A hang timer counting down" width="240">
+  <img src="docs/screenshots/phone-climbs.png" alt="Logging a climb" width="240">
+</p>
 
-Then open <http://localhost:8080/login> to sign up.
+## Look back
 
-For development, `make watch` reloads both halves. Vite serves the client on
-<http://localhost:5173> and proxies `/api` to the Go server. Open that one, not 8080.
+Each session keeps the plan and what you did. You can add a journal with your sleep, energy
+and effort. The Progress page shows your hours, climbs and grades. It can show the last 10
+weeks, one cycle, or the dates that you choose. Each exercise also has its own history.
 
-## On an iPhone
+<p align="center">
+  <img src="docs/screenshots/phone-history.png" alt="History with time, climbs and hardest send" width="240">
+  <img src="docs/screenshots/phone-progress.png" alt="Progress for climbs" width="240">
+</p>
+<p align="center">
+  <img src="docs/screenshots/phone-past.png" alt="A past session with its journal and sets" width="240">
+  <img src="docs/screenshots/phone-exercise.png" alt="The history of weighted pull-ups" width="240">
+</p>
 
-1. Serve Passion over HTTPS. Over plain http the app works, but the screen dims during a
-   timer, because Safari keeps the wake lock for secure pages.
-2. Open the address in Safari, tap Share, then Add to Home Screen.
-3. Open Passion from the Home Screen and sign in there. The Home Screen app keeps its own
-   storage, so a sign-in in Safari does not carry over.
+## Make your own
 
-Timer tones play once you tap Start, even with the phone on silent. Turn them off from the
-speaker on a step, or in Profile, from the gear on Today. Haptics turn off there too.
+The app comes with exercises and sessions that you can use. You can also make your own in
+the app. A session has sections. A section can give a choice, for example "pick 1 of these
+3". If you keep your training in files, you can load them as a private catalog. Only you can
+see a private catalog.
 
-## API
+Boulder grades show in Font or V. Route grades show in French or YDS.
 
-Interactive documentation lives at `/api/docs/` on a running server. It is generated from
-the handlers and the OpenAPI document is at `/api/openapi.json`.
+## Run it
 
-| Method | Path | What it does |
-|---|---|---|
-| `POST` | `/api/v1/accounts` | Sign up. Returns the account and its first token |
-| `POST` | `/api/v1/tokens` | Sign in. Returns a new token |
-| `GET` | `/api/v1/accounts/me` | The signed-in account |
-| `PUT` | `/api/v1/accounts/me/grades` | Choose the grade scales the client offers first |
-| `DELETE` | `/api/v1/tokens/current` | Sign out this device |
-| `GET` | `/api/v1/exercises` | Your library: shipped exercises and your own, not retired |
-| `POST` | `/api/v1/exercises` | Create an exercise of your own |
-| `GET` | `/api/v1/exercises/{id}` | One exercise, retired ones included |
-| `PUT` | `/api/v1/exercises/{id}` | Replace every field of one of your own |
-| `POST` | `/api/v1/exercises/{id}/retire` | Take one of your own out of your library |
-| `GET` | `/api/v1/exercises/{id}/history` | Every finished run that logged it, newest first |
-| `GET` | `/api/v1/session-templates` | Shipped session templates and your own, not retired |
-| `POST` | `/api/v1/session-templates` | Create a session template of your own |
-| `GET` | `/api/v1/session-templates/{id}` | One session template, retired ones included |
-| `PUT` | `/api/v1/session-templates/{id}` | Replace every field of one of your own, sections included |
-| `POST` | `/api/v1/session-templates/{id}/retire` | Take one of your own out of your list |
-| `GET` | `/api/v1/runs` | Your runs, newest day first |
-| `POST` | `/api/v1/runs` | Start a run from a template, or an open run |
-| `GET` | `/api/v1/runs/{id}` | One run with its sets and climbs |
-| `PUT` | `/api/v1/runs/{id}` | Replace everything but the plan, the template and the finish |
-| `POST` | `/api/v1/runs/{id}/finish` | Finish a run. Steps not reached count as skipped |
-| `DELETE` | `/api/v1/runs/{id}` | Delete one of your runs with everything in it |
-| `PUT` | `/api/v1/runs/{id}/steps/{step}/sets` | Replace one step's sets |
-| `PUT` | `/api/v1/runs/{id}/climbs/{climb}` | Write one climb, under an id the client chose |
-| `DELETE` | `/api/v1/runs/{id}/climbs/{climb}` | Remove one climb |
-| `GET` | `/api/v1/climbs?from=&to=` | Every climb in your finished runs between two dates |
-| `GET` | `/api/v1/grades` | Every grade scale, easiest grade first |
-| `GET` | `/api/v1/cycles` | Your cycles, latest start first |
-| `GET` | `/api/v1/cycles/{id}` | One cycle |
-| `PUT` | `/api/v1/cycles/{id}` | Create or replace a cycle, under an id the client chose |
-| `DELETE` | `/api/v1/cycles/{id}` | Delete a cycle and the days it placed. Runs stay |
-| `GET` | `/api/v1/centres` | Your climbing centres, by name |
-| `PUT` | `/api/v1/centres/{id}` | Create or replace a centre, under an id the client chose |
-| `DELETE` | `/api/v1/centres/{id}` | Delete a centre |
-| `GET` | `/api/v1/scheduled-sessions?from=&to=` | Your calendar, with each day's status |
-| `POST` | `/api/v1/scheduled-sessions` | Schedule a one-off session |
-| `PUT` | `/api/v1/scheduled-sessions/{id}` | Move a session to another day |
-| `DELETE` | `/api/v1/scheduled-sessions/{id}` | Take a session off its day |
-| `GET` | `/healthz` | Liveness, and whether the database answers |
-
-Authenticate with `Authorization: Bearer <token>`.
-
-Every failure answers in one shape: an error object with a code, a human message, and on a
-validation failure a `fields` map that names what to fix.
-
-## Configuration
-
-Settings come from an optional YAML file, read at startup. Set `PASSION_CONFIG` to its
-path. [passion.example.yaml](passion.example.yaml) lists every key with its default. A
-misspelt key or a bad value stops the server and names the line.
-
-| Key | Default | Description |
-|---|---|---|
-| `server.addr` | `:8080` | Listen address |
-| `database.url` | none, required | Postgres connection string. The server exits without it |
-| `auth.token_life` | `720h` | How long a sign-in lasts unused. Must be longer than `24h` |
-| `log.level` | `info` | `debug`, `info`, `warn` or `error` |
-| `log.format` | `text` | `text` or `json` |
-| `catalog.private` | none | Catalog trees of your own, each a `location` and a list of `owner` emails. An owner with no account yet is skipped until the next start |
-
-Two environment variables win over the file, so a deploy can set them and need no file.
-
-| Variable | Sets |
-|---|---|
-| `DATABASE_URL` | `database.url` |
-| `PASSION_ADDR` | `server.addr` |
-
-The nix shell sets `DATABASE_URL` and `TEST_DATABASE_URL` to a cluster in `.pgdata`, so
-local development needs no configuration at all.
-
-## Make targets
-
-| Target | What it does |
-|---|---|
-| `make run` | Build the client and serve on :8080 |
-| `make client` | Install the client's packages and build it into `server/web/dist` |
-| `make watch` | Hot reload. Vite on :5173, air rebuilding the server |
-| `make seed` | Fill the running local server with sixteen weeks of sample sessions for `dev@passion.local`, password `passion-dev`. `SEED_FLAGS=-reset` deletes them and seeds again |
-| `make test` | Run the Go tests and the client's unit tests. Start the database first with `make db-up` |
-| `make openapi` | Regenerate `server/api/swagger.json` from the handler annotations |
-| `make db-up` / `make db-down` | Start or stop the local postgres cluster |
-| `make image` | Build the docker image |
-| `make catalog-ids` | Give each file in `catalog/` that has no `id:` one of its own. `CATALOG_DIR=<tree>` for another tree |
-
-CI checks formatting, `go vet`, that the OpenAPI document is not stale, and the tests.
-
-## Project structure
-
-```
-server/api/         handlers, routing, middleware, the openapi spec and the docs page
-server/catalog/     reads catalog trees, checks them, and loads them at startup
-server/config/      the YAML config file and the environment variables that override it
-server/db/          pgx queries and goose migrations
-server/grades/      the grade scales a climb is logged in
-server/password/    argon2id hashing
-server/token/       opaque bearer tokens
-server/web/         serves the client, embedded with //go:embed
-server/cmd/         passion, the server; catalogid, which gives catalog files an id; catalogcheck, which checks a private catalog without a database; and seed, which fills a local server with sample sessions
-client/             sveltekit, built into server/web/dist
-catalog/            the shipped catalog, embedded and loaded at startup. See docs/CATALOG_FORMAT.md
-deploy/             the compose file the deploy workflow runs on the server
-docs/               design, requirements and plans
-```
-
-The stack is deliberately small: `net/http` with no router library, `pgx` with no ORM,
-`goose` for migrations, `golang.org/x/crypto` for argon2id, and `go.yaml.in/yaml/v3` for
-the config file. Four direct dependencies.
-
-## Docker
+You need Docker and a Postgres 18 database.
 
 ```sh
 make image
-docker run -e DATABASE_URL=... -p 8080:8080 passion:dev
+docker run -e DATABASE_URL=postgres://... -p 8080:8080 passion:dev
 ```
 
-The image is a static binary on Alpine, running as an unprivileged user.
+Open <http://localhost:8080> and sign up.
 
-## Deploy
+To add the app to an iPhone Home Screen, open it in Safari. Tap Share, then tap Add to Home
+Screen. The Home Screen app has its own sign-in, so sign in again there.
 
-Run the Deploy workflow by hand from the Actions tab. It builds the image, pushes it to
-`ghcr.io/awalvie/passion`, copies [deploy/compose.yaml](deploy/compose.yaml) and the
-private catalog to `/srv/passion` over SSH, and starts the server with Postgres beside it.
-The server listens on `127.0.0.1:8081`, so put a reverse proxy in front of it.
+To run the app from the source code, install [nix](https://nixos.org). Then run
+`nix develop` and `make run`.
 
-Once, on the server:
+## Docs
 
-1. Install Docker with the compose plugin, and add the deploy user to the `docker` group.
-2. Create `/srv/passion`, owned by the deploy user.
-3. Point the proxy at it, for example in Caddy: `example.com { reverse_proxy 127.0.0.1:8081 }`.
-
-In the repository settings:
-
-| Name | Kind | Value |
-|---|---|---|
-| `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` | secret | the server and an SSH key for it |
-| `DEPLOY_KNOWN_HOSTS` | secret | the server's host key, from `ssh-keyscan <host>` |
-| `PRIVATE_CATALOG_DEPLOY_KEY` | secret | a read-only deploy key for `passion-private-catalog` |
-| `POSTGRES_PASSWORD` | secret | letters, digits and `. _ ~ -` only, for example `openssl rand -hex 24` |
-| `CATALOG_OWNER` | variable | the email of the account that gets the private catalog |
-
-Postgres reads the password only when its volume is first created. To change it later,
-run `ALTER USER passion PASSWORD '...'` in the database before you change the secret.
-
-The private catalog loads only for an account that exists, and only when the server
-starts. After that account signs up, run `docker compose restart app` in `/srv/passion`.
+- [Deploy](docs/DEPLOY.md): the configuration, the deploy workflow and backups.
+- [Develop](docs/DEVELOPMENT.md): how to set up, where the code goes, and how to style a
+  screen.
+- [Catalog format](docs/CATALOG_FORMAT.md): how to write exercises and sessions as files.
+- The API docs are at `/api/docs/` on a running server.
 
 ## Licence
 
