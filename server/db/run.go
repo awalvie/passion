@@ -99,6 +99,7 @@ type RunSummary struct {
 	Name           string     `db:"name"`
 	LocalDate      time.Time  `db:"local_date"`
 	StartedAt      time.Time  `db:"started_at"`
+	Timezone       string     `db:"timezone"`
 	FinishedAt     *time.Time `db:"finished_at"`
 	ElapsedSeconds *int       `db:"elapsed_seconds"`
 	Place          *string    `db:"place"`
@@ -214,7 +215,7 @@ func NewID() string {
 // ListRuns is every run of the person's, finished or not, newest day first.
 func ListRuns(ctx context.Context, pool *pgxpool.Pool, owner string) ([]RunSummary, error) {
 	rows, err := pool.Query(ctx, `
-		SELECT id, template, name, local_date, started_at, finished_at, elapsed_seconds, place
+		SELECT id, template, name, local_date, started_at, timezone, finished_at, elapsed_seconds, place
 		FROM run
 		WHERE owner = $1
 		ORDER BY local_date DESC, started_at DESC, id DESC`, owner)

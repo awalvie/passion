@@ -3271,6 +3271,12 @@
         "template": {
           "type": "string",
           "x-go-name": "Template"
+        },
+        "timezone": {
+          "description": "The time zone the run's day was worked out in.",
+          "type": "string",
+          "x-go-name": "Timezone",
+          "example": "Europe/London"
         }
       },
       "x-go-package": "passion/server/api"

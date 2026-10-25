@@ -237,6 +237,10 @@ type runSummaryBody struct {
 	FinishedAt     *time.Time `json:"finished_at"`
 	ElapsedSeconds *int       `json:"elapsed_seconds"`
 	Place          *string    `json:"place"`
+	// The time zone the run's day was worked out in.
+	//
+	// example: Europe/London
+	Timezone string `json:"timezone"`
 }
 
 // swagger:model runListResponse
@@ -269,6 +273,7 @@ func (s *Server) listRuns(w http.ResponseWriter, r *http.Request, who db.Authent
 			Name:           run.Name,
 			LocalDate:      run.LocalDate.Format(time.DateOnly),
 			StartedAt:      run.StartedAt,
+			Timezone:       run.Timezone,
 			FinishedAt:     run.FinishedAt,
 			ElapsedSeconds: run.ElapsedSeconds,
 			Place:          run.Place,
