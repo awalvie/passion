@@ -217,7 +217,7 @@
 			</button>
 		{/if}
 		<p class="text-xs font-semibold text-ink-2">
-			{data.span.cycle && custom ? `${data.span.cycle.name} · ` : ''}{spanDate(data.span.from)} – {spanDate(data.span.to)}
+			{data.span.cycle && custom ? `${data.span.cycle.name} · ` : ''}{data.span.from === data.span.to ? spanDate(data.span.from) : `${spanDate(data.span.from)} – ${spanDate(data.span.to)}`}
 		</p>
 	</div>
 
