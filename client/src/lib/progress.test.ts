@@ -7,9 +7,12 @@ import {
 	climbMarks,
 	figure,
 	averageSend,
+	counts,
 	filterName,
 	flashRate,
 	goesPerSend,
+	grades,
+	hours,
 	mixOf,
 	filterQuery,
 	headline,
@@ -27,7 +30,7 @@ import {
 	topSend,
 	type DatedClimb
 } from './progress';
-import type { Climb, HistorySession, SetFields } from './run';
+import type { Climb, HistorySession, RunSummary, SetFields } from './run';
 
 const set = (s: Partial<SetFields>) => ({ reps: null, seconds: null, rep_seconds: null, weight_kg: null, ...s });
 const session = (sets: SetFields[], climbs: Climb[] = []) =>
@@ -288,4 +291,115 @@ test('a cycle longer than 16 weeks names every fourth week', () => {
 	const long = [{ id: 'l', name: 'Year', starts: '2026-01-05', ends: '2026-12-27' }];
 	const ticks = buckets(readSpan('cycle:l', today, long), today).buckets.map((b) => b.tick);
 	expect(ticks.slice(0, 6)).toEqual(['W1', '', '', '', 'W5', '']);
+});
+
+const dated = (local_date: string, over: Partial<Climb> = {}) =>
+	({ ...climb('6a', true), discipline: 'boulder', setting: 'indoor', board: null, local_date, run: 'r', ...over }) as DatedClimb;
+
+test('hours puts a session in the week of its day, and counts an unknown length as nothing', () => {
+	const run = (local_date: string, elapsed_seconds: number | null) => ({ local_date, elapsed_seconds }) as RunSummary;
+	const { buckets: bs } = buckets(tenWeeks(today), today);
+	const got = hours(
+		[
+			run('2026-10-19', 3600),
+			run('2026-10-25', 1800),
+			// Sunday ends a week and Monday starts the next.
+			run('2026-10-18', 7200),
+			run('2026-10-12', null),
+			run('2026-08-16', 3600),
+			run('2026-10-26', 3600)
+		],
+		bs
+	);
+	expect(got).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 2, 1.5]);
+});
+
+test('counts and grades keep to the days of each bucket, and boulders apart from routes', () => {
+	const bs = [
+		{ from: '2026-10-05', to: '2026-10-11', tick: '' },
+		{ from: '2026-10-12', to: '2026-10-18', tick: '' }
+	];
+	const cs = [
+		dated('2026-10-11', { grade: '6b' }),
+		dated('2026-10-11', { discipline: 'sport', grade: '7a', sent: false }),
+		dated('2026-10-12', { discipline: 'trad', grade: '6c' }),
+		dated('2026-10-18', { grade: '6a' }),
+		dated('2026-10-18', { grade: '6c' }),
+		dated('2026-10-19', { grade: '7a' })
+	];
+	expect(counts(cs, bs)).toEqual([
+		{ boulders: 1, routes: 1 },
+		{ boulders: 2, routes: 1 }
+	]);
+	// The hardest send, in the scale: 7a was not sent, and 6c on the 19th is outside.
+	expect(grades(cs, bs, scale)).toEqual([1, 2]);
+	expect(grades([], bs, scale)).toEqual([null, null]);
+	expect(grades([dated('2026-10-11', { grade_system: 'v' })], bs, scale)).toEqual([null, null]);
+});
+
+test('a span of one day is one bucket, cut to that day at its start', () => {
+	const sunday = '2026-10-18';
+	const span = readSpan(`${sunday}:${sunday}`, today, cycles);
+	expect(span).toMatchObject({ from: sunday, to: sunday });
+	const { buckets: bs, now } = buckets(span, today);
+	expect(bs).toEqual([{ from: sunday, to: sunday, tick: '' }]);
+	expect(now).toBe(-1);
+	const onToday = buckets(readSpan(`${today}:${today}`, today, cycles), today);
+	expect(onToday.buckets).toEqual([{ from: today, to: '2026-10-25', tick: '' }]);
+	expect(onToday.now).toBe(0);
+});
+
+test('readSpan refuses a key it cannot read, and a key with room to spare', () => {
+	for (const key of ['', ' 2026-10-01:2026-10-20', '2026-10-01:2026-10-20 ', '2026-10-1:2026-10-20', '2026-10-01-2026-10-20', 'cycle:', 'cycle', '10W', '2026-13-01:2026-13-02']) {
+		expect(readSpan(key, today, cycles).key, JSON.stringify(key)).toBe('10w');
+	}
+	expect(readSpan('2026-10-24:2026-10-24', today, cycles).key).toBe('2026-10-24:2026-10-24');
+});
+
+test('a cycle that began today shows; one still to come does not; a running one ends on its last day', () => {
+	const c = [
+		{ id: 'now', name: 'Now', starts: today, ends: '2026-11-20' },
+		{ id: 'next', name: 'Next', starts: '2026-10-25', ends: '2026-11-20' }
+	];
+	const now = readSpan('cycle:now', today, c);
+	expect(now).toMatchObject({ from: today, to: '2026-11-20', cycle: { id: 'now', name: 'Now' } });
+	expect(readSpan('cycle:next', today, c).key).toBe('10w');
+	const { buckets: bs, now: at } = buckets(now, today);
+	expect(bs).toHaveLength(4);
+	expect(bs.at(-1)).toEqual({ from: '2026-11-14', to: '2026-11-20', tick: 'W4' });
+	expect(at).toBe(0);
+});
+
+test('a span of ten months is cut into months, the first starting on its first day', () => {
+	const { buckets: bs, now, per } = buckets(readSpan('2026-01-15:2026-10-24', today, cycles), today);
+	expect(per).toBe('month');
+	expect(bs).toHaveLength(10);
+	expect(bs[0]).toEqual({ from: '2026-01-15', to: '2026-01-31', tick: 'Jan' });
+	expect(bs[1]).toEqual({ from: '2026-02-01', to: '2026-02-28', tick: 'Feb' });
+	expect(now).toBe(9);
+});
+
+test('ten weeks over the new year name the month the new year falls in', () => {
+	const ny = '2027-01-10';
+	const ticks = buckets(tenWeeks(ny), ny).buckets.map((b) => b.tick);
+	expect(ticks).toEqual(['', '', '', '', 'Dec', '', '', '', 'Jan', '']);
+});
+
+test('a board picked alone shows no routes, and a route type picked with it shows them whole', () => {
+	const c = (discipline: string, board: string | null) => ({ discipline, setting: 'indoor', board }) as Climb;
+	const f = (q: string) => readFilter(new URLSearchParams(q));
+	expect(passes(c('boulder', 'custom'), f('board=custom'))).toBe(true);
+	expect(passes(c('boulder', 'none'), f('board=custom'))).toBe(false);
+	expect(passes(c('boulder', null), f('board=custom'))).toBe(false);
+	expect(passes(c('sport', null), f('board=custom'))).toBe(false);
+	expect(passes(c('sport', null), f('discipline=boulder,sport&board=custom'))).toBe(true);
+	expect(passes(c('trad', null), f('discipline=boulder,sport&board=custom'))).toBe(false);
+	expect(passes(c('boulder', null), f(''))).toBe(true);
+});
+
+// The filter shows indoor routes only, so the title must not read as every route.
+test('filterName keeps Indoor in the name when a board is picked beside route types', () => {
+	const name = (q: string) => filterName(readFilter(new URLSearchParams(q)));
+	expect(name('discipline=boulder,sport&board=moon&setting=indoor')).toMatch(/indoor/i);
+	expect(name('discipline=boulder,sport&setting=indoor')).toBe('Indoor boulders and sport routes');
 });

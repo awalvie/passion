@@ -119,7 +119,7 @@ export function filterName(f: ClimbFilter): string {
 		names.length ? `${names.join(', ')} boulders` : f.discipline.includes('boulder') ? 'boulders' : '',
 		routes.length === 2 ? 'routes' : routes.length ? `${routes[0]} routes` : ''
 	].filter(Boolean);
-	const where = !names.length && f.setting.length === 1 ? settings[f.setting[0] as keyof typeof settings] : '';
+	const where = (!names.length || routes.length) && f.setting.length === 1 ? settings[f.setting[0] as keyof typeof settings] : '';
 	const words = [where, kinds.join(' and ') || 'climbs'].filter(Boolean).join(' ');
 	return words === 'climbs' ? 'All climbs' : words[0].toUpperCase() + words.slice(1);
 }
