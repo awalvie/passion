@@ -171,8 +171,7 @@
 		else to.choice.options.push(toStep(e));
 	}
 
-	function inside(to: Target | null | undefined, e: Exercise) {
-		if (!to) return '';
+	function inside(to: Target, e: Exercise) {
 		const steps = 'section' in to ? to.section.items.flatMap((i) => (i.step ? [i.step] : [])) : to.choice.options;
 		return steps.some((s) => s.exercise === e.id) ? `In ${named(to)}` : '';
 	}
