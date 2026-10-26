@@ -14,7 +14,7 @@
 	import GoalSheet from '$lib/GoalSheet.svelte';
 	import Icon, { type IconName } from '$lib/Icon.svelte';
 	import NavBar from '$lib/NavBar.svelte';
-	import { plannedDays, saveCycle } from '$lib/plan';
+	import { lastEnd, plannedDays, saveCycle } from '$lib/plan';
 	import Section from '$lib/Section.svelte';
 	import SessionIcon from '$lib/SessionIcon.svelte';
 	import { plural } from '$lib/text';
@@ -119,7 +119,7 @@
 				</label>
 				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
 					Ends
-					<DateField bind:value={draft.ends} label="Ends" min={draft.starts} />
+					<DateField bind:value={draft.ends} label="Ends" min={draft.starts} max={lastEnd(draft.starts)} />
 				</label>
 			</div>
 		</div>

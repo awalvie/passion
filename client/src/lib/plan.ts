@@ -29,6 +29,12 @@ export type Cycle = {
 	notes: string | null;
 };
 
+// lastEnd is the latest end server/db/cycle.go's maxCycleDays allows. A date
+// field is empty while it is being typed in.
+export function lastEnd(starts: string): string | undefined {
+	return starts ? addDays(starts, 365) : undefined;
+}
+
 // saveCycle sends the whole cycle, as the server replaces every field, without
 // the days a shortened block no longer reaches. It answers the cycle saved and
 // how many days already held their session.

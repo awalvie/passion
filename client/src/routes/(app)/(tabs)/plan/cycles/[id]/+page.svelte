@@ -14,7 +14,7 @@
 	import GoalSheet from '$lib/GoalSheet.svelte';
 	import Menu from '$lib/Menu.svelte';
 	import NavBar from '$lib/NavBar.svelte';
-	import { saveCycle, type Cycle, type ScheduledDay } from '$lib/plan';
+	import { lastEnd, saveCycle, type Cycle, type ScheduledDay } from '$lib/plan';
 	import Section from '$lib/Section.svelte';
 	import Sheet from '$lib/Sheet.svelte';
 	import Toast from '$lib/Toast.svelte';
@@ -272,7 +272,7 @@
 						</label>
 						<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
 							Ends
-							<DateField bind:value={draft.ends} label="Ends" min={draft.starts} />
+							<DateField bind:value={draft.ends} label="Ends" min={draft.starts} max={lastEnd(draft.starts)} />
 						</label>
 					</div>
 					{#if begun}

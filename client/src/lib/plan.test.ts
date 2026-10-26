@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest';
-import { plannedDays, saveCycle } from './plan';
+import { lastEnd, plannedDays, saveCycle } from './plan';
 
 const cycle = {
 	starts: '2026-10-01',
@@ -31,6 +31,11 @@ test('plannedDays drops days beyond the block', () => {
 
 test('plannedDays plans nothing while a date is empty', () => {
 	expect(plannedDays({ ...cycle, starts: '' }, '2026-09-01')).toStrictEqual([]);
+});
+
+test('lastEnd allows a year, and nothing while the start is empty', () => {
+	expect(lastEnd('2026-11-10')).toBe('2027-11-10');
+	expect(lastEnd('')).toBeUndefined();
 });
 
 test('saveCycle drops the days past the block and sends the rest', async () => {
