@@ -4,6 +4,7 @@ import type { IconName } from './Icon.svelte';
 export const tabs: { href: string; label: string; icon: IconName; roots: string[] }[] = [
 	{ href: '/', label: 'Today', icon: 'peak', roots: ['/'] },
 	{ href: '/plan', label: 'Plan', icon: 'calendar', roots: ['/plan'] },
+	{ href: '/journal', label: 'Journal', icon: 'notepad', roots: ['/journal'] },
 	{ href: '/templates', label: 'Library', icon: 'stack', roots: ['/templates', '/exercises'] },
 	{ href: '/history', label: 'History', icon: 'clock', roots: ['/history'] }
 ];

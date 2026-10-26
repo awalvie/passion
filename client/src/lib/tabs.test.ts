@@ -17,6 +17,8 @@ test.each([
 	['/', 'Today'],
 	['/plan', 'Plan'],
 	['/plan/cycles/abc', 'Plan'],
+	['/journal', 'Journal'],
+	['/journal/new', 'Journal'],
 	['/templates', 'Library'],
 	['/templates/abc', 'Library'],
 	['/exercises/new', 'Library'],

@@ -111,10 +111,10 @@
 	<div
 		class="rounded-t-[28px] bg-[var(--bar)] pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_30px_-12px_rgba(21,32,26,0.14)] backdrop-blur-xl dark:shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.05)]"
 	>
-		<div class="relative grid h-16 grid-cols-4 items-start px-3 pt-2">
+		<div class="relative grid h-16 grid-cols-5 items-start px-3 pt-2">
 			{#if active >= 0}
 				<span
-					class="pointer-events-none absolute top-2 left-3 flex w-[calc((100%-1.5rem)/4)] justify-center transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:hidden"
+					class="pointer-events-none absolute top-2 left-3 flex w-[calc((100%-1.5rem)/5)] justify-center transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:hidden"
 					style:transform="translateX({active * 100}%)"
 					aria-hidden="true"
 				>
