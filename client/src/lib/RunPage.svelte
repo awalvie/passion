@@ -21,6 +21,7 @@
 	import type { Snippet } from 'svelte';
 	import { setSound, soundOn, unlock } from './audio';
 	import Icon from './Icon.svelte';
+	import JournalSheet from './JournalSheet.svelte';
 	import Menu from './Menu.svelte';
 	import Notes from './Notes.svelte';
 	import RunField, { type RunLook } from './RunField.svelte';
@@ -66,6 +67,7 @@
 
 	let noting = $state(false);
 	let peeking = $state(false);
+	let journaling = $state(false);
 	let draft = $state('');
 
 	// The step the note sheet opened on, which keeps the note if the page
@@ -157,7 +159,10 @@
 				<Icon name={sound ? 'volume-2' : 'volume-x'} size="1.25rem" />
 			</button>
 		{/if}
-		<Menu look="bg-(--pill) text-on-hero" items={menu} />
+		<Menu
+			look="bg-(--pill) text-on-hero"
+			items={run.finished_at ? menu : [{ label: 'Write in journal', onclick: () => (journaling = true) }, ...menu]}
+		/>
 	{/snippet}
 
 	<div class="flex flex-col gap-2 px-4 empty:hidden">
@@ -238,4 +243,6 @@
 			onblur={saveNote}
 		></textarea>
 	</Sheet>
+
+	<JournalSheet bind:open={journaling} />
 </RunField>

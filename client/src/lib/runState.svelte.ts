@@ -25,7 +25,17 @@ import { readTimers } from './timerStore';
 type Write = { seq: number; method: 'PUT' | 'DELETE'; url: string; body?: unknown };
 
 // opened holds when each step was first reached, so a reload keeps its time.
-type Stored = { run: Run; writes: Write[]; opened?: Record<string, number>; drafts?: Record<string, ClimbDraft> };
+type Stored = {
+	run: Run;
+	writes: Write[];
+	opened?: Record<string, number>;
+	drafts?: Record<string, ClimbDraft>;
+	journal?: RunJournal;
+};
+
+// The journal entry written during a run. The sheet opens on it again, so
+// one session writes one entry.
+export type RunJournal = { id: string; body: string; pin: boolean };
 
 // The climb on a step's card before its first go.
 export type ClimbDraft = { id: string; grade: string | null; seconds: number | null; focus: string | null; notes: string | null };
@@ -78,6 +88,7 @@ class OpenRun {
 	stalled = $state(false);
 	// The step the person last had open on this phone.
 	here = $state<string | null>(null);
+	journal = $state<RunJournal | null>(null);
 	#seq = 0;
 	#flushing = false;
 	#openedAt = new Map<string, number>();
@@ -89,6 +100,7 @@ class OpenRun {
 			this.stalled = false;
 		}
 		const stored = readStored(id);
+		if (this.run?.id !== id) this.journal = stored?.journal ?? null;
 		for (const [step, at] of Object.entries(stored?.opened ?? {})) {
 			if (!this.#openedAt.has(step)) this.#openedAt.set(step, at);
 		}
@@ -140,6 +152,25 @@ class OpenRun {
 		this.refused = '';
 		this.stalled = false;
 		this.here = null;
+		this.journal = null;
+	}
+
+	// writeJournal saves the session's entry through the queue, so it waits
+	// out a lost signal like the rest of the run. The entry takes the run's
+	// day, which a session past midnight keeps. The pin follows the entry,
+	// since a pin on an entry the server lacks is refused: a pin still waiting
+	// goes back in line behind a new text. Only what changed is sent, so a pin
+	// set in the Journal is not undone from here.
+	writeJournal(body: string, pin: boolean) {
+		const run = this.run!;
+		const was = this.journal;
+		const id = was?.id ?? newId();
+		this.journal = { id, body, pin };
+		const url = `/api/v1/journal/${id}`;
+		if (body !== was?.body) this.#queue('PUT', url, { local_date: run.local_date, body, run: run.id });
+		if (pin !== (was?.pin ?? false) || this.writes.some((w) => w.url === `${url}/pin`)) {
+			this.#queue(pin ? 'PUT' : 'DELETE', `${url}/pin`);
+		}
 	}
 
 	// reopen makes a step not done, with no time.
@@ -413,7 +444,13 @@ class OpenRun {
 			const steps = new Set(stepsOf(run).map((s) => s.id));
 			const opened = Object.fromEntries([...this.#openedAt].filter(([step]) => steps.has(step)));
 			const drafts = Object.fromEntries([...this.#drafts].filter(([step]) => steps.has(step)));
-			const stored: Stored = { run: $state.snapshot(run) as Run, writes: $state.snapshot(this.writes), opened, drafts };
+			const stored: Stored = {
+				run: $state.snapshot(run) as Run,
+				writes: $state.snapshot(this.writes),
+				opened,
+				drafts,
+				journal: $state.snapshot(this.journal) ?? undefined
+			};
 			localStorage.setItem(storageKey(run.id), JSON.stringify(stored));
 		} catch {
 			/* the queue in memory still sends */

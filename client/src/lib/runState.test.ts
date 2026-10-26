@@ -668,6 +668,42 @@ test('discardRun deletes the run on the server, then its copy and timers on the 
 	expect(Object.keys(localStorage).sort()).toStrictEqual(['passion-pending:run-2', 'passion-timer:run-2']);
 });
 
+test('writeJournal keeps one entry per session, on the run’s day, and queues only what changed', async () => {
+	const openRun = await openOffline();
+
+	openRun.writeJournal('Hips in', false);
+	const url = `/api/v1/journal/${openRun.journal!.id}`;
+	expect(urls(openRun.writes)).toStrictEqual([url]);
+	openRun.writeJournal('Hips in', true);
+	expect(urls(openRun.writes)).toStrictEqual([url, `${url}/pin`]);
+	// A new text goes back in line, so the pin waiting on it follows.
+	openRun.writeJournal('Hips in, then reach', true);
+	expect(openRun.writes.map((w) => [w.method, w.url, w.body])).toStrictEqual([
+		['PUT', url, { local_date: openRun.run!.local_date, body: 'Hips in, then reach', run: 'run-1' }],
+		['PUT', `${url}/pin`, undefined]
+	]);
+
+	online();
+	expect(await openRun.settle()).toBe(true);
+	expect(vi.mocked(fetch).mock.calls.map(([u, init]) => [u, init?.method])).toStrictEqual([
+		[url, 'PUT'],
+		[`${url}/pin`, 'PUT']
+	]);
+	openRun.writeJournal('Hips in, then reach', true);
+	expect(openRun.writes).toStrictEqual([]);
+});
+
+test('the entry written during a session comes back after a reload', async () => {
+	const first = await openOffline();
+	first.writeJournal('Hips in', true);
+	const id = first.journal!.id;
+
+	const openRun = await openFresh();
+	expect(openRun.journal).toStrictEqual({ id, body: 'Hips in', pin: true });
+	openRun.writeJournal('Hips in, then reach', true);
+	expect(urls(openRun.writes)).toContain(`/api/v1/journal/${id}`);
+});
+
 // Discarding a second session goes to Today, which opens the first one again.
 // That one, and its copy on the phone, must stay.
 test('discard keeps the session Today opens on the way', async () => {

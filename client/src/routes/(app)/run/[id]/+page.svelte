@@ -6,6 +6,7 @@
 	import Button from '$lib/Button.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon, { type IconName } from '$lib/Icon.svelte';
+	import JournalSheet from '$lib/JournalSheet.svelte';
 	import Menu from '$lib/Menu.svelte';
 	import {
 		currentStop,
@@ -315,6 +316,7 @@
 
 	let naming = $state(false);
 	let sectionName = $state('');
+	let journaling = $state(false);
 
 	function addSection(e: SubmitEvent) {
 		e.preventDefault();
@@ -412,6 +414,7 @@
 		<Menu
 			look="bg-(--pill) text-on-hero"
 			items={[
+				...(run.finished_at ? [] : [{ label: 'Write in journal', onclick: () => (journaling = true) }]),
 				{ label: run.finished_at ? 'Edit session journal' : 'Finish session', onclick: () => goto(`/run/${run.id}/finish`) },
 				{ label: 'Discard session', danger: true, onclick: discard }
 			]}
@@ -700,6 +703,8 @@
 			</div>
 		{/if}
 	</Sheet>
+
+	<JournalSheet bind:open={journaling} />
 
 	<Sheet bind:open={previewing} eyebrow={shown?.choice.name} title={option?.name ?? ''}>
 		{#if option}
