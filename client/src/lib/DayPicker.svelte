@@ -13,7 +13,7 @@
 	let {
 		start,
 		today,
-		color = 'var(--ink)',
+		color,
 		mark,
 		off = () => false,
 		min,
@@ -21,7 +21,7 @@
 	}: {
 		start: string;
 		today: string;
-		color?: string;
+		color?: string | null;
 		mark: (date: string) => DayMark;
 		off?: (date: string) => boolean;
 		min?: string;
@@ -42,7 +42,7 @@
 	}
 
 	const circle: Record<DayMark, string> = {
-		pick: 'text-white',
+		pick: 'bg-ink text-ground',
 		gen: '',
 		hold: 'text-ink-3 line-through shadow-[inset_0_0_0_1.5px_var(--ink-3)]',
 		end: 'bg-ink text-ground',
@@ -84,7 +84,7 @@
 					class="flex size-[38px] items-center justify-center rounded-full not-italic {circle[m]} {date === today && !m
 						? 'shadow-[inset_0_0_0_2px_var(--tint)]'
 						: ''}"
-					style={m === 'pick' ? `background: ${color}` : m === 'gen' ? `box-shadow: inset 0 0 0 2px ${color}` : undefined}
+					style={m === 'pick' && color ? `background: ${color}; color: white` : m === 'gen' ? `box-shadow: inset 0 0 0 2px ${color ?? 'var(--ink)'}` : undefined}
 				>
 					{Number(date.slice(8))}
 				</i>

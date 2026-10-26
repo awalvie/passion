@@ -247,7 +247,7 @@
 						<DayPicker
 							start={starts || today}
 							{today}
-							color={chosen?.color ?? 'var(--ink)'}
+							color={chosen?.color}
 							min={today}
 							{mark}
 							off={(date) => !!offOn(timeOff, date)}
