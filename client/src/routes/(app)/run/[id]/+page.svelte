@@ -2,10 +2,12 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import type { Snapshot } from '@sveltejs/kit';
+	import { onMount } from 'svelte';
 	import { describe } from '$lib/api';
 	import Button from '$lib/Button.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon, { type IconName } from '$lib/Icon.svelte';
+	import { loadJournal, pinnedOf, type JournalEntry } from '$lib/journal';
 	import JournalSheet from '$lib/JournalSheet.svelte';
 	import Menu from '$lib/Menu.svelte';
 	import {
@@ -318,6 +320,18 @@
 	let sectionName = $state('');
 	let journaling = $state(false);
 
+	// Pinned entries are read at the start, before anything is logged. They
+	// load after the page, so a weak signal never holds up the session.
+	let pinned = $state<JournalEntry[]>([]);
+	const starting = $derived(!run.finished_at && steps.every((s) => s.status === null));
+	onMount(() => {
+		if (!starting) return;
+		loadJournal().then(
+			(j) => (pinned = pinnedOf(j.entries)),
+			() => {}
+		);
+	});
+
 	function addSection(e: SubmitEvent) {
 		e.preventDefault();
 		openRun.addSection(sectionName.trim());
@@ -450,6 +464,26 @@
 					{/each}
 				</div>
 			</section>
+
+			{#if starting && pinned.length}
+				<section class="mt-2.5 rounded-3xl bg-(--glass) px-[18px] pt-3.5 pb-1">
+					<p class="font-[family-name:var(--font-digits)] text-sm font-bold tracking-[0.1em] text-(--fg2)">PINNED</p>
+					<ul>
+						{#each pinned.slice(0, 2) as e (e.id)}
+							<li class="list-row">
+								<a href="/journal/{e.id}?from=/run/{run.id}" class="block py-3 text-[17px] leading-[1.35] font-semibold whitespace-pre-line">{e.body}</a>
+							</li>
+						{/each}
+						{#if pinned.length > 2}
+							<li class="list-row">
+								<a href="/journal" class="flex min-h-12 items-center justify-between text-[15px] font-bold text-(--fg2)">
+									{pinned.length - 2} more pinned<Icon name="chevron-right" size="18px" stroke={2.4} />
+								</a>
+							</li>
+						{/if}
+					</ul>
+				</section>
+			{/if}
 
 			{#if remind}
 				<div class="mt-2.5 rounded-3xl bg-(--glass) px-4 pt-3.5 pb-4 shadow-[0_0_0_2px_var(--tint)]">
