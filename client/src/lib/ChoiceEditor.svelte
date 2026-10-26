@@ -8,14 +8,12 @@
 	// A choice in a section: its name opens it, and its options are rows.
 	let {
 		choice = $bindable(),
-		id,
 		selected,
 		onselect,
 		onadd,
 		actions
 	}: {
 		choice: Choice;
-		id: string;
 		selected: unknown;
 		onselect: (picked: { choice: Choice } | { step: Step }) => void;
 		onadd: () => void;
@@ -34,7 +32,7 @@
 	<div class="rounded-2xl px-3.5 shadow-[inset_0_0_0_1px_var(--line)]">
 		<label class="flex min-h-14 items-center gap-3 text-xs font-semibold text-ink-2">
 			Pick at least
-			<input id="{id}-pick" type="number" min="0" max={choice.options.length} step="1" class="input h-11 w-16 px-2 text-center" bind:value={choice.pick} onchange={() => (choice.pick = whole(choice.pick) ?? choice.pick)} />
+			<input type="number" min="0" max={choice.options.length} step="1" class="input h-11 w-16 px-2 text-center" bind:value={choice.pick} onchange={() => (choice.pick = whole(choice.pick) ?? choice.pick)} />
 			<span class="text-ink-3">0 makes it optional</span>
 		</label>
 		<div class="pt-1 text-xs font-bold tracking-wider text-ink-3 uppercase">Options</div>

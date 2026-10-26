@@ -88,7 +88,7 @@
 				/>
 			{:else}
 				{@const choice = item.choice}
-				<ChoiceEditor bind:choice={item.choice} id="{id}-item{j}" {selected} {onselect} onadd={() => onadd({ choice })} actions={itemActions} />
+				<ChoiceEditor bind:choice={item.choice} {selected} {onselect} onadd={() => onadd({ choice })} actions={itemActions} />
 			{/if}
 		{:else}
 			<p class="my-2 rounded-2xl bg-well py-4 text-center text-[15px] font-semibold text-ink-2">No exercises yet.</p>
