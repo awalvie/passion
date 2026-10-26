@@ -64,16 +64,18 @@
 	const held = $derived(new Set(days.filter((d) => d.template === template).map((d) => d.local_date)));
 	const sorted = $derived([...picked].filter((d) => !held.has(d)).sort());
 
+	// A typed number can be anything; the rule takes a whole one from 1 to 99.
+	const whole = (n: number | null) => Math.min(99, Math.max(1, Math.round(n ?? 1)));
 	const rule = $derived.by((): RepeatRule => {
 		const r: RepeatRule = {
 			starts,
 			ends: null,
-			every: Math.min(99, Math.max(1, every ?? 1)),
+			every: whole(every),
 			unit,
 			weekdays: unit === 'week' ? [...weekdays].sort() : []
 		};
 		if (ending === 'on') r.ends = until;
-		if (ending === 'after') r.ends = nthDay(r, Math.min(99, Math.max(1, times ?? 1)));
+		if (ending === 'after') r.ends = nthDay(r, whole(times));
 		return r;
 	});
 	const falls = $derived(rule.unit === 'day' || rule.weekdays.length > 0);
