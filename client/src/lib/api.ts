@@ -70,8 +70,9 @@ export async function request<T>(
 			/* keep the fallback */
 		}
 		// A token that expired or was signed out elsewhere. A wrong password at
-		// sign-in answers with another code, so it stays on its own page.
-		if (res.status === 401 && detail.code === 'unauthenticated') {
+		// sign-in answers with another code, so it stays on its own page. With no
+		// token at all, the (app) layout already sends the visitor on.
+		if (res.status === 401 && detail.code === 'unauthenticated' && bearer) {
 			clearToken();
 			await goto('/login');
 		}
