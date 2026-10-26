@@ -32,7 +32,7 @@
 
 	const run = $derived(openRun.run!);
 	const steps = $derived(stepsOf(run));
-	const finished = $derived(steps.filter(isFinished).length);
+	const finished = $derived(steps.filter((s) => isFinished(s) && s.status !== 'skipped').length);
 	const stop = $derived(currentStop(run));
 	const current = $derived(stop?.step);
 	const section = $derived(stop ? run.sections.findIndex((s) => s.items.includes(stop)) : -1);
