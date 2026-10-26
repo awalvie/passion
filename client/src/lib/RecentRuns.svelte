@@ -3,6 +3,7 @@
 	import ExerciseHistory from './ExerciseHistory.svelte';
 	import { loadGrades, type Scale } from './grades';
 	import Icon from './Icon.svelte';
+	import Section from './Section.svelte';
 	import type { HistorySession } from './run';
 
 	// An exercise's last three sessions, so its plan can be changed beside what
@@ -27,9 +28,8 @@
 	const shown = $derived(found?.exercise === exercise ? found : null);
 </script>
 
-<section class="flex flex-col gap-2">
-	<div class="flex items-center justify-between gap-3 px-1">
-		<h3 class="text-[15px] font-bold">Last 3 runs</h3>
+<Section title="Last 3 runs">
+	{#snippet aside()}
 		<a
 			href="/exercises/{exercise}"
 			target="_blank"
@@ -38,7 +38,7 @@
 		>
 			History<Icon name="external" size="1rem" />
 		</a>
-	</div>
+	{/snippet}
 	{#if shown}
 		<ExerciseHistory sessions={shown.sessions} scales={shown.scales} {sides} rows={3} chart={false} />
 	{:else if failed}
@@ -46,4 +46,4 @@
 	{:else}
 		<p class="px-1 text-[15px] font-semibold text-ink-2">Loading…</p>
 	{/if}
-</section>
+</Section>
