@@ -56,6 +56,7 @@ Tokens are in `client/src/tokens.css`; each needs a light and a dark value.
 - Controls are at least 44 px. List rows use `list-row`. A row that opens a page ends with a chevron.
 - Tabs sit at the bottom on a phone, in a left rail from `md`. Today, Plan, Journal and Progress go wide from `lg`.
 - A `Sheet` rises from the bottom on a phone and is a centred dialog from `lg`; `wide` gives it room for two columns.
+- The session builder has no rail. From `lg` a pane beside the session shows what is picked; from `xl` the library is a third column on the left. Below `lg` both open as sheets.
 
 ## Rules the code does not show
 
