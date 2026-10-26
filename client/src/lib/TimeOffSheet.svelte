@@ -113,7 +113,7 @@
 			save();
 		}}
 	>
-		<div class="flex flex-col gap-3.5 lg:grid lg:grid-cols-[minmax(0,1fr)_324px] lg:items-start">
+		<div class="flex flex-col gap-3.5 lg:grid lg:grid-cols-[minmax(0,1fr)_328px] lg:items-start">
 			<div class="flex flex-col gap-4 rounded-3xl bg-surface p-[18px] shadow-card">
 				<div class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
 					Kind
