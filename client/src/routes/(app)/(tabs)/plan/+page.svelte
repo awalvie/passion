@@ -2,6 +2,7 @@
 	import AddSession from '$lib/AddSession.svelte';
 	import Segmented from '$lib/Segmented.svelte';
 	import { page } from '$app/state';
+	import { MediaQuery } from 'svelte/reactivity';
 	import CycleYear from '$lib/CycleYear.svelte';
 	import { addDays, cycleWeek, daysBetween, formatDate, fullDate, mondayOf, shortDate, weekday } from '$lib/dates';
 	import { DayActions } from '$lib/dayActions.svelte';
@@ -21,6 +22,8 @@
 	const view = $derived(page.url.searchParams.get('view'));
 	const cyclesView = $derived(view === 'cycles');
 	const calendarView = $derived(view === 'calendar');
+	// From lg a Schedule row picks its day for the pane beside the list.
+	const wide = new MediaQuery('min-width: 64rem');
 
 	let adding = $state(false);
 	const openAdd = () => (adding = true);
@@ -112,6 +115,27 @@
 
 <svelte:head><title>Plan</title></svelte:head>
 
+{#snippet row(g: { date: string }, d: ScheduledDay, i: number)}
+	{@const note = rowNote(d)}
+		<span class="flex w-11 shrink-0 flex-col">
+			{#if i === 0}
+				{#if g.date === data.today}
+					<span class="text-xs font-bold text-ink">Today</span>
+				{:else}
+					<span class="text-xs font-semibold text-ink-2">{weekday(g.date)}</span>
+				{/if}
+				<b class="text-xl leading-[1.05] font-bold">{formatDate(g.date, { day: 'numeric' })}</b>
+			{/if}
+		</span>
+		<SessionIcon icon={d.template_icon} name={d.template_name} state={iconState(d, data.today)} size={36} />
+		<span class="min-w-0 flex-1">
+			<span class="block truncate text-[15px] font-bold {d.status === 'missed' || d.status === 'paused' ? 'text-ink-2' : ''}">{d.template_name}</span>
+			{#if note}
+				<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{note}</span>
+			{/if}
+		</span>
+{/snippet}
+
 {#snippet views()}
 	<Segmented
 		label="Plan"
@@ -185,100 +209,103 @@
 			<DayPane date={selected} today={data.today} days={picked} live={!!data.live} {day} {cycleNames} timeOff={shownOff} onoff={openOff} />
 		</div>
 	{:else if !cyclesView}
-		{#each weeks as w (w.monday)}
-			<section class="flex flex-col gap-2">
-				<div class="flex items-baseline justify-between gap-3 px-1 pt-1.5">
-					<h2 class="shrink-0 text-xl font-bold">{weekTitle(w.monday)}</h2>
-					<span class="truncate text-xs font-semibold text-ink-2">{weekNote(w)}</span>
-				</div>
-				<div class="rounded-3xl bg-surface px-[18px] py-1 shadow-card">
-					<ul>
-						{#each w.dates as g (g.date)}
-							{#each g.days as d, i (d.id)}
-								{@const note = rowNote(d)}
-								{#snippet row()}
-									<span class="flex w-11 shrink-0 flex-col">
-										{#if i === 0}
-											{#if g.date === data.today}
-												<span class="text-xs font-bold text-ink">Today</span>
-											{:else}
-												<span class="text-xs font-semibold text-ink-2">{weekday(g.date)}</span>
-											{/if}
-											<b class="text-xl leading-[1.05] font-bold">{formatDate(g.date, { day: 'numeric' })}</b>
-										{/if}
-									</span>
-									<SessionIcon icon={d.template_icon} name={d.template_name} state={iconState(d, data.today)} size={36} />
-									<span class="min-w-0 flex-1">
-										<span class="block truncate text-[15px] font-bold {d.status === 'missed' || d.status === 'paused' ? 'text-ink-2' : ''}">{d.template_name}</span>
-										{#if note}
-											<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{note}</span>
-										{/if}
-									</span>
-								{/snippet}
-								<li class="list-row">
-									{#if d.status === 'planned' || d.status === 'paused' || d.status === 'missed'}
-										<details class="group">
-											<summary class="flex min-h-[58px] cursor-pointer list-none items-center gap-3.5 py-2 [&::-webkit-details-marker]:hidden">
-												{@render row()}
-												{#if (d.status === 'planned' || d.status === 'paused') && d.local_date === data.today && !data.live}
-													<button
-														type="button"
-														class="flex size-11 shrink-0 items-center justify-center rounded-full bg-tint text-on-tint shadow-tint disabled:opacity-50"
-														aria-label="Start {d.template_name}"
-														disabled={day.starting}
-														onclick={(e) => {
+		<div class="flex flex-col gap-3.5 lg:mt-2 lg:grid lg:grid-cols-[minmax(0,1fr)_330px] lg:items-start lg:gap-[22px]">
+			<div class="flex flex-col gap-3.5">
+			{#each weeks as w (w.monday)}
+				<section class="flex flex-col gap-2">
+					<div class="flex items-baseline justify-between gap-3 px-1 pt-1.5">
+						<h2 class="shrink-0 text-xl font-bold">{weekTitle(w.monday)}</h2>
+						<span class="truncate text-xs font-semibold text-ink-2">{weekNote(w)}</span>
+					</div>
+					<div class="rounded-3xl bg-surface px-[18px] py-1 shadow-card">
+						<ul>
+							{#each w.dates as g (g.date)}
+								{#if wide.current}
+									<li class="list-row">
+										<button
+											type="button"
+											class="-mx-2.5 flex w-[calc(100%+1.25rem)] flex-col rounded-2xl px-2.5 text-left {g.date === selected ? 'bg-well' : ''}"
+											aria-pressed={g.date === selected}
+											onclick={() => (chosen = g.date)}
+										>
+											{#each g.days as d, i (d.id)}
+												<span class="list-row flex min-h-[58px] items-center gap-3.5 py-2">{@render row(g, d, i)}</span>
+											{/each}
+										</button>
+									</li>
+								{:else}
+									{#each g.days as d, i (d.id)}
+											<li class="list-row">
+											{#if d.status === 'planned' || d.status === 'paused' || d.status === 'missed'}
+												<details class="group">
+													<summary class="flex min-h-[58px] cursor-pointer list-none items-center gap-3.5 py-2 [&::-webkit-details-marker]:hidden">
+														{@render row(g, d, i)}
+														{#if (d.status === 'planned' || d.status === 'paused') && d.local_date === data.today && !data.live}
+															<button
+																type="button"
+																class="flex size-11 shrink-0 items-center justify-center rounded-full bg-tint text-on-tint shadow-tint disabled:opacity-50"
+																aria-label="Start {d.template_name}"
+																disabled={day.starting}
+																onclick={(e) => {
+																	e.preventDefault();
+																	e.stopPropagation();
+																	day.start(d);
+																}}
+															>
+																<Icon name="play" size="1.125rem" />
+															</button>
+														{:else}
+															<span class="shrink-0 text-ink-3 transition-transform group-open:rotate-90"><Icon name="chevron-right" size="1rem" /></span>
+														{/if}
+													</summary>
+													<form
+														class="flex flex-col gap-3 pb-4 pl-[108px]"
+														onsubmit={(e) => {
 															e.preventDefault();
-															e.stopPropagation();
-															day.start(d);
+															day.move(d, String(new FormData(e.currentTarget).get('date')));
 														}}
 													>
-														<Icon name="play" size="1.125rem" />
-													</button>
-												{:else}
-													<span class="shrink-0 text-ink-3 transition-transform group-open:rotate-90"><Icon name="chevron-right" size="1rem" /></span>
-												{/if}
-											</summary>
-											<form
-												class="flex flex-col gap-3 pb-4 pl-[108px]"
-												onsubmit={(e) => {
-													e.preventDefault();
-													day.move(d, String(new FormData(e.currentTarget).get('date')));
-												}}
-											>
-												<div class="flex gap-2">
-													<div class="min-w-0 flex-1"><DateField value={d.local_date} name="date" label="New day" /></div>
-													<button type="submit" class="h-12 shrink-0 rounded-full bg-well px-4 text-[15px] font-bold text-ink disabled:opacity-50" disabled={day.doing !== null}>
-														{day.doing === `move:${d.id}` ? 'Moving…' : 'Move'}
-													</button>
-												</div>
-												<FormError message={day.error.id === d.id ? day.error.message : ''} />
-												<button type="button" class="h-11 self-start text-[15px] font-bold text-bad disabled:opacity-50" disabled={day.doing !== null} onclick={() => day.remove(d)}>
-													{day.doing === `remove:${d.id}` ? 'Removing…' : 'Remove'}
-												</button>
-											</form>
-										</details>
-									{:else}
-										<a href={d.status === 'done' ? `/history/${d.run}` : `/run/${d.run}`} class="flex min-h-[58px] items-center gap-3.5 py-2">
-											{@render row()}
-											<span class="shrink-0 text-ink-3"><Icon name="chevron-right" size="1rem" /></span>
-										</a>
-									{/if}
-								</li>
+														<div class="flex gap-2">
+															<div class="min-w-0 flex-1"><DateField value={d.local_date} name="date" label="New day" /></div>
+															<button type="submit" class="h-12 shrink-0 rounded-full bg-well px-4 text-[15px] font-bold text-ink disabled:opacity-50" disabled={day.doing !== null}>
+																{day.doing === `move:${d.id}` ? 'Moving…' : 'Move'}
+															</button>
+														</div>
+														<FormError message={day.error.id === d.id ? day.error.message : ''} />
+														<button type="button" class="h-11 self-start text-[15px] font-bold text-bad disabled:opacity-50" disabled={day.doing !== null} onclick={() => day.remove(d)}>
+															{day.doing === `remove:${d.id}` ? 'Removing…' : 'Remove'}
+														</button>
+													</form>
+												</details>
+											{:else}
+												<a href={d.status === 'done' ? `/history/${d.run}` : `/run/${d.run}`} class="flex min-h-[58px] items-center gap-3.5 py-2">
+													{@render row(g, d, i)}
+													<span class="shrink-0 text-ink-3"><Icon name="chevron-right" size="1rem" /></span>
+												</a>
+											{/if}
+										</li>
+									{/each}
+								{/if}
 							{/each}
-						{/each}
-					</ul>
+						</ul>
+					</div>
+				</section>
+			{:else}
+				<section class="flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-card">
+					<p class="text-xl font-bold tracking-tight">Nothing planned</p>
+					<p class="text-[15px] font-semibold text-ink-2">Nothing in the next four weeks.</p>
+					{#if data.templates.length}
+						<button type="button" class="flex h-12 items-center justify-center rounded-full bg-tint text-[15px] font-bold text-on-tint shadow-tint" onclick={openAdd}>Add a session</button>
+					{/if}
+				</section>
+			{/each}
+			</div>
+			{#if wide.current}
+				<div class="sticky top-6">
+					<DayPane date={selected} today={data.today} days={picked} live={!!data.live} {day} {cycleNames} timeOff={shownOff} onoff={openOff} />
 				</div>
-			</section>
-		{:else}
-			<section class="flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-card">
-				<p class="text-xl font-bold tracking-tight">Nothing planned</p>
-				<p class="text-[15px] font-semibold text-ink-2">Nothing in the next four weeks.</p>
-				{#if data.templates.length}
-					<button type="button" class="flex h-12 items-center justify-center rounded-full bg-tint text-[15px] font-bold text-on-tint shadow-tint" onclick={openAdd}>Add a session</button>
-				{/if}
-			</section>
-		{/each}
-
+			{/if}
+		</div>
 	{:else}
 		{#if data.cycles.length}
 			<CycleYear cycles={data.cycles} today={data.today} />
@@ -325,8 +352,8 @@
 </div>
 
 {#if !data.offline}
-	<AddSession bind:open={adding} templates={data.templates} days={data.days} timeOff={data.timeOff} today={data.today} day={calendarView ? selected : data.today} />
-	<TimeOffSheet bind:open={offOpen} editing={editingOff} today={data.today} day={calendarView ? selected : data.today} />
+	<AddSession bind:open={adding} templates={data.templates} days={data.days} timeOff={data.timeOff} today={data.today} day={calendarView || wide.current ? selected : data.today} />
+	<TimeOffSheet bind:open={offOpen} editing={editingOff} today={data.today} day={calendarView || wide.current ? selected : data.today} />
 {/if}
 
 <DaySheets {day} repeats={data.repeats} />
