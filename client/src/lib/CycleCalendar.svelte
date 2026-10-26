@@ -1,6 +1,7 @@
 <script lang="ts">
 	import FormError from './FormError.svelte';
 	import { byDate, formatDate, fullDate, gridWeeks, weekdayLetters } from './dates';
+	import { SessionDrag } from './drag.svelte';
 	import type { Cycle, ScheduledDay } from './plan';
 	import SessionIcon, { iconState } from './SessionIcon.svelte';
 	import { plural } from './text';
@@ -41,91 +42,24 @@
 
 	const words = { done: 'Done', started: 'Started', paused: 'Paused', missed: 'Missed', planned: '', today: '' };
 
-	// A hold on a planned session lifts it; it then follows the finger, and a
-	// drop on a day from today on moves it there. A move before the hold ends
-	// is a scroll, so the hold gives up. A mouse cannot scroll by dragging, so
-	// it lifts the session as soon as it moves.
-	let lifted = $state<ScheduledDay | null>(null);
-	let at = $state({ x: 0, y: 0 });
-	let over = $state('');
 	let error = $state('');
-	let hold: ReturnType<typeof setTimeout> | undefined;
-	let start = { x: 0, y: 0 };
-	let pressed: { d: ScheduledDay; el: Element; id: number; mouse: boolean } | null = null;
-	// The click that ends a drag lands on the day it started from, sometimes
-	// well after the drop; it must not choose that day.
-	let droppedAt = 0;
-
 	const movable = (d: ScheduledDay) => (d.status === 'planned' || d.status === 'paused') && d.local_date >= today;
-	const target = (date: string) => inCycle(date) && date >= today && date !== lifted?.local_date;
-
-	// Icons keep touch scrolling, so a swipe that starts on one still scrolls.
-	// Once a session is lifted, the page must not scroll under the finger.
-	$effect(() => {
-		const stop = (e: TouchEvent) => lifted && e.preventDefault();
-		window.addEventListener('touchmove', stop, { passive: false });
-		return () => window.removeEventListener('touchmove', stop);
+	const drag = new SessionDrag({
+		movable,
+		target: (date) => inCycle(date) && date >= today,
+		onlift: () => (error = ''),
+		ondrop: async (d, to) => {
+			chosen = to;
+			try {
+				await onmove(d, to);
+			} catch (e) {
+				error = e instanceof Error ? e.message : String(e);
+			}
+		}
 	});
+	$effect(() => drag.listen());
 
-	function grab(e: PointerEvent, d: ScheduledDay) {
-		if (e.button > 0 || !movable(d)) return;
-		pressed = { d, el: e.currentTarget as Element, id: e.pointerId, mouse: e.pointerType === 'mouse' };
-		start = { x: e.clientX, y: e.clientY };
-		at = start;
-		clearTimeout(hold);
-		// A mouse that leaves the icon before it moves far enough must still
-		// let go here.
-		if (pressed.mouse) pressed.el.setPointerCapture(pressed.id);
-		else hold = setTimeout(lift, 300);
-	}
-
-	function lift() {
-		if (!pressed) return;
-		lifted = pressed.d;
-		over = '';
-		error = '';
-		pressed.el.setPointerCapture(pressed.id);
-		navigator.vibrate?.(10);
-	}
-
-	function follow(e: PointerEvent) {
-		if (!lifted) {
-			const moved = Math.hypot(e.clientX - start.x, e.clientY - start.y);
-			if (pressed?.mouse && moved > 4) lift();
-			else if (moved > 8) clearTimeout(hold);
-			if (!lifted) return;
-		}
-		at = { x: e.clientX, y: e.clientY };
-		const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>('[data-date]');
-		const date = cell?.dataset.date ?? '';
-		over = target(date) ? date : '';
-	}
-
-	async function drop() {
-		clearTimeout(hold);
-		pressed = null;
-		const d = lifted;
-		const to = over;
-		lifted = null;
-		over = '';
-		if (d) droppedAt = performance.now();
-		if (!d || !to) return;
-		chosen = to;
-		try {
-			await onmove(d, to);
-		} catch (e) {
-			error = e instanceof Error ? e.message : String(e);
-		}
-	}
-
-	function cancel() {
-		clearTimeout(hold);
-		pressed = null;
-		lifted = null;
-		over = '';
-	}
-
-	const panel = $derived(over || selected);
+	const panel = $derived(drag.over || selected);
 </script>
 
 <section class="rounded-3xl bg-surface px-3 pt-4 pb-3 shadow-card" aria-label="Calendar">
@@ -147,16 +81,16 @@
 						type="button"
 						data-date={date}
 						class="flex min-h-[64px] flex-col items-center gap-1 rounded-2xl pt-1.5 pb-2 transition-colors
-							{date === over ? 'bg-tint/40' : date === selected && !lifted ? 'bg-well' : ''}
+							{date === drag.over ? 'bg-tint/40' : date === selected && !drag.lifted ? 'bg-well' : ''}
 							{date === today ? 'shadow-[inset_0_0_0_1.5px_var(--ink)]' : ''}
-							{lifted && !target(date) && date !== lifted.local_date ? 'opacity-40' : ''}"
+							{drag.lifted && !drag.target(date) && date !== drag.lifted.local_date ? 'opacity-40' : ''}"
 						disabled={!inCycle(date)}
 						aria-pressed={date === selected}
 						aria-label="{fullDate(date)}{list.length
 							? `: ${list.map((d) => d.template_name).join(', ')}`
 							: ''}"
 						onclick={() => {
-							if (performance.now() - droppedAt < 500) return;
+							if (drag.justDropped) return;
 							chosen = date;
 							error = '';
 						}}
@@ -166,12 +100,12 @@
 						</span>
 						{#each list as d (d.id)}
 							<span
-								class="rounded-full {movable(d) ? 'select-none [-webkit-touch-callout:none]' : ''} {lifted?.id === d.id ? 'opacity-30' : ''}"
+								class="rounded-full {movable(d) ? 'select-none [-webkit-touch-callout:none]' : ''} {drag.lifted?.id === d.id ? 'opacity-30' : ''}"
 								role="presentation"
-								onpointerdown={(e) => grab(e, d)}
-								onpointermove={follow}
-								onpointerup={drop}
-								onpointercancel={cancel}
+								onpointerdown={(e) => drag.grab(e, d)}
+								onpointermove={(e) => drag.follow(e)}
+								onpointerup={() => drag.drop()}
+								onpointercancel={() => drag.cancel()}
 								oncontextmenu={(e) => movable(d) && e.preventDefault()}
 							>
 								<SessionIcon icon={d.template_icon} name={d.template_name} state={look(d)} size={28} />
@@ -204,13 +138,13 @@
 </section>
 
 <section
-	class="rounded-3xl px-[18px] pt-3.5 pb-2 shadow-card {lifted ? 'bg-tint/25 outline-2 -outline-offset-2 outline-dashed outline-ink-3' : 'bg-surface'}"
+	class="rounded-3xl px-[18px] pt-3.5 pb-2 shadow-card {drag.lifted ? 'bg-tint/25 outline-2 -outline-offset-2 outline-dashed outline-ink-3' : 'bg-surface'}"
 	aria-live="polite"
 >
 	<h3 class="text-[15px] font-bold">{fullDate(panel)}</h3>
-	{#if lifted}
+	{#if drag.lifted}
 		<p class="pt-1 pb-2.5 text-[15px] font-semibold text-ink-2">
-			{over ? `Drop to move ${lifted.template_name} here` : 'Drag onto a day from today on'}
+			{drag.over ? `Drop to move ${drag.lifted.template_name} here` : 'Drag onto a day from today on'}
 		</p>
 	{:else if (onDate.get(panel) ?? []).length}
 		<ul>
@@ -234,18 +168,18 @@
 	{:else}
 		<p class="pt-1 pb-2.5 text-[15px] font-semibold text-ink-2">Rest day</p>
 	{/if}
-	{#if error && !lifted}
+	{#if error && !drag.lifted}
 		<div class="pb-2.5"><FormError message={error} /></div>
 	{/if}
 </section>
 
-{#if lifted}
+{#if drag.lifted}
 	<div
 		class="pointer-events-none fixed z-50 flex max-w-[60vw] -translate-x-1/2 -translate-y-[calc(100%+12px)] items-center gap-2 rounded-full bg-surface py-1.5 pr-4 pl-1.5 text-[15px] font-bold whitespace-nowrap shadow-card"
-		style="left: clamp(30vw, {at.x}px, 70vw); top: {at.y}px"
+		style="left: clamp(30vw, {drag.at.x}px, 70vw); top: {drag.at.y}px"
 		aria-hidden="true"
 	>
-		<SessionIcon icon={lifted.template_icon} name={lifted.template_name} state="today" size={32} />
-		<span class="truncate">{lifted.template_name}</span>
+		<SessionIcon icon={drag.lifted.template_icon} name={drag.lifted.template_name} state="today" size={32} />
+		<span class="truncate">{drag.lifted.template_name}</span>
 	</div>
 {/if}
