@@ -129,9 +129,9 @@ Layout rules:
   `divide-y`.
 - A row that opens a different page ends with a chevron.
 - A chart card starts with a label and one number. The chart comes after them.
-- Draw charts with `Chart`, `Bars` and `Dots`.
+- Draw charts with `Chart`, `Bars` and `Dots`. `Pyramid` draws sends by grade.
 - On a phone, the tabs are at the bottom. From `md` (768 px), they are in a rail on the left.
-- From `lg` (1024 px), Today uses a wide layout. The other pages stay in one column.
+- From `lg` (1024 px), Today and Progress use wide layouts. The other pages stay in one column.
 - The pages of a running session are on `RunField`. They look the same in light and dark
   mode.
 

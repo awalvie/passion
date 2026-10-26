@@ -47,8 +47,10 @@ signal, the phone keeps your log and sends it to the server later.
 ## Look back
 
 Each session keeps the plan and what you did. You can add a journal with your sleep, energy
-and effort. The Progress page shows your hours, climbs and grades. It can show the last 10
-weeks, one cycle, or the dates that you choose. Each exercise also has its own history.
+and effort. The Progress page shows your hours, your climbs and a grade pyramid of your sends.
+It can show the last 10 weeks, one cycle, or the dates that you choose. Tap a week (or month) on
+any chart to see it alone. Tiles at the top compare the last 4 full weeks with the 4 before. On
+a laptop, the three views share one page. Each exercise also has its own history.
 
 <p align="center">
   <img src="docs/screenshots/phone-history.png" alt="History with time, climbs and hardest send" width="240">
