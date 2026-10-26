@@ -9,19 +9,25 @@ export type View = (typeof views)[number];
 
 export async function load({ url }) {
 	const view = (views as readonly string[]).includes(url.searchParams.get('view') ?? '') ? (url.searchParams.get('view') as View) : 'time';
-	const [today, { cycles }] = await Promise.all([loadToday(), request<{ cycles: Cycle[] }>('GET', '/api/v1/cycles')]);
-	const span = readSpan(url.searchParams.get('range'), today, cycles);
+	const [today, { cycles }, { runs }] = await Promise.all([
+		loadToday(),
+		request<{ cycles: Cycle[] }>('GET', '/api/v1/cycles'),
+		request<{ runs: RunSummary[] }>('GET', '/api/v1/runs')
+	]);
+	const finished = runs.filter((r) => r.finished_at !== null);
+	const first = finished.reduce((d, r) => (r.local_date < d ? r.local_date : d), today);
+	const span = readSpan(url.searchParams.get('range'), today, cycles, first);
 	const chart = buckets(span, today);
 	const to = span.to < today ? span.to : today;
-	const [{ runs }, { climbs }, { grades }] = await Promise.all([
-		request<{ runs: RunSummary[] }>('GET', '/api/v1/runs'),
+	const [{ climbs }, { grades }] = await Promise.all([
 		request<{ climbs: DatedClimb[] }>('GET', `/api/v1/climbs?from=${span.from}&to=${to}`),
 		loadGrades()
 	]);
-	const done = runs.filter((r) => r.finished_at !== null && r.local_date >= span.from && r.local_date <= to);
+	const done = finished.filter((r) => r.local_date >= span.from && r.local_date <= to);
 	return {
 		view,
 		today,
+		first,
 		span,
 		filter: readFilter(url.searchParams),
 		...chart,

@@ -279,6 +279,13 @@ test('readSpan falls back to ten weeks and stops a span at today', () => {
 	expect(readSpan('2026-02-30:2026-03-01', today, cycles).key).toBe('10w');
 });
 
+test('a custom span starts no earlier than the first session', () => {
+	expect(readSpan(`1900-01-01:${today}`, today, cycles, '2026-03-02')).toMatchObject({ from: '2026-03-02', to: today });
+	expect(readSpan(`2026-05-01:${today}`, today, cycles, '2026-03-02').from).toBe('2026-05-01');
+	expect(readSpan('1900-01-01:1900-12-31', today, cycles, '2026-03-02')).toMatchObject({ from: '1900-12-31', to: '1900-12-31' });
+	expect(readSpan(`1900-01-01:${today}`, today, cycles).from).toBe('1900-01-01');
+});
+
 test('monthsBack ends today and starts the day after the same date', () => {
 	expect(monthsBack(1, today)).toBe('2026-09-25:2026-10-24');
 	expect(monthsBack(12, today)).toBe('2025-10-25:2026-10-24');

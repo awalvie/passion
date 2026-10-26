@@ -360,7 +360,7 @@
 			<div class="grid grid-cols-2 gap-3">
 				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
 					From
-					<DateField bind:value={from} label="From" max={data.today} />
+					<DateField bind:value={from} label="From" min={data.first} max={data.today} />
 				</label>
 				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
 					To

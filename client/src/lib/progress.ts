@@ -14,11 +14,22 @@ export function tenWeeks(today: string): Span {
 
 // readSpan reads a span from a URL's range: 10w, cycle:<id> or from:to. Any
 // other value is the last ten weeks, and a custom span ends today at the latest.
-export function readSpan(key: string | null, today: string, cycles: { id: string; name: string; starts: string; ends: string }[]): Span {
+// A custom span starts no earlier than first, the day of the first session, so
+// a span from 1900 does not draw a century of empty months.
+export function readSpan(
+	key: string | null,
+	today: string,
+	cycles: { id: string; name: string; starts: string; ends: string }[],
+	first?: string
+): Span {
 	const c = key?.startsWith('cycle:') ? cycles.find((c) => c.id === key.slice(6)) : undefined;
 	if (c && c.starts <= today) return { key: key!, from: c.starts, to: c.ends, cycle: { id: c.id, name: c.name } };
 	const m = key?.match(/^(\d{4}-\d{2}-\d{2}):(\d{4}-\d{2}-\d{2})$/);
-	if (m && real(m[1]) && real(m[2]) && m[1] <= m[2] && m[1] <= today) return { key: key!, from: m[1], to: m[2] < today ? m[2] : today, cycle: null };
+	if (m && real(m[1]) && real(m[2]) && m[1] <= m[2] && m[1] <= today) {
+		const to = m[2] < today ? m[2] : today;
+		const from = first && m[1] < first ? (first < to ? first : to) : m[1];
+		return { key: key!, from, to, cycle: null };
+	}
 	return tenWeeks(today);
 }
 
