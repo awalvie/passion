@@ -169,13 +169,7 @@
 {/snippet}
 
 <Sheet bind:open title="Add a session" wide>
-	<form
-		class="flex flex-col gap-3.5"
-		onsubmit={(e) => {
-			e.preventDefault();
-			add();
-		}}
-	>
+	<div class="flex flex-col gap-3.5">
 		<div class="flex flex-col gap-3.5 lg:grid lg:grid-cols-[minmax(0,1fr)_328px] lg:items-start">
 			<div class="flex flex-col gap-4 rounded-3xl bg-surface p-[18px] shadow-card">
 				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
@@ -275,11 +269,13 @@
 			</div>
 		</div>
 		<FormError message={error} />
+	</div>
+	{#snippet footer()}
 		<div class="grid grid-cols-2 items-center gap-2">
 			<Button variant="secondary" onclick={() => (open = false)}>Cancel</Button>
-			<Button type="submit" disabled={adding || !template || (repeats ? !falls || (!!rule.ends && !count) : !sorted.length)}>
+			<Button disabled={adding || !template || (repeats ? !falls || (!!rule.ends && !count) : !sorted.length)} onclick={add}>
 				{adding ? 'Adding…' : 'Add'}
 			</Button>
 		</div>
-	</form>
+	{/snippet}
 </Sheet>

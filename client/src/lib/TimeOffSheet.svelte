@@ -106,13 +106,7 @@
 </script>
 
 <Sheet bind:open title="Time off" wide>
-	<form
-		class="flex flex-col gap-3.5"
-		onsubmit={(e) => {
-			e.preventDefault();
-			save();
-		}}
-	>
+	<div class="flex flex-col gap-3.5">
 		<div class="flex flex-col gap-3.5 lg:grid lg:grid-cols-[minmax(0,1fr)_328px] lg:items-start">
 			<div class="flex flex-col gap-4 rounded-3xl bg-surface p-[18px] shadow-card">
 				<div class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
@@ -166,13 +160,15 @@
 				</p>
 			</div>
 		</div>
-		<FormError message={error} />
-		<div class="grid grid-cols-2 items-center gap-2">
-			<Button variant="secondary" onclick={() => (open = false)}>Cancel</Button>
-			<Button type="submit" disabled={saving || !name.trim() || !starts}>{saving ? 'Saving…' : 'Save'}</Button>
-		</div>
 		{#if editing}
 			<Button variant="danger" disabled={saving} onclick={remove}>Delete</Button>
 		{/if}
-	</form>
+		<FormError message={error} />
+	</div>
+	{#snippet footer()}
+		<div class="grid grid-cols-2 items-center gap-2">
+			<Button variant="secondary" onclick={() => (open = false)}>Cancel</Button>
+			<Button disabled={saving || !name.trim() || !starts} onclick={save}>{saving ? 'Saving…' : 'Save'}</Button>
+		</div>
+	{/snippet}
 </Sheet>
