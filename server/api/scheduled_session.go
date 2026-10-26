@@ -64,8 +64,8 @@ type scheduledDayBody struct {
 	// The run started from it, a finished one first. null before it starts.
 	Run *string `json:"run"`
 
-	// done (a finished run), started (a run not finished yet), missed (a day
-	// gone with no run), or planned.
+	// done (a finished run), started (a run not finished yet), paused (inside
+	// a time off that pauses), missed (a day gone with no run), or planned.
 	//
 	// example: planned
 	Status string `json:"status"`
@@ -81,7 +81,8 @@ type scheduledDayListResponse struct {
 // # List your schedule
 //
 // Every session planned from one day to another, both included, in date
-// order. A day before today in your time zone with no run is missed.
+// order. A day before today in your time zone with no run is missed, unless
+// a time off pauses it.
 //
 //	Security:
 //	  bearer:

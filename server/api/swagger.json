@@ -1242,7 +1242,7 @@
     },
     "/api/v1/scheduled-sessions": {
       "get": {
-        "description": "Every session planned from one day to another, both included, in date\norder. A day before today in your time zone with no run is missed.",
+        "description": "Every session planned from one day to another, both included, in date\norder. A day before today in your time zone with no run is missed, unless\na time off pauses it.",
         "tags": [
           "scheduled-sessions"
         ],
@@ -3756,7 +3756,7 @@
           "x-go-name": "Run"
         },
         "status": {
-          "description": "done (a finished run), started (a run not finished yet), missed (a day\ngone with no run), or planned.",
+          "description": "done (a finished run), started (a run not finished yet), paused (inside\na time off that pauses), missed (a day gone with no run), or planned.",
           "type": "string",
           "x-go-name": "Status",
           "example": "planned"

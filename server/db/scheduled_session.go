@@ -72,8 +72,8 @@ type ScheduledDay struct {
 	// The run started from it, a finished one first.
 	Run *string `db:"run"`
 
-	// done (a finished run), started (a run not finished yet), missed (a day
-	// gone with no run), or planned.
+	// done (a finished run), started (a run not finished yet), paused (inside
+	// a time off that pauses), missed (a day gone with no run), or planned.
 	Status string `db:"status"`
 }
 
@@ -85,6 +85,11 @@ func ListScheduledSessions(ctx context.Context, pool *pgxpool.Pool, owner string
 			CASE
 				WHEN r.finished_at IS NOT NULL THEN 'done'
 				WHEN r.id IS NOT NULL THEN 'started'
+				WHEN EXISTS (
+					SELECT 1 FROM time_off o
+					WHERE o.owner = s.owner AND o.pauses
+						AND s.local_date BETWEEN o.starts AND coalesce(o.ends, 'infinity')
+				) THEN 'paused'
 				WHEN s.local_date < (now() AT TIME ZONE a.timezone)::date THEN 'missed'
 				ELSE 'planned'
 			END AS status
