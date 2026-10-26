@@ -358,7 +358,7 @@
 <DaySheets {day} repeats={data.repeats} />
 <TimeOffSheet bind:open={offOpen} editing={editingOff} today={data.today} day={selected} />
 
-<Sheet bind:open title={editing ? titles[editing] : ''}>
+<Sheet bind:open title={editing ? titles[editing] : ''} wide={editing === 'block'}>
 	<form
 		class="flex flex-col gap-3.5"
 		onsubmit={(e) => {
