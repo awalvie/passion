@@ -77,25 +77,23 @@
 		</header>
 
 		<main>
-			<section class="flex flex-col items-start gap-4 pt-4 md:pt-12">
+			<section class="flex flex-col items-center gap-4 pt-4 text-center md:pt-12">
 				<h1 class="max-w-[16ch] text-[clamp(44px,6.4vw,88px)] leading-none font-extrabold tracking-[-0.02em] text-balance">The training app built for climbing</h1>
-				<p class="max-w-[40ch] text-[clamp(17px,1.6vw,20px)] leading-relaxed text-pretty text-ink-2">
+				<p class="max-w-[40ch] text-[clamp(17px,1.6vw,20px)] leading-relaxed text-balance text-ink-2">
 					Time your hangs, log every attempt and send, and plan your weeks.
 				</p>
-				<div class="mt-1 flex flex-wrap items-center gap-x-5 gap-y-3">
+				<div class="mt-2 flex flex-col items-center gap-3">
 					<div class="w-60"><Button href="/signup">Sign up</Button></div>
 					<p class="text-[15px] font-semibold text-ink-2">Free. No ads, no subscription.</p>
 				</div>
 			</section>
 
-			<!-- The phone covers only the laptop's tab rail. -->
-			<div class="relative mt-10 flex justify-center md:mt-14 md:block md:pb-12 md:pl-[calc(clamp(130px,18vw,240px)-56px)]">
-				<div class="hidden overflow-hidden rounded-[20px] bg-surface shadow-card ring-1 ring-line md:block">
-					<img src="/landing/laptop-today-{theme}.png" width="2880" height="1630" alt="Today on a laptop: last week, this week, and the next session" />
-				</div>
-				<div class="w-60 rounded-[40px] bg-run p-[7px] shadow-card md:absolute md:bottom-0 md:left-0 md:w-[clamp(130px,18vw,240px)]">
-					<img src="/landing/climbs.png" width="786" height="1704" alt="Logging a boulder: a 6c picked and one send logged" class="rounded-[33px]" />
-				</div>
+			<!-- A phone gets the climb log, a wider screen the laptop, and only that one downloads. -->
+			<div class="mt-10 flex justify-center md:mt-14">
+				<picture class="block w-60 overflow-hidden rounded-[40px] bg-run p-[7px] shadow-card md:w-full md:rounded-[20px] md:bg-surface md:p-0 md:ring-1 md:ring-line">
+					<source media="(min-width: 768px)" srcset="/landing/laptop-today-{theme}.png" width="2880" height="1630" />
+					<img src="/landing/climbs.png" width="786" height="1704" alt="The app: the week on a laptop, the climb log on a phone" class="w-full rounded-[33px] md:rounded-none" />
+				</picture>
 			</div>
 
 			<!-- On a phone the cards are one row you swipe through. -->
@@ -124,12 +122,9 @@
 				{/each}
 			</section>
 
-			<section class="grid gap-5 pt-16 lg:grid-cols-2 lg:items-start lg:gap-16 lg:pt-24">
-				<div class="flex flex-col gap-2">
-					<h2 class="text-[clamp(28px,3vw,36px)] leading-tight font-extrabold tracking-[-0.02em]">The code is public</h2>
-					<p class="text-[17px] text-ink-2">Read it or run it yourself.</p>
-				</div>
-				<ul class="overflow-hidden rounded-3xl bg-surface shadow-card">
+			<section class="mx-auto flex max-w-[480px] flex-col items-center gap-5 pt-16 lg:pt-24">
+				<h2 class="text-[clamp(28px,3vw,36px)] leading-tight font-extrabold tracking-[-0.02em]">The code is public</h2>
+				<ul class="w-full overflow-hidden rounded-3xl bg-surface shadow-card">
 					{#each links as l (l.href)}
 						<li class="list-row">
 							<a href={l.href} class="flex min-h-14 items-center justify-between px-5 text-[15px] font-bold">
