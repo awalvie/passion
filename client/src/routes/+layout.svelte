@@ -52,11 +52,12 @@
 	});
 	const outlineRoot = $derived(navigating.to?.url ? isRoot(navigating.to.url) : false);
 
-	// Today, Plan, Journal and Progress have wide layouts of their own, beside
-	// the rail.
+	// Today, Plan, a cycle, Journal and Progress have wide layouts of their
+	// own, beside the rail.
 	const wide = $derived(
 		page.route.id === '/(app)/(tabs)' ||
 			page.route.id === '/(app)/(tabs)/plan' ||
+			page.route.id === '/(app)/(tabs)/plan/cycles/[id]' ||
 			page.route.id === '/(app)/(tabs)/journal' ||
 			page.route.id === '/(app)/(tabs)/history/progress'
 	);

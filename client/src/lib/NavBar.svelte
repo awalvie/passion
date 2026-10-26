@@ -2,12 +2,14 @@
 	import Icon from './Icon.svelte';
 	import type { Snippet } from 'svelte';
 
+	// wide lines the pills up with a page that is wide from lg.
 	let {
 		title = '',
 		heading = true,
+		wide = false,
 		back,
 		actions
-	}: { title?: string; heading?: boolean; back?: { href: string; label: string }; actions?: Snippet } = $props();
+	}: { title?: string; heading?: boolean; wide?: boolean; back?: { href: string; label: string }; actions?: Snippet } = $props();
 
 	let left = $state(0);
 	let right = $state(0);
@@ -17,7 +19,7 @@
 </script>
 
 <header class="sticky top-0 z-30 bg-ground/85 pt-[env(safe-area-inset-top)] backdrop-blur-md">
-	<div class="relative flex h-14 items-center justify-between gap-2 px-4">
+	<div class="relative flex h-14 items-center justify-between gap-2 px-4 {wide ? 'lg:mx-auto lg:max-w-[1280px] lg:px-8' : ''}">
 		<div class="min-w-0" bind:clientWidth={left}>
 			{#if back}
 				<a

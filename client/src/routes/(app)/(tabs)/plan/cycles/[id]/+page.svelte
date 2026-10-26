@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { MediaQuery } from 'svelte/reactivity';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
@@ -7,20 +8,67 @@
 	import BlockLength from '$lib/BlockLength.svelte';
 	import CycleCalendar from '$lib/CycleCalendar.svelte';
 	import Button from '$lib/Button.svelte';
-	import { addDays, cycleWeek, daysBetween, shortDate, weekday } from '$lib/dates';
+	import { addDays, cycleWeek, daysBetween, formatDate, gridWeeks, shortDate, weekday } from '$lib/dates';
+	import { DayActions } from '$lib/dayActions.svelte';
+	import DayPane from '$lib/DayPane.svelte';
+	import DaySheets from '$lib/DaySheets.svelte';
 	import DateField from '$lib/DateField.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import GoalList from '$lib/GoalList.svelte';
 	import GoalSheet from '$lib/GoalSheet.svelte';
+	import Icon from '$lib/Icon.svelte';
 	import Menu from '$lib/Menu.svelte';
 	import NavBar from '$lib/NavBar.svelte';
-	import { lastEnd, saveCycle, type Cycle, type ScheduledDay } from '$lib/plan';
+	import PlanCalendar from '$lib/PlanCalendar.svelte';
+	import { lastEnd, saveCycle, type Cycle, type ScheduledDay, type TimeOff } from '$lib/plan';
 	import Section from '$lib/Section.svelte';
 	import Sheet from '$lib/Sheet.svelte';
+	import TimeOffSheet from '$lib/TimeOffSheet.svelte';
 	import Toast from '$lib/Toast.svelte';
 	import WeekStrip from '$lib/WeekStrip.svelte';
 
 	let { data } = $props();
+
+	// From lg the cycle shows as Plan's calendar, with the picked day beside it.
+	const wide = new MediaQuery('min-width: 64rem');
+	const day = new DayActions();
+	const cycleNames = $derived(new Map(Object.entries(data.cycleNames)));
+	const colors = $derived(new Map(data.templates.map((t) => [t.id, t.color])));
+	let offOpen = $state(false);
+	let editingOff = $state<TimeOff | null>(null);
+
+	// Up to eight weeks show at once; a longer cycle shows six at a time, from
+	// the six that hold today.
+	const allWeeks = $derived(gridWeeks(data.cycle.starts, data.cycle.ends));
+	const pages = $derived(allWeeks.length > 8 ? Math.ceil(allWeeks.length / 6) : 1);
+	let turned = $state<number | null>(null);
+	const at = $derived.by(() => {
+		if (turned !== null) return Math.min(turned, pages - 1);
+		if (data.today > data.cycle.ends) return pages - 1;
+		return Math.max(0, Math.floor(allWeeks.findIndex((w) => w[0] <= data.today && data.today <= w[6]) / 6));
+	});
+	const shown = $derived(pages > 1 ? allWeeks.slice(at * 6, at * 6 + 6) : allWeeks);
+	const shownFrom = $derived(shown[0][0] < data.cycle.starts ? data.cycle.starts : shown[0][0]);
+	const shownTo = $derived(shown.at(-1)![6] > data.cycle.ends ? data.cycle.ends : shown.at(-1)![6]);
+	const months = $derived.by(() => {
+		const a = formatDate(shownFrom, { month: 'long' });
+		const b = formatDate(shownTo, { month: 'long' });
+		return a === b ? a : `${a} – ${b}`;
+	});
+
+	let chosen = $state('');
+	const inView = (date: string) => date >= shownFrom && date <= shownTo;
+	const selected = $derived(inView(chosen) ? chosen : inView(data.today) ? data.today : shownFrom);
+
+	// A refused drag leaves the session where it was, so its day shows why.
+	async function dragged(d: ScheduledDay, to: string) {
+		try {
+			await move(d, to);
+		} catch (e) {
+			day.error = { id: d.id, message: e instanceof Error ? e.message : String(e) };
+			chosen = d.local_date;
+		}
+	}
 
 	let error = $state('');
 
@@ -161,7 +209,7 @@
 
 <svelte:head><title>{data.cycle.name}</title></svelte:head>
 
-<NavBar back={{ href: '/plan?view=cycles', label: 'Plan' }}>
+<NavBar back={{ href: '/plan?view=cycles', label: 'Plan' }} wide>
 	{#snippet actions()}
 		<Menu
 			items={[
@@ -174,22 +222,7 @@
 	{/snippet}
 </NavBar>
 
-<div class="flex flex-col gap-3.5 px-4 pt-1 pb-[calc(env(safe-area-inset-bottom)+5rem)]">
-	<header class="px-1">
-		<h1 class="page-title break-words">{data.cycle.name}</h1>
-		<p class="mt-1 text-[15px] font-semibold text-ink-2">
-			{shortDate(data.cycle.starts)} – {shortDate(data.cycle.ends)} · {when} · {data.cycle.block_days}-day block
-		</p>
-	</header>
-
-	<FormError message={error} />
-	{#if leftOut}
-		<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold shadow-card">
-			Saved. {leftOut === 1 ? '1 day' : `${leftOut} days`} already held that session, so the cycle left
-			{leftOut === 1 ? 'it as it was' : 'them as they were'}.
-		</p>
-	{/if}
-
+{#snippet goalsSection()}
 	<Section title="Goals">
 		{#snippet aside()}
 			{#if goals.length}
@@ -205,7 +238,9 @@
 			}}
 		/>
 	</Section>
+{/snippet}
 
+{#snippet notesSection()}
 	<Section title="Notes">
 		<textarea
 			class="min-h-28 w-full resize-none rounded-3xl bg-surface px-[18px] py-3.5 text-[15px] font-semibold shadow-card [field-sizing:content] placeholder:text-ink-3 focus:shadow-[0_0_0_2px_var(--ink-3)] focus:outline-none"
@@ -215,8 +250,82 @@
 			onblur={() => notes.trim() !== (data.cycle.notes ?? '') && savePart()}
 		></textarea>
 	</Section>
+{/snippet}
 
-	{#if data.cycle.starts <= data.today && data.today <= data.cycle.ends}
+<div class="flex flex-col gap-3.5 px-4 pt-1 pb-[calc(env(safe-area-inset-bottom)+5rem)] lg:mx-auto lg:w-full lg:max-w-[1280px] lg:px-8 lg:pb-8">
+	<header class="px-1">
+		<h1 class="page-title break-words">{data.cycle.name}</h1>
+		<p class="mt-1 text-[15px] font-semibold text-ink-2">
+			{shortDate(data.cycle.starts)} – {shortDate(data.cycle.ends)} · {when} · {data.cycle.block_days}-day block
+		</p>
+	</header>
+
+	<FormError message={error} />
+	{#if leftOut}
+		<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold shadow-card">
+			Saved. {leftOut === 1 ? '1 day' : `${leftOut} days`} already held that session, so the cycle left
+			{leftOut === 1 ? 'it as it was' : 'them as they were'}.
+		</p>
+	{/if}
+
+	{#if wide.current}
+		<div class="mt-2 grid grid-cols-[minmax(0,1fr)_330px] items-start gap-[22px]">
+			<section class="flex flex-col gap-2" aria-label="Calendar">
+				<div class="flex h-11 items-center justify-between gap-3 pl-1">
+					<h2 class="text-xl font-bold">{months}</h2>
+					<div class="flex items-center gap-1">
+						{#if data.today <= data.cycle.ends}
+							<span class="hidden pr-2 text-xs font-semibold text-ink-2 xl:inline">Drag a session to move it</span>
+						{/if}
+						{#if pages > 1}
+							<nav class="flex gap-1" aria-label="Weeks">
+								<button type="button" class="flex size-11 items-center justify-center rounded-full text-ink-2 disabled:opacity-40" aria-label="Earlier weeks" disabled={at === 0} onclick={() => (turned = at - 1)}>
+									<Icon name="chevron-left" size="1.25rem" />
+								</button>
+								<button type="button" class="flex size-11 items-center justify-center rounded-full text-ink-2 disabled:opacity-40" aria-label="Later weeks" disabled={at === pages - 1} onclick={() => (turned = at + 1)}>
+									<Icon name="chevron-right" size="1.25rem" />
+								</button>
+							</nav>
+						{/if}
+					</div>
+				</div>
+				<PlanCalendar
+					from={shown[0][0]}
+					count={shown.length}
+					range={data.cycle}
+					today={data.today}
+					days={data.days}
+					timeOff={data.timeOff}
+					{colors}
+					{selected}
+					onselect={(date) => (chosen = date)}
+					onmove={data.today <= data.cycle.ends ? dragged : undefined}
+				/>
+			</section>
+			<div class="flex flex-col gap-3.5">
+				<DayPane
+					date={selected}
+					today={data.today}
+					days={data.days.filter((d) => d.local_date === selected)}
+					live={!!data.live}
+					{day}
+					{cycleNames}
+					timeOff={data.timeOff}
+					onoff={(o) => {
+						editingOff = o;
+						offOpen = true;
+					}}
+				/>
+				{@render goalsSection()}
+				{@render notesSection()}
+			</div>
+		</div>
+	{:else}
+		{@render goalsSection()}
+		{@render notesSection()}
+	{/if}
+
+	{#if !wide.current && data.cycle.starts <= data.today && data.today <= data.cycle.ends}
 		<Section title="This week">
 			{#snippet aside()}
 				<span class="text-xs font-semibold text-ink-2">{shortDate(data.monday)} – {shortDate(addDays(data.monday, 6))}</span>
@@ -234,16 +343,20 @@
 		</Section>
 	{/if}
 
-	<Section title="Calendar">
-		{#snippet aside()}
-			{#if data.today <= data.cycle.ends}
-				<span class="text-xs font-semibold text-ink-2">Hold a session to move it</span>
-			{/if}
-		{/snippet}
-		<CycleCalendar cycle={data.cycle} days={data.days} today={data.today} cycleNames={data.cycleNames} onmove={move} />
-	</Section>
-
+	{#if !wide.current}
+		<Section title="Calendar">
+			{#snippet aside()}
+				{#if data.today <= data.cycle.ends}
+					<span class="text-xs font-semibold text-ink-2">Hold a session to move it</span>
+				{/if}
+			{/snippet}
+			<CycleCalendar cycle={data.cycle} days={data.days} today={data.today} cycleNames={data.cycleNames} onmove={move} />
+		</Section>
+	{/if}
 </div>
+
+<DaySheets {day} repeats={data.repeats} />
+<TimeOffSheet bind:open={offOpen} editing={editingOff} today={data.today} day={selected} />
 
 <Sheet bind:open title={editing ? titles[editing] : ''}>
 	<form
