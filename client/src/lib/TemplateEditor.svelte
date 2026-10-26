@@ -80,7 +80,7 @@
 	let paneOpen = $state(false);
 	function pick(p: Picked) {
 		picked = p;
-		paneOpen = true;
+		paneOpen = !wide.current;
 	}
 
 	// The section a picked exercise or choice sits in.
@@ -193,7 +193,7 @@
 	// The name sits in the details, which may be hidden behind another pane.
 	async function showName() {
 		picked = null;
-		paneOpen = true;
+		paneOpen = !wide.current;
 		await tick();
 		nameField?.focus();
 	}
