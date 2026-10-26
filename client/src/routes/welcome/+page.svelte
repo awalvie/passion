@@ -36,8 +36,8 @@
 
 <!-- Every phone shows the same top part of its screen, whatever the shot's height. -->
 {#snippet phone(src: string, alt: string)}
-	<div class="w-full max-w-[220px] rounded-t-[40px] bg-run px-[7px] pt-[7px] shadow-card">
-		<div class="aspect-[786/1080] overflow-hidden rounded-t-[33px]">
+	<div class="w-full max-w-[220px] rounded-t-[29px] bg-run px-[7px] pt-[7px] shadow-card">
+		<div class="aspect-[786/1080] overflow-hidden rounded-t-[22px]">
 			<img {src} {alt} width="786" height="1080" loading="lazy" class="w-full" />
 		</div>
 	</div>
