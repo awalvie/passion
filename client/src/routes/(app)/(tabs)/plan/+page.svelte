@@ -3,8 +3,9 @@
 	import Segmented from '$lib/Segmented.svelte';
 	import { page } from '$app/state';
 	import CycleYear from '$lib/CycleYear.svelte';
-	import { addDays, cycleWeek, dayDate, daysBetween, formatDate, fullDate, mondayOf, shortDate, weekday } from '$lib/dates';
+	import { addDays, cycleWeek, daysBetween, formatDate, fullDate, mondayOf, shortDate, weekday } from '$lib/dates';
 	import { DayActions } from '$lib/dayActions.svelte';
+	import DayPane from '$lib/DayPane.svelte';
 	import DaySheets from '$lib/DaySheets.svelte';
 	import DateField from '$lib/DateField.svelte';
 	import FormError from '$lib/FormError.svelte';
@@ -29,8 +30,6 @@
 		editingOff = o;
 		offOpen = true;
 	}
-	const offIcons = { trip: 'plane', injury: 'bandage', illness: 'heart-pulse', other: 'calendar' } as const;
-	const offKinds = { trip: 'Trip', injury: 'Injury', illness: 'Illness', other: 'Other' };
 	// The time off from the first week shown on.
 	const shownOff = $derived(data.timeOff.filter((o) => !o.ends || o.ends >= data.from));
 	const day = new DayActions();
@@ -52,9 +51,6 @@
 		return a === b ? a : `${a} – ${b}`;
 	});
 	const calendarAt = (from: string) => `/plan?view=calendar&from=${from}`;
-
-	const source = (d: ScheduledDay) =>
-		[statuses[d.status], d.cycle ? (cycleNames.get(d.cycle) ?? 'Cycle') : d.repeat ? 'Repeats' : 'One-off'].filter(Boolean).join(' · ');
 
 	const weeks = $derived.by(() => {
 		const out: { monday: string; dates: { date: string; days: ScheduledDay[] }[] }[] = [];
@@ -186,74 +182,7 @@
 				</div>
 				<PlanCalendar from={data.from} today={data.today} days={data.days} timeOff={data.timeOff} {colors} {selected} onselect={(date) => (chosen = date)} />
 			</section>
-			<section class="flex flex-col gap-2" aria-live="polite">
-				<div class="flex h-11 items-center justify-between px-1">
-					<h2 class="text-[15px] font-bold">{selected === data.today ? 'Today' : formatDate(selected, { weekday: 'long' })}</h2>
-					<span class="text-xs font-semibold text-ink-2">{dayDate(selected)}</span>
-				</div>
-				<div class="rounded-3xl bg-surface px-4 py-0.5 shadow-card">
-					{#if picked.length}
-						<ul>
-							{#each picked as d (d.id)}
-								<li class="list-row flex min-h-16 items-center gap-3 py-2">
-									<SessionIcon icon={d.template_icon} name={d.template_name} state={iconState(d, data.today)} size={36} />
-									<span class="min-w-0 flex-1">
-										<span class="block truncate text-[15px] font-bold {d.status === 'missed' || d.status === 'paused' ? 'text-ink-2' : ''}">{d.template_name}</span>
-										<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{source(d)}</span>
-									</span>
-									{#if d.run}
-										<a href={d.status === 'done' ? `/history/${d.run}` : `/run/${d.run}`} class="flex size-11 shrink-0 items-center justify-center text-ink-3" aria-label="Open {d.template_name}">
-											<Icon name="chevron-right" size="1rem" />
-										</a>
-									{:else}
-										{#if (d.status === 'planned' || d.status === 'paused') && d.local_date === data.today && !data.live}
-											<button
-												type="button"
-												class="flex size-11 shrink-0 items-center justify-center rounded-full bg-tint text-on-tint shadow-tint disabled:opacity-50"
-												aria-label="Start {d.template_name}"
-												disabled={day.starting}
-												onclick={() => day.start(d)}
-											>
-												<Icon name="play" size="1.125rem" />
-											</button>
-										{/if}
-										<Menu
-											label="More for {d.template_name}"
-											look="text-ink-2"
-											items={[
-												{ label: 'Move to another day', onclick: () => day.openMove(d) },
-												{ label: 'Remove', danger: true, onclick: () => day.remove(d) }
-											]}
-										/>
-									{/if}
-								</li>
-							{/each}
-						</ul>
-					{:else}
-						<p class="py-4 text-[15px] font-semibold text-ink-2">Nothing planned</p>
-					{/if}
-				</div>
-				<FormError message={picked.some((d) => d.id === day.error.id) && !day.moveOpen && !day.endOpen ? day.error.message : ''} />
-				{#if shownOff.length}
-					<h2 class="flex h-11 items-center px-1 pt-2 text-[15px] font-bold">Time off</h2>
-					<ul class="rounded-3xl bg-surface px-4 py-0.5 shadow-card">
-						{#each shownOff as o (o.id)}
-							<li class="list-row">
-								<button type="button" class="flex min-h-16 w-full items-center gap-3 py-2 text-left" onclick={() => openOff(o)}>
-									<span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-well text-ink-2"><Icon name={offIcons[o.kind]} size="1.125rem" /></span>
-									<span class="min-w-0 flex-1">
-										<span class="block truncate text-[15px] font-bold">{o.name}</span>
-										<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
-											{offKinds[o.kind]} · {o.ends ? `${shortDate(o.starts)} – ${shortDate(o.ends)}` : `from ${shortDate(o.starts)}`}
-										</span>
-									</span>
-									<span class="shrink-0 text-ink-3"><Icon name="chevron-right" size="1rem" /></span>
-								</button>
-							</li>
-						{/each}
-					</ul>
-				{/if}
-			</section>
+			<DayPane date={selected} today={data.today} days={picked} live={!!data.live} {day} {cycleNames} timeOff={shownOff} onoff={openOff} />
 		</div>
 	{:else if !cyclesView}
 		{#each weeks as w (w.monday)}
