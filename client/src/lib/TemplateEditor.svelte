@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, tick, untrack } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
-	import { describe } from '$lib/api';
+	import { describe, RequestFailed } from '$lib/api';
 	import { kindOf, loadExercises, type Exercise } from '$lib/exercise';
 	import ExerciseList from '$lib/ExerciseList.svelte';
 	import FormError from '$lib/FormError.svelte';
@@ -186,11 +186,17 @@
 	let nameField = $state<HTMLInputElement>();
 	onMount(async () => {
 		if (!rename) return;
+		await showName();
+		nameField?.select();
+	});
+
+	// The name sits in the details, which may be hidden behind another pane.
+	async function showName() {
+		picked = null;
 		paneOpen = true;
 		await tick();
 		nameField?.focus();
-		nameField?.select();
-	});
+	}
 
 	let newSection = $state('');
 	let error = $state('');
@@ -240,6 +246,7 @@
 		} catch (e) {
 			saving = false;
 			error = describe(e, templateFieldLabel);
+			if (e instanceof RequestFailed && e.error.fields?.name) showName();
 		} finally {
 			busy = false;
 		}
