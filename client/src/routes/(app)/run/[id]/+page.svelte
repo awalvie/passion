@@ -680,7 +680,7 @@
 	<Sheet bind:open={picking} eyebrow={into === undefined ? undefined : run.sections[into]?.name} title={candidate?.name ?? 'Add exercise'}>
 		<div hidden={!!candidate}>
 			{#key opened}
-				<ExercisePicker id="add-exercise" label="Exercise" exercises={library} keep pick={(e) => (candidate = e)} />
+				<ExercisePicker id="add-exercise" label="Exercise" exercises={library} pick={(e) => (candidate = e)} />
 			{/key}
 		</div>
 		{#if candidate}

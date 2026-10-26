@@ -4,10 +4,9 @@
 	let {
 		exercises,
 		id,
-		label = 'Add exercise',
-		keep = false,
+		label,
 		pick
-	}: { exercises: Exercise[]; id: string; label?: string; keep?: boolean; pick: (e: Exercise) => void } = $props();
+	}: { exercises: Exercise[]; id: string; label: string; pick: (e: Exercise) => void } = $props();
 
 	let q = $state('');
 	let browsing = $state(false);
@@ -17,20 +16,11 @@
 		return needle ? exercises.filter((e) => e.name.toLowerCase().includes(needle)) : browsing ? exercises : [];
 	});
 
-	function choose(e: Exercise) {
-		pick(e);
-		// A preview goes back to the same search.
-		if (!keep) {
-			q = '';
-			browsing = false;
-		}
-	}
-
 	// Enter would otherwise submit the whole editor.
 	function key(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
 			event.preventDefault();
-			if (q.trim() && matches.length) choose(matches[0]);
+			if (q.trim() && matches.length) pick(matches[0]);
 		}
 		if (event.key === 'Escape') {
 			q = '';
@@ -64,7 +54,7 @@
 				<button
 					type="button"
 					class="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-2.5 text-left active:bg-well"
-					onclick={() => choose(e)}
+					onclick={() => pick(e)}
 				>
 					<span class="min-w-0 truncate text-[15px] font-bold">{e.name}</span>
 					<span class="shrink-0 text-xs font-semibold text-ink-2">{kindOf(e.kind).label}</span>
