@@ -1,6 +1,7 @@
 import { request, unreachable } from '$lib/api';
 import { loadCentres } from '$lib/centres';
 import { addDays, mondayOf } from '$lib/dates';
+import { loadJournal, pinnedOf, type JournalEntry } from '$lib/journal';
 import { loadToday, localToday, type Cycle, type ScheduledDay } from '$lib/plan';
 import { openRun } from '$lib/runState.svelte';
 import { loadTemplates, type SessionTemplate } from '$lib/template';
@@ -13,7 +14,7 @@ export async function load({ parent }) {
 		const today = await loadToday();
 		const monday = mondayOf(today);
 		const sunday = addDays(monday, 6);
-		const [{ days }, cycles, library] = await Promise.all([
+		const [{ days }, cycles, library, pinned] = await Promise.all([
 			// Next week too, so on a Sunday the next session still shows, and
 			// last week for the days a wide screen lists.
 			request<{ days: ScheduledDay[] }>(
@@ -26,7 +27,11 @@ export async function load({ parent }) {
 				() => [] as Cycle[]
 			),
 			// Today still shows without Your sessions.
-			loadTemplates().catch(() => [] as SessionTemplate[])
+			loadTemplates().catch(() => [] as SessionTemplate[]),
+			loadJournal().then(
+				(j) => pinnedOf(j.entries),
+				() => [] as JournalEntry[]
+			)
 		]);
 		const week = days.filter((d) => monday <= d.local_date && d.local_date <= sunday);
 		const next =
@@ -45,6 +50,7 @@ export async function load({ parent }) {
 			next,
 			cycles,
 			library,
+			pinned,
 			centres,
 			offline: false
 		};
@@ -61,6 +67,7 @@ export async function load({ parent }) {
 			next: null,
 			cycles: [] as Cycle[],
 			library: [] as SessionTemplate[],
+			pinned: [] as JournalEntry[],
 			centres: null,
 			offline: true
 		};

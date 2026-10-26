@@ -439,6 +439,39 @@
 			</section>
 		{/each}
 
+		{#if !other && data.pinned.length}
+			<section class="mx-4 mt-3.5 rounded-3xl bg-surface px-5 pt-4 shadow-card {data.pinned.length > 2 ? 'pb-1' : 'pb-2'}">
+				<div class="flex items-baseline justify-between">
+					<h2 class="text-[15px] font-bold">Pinned</h2>
+					<a href="/journal" class="-my-3 flex h-11 items-center gap-0.5 text-xs font-bold text-ink">Journal<Icon name="chevron-right" size="14px" /></a>
+				</div>
+				<ul class="mt-1">
+					{#each data.pinned.slice(0, 2) as e (e.id)}
+						<li class="list-row">
+							<a href="/journal/{e.id}?from=/" class="block py-3 text-[15px] leading-[1.55] font-medium">
+								<span class="line-clamp-6">{e.body}</span>
+							</a>
+						</li>
+					{/each}
+					{#if data.pinned.length > 2}
+						<li class="list-row">
+							<a href="/journal" class="flex min-h-12 items-center justify-between text-[15px] font-bold text-ink-2">
+								{data.pinned.length - 2} more pinned<Icon name="chevron-right" size="18px" stroke={2.4} />
+							</a>
+						</li>
+					{/if}
+				</ul>
+			</section>
+		{/if}
+
+		{#if !other && !offline}
+			<a href="/journal/new?from=/" class="mx-4 mt-3.5 flex min-h-16 items-center gap-3 rounded-3xl bg-surface px-4 py-3 shadow-card">
+				<span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-well text-ink-2"><Icon name="pencil" size="17px" stroke={2.2} /></span>
+				<span class="flex-1 text-[15px] font-bold">Write in journal</span>
+				<span class="text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.4} /></span>
+			</a>
+		{/if}
+
 		{#if !other && mine.length}
 			<section class="mx-4 mt-3.5 rounded-3xl bg-surface px-5 pt-4 pb-1 shadow-card">
 				<div class="flex items-baseline justify-between">
