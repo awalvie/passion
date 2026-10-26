@@ -81,7 +81,7 @@
 					<span class="flex h-[26px] shrink-0 items-center gap-1.5 xl:h-7 xl:pl-1">
 						<span
 							class="digits flex h-[26px] min-w-[26px] items-center justify-center rounded-full text-[15px] whitespace-nowrap {date === today
-								? 'bg-tint text-on-tint shadow-[0_0_0_4px_rgba(198,240,91,0.32)] xl:-ml-1'
+								? 'bg-tint text-on-tint shadow-[0_0_0_4px_color-mix(in_srgb,var(--tint)_32%,transparent)] xl:-ml-1'
 								: date < today
 									? 'text-ink-2'
 									: 'text-ink xl:text-ink-2'}"
