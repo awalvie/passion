@@ -36,6 +36,11 @@ tags:
   - name: centres
     description: >-
       The places you climb or train, and the sessions you can do at each.
+  - name: journal
+    description: >-
+      Free text about your climbing, on a day. A pinned entry shows on Today and
+      at the start of each session. An entry written during a session stays
+      when that session is deleted.
   - name: scheduled-sessions
     description: >-
       Your calendar: one row per session per day, placed by a cycle or by you.

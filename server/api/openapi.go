@@ -304,3 +304,19 @@ type moveParams struct {
 	// required:true
 	Body moveRequest `json:"body"`
 }
+
+// swagger:parameters readJournalEntry putJournalEntry deleteJournalEntry pinJournalEntry unpinJournalEntry
+type journalEntryIDParams struct {
+	// The entry's id. The client chooses it when it creates the entry.
+	//
+	// in: path
+	// required: true
+	ID string `json:"id"`
+}
+
+// swagger:parameters putJournalEntry
+type journalEntryParams struct {
+	// in:body
+	// required:true
+	Body journalEntryRequest `json:"body"`
+}

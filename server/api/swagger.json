@@ -636,6 +636,227 @@
         ]
       }
     },
+    "/api/v1/journal": {
+      "get": {
+        "description": "Your entries, and the sessions you wrote something about.",
+        "tags": [
+          "journal"
+        ],
+        "summary": "List your journal",
+        "operationId": "listJournal",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/journalResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/journal/{id}": {
+      "get": {
+        "tags": [
+          "journal"
+        ],
+        "summary": "Read a journal entry",
+        "operationId": "readJournalEntry",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The entry's id. The client chooses it when it creates the entry.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/journalEntryResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "description": "Creates the entry under the id you chose, or replaces its day and text, so a\nretry makes one entry. A replace leaves the pin alone.",
+        "tags": [
+          "journal"
+        ],
+        "summary": "Create or replace a journal entry",
+        "operationId": "putJournalEntry",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The entry's id. The client chooses it when it creates the entry.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "x-go-name": "Body",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/journalEntryRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/journalEntryResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "journal"
+        ],
+        "summary": "Delete a journal entry",
+        "operationId": "deleteJournalEntry",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The entry's id. The client chooses it when it creates the entry.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/journal/{id}/pin": {
+      "put": {
+        "description": "A pinned entry shows on Today and at the start of each session. Pinning it\nagain keeps the time it was first pinned.",
+        "tags": [
+          "journal"
+        ],
+        "summary": "Pin a journal entry",
+        "operationId": "pinJournalEntry",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The entry's id. The client chooses it when it creates the entry.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/journalEntryResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "journal"
+        ],
+        "summary": "Unpin a journal entry",
+        "operationId": "unpinJournalEntry",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The entry's id. The client chooses it when it creates the entry.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/journalEntryResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/runs": {
       "get": {
         "description": "Finished or not, newest day first.",
@@ -2685,6 +2906,97 @@
       },
       "x-go-package": "passion/server/api"
     },
+    "journalEntryRequest": {
+      "type": "object",
+      "required": [
+        "local_date",
+        "body"
+      ],
+      "properties": {
+        "body": {
+          "description": "Free text. Blank text is refused.",
+          "type": "string",
+          "x-go-name": "Body",
+          "example": "I pull with my arms when I should push with my feet"
+        },
+        "local_date": {
+          "description": "The day it is about, written YYYY-MM-DD.",
+          "type": "string",
+          "x-go-name": "LocalDate",
+          "example": "2026-10-24"
+        },
+        "run": {
+          "description": "The session it was written during. Only a new entry takes it; a\nreplace keeps the one it has.",
+          "type": "string",
+          "x-go-name": "Run",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "journalEntryResponse": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "id": {
+          "description": "The id the client chose.",
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "local_date": {
+          "type": "string",
+          "x-go-name": "LocalDate"
+        },
+        "pinned_at": {
+          "description": "When it was pinned, or null.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "PinnedAt"
+        },
+        "run": {
+          "description": "The session it was written during. Null once that session is deleted.",
+          "type": "string",
+          "x-go-name": "Run"
+        },
+        "run_elapsed_seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RunElapsedSeconds"
+        },
+        "run_name": {
+          "description": "That session's name and length, for its link.",
+          "type": "string",
+          "x-go-name": "RunName"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "journalResponse": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "description": "Newest day first.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/journalEntryResponse"
+          },
+          "x-go-name": "Entries"
+        },
+        "sessions": {
+          "description": "Sessions with something written in their journal, newest day first.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/sessionJournalResponse"
+          },
+          "x-go-name": "Sessions"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
     "mediaBody": {
       "type": "object",
       "properties": {
@@ -3430,6 +3742,41 @@
       },
       "x-go-package": "passion/server/api"
     },
+    "sessionJournalResponse": {
+      "type": "object",
+      "properties": {
+        "local_date": {
+          "type": "string",
+          "x-go-name": "LocalDate"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "next_focus": {
+          "type": "string",
+          "x-go-name": "NextFocus"
+        },
+        "notes": {
+          "type": "string",
+          "x-go-name": "Notes"
+        },
+        "rpe": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RPE"
+        },
+        "run": {
+          "type": "string",
+          "x-go-name": "Run"
+        },
+        "went_well": {
+          "type": "string",
+          "x-go-name": "WentWell"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
     "sessionTemplateListResponse": {
       "type": "object",
       "properties": {
@@ -4014,6 +4361,10 @@
     {
       "description": "The places you climb or train, and the sessions you can do at each.",
       "name": "centres"
+    },
+    {
+      "description": "Free text about your climbing, on a day. A pinned entry shows on Today and at the start of each session. An entry written during a session stays when that session is deleted.",
+      "name": "journal"
     },
     {
       "description": "Your calendar: one row per session per day, placed by a cycle or by you. A future one follows its template until you start it.",
