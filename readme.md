@@ -79,7 +79,7 @@ make image
 docker run -e DATABASE_URL=postgres://... -p 8080:8080 passion:dev
 ```
 
-Open <http://localhost:8080> and sign up.
+Open <http://localhost:8080> and sign up from the page about Passion.
 
 To add the app to an iPhone Home Screen, open it in Safari. Tap Share, then tap Add to Home
 Screen. The Home Screen app has its own sign-in, so sign in again there.

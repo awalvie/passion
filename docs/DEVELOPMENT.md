@@ -132,6 +132,9 @@ Layout rules:
 - Draw charts with `Chart`, `Bars` and `Dots`. `Pyramid` draws sends by grade.
 - On a phone, the tabs are at the bottom. From `md` (768 px), they are in a rail on the left.
 - From `lg` (1024 px), Today and Progress use wide layouts. The other pages stay in one column.
+- The landing page, `/welcome`, has no tab bar or rail. It sets its own width, up to 1104 px.
+  Its screenshots are in `client/static/landing/`. A shot of a page that changes with the theme
+  has a light and a dark file.
 - The pages of a running session are on `RunField`. They look the same in light and dark
   mode.
 
