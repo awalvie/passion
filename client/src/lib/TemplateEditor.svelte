@@ -8,11 +8,14 @@
 	import RecentRuns from '$lib/RecentRuns.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import RowActions from '$lib/RowActions.svelte';
+	import SectionList from '$lib/SectionList.svelte';
+	import Segmented from '$lib/Segmented.svelte';
 	import SectionEditor from '$lib/SectionEditor.svelte';
 	import Select from '$lib/Select.svelte';
 	import Sheet from '$lib/Sheet.svelte';
 	import { sessionIcons } from '$lib/SessionIcon.svelte';
 	import StepEditor from '$lib/StepEditor.svelte';
+	import Toast from '$lib/Toast.svelte';
 	import {
 		moveEntry,
 		rowCounts,
@@ -104,14 +107,45 @@
 	let addOpen = $state(false);
 	let search = $state<HTMLInputElement>();
 
+	// The library lists exercises, or sections of other sessions to copy.
+	let tab = $state<'exercises' | 'sections'>('exercises');
+
+	async function find() {
+		tab = 'exercises';
+		await tick();
+		search?.focus();
+	}
+
 	function add(to: Target) {
 		if (widest.current && 'section' in to) {
 			addTo = to.section;
-			search?.focus();
+			find();
 			return;
 		}
 		target = to;
+		tab = 'exercises';
 		addOpen = true;
+	}
+
+	// A copied section is the session's own: changing it leaves the other alone.
+	let copied = $state<string[]>([]);
+	let note = $state('');
+	let undo: () => void = () => {};
+
+	function copySection(from: Section, key: string, after: Section | undefined) {
+		const at = after ? draft.sections.indexOf(after) + 1 : draft.sections.length;
+		draft.sections.splice(at, 0, structuredClone($state.snapshot(from)));
+		const added = draft.sections[at];
+		addTo ??= added;
+		copied.push(key);
+		addOpen = false;
+		note = `${from.name} copied`;
+		undo = () => {
+			const i = draft.sections.indexOf(added);
+			if (i >= 0) draft.sections.splice(i, 1);
+			if (addTo === added) addTo = draft.sections[0];
+			copied = copied.filter((k) => k !== key);
+		};
 	}
 
 	function put(to: Target, e: Exercise) {
@@ -129,7 +163,7 @@
 	function key(e: KeyboardEvent) {
 		if (e.key !== '/' || !widest.current || (e.target as Element).closest('input, textarea, select, [contenteditable]')) return;
 		e.preventDefault();
-		search?.focus();
+		find();
 	}
 
 	let nameField = $state<HTMLInputElement>();
@@ -277,6 +311,16 @@
 	</div>
 {/snippet}
 
+{#snippet tabs()}
+	<Segmented
+		label="Library"
+		items={[
+			{ label: 'Exercises', on: tab === 'exercises', onclick: () => (tab = 'exercises') },
+			{ label: 'Sections', on: tab === 'sections', onclick: () => (tab = 'sections') }
+		]}
+	/>
+{/snippet}
+
 {#snippet pane()}
 	{#if shown && 'step' in shown}
 		{#key shown.step}
@@ -336,7 +380,10 @@
 	>
 		{#if widest.current}
 			<aside class="sticky top-[5.5rem] flex max-h-[calc(100dvh-7rem)] flex-col gap-3 overflow-y-auto overscroll-contain rounded-3xl bg-surface p-4 shadow-card" aria-label="Library">
-				{#if draft.sections.length && addTo}
+				{@render tabs()}
+				{#if tab === 'sections'}
+					<SectionList exclude={template?.id} {copied} copy={(from, key) => copySection(from, key, addTo)} />
+				{:else if draft.sections.length && addTo}
 					<ExerciseList exercises={library} bind:input={search} pick={(e) => put({ section: addTo! }, e)} inside={(e) => inside({ section: addTo! }, e)}>
 						<label class="flex items-center gap-3 text-xs font-semibold text-ink-2">
 							Add to
@@ -458,6 +505,17 @@
 >
 	{#if target}
 		{@const to = target}
-		<ExerciseList exercises={library} pick={(e) => put(to, e)} inside={(e) => inside(to, e)} />
+		<div class="flex flex-col gap-3">
+			{#if 'section' in to}{@render tabs()}{/if}
+			{#if tab === 'sections' && 'section' in to}
+				<SectionList exclude={template?.id} {copied} copy={(from, key) => copySection(from, key, to.section)} />
+			{:else}
+				<ExerciseList exercises={library} pick={(e) => put(to, e)} inside={(e) => inside(to, e)} />
+			{/if}
+		</div>
 	{/if}
 </Sheet>
+
+<div class="[--above-bar:calc(1rem+env(safe-area-inset-bottom))]">
+	<Toast bind:message={note} action="Undo" onaction={() => undo()} />
+</div>
