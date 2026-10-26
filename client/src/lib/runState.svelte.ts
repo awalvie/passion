@@ -115,20 +115,22 @@ class OpenRun {
 	}
 
 	// discard deletes the run once the person confirms. It leaves for Today
-	// before it forgets the run, because the open page reads it.
+	// before it drops the run, because the open page reads it. Today can open
+	// another running session on the way, which must stay open.
 	async discard() {
-		if (!(await discardRun(this.run!))) return;
+		const run = this.run!;
+		if (!(await discardRun(run))) return;
 		await goto('/');
-		this.forget();
+		this.forget(run);
 	}
 
-	// forget drops a deleted run with its unsent writes and its clocks.
-	forget() {
-		if (this.run) {
-			localStorage.removeItem(storageKey(this.run.id));
-			localStorage.removeItem(`${timerPrefix}${this.run.id}`);
-		}
-		this.use(null);
+	// forget drops a deleted run with its unsent writes and its clocks. It
+	// closes the run only if it is still the one open.
+	forget(run = this.run) {
+		if (!run) return;
+		localStorage.removeItem(storageKey(run.id));
+		localStorage.removeItem(`${timerPrefix}${run.id}`);
+		if (this.run?.id === run.id) this.use(null);
 	}
 
 	// use opens a run with nothing queued, refused or stalled.

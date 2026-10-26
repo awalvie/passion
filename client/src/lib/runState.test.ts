@@ -655,6 +655,40 @@ test('discardRun deletes the run on the server, then its copy and timers on the 
 	expect(Object.keys(localStorage).sort()).toStrictEqual(['passion-pending:run-2', 'passion-timer:run-2']);
 });
 
+// Discarding a second session goes to Today, which opens the first one again.
+// That one, and its copy on the phone, must stay.
+test('discard keeps the session Today opens on the way', async () => {
+	online();
+	const openRun = await openFresh();
+	const { goto } = await import('$app/navigation');
+	vi.mocked(goto).mockImplementationOnce(async () => {
+		// A write still in flight stores the discarded run again.
+		putPending('run-1', {});
+		openRun.use({ ...newRun(), id: 'run-0' });
+	});
+	vi.stubGlobal('confirm', vi.fn(() => true));
+	putPending('run-0', {});
+
+	await openRun.discard();
+
+	expect(openRun.run?.id).toBe('run-0');
+	expect(localStorage.getItem('passion-pending:run-0')).not.toBeNull();
+	expect(localStorage.getItem('passion-pending:run-1')).toBeNull();
+});
+
+test('discard drops a copy of the run stored again on the way to Today', async () => {
+	online();
+	const openRun = await openFresh();
+	const { goto } = await import('$app/navigation');
+	vi.mocked(goto).mockImplementationOnce(async () => putPending('run-1', {}));
+	vi.stubGlobal('confirm', vi.fn(() => true));
+
+	await openRun.discard();
+
+	expect(openRun.run).toBeNull();
+	expect(localStorage.getItem('passion-pending:run-1')).toBeNull();
+});
+
 // Without a signal the run is still on the server, so the phone must keep its
 // copy for a second try.
 test('discardRun keeps the phone copy when the server cannot be reached', async () => {
