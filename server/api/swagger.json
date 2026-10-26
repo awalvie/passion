@@ -857,6 +857,116 @@
         ]
       }
     },
+    "/api/v1/repeats": {
+      "get": {
+        "tags": [
+          "repeats"
+        ],
+        "summary": "List your repeats",
+        "operationId": "listRepeats",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/repeatListResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/repeats/{id}": {
+      "put": {
+        "description": "Creates the repeat under the id you chose, or replaces it, so a retry makes\none. It places the session again from today on, up to a year ahead: a past\nday, and a day a run was started from, stay as they are. A day that already\nholds the session is left out and listed.",
+        "tags": [
+          "repeats"
+        ],
+        "summary": "Create or replace a repeat",
+        "operationId": "putRepeat",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/repeatPutResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "description": "Removes it and every day it placed. The runs done from them stay.",
+        "tags": [
+          "repeats"
+        ],
+        "summary": "Delete a repeat",
+        "operationId": "deleteRepeat",
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/repeats/{id}/end": {
+      "post": {
+        "description": "Takes off this day and every later one, except a day a run was started\nfrom. The earlier days, and the ones you moved or removed, stay as they are.\nEnding it on its first day deletes it.",
+        "tags": [
+          "repeats"
+        ],
+        "summary": "End a repeat",
+        "operationId": "endRepeat",
+        "responses": {
+          "204": {
+            "description": "Ended"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/runs": {
       "get": {
         "description": "Finished or not, newest day first.",
@@ -1287,7 +1397,7 @@
         ]
       },
       "post": {
-        "description": "A one-off, with no cycle behind it. A day holds each session once.",
+        "description": "A one-off, with no cycle or repeat behind it. A day holds each session\nonce.",
         "tags": [
           "scheduled-sessions"
         ],
@@ -2515,6 +2625,21 @@
       },
       "x-go-package": "passion/server/api"
     },
+    "endRepeatRequest": {
+      "type": "object",
+      "required": [
+        "from"
+      ],
+      "properties": {
+        "from": {
+          "description": "The first day to take off, written YYYY-MM-DD.",
+          "type": "string",
+          "x-go-name": "From",
+          "example": "2026-11-10"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
     "errorBody": {
       "description": "{ \"error\": { \"code\": \"...\", \"message\": \"...\", \"fields\": { ... } } }",
       "type": "object",
@@ -3136,6 +3261,208 @@
       },
       "x-go-package": "passion/server/api"
     },
+    "repeatListResponse": {
+      "type": "object",
+      "properties": {
+        "repeats": {
+          "description": "Latest start first.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/repeatResponse"
+          },
+          "x-go-name": "Repeats"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "repeatPutResponse": {
+      "type": "object",
+      "required": [
+        "template",
+        "starts",
+        "every",
+        "unit"
+      ],
+      "properties": {
+        "ends": {
+          "description": "The last day, inclusive, written YYYY-MM-DD. Null repeats for ever.",
+          "type": "string",
+          "x-go-name": "Ends",
+          "example": "2026-12-03"
+        },
+        "every": {
+          "description": "Repeats every this many days or weeks, from 1 to 99.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Every",
+          "example": 1
+        },
+        "id": {
+          "description": "The id the client chose.",
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "left_out": {
+          "description": "The days the repeat did not place a session on, because that day already\nheld it.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/slotBody"
+          },
+          "x-go-name": "LeftOut"
+        },
+        "starts": {
+          "description": "The first day, written YYYY-MM-DD.",
+          "type": "string",
+          "x-go-name": "Starts",
+          "example": "2026-10-27"
+        },
+        "template": {
+          "description": "A session template you can see.",
+          "type": "string",
+          "x-go-name": "Template",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "unit": {
+          "description": "day or week.",
+          "type": "string",
+          "x-go-name": "Unit",
+          "example": "week"
+        },
+        "weekdays": {
+          "description": "For a weekly repeat, the days it falls on, 1 for Monday to 7 for Sunday.\nEvery few weeks counts from the week of starts.",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "Weekdays",
+          "example": [
+            2,
+            4
+          ]
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "repeatRequest": {
+      "type": "object",
+      "required": [
+        "template",
+        "starts",
+        "every",
+        "unit"
+      ],
+      "properties": {
+        "ends": {
+          "description": "The last day, inclusive, written YYYY-MM-DD. Null repeats for ever.",
+          "type": "string",
+          "x-go-name": "Ends",
+          "example": "2026-12-03"
+        },
+        "every": {
+          "description": "Repeats every this many days or weeks, from 1 to 99.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Every",
+          "example": 1
+        },
+        "starts": {
+          "description": "The first day, written YYYY-MM-DD.",
+          "type": "string",
+          "x-go-name": "Starts",
+          "example": "2026-10-27"
+        },
+        "template": {
+          "description": "A session template you can see.",
+          "type": "string",
+          "x-go-name": "Template",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "unit": {
+          "description": "day or week.",
+          "type": "string",
+          "x-go-name": "Unit",
+          "example": "week"
+        },
+        "weekdays": {
+          "description": "For a weekly repeat, the days it falls on, 1 for Monday to 7 for Sunday.\nEvery few weeks counts from the week of starts.",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "Weekdays",
+          "example": [
+            2,
+            4
+          ]
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "repeatResponse": {
+      "type": "object",
+      "required": [
+        "template",
+        "starts",
+        "every",
+        "unit"
+      ],
+      "properties": {
+        "ends": {
+          "description": "The last day, inclusive, written YYYY-MM-DD. Null repeats for ever.",
+          "type": "string",
+          "x-go-name": "Ends",
+          "example": "2026-12-03"
+        },
+        "every": {
+          "description": "Repeats every this many days or weeks, from 1 to 99.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Every",
+          "example": 1
+        },
+        "id": {
+          "description": "The id the client chose.",
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "starts": {
+          "description": "The first day, written YYYY-MM-DD.",
+          "type": "string",
+          "x-go-name": "Starts",
+          "example": "2026-10-27"
+        },
+        "template": {
+          "description": "A session template you can see.",
+          "type": "string",
+          "x-go-name": "Template",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "unit": {
+          "description": "day or week.",
+          "type": "string",
+          "x-go-name": "Unit",
+          "example": "week"
+        },
+        "weekdays": {
+          "description": "For a weekly repeat, the days it falls on, 1 for Monday to 7 for Sunday.\nEvery few weeks counts from the week of starts.",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "Weekdays",
+          "example": [
+            2,
+            4
+          ]
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
     "runChoiceBody": {
       "type": "object",
       "title": "A choice nobody has picked from yet. A pick replaces it with steps.",
@@ -3736,7 +4063,7 @@
       "type": "object",
       "properties": {
         "cycle": {
-          "description": "The cycle that placed it. null for a session you scheduled by hand.",
+          "description": "The cycle that placed it, or null.",
           "type": "string",
           "x-go-name": "Cycle"
         },
@@ -3749,6 +4076,11 @@
           "type": "string",
           "x-go-name": "LocalDate",
           "example": "2026-03-10"
+        },
+        "repeat": {
+          "description": "The repeat that placed it, or null.",
+          "type": "string",
+          "x-go-name": "Repeat"
         },
         "run": {
           "description": "The run started from it, a finished one first. null before it starts.",
@@ -3798,7 +4130,7 @@
       "type": "object",
       "properties": {
         "cycle": {
-          "description": "The cycle that placed it. null for a session you scheduled by hand.",
+          "description": "The cycle that placed it, or null.",
           "type": "string",
           "x-go-name": "Cycle"
         },
@@ -3811,6 +4143,11 @@
           "type": "string",
           "x-go-name": "LocalDate",
           "example": "2026-03-10"
+        },
+        "repeat": {
+          "description": "The repeat that placed it, or null.",
+          "type": "string",
+          "x-go-name": "Repeat"
         },
         "template": {
           "type": "string",

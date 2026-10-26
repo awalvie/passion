@@ -37,8 +37,11 @@ type scheduledSessionBody struct {
 	// example: 01a0bf77-d7e8-76ea-96cc-f09cbca175a3
 	ID string `json:"id"`
 
-	// The cycle that placed it. null for a session you scheduled by hand.
+	// The cycle that placed it, or null.
 	Cycle *string `json:"cycle"`
+
+	// The repeat that placed it, or null.
+	Repeat *string `json:"repeat"`
 
 	// example: 01a0bf77-d7e8-76ea-96cc-f09cbca175a3
 	Template string `json:"template"`
@@ -96,6 +99,11 @@ func (s *Server) listScheduledSessions(w http.ResponseWriter, r *http.Request, w
 		return
 	}
 
+	// A repeat with no end grows as time passes. If it cannot, the days
+	// already built still show.
+	if err := db.TopUpRepeats(r.Context(), s.pool, who.AccountID); err != nil {
+		s.log.Error("could not top up the repeats", "err", err)
+	}
 	list, err := db.ListScheduledSessions(r.Context(), s.pool, who.AccountID, from, to)
 	if s.failed(w, err) {
 		return
@@ -117,7 +125,8 @@ func (s *Server) listScheduledSessions(w http.ResponseWriter, r *http.Request, w
 //
 // # Schedule a session
 //
-// A one-off, with no cycle behind it. A day holds each session once.
+// A one-off, with no cycle or repeat behind it. A day holds each session
+// once.
 //
 //	Security:
 //	  bearer:
@@ -216,6 +225,7 @@ func toScheduledSessionBody(s db.ScheduledSession) scheduledSessionBody {
 	return scheduledSessionBody{
 		ID:        s.ID,
 		Cycle:     s.Cycle,
+		Repeat:    s.Repeat,
 		Template:  s.Template,
 		LocalDate: s.LocalDate.Format(time.DateOnly),
 	}

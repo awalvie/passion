@@ -8,6 +8,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -115,6 +116,16 @@ func execOne(ctx context.Context, pool *pgxpool.Pool, notFound error, what, sql 
 		return notFound
 	}
 	return nil
+}
+
+// localToday is the person's date, in their own zone.
+func localToday(ctx context.Context, tx pgx.Tx, owner string) (time.Time, error) {
+	var today time.Time
+	if err := tx.QueryRow(ctx, `SELECT (now() AT TIME ZONE timezone)::date FROM account WHERE id = $1`,
+		owner).Scan(&today); err != nil {
+		return time.Time{}, fmt.Errorf("select today: %w", err)
+	}
+	return today, nil
 }
 
 // checkVersion reads the server_version_num form, where 18.6 is 180006.

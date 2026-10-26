@@ -1,0 +1,62 @@
+[
+	{
+		"name": "every day",
+		"starts": "2026-10-27", "ends": null, "every": 1, "unit": "day", "weekdays": [],
+		"from": "2026-10-26", "until": "2026-10-30",
+		"days": ["2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30"]
+	},
+	{
+		"name": "every 3 days",
+		"starts": "2026-10-27", "ends": null, "every": 3, "unit": "day", "weekdays": [],
+		"from": "2026-10-26", "until": "2026-11-05",
+		"days": ["2026-10-27", "2026-10-30", "2026-11-02", "2026-11-05"]
+	},
+	{
+		"name": "every week on Tuesday and Thursday",
+		"starts": "2026-10-27", "ends": null, "every": 1, "unit": "week", "weekdays": [2, 4],
+		"from": "2026-10-26", "until": "2026-11-08",
+		"days": ["2026-10-27", "2026-10-29", "2026-11-03", "2026-11-05"]
+	},
+	{
+		"name": "every 2 weeks counts from the Monday of the first week",
+		"starts": "2026-10-28", "ends": null, "every": 2, "unit": "week", "weekdays": [1, 5],
+		"from": "2026-10-26", "until": "2026-11-15",
+		"days": ["2026-10-30", "2026-11-09", "2026-11-13"]
+	},
+	{
+		"name": "the last day is included",
+		"starts": "2026-11-01", "ends": "2026-11-15", "every": 1, "unit": "week", "weekdays": [7],
+		"from": "2026-11-01", "until": "2026-11-30",
+		"days": ["2026-11-01", "2026-11-08", "2026-11-15"]
+	},
+	{
+		"name": "a later start of the range keeps the days",
+		"starts": "2026-10-27", "ends": null, "every": 3, "unit": "day", "weekdays": [],
+		"from": "2026-11-01", "until": "2026-11-08",
+		"days": ["2026-11-02", "2026-11-05", "2026-11-08"]
+	},
+	{
+		"name": "a start long ago",
+		"starts": "1700-01-01", "ends": null, "every": 2, "unit": "day", "weekdays": [],
+		"from": "2026-10-26", "until": "2026-10-28",
+		"days": ["2026-10-27"]
+	},
+	{
+		"name": "an end before the first day it falls on",
+		"starts": "2026-10-27", "ends": "2026-10-29", "every": 1, "unit": "week", "weekdays": [5],
+		"from": "2026-10-26", "until": "2026-11-08",
+		"days": []
+	},
+	{
+		"name": "across a clock change",
+		"starts": "2026-03-25", "ends": null, "every": 7, "unit": "day", "weekdays": [],
+		"from": "2026-03-25", "until": "2026-04-10",
+		"days": ["2026-03-25", "2026-04-01", "2026-04-08"]
+	},
+	{
+		"name": "across the new year",
+		"starts": "2026-12-28", "ends": null, "every": 1, "unit": "week", "weekdays": [1],
+		"from": "2026-12-28", "until": "2027-01-12",
+		"days": ["2026-12-28", "2027-01-04", "2027-01-11"]
+	}
+]

@@ -155,7 +155,7 @@ func (f CycleFields) Clean() (CycleFields, map[string]string) {
 
 // days counts whole days from a to b.
 func days(a, b time.Time) int {
-	return int(b.Sub(a).Hours() / 24)
+	return int((b.Unix() - a.Unix()) / 86400)
 }
 
 // slots lists every session the cycle places on or after from, in date order.
@@ -197,10 +197,9 @@ func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cycle
 	if err := checkTemplates(ctx, tx, owner, f.Body); err != nil {
 		return Cycle{}, nil, err
 	}
-	var today time.Time
-	if err := tx.QueryRow(ctx, `SELECT (now() AT TIME ZONE timezone)::date FROM account WHERE id = $1`,
-		owner).Scan(&today); err != nil {
-		return Cycle{}, nil, fmt.Errorf("select today: %w", err)
+	today, err := localToday(ctx, tx, owner)
+	if err != nil {
+		return Cycle{}, nil, err
 	}
 
 	// An id another account holds matches no row here, so it reads as a
@@ -296,18 +295,8 @@ func build(ctx context.Context, tx pgx.Tx, owner, column, id string, slots []Slo
 		return nil, fmt.Errorf("clear the %s's days: %w", column, err)
 	}
 
-	dates := make([]time.Time, 0, len(slots))
-	templates := make([]string, 0, len(slots))
-	for _, s := range slots {
-		dates = append(dates, s.LocalDate)
-		templates = append(templates, s.Template)
-	}
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO scheduled_session (owner, `+column+`, template, local_date)
-		SELECT $1, $2, s.template, s.local_date
-		FROM unnest($3::date[], $4::uuid[]) AS s (local_date, template)
-		ON CONFLICT (owner, local_date, template) DO NOTHING`, owner, id, dates, templates); err != nil {
-		return nil, fmt.Errorf("write the %s's days: %w", column, err)
+	if err := place(ctx, tx, owner, column, id, slots); err != nil {
+		return nil, err
 	}
 
 	// A slot is left out when a row of another cycle or repeat, or a one-off,
@@ -342,6 +331,25 @@ func build(ctx context.Context, tx pgx.Tx, owner, column, id string, slots []Slo
 		}
 	}
 	return leftOut, nil
+}
+
+// place writes slots as a cycle's or a repeat's rows, skipping a day that
+// already holds the session.
+func place(ctx context.Context, tx pgx.Tx, owner, column, id string, slots []Slot) error {
+	dates := make([]time.Time, 0, len(slots))
+	templates := make([]string, 0, len(slots))
+	for _, s := range slots {
+		dates = append(dates, s.LocalDate)
+		templates = append(templates, s.Template)
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO scheduled_session (owner, `+column+`, template, local_date)
+		SELECT $1, $2, s.template, s.local_date
+		FROM unnest($3::date[], $4::uuid[]) AS s (local_date, template)
+		ON CONFLICT (owner, local_date, template) DO NOTHING`, owner, id, dates, templates); err != nil {
+		return fmt.Errorf("write the %s's days: %w", column, err)
+	}
+	return nil
 }
 
 func checkTemplates(ctx context.Context, tx pgx.Tx, owner string, body CycleBody) error {

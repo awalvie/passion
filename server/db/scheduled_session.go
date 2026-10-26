@@ -16,6 +16,7 @@ type ScheduledSession struct {
 	ID        string    `db:"id"`
 	Owner     string    `db:"owner"`
 	Cycle     *string   `db:"cycle"`
+	Repeat    *string   `db:"repeat"`
 	Template  string    `db:"template"`
 	LocalDate time.Time `db:"local_date"`
 	CreatedAt time.Time `db:"created_at"`
@@ -31,7 +32,7 @@ var (
 	ErrAlreadyScheduled = errors.New("that day already holds that session")
 )
 
-// ScheduleSession plans a one-off session, with no cycle behind it.
+// ScheduleSession plans a one-off session, with no cycle or repeat behind it.
 func ScheduleSession(ctx context.Context, pool *pgxpool.Pool, owner, template string, day time.Time) (ScheduledSession, error) {
 	template, ok := cleanID(template)
 	if !ok {
@@ -126,8 +127,8 @@ func MoveScheduledSession(ctx context.Context, pool *pgxpool.Pool, owner, id str
 	return oneScheduledSession(rows)
 }
 
-// DeleteScheduledSession takes one session off its day, whether a cycle or
-// the person put it there.
+// DeleteScheduledSession takes one session off its day, whether a cycle, a
+// repeat or the person put it there.
 func DeleteScheduledSession(ctx context.Context, pool *pgxpool.Pool, owner, id string) error {
 	return execOne(ctx, pool, ErrNoScheduledSession, "delete scheduled session",
 		`DELETE FROM scheduled_session WHERE owner = $1 AND id = $2`, owner, id)
