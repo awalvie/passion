@@ -26,7 +26,7 @@
 		open?: boolean;
 		target?: boolean;
 		selected: unknown;
-		onselect: (picked: { choice: Choice } | { step: Step }) => void;
+		onselect: (picked: { section: Section } | { choice: Choice } | { step: Step }) => void;
 		onadd: (to: { section: Section } | { choice: Choice }) => void;
 		actions: Snippet;
 	} = $props();
@@ -119,5 +119,7 @@
 				</button>
 			</div>
 		</details>
+
+		<button type="button" class="{quiet} text-ink-2 lg:hidden" onclick={() => onselect({ section })}><Icon name="pencil" />Name and notes</button>
 	</div>
 </details>
