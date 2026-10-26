@@ -70,7 +70,7 @@ Only flag complexity that exists because someone was being "clever" or "thorough
 ### 6. Component bloat
 - Identical markup that could be a shared component in `client/src/lib/` (only if 3+ copies)
 - Inline styles that duplicate a token utility
-- A redrawn part that "Style a screen" in `docs/DEVELOPMENT.md` says to take from a shared component
+- A redrawn part that "Style a screen" in `CLAUDE.md` says to take from a shared component
 
 ### 7. Stale references
 - TODO/FIXME comments for issues that are already fixed

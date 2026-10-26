@@ -9,8 +9,7 @@ After implementing a feature, changing a handler, adding a config option, or cha
 - New or renamed top-level directory → "Where things go" in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
 - New, removed or renamed Make target → the targets table in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
 - New developer workflow pattern → [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
-- New table or a change to what a record keeps → "The data" in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
-- New shared component or layout rule → "Style a screen" in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+- New token, shared component or layout rule → "Style a screen" below
 
 Write the docs in plain, short English. Do not rewrite sections the change does not touch.
 
@@ -42,17 +41,31 @@ If a catalog entry cannot meet this, put it in `passion-private-catalog` instead
 - No error handling for scenarios that can't happen — trust internal guarantees.
 - Prefer editing existing files over creating new ones.
 
-## Fields and selects
+## Style a screen
 
-Use the `.input` class on every field and `<select>`. Never leave one with browser-default styling.
+Tokens are in `client/src/tokens.css`; each needs a light and a dark value.
 
-The one exception is a large free-text note that sits on its own on a card or on the step page's field, such as "How did it go?". It uses `bg-surface`, `text-[15px] font-semibold` and `placeholder:text-ink-3`, not `.input`.
+- `bg-ground` page, `bg-surface` card, `bg-well` field. Text `text-ink`/`-2`/`-3`, lines `border-line`.
+- Lime (`bg-tint`) marks Start, Log and the current tab, never text. Apricot (`bg-live`) is a running session.
+- Type: `text-xs` labels, `text-[15px]` body, `text-xl` card titles. `digits` for numbers, `reading` for the user's notes.
+- Fields and `<select>` use `.input`, except a lone free-text note: `bg-surface text-[15px] font-semibold placeholder:text-ink-3`.
+- Reuse `client/src/lib/` parts (`Section`, `Segmented`, `Tabs`, `Sheet`, `Chart`…) before making new ones.
+- Controls are at least 44 px. List rows use `list-row`. A row that opens a page ends with a chevron.
+- Tabs sit at the bottom on a phone, in a left rail from `md`. Today, Journal and Progress go wide from `lg`.
+
+## Rules the code does not show
+
+- Change a running session through `openRun`, never `request`; it saves on the phone first.
+- Exercises and sessions are retired, never deleted. Unfinished runs count in no chart.
+- After changing a handler, run `make openapi`; CI fails on a stale `swagger.json`.
+- Tables with `updated_at` need the `touch_updated_at()` trigger.
+- The server has four dependencies. Do not add a fifth without a strong reason.
 
 ## UX / design decisions
 
 When a UX issue or design question is ambiguous, ask before implementing. Don't pick a direction and build it.
 
-For all design and UI work, read "Style a screen" in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) first. It names the tokens, the type scale and the shared components. Follow those rather than inventing new ones.
+For all design and UI work, follow "Style a screen" above rather than inventing new tokens or components.
 
 ## When something is unclear, research first — then ask
 

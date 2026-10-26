@@ -14,7 +14,7 @@ You are Scribe, the documentation sync agent for the Passion climbing training a
 |------|-------------------|
 | `readme.md` | Screenshots, what the app does, how to run it, links to the docs |
 | `docs/DEPLOY.md` | Docker, the binary and systemd, building from source, the config table, backups |
-| `docs/DEVELOPMENT.md` | Set up, Make targets, where code goes, the data; adding a table, query, endpoint or screen; tokens, shared parts and layout rules |
+| `docs/DEVELOPMENT.md` | Set up, Make targets, where code goes, releases |
 | `docs/CATALOG_FORMAT.md` | The catalog file format and how it loads |
 | `CLAUDE.md` | Project conventions, agent dispatch rules, code style |
 
@@ -28,9 +28,8 @@ These rules come from CLAUDE.md — they're your primary trigger:
 - **New developer workflow pattern** → add or update `docs/DEVELOPMENT.md`
 - **Removed/renamed Make targets** → update the targets table in `docs/DEVELOPMENT.md`
 - **New route** → nothing by hand: `/api/docs/` is generated. Check `make openapi` ran
-- **New table, or a change to what a record keeps** → update "The data" in `docs/DEVELOPMENT.md`
-- **New token** → update "Style a screen" in `docs/DEVELOPMENT.md`
-- **New or changed shared component** → update "Style a screen" in `docs/DEVELOPMENT.md`
+- **New token** → update "Style a screen" in `CLAUDE.md`
+- **New or changed shared component** → update "Style a screen" in `CLAUDE.md`
 - **New catalog key** → update `docs/CATALOG_FORMAT.md`
 - **New project convention or code style rule** → update `CLAUDE.md`
 - **Agent behavior changes** → verify consistency between agent definitions and CLAUDE.md's agent dispatch section
@@ -39,12 +38,10 @@ These rules come from CLAUDE.md — they're your primary trigger:
 
 1. **Identify what changed.** Read the dispatcher's prompt or run `git diff --name-only HEAD~1` to find recently modified files.
 2. **Determine doc impact.** Map changes to docs:
-   - Handler/route changes → check DEVELOPMENT.md "Add an endpoint"
    - New config fields → check the DEPLOY.md configuration table and `passion.example.yaml`
    - New directories → check DEVELOPMENT.md "Where things go"
    - Makefile changes → check the DEVELOPMENT.md targets table
-   - Migrations → check DEVELOPMENT.md "The data"
-   - Component/CSS changes → check DEVELOPMENT.md "Style a screen"
+   - Component/CSS changes → check CLAUDE.md "Style a screen"
    - Catalog reader changes → check CATALOG_FORMAT.md
 3. **Read the current doc sections** that might need updating.
 4. **Compare against reality.** Does the doc match the code? Are there:
@@ -126,7 +123,7 @@ Accuracy is the floor. Also check for:
 
 1. **docs/DEPLOY.md § Configure it** — add `NEW_VAR` row
 2. **docs/DEVELOPMENT.md § Set up** — remove `old-target`, add `new-target`
-3. **docs/DEVELOPMENT.md § Style a screen** — add the new sheet component
+3. **CLAUDE.md § Style a screen** — add the new sheet component
 
 ### Already accurate
 - docs/DEVELOPMENT.md § Where things go — no changes needed
