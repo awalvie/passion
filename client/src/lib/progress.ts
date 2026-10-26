@@ -250,23 +250,20 @@ export function grades(climbs: DatedClimb[], bs: Bucket[], scale: Scale): (numbe
 	return bs.map((b) => hardest(climbs.filter((c) => within(b, c.local_date)), scale));
 }
 
-// averageSend is the mean grade of the sends, as a position in the scale
-// rounded to the nearest grade, or null when none is graded in it.
-export function averageSend(climbs: Climb[], scale: Scale): number | null {
-	const sent = climbs.filter((c) => c.sent).map((c) => rank(c, scale)).filter((i) => i >= 0);
-	return sent.length ? Math.round(sent.reduce((a, b) => a + b, 0) / sent.length) : null;
-}
+export type Step = { grade: string; sent: number; flash: number };
 
-// spread is the climbs sent and not sent at each grade, from the easiest
-// graded climb to the hardest, the grades between kept so gaps show.
-export function spread(climbs: Climb[], scale: Scale): { grade: string; sent: number; not: number }[] {
-	const rows = scale.grades.map((grade) => ({ grade, sent: 0, not: 0 }));
+// pyramid is the sends at each grade and how many of them were flashed, from
+// the easiest send to the hardest, the grades between kept so gaps show.
+export function pyramid(climbs: Climb[], scale: Scale): Step[] {
+	const rows = scale.grades.map((grade) => ({ grade, sent: 0, flash: 0 }));
 	for (const c of climbs) {
 		const i = rank(c, scale);
-		if (i >= 0) rows[i][c.sent ? 'sent' : 'not']++;
+		if (i < 0 || !c.sent) continue;
+		rows[i].sent++;
+		if (c.goes[0] === 'send') rows[i].flash++;
 	}
-	const lo = rows.findIndex((r) => r.sent || r.not);
-	return lo < 0 ? [] : rows.slice(lo, rows.findLastIndex((r) => r.sent || r.not) + 1);
+	const lo = rows.findIndex((r) => r.sent);
+	return lo < 0 ? [] : rows.slice(lo, rows.findLastIndex((r) => r.sent) + 1);
 }
 
 // An exercise's history charts one measure: the added weight where any set

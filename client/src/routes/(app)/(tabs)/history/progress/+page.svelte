@@ -7,8 +7,8 @@
 	import Dots from '$lib/Dots.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import NavBar from '$lib/NavBar.svelte';
+	import Pyramid from '$lib/Pyramid.svelte';
 	import {
-		averageSend,
 		boardsOpen,
 		counts,
 		filterGroups,
@@ -17,15 +17,14 @@
 		flashRate,
 		goesPerSend,
 		gradeScale,
-		grades,
 		hours,
 		isBoulder,
 		mixOf,
 		monthsBack,
 		passes,
 		perBucket,
+		pyramid,
 		sendRate,
-		spread,
 		type ClimbFilter,
 		type FilterGroup,
 		type Trend
@@ -43,8 +42,6 @@
 	const passed = $derived(data.now === -1 ? data.buckets.length : data.now + 1);
 	const boulderFill = 'bg-chart';
 	const routeFill = 'bg-chart/50';
-	// An outline, so not sent never reads as the routes of the Climbs chart.
-	const notFill = 'shadow-[inset_0_0_0_1.5px_var(--chart)]';
 	const line = (points: (number | null)[]) => points.flatMap((v, i) => (v === null ? [] : [{ i, v, best: true }]));
 
 	// Two ranges sit on the row; Custom opens the rest.
@@ -110,18 +107,12 @@
 		].flatMap((d) => {
 			const scale = gradeScale(d.climbs, data.scales);
 			if (!scale) return [];
-			const points = grades(d.climbs, data.buckets, scale);
-			const tops = points.filter((t): t is number => t !== null);
-			const average = averageSend(d.climbs, scale);
+			const steps = pyramid(d.climbs, scale);
 			return [
 				{
 					...d,
-					scale,
-					points,
-					top: tops.length ? scale.grades[Math.max(...tops)] : null,
-					averages: perBucket(d.climbs, data.buckets, (cs) => averageSend(cs, scale)),
-					average: average === null ? null : scale.grades[average],
-					spread: spread(d.climbs, scale),
+					pyramid: steps,
+					sent: steps.reduce((n, r) => n + r.sent, 0),
 					// Climbs graded in another system have no place on this scale.
 					elsewhere: d.climbs.filter((c) => c.grade_system && c.grade_system !== scale.system).length
 				}
@@ -332,30 +323,17 @@
 		</section>
 	{:else}
 		{#each disciplines as d (d.label)}
-			<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-				<dl>{@render stat(`${d.label}, hardest send`, d.top ?? '–')}</dl>
-				<Dots n={d.points.length} marks={line(d.points)} label={(g) => d.scale.grades[g]} {ticks} now={data.now} />
-			</section>
-			<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-				<dl>{@render stat(`${d.label}, average send`, d.average ?? '–')}</dl>
-				<Dots n={d.averages.length} marks={line(d.averages)} label={(g) => d.scale.grades[g]} {ticks} now={data.now} />
-			</section>
-			<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-				<h2 class="text-[15px] font-bold">{d.label} by grade</h2>
-				<Bars
-					parts={[
-						{ values: d.spread.map((r) => r.sent), cls: 'bg-chart' },
-						{ values: d.spread.map((r) => r.not), cls: notFill }
-					]}
-					ticks={d.spread.map((r, i) => (d.spread.length <= 12 || i % 2 === 0 ? r.grade : ''))}
-					now={-1}
-				/>
-				<div class="flex gap-4 text-xs font-semibold text-ink-2">
-					{@render key('bg-chart', 'Sent')}
-					{@render key(notFill, 'Not sent')}
-				</div>
+			<section class="flex flex-col gap-3 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
+				<dl>{@render stat(`${d.label} sent`, d.sent)}</dl>
+				{#if d.pyramid.length}
+					<Pyramid rows={d.pyramid} />
+					<div class="flex gap-4 text-xs font-semibold text-ink-2">
+						{@render key('bg-chart', 'Flash')}
+						{@render key('bg-chart/50', 'Sent after a try')}
+					</div>
+				{/if}
 				{#if d.elsewhere}
-					<p class="-mt-2 text-xs font-semibold text-ink-2">
+					<p class="text-xs font-semibold text-ink-2">
 						{d.elsewhere}
 						{d.elsewhere === 1 ? 'climb' : 'climbs'} graded in another system not shown.
 					</p>

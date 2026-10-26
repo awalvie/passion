@@ -6,7 +6,6 @@ import {
 	buckets,
 	climbMarks,
 	figure,
-	averageSend,
 	counts,
 	filterName,
 	flashRate,
@@ -25,7 +24,7 @@ import {
 	sendRate,
 	setMarks,
 	setValue,
-	spread,
+	pyramid,
 	tenWeeks,
 	topSend,
 	trends,
@@ -151,18 +150,17 @@ test('the rates count graded climbs only', () => {
 	expect(goesPerSend([])).toBeNull();
 });
 
-test('averageSend is the mean grade sent, to the nearest grade', () => {
-	expect(averageSend([climb('6a', true), climb('6c', true), climb('7a', false)], scale)).toBe(1);
-	expect(averageSend([climb('7a', false)], scale)).toBeNull();
-});
-
-test('spread counts each grade from the easiest climbed to the hardest', () => {
-	expect(spread([climb('7a', false), climb('6b', true), climb('6b', false), climb('5c', true)], scale)).toEqual([
-		{ grade: '6b', sent: 1, not: 1 },
-		{ grade: '6c', sent: 0, not: 0 },
-		{ grade: '7a', sent: 0, not: 1 }
+test('pyramid counts the sends and flashes at each grade from the easiest sent to the hardest', () => {
+	const go = (grade: string, goes: Climb['goes']) => ({ ...climb(grade, goes.includes('send')), goes }) as Climb;
+	expect(
+		pyramid([go('7a', ['attempt']), go('6a', ['send']), go('6a', ['attempt', 'send']), go('6c', ['send']), go('7a', ['send']), go('5c', ['send'])], scale)
+	).toEqual([
+		{ grade: '6a', sent: 2, flash: 1 },
+		{ grade: '6b', sent: 0, flash: 0 },
+		{ grade: '6c', sent: 1, flash: 1 },
+		{ grade: '7a', sent: 1, flash: 1 }
 	]);
-	expect(spread([climb('5c', true)], scale)).toEqual([]);
+	expect(pyramid([go('6b', ['attempt'])], scale)).toEqual([]);
 });
 
 test('perBucket gives each bucket its own figure and null where it has no climbs', () => {
