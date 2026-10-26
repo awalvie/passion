@@ -11,16 +11,9 @@
 
 <p align="center"><img src="docs/screenshots/laptop-today.png" alt="Today on a laptop: last week, this week and next beside today's session" width="900"></p>
 
-Passion is a training app for climbers. You use it to plan your training, log your sessions
-and see your progress. It runs in a web browser on a phone or a computer. You host it on
-your own server.
-
 ## Plan
 
-A cycle is a block of days that repeats for some weeks. You put a session on each day that
-you train. The Today page shows the session for today and your numbers from the last time.
-It also lists your sessions and the date that you last did each one. Thus you can start a
-session without a plan. A day that you miss stays on the calendar as missed.
+Cycles of sessions that repeat each week. A missed day stays on the calendar.
 
 <p align="center">
   <img src="docs/screenshots/phone-today.png" alt="Today on a phone" width="240">
@@ -30,13 +23,8 @@ session without a plan. A day that you miss stays on the calendar as missed.
 
 ## Train
 
-You do a session one step at a time. For each set, you log the reps and the weight. Your
-numbers from the last time show below each field. Hangs and repeaters use a timer with
-prep, work and rest. The timer sounds also play when an iPhone is on silent.
-
-For climbs, you log each try as an attempt or a send. The app finds your sends and flashes
-from these tries. You can add, move or skip exercises during the session. If you lose
-signal, the phone keeps your log and sends it to the server later.
+One step at a time, with last time's numbers beside each set. Hang timers that sound on a
+silenced iPhone. Every go on a climb, with sends and flashes worked out. Logs without signal.
 
 <p align="center">
   <img src="docs/screenshots/phone-session.png" alt="A session in progress" width="240">
@@ -46,11 +34,8 @@ signal, the phone keeps your log and sends it to the server later.
 
 ## Look back
 
-Each session keeps the plan and what you did. You can add a session journal with your sleep,
-energy and effort. The Progress page shows your hours, your climbs and a grade pyramid of your
-sends. It can show the last 10 weeks, one cycle, or the dates that you choose. Tap a week (or month) on
-any chart to see it alone. Tiles at the top compare the last 4 full weeks with the 4 before. On
-a laptop, the three views share one page. Each exercise also has its own history.
+Hours, climbs and a grade pyramid for 10 weeks, one cycle or any dates. A history for each
+exercise.
 
 <p align="center">
   <img src="docs/screenshots/phone-history.png" alt="History with time, climbs and hardest send" width="240">
@@ -63,45 +48,37 @@ a laptop, the three views share one page. Each exercise also has its own history
 
 ## Journal
 
-The Journal keeps notes about your climbing, for example "I pull with my arms when I should
-push with my feet". Each entry has a date. You can write one from Today, or from the menu of a
-running session. A pinned entry shows on Today and at the start of each session. The Journal
-also lists your session journals, and a search finds both. On a laptop, the list and the open
-entry show side by side.
+Notes on your climbing. A pinned note shows on Today and at the start of each session.
+
+<p align="center">
+  <img src="docs/screenshots/phone-journal.png" alt="The Journal with two pinned notes" width="240">
+</p>
 
 ## Make your own
 
-The app comes with exercises and sessions that you can use. You can also make your own in
-the app. A session has sections. A section can give a choice, for example "pick 1 of these
-3". If you keep your training in files, you can load them as a private catalog. Only you can
-see a private catalog.
-
-Boulder grades show in Font or V. Route grades show in French or YDS.
+Build exercises and sessions in the app, or load them from files as a private catalog.
+Boulders in Font or V, routes in French or YDS.
 
 ## Run it
 
-You need Docker and a Postgres 18 database.
+You need Docker and Postgres 18.
 
 ```sh
 make image
 docker run -e DATABASE_URL=postgres://... -p 8080:8080 passion:dev
 ```
 
-Open <http://localhost:8080> and sign up from the page about Passion.
+Open <http://localhost:8080> and sign up. On an iPhone, add it to the Home Screen from
+Safari's Share menu, then sign in again there.
 
-To add the app to an iPhone Home Screen, open it in Safari. Tap Share, then tap Add to Home
-Screen. The Home Screen app has its own sign-in, so sign in again there.
-
-To run the app from the source code, install [nix](https://nixos.org). Then run
-`nix develop` and `make run`.
+From source: install [nix](https://nixos.org), then run `nix develop` and `make run`.
 
 ## Docs
 
-- [Deploy](docs/DEPLOY.md): the configuration, the deploy workflow and backups.
-- [Develop](docs/DEVELOPMENT.md): how to set up, where the code goes, and how to style a
-  screen.
-- [Catalog format](docs/CATALOG_FORMAT.md): how to write exercises and sessions as files.
-- The API docs are at `/api/docs/` on a running server.
+- [Deploy](docs/DEPLOY.md): configuration, deploys and backups.
+- [Develop](docs/DEVELOPMENT.md): setup, where code goes, and styling.
+- [Catalog format](docs/CATALOG_FORMAT.md): exercises and sessions as files.
+- API docs: `/api/docs/` on a running server.
 
 ## Licence
 
