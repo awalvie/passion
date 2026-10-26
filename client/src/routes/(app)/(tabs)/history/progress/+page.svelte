@@ -177,6 +177,14 @@
 		draft[g] = draft[g].includes(v) ? draft[g].filter((x) => x !== v) : [...draft[g], v];
 	}
 
+	// filterBy adds or takes away one pick in a group, or with no pick, clears it.
+	function filterBy(g: FilterGroup, v: string) {
+		draft = structuredClone(data.filter);
+		if (v) toggle(g, v);
+		else draft[g] = [];
+		applyFilter(draft);
+	}
+
 	function applyFilter(f: ClimbFilter) {
 		filtering = false;
 		goto(href(data.view, data.span.key, { ...f, board: boardsOpen(f) ? f.board : [] }), { replaceState: true, noScroll: true });
@@ -347,11 +355,34 @@
 
 	<div class="flex-col gap-3.5 lg:mt-3 lg:flex {data.view === 'time' ? 'hidden' : 'flex'}">
 		<div class="mt-1 flex flex-col px-1">
-			<button type="button" class="-my-2 flex min-h-11 items-center gap-1 self-start text-left text-xl font-bold tracking-tight" aria-haspopup="dialog" onclick={openFilter}>
+			<button type="button" class="-my-2 flex min-h-11 items-center gap-1 self-start text-left text-xl font-bold tracking-tight lg:hidden" aria-haspopup="dialog" onclick={openFilter}>
 				{filterName(data.filter)}
 				<Icon name="chevron-down" size="1.125rem" stroke={2.6} />
 			</button>
+			<h2 class="hidden text-xl font-bold tracking-tight lg:block">{filterName(data.filter)}</h2>
 			{@render dates()}
+		</div>
+		<!-- A laptop has room to show the filter itself in place of its sheet. -->
+		<div class="hidden flex-wrap items-end gap-x-5 gap-y-2.5 lg:flex">
+			{#each groups as g (g)}
+				{@const closed = g === 'board' && !boardsOpen(data.filter)}
+				<div class="flex flex-col gap-1.5">
+					<span class="px-1 text-xs font-semibold {closed ? 'text-ink-3' : 'text-ink-2'}">{filterGroups[g].label}</span>
+					<div class="flex gap-1 rounded-full bg-well p-1" role="group" aria-label={filterGroups[g].label}>
+						{#each [['', 'All'], ...Object.entries(filterGroups[g].options)] as [v, label] (v)}
+							{@const on = !closed && (v ? data.filter[g].includes(v) : !data.filter[g].length)}
+							<button
+								type="button"
+								class="flex h-11 items-center rounded-full px-4 text-[15px] font-bold disabled:opacity-40 {on ? 'bg-surface text-ink shadow-card-sm dark:bg-ink/15' : 'text-ink-2'}"
+								aria-pressed={on}
+								disabled={closed}
+								onclick={() => filterBy(g, v)}
+								>{label}</button
+							>
+						{/each}
+					</div>
+				</div>
+			{/each}
 		</div>
 		{#if !shown.length}
 			<section class="flex flex-col items-start gap-1 rounded-3xl bg-surface p-5 shadow-card">
