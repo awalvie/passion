@@ -8,14 +8,16 @@
 
 	// An exercise's past sessions: the best effort and every set or climb as a
 	// dot per session, then one quiet row per session. Sides is 2 when each set
-	// is logged once a side; rows caps the list, not the chart.
+	// is logged once a side; rows caps the list, not the chart, and chart turns
+	// the chart off.
 	let {
 		sessions,
 		scales = [],
 		linked = false,
 		sides = 1,
-		rows = Infinity
-	}: { sessions: HistorySession[]; scales?: Scale[]; linked?: boolean; sides?: number; rows?: number } = $props();
+		rows = Infinity,
+		chart = true
+	}: { sessions: HistorySession[]; scales?: Scale[]; linked?: boolean; sides?: number; rows?: number; chart?: boolean } = $props();
 
 	const recent = $derived(sessions.slice(0, 12).reverse());
 	const ticks = $derived(recent.map((s, i) => (i === 0 || i === recent.length - 1 ? shortDate(s.local_date) : '')));
@@ -30,7 +32,7 @@
 </script>
 
 <div class="flex flex-col gap-3">
-	{#if head && recent.length > 1}
+	{#if chart && head && recent.length > 1}
 		<section class="flex flex-col gap-4 rounded-[22px] bg-surface p-4 shadow-card-sm">
 			<div class="flex items-end justify-between gap-3">
 				<div>

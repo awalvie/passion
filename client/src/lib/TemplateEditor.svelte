@@ -5,6 +5,7 @@
 	import { kindOf, loadExercises, type Exercise } from '$lib/exercise';
 	import ExerciseList from '$lib/ExerciseList.svelte';
 	import FormError from '$lib/FormError.svelte';
+	import RecentRuns from '$lib/RecentRuns.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import RowActions from '$lib/RowActions.svelte';
 	import SectionEditor from '$lib/SectionEditor.svelte';
@@ -280,6 +281,7 @@
 	{#if shown && 'step' in shown}
 		{#key shown.step}
 			<StepEditor bind:step={shown.step} id="pane-step" skip={wide.current ? rowCounts : []} />
+			<RecentRuns exercise={shown.step.exercise} sides={shown.step.per_side ? 2 : 1} />
 		{/key}
 	{:else if shown && 'choice' in shown}
 		<div class="flex flex-col gap-3.5">
