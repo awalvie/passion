@@ -49,6 +49,11 @@
 	const inView = (date: string) => date >= data.from && date <= last;
 	const selected = $derived(inView(chosen) ? chosen : inView(data.today) ? data.today : data.from);
 	const picked = $derived(data.days.filter((d) => d.local_date === selected));
+	// A refused move leaves the session where it was, so its day shows why.
+	async function dragged(d: ScheduledDay, to: string) {
+		await day.move(d, to);
+		if (day.error.id === d.id) chosen = d.local_date;
+	}
 	const months = $derived.by(() => {
 		const a = formatDate(data.from, { month: 'long' });
 		const b = formatDate(last, { month: 'long' });
@@ -208,7 +213,7 @@
 						{/each}
 					</nav>
 				</div>
-				<PlanCalendar from={data.from} today={data.today} days={data.days} timeOff={data.timeOff} {colors} {selected} onselect={(date) => (chosen = date)} />
+				<PlanCalendar from={data.from} today={data.today} days={data.days} timeOff={data.timeOff} {colors} {selected} onselect={(date) => (chosen = date)} onmove={dragged} />
 			</section>
 			<DayPane date={selected} today={data.today} days={picked} live={!!data.live} {day} {cycleNames} timeOff={shownOff} onoff={openOff} />
 		</div>

@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { addDays, byDate, fullDate, shortDate, weekday, weekdayLetters } from './dates';
+	import { SessionDrag } from './drag.svelte';
 	import Icon from './Icon.svelte';
 	import { offOn, type ScheduledDay, type TimeOff } from './plan';
 
 	// Whole weeks from the Monday from. Each session is a chip in its own colour
 	// from xl, where a day is wide enough for a name, and a dot below that.
 	// Time off is hatched, with its name on its first day and on each Monday.
-	// A day outside range is faded and cannot be picked.
+	// A day outside range is faded and cannot be picked. Given onmove, a chip
+	// can be dragged to a day from today on.
 	let {
 		from,
 		count = 6,
@@ -16,7 +18,8 @@
 		timeOff,
 		colors,
 		selected,
-		onselect
+		onselect,
+		onmove
 	}: {
 		from: string;
 		count?: number;
@@ -27,10 +30,22 @@
 		colors: Map<string, string | null>;
 		selected: string;
 		onselect: (date: string) => void;
+		onmove?: (d: ScheduledDay, to: string) => void;
 	} = $props();
 
 	const weeks = $derived(Array.from({ length: count }, (_, w) => Array.from({ length: 7 }, (_, i) => addDays(from, w * 7 + i))));
 	const outside = (date: string) => !!range && (date < range.starts || date > range.ends);
+
+	const movable = (d: ScheduledDay) => !!onmove && (d.status === 'planned' || d.status === 'paused') && d.local_date >= today;
+	const drag = new SessionDrag({
+		movable,
+		target: (date) => date >= today && !outside(date),
+		ondrop: (d, to) => {
+			onselect(to);
+			onmove?.(d, to);
+		}
+	});
+	$effect(() => drag.listen());
 	const onDate = $derived(byDate(days, (d) => d.local_date));
 	const colorOf = (d: ScheduledDay) => colors.get(d.template) ?? 'var(--ink-3)';
 
@@ -77,13 +92,15 @@
 				{@const off = offOn(timeOff, date)}
 				<button
 					type="button"
+					data-date={date}
 					class="flex h-[52px] min-w-0 flex-col items-center justify-center gap-[5px] rounded-xl lg:h-16 xl:h-[92px] xl:items-stretch xl:justify-start xl:gap-1 xl:p-1
-						{date === selected ? 'bg-well' : w ? 'xl:rounded-none xl:shadow-[inset_0_1px_0_var(--line)]' : ''}
-						{off ? 'bg-[repeating-linear-gradient(135deg,var(--hatch)_0_6px,transparent_6px_12px)]' : ''}"
+						{date === drag.over ? 'bg-tint/40' : date === selected && !drag.lifted ? 'bg-well' : w ? 'xl:rounded-none xl:shadow-[inset_0_1px_0_var(--line)]' : ''}
+						{off ? 'bg-[repeating-linear-gradient(135deg,var(--hatch)_0_6px,transparent_6px_12px)]' : ''}
+						{drag.lifted && !drag.target(date) && date !== drag.lifted.local_date ? 'opacity-40' : ''}"
 					aria-pressed={date === selected}
 					aria-label="{fullDate(date)}{off ? `, ${off.name}` : ''}{list.length ? `: ${list.map((d) => d.template_name).join(', ')}` : ''}"
 					disabled={outside(date)}
-					onclick={() => onselect(date)}
+					onclick={() => !drag.justDropped && onselect(date)}
 				>
 					<span class="flex h-[26px] shrink-0 items-center gap-1.5 xl:h-7 xl:pl-1">
 						<span
@@ -112,7 +129,17 @@
 						{/each}
 					</span>
 					{#each list.length > 2 ? list.slice(0, 1) : list as d (d.id)}
-						<span class="hidden h-6 min-w-0 items-center gap-1 rounded-[7px] pr-1.5 pl-2 text-xs font-bold xl:flex {look(d)}" style={chipStyle(d)}>
+						<span
+							class="hidden h-6 min-w-0 items-center gap-1 rounded-[7px] pr-1.5 pl-2 text-xs font-bold xl:flex {look(d)}
+								{movable(d) ? 'cursor-grab select-none [-webkit-touch-callout:none]' : ''} {drag.lifted?.id === d.id ? 'opacity-30' : ''}"
+							style={chipStyle(d)}
+							role="presentation"
+							onpointerdown={(e) => drag.grab(e, d)}
+							onpointermove={(e) => drag.follow(e)}
+							onpointerup={() => drag.drop()}
+							onpointercancel={() => drag.cancel()}
+							oncontextmenu={(e) => movable(d) && e.preventDefault()}
+						>
 							<span class="min-w-0 flex-1 truncate text-left {d.status === 'paused' ? 'line-through' : ''}">{d.template_name}</span>
 							{#if d.repeat}<span class="text-ink-2"><Icon name="repeat" size="12px" stroke={2.6} /></span>{/if}
 							{#if d.status === 'done'}<span class="text-ink-2"><Icon name="check" size="12px" stroke={3} /></span>{/if}
@@ -167,3 +194,13 @@
 		<span class="h-6 w-7 rounded-[7px] bg-[repeating-linear-gradient(135deg,var(--hatch)_0_5px,transparent_5px_10px)] shadow-[inset_0_0_0_1px_var(--line)]"></span>Time off
 	</li>
 </ul>
+
+{#if drag.lifted}
+	<span
+		class="pointer-events-none fixed z-50 flex h-6 w-36 -translate-x-1/2 -translate-y-1/2 items-center rounded-[7px] pr-1.5 pl-2 text-xs font-bold shadow-card {look(drag.lifted)}"
+		style="{chipStyle(drag.lifted)}; left: {drag.at.x}px; top: {drag.at.y}px"
+		aria-hidden="true"
+	>
+		<span class="truncate">{drag.lifted.template_name}</span>
+	</span>
+{/if}
