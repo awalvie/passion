@@ -24,7 +24,9 @@
 				number: Number(date.slice(8)),
 				done: sessions.some((d) => d.status === 'done') || !!ran?.includes(date),
 				missed: sessions.some((d) => d.status === 'missed'),
-				planned: sessions.length > 0
+				// A day whose sessions are all paused looks free, and still opens.
+				planned: sessions.some((d) => d.status !== 'paused'),
+				any: sessions.length > 0
 			};
 		})
 	);
@@ -34,12 +36,12 @@
 	{#each days as d (d.date)}
 		<li class="w-11">
 			<svelte:element
-				this={selected && (d.date === today || d.planned || d.done) ? 'a' : 'div'}
-				href={!selected ? undefined : d.date === today ? '/' : d.planned || d.done ? `/?day=${d.date}` : undefined}
+				this={selected && (d.date === today || d.any || d.done) ? 'a' : 'div'}
+				href={!selected ? undefined : d.date === today ? '/' : d.any || d.done ? `/?day=${d.date}` : undefined}
 				class="flex flex-col items-center gap-1.5"
 				data-sveltekit-replacestate
 				data-sveltekit-noscroll
-				aria-label="{d.date}{d.done ? ', done' : d.missed ? ', missed' : d.planned ? ', planned' : ''}"
+				aria-label="{d.date}{d.done ? ', done' : d.missed ? ', missed' : d.planned ? ', planned' : d.any ? ', paused' : ''}"
 				aria-current={d.date === selected ? 'date' : undefined}
 			>
 				<span class="text-xs font-bold text-ink-2">{d.letter}</span>

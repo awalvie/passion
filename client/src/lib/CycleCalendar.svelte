@@ -39,7 +39,7 @@
 	// One key entry per session the cycle holds, in the order they first fall.
 	const key = $derived([...new Map(days.map((d) => [d.template, d])).values()]);
 
-	const words = { done: 'Done', started: 'Started', missed: 'Missed', planned: '', today: '' };
+	const words = { done: 'Done', started: 'Started', paused: 'Paused', missed: 'Missed', planned: '', today: '' };
 
 	// A hold on a planned session lifts it; it then follows the finger, and a
 	// drop on a day from today on moves it there. A move before the hold ends
@@ -56,7 +56,7 @@
 	// well after the drop; it must not choose that day.
 	let droppedAt = 0;
 
-	const movable = (d: ScheduledDay) => d.status === 'planned' && d.local_date >= today;
+	const movable = (d: ScheduledDay) => (d.status === 'planned' || d.status === 'paused') && d.local_date >= today;
 	const target = (date: string) => inCycle(date) && date >= today && date !== lifted?.local_date;
 
 	// Icons keep touch scrolling, so a swipe that starts on one still scrolls.
@@ -221,7 +221,7 @@
 						<span class="block truncate text-[15px] font-bold">{d.template_name}</span>
 						{#if d.cycle !== cycle.id}
 							<span class="block truncate text-xs font-semibold text-ink-2">
-								{d.cycle ? (cycleNames[d.cycle] ?? 'Another cycle') : 'One-off'}
+								{d.cycle ? (cycleNames[d.cycle] ?? 'Another cycle') : d.repeat ? 'Repeats' : 'One-off'}
 							</span>
 						{/if}
 					</span>

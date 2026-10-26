@@ -5,12 +5,14 @@ import { addDays } from './dates';
 export type ScheduledDay = {
 	id: string;
 	cycle: string | null;
+	repeat: string | null;
 	template: string;
 	local_date: string;
 	template_name: string;
 	template_icon: string | null;
 	run: string | null;
-	status: 'done' | 'started' | 'missed' | 'planned';
+	// paused: inside a time off that pauses.
+	status: 'done' | 'started' | 'paused' | 'missed' | 'planned';
 };
 
 // A goal, with where the person starts, where they end and how they get there.

@@ -17,7 +17,7 @@
 
 	const known = new Set<string>(sessionIcons.map(([name]) => name));
 
-	export type IconState = 'done' | 'started' | 'missed' | 'planned' | 'today';
+	export type IconState = 'done' | 'started' | 'paused' | 'missed' | 'planned' | 'today';
 
 	// iconState says how a scheduled session's icon looks: a planned session is
 	// lit on its own day.
@@ -40,6 +40,7 @@
 	const looks: Record<IconState, string> = {
 		done: 'bg-ink text-ground dark:bg-white/15 dark:text-ink',
 		started: 'bg-ink text-ground dark:bg-white/15 dark:text-ink',
+		paused: 'bg-well text-ink-3',
 		missed: 'text-ink-3 outline-[1.5px] -outline-offset-[1.5px] outline-dashed outline-ink-3',
 		planned: 'bg-surface text-ink shadow-card-sm',
 		today: 'bg-tint text-on-tint'

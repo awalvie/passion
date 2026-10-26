@@ -21,7 +21,7 @@ export async function load({ params, parent }) {
 			loadToday()
 				.then((today) =>
 					request<{ days: ScheduledDay[] }>('GET', `/api/v1/scheduled-sessions?from=${today}&to=${addDays(today, 27)}`).then(
-						({ days }) => ({ today, day: days.find((d) => d.template === params.id && d.status === 'planned') ?? null })
+						({ days }) => ({ today, day: days.find((d) => d.template === params.id && (d.status === 'planned' || d.status === 'paused')) ?? null })
 					)
 				)
 				.catch(() => null)

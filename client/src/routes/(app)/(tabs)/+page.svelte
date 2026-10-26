@@ -103,7 +103,7 @@
 	const cycle = $derived(data.cycles.find((c) => c.starts <= data.today && data.today <= c.ends));
 	const progress = $derived(cycle ? cycleWeek(cycle.starts, cycle.ends, data.today) : null);
 
-	const weekPlanned = $derived(data.week.length);
+	const weekPlanned = $derived(data.week.filter((d) => d.status !== 'paused').length);
 	const weekDone = $derived(data.week.filter((d) => d.status === 'done').length);
 	const missed = $derived(
 		data.week.filter((d) => d.status === 'missed').sort((a, b) => a.local_date.localeCompare(b.local_date))
@@ -135,7 +135,9 @@
 	);
 	// A session planned for today starts as that plan, so the day counts as done.
 	function startMine(template: string) {
-		const d = data.week.find((d) => d.local_date === data.today && d.status === 'planned' && d.template === template);
+		const d = data.week.find(
+			(d) => d.local_date === data.today && (d.status === 'planned' || d.status === 'paused') && d.template === template
+		);
 		start(d ? { scheduled: d.id } : { template });
 	}
 
@@ -175,7 +177,7 @@
 	// The week's dates, its cycles, and how it went or what is coming.
 	function weekNote(monday: string) {
 		const end = addDays(monday, 6);
-		const days = data.days.filter((d) => monday <= d.local_date && d.local_date <= end);
+		const days = data.days.filter((d) => monday <= d.local_date && d.local_date <= end && d.status !== 'paused');
 		const cycles = new Set(days.flatMap((d) => data.cycles.filter((c) => c.id === d.cycle).map((c) => c.name)));
 		const ran = finished.filter((r) => monday <= r.local_date && r.local_date <= end).length;
 		const count =
@@ -599,9 +601,9 @@
 											{@render dayCell(g.date, i === 0)}
 											<SessionIcon icon={d.template_icon} name={d.template_name} state={iconState(d, data.today)} size={36} />
 											<span class="min-w-0 flex-1">
-												<span class="block truncate text-[15px] font-bold {d.status === 'missed' ? 'text-ink-2' : ''}">{d.template_name}</span>
+												<span class="block truncate text-[15px] font-bold {d.status === 'missed' || d.status === 'paused' ? 'text-ink-2' : ''}">{d.template_name}</span>
 												<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
-													{d.status === 'missed' ? 'Missed' : sectionsOf(d.template)}
+													{d.status === 'missed' ? 'Missed' : d.status === 'paused' ? 'Paused' : sectionsOf(d.template)}
 												</span>
 											</span>
 											{#if usual}
@@ -661,7 +663,7 @@
 	<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
 		<p class="flex items-center gap-2 text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">
 			<i class="size-2 rounded-full" style:background={sessionsById.get(d.template)?.color ?? 'var(--ink-3)'}></i>
-			{other ? (d.status === 'missed' ? 'Missed' : 'Planned') : 'Today'}
+			{d.status === 'missed' ? 'Missed' : d.status === 'paused' ? 'Paused' : other ? 'Planned' : 'Today'}
 		</p>
 		<a href="/templates/{d.template}" class="mt-1 block truncate text-[28px] leading-tight font-extrabold tracking-tight">{d.template_name}</a>
 		{@render facts(f.usual, f.since)}

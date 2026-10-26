@@ -45,6 +45,7 @@ const summary = (id: string, over: Partial<RunSummary> = {}): RunSummary => ({
 const day = (id: string, local_date: string, over: Partial<ScheduledDay> = {}): ScheduledDay => ({
 	id,
 	cycle: null,
+	repeat: null,
 	template: `t-${id}`,
 	local_date,
 	template_name: id,

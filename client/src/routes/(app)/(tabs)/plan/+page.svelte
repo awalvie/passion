@@ -84,7 +84,9 @@
 	async function remove(d: ScheduledDay) {
 		const warning = d.cycle
 			? ' It comes back if you change the dates, the block or the days of its cycle.'
-			: '';
+			: d.repeat
+				? ' It comes back if you change the repeat.'
+				: '';
 		if (!confirm(`Take ${d.template_name} off this day?${warning}`)) return;
 		doing = `remove:${d.id}`;
 		rowError = { id: '', message: '' };
@@ -130,7 +132,7 @@
 	function rowNote(d: ScheduledDay) {
 		const n = templates.get(d.template)?.sections.length ?? 0;
 		const sections = n === 1 ? '1 section' : n ? `${n} sections` : '';
-		return [statuses[d.status], d.cycle ? '' : 'One-off', sections].filter(Boolean).join(' · ');
+		return [statuses[d.status], d.cycle ? '' : d.repeat ? 'Repeats' : 'One-off', sections].filter(Boolean).join(' · ');
 	}
 
 	function when(c: { starts: string; ends: string }) {
@@ -156,7 +158,7 @@
 		});
 	});
 
-	const statuses = { done: 'Done', started: 'Started', missed: 'Missed', planned: '' };
+	const statuses = { done: 'Done', started: 'Started', paused: 'Paused', missed: 'Missed', planned: '' };
 </script>
 
 <svelte:head><title>Plan</title></svelte:head>
@@ -218,18 +220,18 @@
 									</span>
 									<SessionIcon icon={d.template_icon} name={d.template_name} state={iconState(d, data.today)} size={36} />
 									<span class="min-w-0 flex-1">
-										<span class="block truncate text-[15px] font-bold {d.status === 'missed' ? 'text-ink-2' : ''}">{d.template_name}</span>
+										<span class="block truncate text-[15px] font-bold {d.status === 'missed' || d.status === 'paused' ? 'text-ink-2' : ''}">{d.template_name}</span>
 										{#if note}
 											<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{note}</span>
 										{/if}
 									</span>
 								{/snippet}
 								<li class="list-row">
-									{#if d.status === 'planned' || d.status === 'missed'}
+									{#if d.status === 'planned' || d.status === 'paused' || d.status === 'missed'}
 										<details class="group">
 											<summary class="flex min-h-[58px] cursor-pointer list-none items-center gap-3.5 py-2 [&::-webkit-details-marker]:hidden">
 												{@render row()}
-												{#if d.status === 'planned' && d.local_date === data.today && !data.live}
+												{#if (d.status === 'planned' || d.status === 'paused') && d.local_date === data.today && !data.live}
 													<button
 														type="button"
 														class="flex size-11 shrink-0 items-center justify-center rounded-full bg-tint text-on-tint shadow-tint disabled:opacity-50"
