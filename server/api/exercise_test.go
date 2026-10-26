@@ -133,6 +133,7 @@ func TestExerciseValidation(t *testing.T) {
 	}{
 		"no name":           {`{"name":"  ","kind":"open"}`, "name"},
 		"long name":         {`{"name":"` + strings.Repeat("a", 201) + `","kind":"open"}`, "name"},
+		"a NUL in the name": {`{"name":"a\u0000b","kind":"open"}`, "name"},
 		"no kind":           {`{"name":"Hang"}`, "kind"},
 		"unknown kind":      {`{"name":"Hang","kind":"session"}`, "kind"},
 		"negative sets":     {`{"name":"Hang","kind":"open","sets":-1}`, "sets"},

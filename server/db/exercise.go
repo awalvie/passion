@@ -168,6 +168,9 @@ func cleanName(name, key string, problems map[string]string) string {
 		problems[key] = "is required"
 	case utf8.RuneCountInString(name) > maxName:
 		problems[key] = "is too long"
+	// Postgres text cannot hold a NUL, so it would fail as a server error.
+	case strings.ContainsRune(name, 0):
+		problems[key] = "has a character that cannot be saved"
 	}
 	return name
 }
