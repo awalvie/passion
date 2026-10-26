@@ -32,7 +32,10 @@
 	function key(e: KeyboardEvent) {
 		if (e.key === 'Enter') {
 			e.preventDefault();
-			if (q.trim() && matches.length) pick(matches[0]);
+			if (q.trim() && matches.length) {
+				pick(matches[0]);
+				q = '';
+			}
 		}
 		if (e.key === 'Escape') q = '';
 	}
