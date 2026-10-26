@@ -12,6 +12,9 @@
 		ticks,
 		small = false,
 		now,
+		pick = null,
+		onpick,
+		names,
 		children
 	}: {
 		n: number;
@@ -23,6 +26,11 @@
 		// now is the slot holding today, -1 when the range is over. It is the
 		// newest slot unless given.
 		now?: number;
+		// pick is the slot picked, shaded behind its marks. With onpick, a tap
+		// on a slot picks it; names say what each slot is to a screen reader.
+		pick?: number | null;
+		onpick?: (i: number) => void;
+		names?: string[];
 		children: Snippet;
 	} = $props();
 
@@ -41,10 +49,20 @@
 	{/if}
 	<div class="relative min-w-0 flex-1">
 		<div class="relative" style:height="{height}px">
+			{#if pick !== null}
+				<span class="absolute -inset-y-1 rounded-lg bg-ink/6" style:left="{(pick / n) * 100}%" style:width="{100 / n}%"></span>
+			{/if}
 			{#each grid as g (g.at)}
 				<span class="absolute inset-x-0 border-t {g.at === 0 ? 'border-ink-3/35' : 'border-line'}" style:top={top(g.at)}></span>
 			{/each}
 			{@render children()}
+			{#if onpick}
+				<div class="absolute inset-0 z-10 flex">
+					{#each { length: n }, i (i)}
+						<button type="button" class="min-w-0 flex-1" aria-pressed={pick === i} aria-label={names?.[i]} onclick={() => onpick(i)}></button>
+					{/each}
+				</div>
+			{/if}
 		</div>
 		{#if ticks}
 			<div class="relative mt-2 h-3">

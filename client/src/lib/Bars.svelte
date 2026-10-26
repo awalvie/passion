@@ -11,8 +11,21 @@
 		ticks,
 		small = false,
 		now,
-		format = (n: number) => String(Math.round(n))
-	}: { parts: Part[]; height?: number; ticks?: string[]; small?: boolean; now?: number; format?: (n: number) => string } = $props();
+		format = (n: number) => String(Math.round(n)),
+		pick = null,
+		onpick,
+		names
+	}: {
+		parts: Part[];
+		height?: number;
+		ticks?: string[];
+		small?: boolean;
+		now?: number;
+		format?: (n: number) => string;
+		pick?: number | null;
+		onpick?: (i: number) => void;
+		names?: string[];
+	} = $props();
 
 	const totals = $derived(parts[0].values.map((_, i) => parts.reduce((s, p) => s + p.values[i], 0)));
 	const at = $derived(now ?? totals.length - 1);
@@ -34,7 +47,7 @@
 	const gap = $derived(small ? 1.5 : totals.length > 16 ? 2 : 4);
 </script>
 
-<Chart n={totals.length} {height} {grid} {ticks} {small} now={at}>
+<Chart n={totals.length} {height} {grid} {ticks} {small} now={at} {pick} {onpick} {names}>
 	<div class="absolute inset-0 flex items-end" style:gap="{gap}px" style:padding-inline="{gap / 2}px">
 		{#each totals as total, i (i)}
 			<span class="relative flex h-full min-w-0 flex-1 flex-col justify-end">

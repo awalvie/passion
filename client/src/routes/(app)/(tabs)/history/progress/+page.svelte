@@ -37,9 +37,28 @@
 	const href = (view: string, range: string, filter = data.filter) => `?view=${view}&range=${range}${filterQuery(filter)}`;
 	const round = (h: number) => Math.round(h * 10) / 10;
 	const pct = (v: number | null) => (v === null ? '–' : `${v}%`);
-	const ticks = $derived(data.buckets.map((b) => b.tick));
 	// A week still to come counts for nothing in an average.
 	const passed = $derived(data.now === -1 ? data.buckets.length : data.now + 1);
+
+	// A tap on any chart picks its week, or month, for every card. It lasts
+	// while the range does.
+	let chosen = $state<{ key: string; i: number } | null>(null);
+	const picked = $derived(chosen?.key === data.span.key && chosen.i < passed ? chosen.i : null);
+	function choose(i: number | null) {
+		if (i !== null && i >= passed) return;
+		chosen = i === null || i === picked ? null : { key: data.span.key, i };
+	}
+	const names = $derived(
+		data.buckets.map((b) => (data.per === 'month' ? formatDate(b.from, { month: 'long', year: 'numeric' }) : `Week of ${shortDate(b.from)}`))
+	);
+	const ticks = $derived(data.buckets.map((b, i) => (i === picked ? (data.per === 'month' ? b.tick : shortDate(b.from)) : b.tick)));
+	const now = $derived(picked ?? data.now);
+	const when = $derived(
+		picked === null ? '' : formatDate(data.buckets[picked].from, data.per === 'month' ? { month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short' })
+	);
+	const inPick = <T extends { local_date: string }>(xs: T[]) =>
+		picked === null ? xs : xs.filter((x) => data.buckets[picked].from <= x.local_date && x.local_date <= data.buckets[picked].to);
+	const charts = $derived({ pick: picked, onpick: choose, names, ticks, now });
 	const boulderFill = 'bg-chart';
 	const routeFill = 'bg-chart/50';
 	const line = (points: (number | null)[]) => points.flatMap((v, i) => (v === null ? [] : [{ i, v, best: true }]));
@@ -81,7 +100,7 @@
 	// Training time by session, most first, so the mix of work shows.
 	const bySession = $derived.by(() => {
 		const m = new Map<string, { n: number; h: number }>();
-		for (const r of data.runs) {
+		for (const r of inPick(data.runs)) {
 			const e = m.get(r.name) ?? { n: 0, h: 0 };
 			m.set(r.name, { n: e.n + 1, h: e.h + (r.elapsed_seconds ?? 0) / 3600 });
 		}
@@ -95,15 +114,15 @@
 	// Where the climbing was, most first.
 	const mix = $derived.by(() => {
 		const m = new Map<string, number>();
-		for (const c of shown) m.set(mixOf(c), (m.get(mixOf(c)) ?? 0) + 1);
+		for (const c of inPick(shown)) m.set(mixOf(c), (m.get(mixOf(c)) ?? 0) + 1);
 		return [...m].sort((a, b) => b[1] - a[1]);
 	});
 
 	// Boulders and routes apart, as their grades are on different scales.
 	const disciplines = $derived(
 		[
-			{ label: 'Boulders', climbs: shown.filter(isBoulder) },
-			{ label: 'Routes', climbs: shown.filter((c) => !isBoulder(c)) }
+			{ label: 'Boulders', climbs: inPick(shown).filter(isBoulder) },
+			{ label: 'Routes', climbs: inPick(shown).filter((c) => !isBoulder(c)) }
 		].flatMap((d) => {
 			const scale = gradeScale(d.climbs, data.scales);
 			if (!scale) return [];
@@ -163,9 +182,9 @@
 
 <svelte:head><title>Progress</title></svelte:head>
 
-{#snippet stat(label: string, value: string | number)}
+{#snippet stat(label: string, value: string | number, at = '')}
 	<div class="flex flex-col gap-0.5">
-		<dt class="text-xs font-semibold text-ink-2">{label}</dt>
+		<dt class="text-xs font-semibold text-ink-2">{label}{#if at}{' · '}<span class="text-ink">{at}</span>{/if}</dt>
 		<dd class="digits text-[26px] leading-tight">{value}</dd>
 	</div>
 {/snippet}
@@ -226,6 +245,31 @@
 			<span class="truncate">Custom</span>
 		</button>
 	</nav>
+	{#if picked !== null}
+		<!-- Under the nav bar, so the week stays named while its cards scroll by. -->
+		<div class="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-20 -my-1.5 bg-ground py-1.5">
+			<div class="flex w-fit max-w-full items-center rounded-full bg-ink px-0.5 text-ground">
+				<button
+					type="button"
+					class="flex size-11 shrink-0 items-center justify-center rounded-full disabled:opacity-40"
+					aria-label="Previous {data.per}"
+					disabled={picked === 0}
+					onclick={() => choose(picked! - 1)}><Icon name="chevron-left" size="1.25rem" stroke={2.4} /></button
+				>
+				<span class="truncate px-1.5 text-[15px] font-bold" aria-live="polite">{names[picked]}</span>
+				<button
+					type="button"
+					class="flex size-11 shrink-0 items-center justify-center rounded-full disabled:opacity-40"
+					aria-label="Next {data.per}"
+					disabled={picked === passed - 1}
+					onclick={() => choose(picked! + 1)}><Icon name="chevron-right" size="1.25rem" stroke={2.4} /></button
+				>
+				<button type="button" class="flex size-11 shrink-0 items-center justify-center rounded-full" aria-label="Show the whole range" onclick={() => choose(null)}
+					><Icon name="x" size="1.25rem" stroke={2.4} /></button
+				>
+			</div>
+		</div>
+	{/if}
 	{#if tiles.length}
 		<dl class="grid auto-cols-fr grid-flow-col gap-2" aria-label="Last 4 weeks, against the 4 before">
 			{#each tiles as t (t.label)}{@render tile(t.label, t.t, t.unit)}{/each}
@@ -248,11 +292,11 @@
 	{#if data.view === 'time'}
 		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
 			<dl class="grid grid-cols-3 gap-3">
-				{@render stat('Hours', round(totalHours))}
+				{@render stat('Hours', round(picked === null ? totalHours : time[picked]), when)}
 				{@render stat(`A ${data.per}`, round(totalHours / passed))}
-				{@render stat('Sessions', data.runs.length)}
+				{@render stat('Sessions', inPick(data.runs).length)}
 			</dl>
-			<Bars parts={[{ values: time, cls: 'bg-chart' }]} format={(h) => `${round(h)}h`} {ticks} now={data.now} />
+			<Bars parts={[{ values: time, cls: 'bg-chart' }]} format={(h) => `${round(h)}h`} {...charts} />
 		</section>
 		{#if bySession.length}
 			<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-2 shadow-card">
@@ -282,17 +326,16 @@
 	{:else if data.view === 'climbs'}
 		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
 			<dl class="grid grid-cols-3 gap-3">
-				{@render stat('Climbs', shown.length)}
+				{@render stat('Climbs', inPick(shown).length, when)}
 				{@render stat(`A ${data.per}`, round(shown.length / passed))}
-				{@render stat('Tries per send', goesPerSend(shown) ?? '–')}
+				{@render stat('Tries per send', goesPerSend(inPick(shown)) ?? '–')}
 			</dl>
 			<Bars
 				parts={[
 					{ values: climbs.map((c) => c.boulders), cls: boulderFill },
 					{ values: climbs.map((c) => c.routes), cls: routeFill }
 				]}
-				{ticks}
-				now={data.now}
+				{...charts}
 			/>
 			<div class="flex gap-4 text-xs font-semibold text-ink-2">
 				{#if shown.some(isBoulder)}{@render key(boulderFill, 'Boulders')}{/if}
@@ -300,12 +343,12 @@
 			</div>
 		</section>
 		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-			<dl>{@render stat('Send rate', pct(sendRate(shown)))}</dl>
-			<Dots n={data.buckets.length} marks={line(sendRates)} label={(v) => `${v}%`} zero {ticks} now={data.now} />
+			<dl>{@render stat('Send rate', pct(sendRate(inPick(shown))), when)}</dl>
+			<Dots n={data.buckets.length} marks={line(sendRates)} label={(v) => `${v}%`} zero {...charts} />
 		</section>
 		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-			<dl>{@render stat('Flash rate', pct(flashRate(shown)))}</dl>
-			<Dots n={data.buckets.length} marks={line(flashRates)} label={(v) => `${v}%`} zero {ticks} now={data.now} />
+			<dl>{@render stat('Flash rate', pct(flashRate(inPick(shown))), when)}</dl>
+			<Dots n={data.buckets.length} marks={line(flashRates)} label={(v) => `${v}%`} zero {...charts} />
 		</section>
 		<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-3 shadow-card">
 			<h2 class="mb-2 text-[15px] font-bold">Where</h2>
@@ -324,7 +367,7 @@
 	{:else}
 		{#each disciplines as d (d.label)}
 			<section class="flex flex-col gap-3 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-				<dl>{@render stat(`${d.label} sent`, d.sent)}</dl>
+				<dl>{@render stat(`${d.label} sent`, d.sent, when)}</dl>
 				{#if d.pyramid.length}
 					<Pyramid rows={d.pyramid} />
 					<div class="flex gap-4 text-xs font-semibold text-ink-2">
