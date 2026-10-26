@@ -24,7 +24,7 @@
 </script>
 
 <div class="flex flex-col pb-3">
-	<div class="flex min-h-16 items-center gap-2 {selected === choice ? '-mx-2 rounded-2xl pl-2 outline-2 -outline-offset-2 outline-ink' : ''}">
+	<div class="flex min-h-16 items-center gap-2 {selected === choice ? '-mx-2 rounded-2xl bg-well pl-2 outline-2 -outline-offset-2 outline-ink' : ''}">
 		<button type="button" class="min-w-0 flex-1 py-3 text-left" aria-pressed={selected === choice} onclick={() => onselect({ choice })}>
 			<span class="block truncate text-[15px] font-bold">{choice.name || 'Untitled choice'}</span>
 			<span class="block truncate text-xs font-semibold text-ink-2">{choiceMeta(choice) || plural(choice.options.length, 'option')}</span>

@@ -35,7 +35,7 @@
 	}
 </script>
 
-<div class="flex min-h-16 items-center gap-2 {selected ? '-mx-2 rounded-2xl pl-2 outline-2 -outline-offset-2 outline-ink' : ''}">
+<div class="flex min-h-16 items-center gap-2 {selected ? '-mx-2 rounded-2xl bg-well pl-2 outline-2 -outline-offset-2 outline-ink' : ''}">
 	<button type="button" class="min-w-0 flex-1 py-3 text-left" aria-pressed={selected} onclick={onselect} onkeydown={key}>
 		<span class="block truncate text-[15px] font-bold">{step.name}</span>
 		<span class="block truncate text-xs font-semibold text-ink-2">{stepMeta(step)}</span>
@@ -48,7 +48,7 @@
 					type="number"
 					min="0"
 					step="1"
-					class="input digits h-11 px-1 text-center {c === 'set_rest_seconds' ? 'w-16' : 'w-12'}"
+					class="input digits h-11 px-1 text-center {c === 'set_rest_seconds' ? 'w-16' : 'w-12'} {selected ? 'bg-surface' : ''}"
 					aria-label="{countLabels[c]} for {step.name}"
 					bind:value={step[c]}
 					onchange={() => (step[c] = whole(step[c]))}
