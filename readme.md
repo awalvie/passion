@@ -17,8 +17,8 @@ Plan your training in cycles.
 
 <table>
   <tr>
-    <td align="center"><img src="docs/screenshots/phone-cycle.png" alt="A six-week cycle on a calendar" width="200"><br>A cycle</td>
-    <td align="center"><img src="docs/screenshots/phone-today.png" alt="Today with this week and the next session" width="200"><br>Today</td>
+    <td align="center"><img src="docs/screenshots/phone-cycle.png" alt="A six-week cycle on a calendar" width="360"><br>A cycle</td>
+    <td align="center"><img src="docs/screenshots/phone-today.png" alt="Today with this week and the next session" width="360"><br>Today</td>
   </tr>
 </table>
 
@@ -28,10 +28,12 @@ Run a session: hangs, sets and reps, climbs.
 
 <table>
   <tr>
-    <td align="center"><img src="docs/screenshots/phone-session.png" alt="A session with its sections" width="200"><br>The session</td>
-    <td align="center"><img src="docs/screenshots/phone-sets.png" alt="Sets with last time's reps and weight" width="200"><br>Sets</td>
-    <td align="center"><img src="docs/screenshots/phone-timer.png" alt="A hang timer counting down" width="200"><br>Hang timer</td>
-    <td align="center"><img src="docs/screenshots/phone-climbs.png" alt="Logging a climb" width="200"><br>Climbs</td>
+    <td align="center"><img src="docs/screenshots/phone-session.png" alt="A session with its sections" width="360"><br>The session</td>
+    <td align="center"><img src="docs/screenshots/phone-sets.png" alt="Sets with last time's reps and weight" width="360"><br>Sets</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/phone-timer.png" alt="A hang timer counting down" width="360"><br>Hang timer</td>
+    <td align="center"><img src="docs/screenshots/phone-climbs.png" alt="Logging a climb" width="360"><br>Climbs</td>
   </tr>
 </table>
 
@@ -41,10 +43,12 @@ See your hours, climbs and grades over time.
 
 <table>
   <tr>
-    <td align="center"><img src="docs/screenshots/phone-history.png" alt="History with time, climbs and hardest send" width="200"><br>History</td>
-    <td align="center"><img src="docs/screenshots/phone-past.png" alt="A past session with its session journal and sets" width="200"><br>A past session</td>
-    <td align="center"><img src="docs/screenshots/phone-progress.png" alt="Progress for climbs" width="200"><br>Progress</td>
-    <td align="center"><img src="docs/screenshots/phone-exercise.png" alt="The history of weighted pull-ups" width="200"><br>One exercise</td>
+    <td align="center"><img src="docs/screenshots/phone-history.png" alt="History with time, climbs and hardest send" width="360"><br>History</td>
+    <td align="center"><img src="docs/screenshots/phone-past.png" alt="A past session with its session journal and sets" width="360"><br>A past session</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/phone-progress.png" alt="Progress for climbs" width="360"><br>Progress</td>
+    <td align="center"><img src="docs/screenshots/phone-exercise.png" alt="The history of weighted pull-ups" width="360"><br>One exercise</td>
   </tr>
 </table>
 
@@ -54,8 +58,8 @@ Keep a training journal.
 
 <table>
   <tr>
-    <td align="center"><img src="docs/screenshots/phone-journal.png" alt="The Journal with two pinned notes" width="200"><br>Journal</td>
-    <td align="center"><img src="docs/screenshots/phone-pinned.png" alt="Pinned notes at the start of a session" width="200"><br>Pinned at the start of a session</td>
+    <td align="center"><img src="docs/screenshots/phone-journal.png" alt="The Journal with two pinned notes" width="360"><br>Journal</td>
+    <td align="center"><img src="docs/screenshots/phone-pinned.png" alt="Pinned notes at the start of a session" width="360"><br>Pinned notes</td>
   </tr>
 </table>
 
@@ -65,8 +69,8 @@ Use the exercises and sessions that come with the app, or build your own.
 
 <table>
   <tr>
-    <td align="center"><img src="docs/screenshots/phone-library.png" alt="The library of sessions" width="200"><br>Library</td>
-    <td align="center"><img src="docs/screenshots/phone-template.png" alt="The sections of a session" width="200"><br>A session's sections</td>
+    <td align="center"><img src="docs/screenshots/phone-library.png" alt="The library of sessions" width="360"><br>Library</td>
+    <td align="center"><img src="docs/screenshots/phone-template.png" alt="The sections of a session" width="360"><br>A session's sections</td>
   </tr>
 </table>
 
