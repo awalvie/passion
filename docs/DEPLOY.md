@@ -26,7 +26,7 @@ docker compose up -d
 ```
 
 The image is `ghcr.io/awalvie/passion`, for amd64 and arm64. Each release has its own tag,
-for example `v3.0.0`. `latest` is the newest release.
+for example `v0.1.0`. `latest` is the newest release.
 
 ## Binary
 

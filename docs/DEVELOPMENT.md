@@ -43,8 +43,8 @@ a strong reason.
 
 ## Release
 
-Push a tag such as `v3.0.0`. The release workflow builds the binaries and the image with
-goreleaser, and publishes them. A tag such as `v3.0.0-rc1` makes a pre-release.
+Push a tag such as `v0.1.0`. The release workflow builds the binaries and the image with
+goreleaser, and publishes them. A tag such as `v0.2.0-rc1` makes a pre-release.
 
 `.github/workflows/deploy.yml` deploys the maintainer's server. Its top lists what it needs.
 

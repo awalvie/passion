@@ -36,7 +36,7 @@ dockers_v2:
       org.opencontainers.image.source: https://github.com/awalvie/passion
 
 release:
-  # A tag such as v3.0.0-rc1 is a pre-release, and gets no latest image either.
+  # A tag such as v0.2.0-rc1 is a pre-release, and gets no latest image either.
   prerelease: auto
 
 changelog:
