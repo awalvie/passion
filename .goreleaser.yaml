@@ -1,0 +1,43 @@
+version: 2
+
+builds:
+  - main: ./server/cmd/passion
+    binary: passion
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w
+
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - readme.md
+      - LICENSE
+      - passion.example.yaml
+      - deploy/passion.service
+
+checksum:
+  name_template: checksums.txt
+
+dockers_v2:
+  - images:
+      - ghcr.io/awalvie/passion
+    tags:
+      - "{{ .Tag }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    dockerfile: deploy/release.Dockerfile
+    labels:
+      # Links the package on ghcr.io to the repo.
+      org.opencontainers.image.source: https://github.com/awalvie/passion
+
+release:
+  # A tag such as v3.0.0-rc1 is a pre-release, and gets no latest image either.
+  prerelease: auto
+
+changelog:
+  use: github

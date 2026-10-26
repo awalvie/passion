@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: cachix/install-nix-action@v31
+
+      # The binary embeds the client, so it has to exist before goreleaser
+      # builds. The flake has node and pnpm; goreleaser runs outside it.
+      - name: Build the client
+        run: nix develop -c make client
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      # The default docker driver cannot push one tag for two platforms.
+      - name: Set up a multi-platform builder
+        run: docker buildx create --name goreleaser --use
+
+      - name: Log in to ghcr.io
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

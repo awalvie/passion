@@ -35,11 +35,18 @@ server/catalog/   loads the catalog files at start
 server/cmd/       passion, seed, catalogid and catalogcheck
 client/           the SvelteKit app
 catalog/          the exercises and sessions that come with the app
-deploy/           the compose file that the deploy workflow uses
+deploy/           the systemd unit, the release Dockerfile, and the maintainer's compose file
 ```
 
 The server has four dependencies: pgx, goose, x/crypto and yaml. Do not add a fifth without
 a strong reason.
+
+## Release
+
+Push a tag such as `v3.0.0`. The release workflow builds the binaries and the image with
+goreleaser, and publishes them. A tag such as `v3.0.0-rc1` makes a pre-release.
+
+`.github/workflows/deploy.yml` deploys the maintainer's server. Its top lists what it needs.
 
 ## The data
 

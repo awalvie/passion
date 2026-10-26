@@ -35,4 +35,7 @@ result
 # own package.
 /server/web/dist/*
 !/server/web/dist/.gitkeep
+
+# goreleaser's output
+/dist/
 .claude/agent-memory/
