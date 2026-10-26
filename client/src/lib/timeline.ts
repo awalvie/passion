@@ -36,15 +36,17 @@ export function repSeconds(s: TimedStep, rep: number): number {
 
 // timedRows are the rows of the blocks done, after the rows already logged,
 // which stay as they are. A row holds the hangs its block ran: a hang skipped
-// before 1 s is no rep, and a ladder logs how long each hang was held.
+// before 1 s is no rep. A ladder, or a block with a hang cut short, logs how
+// long each hang was held.
 export function timedRows<T>(s: TimedStep, phases: Phase[], done: number[], logged: T[], weight_kg: number | null) {
 	const built = done.slice(logged.length).map((n, i) => {
 		const block = logged.length + i;
 		const held = phases
 			.filter((p) => p.block === block && p.kind === 'hang')
 			.slice(0, n)
-			.filter((p) => p.ms >= 1000);
-		if (s.ladder?.length) return { reps: held.length, seconds: null, rep_seconds: held.map((p) => Math.floor(p.ms / 1000)), weight_kg };
+			.filter((p) => p.ms >= 1000)
+			.map((p) => Math.floor(p.ms / 1000));
+		if (s.ladder?.length || held.some((t) => t !== s.rep_seconds)) return { reps: held.length, seconds: null, rep_seconds: held, weight_kg };
 		return { reps: held.length, seconds: s.rep_seconds, rep_seconds: null, weight_kg };
 	});
 	return [...logged, ...built];

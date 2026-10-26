@@ -64,6 +64,15 @@ test('a ladder hang skipped early logs the time it was held', () => {
 	expect(timedRows(ladder, p, [3], [], null)[0].rep_seconds).toStrictEqual([3, 2, 9]);
 });
 
+// Phase 1 is the first hang, 7 s, skipped after 2 s.
+test('a hang skipped early logs the time it was held, and the others their full time', () => {
+	expect(timedRows(hang, timeline(hang, { 1: -5000 }), [3], [], null)[0]).toMatchObject({
+		reps: 3,
+		seconds: null,
+		rep_seconds: [2, 7, 7]
+	});
+});
+
 test('a hang skipped before 1 s is no rep', () => {
 	expect(timedRows(ladder, timeline(ladder, { 3: -6000 }), [3], [], null)[0]).toMatchObject({ reps: 2, rep_seconds: [3, 9] });
 	expect(timedRows(hang, timeline(hang, { 3: -7000 }), [3], [], null)[0]).toMatchObject({ reps: 2, seconds: 7 });
