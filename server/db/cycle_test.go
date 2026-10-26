@@ -244,6 +244,32 @@ func TestPutCycleNewBlockFromToday(t *testing.T) {
 	}
 }
 
+// A begun cycle keeps its start when the same write also changes the block
+// and moves the start past today. The new block would count from today, before
+// that start, which the table refuses.
+func TestPutCycleKeepsABegunStartMovedLaterWithANewBlock(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	hang := insertSessionTemplate(t, pool, ada, "Hang")
+	var today time.Time
+	if err := pool.QueryRow(ctx, `SELECT (now() AT TIME ZONE timezone)::date FROM account WHERE id = $1`, ada).Scan(&today); err != nil {
+		t.Fatal(err)
+	}
+
+	f := cycleFields(t, 4, db.CycleDay{Day: 1, Template: hang})
+	f.Starts, f.Ends = today.AddDate(0, 0, -1), today.AddDate(0, 0, 8)
+	if _, _, err := db.PutCycle(ctx, pool, ada, y1, f); err != nil {
+		t.Fatal(err)
+	}
+
+	moved := f
+	moved.Starts, moved.BlockDays = today.AddDate(0, 0, 1), 3
+	if _, _, err := db.PutCycle(ctx, pool, ada, y1, moved); !errors.Is(err, db.ErrStartsLocked) {
+		t.Fatalf("got %v, want the start kept", err)
+	}
+}
+
 func TestPutCycleRefuses(t *testing.T) {
 	ctx := context.Background()
 	pool := dbtest.Pool(t)
