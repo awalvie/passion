@@ -177,7 +177,10 @@ func toAccountResponse(a db.Account) accountResponse {
 func validateSignUp(req signUpRequest) map[string]string {
 	fields := map[string]string{}
 
-	if _, err := mail.ParseAddress(strings.TrimSpace(req.Email)); err != nil {
+	// ParseAddress also takes "Ada <ada@example.com>", which would store the name
+	// with the address.
+	email := strings.TrimSpace(req.Email)
+	if addr, err := mail.ParseAddress(email); err != nil || addr.Address != email {
 		fields["email"] = "is not an email address"
 	}
 

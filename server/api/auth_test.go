@@ -115,9 +115,13 @@ func TestSignUpValidation(t *testing.T) {
 		body  string
 		field string
 	}{
-		"no email":       {`{"email":"","password":"correct horse","display_name":"A","timezone":"UTC"}`, "email"},
-		"not an email":   {`{"email":"nope","password":"correct horse","display_name":"A","timezone":"UTC"}`, "email"},
-		"short password": {`{"email":"a@b.co","password":"short","display_name":"A","timezone":"UTC"}`, "password"},
+		"no email":     {`{"email":"","password":"correct horse","display_name":"A","timezone":"UTC"}`, "email"},
+		"not an email": {`{"email":"nope","password":"correct horse","display_name":"A","timezone":"UTC"}`, "email"},
+		// mail.ParseAddress takes both forms, and the account would keep the
+		// whole string as its address, beside a second account for a@b.co.
+		"an address with a name":     {`{"email":"Ada <a@b.co>","password":"correct horse","display_name":"A","timezone":"UTC"}`, "email"},
+		"an address in angle quotes": {`{"email":"<a@b.co>","password":"correct horse","display_name":"A","timezone":"UTC"}`, "email"},
+		"short password":             {`{"email":"a@b.co","password":"short","display_name":"A","timezone":"UTC"}`, "password"},
 		"long password": {`{"email":"a@b.co","password":"` + strings.Repeat("a", 129) +
 			`","display_name":"A","timezone":"UTC"}`, "password"},
 		"no name":      {`{"email":"a@b.co","password":"correct horse","display_name":"  ","timezone":"UTC"}`, "display_name"},
