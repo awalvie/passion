@@ -68,7 +68,8 @@
 			}
 			if (!editing) await request<Run>('POST', `/api/v1/runs/${r.id}/finish`);
 			leaving = true;
-			await goto(`/history/${r.id}`);
+			// Back from the saved run must not open the journal again.
+			await goto(`/history/${r.id}`, { replaceState: true });
 			openRun.forget();
 		} catch (e) {
 			error = describe(e, (f) => f);
