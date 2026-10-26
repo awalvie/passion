@@ -43,13 +43,15 @@
 
 	// A hold on a planned session lifts it; it then follows the finger, and a
 	// drop on a day from today on moves it there. A move before the hold ends
-	// is a scroll, so the hold gives up.
+	// is a scroll, so the hold gives up. A mouse cannot scroll by dragging, so
+	// it lifts the session as soon as it moves.
 	let lifted = $state<ScheduledDay | null>(null);
 	let at = $state({ x: 0, y: 0 });
 	let over = $state('');
 	let error = $state('');
 	let hold: ReturnType<typeof setTimeout> | undefined;
 	let start = { x: 0, y: 0 };
+	let pressed: { d: ScheduledDay; el: Element; id: number; mouse: boolean } | null = null;
 	// The click that ends a drag lands on the day it started from, sometimes
 	// well after the drop; it must not choose that day.
 	let droppedAt = 0;
@@ -67,24 +69,31 @@
 
 	function grab(e: PointerEvent, d: ScheduledDay) {
 		if (e.button > 0 || !movable(d)) return;
-		const el = e.currentTarget as Element;
-		const id = e.pointerId;
+		pressed = { d, el: e.currentTarget as Element, id: e.pointerId, mouse: e.pointerType === 'mouse' };
 		start = { x: e.clientX, y: e.clientY };
 		at = start;
 		clearTimeout(hold);
-		hold = setTimeout(() => {
-			lifted = d;
-			over = '';
-			error = '';
-			el.setPointerCapture(id);
-			navigator.vibrate?.(10);
-		}, 300);
+		// A mouse that leaves the icon before it moves far enough must still
+		// let go here.
+		if (pressed.mouse) pressed.el.setPointerCapture(pressed.id);
+		else hold = setTimeout(lift, 300);
+	}
+
+	function lift() {
+		if (!pressed) return;
+		lifted = pressed.d;
+		over = '';
+		error = '';
+		pressed.el.setPointerCapture(pressed.id);
+		navigator.vibrate?.(10);
 	}
 
 	function follow(e: PointerEvent) {
 		if (!lifted) {
-			if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 8) clearTimeout(hold);
-			return;
+			const moved = Math.hypot(e.clientX - start.x, e.clientY - start.y);
+			if (pressed?.mouse && moved > 4) lift();
+			else if (moved > 8) clearTimeout(hold);
+			if (!lifted) return;
 		}
 		at = { x: e.clientX, y: e.clientY };
 		const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>('[data-date]');
@@ -94,6 +103,7 @@
 
 	async function drop() {
 		clearTimeout(hold);
+		pressed = null;
 		const d = lifted;
 		const to = over;
 		lifted = null;
@@ -110,6 +120,7 @@
 
 	function cancel() {
 		clearTimeout(hold);
+		pressed = null;
 		lifted = null;
 		over = '';
 	}
