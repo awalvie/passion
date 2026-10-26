@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { notice } from '$lib/notice.svelte';
+	import AddSession from '$lib/AddSession.svelte';
 	import Segmented from '$lib/Segmented.svelte';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
@@ -26,33 +26,9 @@
 	const labels: Record<string, string> = { local_date: 'That day', template: 'That session' };
 
 	let adding = $state(false);
-	let template = $state('');
-	let date = $state('');
-	// What is waiting: 'add', or a row's move or remove.
+	const openAdd = () => (adding = true);
+	// What is waiting: a row's move or remove.
 	let doing = $state<string | null>(null);
-	let error = $state('');
-
-	function openAdd() {
-		adding = true;
-		template = data.templates[0]?.id ?? '';
-		date = data.today;
-		error = '';
-	}
-
-	async function add() {
-		doing = 'add';
-		error = '';
-		try {
-			await request('POST', '/api/v1/scheduled-sessions', { template, local_date: date });
-			await invalidateAll();
-			adding = false;
-			notice.text = 'Session added';
-		} catch (e) {
-			error = describe(e, (f) => labels[f] ?? f);
-		} finally {
-			doing = null;
-		}
-	}
 
 	let rowError = $state({ id: '', message: '' });
 	let starting = $state(false);
@@ -447,35 +423,9 @@
 	{/if}
 </div>
 
-<Sheet bind:open={adding} title="Add a session">
-	<form
-		class="flex flex-col gap-3.5"
-		onsubmit={(e) => {
-			e.preventDefault();
-			add();
-		}}
-	>
-		<div class="flex flex-col gap-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
-			<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
-				Session
-				<select class="input h-12 px-4" bind:value={template} required>
-					{#each data.templates as t (t.id)}
-						<option value={t.id}>{t.name}</option>
-					{/each}
-				</select>
-			</label>
-			<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
-				Day
-				<DateField bind:value={date} label="Day" />
-			</label>
-		</div>
-		<FormError message={error} />
-		<div class="grid grid-cols-2 items-center gap-2">
-			<Button variant="secondary" onclick={() => (adding = false)}>Cancel</Button>
-			<Button type="submit" disabled={doing !== null}>{doing === 'add' ? 'Adding…' : 'Add'}</Button>
-		</div>
-	</form>
-</Sheet>
+{#if !data.offline}
+	<AddSession bind:open={adding} templates={data.templates} days={data.days} today={data.today} day={calendarView ? selected : data.today} />
+{/if}
 
 <Sheet bind:open={moveOpen} title="Move {moving?.template_name ?? ''}">
 	{#if moving}
