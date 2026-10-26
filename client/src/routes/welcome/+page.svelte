@@ -6,13 +6,21 @@
 	import Topo from '$lib/Topo.svelte';
 	import { topTopo } from '$lib/topo';
 
+	// The same setting as the theme on Profile, so the app opens in the theme picked here.
+	let dark = $state(document.documentElement.getAttribute('data-theme') === 'dark');
+	function toggleTheme() {
+		dark = !dark;
+		localStorage.setItem('passion-theme', dark ? 'dark' : 'light');
+		document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+	}
+
 	const repo = 'https://github.com/awalvie/passion';
 	const links = [
 		{ label: 'Source code', href: repo },
 		{ label: 'Run it yourself', href: `${repo}/blob/master/docs/DEPLOY.md` }
 	];
 
-	const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+	const theme = $derived(dark ? 'dark' : 'light');
 	const cards = [
 		{ title: 'Plan', text: 'Write your own sessions or start from the built-in ones. Pick the days once and they repeat for up to a year.', shot: 'cycle', alt: 'A cycle calendar for October and November' },
 		{ title: 'Progress', text: 'Your hours, climbs and grades over time, and the history of each exercise.', shot: 'progress', alt: 'Progress for climbs: climbs a week, send rate and flash rate' },
@@ -55,7 +63,17 @@
 			<span class="flex items-center gap-2.5 text-[28px] font-extrabold tracking-[-0.03em] [&>svg]:h-11! [&>svg]:w-auto!">
 				{@html logo}Passion
 			</span>
-			<div class="w-24"><Button variant="secondary" href="/login">Log in</Button></div>
+			<div class="flex items-center gap-2">
+				<button
+					type="button"
+					onclick={toggleTheme}
+					aria-label={dark ? 'Light theme' : 'Dark theme'}
+					class="grid size-11 place-items-center rounded-full bg-surface shadow-card-sm"
+				>
+					<Icon name={dark ? 'sun' : 'moon'} size="1.25rem" />
+				</button>
+				<div class="w-24"><Button variant="secondary" href="/login">Log in</Button></div>
+			</div>
 		</header>
 
 		<main>

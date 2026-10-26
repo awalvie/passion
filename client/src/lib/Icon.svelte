@@ -100,6 +100,10 @@
 		],
 		'chevron-left': [['path', { d: 'm15 18-6-6 6-6' }]],
 		'chevron-right': [['path', { d: 'm9 18 6-6-6-6' }]],
+		sun: [
+			['circle', { cx: '12', cy: '12', r: '4' }],
+			['path', { d: 'M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41' }]
+		],
 		// Filled, unlike lucide's, as play buttons are drawn.
 		play: [['path', { d: 'M8 5.5v13l10.5-6.5z', fill: 'currentColor', stroke: 'none' }]],
 		repeat: [
