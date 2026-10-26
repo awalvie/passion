@@ -151,7 +151,7 @@
 
 	function copySection(from: Section, key: string, after: Section | undefined) {
 		const at = after ? draft.sections.indexOf(after) + 1 : draft.sections.length;
-		draft.sections.splice(at, 0, structuredClone($state.snapshot(from)));
+		draft.sections.splice(at, 0, $state.snapshot(from));
 		const added = draft.sections[at];
 		addTo ??= added;
 		copied.push(key);
