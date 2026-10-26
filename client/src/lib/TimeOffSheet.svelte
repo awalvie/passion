@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import { untrack } from 'svelte';
 	import { describe, request } from './api';
 	import Button from './Button.svelte';
 	import Checkbox from './Checkbox.svelte';
@@ -41,7 +42,10 @@
 	let error = $state('');
 
 	$effect(() => {
-		if (!open) return;
+		if (open) untrack(reset);
+	});
+
+	function reset() {
 		kind = editing?.kind ?? 'trip';
 		name = editing?.name ?? '';
 		starts = editing?.starts ?? day;
@@ -50,7 +54,7 @@
 		pauses = editing?.pauses ?? true;
 		next = 'starts';
 		error = '';
-	});
+	}
 
 	function pick(date: string) {
 		if (noEnd || next === 'starts' || date < starts) {

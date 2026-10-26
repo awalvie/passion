@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import { untrack } from 'svelte';
 	import { describe, request, RequestFailed } from './api';
 	import Button from './Button.svelte';
 	import DateField from './DateField.svelte';
@@ -43,9 +44,13 @@
 	let adding = $state(false);
 	let error = $state('');
 
-	// Each opening starts over on the day the plan shows.
+	// Each opening starts over on the day the plan shows. A reload while it is
+	// open, after a day was added, leaves the form as it is.
 	$effect(() => {
-		if (!open) return;
+		if (open) untrack(reset);
+	});
+
+	function reset() {
 		const first = day < today ? today : day;
 		template = templates[0]?.id ?? '';
 		picked = [first];
@@ -58,7 +63,7 @@
 		until = addDays(first, 27);
 		times = 10;
 		error = '';
-	});
+	}
 
 	const chosen = $derived(templates.find((t) => t.id === template));
 	const held = $derived(new Set(days.filter((d) => d.template === template).map((d) => d.local_date)));
