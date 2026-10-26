@@ -77,6 +77,9 @@
 		{ label: '1 year', key: monthsBack(12, data.today) },
 		{ label: data.today.slice(0, 4), key: `${data.today.slice(0, 4)}-01-01:${data.today}` }
 	]);
+	// A laptop has room for three more ranges on the row.
+	const wider = $derived(quick.slice(2, 5));
+	const more = $derived(custom && !wider.some((q) => q.key === data.span.key));
 	// A span across a new year names both years, or a year back reads as no time.
 	const spanDate = (date: string) =>
 		data.span.from.slice(0, 4) === data.span.to.slice(0, 4) ? shortDate(date) : formatDate(date, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -139,17 +142,17 @@
 		})
 	);
 
-	// The tiles of the last four weeks that go with this view.
+	// The tiles of the last four weeks. A phone shows those of its view; a
+	// laptop shows them all.
 	const tiles = $derived.by(() => {
 		const t = data.trends;
 		if (!t) return [];
-		const all = {
-			hours: { label: 'Hours a week', t: t.hours, unit: 'h' },
-			climbs: { label: 'Climbs a week', t: t.climbs, unit: '' },
-			sent: { label: 'Send rate', t: t.sent, unit: '%' },
-			flash: { label: 'Flash rate', t: t.flash, unit: '%' }
-		};
-		return data.view === 'time' ? [all.hours] : data.view === 'climbs' ? [all.climbs, all.sent, all.flash] : [];
+		return [
+			{ label: 'Hours a week', t: t.hours, unit: 'h', view: 'time' },
+			{ label: 'Climbs a week', t: t.climbs, unit: '', view: 'climbs' },
+			{ label: 'Send rate', t: t.sent, unit: '%', view: 'climbs' },
+			{ label: 'Flash rate', t: t.flash, unit: '%', view: 'climbs' }
+		];
 	});
 
 	// change is how far a trend moved, signed. A rate moves in points.
@@ -189,9 +192,10 @@
 	</div>
 {/snippet}
 
-{#snippet tile(label: string, t: Trend, unit: string)}
+{#snippet tile(label: string, t: Trend, unit: string, cls: string)}
 	{@const c = change(t, unit)}
-	<div class="flex min-w-0 flex-col gap-0.5 rounded-[20px] bg-surface px-3 py-2.5 shadow-card">
+	{@const vs = t.weeks.filter((v) => v !== null)}
+	<div class="flex min-w-0 flex-col gap-0.5 rounded-[20px] bg-surface px-3 py-2.5 shadow-card lg:px-3.5 lg:py-3 {cls}">
 		<dt class="truncate text-xs font-semibold text-ink-2">{label}</dt>
 		<dd class="flex items-baseline justify-between gap-1.5">
 			<span class="digits text-[22px] leading-tight">{t.now === null ? '–' : `${t.now}${unit}`}</span>
@@ -199,6 +203,21 @@
 				<span class="text-xs font-bold whitespace-nowrap text-ink-2">{c}</span>
 			{/if}
 		</dd>
+		<!-- On a laptop, the eight weeks behind the figure. -->
+		{#if vs.length > 1}
+			{@const lo = Math.min(...vs)}
+			{@const hi = Math.max(...vs)}
+			<svg class="mt-1.5 hidden h-7 w-full lg:block" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true">
+				<polyline
+					points={t.weeks.flatMap((v, i) => (v === null ? [] : [`${(i / (t.weeks.length - 1)) * 100},${25 - ((v - lo) / (hi - lo || 1)) * 22}`])).join(' ')}
+					class="fill-none stroke-chart"
+					stroke-width="2"
+					stroke-linejoin="round"
+					stroke-linecap="round"
+					vector-effect="non-scaling-stroke"
+				/>
+			</svg>
+		{/if}
 	</div>
 {/snippet}
 
@@ -208,186 +227,213 @@
 
 <NavBar back={{ href: '/history', label: 'History' }} title="Progress" />
 
-<div class="flex flex-col gap-3.5 px-4 pt-2 pb-6">
-	<Segmented
-		label="What to show"
-		replace
-		items={[
-			{ label: 'Time', on: data.view === 'time', href: href('time', data.span.key) },
-			{ label: 'Climbs', on: data.view === 'climbs', href: href('climbs', data.span.key) },
-			{ label: 'Grade', on: data.view === 'grade', href: href('grade', data.span.key) }
-		]}
-	/>
-	<nav class="flex gap-1.5" aria-label="Range">
-		{#each suggested as s (s.key)}
-			<a
-				href={href(data.view, s.key)}
-				data-sveltekit-replacestate
-				data-sveltekit-noscroll
-				aria-current={data.span.key === s.key ? 'true' : undefined}
-				class="flex h-11 shrink-0 items-center rounded-full px-4 text-[15px] font-bold whitespace-nowrap {data.span.key === s.key
+{#snippet pill(label: string, key: string, cls = '')}
+	<a
+		href={href(data.view, key)}
+		data-sveltekit-replacestate
+		data-sveltekit-noscroll
+		aria-current={data.span.key === key ? 'true' : undefined}
+		class="h-11 shrink-0 items-center rounded-full px-4 text-[15px] font-bold whitespace-nowrap {cls} {data.span.key === key
+			? 'bg-ink text-ground'
+			: 'bg-surface text-ink shadow-card-sm'}"
+	>
+		{label}
+	</a>
+{/snippet}
+
+{#snippet dates()}
+	<p class="text-xs font-semibold text-ink-2">
+		{data.span.cycle && custom ? `${data.span.cycle.name} · ` : ''}{data.span.from === data.span.to ? spanDate(data.span.from) : `${spanDate(data.span.from)} – ${spanDate(data.span.to)}`}
+	</p>
+{/snippet}
+
+<!-- A phone shows one view at a time. A laptop shows them all, in two columns. -->
+<div class="flex flex-col gap-3.5 px-4 pt-2 pb-6 lg:mx-auto lg:max-w-[1104px] lg:px-10">
+	<div class="lg:hidden">
+		<Segmented
+			label="What to show"
+			replace
+			items={[
+				{ label: 'Time', on: data.view === 'time', href: href('time', data.span.key) },
+				{ label: 'Climbs', on: data.view === 'climbs', href: href('climbs', data.span.key) },
+				{ label: 'Grade', on: data.view === 'grade', href: href('grade', data.span.key) }
+			]}
+		/>
+	</div>
+	<!-- On a laptop the ranges and the picked week share one bar under the nav bar.
+	     On a phone the box drops out, so the week bar sticks for the whole page. -->
+	<div class="contents lg:sticky lg:flex lg:top-[calc(3.5rem+env(safe-area-inset-top))] lg:z-20 lg:-my-2 lg:flex-row lg:items-center lg:justify-between lg:bg-ground lg:py-2">
+		<nav class="flex gap-1.5" aria-label="Range">
+			{#each suggested as s (s.key)}{@render pill(s.label, s.key, 'flex')}{/each}
+			{#each wider as q (q.key)}{@render pill(q.label, q.key, 'hidden lg:flex')}{/each}
+			<button
+				type="button"
+				class="flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-[15px] font-bold lg:flex-none {custom
 					? 'bg-ink text-ground'
-					: 'bg-surface text-ink shadow-card-sm'}"
+					: 'bg-surface text-ink shadow-card-sm'} {more ? '' : 'lg:bg-surface lg:text-ink lg:shadow-card-sm'}"
+				aria-current={custom ? 'true' : undefined}
+				aria-haspopup="dialog"
+				onclick={openPicker}
 			>
-				{s.label}
-			</a>
-		{/each}
-		<button
-			type="button"
-			class="flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-[15px] font-bold {custom
-				? 'bg-ink text-ground'
-				: 'bg-surface text-ink shadow-card-sm'}"
-			aria-current={custom ? 'true' : undefined}
-			aria-haspopup="dialog"
-			onclick={openPicker}
-		>
-			<Icon name="calendar" size="1rem" />
-			<span class="truncate">Custom</span>
-		</button>
-	</nav>
-	{#if picked !== null}
-		<!-- Under the nav bar, so the week stays named while its cards scroll by. -->
-		<div class="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-20 -my-1.5 bg-ground py-1.5">
-			<div class="flex w-fit max-w-full items-center rounded-full bg-ink px-0.5 text-ground">
-				<button
-					type="button"
-					class="flex size-11 shrink-0 items-center justify-center rounded-full disabled:opacity-40"
-					aria-label="Previous {data.per}"
-					disabled={picked === 0}
-					onclick={() => choose(picked! - 1)}><Icon name="chevron-left" size="1.25rem" stroke={2.4} /></button
-				>
-				<span class="truncate px-1.5 text-[15px] font-bold" aria-live="polite">{names[picked]}</span>
-				<button
-					type="button"
-					class="flex size-11 shrink-0 items-center justify-center rounded-full disabled:opacity-40"
-					aria-label="Next {data.per}"
-					disabled={picked === passed - 1}
-					onclick={() => choose(picked! + 1)}><Icon name="chevron-right" size="1.25rem" stroke={2.4} /></button
-				>
-				<button type="button" class="flex size-11 shrink-0 items-center justify-center rounded-full" aria-label="Show the whole range" onclick={() => choose(null)}
-					><Icon name="x" size="1.25rem" stroke={2.4} /></button
-				>
+				<Icon name="calendar" size="1rem" />
+				<span class="truncate">Custom</span>
+			</button>
+		</nav>
+		{#if picked !== null}
+			<!-- Under the nav bar, so the week stays named while its cards scroll by. -->
+			<div class="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-20 -my-1.5 bg-ground py-1.5 lg:static lg:my-0 lg:py-0">
+				<div class="flex w-fit max-w-full items-center rounded-full bg-ink px-0.5 text-ground">
+					<button
+						type="button"
+						class="flex size-11 shrink-0 items-center justify-center rounded-full disabled:opacity-40"
+						aria-label="Previous {data.per}"
+						disabled={picked === 0}
+						onclick={() => choose(picked! - 1)}><Icon name="chevron-left" size="1.25rem" stroke={2.4} /></button
+					>
+					<span class="truncate px-1.5 text-[15px] font-bold" aria-live="polite">{names[picked]}</span>
+					<button
+						type="button"
+						class="flex size-11 shrink-0 items-center justify-center rounded-full disabled:opacity-40"
+						aria-label="Next {data.per}"
+						disabled={picked === passed - 1}
+						onclick={() => choose(picked! + 1)}><Icon name="chevron-right" size="1.25rem" stroke={2.4} /></button
+					>
+					<button type="button" class="flex size-11 shrink-0 items-center justify-center rounded-full" aria-label="Show the whole range" onclick={() => choose(null)}
+						><Icon name="x" size="1.25rem" stroke={2.4} /></button
+					>
+				</div>
 			</div>
-		</div>
-	{/if}
+		{/if}
+	</div>
 	{#if tiles.length}
-		<dl class="grid auto-cols-fr grid-flow-col gap-2" aria-label="Last 4 weeks, against the 4 before">
-			{#each tiles as t (t.label)}{@render tile(t.label, t.t, t.unit)}{/each}
+		<h2 class="mt-3 hidden px-1 text-xl font-bold tracking-tight lg:block">
+			Last 4 weeks <span class="text-[15px] font-semibold text-ink-2">against the 4 before</span>
+		</h2>
+		<dl class="grid auto-cols-fr grid-flow-col gap-2 lg:grid-flow-row lg:grid-cols-4 lg:gap-3.5 {data.view === 'grade' ? 'max-lg:hidden' : ''}" aria-label="Last 4 weeks, against the 4 before">
+			{#each tiles as t (t.label)}{@render tile(t.label, t.t, t.unit, t.view === data.view ? '' : 'max-lg:hidden')}{/each}
 		</dl>
 	{/if}
-	<div class="mt-1 flex flex-col px-1">
-		{#if data.view === 'time'}
+
+	<div class="flex-col gap-3.5 lg:mt-3 lg:flex {data.view === 'time' ? 'flex' : 'hidden'}">
+		<div class="mt-1 flex flex-col px-1">
 			<h2 class="text-xl font-bold tracking-tight">All sessions</h2>
-		{:else}
+			{@render dates()}
+		</div>
+		<div class="flex flex-col gap-3.5 lg:grid lg:grid-cols-6 lg:items-start">
+			<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-4">
+				<dl class="grid grid-cols-3 gap-3">
+					{@render stat('Hours', round(picked === null ? totalHours : time[picked]), when)}
+					{@render stat(`A ${data.per}`, round(totalHours / passed))}
+					{@render stat('Sessions', inPick(data.runs).length)}
+				</dl>
+				<Bars parts={[{ values: time, cls: 'bg-chart' }]} format={(h) => `${round(h)}h`} {...charts} />
+			</section>
+			{#if bySession.length}
+				<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-2 shadow-card lg:col-span-2">
+					<h2 class="mb-1 text-[15px] font-bold">By session</h2>
+					<ul>
+						{#each bySession as [name, s] (name)}
+							<li class="flex items-center gap-3 py-3 list-row">
+								<span class="min-w-0 flex-1 truncate text-[15px] font-bold">{name}</span>
+								<span class="text-xs font-semibold text-ink-2">{s.n}×</span>
+								<span class="w-12 text-right digits text-[15px]">{round(s.h)}h</span>
+							</li>
+						{/each}
+					</ul>
+				</section>
+			{/if}
+		</div>
+	</div>
+
+	<div class="flex-col gap-3.5 lg:mt-3 lg:flex {data.view === 'time' ? 'hidden' : 'flex'}">
+		<div class="mt-1 flex flex-col px-1">
 			<button type="button" class="-my-2 flex min-h-11 items-center gap-1 self-start text-left text-xl font-bold tracking-tight" aria-haspopup="dialog" onclick={openFilter}>
 				{filterName(data.filter)}
 				<Icon name="chevron-down" size="1.125rem" stroke={2.6} />
 			</button>
-		{/if}
-		<p class="text-xs font-semibold text-ink-2">
-			{data.span.cycle && custom ? `${data.span.cycle.name} · ` : ''}{data.span.from === data.span.to ? spanDate(data.span.from) : `${spanDate(data.span.from)} – ${spanDate(data.span.to)}`}
-		</p>
-	</div>
-
-	{#if data.view === 'time'}
-		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-			<dl class="grid grid-cols-3 gap-3">
-				{@render stat('Hours', round(picked === null ? totalHours : time[picked]), when)}
-				{@render stat(`A ${data.per}`, round(totalHours / passed))}
-				{@render stat('Sessions', inPick(data.runs).length)}
-			</dl>
-			<Bars parts={[{ values: time, cls: 'bg-chart' }]} format={(h) => `${round(h)}h`} {...charts} />
-		</section>
-		{#if bySession.length}
-			<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-2 shadow-card">
-				<h2 class="mb-1 text-[15px] font-bold">By session</h2>
-				<ul>
-					{#each bySession as [name, s] (name)}
-						<li class="flex items-center gap-3 py-3 list-row">
-							<span class="min-w-0 flex-1 truncate text-[15px] font-bold">{name}</span>
-							<span class="text-xs font-semibold text-ink-2">{s.n}×</span>
-							<span class="w-12 text-right digits text-[15px]">{round(s.h)}h</span>
-						</li>
-					{/each}
-				</ul>
-			</section>
-		{/if}
-	{:else if !shown.length}
-		<section class="flex flex-col items-start gap-1 rounded-3xl bg-surface p-5 shadow-card">
-			{#if filterQuery(data.filter) && data.climbs.length}
-				<p class="text-[15px] font-semibold text-ink-2">No climbs match in this range.</p>
-				<button type="button" class="-mb-3 flex min-h-11 items-center gap-0.5 text-[15px] font-bold text-ink" onclick={() => applyFilter({ discipline: [], setting: [], board: [] })}>
-					Show all climbs<Icon name="chevron-right" size="16px" />
-				</button>
-			{:else}
-				<p class="text-[15px] font-semibold text-ink-2">No climbs in this range.</p>
-			{/if}
-		</section>
-	{:else if data.view === 'climbs'}
-		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-			<dl class="grid grid-cols-3 gap-3">
-				{@render stat('Climbs', inPick(shown).length, when)}
-				{@render stat(`A ${data.per}`, round(shown.length / passed))}
-				{@render stat('Tries per send', goesPerSend(inPick(shown)) ?? '–')}
-			</dl>
-			<Bars
-				parts={[
-					{ values: climbs.map((c) => c.boulders), cls: boulderFill },
-					{ values: climbs.map((c) => c.routes), cls: routeFill }
-				]}
-				{...charts}
-			/>
-			<div class="flex gap-4 text-xs font-semibold text-ink-2">
-				{#if shown.some(isBoulder)}{@render key(boulderFill, 'Boulders')}{/if}
-				{#if shown.some((c) => !isBoulder(c))}{@render key(routeFill, 'Routes')}{/if}
-			</div>
-		</section>
-		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-			<dl>{@render stat('Send rate', pct(sendRate(inPick(shown))), when)}</dl>
-			<Dots n={data.buckets.length} marks={line(sendRates)} label={(v) => `${v}%`} zero {...charts} />
-		</section>
-		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-			<dl>{@render stat('Flash rate', pct(flashRate(inPick(shown))), when)}</dl>
-			<Dots n={data.buckets.length} marks={line(flashRates)} label={(v) => `${v}%`} zero {...charts} />
-		</section>
-		<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-3 shadow-card">
-			<h2 class="mb-2 text-[15px] font-bold">Where</h2>
-			<ul class="flex flex-col gap-3">
-				{#each mix as [where, n] (where)}
-					<li class="flex flex-col gap-1.5">
-						<span class="flex items-baseline justify-between gap-3 text-[15px] font-bold">
-							{where}
-							<span class="digits">{n}</span>
-						</span>
-						<span class="h-2 rounded-full bg-well"><span class="block h-full rounded-full bg-chart" style:width="{(n / mix[0][1]) * 100}%"></span></span>
-					</li>
-				{/each}
-			</ul>
-		</section>
-	{:else}
-		{#each disciplines as d (d.label)}
-			<section class="flex flex-col gap-3 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-				<dl>{@render stat(`${d.label} sent`, d.sent, when)}</dl>
-				{#if d.pyramid.length}
-					<Pyramid rows={d.pyramid} />
-					<div class="flex gap-4 text-xs font-semibold text-ink-2">
-						{@render key('bg-chart', 'Flash')}
-						{@render key('bg-chart/50', 'Sent after a try')}
-					</div>
-				{/if}
-				{#if d.elsewhere}
-					<p class="text-xs font-semibold text-ink-2">
-						{d.elsewhere}
-						{d.elsewhere === 1 ? 'climb' : 'climbs'} graded in another system not shown.
-					</p>
+			{@render dates()}
+		</div>
+		{#if !shown.length}
+			<section class="flex flex-col items-start gap-1 rounded-3xl bg-surface p-5 shadow-card">
+				{#if filterQuery(data.filter) && data.climbs.length}
+					<p class="text-[15px] font-semibold text-ink-2">No climbs match in this range.</p>
+					<button type="button" class="-mb-3 flex min-h-11 items-center gap-0.5 text-[15px] font-bold text-ink" onclick={() => applyFilter({ discipline: [], setting: [], board: [] })}>
+						Show all climbs<Icon name="chevron-right" size="16px" />
+					</button>
+				{:else}
+					<p class="text-[15px] font-semibold text-ink-2">No climbs in this range.</p>
 				{/if}
 			</section>
 		{:else}
-			<section class="rounded-3xl bg-surface p-5 shadow-card">
-				<p class="text-[15px] font-semibold text-ink-2">No graded climbs in this range.</p>
-			</section>
-		{/each}
-	{/if}
+			<!-- The phone's order is climbs, sent, flash, where. A laptop puts where beside climbs. -->
+			<div class="flex-col gap-3.5 lg:grid lg:grid-cols-6 lg:items-start {data.view === 'climbs' ? 'flex' : 'hidden'}">
+				<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-4 lg:row-start-1">
+					<dl class="grid grid-cols-3 gap-3">
+						{@render stat('Climbs', inPick(shown).length, when)}
+						{@render stat(`A ${data.per}`, round(shown.length / passed))}
+						{@render stat('Tries per send', goesPerSend(inPick(shown)) ?? '–')}
+					</dl>
+					<Bars
+						parts={[
+							{ values: climbs.map((c) => c.boulders), cls: boulderFill },
+							{ values: climbs.map((c) => c.routes), cls: routeFill }
+						]}
+						{...charts}
+					/>
+					<div class="flex gap-4 text-xs font-semibold text-ink-2">
+						{#if shown.some(isBoulder)}{@render key(boulderFill, 'Boulders')}{/if}
+						{#if shown.some((c) => !isBoulder(c))}{@render key(routeFill, 'Routes')}{/if}
+					</div>
+				</section>
+				<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-3">
+					<dl>{@render stat('Send rate', pct(sendRate(inPick(shown))), when)}</dl>
+					<Dots n={data.buckets.length} marks={line(sendRates)} label={(v) => `${v}%`} zero {...charts} />
+				</section>
+				<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-3">
+					<dl>{@render stat('Flash rate', pct(flashRate(inPick(shown))), when)}</dl>
+					<Dots n={data.buckets.length} marks={line(flashRates)} label={(v) => `${v}%`} zero {...charts} />
+				</section>
+				<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-3 shadow-card lg:col-span-2 lg:col-start-5 lg:row-start-1">
+					<h2 class="mb-2 text-[15px] font-bold">Where</h2>
+					<ul class="flex flex-col gap-3">
+						{#each mix as [where, n] (where)}
+							<li class="flex flex-col gap-1.5">
+								<span class="flex items-baseline justify-between gap-3 text-[15px] font-bold">
+									{where}
+									<span class="digits">{n}</span>
+								</span>
+								<span class="h-2 rounded-full bg-well"><span class="block h-full rounded-full bg-chart" style:width="{(n / mix[0][1]) * 100}%"></span></span>
+							</li>
+						{/each}
+					</ul>
+				</section>
+			</div>
+			<div class="flex-col gap-3.5 lg:grid lg:grid-cols-2 lg:items-start {data.view === 'grade' ? 'flex' : 'hidden'}">
+				{#each disciplines as d (d.label)}
+					<section class="flex flex-col gap-3 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
+						<dl>{@render stat(`${d.label} sent`, d.sent, when)}</dl>
+						{#if d.pyramid.length}
+							<Pyramid rows={d.pyramid} />
+							<div class="flex gap-4 text-xs font-semibold text-ink-2">
+								{@render key('bg-chart', 'Flash')}
+								{@render key('bg-chart/50', 'Sent after a try')}
+							</div>
+						{/if}
+						{#if d.elsewhere}
+							<p class="text-xs font-semibold text-ink-2">
+								{d.elsewhere}
+								{d.elsewhere === 1 ? 'climb' : 'climbs'} graded in another system not shown.
+							</p>
+						{/if}
+					</section>
+				{:else}
+					<section class="rounded-3xl bg-surface p-5 shadow-card">
+						<p class="text-[15px] font-semibold text-ink-2">No graded climbs in this range.</p>
+					</section>
+				{/each}
+			</div>
+		{/if}
+	</div>
 </div>
 
 <Sheet bind:open={picking} title="Range">
