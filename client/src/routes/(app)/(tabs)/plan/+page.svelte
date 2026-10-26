@@ -14,6 +14,7 @@
 	import PlanCalendar from '$lib/PlanCalendar.svelte';
 	import SessionIcon, { iconState } from '$lib/SessionIcon.svelte';
 	import type { ScheduledDay } from '$lib/plan';
+	import { ruleText } from '$lib/repeat';
 	import { startRun } from '$lib/runState.svelte';
 	import Sheet from '$lib/Sheet.svelte';
 
@@ -62,18 +63,27 @@
 		}
 	}
 
-	async function remove(d: ScheduledDay) {
-		const warning = d.cycle
-			? ' It comes back if you change the dates, the block or the days of its cycle.'
-			: d.repeat
-				? ' It comes back if you change the repeat.'
-				: '';
-		if (!confirm(`Take ${d.template_name} off this day?${warning}`)) return;
+	// A repeat's day asks whether its later days go too.
+	let ending = $state<ScheduledDay | null>(null);
+	let endOpen = $state(false);
+	const endingRepeat = $derived(data.repeats.find((r) => r.id === ending?.repeat));
+
+	async function remove(d: ScheduledDay, later = false) {
+		if (d.repeat && !endOpen) {
+			ending = d;
+			endOpen = true;
+			rowError = { id: '', message: '' };
+			return;
+		}
+		const warning = d.cycle ? ' It comes back if you change the dates, the block or the days of its cycle.' : '';
+		if (!d.repeat && !confirm(`Take ${d.template_name} off this day?${warning}`)) return;
 		doing = `remove:${d.id}`;
 		rowError = { id: '', message: '' };
 		try {
-			await request('DELETE', `/api/v1/scheduled-sessions/${d.id}`);
+			if (later) await request('POST', `/api/v1/repeats/${d.repeat}/end`, { from: d.local_date });
+			else await request('DELETE', `/api/v1/scheduled-sessions/${d.id}`);
 			await invalidateAll();
+			endOpen = false;
 		} catch (e) {
 			rowError = { id: d.id, message: describe(e, (f) => labels[f] ?? f) };
 		} finally {
@@ -280,7 +290,7 @@
 						<p class="py-4 text-[15px] font-semibold text-ink-2">Nothing planned</p>
 					{/if}
 				</div>
-				<FormError message={picked.some((d) => d.id === rowError.id) && !moveOpen ? rowError.message : ''} />
+				<FormError message={picked.some((d) => d.id === rowError.id) && !moveOpen && !endOpen ? rowError.message : ''} />
 			</section>
 		</div>
 	{:else if !cyclesView}
@@ -426,6 +436,22 @@
 {#if !data.offline}
 	<AddSession bind:open={adding} templates={data.templates} days={data.days} today={data.today} day={calendarView ? selected : data.today} />
 {/if}
+
+<Sheet bind:open={endOpen} title="Remove {ending?.template_name ?? ''}?">
+	{#if ending}
+		{@const d = ending}
+		<div class="flex flex-col gap-3.5">
+			{#if endingRepeat}
+				<p class="px-1 text-[15px] leading-normal font-medium text-ink-2">It repeats {ruleText(endingRepeat)}.</p>
+			{/if}
+			<FormError message={rowError.id === d.id ? rowError.message : ''} />
+			<div class="flex flex-col gap-2">
+				<Button variant="secondary" disabled={doing !== null} onclick={() => remove(d)}>Only {formatDate(d.local_date, { weekday: 'long' })}, {shortDate(d.local_date)}</Button>
+				<Button variant="danger" disabled={doing !== null} onclick={() => remove(d, true)}>This and later ones</Button>
+			</div>
+		</div>
+	{/if}
+</Sheet>
 
 <Sheet bind:open={moveOpen} title="Move {moving?.template_name ?? ''}">
 	{#if moving}
