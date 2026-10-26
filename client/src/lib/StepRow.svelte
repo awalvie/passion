@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { countLabels, kindOf, setByLadder } from './exercise';
 	import RowActions from './RowActions.svelte';
-	import { rowCounts, stepMeta, type Step } from './template';
+	import { rowCounts, stepMeta, whole, type Step } from './template';
 
 	// One exercise in a section or a choice. A tap opens it; Alt with an arrow
 	// moves it, as Move up and Move down in its menu do. From lg its sets, reps
@@ -51,6 +51,7 @@
 					class="input digits h-11 px-1 text-center {c === 'set_rest_seconds' ? 'w-16' : 'w-12'}"
 					aria-label="{countLabels[c]} for {step.name}"
 					bind:value={step[c]}
+					onchange={() => (step[c] = whole(step[c]))}
 				/>
 				{#if c === 'set_rest_seconds'}<span>s rest</span>{/if}
 			{/each}

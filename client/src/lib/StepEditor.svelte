@@ -2,7 +2,7 @@
 	import Checkbox from './Checkbox.svelte';
 	import DurationInput from '$lib/DurationInput.svelte';
 	import { allCounts, countLabels, kindOf, setByLadder, type Count } from '$lib/exercise';
-	import type { Step } from '$lib/template';
+	import { whole, type Step } from '$lib/template';
 
 	// The fields of one exercise in a session, but for those in skip, which
 	// its row shows.
@@ -21,7 +21,7 @@
 			{#each counts as c (c)}
 				<div>
 					<label class="block text-xs font-semibold text-ink-2" for="{id}-{c}">{countLabels[c]}</label>
-					<input id="{id}-{c}" type="number" min="0" step="1" class="mt-1.5 min-h-11 input py-2 text-center" bind:value={step[c]} />
+					<input id="{id}-{c}" type="number" min="0" step="1" class="mt-1.5 min-h-11 input py-2 text-center" bind:value={step[c]} onchange={() => (step[c] = whole(step[c]))} />
 				</div>
 			{/each}
 		</div>

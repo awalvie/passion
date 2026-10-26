@@ -67,6 +67,9 @@ export function toStep(e: Exercise): Step {
 	return { exercise: id, ...fields, tags: [...e.tags], media: e.media.map((m) => ({ ...m })) };
 }
 
+// The server takes whole numbers, and the builder does not stop a typed 2.5.
+export const whole = (n: number | null) => (n == null ? null : Math.round(n));
+
 export function moveEntry<T>(list: T[], i: number, by: number) {
 	[list[i], list[i + by]] = [list[i + by], list[i]];
 }
