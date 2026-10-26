@@ -54,7 +54,7 @@
 	// A ladder set reads 3/6/9 s, as its times already count the reps.
 	function work(s: LoggedSet) {
 		const ladder = s.rep_seconds?.length ? `${s.rep_seconds.join('/')} s` : null;
-		return [!ladder && s.reps !== null && `${s.reps} reps`, ladder ?? (s.seconds !== null && `${s.seconds} s`)]
+		return [!ladder && s.reps !== null && plural(s.reps, 'rep'), ladder ?? (s.seconds !== null && `${s.seconds} s`)]
 			.filter(Boolean)
 			.join(' × ');
 	}

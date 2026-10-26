@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest';
-import { formatDuration, formatMinutes, loadExercises } from './exercise';
+import { formatDuration, formatMinutes, loadExercises, summary } from './exercise';
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
@@ -8,6 +8,23 @@ test('formatDuration leaves out the parts that are zero', () => {
 	expect(formatDuration(45)).toBe('45s');
 	expect(formatDuration(3600)).toBe('1h');
 	expect(formatDuration(5430)).toBe('1h 30m 30s');
+});
+
+test('summary counts one set or one rep in the singular', () => {
+	const d = {
+		kind: 'reps_and_sets' as const,
+		per_side: false,
+		sets: null,
+		reps: null,
+		rep_seconds: null,
+		rep_rest_seconds: null,
+		set_rest_seconds: null,
+		prep_seconds: null,
+		duration_seconds: null
+	};
+	expect(summary({ ...d, sets: 1 })).toBe('1 set');
+	expect(summary({ ...d, reps: 1 })).toBe('1 rep');
+	expect(summary({ ...d, reps: 8 })).toBe('8 reps');
 });
 
 test('formatMinutes rounds to the nearest minute and never shows less than one', () => {

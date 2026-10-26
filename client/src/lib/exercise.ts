@@ -1,5 +1,6 @@
 import { request } from './api';
 import type { IconName } from './Icon.svelte';
+import { plural } from './text';
 
 // The shape of server/api/exercise.go's exerciseResponse.
 export type Exercise = {
@@ -184,8 +185,8 @@ export function summary(d: Pick<Exercise, 'kind' | 'per_side' | Count>): string 
 function countSummary(d: Pick<Exercise, 'kind' | Count>): string {
 	if (d.kind === 'open') return d.duration_seconds ? formatDuration(d.duration_seconds) : '';
 	if (d.sets && d.reps) return `${d.sets}×${d.reps}`;
-	if (d.sets) return `${d.sets} sets`;
-	if (d.reps) return `${d.reps} reps`;
+	if (d.sets) return plural(d.sets, 'set');
+	if (d.reps) return plural(d.reps, 'rep');
 	return '';
 }
 
