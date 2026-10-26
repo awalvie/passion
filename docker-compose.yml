@@ -1,0 +1,34 @@
+# Passion and its database. Put POSTGRES_PASSWORD in a .env file next to this
+# one, then run docker compose up -d. Passion is on http://localhost:8080.
+#
+# Use only letters and digits in the password: it goes into DATABASE_URL.
+
+services:
+  app:
+    image: ghcr.io/awalvie/passion:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://passion:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db/passion
+    ports:
+      - "8080:8080"
+
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: passion
+      POSTGRES_DB: passion
+      # Read only when the volume is first created.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "passion"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  db:
