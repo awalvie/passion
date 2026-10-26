@@ -13,10 +13,11 @@
 	import Menu from '$lib/Menu.svelte';
 	import PlanCalendar from '$lib/PlanCalendar.svelte';
 	import SessionIcon, { iconState } from '$lib/SessionIcon.svelte';
-	import type { ScheduledDay } from '$lib/plan';
+	import type { ScheduledDay, TimeOff } from '$lib/plan';
 	import { ruleText } from '$lib/repeat';
 	import { startRun } from '$lib/runState.svelte';
 	import Sheet from '$lib/Sheet.svelte';
+	import TimeOffSheet from '$lib/TimeOffSheet.svelte';
 
 	let { data } = $props();
 
@@ -28,6 +29,16 @@
 
 	let adding = $state(false);
 	const openAdd = () => (adding = true);
+	let offOpen = $state(false);
+	let editingOff = $state<TimeOff | null>(null);
+	function openOff(o: TimeOff | null) {
+		editingOff = o;
+		offOpen = true;
+	}
+	const offIcons = { trip: 'plane', injury: 'bandage', illness: 'heart-pulse', other: 'calendar' } as const;
+	const offKinds = { trip: 'Trip', injury: 'Injury', illness: 'Illness', other: 'Other' };
+	// The time off from the first week shown on.
+	const shownOff = $derived(data.timeOff.filter((o) => !o.ends || o.ends >= data.from));
 	// What is waiting: a row's move or remove.
 	let doing = $state<string | null>(null);
 
@@ -210,9 +221,18 @@
 						<Icon name="plus" size="1.25rem" /><span class="hidden text-[15px] font-bold lg:inline" aria-hidden="true">New cycle</span>
 					</a>
 				{:else}
-					<button type="button" class="mt-1 flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm lg:mt-0 lg:h-12 lg:w-auto lg:gap-2 lg:px-5 lg:shadow-card" aria-label="Add a session" onclick={openAdd}>
-						<Icon name="plus" size="1.25rem" /><span class="hidden text-[15px] font-bold lg:inline" aria-hidden="true">Add</span>
-					</button>
+					<div class="mt-1 lg:mt-0">
+						<Menu
+							label="Add"
+							look="bg-surface text-ink shadow-card-sm lg:h-12 lg:w-auto lg:gap-2 lg:px-5 lg:shadow-card"
+							items={[
+								{ label: 'A session', onclick: openAdd },
+								{ label: 'Time off', onclick: () => openOff(null) }
+							]}
+						>
+							<Icon name="plus" size="1.25rem" /><span class="hidden text-[15px] font-bold lg:inline" aria-hidden="true">Add</span>
+						</Menu>
+					</div>
 				{/if}
 			{/if}
 		</div>
@@ -241,7 +261,7 @@
 						{/each}
 					</nav>
 				</div>
-				<PlanCalendar from={data.from} today={data.today} days={data.days} {colors} {selected} onselect={(date) => (chosen = date)} />
+				<PlanCalendar from={data.from} today={data.today} days={data.days} timeOff={data.timeOff} {colors} {selected} onselect={(date) => (chosen = date)} />
 			</section>
 			<section class="flex flex-col gap-2" aria-live="polite">
 				<div class="flex h-11 items-center justify-between px-1">
@@ -291,6 +311,25 @@
 					{/if}
 				</div>
 				<FormError message={picked.some((d) => d.id === rowError.id) && !moveOpen && !endOpen ? rowError.message : ''} />
+				{#if shownOff.length}
+					<h2 class="flex h-11 items-center px-1 pt-2 text-[15px] font-bold">Time off</h2>
+					<ul class="rounded-3xl bg-surface px-4 py-0.5 shadow-card">
+						{#each shownOff as o (o.id)}
+							<li class="list-row">
+								<button type="button" class="flex min-h-16 w-full items-center gap-3 py-2 text-left" onclick={() => openOff(o)}>
+									<span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-well text-ink-2"><Icon name={offIcons[o.kind]} size="1.125rem" /></span>
+									<span class="min-w-0 flex-1">
+										<span class="block truncate text-[15px] font-bold">{o.name}</span>
+										<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
+											{offKinds[o.kind]} · {o.ends ? `${shortDate(o.starts)} – ${shortDate(o.ends)}` : `from ${shortDate(o.starts)}`}
+										</span>
+									</span>
+									<span class="shrink-0 text-ink-3"><Icon name="chevron-right" size="1rem" /></span>
+								</button>
+							</li>
+						{/each}
+					</ul>
+				{/if}
 			</section>
 		</div>
 	{:else if !cyclesView}
@@ -434,7 +473,8 @@
 </div>
 
 {#if !data.offline}
-	<AddSession bind:open={adding} templates={data.templates} days={data.days} today={data.today} day={calendarView ? selected : data.today} />
+	<AddSession bind:open={adding} templates={data.templates} days={data.days} timeOff={data.timeOff} today={data.today} day={calendarView ? selected : data.today} />
+	<TimeOffSheet bind:open={offOpen} editing={editingOff} today={data.today} day={calendarView ? selected : data.today} />
 {/if}
 
 <Sheet bind:open={endOpen} title="Remove {ending?.template_name ?? ''}?">

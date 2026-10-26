@@ -8,7 +8,7 @@
 	import FormError from './FormError.svelte';
 	import { newId } from './id';
 	import { notice } from './notice.svelte';
-	import type { ScheduledDay } from './plan';
+	import { offOn, type ScheduledDay, type TimeOff } from './plan';
 	import { fallsOn, nthDay, repeatDays, ruleText, weekdayNames, weekdayOf, type RepeatRule } from './repeat';
 	import Segmented from './Segmented.svelte';
 	import Select from './Select.svelte';
@@ -25,9 +25,10 @@
 		open = $bindable(false),
 		templates,
 		days,
+		timeOff,
 		today,
 		day
-	}: { open?: boolean; templates: SessionTemplate[]; days: ScheduledDay[]; today: string; day: string } = $props();
+	}: { open?: boolean; templates: SessionTemplate[]; days: ScheduledDay[]; timeOff: TimeOff[]; today: string; day: string } = $props();
 
 	let template = $state('');
 	let picked = $state<string[]>([]);
@@ -77,7 +78,10 @@
 	});
 	const falls = $derived(rule.unit === 'day' || rule.weekdays.length > 0);
 	const firstDay = $derived(falls ? nthDay(rule, 1) : null);
-	const count = $derived(rule.ends ? repeatDays(rule, starts, rule.ends).filter((d) => !held.has(d)).length : 0);
+	const ruleDays = $derived(rule.ends ? repeatDays(rule, starts, rule.ends).filter((d) => !held.has(d)) : []);
+	const count = $derived(ruleDays.length);
+	const paused = (dates: string[]) => dates.filter((d) => offOn(timeOff, d)?.pauses).length;
+	const pausedNote = (n: number) => (n === 1 ? ' 1 falls in time off and is paused.' : n ? ` ${n} fall in time off and are paused.` : '');
 
 	function pick(date: string) {
 		if (repeats) starts = date;
@@ -230,13 +234,21 @@
 			<div>
 				<div class="rounded-3xl bg-surface px-2.5 pt-1.5 pb-2.5 shadow-card">
 					{#key open}
-						<DayPicker start={starts || today} {today} color={chosen?.color ?? 'var(--ink)'} min={today} {mark} onpick={pick} />
+						<DayPicker
+							start={starts || today}
+							{today}
+							color={chosen?.color ?? 'var(--ink)'}
+							min={today}
+							{mark}
+							off={(date) => !!offOn(timeOff, date)}
+							onpick={pick}
+						/>
 					{/key}
 				</div>
 				<p class="mt-3 px-1 text-[15px] leading-normal font-medium text-ink-2">
 					{#if !repeats}
 						{#if sorted.length}
-							<b class="font-bold text-ink">{plural(sorted.length, 'day')}</b>: {sorted.map(dayDate).join(', ')}.
+							<b class="font-bold text-ink">{plural(sorted.length, 'day')}</b>: {sorted.map(dayDate).join(', ')}.{pausedNote(paused(sorted))}
 						{:else}
 							Pick the days on the calendar.
 						{/if}
@@ -245,7 +257,7 @@
 					{:else if !rule.ends}
 						<b class="font-bold text-ink">No end</b>, {ruleText(rule)} from {shortDate(starts)}.
 					{:else if count}
-						<b class="font-bold text-ink">{count === 1 ? 'Once' : `${count} times`}</b>, {ruleText(rule)} from {shortDate(starts)} to {shortDate(rule.ends)}.
+						<b class="font-bold text-ink">{count === 1 ? 'Once' : `${count} times`}</b>, {ruleText(rule)} from {shortDate(starts)} to {shortDate(rule.ends)}.{pausedNote(paused(ruleDays))}
 					{:else}
 						It does not fall on a free day before it ends.
 					{/if}

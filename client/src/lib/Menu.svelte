@@ -3,13 +3,16 @@
 </script>
 
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import Icon from './Icon.svelte';
 
+	// children, when given, draws the button in place of the three dots.
 	let {
 		items,
 		label = 'More',
-		look = 'bg-surface text-ink shadow-card-sm'
-	}: { items: MenuItem[]; label?: string; look?: string } = $props();
+		look = 'bg-surface text-ink shadow-card-sm',
+		children
+	}: { items: MenuItem[]; label?: string; look?: string; children?: Snippet } = $props();
 
 	let open = $state(false);
 	let up = $state(false);
@@ -50,7 +53,7 @@
 		aria-expanded={open}
 		onclick={toggle}
 	>
-		<Icon name="ellipsis" size="1.25rem" />
+		{#if children}{@render children()}{:else}<Icon name="ellipsis" size="1.25rem" />{/if}
 	</button>
 	{#if open}
 		<ul

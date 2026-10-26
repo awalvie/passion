@@ -1,14 +1,16 @@
 <script lang="ts">
 	import { addDays, byDate, formatDate, fullDate, weekdayLetters } from './dates';
 	import Icon from './Icon.svelte';
-	import type { ScheduledDay } from './plan';
+	import { offOn, type ScheduledDay, type TimeOff } from './plan';
 
 	// Six weeks from the Monday from. Each session is a chip in its own colour
 	// from xl, where a day is wide enough for a name, and a dot below that.
+	// Time off is hatched, with its name on its first day and on each Monday.
 	let {
 		from,
 		today,
 		days,
+		timeOff,
 		colors,
 		selected,
 		onselect
@@ -16,6 +18,7 @@
 		from: string;
 		today: string;
 		days: ScheduledDay[];
+		timeOff: TimeOff[];
 		colors: Map<string, string | null>;
 		selected: string;
 		onselect: (date: string) => void;
@@ -65,12 +68,14 @@
 		{#each weeks as dates, w (dates[0])}
 			{#each dates as date (date)}
 				{@const list = onDate.get(date) ?? []}
+				{@const off = offOn(timeOff, date)}
 				<button
 					type="button"
 					class="flex h-[52px] min-w-0 flex-col items-center justify-center gap-[5px] rounded-xl lg:h-16 xl:h-[92px] xl:items-stretch xl:justify-start xl:gap-1 xl:p-1
-						{date === selected ? 'bg-well' : w ? 'xl:rounded-none xl:shadow-[inset_0_1px_0_var(--line)]' : ''}"
+						{date === selected ? 'bg-well' : w ? 'xl:rounded-none xl:shadow-[inset_0_1px_0_var(--line)]' : ''}
+						{off ? 'bg-[repeating-linear-gradient(135deg,var(--hatch)_0_6px,transparent_6px_12px)]' : ''}"
 					aria-pressed={date === selected}
-					aria-label="{fullDate(date)}{list.length ? `: ${list.map((d) => d.template_name).join(', ')}` : ''}"
+					aria-label="{fullDate(date)}{off ? `, ${off.name}` : ''}{list.length ? `: ${list.map((d) => d.template_name).join(', ')}` : ''}"
 					onclick={() => onselect(date)}
 				>
 					<span class="flex h-[26px] shrink-0 items-center gap-1.5 xl:h-7 xl:pl-1">
@@ -83,6 +88,9 @@
 						>
 							{number(date)}
 						</span>
+						{#if off && (date === off.starts || date === dates[0])}
+							<span class="hidden min-w-0 truncate text-xs font-bold text-ink-2 xl:inline">{off.name}</span>
+						{/if}
 					</span>
 					<span class="flex h-[7px] gap-[3px] xl:hidden" aria-hidden="true">
 						{#each list.slice(0, 4) as d (d.id)}
@@ -145,5 +153,8 @@
 		<span class="flex h-6 w-7 items-center justify-center rounded-[7px] text-ink-2" style={chipStyle({ status: 'planned', template: '' } as ScheduledDay)}>
 			<Icon name="repeat" size="12px" stroke={2.6} />
 		</span>Repeats
+	</li>
+	<li class="flex items-center gap-1.5">
+		<span class="h-6 w-7 rounded-[7px] bg-[repeating-linear-gradient(135deg,var(--hatch)_0_5px,transparent_5px_10px)] shadow-[inset_0_0_0_1px_var(--line)]"></span>Time off
 	</li>
 </ul>

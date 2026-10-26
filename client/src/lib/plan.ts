@@ -31,6 +31,21 @@ export type Cycle = {
 	notes: string | null;
 };
 
+// The shape of server/api/time_off.go's timeOffResponse.
+export type TimeOff = {
+	id: string;
+	kind: 'trip' | 'injury' | 'illness' | 'other';
+	name: string;
+	starts: string;
+	// Null while the end is not known yet.
+	ends: string | null;
+	pauses: boolean;
+};
+
+export function offOn(timeOff: TimeOff[], date: string): TimeOff | undefined {
+	return timeOff.find((o) => date >= o.starts && (!o.ends || date <= o.ends));
+}
+
 // lastEnd is the latest end server/db/cycle.go's maxCycleDays allows. A date
 // field is empty while it is being typed in.
 export function lastEnd(starts: string): string | undefined {
