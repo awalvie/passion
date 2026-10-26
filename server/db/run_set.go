@@ -168,13 +168,14 @@ func (b RunBody) step(id string) *RunStep {
 
 // prune deletes from table, always a constant, what was logged for every step
 // the body no longer holds, now skips, or now points at another exercise.
-// Swapping an exercise makes a new step. A kind keeps only steps of that kind.
-func prune(ctx context.Context, tx pgx.Tx, table, kind, runID string, body RunBody) error {
+// Swapping an exercise makes a new step. climbs says whether the table holds
+// climbs, which only a climbing step keeps; sets go with any other kind.
+func prune(ctx context.Context, tx pgx.Tx, table string, climbs bool, runID string, body RunBody) error {
 	var steps, exercises []string
 	for _, s := range body.Sections {
 		for _, item := range s.Items {
 			st := item.Step
-			if st != nil && (st.Status == nil || *st.Status != StepSkipped) && (kind == "" || st.Kind == kind) {
+			if st != nil && (st.Status == nil || *st.Status != StepSkipped) && (st.Kind == "climbing") == climbs {
 				steps = append(steps, st.ID)
 				exercises = append(exercises, st.Exercise)
 			}

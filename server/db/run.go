@@ -317,10 +317,10 @@ func UpdateRun(ctx context.Context, pool *pgxpool.Pool, owner, id string, f RunF
 	if err != nil {
 		return Run{}, err
 	}
-	if err := prune(ctx, tx, "run_set", "", run.ID, run.Body); err != nil {
+	if err := prune(ctx, tx, "run_set", false, run.ID, run.Body); err != nil {
 		return Run{}, err
 	}
-	if err := prune(ctx, tx, "climb", "climbing", run.ID, run.Body); err != nil {
+	if err := prune(ctx, tx, "climb", true, run.ID, run.Body); err != nil {
 		return Run{}, err
 	}
 	if run.Sets, err = runSets(ctx, tx, run.ID, nil); err != nil {

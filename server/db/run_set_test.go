@@ -161,6 +161,28 @@ func TestUpdateRunDropsSetsOfStepsItNoLongerKeeps(t *testing.T) {
 	}
 }
 
+// A step that now logs climbs keeps no sets, as a step that now logs sets
+// keeps no climbs. ReplaceSets refuses a climbing step, so nothing could clear
+// the sets left behind.
+func TestUpdateRunDropsSetsOfAStepThatNowLogsClimbs(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	run := runWith(t, ctx, pool, ada, runStep(s1, e1, "Hang"))
+	if _, err := db.ReplaceSets(ctx, pool, ada, run.ID, s1, []db.SetFields{{Reps: ptr(5)}}); err != nil {
+		t.Fatal(err)
+	}
+	run, err := db.GetRun(ctx, pool, ada, run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := putBody(t, ctx, pool, ada, run, kinded(*run.Body.Sections[0].Items[0].Step, "climbing"))
+	if len(got.Sets) != 0 {
+		t.Fatalf("sets %+v remain on a step that now logs climbs, want none", got.Sets)
+	}
+}
+
 // A step with sets but no status was reached. Skipping it on finish would let
 // the next body write drop its sets.
 func TestFinishRunKeepsLoggedStepsDone(t *testing.T) {
