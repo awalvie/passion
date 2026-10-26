@@ -100,52 +100,53 @@
 		<textarea id="ex-notes" class="mt-1.5 input" rows="4" bind:value={draft.notes}></textarea>
 	</div>
 
-	<div class="mt-[18px] pt-4 shadow-[inset_0_1px_0_var(--line)]">
-		<span class="block text-xs font-semibold text-ink-2">Media</span>
-		{#if draft.media.length}
-			<div class="mt-1.5 flex flex-col gap-2.5">
-				{#each draft.media as m, i (m)}
-					<div class="grid grid-cols-2 gap-2">
-						<input
-							class="input"
-							placeholder="Thumbnail URL (https://…)"
-							aria-label="Thumbnail URL {i + 1}"
-							bind:value={m.thumb_url}
-						/>
-						<div class="flex items-center gap-1.5">
+	<!-- A locked exercise with no media says so on its preview card. -->
+	{#if draft.media.length || !disabled}
+		<div class="mt-[18px] pt-4 shadow-[inset_0_1px_0_var(--line)]">
+			<span class="block text-xs font-semibold text-ink-2">Media</span>
+			{#if draft.media.length}
+				<div class="mt-1.5 flex flex-col gap-2.5">
+					{#each draft.media as m, i (m)}
+						<div class="grid grid-cols-2 gap-2">
 							<input
 								class="input"
-								placeholder="Video URL"
-								aria-label="Video URL {i + 1}"
-								bind:value={m.url}
+								placeholder="Thumbnail URL (https://…)"
+								aria-label="Thumbnail URL {i + 1}"
+								bind:value={m.thumb_url}
 							/>
-							{#if !disabled}
-								<button
-									type="button"
-									class="flex size-11 shrink-0 items-center justify-center rounded-full bg-well text-xl leading-none text-ink-2 active:opacity-70"
-									title="Remove"
-									aria-label="Remove media row {i + 1}"
-									onclick={() => draft.media.splice(i, 1)}>&times;</button
-								>
-							{/if}
+							<div class="flex items-center gap-1.5">
+								<input
+									class="input"
+									placeholder="Video URL"
+									aria-label="Video URL {i + 1}"
+									bind:value={m.url}
+								/>
+								{#if !disabled}
+									<button
+										type="button"
+										class="flex size-11 shrink-0 items-center justify-center rounded-full bg-well text-xl leading-none text-ink-2 active:opacity-70"
+										title="Remove"
+										aria-label="Remove media row {i + 1}"
+										onclick={() => draft.media.splice(i, 1)}>&times;</button
+									>
+								{/if}
+							</div>
 						</div>
-					</div>
-				{/each}
-			</div>
-		{:else if disabled}
-			<p class="mt-1 text-[15px] font-semibold text-ink-2">No media added</p>
-		{/if}
-		{#if !disabled}
-			<button
-				type="button"
-				class="mt-2.5 flex h-11 items-center gap-1.5 rounded-full bg-well px-4 text-[15px] font-bold text-ink active:opacity-70"
-				onclick={() => draft.media.push({ url: '', thumb_url: '' })}
-			>
-				<Icon name="plus" />
-				Add media
-			</button>
-		{/if}
-	</div>
+					{/each}
+				</div>
+			{/if}
+			{#if !disabled}
+				<button
+					type="button"
+					class="mt-2.5 flex h-11 items-center gap-1.5 rounded-full bg-well px-4 text-[15px] font-bold text-ink active:opacity-70"
+					onclick={() => draft.media.push({ url: '', thumb_url: '' })}
+				>
+					<Icon name="plus" />
+					Add media
+				</button>
+			{/if}
+		</div>
+	{/if}
 </fieldset>
 
 <style>
