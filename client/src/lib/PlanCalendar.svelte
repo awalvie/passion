@@ -47,13 +47,13 @@
 		d.status === 'missed'
 			? 'text-ink-2 outline-[1.5px] -outline-offset-[1.5px] outline-dashed outline-ink-3'
 			: d.status === 'paused'
-				? 'text-ink-3'
+				? 'text-ink-2'
 				: 'text-ink';
 	const chipStyle = (d: ScheduledDay) =>
 		d.status === 'missed'
 			? ''
 			: d.status === 'paused'
-				? 'box-shadow: inset 3px 0 0 var(--ink-3)'
+				? 'background: var(--well); box-shadow: inset 3px 0 0 var(--ink-3)'
 				: `background: color-mix(in oklab, ${colorOf(d)} 22%, var(--surface)); box-shadow: inset 3px 0 0 ${colorOf(d)}`;
 </script>
 
