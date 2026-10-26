@@ -29,6 +29,7 @@
 	import ExercisePicker from '$lib/ExercisePicker.svelte';
 	import SessionDot from '$lib/SessionDot.svelte';
 	import Notes from '$lib/Notes.svelte';
+	import Section from '$lib/Section.svelte';
 	import Sheet from '$lib/Sheet.svelte';
 
 	const run = $derived(openRun.run!);
@@ -40,16 +41,20 @@
 
 	let error = $state('');
 
-	let choosing = $state<string | null>(null);
-	let picked = $state<number[]>([]);
+	// The options marked in each choice until Use saves them. The run page and
+	// the picks sheet share them, so a closed sheet keeps its marks.
+	let selected = $state<Record<string, number[]>>({});
 
 	function toggle(id: string, k: number) {
-		if (choosing !== id) {
-			choosing = id;
-			picked = [];
-		}
-		picked = picked.includes(k) ? picked.filter((x) => x !== k) : [...picked, k];
+		const now = selected[id] ?? [];
+		selected[id] = now.includes(k) ? now.filter((x) => x !== k) : [...now, k];
 	}
+
+	function choose(id: string, k: number) {
+		if (!selected[id]?.includes(k)) toggle(id, k);
+	}
+
+	const enough = (c: RunChoice) => (selected[c.id]?.length ?? 0) >= Math.max(1, c.pick);
 
 	let library = $state<Exercise[]>([]);
 	let picking = $state(false);
@@ -87,7 +92,27 @@
 
 	function pick(id: string, options: Step[]) {
 		openRun.pick(id, options);
-		choosing = null;
+		delete selected[id];
+	}
+
+	// Pick now lists every pick still to make in one sheet. A choice that asks
+	// for all its options starts with them marked. Use saves each choice with
+	// enough marked, and one left short stays on the page for later.
+	let listing = $state(false);
+	let peek = $state<{ choice: RunChoice; k: number } | null>(null);
+	const peeked = $derived(peek && peek.choice.options[peek.k]);
+
+	function openPicks() {
+		for (const c of unpicked) {
+			if (c.pick === c.options.length && !selected[c.id]?.length) selected[c.id] = c.options.map((_, k) => k);
+		}
+		peek = null;
+		listing = true;
+	}
+
+	function useMarked() {
+		for (const c of unpicked.filter(enough)) pick(c.id, selected[c.id].map((k) => c.options[k]));
+		listing = false;
 	}
 
 	// The sheet keeps the last option it showed, so it does not go blank while
@@ -104,7 +129,7 @@
 	function pickShown() {
 		const { choice, k } = shown!;
 		if (choice.pick === 1) pick(choice.id, [choice.options[k]]);
-		else if (!(choosing === choice.id && picked.includes(k))) toggle(choice.id, k);
+		else choose(choice.id, k);
 		previewing = false;
 	}
 
@@ -335,6 +360,45 @@
 	<li aria-hidden="true" class="mx-1 my-0.5 h-[3px] rounded-full bg-tint"></li>
 {/snippet}
 
+{#snippet optionRows(c: RunChoice, onpreview: (k: number) => void)}
+	<div>
+		{#each c.options as o, k (k)}
+			{@const on = !!selected[c.id]?.includes(k)}
+			{@const thumb = o.media.find((md) => md.thumb_url)?.thumb_url}
+			<div class="flex items-center gap-3 px-1 list-row">
+				<button
+					type="button"
+					class="relative flex size-7 shrink-0 items-center justify-center rounded-full before:absolute before:-inset-2 before:content-[''] {on
+						? 'bg-tint text-on-tint'
+						: 'shadow-[inset_0_0_0_2px_var(--ink-3)]'}"
+					aria-pressed={on}
+					aria-label="Pick {o.name}"
+					onclick={() => toggle(c.id, k)}
+				>
+					{#if on}
+						<Icon name="check" size="1rem" stroke={3} />
+					{/if}
+				</button>
+				<button type="button" class="flex min-h-[60px] min-w-0 flex-1 items-center gap-3 py-2 text-left" onclick={() => onpreview(k)}>
+					{#if thumb}
+						<img src={thumb} alt="" class="size-11 shrink-0 rounded-xl object-cover" />
+					{/if}
+					<span class="min-w-0 flex-1">
+						<span class="block truncate text-[15px] font-bold">{o.name}</span>
+						<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{stepMeta(o)}</span>
+					</span>
+					<span class="text-ink-3"><Icon name="chevron-right" size="1.125rem" /></span>
+				</button>
+			</div>
+		{/each}
+	</div>
+{/snippet}
+
+{#snippet useFooter()}
+	{@const ready = unpicked.filter(enough).length}
+	<Button disabled={!ready} onclick={useMarked}>{ready > 1 ? `Use ${ready} picks` : 'Use this pick'}</Button>
+{/snippet}
+
 <svelte:head><title>{run.name}</title></svelte:head>
 <svelte:window onfocus={reload} />
 
@@ -392,7 +456,7 @@
 					<p class="mt-0.5 truncate text-sm font-semibold text-ink-2">{unpicked.map((c) => c.name).join(' · ')}</p>
 					<div class="mt-3 grid grid-cols-[1fr_1.4fr] gap-2.5">
 						<button type="button" class="flex h-14 items-center justify-center rounded-full bg-(--glass) text-[15px] font-bold text-ink active:opacity-80" onclick={() => (later = true)}>Later</button>
-						<Button href={stopHref(run.id, { choice: unpicked[0] })}>Pick now</Button>
+						<Button onclick={openPicks}>Pick now</Button>
 					</div>
 				</div>
 			{/if}
@@ -539,48 +603,11 @@
 												<p class="px-1 pt-0.5 pb-2 text-xs font-semibold tracking-[0.06em] text-ink-2 uppercase">
 													{[c.name, choiceMeta(c)].filter(Boolean).join(' · ')}
 												</p>
-												<div>
-													{#each c.options as o, k (k)}
-														{@const on = choosing === c.id && picked.includes(k)}
-														{@const thumb = o.media.find((md) => md.thumb_url)?.thumb_url}
-														<div class="flex items-center gap-3 px-1 {k > 0 ? 'shadow-[inset_0_1px_0_var(--line)]' : ''}">
-															<button
-																type="button"
-																class="relative flex size-7 shrink-0 items-center justify-center rounded-full before:absolute before:-inset-2 before:content-[''] {on
-																	? 'bg-tint text-on-tint'
-																	: 'shadow-[inset_0_0_0_2px_var(--ink-3)]'}"
-																aria-pressed={on}
-																aria-label="Pick {o.name}"
-																onclick={() => toggle(c.id, k)}
-															>
-																{#if on}
-																	<Icon name="check" size="1rem" stroke={3} />
-																{/if}
-															</button>
-															<button
-																type="button"
-																class="flex min-h-[60px] min-w-0 flex-1 items-center gap-3 py-2 text-left"
-																onclick={() => preview(c, k)}
-															>
-																{#if thumb}
-																	<img src={thumb} alt="" class="size-11 shrink-0 rounded-xl object-cover" />
-																{/if}
-																<span class="min-w-0 flex-1">
-																	<span class="block truncate text-[15px] font-bold">{o.name}</span>
-																	<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{stepMeta(o)}</span>
-																</span>
-																<span class="text-ink-3"><Icon name="chevron-right" size="1.125rem" /></span>
-															</button>
-														</div>
-													{/each}
-												</div>
-												{#if choosing === c.id}
+												{@render optionRows(c, (k) => preview(c, k))}
+												{#if selected[c.id]?.length}
 													<div class="mt-2.5">
-														<Button
-															disabled={picked.length < Math.max(1, c.pick)}
-															onclick={() => pick(c.id, picked.map((k) => c.options[k]))}
-														>
-															Use {picked.length === 1 ? 'this' : 'these'}
+														<Button disabled={!enough(c)} onclick={() => pick(c.id, selected[c.id].map((k) => c.options[k]))}>
+															Use {selected[c.id].length === 1 ? 'this' : 'these'}
 														</Button>
 													</div>
 												{/if}
@@ -641,6 +668,37 @@
 				<Button type="submit" disabled={!sectionName.trim()}>Add section</Button>
 			</div>
 		</form>
+	</Sheet>
+
+	<Sheet
+		bind:open={listing}
+		eyebrow={peek?.choice.name}
+		title={peeked?.name ?? 'Picks to make'}
+		onback={peek ? () => (peek = null) : undefined}
+		footer={peek ? undefined : useFooter}
+	>
+		{#if peeked}
+			{@render howTo(peeked)}
+			<div class="mt-5">
+				<Button
+					onclick={() => {
+						choose(peek!.choice.id, peek!.k);
+						peek = null;
+					}}>Pick this</Button
+				>
+			</div>
+		{:else}
+			<div class="flex flex-col gap-5">
+				{#each unpicked as c (c.id)}
+					<Section title={c.name}>
+						{#snippet aside()}<span class="text-xs font-semibold text-ink-2">{choiceMeta(c)}</span>{/snippet}
+						<div class="rounded-3xl bg-surface px-3 shadow-card">
+							{@render optionRows(c, (k) => (peek = { choice: c, k }))}
+						</div>
+					</Section>
+				{/each}
+			</div>
+		{/if}
 	</Sheet>
 
 	<Sheet bind:open={previewing} eyebrow={shown?.choice.name} title={option?.name ?? ''}>
