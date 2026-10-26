@@ -22,7 +22,7 @@
 
 	const theme = $derived(dark ? 'dark' : 'light');
 	const cards = [
-		{ title: 'Plan', text: 'Write your own sessions or start from the built-in ones. Pick the days once and they repeat for up to a year.', shot: 'cycle', alt: 'A cycle calendar for October and November' },
+		{ title: 'Plan', text: 'Write your own sessions or use ours. Pick the days once and they repeat.', shot: 'cycle', alt: 'A cycle calendar for October and November' },
 		{ title: 'Progress', text: 'Your hours, climbs and grades over time, and the history of each exercise.', shot: 'progress', alt: 'Progress for climbs: climbs a week, send rate and flash rate' },
 		{ title: 'Journal', text: 'Pin the notes you want to see when a session starts.', shot: 'journal', alt: 'The Journal with two pinned notes' },
 		{ title: 'History', text: 'Each session with its sets, climbs and notes.', shot: 'history', alt: 'History with time, climbs and hardest send this week' }
@@ -34,16 +34,19 @@
 	<meta name="description" content="The training app built for climbing. Time your hangs, log every attempt and send, and plan your weeks. Free, and the code is public." />
 </svelte:head>
 
+<!-- Every phone shows the same top part of its screen, whatever the shot's height. -->
 {#snippet phone(src: string, alt: string)}
-	<div class="h-[330px] w-full max-w-[250px] overflow-hidden rounded-t-[40px] bg-run px-[7px] pt-[7px] shadow-card">
-		<img {src} {alt} width="786" height="1080" loading="lazy" class="w-full rounded-t-[33px]" />
+	<div class="w-full max-w-[220px] rounded-t-[40px] bg-run px-[7px] pt-[7px] shadow-card">
+		<div class="aspect-[786/1080] overflow-hidden rounded-t-[33px]">
+			<img {src} {alt} width="786" height="1080" loading="lazy" class="w-full" />
+		</div>
 	</div>
 {/snippet}
 
-{#snippet copy(title: string, text: string, muted: string)}
-	<div class="flex flex-col gap-2 px-7 pt-7">
+{#snippet copy(title: string, text: string)}
+	<div class="flex flex-col items-center gap-2 px-6 pt-7 text-center">
 		<h3 class="text-xl font-extrabold tracking-[-0.02em]">{title}</h3>
-		<p class="max-w-[34ch] text-base leading-relaxed {muted}">{text}</p>
+		<p class="max-w-[60ch] text-base leading-relaxed text-balance text-ink-2">{text}</p>
 	</div>
 {/snippet}
 
@@ -101,21 +104,24 @@
 			<section
 				aria-label="Features"
 				tabindex="0"
-				class="-mx-[max(1rem,env(safe-area-inset-left))] grid snap-x snap-mandatory auto-cols-[86%] grid-flow-col gap-5 overflow-x-auto px-[max(1rem,env(safe-area-inset-left))] pt-12 pb-2 [scroll-padding-inline:max(1rem,env(safe-area-inset-left))] md:-mx-10 md:px-10 lg:mx-0 lg:grid-flow-row lg:grid-cols-3 lg:overflow-visible lg:px-0 lg:pt-24"
+				class="-mx-[max(1rem,env(safe-area-inset-left))] grid snap-x snap-mandatory auto-cols-[86%] grid-flow-col gap-5 overflow-x-auto px-[max(1rem,env(safe-area-inset-left))] pt-12 pb-2 [scroll-padding-inline:max(1rem,env(safe-area-inset-left))] md:-mx-10 md:px-10 lg:mx-0 lg:grid-flow-row lg:auto-rows-fr lg:grid-cols-4 lg:overflow-visible lg:px-0 lg:pt-24"
 			>
-				<HeroCard flush class="flex min-h-[500px] snap-start flex-col lg:col-span-2 lg:min-h-[520px]">
-					{@render copy('Train', "Time hangs and repeaters. Log each go on a climb as an attempt or a send. Last time's reps and weight show under each set.", 'text-on-hero-2')}
-					<div class="mt-auto flex justify-center gap-5 px-7 pt-6">
+				<article class="flex snap-start flex-col overflow-hidden rounded-[32px] bg-surface shadow-card lg:col-span-4">
+					{@render copy('Train', "Time hangs and repeaters. Log each go on a climb as an attempt or a send. Last time's reps and weight show under each set.")}
+					<div class="mt-auto flex justify-center gap-8 px-6 pt-6">
 						{@render phone('/landing/timer.png', 'A hang timer: work, rep 1 of 6, eight seconds left')}
+						<div class="hidden md:contents">
+							{@render phone('/landing/climbs.png', 'Logging a boulder: a 6c picked and one send logged')}
+						</div>
 						<div class="hidden lg:contents">
 							{@render phone('/landing/sets.png', "Deadlift sets with last time's reps and weight under each")}
 						</div>
 					</div>
-				</HeroCard>
+				</article>
 				{#each cards as c (c.title)}
-					<article class="flex min-h-[500px] snap-start flex-col overflow-hidden rounded-[32px] bg-surface shadow-card lg:min-h-[520px]">
-						{@render copy(c.title, c.text, 'text-ink-2')}
-						<div class="mt-auto flex justify-center px-7 pt-6">
+					<article class="flex snap-start flex-col overflow-hidden rounded-[32px] bg-surface shadow-card">
+						{@render copy(c.title, c.text)}
+						<div class="mt-auto flex justify-center px-5 pt-6">
 							{@render phone(`/landing/${c.shot}-${theme}.png`, c.alt)}
 						</div>
 					</article>
