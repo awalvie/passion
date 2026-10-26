@@ -404,6 +404,42 @@ func TestListClimbs(t *testing.T) {
 	}
 }
 
+// A started_at that reads back past year 9999, or before year 0, cannot be
+// written as JSON. Taking one answers an empty body, and empties the run list
+// for good, so it must be refused.
+func TestRunsRefuseAStartedAtJSONCannotHold(t *testing.T) {
+	h := newTestServer(t)
+	ada := signedIn(t, h, "ada@example.com")
+	run := startRunFor(t, h, ada, `{"name": "Open"}`)
+
+	refused := func(t *testing.T, rec *httptest.ResponseRecorder) {
+		t.Helper()
+		if rec.Code != http.StatusUnprocessableEntity {
+			t.Errorf("status %d with body %q, want 422", rec.Code, rec.Body)
+			return
+		}
+		if decodeBody(t, rec).Error.Fields["started_at"] == "" {
+			t.Errorf("fields %s, want started_at named", rec.Body)
+		}
+	}
+	for name, at := range map[string]string{
+		"past year 9999": "9999-12-31T23:59:59-10:00",
+		"before year 0":  "0000-01-01T00:00:00+05:00",
+	} {
+		t.Run(name, func(t *testing.T) {
+			refused(t, send(t, h, http.MethodPost, "/api/v1/runs", ada, `{"name": "Far", "started_at": "`+at+`"}`))
+			body := runRequestFrom(t, run, func(b map[string]any) { b["started_at"] = at })
+			refused(t, send(t, h, http.MethodPut, "/api/v1/runs/"+run.ID, ada, body))
+		})
+	}
+
+	rec := send(t, h, http.MethodGet, "/api/v1/runs", ada, "")
+	var list runListResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &list); err != nil {
+		t.Fatalf("the run list answers %d %q (%v), want it readable", rec.Code, rec.Body, err)
+	}
+}
+
 func TestRunsNeedSignIn(t *testing.T) {
 	h := newTestServer(t)
 	id := "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"

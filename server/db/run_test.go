@@ -156,10 +156,11 @@ func TestCleanRunBody(t *testing.T) {
 
 func TestCleanRunFields(t *testing.T) {
 	f, problems := db.RunFields{
-		Name:    " Power ",
-		Body:    db.RunBody{Sections: []db.RunSection{}},
-		Place:   ptr(" "),
-		Journal: db.Journal{Sleep: ptr(6), RPE: ptr(10), Focus: ptr("vibes"), Setting: ptr("indoor")},
+		Name:      " Power ",
+		Body:      db.RunBody{Sections: []db.RunSection{}},
+		StartedAt: time.Date(2026, 3, 1, 9, 0, 0, 0, time.UTC),
+		Place:     ptr(" "),
+		Journal:   db.Journal{Sleep: ptr(6), RPE: ptr(10), Focus: ptr("vibes"), Setting: ptr("indoor")},
 	}.Clean()
 
 	if f.Name != "Power" || f.Place != nil {

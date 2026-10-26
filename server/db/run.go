@@ -123,6 +123,7 @@ type RunStart struct {
 
 func (s RunStart) Clean() (RunStart, map[string]string) {
 	problems := map[string]string{}
+	checkStartedAt(s.StartedAt, problems)
 	if s.Scheduled != nil {
 		id, ok := cleanID(*s.Scheduled)
 		s.Scheduled = &id
@@ -258,11 +259,20 @@ func (f RunFields) Clean() (RunFields, map[string]string) {
 	body, problems := f.Body.Clean()
 	f.Body = body
 	f.Name = cleanName(f.Name, "name", problems)
+	checkStartedAt(f.StartedAt, problems)
 	checkCount(f.ElapsedSeconds, "elapsed_seconds", problems)
 	f.Place = optional(f.Place)
 	f.Notes = optional(f.Notes)
 	f.Journal = f.Journal.clean(problems)
 	return f, problems
+}
+
+// checkStartedAt keeps a start inside years JSON can write. One outside them
+// would leave the run list unreadable.
+func checkStartedAt(at time.Time, problems map[string]string) {
+	if y := at.UTC().Year(); y < 1900 || y > 2200 {
+		problems["started_at"] = "must be between 1900 and 2200"
+	}
 }
 
 // UpdateRun replaces what the person can change on one of their runs, and
