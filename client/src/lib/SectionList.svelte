@@ -33,7 +33,16 @@
 <div class="flex flex-col gap-3">
 	<div class="relative">
 		<span class="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-2"><Icon name="search" size="1.125rem" /></span>
-		<input type="search" class="input h-12 pl-11" placeholder="Search sections…" aria-label="Search sections" autocomplete="off" bind:value={q} />
+		<!-- The list sits inside the builder's form, where Enter would save. -->
+		<input
+			type="search"
+			class="input h-12 pl-11"
+			placeholder="Search sections…"
+			aria-label="Search sections"
+			autocomplete="off"
+			bind:value={q}
+			onkeydown={(e) => e.key === 'Enter' && e.preventDefault()}
+		/>
 	</div>
 	{#if failed}
 		<p class="px-1 text-[15px] font-semibold text-ink-2">No signal. Your sessions need one to load.</p>
