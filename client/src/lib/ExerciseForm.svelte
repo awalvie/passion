@@ -160,5 +160,6 @@
 	}
 	fieldset:disabled .input::placeholder {
 		color: transparent;
+		-webkit-text-fill-color: transparent;
 	}
 </style>
