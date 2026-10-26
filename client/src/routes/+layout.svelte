@@ -99,7 +99,7 @@
 {/if}
 
 <div
-	class="mx-auto min-h-dvh w-full max-w-[430px] bg-ground text-ink {wide
+	class="mx-auto min-h-dvh w-full bg-ground text-ink {page.route.id === '/welcome' ? '' : 'max-w-[430px]'} {wide
 		? 'lg:max-w-none lg:pl-[calc(6rem+env(safe-area-inset-left))]'
 		: ''}"
 >
