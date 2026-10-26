@@ -1,25 +1,85 @@
 # Deploy
 
-Passion is one Docker image. It needs a Postgres 18 database.
+Passion is one program with a Postgres 18 database. It migrates the database each time it
+starts.
+
+- [Docker](#docker)
+- [Binary](#binary)
+- [From source](#from-source)
+
+## Docker
 
 ```sh
-make image
-docker run -e DATABASE_URL=postgres://... -p 8080:8080 passion:dev
+curl -LO https://github.com/awalvie/passion/raw/master/docker-compose.yml
+echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)" > .env
+docker compose up -d
 ```
 
-The server updates the database when it starts.
+Open <http://localhost:8080> and sign up. `/healthz` gives 503 when the database is not
+available.
 
-Serve the app over HTTPS. If you use plain HTTP, a phone screen goes dark during a timer.
+To upgrade:
 
-Each person who can get to the server can sign up.
+```sh
+docker compose pull
+docker compose up -d
+```
 
-`/healthz` gives 503 when the database is not available.
+The image is `ghcr.io/awalvie/passion`, for amd64 and arm64. Each release has its own tag,
+for example `v3.0.0`. `latest` is the newest release.
+
+## Binary
+
+Download the archive for your system from
+[Releases](https://github.com/awalvie/passion/releases) and unpack it. Make an empty
+Postgres 18 database, then start Passion with its address:
+
+```sh
+DATABASE_URL=postgres://passion:password@localhost/passion ./passion
+```
+
+To upgrade, replace the binary and start it again.
+
+### With systemd
+
+1. Copy `passion` to `/usr/local/bin/`.
+2. Make `/etc/passion/env` with the line `DATABASE_URL=postgres://...`.
+3. Copy `deploy/passion.service` to `/etc/systemd/system/`.
+4. Run `systemctl enable --now passion`.
+
+## From source
+
+Install [nix](https://nixos.org), then run:
+
+```sh
+nix develop
+make client
+go build -o passion ./server/cmd/passion
+```
+
+## Before other people use it
+
+- Serve it over HTTPS. Over plain HTTP, a phone screen goes dark during a timer. With Caddy:
+  `example.com { reverse_proxy localhost:8080 }`. The compose file opens port 8080 on every
+  interface. Behind a proxy, change it to `127.0.0.1:8080:8080`.
+- Anyone who can reach the server can sign up.
 
 ## Configuration
 
-The settings are in a YAML file. Set `PASSION_CONFIG` to the path of this file.
-[passion.example.yaml](../passion.example.yaml) shows all the keys. If a key or a value is
-wrong, the server does not start.
+`DATABASE_URL` is the only setting you must give. For the others, copy
+[passion.example.yaml](../passion.example.yaml) and set `PASSION_CONFIG` to its path. If a
+key or a value is wrong, the server does not start.
+
+With Docker, add two lines to the `app` service:
+
+```yaml
+  app:
+    environment:
+      DATABASE_URL: ...
+      PASSION_CONFIG: /etc/passion/passion.yaml
+    volumes:
+      - ./passion.yaml:/etc/passion/passion.yaml:ro
+```
 
 | Key | Default | Notes |
 |---|---|---|
@@ -33,40 +93,13 @@ wrong, the server does not start.
 The server loads private catalogs when it starts. It loads them only for owners who have an
 account. If a new owner signs up, restart the server.
 
-## The deploy workflow
-
-The workflow builds the image and pushes it to GHCR. Then it connects to your server with SSH
-and starts the app with Postgres.
-
-To start the workflow, run `gh workflow run deploy.yml --ref master`.
-
-If you fork the repository, change the image name and the catalog repository name. They are
-in `deploy.yml` and in `deploy/compose.yaml`.
-
-To prepare the server:
-
-1. Install Docker with the compose plugin.
-2. Add the deploy user to the `docker` group.
-3. Make the folder `/srv/passion`. The deploy user must own it.
-4. Send traffic from your reverse proxy to `127.0.0.1:8081`. For Caddy, use
-   `example.com { reverse_proxy 127.0.0.1:8081 }`.
-
-Add these secrets to the repository:
-
-- `DEPLOY_HOST`, `DEPLOY_USER` and `DEPLOY_SSH_KEY`.
-- `DEPLOY_KNOWN_HOSTS`. Get it with `ssh-keyscan`.
-- `PRIVATE_CATALOG_DEPLOY_KEY`.
-- `POSTGRES_PASSWORD`. Use only letters, digits and `. _ ~ -`.
-
-Add the variable `CATALOG_OWNER`. It is the email of the account that gets the private
-catalog.
-
-Postgres reads the password only when it makes its volume. To change the password:
-
-1. Run `ALTER USER` in the database.
-2. Change the secret.
-
 ## Backups
 
 The migrations go forward only. To go back to an earlier version, you must restore a backup.
-Before you deploy a new migration, back up the `db` volume with `pg_dump`.
+Back up before you upgrade:
+
+```sh
+docker compose exec db pg_dump -U passion passion > backup.sql
+```
+
+With the binary, use `pg_dump` on your own database.

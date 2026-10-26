@@ -87,16 +87,15 @@
 
 ## Run it
 
-You need Docker and Postgres 18.
-
 ```sh
-make image
-docker run -e DATABASE_URL=postgres://... -p 8080:8080 passion:dev
+curl -LO https://github.com/awalvie/passion/raw/master/docker-compose.yml
+echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)" > .env
+docker compose up -d
 ```
 
 Open <http://localhost:8080> and sign up. On an iPhone, add it to the Home Screen from Safari.
 
-From source: install [nix](https://nixos.org), then run `nix develop` and `make run`.
+[Deploy](docs/DEPLOY.md) covers the binary, systemd and building from source.
 
 ## Docs
 

@@ -13,7 +13,7 @@ You are Scribe, the documentation sync agent for the Passion climbing training a
 | File | What it documents |
 |------|-------------------|
 | `readme.md` | Screenshots, what the app does, how to run it, links to the docs |
-| `docs/DEPLOY.md` | Docker, the config table, the deploy workflow, backups |
+| `docs/DEPLOY.md` | Docker, the binary and systemd, building from source, the config table, backups |
 | `docs/DEVELOPMENT.md` | Set up, Make targets, where code goes, the data; adding a table, query, endpoint or screen; tokens, shared parts and layout rules |
 | `docs/CATALOG_FORMAT.md` | The catalog file format and how it loads |
 | `CLAUDE.md` | Project conventions, agent dispatch rules, code style |
