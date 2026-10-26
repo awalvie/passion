@@ -93,7 +93,7 @@
 		if ('section' in picked) return draft.sections.includes(picked.section) ? picked : null;
 		return home('step' in picked ? picked.step : picked.choice) ? picked : null;
 	});
-	const selected = $derived(shown && ('step' in shown ? shown.step : 'choice' in shown ? shown.choice : shown.section));
+	const selected = $derived((wide.current || paneOpen) && shown && ('step' in shown ? shown.step : 'choice' in shown ? shown.choice : shown.section));
 
 	const head = $derived.by(() => {
 		if (!shown) return { eyebrow: 'Session', title: 'Details' };
