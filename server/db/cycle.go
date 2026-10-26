@@ -261,7 +261,7 @@ func PutCycle(ctx context.Context, pool *pgxpool.Pool, owner, id string, f Cycle
 
 	leftOut := []Slot{}
 	if row.OldStarts == nil || !sameShape(Cycle{BlockFrom: *row.OldBlockFrom, Ends: *row.OldEnds, BlockDays: *row.OldBlockDays, Body: *row.OldBody}, cycle) {
-		if leftOut, err = build(ctx, tx, cycle, today); err != nil {
+		if leftOut, err = build(ctx, tx, cycle.Owner, "cycle", cycle.ID, cycle.slots(today), today); err != nil {
 			return Cycle{}, nil, err
 		}
 	}
@@ -276,26 +276,26 @@ func sameShape(a, b Cycle) bool {
 		slices.Equal(a.Body.Days, b.Body.Days)
 }
 
-// build replaces the cycle's rows from today on. A past day is what the runs
-// recorded, so it is never planned again, and a row a run was started from
-// stays.
-func build(ctx context.Context, tx pgx.Tx, c Cycle, today time.Time) ([]Slot, error) {
+// build replaces the rows a cycle or a repeat placed from today on with slots,
+// and answers the slots it left out because that day already held the session.
+// column is "cycle" or "repeat". A past day is what the runs recorded, so it
+// is never planned again, and a row a run was started from stays.
+func build(ctx context.Context, tx pgx.Tx, owner, column, id string, slots []Slot, today time.Time) ([]Slot, error) {
 	// A run starting from one of these rows holds a key lock on it. Taking the
 	// rows first waits for that run, and the delete, a new statement, then
 	// sees it. One statement would test for runs before the wait, and drop
 	// the row.
-	if _, err := tx.Exec(ctx, `SELECT FROM scheduled_session WHERE cycle = $1 AND local_date >= $2 FOR UPDATE`,
-		c.ID, today); err != nil {
-		return nil, fmt.Errorf("lock the cycle's days: %w", err)
+	if _, err := tx.Exec(ctx, `SELECT FROM scheduled_session WHERE `+column+` = $1 AND local_date >= $2 FOR UPDATE`,
+		id, today); err != nil {
+		return nil, fmt.Errorf("lock the %s's days: %w", column, err)
 	}
 	if _, err := tx.Exec(ctx, `
 		DELETE FROM scheduled_session s
-		WHERE s.cycle = $1 AND s.local_date >= $2
-			AND NOT EXISTS (SELECT 1 FROM run WHERE run.scheduled = s.id)`, c.ID, today); err != nil {
-		return nil, fmt.Errorf("clear the cycle's days: %w", err)
+		WHERE s.`+column+` = $1 AND s.local_date >= $2
+			AND NOT EXISTS (SELECT 1 FROM run WHERE run.scheduled = s.id)`, id, today); err != nil {
+		return nil, fmt.Errorf("clear the %s's days: %w", column, err)
 	}
 
-	slots := c.slots(today)
 	dates := make([]time.Time, 0, len(slots))
 	templates := make([]string, 0, len(slots))
 	for _, s := range slots {
@@ -303,19 +303,20 @@ func build(ctx context.Context, tx pgx.Tx, c Cycle, today time.Time) ([]Slot, er
 		templates = append(templates, s.Template)
 	}
 	if _, err := tx.Exec(ctx, `
-		INSERT INTO scheduled_session (owner, cycle, template, local_date)
+		INSERT INTO scheduled_session (owner, `+column+`, template, local_date)
 		SELECT $1, $2, s.template, s.local_date
 		FROM unnest($3::date[], $4::uuid[]) AS s (local_date, template)
-		ON CONFLICT (owner, local_date, template) DO NOTHING`, c.Owner, c.ID, dates, templates); err != nil {
-		return nil, fmt.Errorf("write the cycle's days: %w", err)
+		ON CONFLICT (owner, local_date, template) DO NOTHING`, owner, id, dates, templates); err != nil {
+		return nil, fmt.Errorf("write the %s's days: %w", column, err)
 	}
 
-	// A slot is left out when a row of another cycle, or a one-off, holds it.
+	// A slot is left out when a row of another cycle or repeat, or a one-off,
+	// holds it.
 	rows, err := tx.Query(ctx, `
 		SELECT local_date, template::text FROM scheduled_session
-		WHERE cycle = $1 AND local_date >= $2`, c.ID, today)
+		WHERE `+column+` = $1 AND local_date >= $2`, id, today)
 	if err != nil {
-		return nil, fmt.Errorf("select the cycle's days: %w", err)
+		return nil, fmt.Errorf("select the %s's days: %w", column, err)
 	}
 	held, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (Slot, error) {
 		var s Slot
@@ -323,7 +324,7 @@ func build(ctx context.Context, tx pgx.Tx, c Cycle, today time.Time) ([]Slot, er
 		return s, err
 	})
 	if err != nil {
-		return nil, fmt.Errorf("read the cycle's days: %w", err)
+		return nil, fmt.Errorf("read the %s's days: %w", column, err)
 	}
 
 	type key struct {
