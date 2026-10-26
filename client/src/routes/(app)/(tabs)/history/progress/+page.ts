@@ -31,6 +31,7 @@ export async function load({ url }) {
 		view,
 		today,
 		first,
+		fresh: !finished.length,
 		span,
 		filter: readFilter(url.searchParams),
 		...chart,
