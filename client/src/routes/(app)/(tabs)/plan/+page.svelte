@@ -1,12 +1,11 @@
 <script lang="ts">
 	import AddSession from '$lib/AddSession.svelte';
 	import Segmented from '$lib/Segmented.svelte';
-	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
-	import { describe, request } from '$lib/api';
-	import Button from '$lib/Button.svelte';
 	import CycleYear from '$lib/CycleYear.svelte';
 	import { addDays, cycleWeek, dayDate, daysBetween, formatDate, fullDate, mondayOf, shortDate, weekday } from '$lib/dates';
+	import { DayActions } from '$lib/dayActions.svelte';
+	import DaySheets from '$lib/DaySheets.svelte';
 	import DateField from '$lib/DateField.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
@@ -14,9 +13,6 @@
 	import PlanCalendar from '$lib/PlanCalendar.svelte';
 	import SessionIcon, { iconState } from '$lib/SessionIcon.svelte';
 	import type { ScheduledDay, TimeOff } from '$lib/plan';
-	import { ruleText } from '$lib/repeat';
-	import { startRun } from '$lib/runState.svelte';
-	import Sheet from '$lib/Sheet.svelte';
 	import TimeOffSheet from '$lib/TimeOffSheet.svelte';
 
 	let { data } = $props();
@@ -24,8 +20,6 @@
 	const view = $derived(page.url.searchParams.get('view'));
 	const cyclesView = $derived(view === 'cycles');
 	const calendarView = $derived(view === 'calendar');
-
-	const labels: Record<string, string> = { local_date: 'That day', template: 'That session' };
 
 	let adding = $state(false);
 	const openAdd = () => (adding = true);
@@ -39,68 +33,7 @@
 	const offKinds = { trip: 'Trip', injury: 'Injury', illness: 'Illness', other: 'Other' };
 	// The time off from the first week shown on.
 	const shownOff = $derived(data.timeOff.filter((o) => !o.ends || o.ends >= data.from));
-	// What is waiting: a row's move or remove.
-	let doing = $state<string | null>(null);
-
-	let rowError = $state({ id: '', message: '' });
-	let starting = $state(false);
-
-	async function start(d: ScheduledDay) {
-		starting = true;
-		rowError = { id: '', message: '' };
-		try {
-			const run = await startRun({ scheduled: d.id });
-			await goto(`/run/${run.id}`);
-		} catch (e) {
-			rowError = { id: d.id, message: describe(e, (f) => labels[f] ?? f) };
-			// The run can start even when the answer is lost; the reload shows it.
-			await invalidateAll();
-		} finally {
-			starting = false;
-		}
-	}
-
-	async function move(d: ScheduledDay, to: string) {
-		doing = `move:${d.id}`;
-		rowError = { id: '', message: '' };
-		try {
-			await request('PUT', `/api/v1/scheduled-sessions/${d.id}`, { local_date: to });
-			await invalidateAll();
-			moveOpen = false;
-		} catch (e) {
-			rowError = { id: d.id, message: describe(e, (f) => labels[f] ?? f) };
-		} finally {
-			doing = null;
-		}
-	}
-
-	// A repeat's day asks whether its later days go too.
-	let ending = $state<ScheduledDay | null>(null);
-	let endOpen = $state(false);
-	const endingRepeat = $derived(data.repeats.find((r) => r.id === ending?.repeat));
-
-	async function remove(d: ScheduledDay, later = false) {
-		if (d.repeat && !endOpen) {
-			ending = d;
-			endOpen = true;
-			rowError = { id: '', message: '' };
-			return;
-		}
-		const warning = d.cycle ? ' It comes back if you change the dates, the block or the days of its cycle.' : '';
-		if (!d.repeat && !confirm(`Take ${d.template_name} off this day?${warning}`)) return;
-		doing = `remove:${d.id}`;
-		rowError = { id: '', message: '' };
-		try {
-			if (later) await request('POST', `/api/v1/repeats/${d.repeat}/end`, { from: d.local_date });
-			else await request('DELETE', `/api/v1/scheduled-sessions/${d.id}`);
-			await invalidateAll();
-			endOpen = false;
-		} catch (e) {
-			rowError = { id: d.id, message: describe(e, (f) => labels[f] ?? f) };
-		} finally {
-			doing = null;
-		}
-	}
+	const day = new DayActions();
 
 	const cycleNames = $derived(new Map(data.cycles.map((c) => [c.id, c.name])));
 	const templates = $derived(new Map(data.templates.map((t) => [t.id, t])));
@@ -119,16 +52,6 @@
 		return a === b ? a : `${a} – ${b}`;
 	});
 	const calendarAt = (from: string) => `/plan?view=calendar&from=${from}`;
-
-	let moving = $state<ScheduledDay | null>(null);
-	let moveOpen = $state(false);
-	let moveTo = $state('');
-	function openMove(d: ScheduledDay) {
-		moving = d;
-		moveOpen = true;
-		moveTo = d.local_date;
-		rowError = { id: '', message: '' };
-	}
 
 	const source = (d: ScheduledDay) =>
 		[statuses[d.status], d.cycle ? (cycleNames.get(d.cycle) ?? 'Cycle') : d.repeat ? 'Repeats' : 'One-off'].filter(Boolean).join(' · ');
@@ -288,8 +211,8 @@
 												type="button"
 												class="flex size-11 shrink-0 items-center justify-center rounded-full bg-tint text-on-tint shadow-tint disabled:opacity-50"
 												aria-label="Start {d.template_name}"
-												disabled={starting}
-												onclick={() => start(d)}
+												disabled={day.starting}
+												onclick={() => day.start(d)}
 											>
 												<Icon name="play" size="1.125rem" />
 											</button>
@@ -298,8 +221,8 @@
 											label="More for {d.template_name}"
 											look="text-ink-2"
 											items={[
-												{ label: 'Move to another day', onclick: () => openMove(d) },
-												{ label: 'Remove', danger: true, onclick: () => remove(d) }
+												{ label: 'Move to another day', onclick: () => day.openMove(d) },
+												{ label: 'Remove', danger: true, onclick: () => day.remove(d) }
 											]}
 										/>
 									{/if}
@@ -310,7 +233,7 @@
 						<p class="py-4 text-[15px] font-semibold text-ink-2">Nothing planned</p>
 					{/if}
 				</div>
-				<FormError message={picked.some((d) => d.id === rowError.id) && !moveOpen && !endOpen ? rowError.message : ''} />
+				<FormError message={picked.some((d) => d.id === day.error.id) && !day.moveOpen && !day.endOpen ? day.error.message : ''} />
 				{#if shownOff.length}
 					<h2 class="flex h-11 items-center px-1 pt-2 text-[15px] font-bold">Time off</h2>
 					<ul class="rounded-3xl bg-surface px-4 py-0.5 shadow-card">
@@ -373,11 +296,11 @@
 														type="button"
 														class="flex size-11 shrink-0 items-center justify-center rounded-full bg-tint text-on-tint shadow-tint disabled:opacity-50"
 														aria-label="Start {d.template_name}"
-														disabled={starting}
+														disabled={day.starting}
 														onclick={(e) => {
 															e.preventDefault();
 															e.stopPropagation();
-															start(d);
+															day.start(d);
 														}}
 													>
 														<Icon name="play" size="1.125rem" />
@@ -390,18 +313,18 @@
 												class="flex flex-col gap-3 pb-4 pl-[108px]"
 												onsubmit={(e) => {
 													e.preventDefault();
-													move(d, String(new FormData(e.currentTarget).get('date')));
+													day.move(d, String(new FormData(e.currentTarget).get('date')));
 												}}
 											>
 												<div class="flex gap-2">
 													<div class="min-w-0 flex-1"><DateField value={d.local_date} name="date" label="New day" /></div>
-													<button type="submit" class="h-12 shrink-0 rounded-full bg-well px-4 text-[15px] font-bold text-ink disabled:opacity-50" disabled={doing !== null}>
-														{doing === `move:${d.id}` ? 'Moving…' : 'Move'}
+													<button type="submit" class="h-12 shrink-0 rounded-full bg-well px-4 text-[15px] font-bold text-ink disabled:opacity-50" disabled={day.doing !== null}>
+														{day.doing === `move:${d.id}` ? 'Moving…' : 'Move'}
 													</button>
 												</div>
-												<FormError message={rowError.id === d.id ? rowError.message : ''} />
-												<button type="button" class="h-11 self-start text-[15px] font-bold text-bad disabled:opacity-50" disabled={doing !== null} onclick={() => remove(d)}>
-													{doing === `remove:${d.id}` ? 'Removing…' : 'Remove'}
+												<FormError message={day.error.id === d.id ? day.error.message : ''} />
+												<button type="button" class="h-11 self-start text-[15px] font-bold text-bad disabled:opacity-50" disabled={day.doing !== null} onclick={() => day.remove(d)}>
+													{day.doing === `remove:${d.id}` ? 'Removing…' : 'Remove'}
 												</button>
 											</form>
 										</details>
@@ -477,41 +400,4 @@
 	<TimeOffSheet bind:open={offOpen} editing={editingOff} today={data.today} day={calendarView ? selected : data.today} />
 {/if}
 
-<Sheet bind:open={endOpen} title="Remove {ending?.template_name ?? ''}?">
-	{#if ending}
-		{@const d = ending}
-		<div class="flex flex-col gap-3.5">
-			{#if endingRepeat}
-				<p class="px-1 text-[15px] leading-normal font-medium text-ink-2">It repeats {ruleText(endingRepeat)}.</p>
-			{/if}
-			<FormError message={rowError.id === d.id ? rowError.message : ''} />
-			<div class="flex flex-col gap-2">
-				<Button variant="secondary" disabled={doing !== null} onclick={() => remove(d)}>Only {formatDate(d.local_date, { weekday: 'long' })}, {shortDate(d.local_date)}</Button>
-				<Button variant="danger" disabled={doing !== null} onclick={() => remove(d, true)}>This and later ones</Button>
-			</div>
-		</div>
-	{/if}
-</Sheet>
-
-<Sheet bind:open={moveOpen} title="Move {moving?.template_name ?? ''}">
-	{#if moving}
-		{@const d = moving}
-		<form
-			class="flex flex-col gap-3.5"
-			onsubmit={(e) => {
-				e.preventDefault();
-				move(d, moveTo);
-			}}
-		>
-			<label class="flex flex-col gap-1.5 rounded-3xl bg-surface p-[18px] text-xs font-semibold text-ink-2 shadow-card">
-				New day
-				<DateField bind:value={moveTo} label="New day" />
-			</label>
-			<FormError message={rowError.id === d.id ? rowError.message : ''} />
-			<div class="grid grid-cols-2 items-center gap-2">
-				<Button variant="secondary" onclick={() => (moveOpen = false)}>Cancel</Button>
-				<Button type="submit" disabled={doing !== null}>{doing === `move:${d.id}` ? 'Moving…' : 'Move'}</Button>
-			</div>
-		</form>
-	{/if}
-</Sheet>
+<DaySheets {day} repeats={data.repeats} />
