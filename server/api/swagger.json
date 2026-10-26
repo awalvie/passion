@@ -1596,6 +1596,112 @@
         ]
       }
     },
+    "/api/v1/time-off": {
+      "get": {
+        "tags": [
+          "time-off"
+        ],
+        "summary": "List your time off",
+        "operationId": "listTimeOff",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/timeOffListResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/time-off/{id}": {
+      "get": {
+        "tags": [
+          "time-off"
+        ],
+        "summary": "Read a time off",
+        "operationId": "readTimeOff",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/timeOffResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "description": "Creates the time off under the id you chose, or replaces it, so a retry\nmakes one.",
+        "tags": [
+          "time-off"
+        ],
+        "summary": "Create or replace a time off",
+        "operationId": "putTimeOff",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/timeOffResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "time-off"
+        ],
+        "summary": "Delete a time off",
+        "operationId": "deleteTimeOff",
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/tokens": {
       "post": {
         "description": "Each sign-in mints a separate token, so a phone and a laptop hold different\nones and signing out of either leaves the other working.",
@@ -4247,6 +4353,93 @@
             "hangboard",
             "fingers"
           ]
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "timeOffListResponse": {
+      "type": "object",
+      "properties": {
+        "time_off": {
+          "description": "Latest start first.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/timeOffResponse"
+          },
+          "x-go-name": "TimeOff"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "timeOffRequest": {
+      "type": "object",
+      "required": [
+        "kind",
+        "name",
+        "starts"
+      ],
+      "properties": {
+        "ends": {
+          "description": "The last day, inclusive, written YYYY-MM-DD. Null while the end is not\nknown yet.",
+          "type": "string",
+          "x-go-name": "Ends",
+          "example": "2026-11-15"
+        },
+        "kind": {
+          "description": "trip, injury, illness or other.",
+          "type": "string",
+          "x-go-name": "Kind",
+          "example": "trip"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Fontainebleau"
+        },
+        "pauses": {
+          "description": "Whether the planned sessions inside it are paused. True when left out.",
+          "type": "boolean",
+          "x-go-name": "Pauses",
+          "example": true
+        },
+        "starts": {
+          "description": "The first day, written YYYY-MM-DD.",
+          "type": "string",
+          "x-go-name": "Starts",
+          "example": "2026-11-07"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "timeOffResponse": {
+      "type": "object",
+      "properties": {
+        "ends": {
+          "description": "Null while the end is not known yet.",
+          "type": "string",
+          "x-go-name": "Ends"
+        },
+        "id": {
+          "description": "The id the client chose.",
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "kind": {
+          "type": "string",
+          "x-go-name": "Kind"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "pauses": {
+          "type": "boolean",
+          "x-go-name": "Pauses"
+        },
+        "starts": {
+          "type": "string",
+          "x-go-name": "Starts"
         }
       },
       "x-go-package": "passion/server/api"
