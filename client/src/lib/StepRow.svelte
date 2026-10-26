@@ -48,7 +48,7 @@
 					type="number"
 					min="0"
 					step="1"
-					class="input digits h-11 px-1 text-center {c === 'set_rest_seconds' ? 'w-16' : 'w-12'} {selected ? 'bg-surface' : ''}"
+					class="input digits min-h-11 [appearance:textfield] px-1 text-center [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none {c === 'set_rest_seconds' ? 'w-16' : 'w-12'} {selected ? 'bg-surface' : ''}"
 					aria-label="{countLabels[c]} for {step.name}"
 					bind:value={step[c]}
 					onchange={() => (step[c] = whole(step[c]))}
