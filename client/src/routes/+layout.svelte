@@ -52,8 +52,12 @@
 	});
 	const outlineRoot = $derived(navigating.to?.url ? isRoot(navigating.to.url) : false);
 
-	// Today and Progress have wide layouts of their own, beside the rail.
-	const wide = $derived(page.route.id === '/(app)/(tabs)' || page.route.id === '/(app)/(tabs)/history/progress');
+	// Today, Journal and Progress have wide layouts of their own, beside the rail.
+	const wide = $derived(
+		page.route.id === '/(app)/(tabs)' ||
+			page.route.id === '/(app)/(tabs)/journal' ||
+			page.route.id === '/(app)/(tabs)/history/progress'
+	);
 
 	onNavigate((navigation) => {
 		if (!document.startViewTransition || kind === 'none') return;

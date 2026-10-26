@@ -6,13 +6,13 @@
 	import SessionIcon from './SessionIcon.svelte';
 
 	// An entry as it reads: its day, its text, and the session it was written
-	// during.
-	let { entry }: { entry: JournalEntry } = $props();
+	// during. Beside the Journal's list, its title is an h2 under the page's h1.
+	let { entry, heading = 'h1' }: { entry: JournalEntry; heading?: 'h1' | 'h2' } = $props();
 </script>
 
 <header class="px-1">
 	{#if entry.pinned_at}<p class="text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">Pinned</p>{/if}
-	<h1 class="page-title mt-1 text-balance">{fullDate(entry.local_date)}</h1>
+	<svelte:element this={heading} class="page-title mt-1 text-balance">{fullDate(entry.local_date)}</svelte:element>
 </header>
 
 <div class="flex flex-col gap-2.5 rounded-3xl bg-surface px-5 py-[18px] shadow-card reading">

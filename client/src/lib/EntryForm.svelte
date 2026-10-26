@@ -10,17 +10,20 @@
 	import { guardUnsaved } from './unsaved';
 
 	// New entry when there is no entry, else Edit entry. Pin is only on a new
-	// one; an entry already made pins from its own menu.
+	// one; an entry already made pins from its own menu. Beside the Journal's
+	// list, its title is an h2 under the page's h1.
 	let {
 		entry,
 		today,
 		cancel,
-		saved
+		saved,
+		heading = 'h1'
 	}: {
 		entry?: JournalEntry;
 		today: string;
 		cancel: string;
 		saved: (entry: JournalEntry) => Promise<unknown>;
+		heading?: 'h1' | 'h2';
 	} = $props();
 
 	type Draft = { id: string; local_date: string; body: string; pin: boolean; base: string };
@@ -108,7 +111,7 @@
 			>
 				Cancel
 			</a>
-			<h1 class="text-[15px] font-bold">{entry ? 'Edit entry' : 'New entry'}</h1>
+			<svelte:element this={heading} class="text-[15px] font-bold">{entry ? 'Edit entry' : 'New entry'}</svelte:element>
 			<button
 				type="submit"
 				class="flex h-11 items-center justify-self-end rounded-full bg-tint px-5 text-[15px] font-bold text-on-tint shadow-tint disabled:opacity-50"
