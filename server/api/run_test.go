@@ -440,6 +440,34 @@ func TestRunsRefuseAStartedAtJSONCannotHold(t *testing.T) {
 	}
 }
 
+// A finished run can still be changed, and the change does not unfinish it.
+func TestEditingAFinishedRunKeepsItFinished(t *testing.T) {
+	h := newTestServer(t)
+	ada := signedIn(t, h, "ada@example.com")
+	run, hang, _ := runWithSteps(t, h, ada)
+
+	finished := decodeRun(t, send(t, h, http.MethodPost, "/api/v1/runs/"+run.ID+"/finish", ada, ""))
+	if finished.FinishedAt == nil {
+		t.Fatal("the run did not finish")
+	}
+
+	body := runRequestFrom(t, finished, func(b map[string]any) { b["went_well"] = "Heel hooks" })
+	rec := send(t, h, http.MethodPut, "/api/v1/runs/"+run.ID, ada, body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("edit: status %d: %s", rec.Code, rec.Body)
+	}
+	got := decodeRun(t, rec)
+	if got.FinishedAt == nil || !got.FinishedAt.Equal(*finished.FinishedAt) || got.WentWell == nil {
+		t.Fatalf("finished %v, went well %v, want the first finish kept beside the edit", got.FinishedAt, got.WentWell)
+	}
+
+	// The finish skipped the hang, so it takes no sets until it is reopened.
+	rec = send(t, h, http.MethodPut, "/api/v1/runs/"+run.ID+"/steps/"+hang+"/sets", ada, `{"sets": [{"reps": 1}]}`)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("sets on a step the finish skipped: status %d, want 422: %s", rec.Code, rec.Body)
+	}
+}
+
 // Another account can neither read nor change a run by its id, nor anything
 // nested in it by a step or climb id.
 func TestSomeoneElsesRunIsOutOfReach(t *testing.T) {
