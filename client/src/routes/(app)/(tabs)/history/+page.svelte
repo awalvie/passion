@@ -37,7 +37,7 @@
 		const tops = main?.points.filter((t): t is number => t !== null) ?? [];
 		return tops.length ? main!.scale.grades[Math.max(...tops)] : null;
 	});
-	const hoursLabel = (h: number) => (h ? `${Math.round(h * 2) / 2}h` : '0h');
+	const hoursLabel = (h: number) => `${Math.round(h * 10) / 10}h`;
 </script>
 
 <svelte:head><title>History</title></svelte:head>
