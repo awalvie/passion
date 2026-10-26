@@ -1,4 +1,4 @@
-import { request } from './api';
+import { forget, request } from './api';
 import type { IconName } from './Icon.svelte';
 import { plural } from './text';
 
@@ -205,6 +205,9 @@ export function formatMinutes(seconds: number): string {
 	return formatDuration(Math.max(1, Math.round(seconds / 60)) * 60);
 }
 
-export async function loadExercises(): Promise<Exercise[]> {
+// fresh empties the kept GET answers first, for an exercise made in another
+// tab.
+export async function loadExercises(fresh = false): Promise<Exercise[]> {
+	if (fresh) forget();
 	return (await request<{ exercises: Exercise[] }>('GET', '/api/v1/exercises')).exercises;
 }

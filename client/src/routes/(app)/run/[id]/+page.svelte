@@ -73,6 +73,17 @@
 		}
 	}
 
+	// The picker sends a missing exercise to the library in another tab, so
+	// the list reloads when the user comes back to this one.
+	async function reload() {
+		if (!library.length) return;
+		try {
+			library = (await loadExercises(true)).filter((e) => !e.retired_at);
+		} catch {
+			/* keep the list it has */
+		}
+	}
+
 	function pick(id: string, options: Step[]) {
 		openRun.pick(id, options);
 		choosing = null;
@@ -312,6 +323,7 @@
 {/snippet}
 
 <svelte:head><title>{run.name}</title></svelte:head>
+<svelte:window onfocus={reload} />
 
 <RunField
 	label={run.name}

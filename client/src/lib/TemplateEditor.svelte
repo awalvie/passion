@@ -52,7 +52,7 @@
 	let library = $state(untrack(() => exercises));
 	async function reload() {
 		try {
-			library = await loadExercises();
+			library = await loadExercises(true);
 		} catch {
 			/* keep the list it has */
 		}

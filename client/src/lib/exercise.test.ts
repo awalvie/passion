@@ -43,3 +43,15 @@ test('loadExercises reads the library list', async () => {
 	expect(fetch).toHaveBeenCalledWith('/api/v1/exercises', expect.objectContaining({ method: 'GET' }));
 	vi.unstubAllGlobals();
 });
+
+test('loadExercises asks the server again when told to load fresh', async () => {
+	const fetch = vi.fn(async () => Response.json({ exercises: [] }));
+	vi.stubGlobal('fetch', fetch);
+	vi.stubGlobal('localStorage', { getItem: () => null });
+	await loadExercises(true);
+	await loadExercises();
+	expect(fetch).toHaveBeenCalledTimes(1);
+	await loadExercises(true);
+	expect(fetch).toHaveBeenCalledTimes(2);
+	vi.unstubAllGlobals();
+});
