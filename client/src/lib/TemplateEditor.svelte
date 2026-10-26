@@ -106,6 +106,8 @@
 	let addTo = $state<Section | undefined>(untrack(() => draft.sections[0]));
 	let target = $state<Target | null>(null);
 	let addOpen = $state(false);
+	// Each opening of the Add sheet starts with an empty search.
+	let opened = $state(0);
 	let search = $state<HTMLInputElement>();
 
 	// The library lists exercises, or sections of other sessions to copy.
@@ -125,6 +127,7 @@
 		}
 		target = to;
 		tab = 'exercises';
+		opened++;
 		addOpen = true;
 	}
 
@@ -525,6 +528,7 @@
 >
 	{#if target}
 		{@const to = target}
+		{#key opened}
 		<div class="flex flex-col gap-3">
 			{#if 'section' in to}{@render tabs()}{/if}
 			{#if tab === 'sections' && 'section' in to}
@@ -533,6 +537,7 @@
 				<ExerciseList exercises={library} pick={(e) => put(to, e)} inside={(e) => inside(to, e)} onnew={(name) => make(name, to)} />
 			{/if}
 		</div>
+		{/key}
 	{/if}
 </Sheet>
 
