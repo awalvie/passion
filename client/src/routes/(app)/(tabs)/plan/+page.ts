@@ -10,7 +10,7 @@ export async function load({ url }) {
 		// Six whole weeks: by default last week, this week and the four after it.
 		// The calendar can show six other weeks, from the Monday in ?from.
 		const asked = url.searchParams.get('from') ?? '';
-		const from = /^\d{4}-\d{2}-\d{2}$/.test(asked) ? mondayOf(asked) : addDays(mondayOf(today), -7);
+		const from = /^\d{4}-\d{2}-\d{2}$/.test(asked) && !isNaN(Date.parse(asked)) ? mondayOf(asked) : addDays(mondayOf(today), -7);
 		const [{ days }, { cycles }, { repeats }, { time_off: timeOff }, templates] = await Promise.all([
 			request<{ days: ScheduledDay[] }>('GET', `/api/v1/scheduled-sessions?from=${from}&to=${addDays(from, 41)}`),
 			request<{ cycles: Cycle[] }>('GET', '/api/v1/cycles'),
