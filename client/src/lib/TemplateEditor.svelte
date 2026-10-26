@@ -161,7 +161,8 @@
 			const i = draft.sections.indexOf(added);
 			if (i >= 0) draft.sections.splice(i, 1);
 			if (addTo === added) addTo = draft.sections[0];
-			copied = copied.filter((k) => k !== key);
+			const k = copied.lastIndexOf(key);
+			if (k >= 0) copied.splice(k, 1);
 		};
 	}
 
