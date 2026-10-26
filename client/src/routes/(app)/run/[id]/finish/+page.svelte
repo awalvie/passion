@@ -8,6 +8,7 @@
 	import NavBar from '$lib/NavBar.svelte';
 	import { isStale, secondsSince, type Run } from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
+	import Select from '$lib/Select.svelte';
 	import { guardUnsaved } from '$lib/unsaved';
 
 	const run = $derived(openRun.run!);
@@ -136,20 +137,19 @@
 	<div class="grid grid-cols-2 gap-3 rounded-3xl bg-surface p-4 shadow-card">
 		<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
 			Focus
-			<select class="input" bind:value={focus}>
-				<option value="">–</option>
-				{#each focuses as f (f)}
-					<option value={f}>{f[0].toUpperCase() + f.slice(1)}</option>
-				{/each}
-			</select>
+			<Select bind:value={focus} label="Focus" options={[{ value: '', label: '–' }, ...focuses.map((f) => ({ value: f, label: f[0].toUpperCase() + f.slice(1) }))]} />
 		</label>
 		<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
 			Where
-			<select class="input" bind:value={setting}>
-				<option value="">–</option>
-				<option value="indoor">Indoor</option>
-				<option value="outdoor">Outdoor</option>
-			</select>
+			<Select
+				bind:value={setting}
+				label="Where"
+				options={[
+					{ value: '', label: '–' },
+					{ value: 'indoor', label: 'Indoor' },
+					{ value: 'outdoor', label: 'Outdoor' }
+				]}
+			/>
 		</label>
 	</div>
 

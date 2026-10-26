@@ -2,6 +2,7 @@
 	import Checkbox from './Checkbox.svelte';
 	import DurationInput from '$lib/DurationInput.svelte';
 	import Icon from '$lib/Icon.svelte';
+	import Select from '$lib/Select.svelte';
 	import { allCounts, countLabels, kindOf, kinds, type Count, type Draft } from '$lib/exercise';
 
 	let {
@@ -21,12 +22,10 @@
 			<input id="ex-name" class="mt-1.5 input" maxlength="200" bind:value={draft.name} required />
 		</div>
 		<div>
-			<label class="block text-xs font-semibold text-ink-2" for="ex-kind">Type</label>
-			<select id="ex-kind" class="mt-1.5 input" bind:value={draft.kind}>
-				{#each kinds as k (k.kind)}
-					<option value={k.kind}>{k.label}</option>
-				{/each}
-			</select>
+			<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
+				Type
+				<Select bind:value={draft.kind} label="Type" options={kinds.map((k) => ({ value: k.kind, label: k.label }))} />
+			</label>
 			<p class="mt-1 mb-0 text-xs font-semibold text-ink-3">{kindOf(draft.kind).hint}</p>
 		</div>
 		<div>
