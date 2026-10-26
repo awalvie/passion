@@ -16,6 +16,7 @@
 	import SessionIcon, { iconState } from '$lib/SessionIcon.svelte';
 	import type { ScheduledDay, TimeOff } from '$lib/plan';
 	import TimeOffSheet from '$lib/TimeOffSheet.svelte';
+	import WeekStrip from '$lib/WeekStrip.svelte';
 
 	let { data } = $props();
 
@@ -109,6 +110,9 @@
 			return ra === 1 ? a.starts.localeCompare(b.starts) : b.starts.localeCompare(a.starts);
 		});
 	});
+	// From lg a Cycles row picks its cycle for the pane; a running one comes first.
+	let pickedCycle = $state('');
+	const cycle = $derived(ordered.find((c) => c.id === pickedCycle) ?? ordered[0]);
 
 	const statuses = { done: 'Done', started: 'Started', paused: 'Paused', missed: 'Missed', planned: '' };
 </script>
@@ -307,47 +311,95 @@
 			{/if}
 		</div>
 	{:else}
-		{#if data.cycles.length}
-			<CycleYear cycles={data.cycles} today={data.today} />
-			<h2 class="px-1 text-xl font-bold">Cycles</h2>
-		{/if}
-		<section class="rounded-3xl bg-surface px-[18px] pt-2 pb-2 shadow-card">
-			{#if data.cycles.length}
-				<ul>
-					{#each ordered as c (c.id)}
-						{@const state = cycleState(c)}
-						<li class="list-row">
-							<a href="/plan/cycles/{c.id}" class="flex min-h-[58px] items-center gap-3 py-2">
-								<span
-									class="size-2.5 shrink-0 rounded-full {state === 'now'
-										? 'bg-live shadow-[0_0_0_4px_var(--live-halo)]'
-										: state === 'next'
-											? 'shadow-[inset_0_0_0_1.5px_var(--ink-3)]'
-											: 'bg-ink-3 opacity-50'}"
-									aria-hidden="true"
-								></span>
-								<span class="min-w-0 flex-1">
-									<span class="block truncate text-[15px] font-bold">{c.name}</span>
-									<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
-										{shortDate(c.starts)} – {shortDate(c.ends)}{when(c) ? ` · ${when(c)}` : ''}
-									</span>
-								</span>
-								{#if state === 'now'}
-									<span class="shrink-0 rounded-xl bg-live px-2.5 py-[5px] text-xs font-bold text-on-live">Now</span>
-								{:else}
-									<span class="text-ink-3"><Icon name="chevron-right" size="1rem" /></span>
-								{/if}
-							</a>
-						</li>
-					{/each}
-				</ul>
-			{:else}
-				<div class="flex flex-col gap-3 pt-1 pb-3">
-					<p class="text-[15px] font-semibold text-ink-2">A cycle repeats a block of sessions over weeks.</p>
-					<a href="/plan/cycles/new" class="flex h-12 items-center justify-center rounded-full bg-tint text-[15px] font-bold text-on-tint shadow-tint">New cycle</a>
-				</div>
+		{#snippet cycleRow(c: (typeof ordered)[number])}
+			{@const state = cycleState(c)}
+			<span
+				class="size-2.5 shrink-0 rounded-full {state === 'now'
+					? 'bg-live shadow-[0_0_0_4px_var(--live-halo)]'
+					: state === 'next'
+						? 'shadow-[inset_0_0_0_1.5px_var(--ink-3)]'
+						: 'bg-ink-3 opacity-50'}"
+				aria-hidden="true"
+			></span>
+			<span class="min-w-0 flex-1">
+				<span class="block truncate text-[15px] font-bold">{c.name}</span>
+				<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
+					{shortDate(c.starts)} – {shortDate(c.ends)}{when(c) ? ` · ${when(c)}` : ''}
+				</span>
+			</span>
+			{#if state === 'now'}
+				<span class="shrink-0 rounded-xl bg-live px-2.5 py-[5px] text-xs font-bold text-on-live">Now</span>
+			{:else if !wide.current}
+				<span class="text-ink-3"><Icon name="chevron-right" size="1rem" /></span>
 			{/if}
-		</section>
+		{/snippet}
+		<div class="flex flex-col gap-3.5 lg:mt-2 lg:grid lg:grid-cols-[minmax(0,1fr)_330px] lg:items-start lg:gap-[22px]">
+			<div class="flex flex-col gap-3.5">
+				{#if data.cycles.length}
+					<CycleYear cycles={data.cycles} today={data.today} />
+					<h2 class="px-1 text-xl font-bold">Cycles</h2>
+				{/if}
+				<section class="rounded-3xl bg-surface px-[18px] pt-2 pb-2 shadow-card">
+					{#if data.cycles.length}
+						<ul>
+							{#each ordered as c (c.id)}
+								<li class="list-row">
+									{#if wide.current}
+										<button
+											type="button"
+											class="-mx-2.5 flex min-h-[58px] w-[calc(100%+1.25rem)] items-center gap-3 rounded-2xl px-2.5 py-2 text-left {c.id === cycle?.id ? 'bg-well' : ''}"
+											aria-pressed={c.id === cycle?.id}
+											onclick={() => (pickedCycle = c.id)}
+										>
+											{@render cycleRow(c)}
+										</button>
+									{:else}
+										<a href="/plan/cycles/{c.id}" class="flex min-h-[58px] items-center gap-3 py-2">{@render cycleRow(c)}</a>
+									{/if}
+								</li>
+							{/each}
+						</ul>
+					{:else}
+						<div class="flex flex-col gap-3 pt-1 pb-3">
+							<p class="text-[15px] font-semibold text-ink-2">A cycle repeats a block of sessions over weeks.</p>
+							<a href="/plan/cycles/new" class="flex h-12 items-center justify-center rounded-full bg-tint text-[15px] font-bold text-on-tint shadow-tint">New cycle</a>
+						</div>
+					{/if}
+				</section>
+			</div>
+			{#if wide.current && cycle}
+				<section class="sticky top-6 flex flex-col gap-2" aria-live="polite">
+					<div class="flex h-11 items-center justify-between gap-3 px-1">
+						<h2 class="truncate text-[15px] font-bold">{cycle.name}</h2>
+						<span class="shrink-0 text-xs font-semibold text-ink-2">{shortDate(cycle.starts)} – {shortDate(cycle.ends)}</span>
+					</div>
+					<div class="flex flex-col gap-4 rounded-3xl bg-surface p-[18px] shadow-card">
+						<div>
+							<h3 class="text-xs font-semibold text-ink-2">Block · every {cycle.block_days} days</h3>
+							<ol class="mt-2.5 flex flex-wrap items-center gap-1.5">
+								{#each Array.from({ length: cycle.block_days }, (_, i) => i + 1) as n (n)}
+									{@const t = templates.get(cycle.days.find((d) => d.day === n)?.template ?? '')}
+									<li class="flex size-[26px] items-center justify-center" aria-label="Day {n}: {t?.name ?? 'Rest'}">
+										{#if t}
+											<SessionIcon icon={t.icon} name={t.name} size={26} />
+										{:else}
+											<span class="size-1 rounded-full bg-ink-3"></span>
+										{/if}
+									</li>
+								{/each}
+							</ol>
+						</div>
+						{#if cycleState(cycle) === 'now'}
+							<div>
+								<h3 class="text-xs font-semibold text-ink-2">This week</h3>
+								<div class="-mx-4 -mt-1"><WeekStrip monday={mondayOf(data.today)} today={data.today} week={data.days.filter((d) => d.local_date >= mondayOf(data.today) && d.local_date <= addDays(mondayOf(data.today), 6))} /></div>
+							</div>
+						{/if}
+						<a href="/plan/cycles/{cycle.id}" class="flex h-12 items-center justify-center rounded-full bg-well text-[15px] font-bold shadow-card-sm">Open cycle</a>
+					</div>
+				</section>
+			{/if}
+		</div>
 	{/if}
 </div>
 
