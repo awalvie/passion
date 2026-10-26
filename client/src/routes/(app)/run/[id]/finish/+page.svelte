@@ -110,9 +110,9 @@
 	</label>
 {/snippet}
 
-<svelte:head><title>{editing ? 'Journal' : 'Finish'} {run.name}</title></svelte:head>
+<svelte:head><title>{editing ? 'Session journal' : 'Finish'} {run.name}</title></svelte:head>
 
-<NavBar title={editing ? 'Journal' : 'Finish'} back={{ href: editing ? `/history/${run.id}` : `/run/${run.id}`, label: 'Session' }} />
+<NavBar title={editing ? 'Session journal' : 'Finish'} back={{ href: editing ? `/history/${run.id}` : `/run/${run.id}`, label: 'Session' }} />
 
 <div class="flex flex-col gap-3 px-4 pt-1 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
 	{#if stale}

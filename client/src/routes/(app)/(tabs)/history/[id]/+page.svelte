@@ -133,14 +133,14 @@
 	{#if !scores.length && !words.length && !thoughts.length}
 		<a href="/run/{run.id}/finish" class="flex min-h-16 items-center gap-3 rounded-3xl bg-surface px-4 py-3 shadow-card">
 			<span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-well text-ink-2"><Icon name="pencil" size="17px" stroke={2.2} /></span>
-			<span class="flex-1 text-[15px] font-bold">Add a journal</span>
+			<span class="flex-1 text-[15px] font-bold">Add session journal</span>
 			<span class="text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.4} /></span>
 		</a>
 	{:else}
-		<Section title="Journal">
+		<Section title="Session journal">
 			<!-- The whole card opens the journal form; the first row leaves room for the pencil. -->
 			<a href="/run/{run.id}/finish" class="relative flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-				<span class="absolute top-3.5 right-3.5 flex size-9 items-center justify-center rounded-full bg-well text-ink-2"><Icon name="pencil" size="16px" stroke={2.2} /><span class="sr-only">Edit journal</span></span>
+				<span class="absolute top-3.5 right-3.5 flex size-9 items-center justify-center rounded-full bg-well text-ink-2"><Icon name="pencil" size="16px" stroke={2.2} /><span class="sr-only">Edit session journal</span></span>
 				{#each thoughts as [label, text], i (label)}
 					<div class="flex flex-col gap-1 {i ? '' : 'pr-11'}">
 						{#if label}<span class="text-xs font-bold text-ink-2">{label}</span>{/if}

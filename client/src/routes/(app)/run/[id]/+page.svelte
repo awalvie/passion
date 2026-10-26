@@ -412,7 +412,7 @@
 		<Menu
 			look="bg-(--pill) text-on-hero"
 			items={[
-				{ label: run.finished_at ? 'Edit journal' : 'Finish session', onclick: () => goto(`/run/${run.id}/finish`) },
+				{ label: run.finished_at ? 'Edit session journal' : 'Finish session', onclick: () => goto(`/run/${run.id}/finish`) },
 				{ label: 'Discard session', danger: true, onclick: discard }
 			]}
 		/>
