@@ -48,6 +48,7 @@ Tokens are in `client/src/tokens.css`; each needs a light and a dark value.
 - `bg-ground` page, `bg-surface` card, `bg-well` field. Text `text-ink`/`-2`/`-3`, lines `border-line`.
 - Lime (`bg-tint`) marks Start, Log and the current tab, never text. Apricot (`bg-live`) is a running session.
 - Type: `text-xs` labels, `text-[15px]` body, `text-xl` card titles. `digits` for numbers, `reading` for the user's notes.
+- The landing page (`/welcome`) has its own larger type for the headline and section titles.
 - Fields and `<select>` use `.input`, except a lone free-text note: `bg-surface text-[15px] font-semibold placeholder:text-ink-3`.
 - Reuse `client/src/lib/` parts (`Section`, `Segmented`, `Tabs`, `Sheet`, `Chart`…) before making new ones.
 - Controls are at least 44 px. List rows use `list-row`. A row that opens a page ends with a chevron.
