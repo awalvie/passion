@@ -8,9 +8,16 @@
 
 	const repo = 'https://github.com/awalvie/passion';
 	const links = [
-		{ label: 'See the code', href: repo },
-		{ label: 'See every change', href: `${repo}/commits/master` },
-		{ label: 'Host it yourself', href: `${repo}/blob/master/docs/DEPLOY.md` }
+		{ label: 'Source code', href: repo },
+		{ label: 'Run it yourself', href: `${repo}/blob/master/docs/DEPLOY.md` }
+	];
+
+	const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+	const cards = [
+		{ title: 'Plan', text: 'Write your own sessions or start from the built-in ones. Pick the days once and they repeat for up to a year.', shot: 'cycle', alt: 'A cycle calendar for October and November' },
+		{ title: 'Progress', text: 'Your hours, climbs and grades over time, and the history of each exercise.', shot: 'progress', alt: 'Progress for climbs: climbs a week, send rate and flash rate' },
+		{ title: 'Journal', text: 'Pin the notes you want to see when a session starts.', shot: 'journal', alt: 'The Journal with two pinned notes' },
+		{ title: 'History', text: 'Each session with its sets, climbs and notes.', shot: 'history', alt: 'History with time, climbs and hardest send this week' }
 	];
 </script>
 
@@ -19,10 +26,16 @@
 	<meta name="description" content="The training app built for climbing. Time your hangs, log every attempt and send, and plan your weeks. Free, and the code is public." />
 </svelte:head>
 
-{#snippet card(title: string, text: string)}
-	<div class="flex flex-col gap-2 px-6 pt-6 pb-5">
-		<h2 class="text-[28px] leading-tight font-extrabold tracking-[-0.02em]">{title}</h2>
-		<p class="text-[15px] leading-relaxed text-ink-2">{text}</p>
+{#snippet phone(src: string, alt: string)}
+	<div class="h-[330px] w-full max-w-[250px] overflow-hidden rounded-t-[40px] bg-run px-[7px] pt-[7px] shadow-card">
+		<img {src} {alt} width="786" height="1080" loading="lazy" class="w-full rounded-t-[33px]" />
+	</div>
+{/snippet}
+
+{#snippet copy(title: string, text: string, muted: string)}
+	<div class="flex flex-col gap-2 px-7 pt-7">
+		<h3 class="text-xl font-extrabold tracking-[-0.02em]">{title}</h3>
+		<p class="max-w-[34ch] text-base leading-relaxed {muted}">{text}</p>
 	</div>
 {/snippet}
 
@@ -36,88 +49,83 @@
 	/>
 
 	<div
-		class="relative mx-auto max-w-[1104px] pt-[env(safe-area-inset-top)] pr-[max(1rem,env(safe-area-inset-right))] pl-[max(1rem,env(safe-area-inset-left))] md:pr-[max(2.5rem,env(safe-area-inset-right))] md:pl-[max(2.5rem,env(safe-area-inset-left))]"
+		class="relative mx-auto max-w-[1184px] pt-[env(safe-area-inset-top)] pr-[max(1rem,env(safe-area-inset-right))] pl-[max(1rem,env(safe-area-inset-left))] md:pr-[max(2.5rem,env(safe-area-inset-right))] md:pl-[max(2.5rem,env(safe-area-inset-left))]"
 	>
-		<header class="flex h-18 items-center justify-between">
-			<span class="flex items-center gap-2 text-xl font-extrabold tracking-tight [&>svg]:h-[30px]! [&>svg]:w-auto!">
+		<header class="flex h-22 items-center justify-between">
+			<span class="flex items-center gap-2.5 text-[28px] font-extrabold tracking-[-0.03em] [&>svg]:h-11! [&>svg]:w-auto!">
 				{@html logo}Passion
 			</span>
-			<a href="/login" class="flex h-11 items-center rounded-full bg-surface px-[18px] text-[15px] font-bold shadow-card-sm">Log in</a>
+			<div class="w-24"><Button variant="secondary" href="/login">Log in</Button></div>
 		</header>
 
 		<main>
-			<div class="grid gap-6 pt-6 lg:grid-cols-[7fr_5fr] lg:items-center lg:gap-12 lg:pt-12">
-				<div class="flex flex-col items-start gap-4">
-					<h1 class="text-[40px] leading-[1.05] font-extrabold tracking-[-0.02em] text-balance">The training app built for climbing</h1>
-					<p class="max-w-[44ch] text-[15px] leading-relaxed font-medium text-pretty text-ink-2">
-						Time your hangs, log every attempt and send, and plan your weeks.
-					</p>
-					<div class="mt-1 flex w-full flex-col gap-2.5 text-center lg:w-60 lg:text-left">
-						<Button href="/signup">Sign up</Button>
-						<p class="text-[15px] font-semibold lg:whitespace-nowrap">Free. No ads, no subscription. Cross-platform.</p>
-					</div>
-				</div>
-				<div class="flex justify-center max-lg:h-[350px] max-lg:overflow-hidden max-lg:pt-1 max-lg:[mask-image:linear-gradient(#000_85%,transparent)]">
-					<img
-						src="/landing/climbs.png"
-						width="1000"
-						height="1534"
-						alt="Logging a boulder: grade buttons from 6b to 7a+, then Attempt and Send"
-						class="w-[82%] rounded-[28px] shadow-card ring-1 ring-line lg:w-[300px]"
-					/>
-				</div>
-			</div>
-
-			<!-- Each shot sits in a box of one height at the foot of its card. A tall
-			     shot fades out before its next row shows. -->
-			<ul class="grid gap-6 pt-12 lg:grid-cols-3 lg:pt-18">
-				<li class="flex min-w-0 flex-col overflow-hidden rounded-3xl bg-surface shadow-card">
-					{@render card('Plan', 'Write your own sessions or start from the built-in ones. Put them on a calendar. Pick the days once and they repeat for up to a year.')}
-					<div class="mt-auto h-[340px] overflow-hidden px-6 [mask-image:linear-gradient(#000_72%,transparent_97%)]">
-						<div class="mx-auto max-w-[300px] overflow-hidden rounded-t-[20px] ring-1 ring-line">
-							<img src="/landing/cycle-light.png" width="796" height="1265" loading="lazy" alt="A cycle calendar with done, missed and planned sessions, and today" class="w-full dark:hidden" />
-							<img src="/landing/cycle-dark.png" width="796" height="1265" loading="lazy" alt="A cycle calendar with done, missed and planned sessions, and today" class="hidden w-full dark:block" />
-						</div>
-					</div>
-				</li>
-				<li class="flex min-w-0 flex-col overflow-hidden rounded-3xl bg-surface shadow-card">
-					{@render card('Train', "Time hangs and repeaters. Log each go on a climb as an attempt or a send. Last time's reps and weight show under each set.")}
-					<div class="mt-auto h-[340px] overflow-hidden px-6 [mask-image:linear-gradient(#000_72%,transparent_97%)]">
-						<div class="mx-auto max-w-[300px] overflow-hidden rounded-t-[20px] ring-1 ring-line">
-							<img src="/landing/timer.png" width="1000" height="1534" loading="lazy" alt="A hang timer: work, rep 1 of 6, four seconds left" class="w-full" />
-						</div>
-					</div>
-				</li>
-				<li class="flex min-w-0 flex-col overflow-hidden rounded-3xl bg-surface shadow-card">
-					{@render card('Progress', 'A grade pyramid of your sends with flashes marked, and your send and flash rates. Show grades in Font, V scale, French or YDS.')}
-					<div class="mt-auto h-[340px] px-6">
-						<div class="mx-auto max-w-[300px] overflow-hidden rounded-[20px] ring-1 ring-line">
-							<img src="/landing/pyramid-light.png" width="796" height="809" loading="lazy" alt="A grade pyramid of 46 boulders sent, from 6b to 7b" class="w-full dark:hidden" />
-							<img src="/landing/pyramid-dark.png" width="796" height="809" loading="lazy" alt="A grade pyramid of 46 boulders sent, from 6b to 7b" class="hidden w-full dark:block" />
-						</div>
-					</div>
-				</li>
-			</ul>
-
-			<section class="flex flex-col gap-2 px-1 pt-12 lg:pt-18">
-				<h2 class="text-[28px] leading-tight font-extrabold tracking-[-0.02em]">Free, and the code is public</h2>
-				<p class="max-w-[52ch] text-[15px] leading-relaxed text-ink-2">
-					The code changes every week. Read it, report a bug or host it on your own server.
+			<section class="flex flex-col items-start gap-4 pt-4 md:pt-12">
+				<h1 class="max-w-[16ch] text-[clamp(44px,6.4vw,88px)] leading-none font-extrabold tracking-[-0.02em] text-balance">The training app built for climbing</h1>
+				<p class="max-w-[40ch] text-[clamp(17px,1.6vw,20px)] leading-relaxed text-pretty text-ink-2">
+					Time your hangs, log every attempt and send, and plan your weeks.
 				</p>
-				<div class="flex flex-wrap gap-x-6">
-					{#each links as l (l.href)}
-						<a href={l.href} class="flex min-h-11 items-center gap-1 text-[15px] font-bold">
-							{l.label}<span class="text-ink-2"><Icon name="chevron-right" size="1.125rem" /></span>
-						</a>
-					{/each}
+				<div class="mt-1 flex flex-wrap items-center gap-x-5 gap-y-3">
+					<div class="w-60"><Button href="/signup">Sign up</Button></div>
+					<p class="text-[15px] font-semibold text-ink-2">Free. No ads, no subscription.</p>
 				</div>
 			</section>
 
-			<HeroCard class="mt-12 lg:mt-18">
-				<div class="flex flex-col items-center gap-3 py-5 text-center lg:py-10">
-					<h2 class="page-title">Create an account</h2>
-					<p class="text-[15px] text-on-hero-2">Plan your week or start a session.</p>
-					<div class="mt-3 w-full lg:w-60"><Button href="/signup">Sign up</Button></div>
+			<!-- The phone covers only the laptop's tab rail. -->
+			<div class="relative mt-10 flex justify-center md:mt-14 md:block md:pb-12 md:pl-[calc(clamp(130px,18vw,240px)-56px)]">
+				<div class="hidden overflow-hidden rounded-[20px] bg-surface shadow-card ring-1 ring-line md:block">
+					<img src="/landing/laptop-today-{theme}.png" width="2880" height="1630" alt="Today on a laptop: last week, this week, and the next session" />
+				</div>
+				<div class="w-60 rounded-[40px] bg-run p-[7px] shadow-card md:absolute md:bottom-0 md:left-0 md:w-[clamp(130px,18vw,240px)]">
+					<img src="/landing/climbs.png" width="786" height="1704" alt="Logging a boulder: a 6c picked and one send logged" class="rounded-[33px]" />
+				</div>
+			</div>
+
+			<!-- On a phone the cards are one row you swipe through. -->
+			<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+			<section
+				aria-label="Features"
+				tabindex="0"
+				class="-mx-[max(1rem,env(safe-area-inset-left))] grid snap-x snap-mandatory auto-cols-[86%] grid-flow-col gap-5 overflow-x-auto px-[max(1rem,env(safe-area-inset-left))] pt-12 pb-2 [scroll-padding-inline:max(1rem,env(safe-area-inset-left))] md:-mx-10 md:px-10 lg:mx-0 lg:grid-flow-row lg:grid-cols-3 lg:overflow-visible lg:px-0 lg:pt-24"
+			>
+				<HeroCard flush class="flex min-h-[500px] snap-start flex-col lg:col-span-2 lg:min-h-[520px]">
+					{@render copy('Train', "Time hangs and repeaters. Log each go on a climb as an attempt or a send. Last time's reps and weight show under each set.", 'text-on-hero-2')}
+					<div class="mt-auto flex justify-center gap-5 px-7 pt-6">
+						{@render phone('/landing/timer.png', 'A hang timer: work, rep 1 of 6, eight seconds left')}
+						<div class="hidden lg:contents">
+							{@render phone('/landing/sets.png', "Deadlift sets with last time's reps and weight under each")}
+						</div>
+					</div>
+				</HeroCard>
+				{#each cards as c (c.title)}
+					<article class="flex min-h-[500px] snap-start flex-col overflow-hidden rounded-[32px] bg-surface shadow-card lg:min-h-[520px]">
+						{@render copy(c.title, c.text, 'text-ink-2')}
+						<div class="mt-auto flex justify-center px-7 pt-6">
+							{@render phone(`/landing/${c.shot}-${theme}.png`, c.alt)}
+						</div>
+					</article>
+				{/each}
+			</section>
+
+			<section class="grid gap-5 pt-16 lg:grid-cols-2 lg:items-start lg:gap-16 lg:pt-24">
+				<div class="flex flex-col gap-2">
+					<h2 class="text-[clamp(28px,3vw,36px)] leading-tight font-extrabold tracking-[-0.02em]">The code is public</h2>
+					<p class="text-[17px] text-ink-2">Read it or run it yourself.</p>
+				</div>
+				<ul class="overflow-hidden rounded-3xl bg-surface shadow-card">
+					{#each links as l (l.href)}
+						<li class="list-row">
+							<a href={l.href} class="flex min-h-14 items-center justify-between px-5 text-[15px] font-bold">
+								{l.label}<span class="text-ink-2"><Icon name="chevron-right" size="1.125rem" /></span>
+							</a>
+						</li>
+					{/each}
+				</ul>
+			</section>
+
+			<HeroCard class="mt-16 lg:mt-24">
+				<div class="flex flex-col items-center gap-6 py-6 text-center lg:py-12">
+					<h2 class="text-[clamp(32px,4vw,48px)] leading-tight font-extrabold tracking-[-0.02em]">Create an account</h2>
+					<div class="w-full lg:w-60"><Button href="/signup">Sign up</Button></div>
 				</div>
 			</HeroCard>
 		</main>
