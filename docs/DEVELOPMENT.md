@@ -54,6 +54,8 @@ The migrations in `server/db/migrations/` give the full schema. This is a summar
 - A cycle is a block of days that repeats between two dates.
 - When you save a cycle, the server makes a `scheduled_session` row for each day.
 - A centre is a place where you train.
+- A journal entry is a note with a date. It can point to the run that it was written in. If
+  you delete that run, the entry stays.
 
 Exercises and templates are not deleted. They are retired, because old runs point to them. A
 run that is not finished does not count in any chart.
@@ -131,7 +133,8 @@ Layout rules:
 - A chart card starts with a label and one number. The chart comes after them.
 - Draw charts with `Chart`, `Bars` and `Dots`. `Pyramid` draws sends by grade.
 - On a phone, the tabs are at the bottom. From `md` (768 px), they are in a rail on the left.
-- From `lg` (1024 px), Today and Progress use wide layouts. The other pages stay in one column.
+- From `lg` (1024 px), Today, Journal and Progress use wide layouts. The other pages stay in
+  one column.
 - The landing page, `/welcome`, has no tab bar or rail. It sets its own width, up to 1104 px.
   Its screenshots are in `client/static/landing/`. A shot of a page that changes with the theme
   has a light and a dark file.

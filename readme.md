@@ -46,9 +46,9 @@ signal, the phone keeps your log and sends it to the server later.
 
 ## Look back
 
-Each session keeps the plan and what you did. You can add a journal with your sleep, energy
-and effort. The Progress page shows your hours, your climbs and a grade pyramid of your sends.
-It can show the last 10 weeks, one cycle, or the dates that you choose. Tap a week (or month) on
+Each session keeps the plan and what you did. You can add a session journal with your sleep,
+energy and effort. The Progress page shows your hours, your climbs and a grade pyramid of your
+sends. It can show the last 10 weeks, one cycle, or the dates that you choose. Tap a week (or month) on
 any chart to see it alone. Tiles at the top compare the last 4 full weeks with the 4 before. On
 a laptop, the three views share one page. Each exercise also has its own history.
 
@@ -57,9 +57,17 @@ a laptop, the three views share one page. Each exercise also has its own history
   <img src="docs/screenshots/phone-progress.png" alt="Progress for climbs" width="240">
 </p>
 <p align="center">
-  <img src="docs/screenshots/phone-past.png" alt="A past session with its journal and sets" width="240">
+  <img src="docs/screenshots/phone-past.png" alt="A past session with its session journal and sets" width="240">
   <img src="docs/screenshots/phone-exercise.png" alt="The history of weighted pull-ups" width="240">
 </p>
+
+## Journal
+
+The Journal keeps notes about your climbing, for example "I pull with my arms when I should
+push with my feet". Each entry has a date. You can write one from Today, or from the menu of a
+running session. A pinned entry shows on Today and at the start of each session. The Journal
+also lists your session journals, and a search finds both. On a laptop, the list and the open
+entry show side by side.
 
 ## Make your own
 
