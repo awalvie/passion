@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest';
-import { lastEnd, plannedDays, saveCycle } from './plan';
+import { lastEnd, offOn, plannedDays, saveCycle, type TimeOff } from './plan';
 
 const cycle = {
 	starts: '2026-10-01',
@@ -51,4 +51,12 @@ test('saveCycle drops the days past the block and sends the rest', async () => {
 	expect(url).toBe('/api/v1/cycles/c1');
 	expect(JSON.parse(init.body as string)).toStrictEqual({ name: 'Base', starts: '2026-10-01', ends: '2026-10-28', block_days: 3, goals: [], notes: null, days: [{ day: 1, template: 'a' }] });
 	vi.unstubAllGlobals();
+});
+
+// The list comes latest start first, so a short trip that does not pause sits
+// before the injury it falls inside.
+test('offOn answers a time off that pauses when one that does not overlaps it', () => {
+	const trip: TimeOff = { id: 'a', kind: 'trip', name: 'Trip', starts: '2026-11-05', ends: '2026-11-10', pauses: false };
+	const injury: TimeOff = { id: 'b', kind: 'injury', name: 'Shoulder', starts: '2026-10-30', ends: null, pauses: true };
+	expect(offOn([trip, injury], '2026-11-06')?.pauses).toBe(true);
 });

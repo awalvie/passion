@@ -42,8 +42,11 @@ export type TimeOff = {
 	pauses: boolean;
 };
 
+// offOn answers the time off on date, one that pauses first, as the server
+// pauses a day when any of them does.
 export function offOn(timeOff: TimeOff[], date: string): TimeOff | undefined {
-	return timeOff.find((o) => date >= o.starts && (!o.ends || date <= o.ends));
+	const on = timeOff.filter((o) => date >= o.starts && (!o.ends || date <= o.ends));
+	return on.find((o) => o.pauses) ?? on[0];
 }
 
 // lastEnd is the latest end server/db/cycle.go's maxCycleDays allows. A date
