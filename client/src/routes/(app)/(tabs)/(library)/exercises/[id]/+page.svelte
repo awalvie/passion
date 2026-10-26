@@ -6,10 +6,12 @@
 	import { allCounts, fieldLabel, kindOf, setByLadder, summary, toBody, toDraft, type Count, type Exercise } from '$lib/exercise';
 	import Button from '$lib/Button.svelte';
 	import ExerciseForm from '$lib/ExerciseForm.svelte';
+	import ExerciseHistory from '$lib/ExerciseHistory.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import Menu from '$lib/Menu.svelte';
 	import NavBar from '$lib/NavBar.svelte';
+	import Section from '$lib/Section.svelte';
 	import { guardUnsaved } from '$lib/unsaved';
 	import { onMount, untrack } from 'svelte';
 
@@ -45,6 +47,8 @@
 	const shown = (c: Count) => (kindOf(draft.kind).counts.includes(c) || held.has(c)) && !setByLadder(draft, c);
 
 	const thumb = saved.media[0];
+	// The page shows the newest sessions; the full list is one tap away.
+	const rows = 3;
 
 	async function save(event: SubmitEvent) {
 		event.preventDefault();
@@ -131,6 +135,21 @@
 				</div>
 			{/if}
 		</form>
+
+		{#if data.sessions.length}
+			<Section title="History">
+				{#snippet aside()}
+					{#if data.sessions.length > rows}
+						<a
+							href="/history/exercise/{saved.id}?from=/exercises/{saved.id}"
+							class="-my-3 flex h-11 items-center gap-0.5 text-xs font-bold text-ink"
+							>All {data.sessions.length} sessions<Icon name="chevron-right" size="14px" /></a
+						>
+					{/if}
+				{/snippet}
+				<ExerciseHistory sessions={data.sessions} scales={data.scales} sides={saved.per_side ? 2 : 1} {rows} linked />
+			</Section>
+		{/if}
 	</div>
 
 	<aside class="order-first">
