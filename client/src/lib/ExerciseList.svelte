@@ -5,19 +5,22 @@
 
 	// The library to add from, with a search. Enter adds the first match.
 	// inside names where an exercise already is, such as "In Pull". children
-	// sit between the search and the list.
+	// sit between the search and the list. onnew makes a missing exercise,
+	// named as searched.
 	let {
 		exercises,
 		pick,
 		inside,
 		input = $bindable(),
-		children
+		children,
+		onnew
 	}: {
 		exercises: Exercise[];
 		pick: (e: Exercise) => void;
 		inside: (e: Exercise) => string;
 		input?: HTMLInputElement;
 		children?: Snippet;
+		onnew: (name: string) => void;
 	} = $props();
 
 	let q = $state('');
@@ -69,4 +72,10 @@
 			<li class="mt-1 rounded-2xl bg-well px-4 py-4 text-center text-[15px] font-semibold text-ink-2">Nothing matches “{q.trim()}”.</li>
 		{/each}
 	</ul>
+	<div class="flex items-center justify-between gap-3 pt-1">
+		<span class="text-xs font-semibold text-ink-2">Not in the library?</span>
+		<button type="button" class="flex h-11 items-center gap-1.5 rounded-full bg-well px-4 text-[15px] font-bold text-ink" onclick={() => onnew(q.trim())}>
+			<Icon name="plus" />New exercise
+		</button>
+	</div>
 </div>

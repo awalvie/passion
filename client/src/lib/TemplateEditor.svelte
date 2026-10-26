@@ -5,6 +5,7 @@
 	import { kindOf, loadExercises, type Exercise } from '$lib/exercise';
 	import ExerciseList from '$lib/ExerciseList.svelte';
 	import FormError from '$lib/FormError.svelte';
+	import NewExercise from '$lib/NewExercise.svelte';
 	import RecentRuns from '$lib/RecentRuns.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import RowActions from '$lib/RowActions.svelte';
@@ -60,8 +61,8 @@
 	let saving = false;
 	guardUnsaved(() => !saving && dirty);
 
-	// A missing exercise is made in another tab, so the list reloads when the
-	// user comes back to this one.
+	// An exercise made or changed in another tab shows when the user comes back
+	// to this one.
 	let library = $state(untrack(() => exercises));
 	async function reload() {
 		try {
@@ -126,6 +127,19 @@
 		tab = 'exercises';
 		addOpen = true;
 	}
+
+	// A new exercise joins the library and goes where it was asked for.
+	let making = $state<{ name: string; to: Target } | null>(null);
+	let makeOpen = $state(false);
+	function make(name: string, to: Target) {
+		making = { name, to };
+		makeOpen = true;
+	}
+	function made(e: Exercise) {
+		library = [...library, e].sort((a, b) => a.name.localeCompare(b.name));
+		if (making) put(making.to, e);
+	}
+	const named = (to: Target) => ('section' in to ? to.section.name : to.choice.name);
 
 	// A copied section is the session's own: changing it leaves the other alone.
 	let copied = $state<string[]>([]);
@@ -384,7 +398,13 @@
 				{#if tab === 'sections'}
 					<SectionList exclude={template?.id} {copied} copy={(from, key) => copySection(from, key, addTo)} />
 				{:else if draft.sections.length && addTo}
-					<ExerciseList exercises={library} bind:input={search} pick={(e) => put({ section: addTo! }, e)} inside={(e) => inside({ section: addTo! }, e)}>
+					<ExerciseList
+						exercises={library}
+						bind:input={search}
+						pick={(e) => put({ section: addTo! }, e)}
+						inside={(e) => inside({ section: addTo! }, e)}
+						onnew={(name) => make(name, { section: addTo! })}
+					>
 						<label class="flex items-center gap-3 text-xs font-semibold text-ink-2">
 							Add to
 							<span class="min-w-0 flex-1">
@@ -510,11 +530,13 @@
 			{#if tab === 'sections' && 'section' in to}
 				<SectionList exclude={template?.id} {copied} copy={(from, key) => copySection(from, key, to.section)} />
 			{:else}
-				<ExerciseList exercises={library} pick={(e) => put(to, e)} inside={(e) => inside(to, e)} />
+				<ExerciseList exercises={library} pick={(e) => put(to, e)} inside={(e) => inside(to, e)} onnew={(name) => make(name, to)} />
 			{/if}
 		</div>
 	{/if}
 </Sheet>
+
+<NewExercise bind:open={makeOpen} name={making?.name ?? ''} where={making ? named(making.to) : ''} {sources} onsaved={made} />
 
 <div class="[--above-bar:calc(1rem+env(safe-area-inset-bottom))]">
 	<Toast bind:message={note} action="Undo" onaction={() => undo()} />
