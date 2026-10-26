@@ -5,7 +5,7 @@
 The repository has a nix flake with all the tools. The flake also sets `DATABASE_URL` and
 `TEST_DATABASE_URL` to a local Postgres in `.pgdata`.
 
-1. Run `nix develop`. If you use direnv, it loads the flake for you.
+1. Run `nix develop`.
 2. Run `make watch`. This starts Postgres, Vite on port 5173 and Go on port 8080.
 3. Run `make seed`. This adds sixteen weeks of sample training.
 4. Open <http://localhost:5173>.
@@ -13,8 +13,6 @@ The repository has a nix flake with all the tools. The flake also sets `DATABASE
 
 The tests erase the test database. Do not set `TEST_DATABASE_URL` to a database with data that
 you want to keep.
-
-If a screen needs data that the seed does not have, add it to `server/cmd/seed/main.go`.
 
 | Target | What it does |
 |---|---|
@@ -50,7 +48,6 @@ The migrations in `server/db/migrations/` give the full schema. This is a summar
 - An exercise is one movement with its numbers, for example sets, reps and rest.
 - A session template is a list of sections. Each step keeps its own copy of the numbers.
 - A run is one session that you did. It keeps a copy of the template from its start.
-- Sets and climbs are in their own tables.
 - A cycle is a block of days that repeats between two dates.
 - When you save a cycle, the server makes a `scheduled_session` row for each day.
 - A centre is a place where you train.
@@ -70,8 +67,7 @@ run that is not finished does not count in any chart.
 
 1. Put the query in `server/db/`, in the file for its table.
 2. Read rows with `pgx.RowToStructByName`. Give each column a `db:` tag.
-3. If a column can be null, use a pointer for its field.
-4. Test the query with `dbtest.Pool(t)`. This gives a real, empty database.
+3. Test the query with `dbtest.Pool(t)`. This gives a real, empty database.
 
 ## Add an endpoint
 

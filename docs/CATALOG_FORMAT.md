@@ -12,8 +12,7 @@ sessions/    one session in each file
 A file name has only lower case letters, digits and underscores. Other files use the name
 without `.yaml` to refer to the file.
 
-If a file has a key that the loader does not know, the load stops. The error gives the line
-number.
+If a file has a key that the loader does not know, the load stops.
 
 ## Exercises
 

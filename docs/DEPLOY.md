@@ -7,12 +7,11 @@ make image
 docker run -e DATABASE_URL=postgres://... -p 8080:8080 passion:dev
 ```
 
-The server updates the database when it starts. To upgrade, run the new image.
+The server updates the database when it starts.
 
 Serve the app over HTTPS. If you use plain HTTP, a phone screen goes dark during a timer.
-Browsers keep the screen on only for secure pages.
 
-Each person who can get to the server can sign up. To keep it private, put it behind a VPN.
+Each person who can get to the server can sign up.
 
 `/healthz` gives 503 when the database is not available.
 
@@ -20,7 +19,7 @@ Each person who can get to the server can sign up. To keep it private, put it be
 
 The settings are in a YAML file. Set `PASSION_CONFIG` to the path of this file.
 [passion.example.yaml](../passion.example.yaml) shows all the keys. If a key or a value is
-wrong, the server does not start. The error tells you which line or key is wrong.
+wrong, the server does not start.
 
 | Key | Default | Notes |
 |---|---|---|
