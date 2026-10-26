@@ -6,10 +6,12 @@
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
 	import CycleYear from '$lib/CycleYear.svelte';
-	import { addDays, cycleWeek, daysBetween, formatDate, fullDate, mondayOf, shortDate } from '$lib/dates';
+	import { addDays, cycleWeek, dayDate, daysBetween, formatDate, fullDate, mondayOf, shortDate } from '$lib/dates';
 	import DateField from '$lib/DateField.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
+	import Menu from '$lib/Menu.svelte';
+	import PlanCalendar from '$lib/PlanCalendar.svelte';
 	import SessionIcon, { iconState } from '$lib/SessionIcon.svelte';
 	import type { ScheduledDay } from '$lib/plan';
 	import { startRun } from '$lib/runState.svelte';
@@ -17,7 +19,9 @@
 
 	let { data } = $props();
 
-	const cyclesView = $derived(page.url.searchParams.get('view') === 'cycles');
+	const view = $derived(page.url.searchParams.get('view'));
+	const cyclesView = $derived(view === 'cycles');
+	const calendarView = $derived(view === 'calendar');
 
 	const labels: Record<string, string> = { local_date: 'That day', template: 'That session' };
 
@@ -74,6 +78,7 @@
 		try {
 			await request('PUT', `/api/v1/scheduled-sessions/${d.id}`, { local_date: to });
 			await invalidateAll();
+			moveOpen = false;
 		} catch (e) {
 			rowError = { id: d.id, message: describe(e, (f) => labels[f] ?? f) };
 		} finally {
@@ -102,6 +107,34 @@
 
 	const cycleNames = $derived(new Map(data.cycles.map((c) => [c.id, c.name])));
 	const templates = $derived(new Map(data.templates.map((t) => [t.id, t])));
+	const colors = $derived(new Map(data.templates.map((t) => [t.id, t.color])));
+
+	// The calendar's day: the one picked, else today when it shows, else its
+	// first day.
+	let chosen = $state('');
+	const last = $derived(addDays(data.from, 41));
+	const inView = (date: string) => date >= data.from && date <= last;
+	const selected = $derived(inView(chosen) ? chosen : inView(data.today) ? data.today : data.from);
+	const picked = $derived(data.days.filter((d) => d.local_date === selected));
+	const months = $derived.by(() => {
+		const a = formatDate(data.from, { month: 'long' });
+		const b = formatDate(last, { month: 'long' });
+		return a === b ? a : `${a} – ${b}`;
+	});
+	const calendarAt = (from: string) => `/plan?view=calendar&from=${from}`;
+
+	let moving = $state<ScheduledDay | null>(null);
+	let moveOpen = $state(false);
+	let moveTo = $state('');
+	function openMove(d: ScheduledDay) {
+		moving = d;
+		moveOpen = true;
+		moveTo = d.local_date;
+		rowError = { id: '', message: '' };
+	}
+
+	const source = (d: ScheduledDay) =>
+		[statuses[d.status], d.cycle ? (cycleNames.get(d.cycle) ?? 'Cycle') : d.repeat ? 'Repeats' : 'One-off'].filter(Boolean).join(' · ');
 
 	const weeks = $derived.by(() => {
 		const out: { monday: string; dates: { date: string; days: ScheduledDay[] }[] }[] = [];
@@ -163,7 +196,19 @@
 
 <svelte:head><title>Plan</title></svelte:head>
 
-<div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+{#snippet views()}
+	<Segmented
+		label="Plan"
+		replace
+		items={[
+			{ label: 'Schedule', href: '/plan', on: !cyclesView && !calendarView },
+			{ label: 'Calendar', href: '/plan?view=calendar', on: calendarView },
+			{ label: 'Cycles', href: '/plan?view=cycles', on: cyclesView }
+		]}
+	/>
+{/snippet}
+
+<div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-8 lg:mx-auto lg:px-8 lg:pt-3 {calendarView ? 'lg:max-w-[1280px]' : 'lg:max-w-[760px]'}">
 	<header class="flex items-start justify-between gap-3">
 		<div>
 			<h1 class="page-title">Plan</h1>
@@ -171,30 +216,97 @@
 				<p class="mt-1 text-[15px] font-semibold text-ink-2">{fullDate(data.today)}</p>
 			{/if}
 		</div>
-		{#if !data.offline}
-			{#if cyclesView}
-				<a href="/plan/cycles/new" class="mt-1 flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm" aria-label="New cycle">
-					<Icon name="plus" size="1.25rem" />
-				</a>
-			{:else}
-				<button type="button" class="mt-1 flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm" aria-label="Add a session" onclick={openAdd}>
-					<Icon name="plus" size="1.25rem" />
-				</button>
+		<div class="flex items-center gap-3">
+			<div class="hidden w-[380px] lg:block">{@render views()}</div>
+			{#if !data.offline}
+				{#if cyclesView}
+					<a href="/plan/cycles/new" class="mt-1 flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm lg:mt-0 lg:h-12 lg:w-auto lg:gap-2 lg:px-5 lg:shadow-card" aria-label="New cycle">
+						<Icon name="plus" size="1.25rem" /><span class="hidden text-[15px] font-bold lg:inline" aria-hidden="true">New cycle</span>
+					</a>
+				{:else}
+					<button type="button" class="mt-1 flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm lg:mt-0 lg:h-12 lg:w-auto lg:gap-2 lg:px-5 lg:shadow-card" aria-label="Add a session" onclick={openAdd}>
+						<Icon name="plus" size="1.25rem" /><span class="hidden text-[15px] font-bold lg:inline" aria-hidden="true">Add</span>
+					</button>
+				{/if}
 			{/if}
-		{/if}
+		</div>
 	</header>
 
-	<Segmented
-		label="Plan"
-		replace
-		items={[
-			{ label: 'Schedule', href: '/plan', on: !cyclesView },
-			{ label: 'Cycles', href: '/plan?view=cycles', on: cyclesView }
-		]}
-	/>
+	<div class="lg:hidden">{@render views()}</div>
 
 	{#if data.offline}
 		<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold text-ink-2 shadow-card">No signal. The plan needs one to load.</p>
+	{:else if calendarView}
+		<div class="flex flex-col gap-3.5 lg:mt-2 lg:grid lg:grid-cols-[minmax(0,1fr)_330px] lg:items-start lg:gap-[22px]">
+			<section class="flex flex-col gap-2" aria-label="Calendar">
+				<div class="flex h-11 items-center justify-between pl-1">
+					<h2 class="text-xl font-bold">{months}</h2>
+					<nav class="flex gap-1" aria-label="Weeks">
+						{#each [[-28, 'chevron-left', 'Earlier weeks'], [28, 'chevron-right', 'Later weeks']] as const as [n, icon, label] (n)}
+							<a
+								href={calendarAt(addDays(data.from, n))}
+								class="flex size-11 items-center justify-center rounded-full text-ink-2"
+								aria-label={label}
+								data-sveltekit-replacestate
+								data-sveltekit-noscroll
+							>
+								<Icon name={icon} size="1.25rem" />
+							</a>
+						{/each}
+					</nav>
+				</div>
+				<PlanCalendar from={data.from} today={data.today} days={data.days} {colors} {selected} onselect={(date) => (chosen = date)} />
+			</section>
+			<section class="flex flex-col gap-2" aria-live="polite">
+				<div class="flex h-11 items-center justify-between px-1">
+					<h2 class="text-[15px] font-bold">{selected === data.today ? 'Today' : formatDate(selected, { weekday: 'long' })}</h2>
+					<span class="text-xs font-semibold text-ink-2">{dayDate(selected)}</span>
+				</div>
+				<div class="rounded-3xl bg-surface px-4 py-0.5 shadow-card">
+					{#if picked.length}
+						<ul>
+							{#each picked as d (d.id)}
+								<li class="list-row flex min-h-16 items-center gap-3 py-2">
+									<SessionIcon icon={d.template_icon} name={d.template_name} state={iconState(d, data.today)} size={36} />
+									<span class="min-w-0 flex-1">
+										<span class="block truncate text-[15px] font-bold {d.status === 'missed' || d.status === 'paused' ? 'text-ink-2' : ''}">{d.template_name}</span>
+										<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{source(d)}</span>
+									</span>
+									{#if d.run}
+										<a href={d.status === 'done' ? `/history/${d.run}` : `/run/${d.run}`} class="flex size-11 shrink-0 items-center justify-center text-ink-3" aria-label="Open {d.template_name}">
+											<Icon name="chevron-right" size="1rem" />
+										</a>
+									{:else}
+										{#if (d.status === 'planned' || d.status === 'paused') && d.local_date === data.today && !data.live}
+											<button
+												type="button"
+												class="flex size-11 shrink-0 items-center justify-center rounded-full bg-tint text-on-tint shadow-tint disabled:opacity-50"
+												aria-label="Start {d.template_name}"
+												disabled={starting}
+												onclick={() => start(d)}
+											>
+												<Icon name="play" size="1.125rem" />
+											</button>
+										{/if}
+										<Menu
+											label="More for {d.template_name}"
+											look="text-ink-2"
+											items={[
+												{ label: 'Move to another day', onclick: () => openMove(d) },
+												{ label: 'Remove', danger: true, onclick: () => remove(d) }
+											]}
+										/>
+									{/if}
+								</li>
+							{/each}
+						</ul>
+					{:else}
+						<p class="py-4 text-[15px] font-semibold text-ink-2">Nothing planned</p>
+					{/if}
+				</div>
+				<FormError message={picked.some((d) => d.id === rowError.id) && !moveOpen ? rowError.message : ''} />
+			</section>
+		</div>
 	{:else if !cyclesView}
 		{#each weeks as w (w.monday)}
 			<section class="flex flex-col gap-2">
@@ -363,4 +475,27 @@
 			<Button type="submit" disabled={doing !== null}>{doing === 'add' ? 'Adding…' : 'Add'}</Button>
 		</div>
 	</form>
+</Sheet>
+
+<Sheet bind:open={moveOpen} title="Move {moving?.template_name ?? ''}">
+	{#if moving}
+		{@const d = moving}
+		<form
+			class="flex flex-col gap-3.5"
+			onsubmit={(e) => {
+				e.preventDefault();
+				move(d, moveTo);
+			}}
+		>
+			<label class="flex flex-col gap-1.5 rounded-3xl bg-surface p-[18px] text-xs font-semibold text-ink-2 shadow-card">
+				New day
+				<DateField bind:value={moveTo} label="New day" />
+			</label>
+			<FormError message={rowError.id === d.id ? rowError.message : ''} />
+			<div class="grid grid-cols-2 items-center gap-2">
+				<Button variant="secondary" onclick={() => (moveOpen = false)}>Cancel</Button>
+				<Button type="submit" disabled={doing !== null}>{doing === `move:${d.id}` ? 'Moving…' : 'Move'}</Button>
+			</div>
+		</form>
+	{/if}
 </Sheet>
