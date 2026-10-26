@@ -54,7 +54,8 @@ Tokens are in `client/src/tokens.css`; each needs a light and a dark value.
 - Reuse `client/src/lib/` parts (`Section`, `Segmented`, `Tabs`, `Sheet`, `Chart`…) before making new ones.
 - A choice from a list is a `Select`: the phone's own picker, a themed list from `lg`. Days are picked on a `DayPicker`.
 - Controls are at least 44 px. List rows use `list-row`. A row that opens a page ends with a chevron.
-- Tabs sit at the bottom on a phone, in a left rail from `md`. Today, Plan, Journal and Progress go wide from `lg`.
+- Tabs sit at the bottom on a phone, in a left rail from `md`. Today, Plan, a cycle, Journal and Progress go wide from `lg`.
+- From `lg` Plan's views and a cycle put their list or calendar beside a 330 px pane. A row or a day only picks; the pane acts on it (`DayPane`). New cycle has no rail, and shows its preview in the pane from step 3.
 - A `Sheet` rises from the bottom on a phone and is a centred dialog from `lg`; `wide` gives it room for two columns.
 - The session builder has no rail. From `lg` a pane beside the session shows what is picked; from `xl` the library is a third column on the left. Below `lg` both open as sheets.
 
