@@ -46,7 +46,7 @@
 				...fields,
 				name: `${t.name} (copy)`
 			});
-			await goto(`/templates/${copy.id}`);
+			await goto(`/templates/${copy.id}/edit?rename`);
 		} catch (e) {
 			error = describe(e, templateFieldLabel);
 		} finally {

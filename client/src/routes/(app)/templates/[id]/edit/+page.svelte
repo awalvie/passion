@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { notice } from '$lib/notice.svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { request } from '$lib/api';
 	import TemplateEditor from '$lib/TemplateEditor.svelte';
 
@@ -16,6 +17,7 @@
 		exercises={data.exercises}
 		sources={data.sources}
 		cancel="/templates/{data.template.id}"
+		rename={page.url.searchParams.has('rename')}
 		save={async (body) => {
 			await request('PUT', `/api/v1/session-templates/${data.template.id}`, body);
 			await goto(`/templates/${data.template.id}`);

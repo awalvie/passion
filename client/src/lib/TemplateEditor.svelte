@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { describe } from '$lib/api';
 	import { loadExercises, type Exercise } from '$lib/exercise';
 	import FormError from '$lib/FormError.svelte';
@@ -21,14 +21,24 @@
 		exercises,
 		sources,
 		save,
-		cancel
+		cancel,
+		rename = false
 	}: {
 		template?: SessionTemplate;
 		exercises: Exercise[];
 		sources: string[];
 		save: (body: ReturnType<typeof toTemplateBody>) => Promise<void>;
 		cancel: string;
+		// A copy just made opens with its name picked out to type over.
+		rename?: boolean;
 	} = $props();
+
+	let nameField = $state<HTMLInputElement>();
+	onMount(() => {
+		if (!rename) return;
+		nameField?.focus();
+		nameField?.select();
+	});
 
 	let draft = $state(untrack(() => toTemplateDraft(template)));
 
@@ -137,7 +147,7 @@
 		<FormError message={error} />
 	</div>
 
-	<details class="group/settings rounded-3xl bg-surface shadow-card" open={!template}>
+	<details class="group/settings rounded-3xl bg-surface shadow-card" open={!template || rename}>
 		<summary
 			class="flex min-h-20 cursor-pointer list-none items-center gap-3.5 px-4 py-3.5 [&::-webkit-details-marker]:hidden"
 		>
@@ -163,7 +173,7 @@
 		<div class="flex flex-col gap-3.5 px-[18px] pt-4 pb-[18px] shadow-[inset_0_1px_0_var(--line)]">
 			<div>
 				<label class="block text-xs font-semibold text-ink-2" for="tpl-name">Name</label>
-				<input id="tpl-name" class="mt-1.5 input" maxlength="200" required bind:value={draft.name} />
+				<input id="tpl-name" class="mt-1.5 input" maxlength="200" required bind:value={draft.name} bind:this={nameField} />
 			</div>
 			<div>
 				<label class="block text-xs font-semibold text-ink-2" for="tpl-source">Source</label>
