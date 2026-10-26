@@ -6,16 +6,19 @@
 		index,
 		count,
 		move,
-		remove
+		remove,
+		more = []
 	}: {
 		label: string;
 		index: number;
 		count: number;
 		move: (by: number) => void;
 		remove: () => void;
+		more?: MenuItem[];
 	} = $props();
 
 	const items = $derived<MenuItem[]>([
+		...more,
 		...(index > 0 ? [{ label: 'Move up', onclick: () => move(-1) }] : []),
 		...(index < count - 1 ? [{ label: 'Move down', onclick: () => move(1) }] : []),
 		{ label: 'Remove', danger: true, onclick: remove }

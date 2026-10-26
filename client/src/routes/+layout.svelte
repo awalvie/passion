@@ -60,6 +60,8 @@
 			page.route.id === '/(app)/(tabs)/journal' ||
 			page.route.id === '/(app)/(tabs)/history/progress'
 	);
+	// The session builder has no rail, and uses the whole width.
+	const full = $derived(page.route.id === '/(app)/templates/new' || page.route.id === '/(app)/templates/[id]/edit');
 
 	onNavigate((navigation) => {
 		if (!document.startViewTransition || kind === 'none') return;
@@ -107,7 +109,9 @@
 <div
 	class="mx-auto min-h-dvh w-full bg-ground text-ink {page.route.id === '/welcome' ? '' : 'max-w-[430px]'} {wide
 		? 'lg:max-w-none lg:pl-[calc(6rem+env(safe-area-inset-left))]'
-		: ''}"
+		: full
+			? 'lg:max-w-none'
+			: ''}"
 >
 	{@render children()}
 </div>

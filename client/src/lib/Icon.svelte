@@ -134,6 +134,10 @@
 			['circle', { cx: '12', cy: '10', r: '3' }]
 		],
 		'chevron-down': [['path', { d: 'm6 9 6 6 6-6' }]],
+		search: [
+			['circle', { cx: '11', cy: '11', r: '7' }],
+			['path', { d: 'm20 20-3.5-3.5' }]
+		],
 		plane: [
 			[
 				'path',
