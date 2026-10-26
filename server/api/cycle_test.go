@@ -88,6 +88,12 @@ func TestPutCycle(t *testing.T) {
 	if rec := send(t, h, http.MethodGet, path, bob, ""); rec.Code != http.StatusNotFound {
 		t.Fatalf("someone else read it: status %d", rec.Code)
 	}
+	if rec := send(t, h, http.MethodDelete, path, bob, ""); rec.Code != http.StatusNotFound {
+		t.Fatalf("someone else deleted it: status %d", rec.Code)
+	}
+	if rec := send(t, h, http.MethodGet, path, ada, ""); rec.Code != http.StatusOK {
+		t.Fatalf("read after someone else's delete: status %d, want it kept", rec.Code)
+	}
 	if rec := send(t, h, http.MethodDelete, path, ada, ""); rec.Code != http.StatusNoContent {
 		t.Fatalf("delete: status %d: %s", rec.Code, rec.Body)
 	}

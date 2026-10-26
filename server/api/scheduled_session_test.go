@@ -84,6 +84,12 @@ func TestScheduledSessions(t *testing.T) {
 	if rec := send(t, h, http.MethodPut, path, ada, `{"local_date": "2100-01-08"}`); rec.Code != http.StatusOK {
 		t.Fatalf("move: status %d: %s", rec.Code, rec.Body)
 	}
+	if rec := send(t, h, http.MethodDelete, path, bob, ""); rec.Code != http.StatusNotFound {
+		t.Fatalf("someone else deleted it: status %d, want 404", rec.Code)
+	}
+	if days := listSchedule(t, h, ada, "2100-01-08", "2100-01-08"); len(days) != 1 {
+		t.Fatalf("days %+v after someone else's delete, want it kept", days)
+	}
 	if rec := send(t, h, http.MethodDelete, path, ada, ""); rec.Code != http.StatusNoContent {
 		t.Fatalf("delete: status %d: %s", rec.Code, rec.Body)
 	}

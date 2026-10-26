@@ -440,6 +440,45 @@ func TestRunsRefuseAStartedAtJSONCannotHold(t *testing.T) {
 	}
 }
 
+// Another account can neither read nor change a run by its id, nor anything
+// nested in it by a step or climb id.
+func TestSomeoneElsesRunIsOutOfReach(t *testing.T) {
+	h := newTestServer(t)
+	ada := signedIn(t, h, "ada@example.com")
+	bob := signedIn(t, h, "bob@example.com")
+	run, hang, climb := runWithSteps(t, h, ada)
+	const climbID = "0199c3a0-0000-7000-8000-0000000000c1"
+	climbPath := "/api/v1/runs/" + run.ID + "/climbs/" + climbID
+	setsPath := "/api/v1/runs/" + run.ID + "/steps/" + hang + "/sets"
+	if rec := send(t, h, http.MethodPut, setsPath, ada, `{"sets": [{"reps": 5}]}`); rec.Code != http.StatusOK {
+		t.Fatalf("sets: status %d: %s", rec.Code, rec.Body)
+	}
+	if rec := send(t, h, http.MethodPut, climbPath, ada, `{"step": "`+climb+`", "discipline": "boulder", "setting": "indoor"}`); rec.Code != http.StatusOK {
+		t.Fatalf("climb: status %d: %s", rec.Code, rec.Body)
+	}
+
+	for _, c := range []struct{ method, path, body string }{
+		{http.MethodGet, "/api/v1/runs/" + run.ID, ""},
+		{http.MethodPut, "/api/v1/runs/" + run.ID, runRequestFrom(t, run, func(b map[string]any) { b["name"] = "Bob's now" })},
+		{http.MethodPost, "/api/v1/runs/" + run.ID + "/finish", ""},
+		{http.MethodPut, setsPath, `{"sets": []}`},
+		{http.MethodPut, climbPath, `{"step": "` + climb + `", "discipline": "sport", "setting": "outdoor"}`},
+		{http.MethodDelete, climbPath, ""},
+		{http.MethodDelete, "/api/v1/runs/" + run.ID, ""},
+	} {
+		t.Run(c.method+" "+c.path, func(t *testing.T) {
+			if rec := send(t, h, c.method, c.path, bob, c.body); rec.Code != http.StatusNotFound {
+				t.Errorf("status %d, want 404: %s", rec.Code, rec.Body)
+			}
+		})
+	}
+
+	got := decodeRun(t, send(t, h, http.MethodGet, "/api/v1/runs/"+run.ID, ada, ""))
+	if got.Name != "Open" || got.FinishedAt != nil || len(got.Sets) != 1 || len(got.Climbs) != 1 || got.Climbs[0].Discipline != "boulder" {
+		t.Fatalf("ada's run reads %+v, want it untouched", got)
+	}
+}
+
 func TestRunsNeedSignIn(t *testing.T) {
 	h := newTestServer(t)
 	id := "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
