@@ -226,7 +226,7 @@
 							label="Add"
 							look="bg-surface text-ink shadow-card-sm lg:h-12 lg:w-auto lg:gap-2 lg:px-5 lg:shadow-card"
 							items={[
-								{ label: 'A session', onclick: openAdd },
+								...(data.templates.length ? [{ label: 'A session', onclick: openAdd }] : []),
 								{ label: 'Time off', onclick: () => openOff(null) }
 							]}
 						>
