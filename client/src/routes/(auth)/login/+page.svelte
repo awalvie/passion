@@ -33,8 +33,6 @@
 <svelte:head><title>Log in</title></svelte:head>
 
 <h1 class="page-title">Log in</h1>
-<p class="mt-1 text-[15px] font-semibold text-ink-2">Sign in to access your workouts.</p>
-
 <FormError message={error} />
 
 <form class="mt-6 flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-card" onsubmit={signIn}>
@@ -64,7 +62,7 @@
 			required
 		/>
 	</div>
-	<Button type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Log in'}</Button>
+	<Button type="submit" disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</Button>
 </form>
 
 <p class="mt-5 text-center text-[15px] font-semibold text-ink-2">

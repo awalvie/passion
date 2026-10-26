@@ -55,7 +55,7 @@
 <svelte:head><title>Sign up</title></svelte:head>
 
 <h1 class="page-title">Sign up</h1>
-<p class="mt-1 text-[15px] font-semibold text-ink-2">Create your account to save personal workouts.</p>
+<p class="mt-1 text-[15px] font-semibold text-ink-2">Create an account to plan and log your training.</p>
 
 <FormError message={error} />
 
