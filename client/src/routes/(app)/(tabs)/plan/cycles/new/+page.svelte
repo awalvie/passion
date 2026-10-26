@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { untrack } from 'svelte';
+	import { MediaQuery } from 'svelte/reactivity';
 	import { describe } from '$lib/api';
 	import BlockDays from '$lib/BlockDays.svelte';
 	import BlockLength from '$lib/BlockLength.svelte';
@@ -20,6 +21,9 @@
 	import { plural } from '$lib/text';
 
 	let { data } = $props();
+
+	// From lg the calendar previews the cycle beside steps 3 and 4.
+	const wide = new MediaQuery('min-width: 64rem');
 
 	// The step lives in the address, so the phone's back gesture steps back.
 	// The draft keeps the id it opened with, so a retry makes one cycle.
@@ -81,120 +85,140 @@
 	title="New cycle"
 	heading={false}
 	back={step === 1 ? { href: '/plan?view=cycles', label: 'Cancel' } : { href: `?step=${step - 1}`, label: 'Back' }}
+	wide
 >
 	{#snippet actions()}
 		<span class="pr-1 text-xs font-bold text-ink-2">{step} of 4</span>
 	{/snippet}
 </NavBar>
 
-<form class="flex min-h-[calc(100dvh-4rem)] flex-col gap-3.5 px-4 pt-1" onsubmit={next}>
+<form class="flex min-h-[calc(100dvh-4rem)] flex-col gap-3.5 px-4 pt-1 lg:mx-auto lg:w-full lg:max-w-[1280px] lg:px-8" onsubmit={next}>
 	<ol class="grid grid-cols-4 gap-1.5" aria-hidden="true">
 		{#each [1, 2, 3, 4] as s (s)}
 			<li class="h-1 rounded-full {s <= step ? 'bg-ink' : 'bg-well'}"></li>
 		{/each}
 	</ol>
 
-	{#if step === 2 || step === 3}
-		<p class="flex flex-wrap gap-2 text-xs font-bold">
-			<span class="rounded-full bg-surface px-3 py-1.5 shadow-card-sm">{draft.name}</span>
-			<span class="rounded-full bg-surface px-3 py-1.5 shadow-card-sm">{shortDate(draft.starts)} – {shortDate(draft.ends)}</span>
-		</p>
-	{/if}
+	<div class="flex flex-1 flex-col gap-3.5 lg:grid lg:grid-cols-[minmax(0,1fr)_330px] lg:gap-[22px]">
+		<div class="flex flex-1 flex-col gap-3.5 lg:pt-2">
+			{#if step === 2 || step === 3}
+				<p class="flex flex-wrap gap-2 text-xs font-bold">
+					<span class="rounded-full bg-surface px-3 py-1.5 shadow-card-sm">{draft.name}</span>
+					<span class="rounded-full bg-surface px-3 py-1.5 shadow-card-sm">{shortDate(draft.starts)} – {shortDate(draft.ends)}</span>
+				</p>
+			{/if}
 
-	<header class="px-1">
-		<h1 class="page-title">{titles[step - 1]}</h1>
-		<p class="mt-1 text-[15px] font-semibold text-ink-2">{hints[step - 1]}</p>
-	</header>
+			<header class="px-1">
+				<h1 class="page-title">{titles[step - 1]}</h1>
+				<p class="mt-1 text-[15px] font-semibold text-ink-2">{hints[step - 1]}</p>
+			</header>
 
-	{#if step === 1}
-		<div class="flex flex-col gap-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
-			<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
-				Name
-				<input class="input h-12 px-4" bind:value={draft.name} required maxlength="200" placeholder="Autumn power" />
-			</label>
-			<div class="grid grid-cols-2 gap-3">
-				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
-					Starts
-					<DateField bind:value={draft.starts} label="Starts" />
-				</label>
-				<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
-					Ends
-					<DateField bind:value={draft.ends} label="Ends" min={draft.starts} max={lastEnd(draft.starts)} />
-				</label>
+			{#if step === 1}
+				<div class="flex flex-col gap-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
+					<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
+						Name
+						<input class="input h-12 px-4" bind:value={draft.name} required maxlength="200" placeholder="Autumn power" />
+					</label>
+					<div class="grid grid-cols-2 gap-3">
+						<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
+							Starts
+							<DateField bind:value={draft.starts} label="Starts" />
+						</label>
+						<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
+							Ends
+							<DateField bind:value={draft.ends} label="Ends" min={draft.starts} max={lastEnd(draft.starts)} />
+						</label>
+					</div>
+				</div>
+				<div class="grid grid-cols-3 gap-2">
+					{#each [4, 6, 8] as weeks (weeks)}
+						<button
+							type="button"
+							class="h-12 rounded-full text-[15px] font-bold {length === weeks * 7 ? 'bg-ink text-ground' : 'bg-surface text-ink shadow-card-sm'}"
+							aria-pressed={length === weeks * 7}
+							onclick={() => (draft.ends = addDays(draft.starts, weeks * 7 - 1))}
+						>
+							{weeks} weeks
+						</button>
+					{/each}
+				</div>
+			{:else if step === 2}
+				<Section title="Goals">
+					<GoalList
+						bind:goals={draft.goals}
+						onedit={(i) => {
+							goalIndex = i;
+							goalOpen = true;
+						}}
+					/>
+				</Section>
+				<Section title="Notes">
+					<textarea
+						class="min-h-28 w-full resize-none rounded-3xl bg-surface px-[18px] py-3.5 text-[15px] font-semibold shadow-card [field-sizing:content] placeholder:text-ink-3 focus:shadow-[0_0_0_2px_var(--ink-3)] focus:outline-none"
+						placeholder="Anything to remember about this cycle"
+						aria-label="Notes"
+						value={draft.notes ?? ''}
+						oninput={(e) => (draft.notes = e.currentTarget.value || null)}
+					></textarea>
+				</Section>
+			{:else if step === 3}
+				<BlockLength bind:value={draft.block_days} max={length} />
+				<BlockDays bind:days={draft.days} blockDays={draft.block_days} from={draft.starts} templates={data.templates} />
+			{:else}
+				<ul class="rounded-3xl bg-surface px-3.5 shadow-card">
+					{#snippet row(icon: IconName, eyebrow: string, to: number, body: import('svelte').Snippet)}
+						<li class="flex min-h-[68px] items-center gap-3 py-2.5 list-row">
+							<span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-well text-ink"><Icon name={icon} size="1.125rem" /></span>
+							<span class="min-w-0 flex-1">
+								<span class="block text-xs font-semibold text-ink-2">{eyebrow}</span>
+								{@render body()}
+							</span>
+							<a href="?step={to}" class="flex min-h-11 shrink-0 items-center px-1 text-xs font-bold text-ink-2">Change</a>
+						</li>
+					{/snippet}
+					{#snippet name()}<span class="block truncate text-[15px] font-bold">{draft.name}</span>{/snippet}
+					{#snippet block()}
+						<span class="mt-1 flex flex-wrap items-center gap-1">
+							{#each blockList as t, i (i)}
+								{#if t}
+									<SessionIcon icon={t.icon} name={t.name} size={22} />
+								{:else}
+									<span class="flex h-[22px] w-3 items-center justify-center"><span class="size-1 rounded-full bg-ink-3"></span></span>
+								{/if}
+							{/each}
+						</span>
+					{/snippet}
+					{#snippet goals()}<span class="block truncate text-[15px] font-bold">{goalsLine}</span>{/snippet}
+					{@render row('pencil', `${shortDate(draft.starts)} – ${shortDate(draft.ends)} · ${plural(weeks, 'week')}`, 1, name)}
+					{@render row('repeat', `Block · every ${draft.block_days} days`, 3, block)}
+					{@render row('target', 'Goals and notes', 2, goals)}
+				</ul>
+				{#if !wide.current}
+					<CyclePreview starts={draft.starts} ends={draft.ends} {planned} templates={data.templates} />
+				{/if}
+			{/if}
+
+			<FormError message={error} />
+			<div class="sticky bottom-0 -mx-4 mt-auto flex items-center gap-2 bg-ground px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] lg:mx-0 lg:px-0">
+				{#if step === 2}
+					<div class="w-28 shrink-0"><Button variant="secondary" href="?step=3">Skip</Button></div>
+				{/if}
+				<Button type="submit" disabled={busy}>{step === 3 && !wide.current ? 'Next: see it on the calendar' : step < 4 ? 'Next' : busy ? 'Creating…' : 'Create cycle'}</Button>
 			</div>
 		</div>
-		<div class="grid grid-cols-3 gap-2">
-			{#each [4, 6, 8] as weeks (weeks)}
-				<button
-					type="button"
-					class="h-12 rounded-full text-[15px] font-bold {length === weeks * 7 ? 'bg-ink text-ground' : 'bg-surface text-ink shadow-card-sm'}"
-					aria-pressed={length === weeks * 7}
-					onclick={() => (draft.ends = addDays(draft.starts, weeks * 7 - 1))}
-				>
-					{weeks} weeks
-				</button>
-			{/each}
-		</div>
-	{:else if step === 2}
-		<Section title="Goals">
-			<GoalList
-				bind:goals={draft.goals}
-				onedit={(i) => {
-					goalIndex = i;
-					goalOpen = true;
-				}}
-			/>
-		</Section>
-		<Section title="Notes">
-			<textarea
-				class="min-h-28 w-full resize-none rounded-3xl bg-surface px-[18px] py-3.5 text-[15px] font-semibold shadow-card [field-sizing:content] placeholder:text-ink-3 focus:shadow-[0_0_0_2px_var(--ink-3)] focus:outline-none"
-				placeholder="Anything to remember about this cycle"
-				aria-label="Notes"
-				value={draft.notes ?? ''}
-				oninput={(e) => (draft.notes = e.currentTarget.value || null)}
-			></textarea>
-		</Section>
-	{:else if step === 3}
-		<BlockLength bind:value={draft.block_days} max={length} />
-		<BlockDays bind:days={draft.days} blockDays={draft.block_days} from={draft.starts} templates={data.templates} />
-	{:else}
-		<ul class="rounded-3xl bg-surface px-3.5 shadow-card">
-			{#snippet row(icon: IconName, eyebrow: string, to: number, body: import('svelte').Snippet)}
-				<li class="flex min-h-[68px] items-center gap-3 py-2.5 list-row">
-					<span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-well text-ink"><Icon name={icon} size="1.125rem" /></span>
-					<span class="min-w-0 flex-1">
-						<span class="block text-xs font-semibold text-ink-2">{eyebrow}</span>
-						{@render body()}
-					</span>
-					<a href="?step={to}" class="flex min-h-11 shrink-0 items-center px-1 text-xs font-bold text-ink-2">Change</a>
-				</li>
-			{/snippet}
-			{#snippet name()}<span class="block truncate text-[15px] font-bold">{draft.name}</span>{/snippet}
-			{#snippet block()}
-				<span class="mt-1 flex flex-wrap items-center gap-1">
-					{#each blockList as t, i (i)}
-						{#if t}
-							<SessionIcon icon={t.icon} name={t.name} size={22} />
-						{:else}
-							<span class="flex h-[22px] w-3 items-center justify-center"><span class="size-1 rounded-full bg-ink-3"></span></span>
-						{/if}
-					{/each}
-				</span>
-			{/snippet}
-			{#snippet goals()}<span class="block truncate text-[15px] font-bold">{goalsLine}</span>{/snippet}
-			{@render row('pencil', `${shortDate(draft.starts)} – ${shortDate(draft.ends)} · ${plural(weeks, 'week')}`, 1, name)}
-			{@render row('repeat', `Block · every ${draft.block_days} days`, 3, block)}
-			{@render row('target', 'Goals and notes', 2, goals)}
-		</ul>
-		<CyclePreview starts={draft.starts} ends={draft.ends} {planned} templates={data.templates} />
-	{/if}
 
-	<FormError message={error} />
-	<div class="sticky bottom-0 -mx-4 mt-auto flex items-center gap-2 bg-ground px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
-		{#if step === 2}
-			<div class="w-28 shrink-0"><Button variant="secondary" href="?step=3">Skip</Button></div>
+		{#if wide.current && step >= 3}
+			<section class="flex flex-col gap-2 self-start" aria-label="Preview">
+				<div class="flex h-11 items-center justify-between px-1">
+					<h2 class="text-[15px] font-bold">Preview</h2>
+					<span class="text-xs font-semibold text-ink-2">{shortDate(draft.starts)} – {shortDate(draft.ends)}</span>
+				</div>
+				<CyclePreview starts={draft.starts} ends={draft.ends} {planned} templates={data.templates} />
+				{#if step === 3}
+					<p class="px-1 pt-1.5 text-[15px] font-bold">{hints[3]}</p>
+				{/if}
+			</section>
 		{/if}
-		<Button type="submit" disabled={busy}>{step < 3 ? 'Next' : step === 3 ? 'Next: see it on the calendar' : busy ? 'Creating…' : 'Create cycle'}</Button>
 	</div>
 </form>
 

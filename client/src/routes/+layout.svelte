@@ -61,8 +61,12 @@
 			page.route.id === '/(app)/(tabs)/journal' ||
 			page.route.id === '/(app)/(tabs)/history/progress'
 	);
-	// The session builder has no rail, and uses the whole width.
-	const full = $derived(page.route.id === '/(app)/templates/new' || page.route.id === '/(app)/templates/[id]/edit');
+	// The session builder and New cycle have no rail, and use the whole width.
+	const full = $derived(
+		page.route.id === '/(app)/templates/new' ||
+			page.route.id === '/(app)/templates/[id]/edit' ||
+			page.route.id === '/(app)/(tabs)/plan/cycles/new'
+	);
 
 	onNavigate((navigation) => {
 		if (!document.startViewTransition || kind === 'none') return;
