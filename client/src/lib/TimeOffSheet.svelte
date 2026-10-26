@@ -38,6 +38,8 @@
 	let noEnd = $state(false);
 	let pauses = $state(true);
 	let next = $state<'starts' | 'ends'>('starts');
+	// One id an opening, so a save sent again after a lost answer is the same time off.
+	let id = '';
 	let saving = $state(false);
 	let error = $state('');
 
@@ -54,6 +56,7 @@
 		pauses = editing?.pauses ?? true;
 		next = 'starts';
 		error = '';
+		id = editing?.id ?? newId();
 	}
 
 	function pick(date: string) {
@@ -74,7 +77,7 @@
 		saving = true;
 		error = '';
 		try {
-			await request('PUT', `/api/v1/time-off/${editing?.id ?? newId()}`, { kind, name, starts, ends: last, pauses });
+			await request('PUT', `/api/v1/time-off/${id}`, { kind, name, starts, ends: last, pauses });
 			await invalidateAll();
 			open = false;
 			notice.text = 'Time off saved';

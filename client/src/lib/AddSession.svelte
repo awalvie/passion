@@ -41,6 +41,8 @@
 	let ending = $state<'never' | 'on' | 'after'>('never');
 	let until = $state('');
 	let times = $state<number | null>(10);
+	// One id an opening, so a save sent again after a lost answer is the same repeat.
+	let id = '';
 	let adding = $state(false);
 	let error = $state('');
 
@@ -63,6 +65,7 @@
 		until = addDays(first, 27);
 		times = 10;
 		error = '';
+		id = newId();
 	}
 
 	const chosen = $derived(templates.find((t) => t.id === template));
@@ -141,7 +144,7 @@
 	}
 
 	async function addRepeat() {
-		const out = await request<{ left_out: unknown[] }>('PUT', `/api/v1/repeats/${newId()}`, { template, ...rule });
+		const out = await request<{ left_out: unknown[] }>('PUT', `/api/v1/repeats/${id}`, { template, ...rule });
 		await invalidateAll();
 		open = false;
 		notice.text = ['Repeat added', out.left_out.length ? `${out.left_out.length} already there` : ''].filter(Boolean).join(' · ');
