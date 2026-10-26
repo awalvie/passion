@@ -663,9 +663,37 @@ test('discardRun deletes the run on the server, then its copy and timers on the 
 
 	expect(await discardRun({ id: 'run-1', name: 'Strength' })).toBe(true);
 
-	expect(confirm).toHaveBeenCalledWith('Discard “Strength”? Everything logged in it is deleted.');
+	expect(confirm).toHaveBeenCalledWith('Discard “Strength”? Everything logged in it is deleted. Entries you wrote in the Journal stay.');
 	expect(vi.mocked(fetch).mock.calls.map(([url, init]) => [url, init?.method])).toStrictEqual([[bodyUrl, 'DELETE']]);
 	expect(Object.keys(localStorage).sort()).toStrictEqual(['passion-pending:run-2', 'passion-timer:run-2']);
+});
+
+// An entry written during the session outlives it, so one still waiting on
+// the phone goes before the run does. The run's own writes do not.
+test('discardRun sends a waiting journal entry before it deletes the run', async () => {
+	const { discardRun } = await import('./runState.svelte');
+	online();
+	vi.stubGlobal('confirm', vi.fn(() => true));
+	const entry = '/api/v1/journal/entry-1';
+	localStorage.setItem(
+		'passion-pending:run-1',
+		JSON.stringify({
+			run: { ...newRun(), id: 'run-1' },
+			writes: [
+				{ seq: 1, method: 'PUT', url: bodyUrl, body: {} },
+				{ seq: 2, method: 'PUT', url: entry, body: { body: 'Hips in' } },
+				{ seq: 3, method: 'PUT', url: `${entry}/pin` }
+			]
+		})
+	);
+
+	expect(await discardRun({ id: 'run-1', name: 'Strength' })).toBe(true);
+
+	expect(vi.mocked(fetch).mock.calls.map(([url, init]) => [url, init?.method])).toStrictEqual([
+		[entry, 'PUT'],
+		[`${entry}/pin`, 'PUT'],
+		[bodyUrl, 'DELETE']
+	]);
 });
 
 test('writeJournal keeps one entry per session, on the run’s day, and queues only what changed', async () => {
@@ -702,6 +730,30 @@ test('the entry written during a session comes back after a reload', async () =>
 	expect(openRun.journal).toStrictEqual({ id, body: 'Hips in', pin: true });
 	openRun.writeJournal('Hips in, then reach', true);
 	expect(urls(openRun.writes)).toContain(`/api/v1/journal/${id}`);
+});
+// A refused entry cannot be saved by waiting, so it does not keep the run.
+test('discardRun deletes the run when its waiting journal entry is refused', async () => {
+	const { discardRun } = await import('./runState.svelte');
+	vi.stubGlobal(
+		'fetch',
+		vi.fn(async (url: string) =>
+			url.startsWith('/api/v1/journal/')
+				? Response.json({ error: { code: 'invalid', message: 'body is required' } }, { status: 422 })
+				: new Response(null, { status: 204 })
+		)
+	);
+	vi.stubGlobal('confirm', vi.fn(() => true));
+	localStorage.setItem(
+		'passion-pending:run-1',
+		JSON.stringify({ run: newRun(), writes: [{ seq: 1, method: 'PUT', url: '/api/v1/journal/entry-1', body: {} }] })
+	);
+
+	expect(await discardRun({ id: 'run-1', name: 'Strength' })).toBe(true);
+
+	expect(vi.mocked(fetch).mock.calls.map(([url, init]) => [url, init?.method])).toStrictEqual([
+		['/api/v1/journal/entry-1', 'PUT'],
+		[bodyUrl, 'DELETE']
+	]);
 });
 
 // Discarding a second session goes to Today, which opens the first one again.
@@ -750,6 +802,21 @@ test('discardRun keeps the phone copy when the server cannot be reached', async 
 	await expect(discardRun({ id: 'run-1', name: 'Strength' })).rejects.toThrow();
 
 	expect(Object.keys(localStorage).sort()).toStrictEqual(['passion-pending:run-1', 'passion-timer:run-1']);
+});
+
+test('discardRun keeps the run when its waiting journal entry cannot be sent', async () => {
+	const { discardRun } = await import('./runState.svelte');
+	offline();
+	vi.stubGlobal('confirm', vi.fn(() => true));
+	localStorage.setItem(
+		'passion-pending:run-1',
+		JSON.stringify({ run: newRun(), writes: [{ seq: 1, method: 'PUT', url: '/api/v1/journal/entry-1', body: {} }] })
+	);
+
+	await expect(discardRun({ id: 'run-1', name: 'Strength' })).rejects.toThrow();
+
+	expect(vi.mocked(fetch).mock.calls.map(([, init]) => init?.method)).not.toContain('DELETE');
+	expect(localStorage.getItem('passion-pending:run-1')).not.toBeNull();
 });
 
 // The finish page sends the journal and the length in a body write, then calls

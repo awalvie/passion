@@ -62,9 +62,18 @@ export function storedRuns(): Run[] {
 }
 
 // discardRun deletes a run once the person confirms, with this phone's copy of
-// it. It leaves the open run alone, so Today can discard a stale run.
+// it. It leaves the open run alone, so Today can discard a stale run. A
+// journal entry written during the run outlives it, so one still on the phone
+// is sent first.
 export async function discardRun(run: { id: string; name: string }): Promise<boolean> {
-	if (!confirm(`Discard “${run.name}”? Everything logged in it is deleted.`)) return false;
+	if (!confirm(`Discard “${run.name}”? Everything logged in it is deleted. Entries you wrote in the Journal stay.`)) return false;
+	for (const w of readStored(run.id)?.writes.filter((w) => w.url.startsWith('/api/v1/journal/')) ?? []) {
+		try {
+			await request(w.method, w.url, w.body);
+		} catch (e) {
+			if (unreachable(e)) throw e;
+		}
+	}
 	await request('DELETE', `/api/v1/runs/${run.id}`);
 	localStorage.removeItem(storageKey(run.id));
 	localStorage.removeItem(`${timerPrefix}${run.id}`);
