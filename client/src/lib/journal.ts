@@ -1,4 +1,5 @@
 import { request } from './api';
+import { notice } from './notice.svelte';
 
 export type JournalEntry = {
 	id: string;
@@ -25,6 +26,28 @@ export type SessionJournal = {
 export type Journal = { entries: JournalEntry[]; sessions: SessionJournal[] };
 
 export const loadJournal = () => request<Journal>('GET', '/api/v1/journal');
+
+// cameFrom is where a journal page goes back to: Today or a session it was
+// opened from, else the Journal.
+export function cameFrom(from: string | null): { href: string; label: string } {
+	if (from === '/') return { href: '/', label: 'Today' };
+	if (from && /^\/run\/[\w-]+$/.test(from)) return { href: from, label: 'Session' };
+	return { href: '/journal', label: 'Journal' };
+}
+
+export async function pinEntry(entry: JournalEntry, on: boolean): Promise<JournalEntry> {
+	const out = await request<JournalEntry>(on ? 'PUT' : 'DELETE', `/api/v1/journal/${entry.id}/pin`);
+	notice.text = on ? 'Entry pinned' : 'Entry unpinned';
+	return out;
+}
+
+// deleteEntry asks first, and says whether the entry went.
+export async function deleteEntry(entry: JournalEntry): Promise<boolean> {
+	if (!confirm(entry.pinned_at ? 'Delete this entry? It also leaves Today.' : 'Delete this entry?')) return false;
+	await request('DELETE', `/api/v1/journal/${entry.id}`);
+	notice.text = 'Entry deleted';
+	return true;
+}
 
 // The newest pin first, so a fresh pin shows at the top.
 export const pinnedOf = (entries: JournalEntry[]) =>

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { excerpt, pieces, pinnedOf, rows, type JournalEntry, type SessionJournal } from './journal';
+import { cameFrom, excerpt, pieces, pinnedOf, rows, type JournalEntry, type SessionJournal } from './journal';
 
 const entry = (id: string, local_date: string, body: string, pinned_at: string | null = null): JournalEntry => ({
 	id,
@@ -34,6 +34,14 @@ test('pins a moment apart keep their order', () => {
 	const first = entry('a', '2026-10-24', 'First', '2026-10-25T08:00:00.12Z');
 	const then = entry('b', '2026-10-24', 'Then', '2026-10-25T08:00:00.123Z');
 	expect(pinnedOf([first, then]).map((e) => e.id)).toEqual(['b', 'a']);
+});
+
+test('a journal page goes back to Today or a session only when it came from one', () => {
+	expect(cameFrom('/').label).toBe('Today');
+	expect(cameFrom('/run/abc-1')).toEqual({ href: '/run/abc-1', label: 'Session' });
+	for (const from of [null, '/run/', '/run/a/b', '//evil.com', 'https://x']) {
+		expect(cameFrom(from)).toEqual({ href: '/journal', label: 'Journal' });
+	}
 });
 
 test('the list leaves pinned entries to their card, and mixes in session journals by day', () => {
