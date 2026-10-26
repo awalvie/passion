@@ -14,6 +14,7 @@
 	import StepEditor from '$lib/StepEditor.svelte';
 	import {
 		moveEntry,
+		rowCounts,
 		templateFieldLabel,
 		toStep,
 		toTemplateBody,
@@ -278,7 +279,7 @@
 {#snippet pane()}
 	{#if shown && 'step' in shown}
 		{#key shown.step}
-			<StepEditor bind:step={shown.step} id="pane-step" />
+			<StepEditor bind:step={shown.step} id="pane-step" skip={wide.current ? rowCounts : []} />
 		{/key}
 	{:else if shown && 'choice' in shown}
 		<div class="flex flex-col gap-3.5">

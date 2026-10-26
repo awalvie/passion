@@ -78,7 +78,7 @@
 			{#if item.step}
 				{@const step = item.step}
 				<StepRow
-					{step}
+					bind:step={item.step}
 					selected={selected === step}
 					onselect={() => onselect({ step })}
 					index={j}

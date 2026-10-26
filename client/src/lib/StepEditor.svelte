@@ -1,17 +1,18 @@
 <script lang="ts">
 	import Checkbox from './Checkbox.svelte';
 	import DurationInput from '$lib/DurationInput.svelte';
-	import { allCounts, countLabels, kindOf, setByLadder } from '$lib/exercise';
+	import { allCounts, countLabels, kindOf, setByLadder, type Count } from '$lib/exercise';
 	import type { Step } from '$lib/template';
 
-	// The fields of one exercise in a session.
-	let { step = $bindable(), id }: { step: Step; id: string } = $props();
+	// The fields of one exercise in a session, but for those in skip, which
+	// its row shows.
+	let { step = $bindable(), id, skip = [] }: { step: Step; id: string; skip?: Count[] } = $props();
 
 	// A step never changes type here, so the numbers on screen are its type's,
 	// plus any it held when it opened.
 	const held = new Set(allCounts.filter((c) => step[c] != null));
 	const shown = allCounts.filter((c) => (kindOf(step.kind).counts.includes(c) || held.has(c)) && !setByLadder(step, c));
-	const counts = shown.filter((c) => c !== 'duration_seconds');
+	const counts = shown.filter((c) => c !== 'duration_seconds' && !(skip.includes(c) && kindOf(step.kind).counts.includes(c)));
 </script>
 
 <div class="flex flex-col gap-3">

@@ -1,5 +1,5 @@
 import { request } from './api';
-import { fieldLabel, kindOf, summary, type Exercise } from './exercise';
+import { fieldLabel, kindOf, summary, type Count, type Exercise } from './exercise';
 
 // The shapes of server/api/session_template.go's responses.
 export type SessionTemplate = {
@@ -23,6 +23,9 @@ export type Item = { step: Step; choice?: never } | { choice: Choice; step?: nev
 
 // A step is a library exercise's id and the session's own copy of its fields.
 export type Step = { exercise: string } & Omit<Exercise, 'id' | 'shipped' | 'private' | 'retired_at'>;
+
+// rowCounts are the numbers the builder shows in a step's row on a laptop.
+export const rowCounts: Count[] = ['sets', 'reps', 'set_rest_seconds'];
 
 export type Choice = { name: string; notes: string | null; pick: number; options: Step[] };
 
