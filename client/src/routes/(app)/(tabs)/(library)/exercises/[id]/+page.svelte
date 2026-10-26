@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
-	import { allCounts, fieldLabel, kindOf, setByLadder, summary, toBody, toDraft, type Count } from '$lib/exercise';
+	import { allCounts, fieldLabel, kindOf, setByLadder, summary, toBody, toDraft, type Count, type Exercise } from '$lib/exercise';
 	import Button from '$lib/Button.svelte';
 	import ExerciseForm from '$lib/ExerciseForm.svelte';
 	import FormError from '$lib/FormError.svelte';
@@ -11,7 +11,7 @@
 	import Menu from '$lib/Menu.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import { guardUnsaved } from '$lib/unsaved';
-	import { untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 
 	let { data } = $props();
 
@@ -22,11 +22,19 @@
 	let busy = $state(false);
 
 	const clean = untrack(() => JSON.stringify(draft));
+	const dirty = () => JSON.stringify(draft) !== clean;
 	let leaving = false;
-	guardUnsaved(() => !leaving && JSON.stringify(draft) !== clean);
+	guardUnsaved(() => !leaving && dirty());
+
+	// A copy just made opens with its name picked out to type over.
+	onMount(() => {
+		const name = page.url.searchParams.has('rename') ? (document.getElementById('ex-name') as HTMLInputElement | null) : null;
+		name?.focus();
+		name?.select();
+	});
 
 	const locked = saved.shipped
-		? 'The app ships this exercise, so it cannot be changed.'
+		? 'The app ships this exercise, so it cannot be changed. Duplicate it to make your own.'
 		: saved.retired_at
 			? 'You retired this exercise. Session templates that use it keep their copy.'
 			: '';
@@ -47,6 +55,26 @@
 			leaving = true;
 			await goto(from ?? '/exercises');
 			notice.text = 'Exercise saved';
+		} catch (e) {
+			error = describe(e, fieldLabel);
+		} finally {
+			busy = false;
+		}
+	}
+
+	// The copy is your own, so it can be changed even when this one is built in.
+	async function duplicate() {
+		if (busy || (dirty() && !confirm('Discard your unsaved changes?'))) return;
+		error = '';
+		busy = true;
+		try {
+			const copy = await request<Exercise>(
+				'POST',
+				'/api/v1/exercises',
+				toBody({ ...toDraft(saved), name: `${saved.name} (copy)` }, (c) => kindOf(saved.kind).counts.includes(c) || held.has(c))
+			);
+			leaving = true;
+			await goto(`/exercises/${copy.id}?rename`);
 		} catch (e) {
 			error = describe(e, fieldLabel);
 		} finally {
@@ -79,9 +107,7 @@
 
 <NavBar title={locked ? '' : 'Edit exercise'} heading={false} back={from ? { href: from, label: 'Session' } : { href: '/exercises', label: 'Exercises' }}>
 	{#snippet actions()}
-		{#if !locked}
-			<Menu items={[{ label: 'Retire', danger: true, onclick: retire }]} />
-		{/if}
+		<Menu items={[{ label: 'Duplicate', onclick: duplicate }, ...(locked ? [] : [{ label: 'Retire', danger: true, onclick: retire }])]} />
 	{/snippet}
 </NavBar>
 
