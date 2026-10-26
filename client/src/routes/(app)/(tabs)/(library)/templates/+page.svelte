@@ -6,7 +6,9 @@
 	import LibraryFilters from '$lib/LibraryFilters.svelte';
 	import LibrarySearch from '$lib/LibrarySearch.svelte';
 	import OriginMark from '$lib/OriginMark.svelte';
+	import { doneWhen, lastDone } from '$lib/run';
 	import { sessionIcons } from '$lib/SessionIcon.svelte';
+	import type { SessionTemplate } from '$lib/template';
 
 	let { data } = $props();
 
@@ -16,6 +18,12 @@
 	const tags = $derived(distinct(data.templates.flatMap((t) => t.tags)));
 
 	const filters = $derived([f.origin, f.source, f.tag].filter(Boolean).length);
+
+	// A built-in session you have never run says nothing, and with no runs to
+	// go by, no session does.
+	const ranOn = $derived(lastDone(data.runs ?? []));
+	const done = (t: SessionTemplate) =>
+		!data.runs || (t.shipped && !ranOn.has(t.id)) ? '' : doneWhen(ranOn.get(t.id), data.today);
 
 	const shown = $derived.by(() => {
 		const needle = f.q.trim().toLowerCase();
@@ -49,6 +57,7 @@
 		<ul class="rounded-3xl bg-surface py-1 shadow-card">
 			{#each shown as t (t.id)}
 				{@const icon = sessionIcons.find(([name]) => name === t.icon)?.[0]}
+				{@const when = done(t)}
 				<li class="list-row">
 					<a href="/templates/{t.id}" class="flex min-h-[52px] items-center gap-3 py-2 pr-3.5 pl-3">
 						<span
@@ -58,7 +67,12 @@
 						>
 							{#if icon}<Icon name={icon} size="1rem" />{:else}{t.name.trim().charAt(0).toUpperCase()}{/if}
 						</span>
-						<span class="line-clamp-2 min-w-0 flex-1 text-[15px] leading-snug font-bold">{t.name}</span>
+						<span class="min-w-0 flex-1">
+							<span class="line-clamp-2 text-[15px] leading-snug font-bold">{t.name}</span>
+							{#if when}
+								<span class="block text-xs font-semibold text-ink-2">{when}</span>
+							{/if}
+						</span>
 						<OriginMark origin={originOf(t)} />
 					</a>
 				</li>

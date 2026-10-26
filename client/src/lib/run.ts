@@ -1,4 +1,4 @@
-import { addDays } from './dates';
+import { addDays, daysBetween } from './dates';
 import { formatDuration } from './exercise';
 import { localToday } from './plan';
 import type { Section as PlanSection, Step } from './template';
@@ -124,6 +124,18 @@ export type RunSummary = {
 	// Missing from the runs kept on the phone.
 	has_journal?: boolean;
 };
+
+// lastDone is the day each template last ran. runs is newest first, so a
+// template's first run is its last.
+export function lastDone(runs: RunSummary[]): Map<string | null, string> {
+	return new Map(runs.filter((r) => r.finished_at !== null).toReversed().map((r) => [r.template, r.local_date]));
+}
+
+export function doneWhen(last: string | undefined, today: string): string {
+	if (!last) return 'Not done yet';
+	const n = daysBetween(last, today);
+	return n <= 0 ? 'Done today' : n === 1 ? 'Last done yesterday' : `Last done ${n} days ago`;
+}
 
 // The shape of server/api/history.go's response.
 export type HistorySession = {

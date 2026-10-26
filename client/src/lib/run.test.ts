@@ -1,5 +1,28 @@
 import { expect, test } from 'vitest';
-import { climbWord, isStale, sectionMarks, stepTime, type Climb, type LoggedSet, type Run, type RunStep } from './run';
+import {
+	climbWord,
+	doneWhen,
+	isStale,
+	lastDone,
+	sectionMarks,
+	stepTime,
+	type Climb,
+	type LoggedSet,
+	type Run,
+	type RunStep,
+	type RunSummary
+} from './run';
+
+test('lastDone keeps each template’s newest finished run, and doneWhen says how long ago', () => {
+	const summary = (template: string, local_date: string, finished = true) =>
+		({ template, local_date, finished_at: finished ? `${local_date}T10:00:00Z` : null }) as RunSummary;
+	const ran = lastDone([summary('a', '2026-10-24', false), summary('a', '2026-10-20'), summary('b', '2026-10-25'), summary('a', '2026-10-01')]);
+	expect(ran.get('a')).toBe('2026-10-20');
+	expect(doneWhen(ran.get('a'), '2026-10-25')).toBe('Last done 5 days ago');
+	expect(doneWhen(ran.get('b'), '2026-10-25')).toBe('Done today');
+	expect(doneWhen('2026-10-24', '2026-10-25')).toBe('Last done yesterday');
+	expect(doneWhen(undefined, '2026-10-25')).toBe('Not done yet');
+});
 
 test('climbWord names a flash, a send, many sends and no send, and counts goes on an ungraded climb', () => {
 	expect(climbWord({ grade_system: 'font', goes: ['send'] })).toBe('Flash');

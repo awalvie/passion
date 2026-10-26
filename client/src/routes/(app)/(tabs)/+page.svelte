@@ -12,7 +12,7 @@
 	import Menu from '$lib/Menu.svelte';
 	import type { ScheduledDay } from '$lib/plan';
 	import { buckets, hours, tenWeeks } from '$lib/progress';
-	import { currentStop, secondsSince, type Run, type RunSummary } from '$lib/run';
+	import { currentStop, doneWhen, lastDone, secondsSince, type Run, type RunSummary } from '$lib/run';
 	import { discardRun, openRun, startRun, type StartBody } from '$lib/runState.svelte';
 	import SessionIcon, { iconState } from '$lib/SessionIcon.svelte';
 	import { plural } from '$lib/text';
@@ -126,24 +126,17 @@
 		};
 	}
 
-	// Your own sessions, and the built-in ones you have run, the last done
-	// first. finished is newest first, so a template's first run is its last.
-	const lastDone = $derived(new Map(finished.toReversed().map((r) => [r.template, r.local_date])));
+	// Your own sessions, and the built-in ones you have run, the last done first.
+	const ranOn = $derived(lastDone(finished));
 	const mine = $derived(
 		data.library
-			.filter((t) => !t.shipped || lastDone.has(t.id))
-			.sort((a, b) => (lastDone.get(b.id) ?? '').localeCompare(lastDone.get(a.id) ?? ''))
+			.filter((t) => !t.shipped || ranOn.has(t.id))
+			.sort((a, b) => (ranOn.get(b.id) ?? '').localeCompare(ranOn.get(a.id) ?? ''))
 	);
 	// A session planned for today starts as that plan, so the day counts as done.
 	function startMine(template: string) {
 		const d = data.week.find((d) => d.local_date === data.today && d.status === 'planned' && d.template === template);
 		start(d ? { scheduled: d.id } : { template });
-	}
-	function doneWhen(template: string) {
-		const last = lastDone.get(template);
-		if (!last) return 'Not done yet';
-		const n = daysBetween(last, data.today);
-		return n ? `Last done ${away(-n)}` : 'Done today';
 	}
 
 	type Entry = { run: RunSummary; plan?: never } | { plan: ScheduledDay; run?: never };
@@ -459,7 +452,7 @@
 								<SessionIcon icon={t.icon} name={t.name} />
 								<span class="min-w-0 flex-1">
 									<span class="block truncate text-[15px] font-bold">{t.name}</span>
-									<span class="block text-xs font-semibold text-ink-2">{doneWhen(t.id)}</span>
+									<span class="block text-xs font-semibold text-ink-2">{doneWhen(ranOn.get(t.id), data.today)}</span>
 								</span>
 							</a>
 							{#if !live}
