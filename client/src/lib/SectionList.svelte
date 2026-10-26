@@ -66,7 +66,7 @@
 							<button
 								type="button"
 								class="flex size-11 shrink-0 items-center justify-center rounded-full {done ? 'bg-ink text-ground' : 'bg-well text-ink'}"
-								aria-label="Copy {s.name} from {t.name}"
+								aria-label="{done ? 'Copied' : 'Copy'} {s.name} from {t.name}"
 								onclick={() => copy(s, key)}
 							>
 								<Icon name={done ? 'check' : 'copy'} size="1.125rem" />
