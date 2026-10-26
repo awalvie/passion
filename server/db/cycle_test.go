@@ -3,6 +3,7 @@ package db_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"maps"
 	"slices"
 	"strings"
@@ -302,6 +303,10 @@ func TestDeleteCycle(t *testing.T) {
 }
 
 func TestCleanCycleFields(t *testing.T) {
+	crowded := make([]db.CycleDay, 11)
+	for i := range crowded {
+		crowded[i] = db.CycleDay{Day: 1, Template: fmt.Sprintf("00000000-0000-4000-8000-%012d", i)}
+	}
 	for name, c := range map[string]struct {
 		f    db.CycleFields
 		want []string
@@ -335,6 +340,10 @@ func TestCleanCycleFields(t *testing.T) {
 				{Day: 8, Template: e1}, {Day: 1, Template: "nope"}, {Day: 2, Template: e1}, {Day: 2, Template: e1},
 			}}},
 			[]string{"days[0].day", "days[1].template", "days[3]", "name"},
+		},
+		"more than 10 sessions on one day": {
+			db.CycleFields{Name: "C", Starts: day("2026-03-01"), Ends: day("2026-03-07"), BlockDays: 7, Body: db.CycleBody{Days: crowded}},
+			[]string{"days[10]"},
 		},
 	} {
 		t.Run(name, func(t *testing.T) {

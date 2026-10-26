@@ -13,8 +13,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// maxCycleDays keeps a build to a year of rows.
-const maxCycleDays = 366
+// maxCycleDays and maxSessionsADay keep a build to a year of a few rows a day.
+const (
+	maxCycleDays    = 366
+	maxSessionsADay = 10
+)
 
 // Cycle repeats a block of days from block_from to ends.
 type Cycle struct {
@@ -129,8 +132,12 @@ func (f CycleFields) Clean() (CycleFields, map[string]string) {
 	if f.Body.Days == nil {
 		f.Body.Days = []CycleDay{}
 	}
+	perDay := map[int]int{}
 	for i, d := range f.Body.Days {
 		path := fmt.Sprintf("days[%d]", i)
+		if perDay[d.Day]++; perDay[d.Day] == maxSessionsADay+1 {
+			problems[path] = fmt.Sprintf("puts more than %d sessions on one day", maxSessionsADay)
+		}
 		var ok bool
 		if d.Template, ok = cleanID(d.Template); !ok {
 			problems[path+".template"] = "must be a session template id"
