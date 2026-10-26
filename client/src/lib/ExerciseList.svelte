@@ -72,7 +72,9 @@
 				</button>
 			</li>
 		{:else}
-			<li class="mt-1 rounded-2xl bg-well px-4 py-4 text-center text-[15px] font-semibold text-ink-2">Nothing matches “{q.trim()}”.</li>
+			<li class="mt-1 rounded-2xl bg-well px-4 py-4 text-center text-[15px] font-semibold text-ink-2">
+				{q.trim() ? `Nothing matches “${q.trim()}”.` : 'No exercises yet.'}
+			</li>
 		{/each}
 	</ul>
 	<div class="flex items-center justify-between gap-3 pt-1">
