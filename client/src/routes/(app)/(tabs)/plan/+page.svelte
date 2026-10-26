@@ -6,7 +6,7 @@
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
 	import CycleYear from '$lib/CycleYear.svelte';
-	import { addDays, cycleWeek, dayDate, daysBetween, formatDate, fullDate, mondayOf, shortDate } from '$lib/dates';
+	import { addDays, cycleWeek, dayDate, daysBetween, formatDate, fullDate, mondayOf, shortDate, weekday } from '$lib/dates';
 	import DateField from '$lib/DateField.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
@@ -350,7 +350,7 @@
 											{#if g.date === data.today}
 												<span class="text-xs font-bold text-ink">Today</span>
 											{:else}
-												<span class="text-xs font-semibold text-ink-2">{formatDate(g.date, { weekday: 'short' })}</span>
+												<span class="text-xs font-semibold text-ink-2">{weekday(g.date)}</span>
 											{/if}
 											<b class="text-xl leading-[1.05] font-bold">{formatDate(g.date, { day: 'numeric' })}</b>
 										{/if}

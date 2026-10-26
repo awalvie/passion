@@ -71,7 +71,7 @@
 	}
 
 	const last = $derived(noEnd ? null : ends);
-	const labels: Record<string, string> = { kind: 'The kind', name: 'The name', starts: 'From', ends: 'Until' };
+	const labels: Record<string, string> = { name: 'The name', starts: 'From', ends: 'Until' };
 
 	async function save() {
 		saving = true;

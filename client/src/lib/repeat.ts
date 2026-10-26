@@ -48,7 +48,7 @@ export function nthDay(r: RepeatRule, n: number): string | null {
 	}
 }
 
-export const weekdayNames =[1, 2, 3, 4, 5, 6, 7].map((w) => formatDate(addDays('2026-10-25', w), { weekday: 'long' }));
+export const weekdayNames = [1, 2, 3, 4, 5, 6, 7].map((w) => formatDate(addDays('2026-10-25', w), { weekday: 'long' }));
 
 function joined(words: string[]): string {
 	return words.length < 2 ? words.join('') : `${words.slice(0, -1).join(', ')} and ${words.at(-1)}`;

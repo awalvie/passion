@@ -9,7 +9,7 @@
 	import Icon from './Icon.svelte';
 
 	// A month to pick days on. mark says how a day looks, off hatches a day of
-	// time off, and onpick, when given, makes the days from min on tappable.
+	// time off, and onpick takes a tap on a day from min on.
 	let {
 		start,
 		today,
@@ -25,7 +25,7 @@
 		mark: (date: string) => DayMark;
 		off?: (date: string) => boolean;
 		min?: string;
-		onpick?: (date: string) => void;
+		onpick: (date: string) => void;
 	} = $props();
 
 	// The month shown, as its first day. It starts on start's month.
@@ -69,16 +69,16 @@
 		{#each weeks.flat() as date (date)}
 			{@const m = mark(date)}
 			{@const out = date < first || date > lastDay}
-			{@const tappable = !!onpick && (!min || date >= min) && m !== 'hold'}
+			{@const tappable = (!min || date >= min) && m !== 'hold'}
 			<button
 				type="button"
 				class="flex h-11 items-center justify-center font-[family-name:var(--font-digits)] text-[15px] font-semibold
 					{off(date) ? 'bg-[repeating-linear-gradient(135deg,var(--hatch)_0_5px,transparent_5px_10px)]' : ''}
 					{(out || (min && date < min)) && !m ? 'text-ink-3/45' : 'text-ink'}"
 				disabled={!tappable}
-				aria-pressed={onpick ? m === 'pick' : undefined}
+				aria-pressed={m === 'pick'}
 				aria-label={fullDate(date)}
-				onclick={() => onpick?.(date)}
+				onclick={() => onpick(date)}
 			>
 				<i
 					class="flex size-[38px] items-center justify-center rounded-full not-italic {circle[m]} {date === today && !m

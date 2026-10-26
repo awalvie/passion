@@ -9,9 +9,8 @@
 		value = $bindable(),
 		options,
 		label,
-		option,
-		disabled = false
-	}: { value: string; options: T[]; label: string; option?: Snippet<[T]>; disabled?: boolean } = $props();
+		option
+	}: { value: string; options: T[]; label: string; option?: Snippet<[T]> } = $props();
 
 	let open = $state(false);
 	let active = $state(0);
@@ -88,7 +87,7 @@
 
 <svelte:window onpointerdown={outside} />
 
-<select class="input h-12 px-4 lg:hidden" bind:value aria-label={label} {disabled}>
+<select class="input h-12 px-4 lg:hidden" bind:value aria-label={label}>
 	{#each options as o (o.value)}
 		<option value={o.value}>{o.label}</option>
 	{/each}
@@ -97,13 +96,12 @@
 <div class="relative hidden lg:block" bind:this={root}>
 	<button
 		type="button"
-		class="input flex h-12 items-center justify-between gap-2.5 pr-3.5 pl-4 text-left disabled:opacity-50"
+		class="input flex h-12 items-center justify-between gap-2.5 pr-3.5 pl-4 text-left"
 		role="combobox"
 		aria-label={label}
 		aria-expanded={open}
 		aria-controls="{id}-list"
 		aria-activedescendant={open ? `${id}-${active}` : undefined}
-		{disabled}
 		onclick={() => (open ? (open = false) : show())}
 		onkeydown={key}
 	>

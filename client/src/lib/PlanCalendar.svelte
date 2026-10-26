@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { addDays, byDate, formatDate, fullDate, weekdayLetters } from './dates';
+	import { addDays, byDate, fullDate, shortDate, weekday, weekdayLetters } from './dates';
 	import Icon from './Icon.svelte';
 	import { offOn, type ScheduledDay, type TimeOff } from './plan';
 
@@ -41,7 +41,7 @@
 	}
 
 	const number = (date: string) =>
-		date.slice(8) === '01' ? formatDate(date, { day: 'numeric', month: 'short' }) : String(Number(date.slice(8)));
+		date.slice(8) === '01' ? shortDate(date) : String(Number(date.slice(8)));
 
 	const look = (d: ScheduledDay) =>
 		d.status === 'missed'
@@ -62,7 +62,7 @@
 		{#each weekdayLetters as letter, i (i)}
 			<span class="flex h-7 items-center justify-center text-xs font-semibold text-ink-2 xl:h-8 xl:justify-start xl:pl-2.5" aria-hidden="true">
 				<span class="xl:hidden">{letter}</span>
-				<span class="hidden xl:inline">{formatDate(addDays(from, i), { weekday: 'short' })}</span>
+				<span class="hidden xl:inline">{weekday(addDays(from, i))}</span>
 			</span>
 		{/each}
 		{#each weeks as dates, w (dates[0])}

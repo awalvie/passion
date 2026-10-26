@@ -70,7 +70,7 @@
 
 	const chosen = $derived(templates.find((t) => t.id === template));
 	const held = $derived(new Set(days.filter((d) => d.template === template).map((d) => d.local_date)));
-	const sorted = $derived([...picked].filter((d) => !held.has(d)).sort());
+	const sorted = $derived(picked.filter((d) => !held.has(d)).sort());
 
 	// A typed number can be anything; the rule takes a whole one from 1 to 99.
 	const whole = (n: number | null) => Math.min(99, Math.max(1, Math.round(n ?? 1)));
@@ -87,7 +87,7 @@
 		return r;
 	});
 	const falls = $derived(rule.unit === 'day' || rule.weekdays.length > 0);
-	const firstDay = $derived(falls ? nthDay(rule, 1) : null);
+	const firstDay = $derived(nthDay(rule, 1));
 	const ruleDays = $derived(rule.ends ? repeatDays(rule, starts, rule.ends).filter((d) => !held.has(d)) : []);
 	const count = $derived(ruleDays.length);
 	const paused = (dates: string[]) => dates.filter((d) => offOn(timeOff, d)?.pauses).length;
