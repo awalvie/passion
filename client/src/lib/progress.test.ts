@@ -227,14 +227,14 @@ test('figure keeps a weighted hold its seconds in a row', () => {
 const today = '2026-10-24';
 const cycles = [{ id: 'c', name: 'Base', starts: '2026-10-01', ends: '2026-10-21' }];
 
-test('ten weeks run Monday to Sunday, ticked where a month starts', () => {
+test('ten weeks run Monday to Sunday, ticked on the first Monday of a month', () => {
 	const { buckets: bs, now, per } = buckets(tenWeeks(today), today);
 	expect(bs.map((b) => b.from)).toEqual([
 		'2026-08-17', '2026-08-24', '2026-08-31', '2026-09-07', '2026-09-14',
 		'2026-09-21', '2026-09-28', '2026-10-05', '2026-10-12', '2026-10-19'
 	]);
 	expect(bs.at(-1)!.to).toBe('2026-10-25');
-	expect(bs.map((b) => b.tick)).toEqual(['', '', 'Sep', '', '', '', 'Oct', '', '', '']);
+	expect(bs.map((b) => b.tick)).toEqual(['', '', '', 'Sep', '', '', '', 'Oct', '', '']);
 	expect(now).toBe(9);
 	expect(per).toBe('week');
 });
@@ -416,7 +416,7 @@ test('a span of ten months is cut into months, the first starting on its first d
 test('ten weeks over the new year name the month the new year falls in', () => {
 	const ny = '2027-01-10';
 	const ticks = buckets(tenWeeks(ny), ny).buckets.map((b) => b.tick);
-	expect(ticks).toEqual(['', '', '', '', 'Dec', '', '', '', 'Jan', '']);
+	expect(ticks).toEqual(['Nov', '', '', '', '', 'Dec', '', '', '', 'Jan']);
 });
 
 test('a board picked alone shows no routes, and a route type picked with it shows them whole', () => {

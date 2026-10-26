@@ -81,7 +81,7 @@ export function buckets(s: Span, today: string): { buckets: Bucket[]; now: numbe
 	} else {
 		for (let monday = mondayOf(s.from); monday <= s.to; monday = addDays(monday, 7)) {
 			const to = addDays(monday, 6);
-			const tick = monday.slice(0, 7) === to.slice(0, 7) && !monday.endsWith('-01') ? '' : formatDate(to, { month: 'short' });
+			const tick = Number(monday.slice(8)) <= 7 ? formatDate(monday, { month: 'short' }) : '';
 			out.push({ from: monday < s.from ? s.from : monday, to, tick });
 		}
 	}
