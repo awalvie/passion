@@ -3,7 +3,7 @@
 	import ExerciseHistory from './ExerciseHistory.svelte';
 	import { dayDate } from './dates';
 	import Icon from './Icon.svelte';
-	import { isFinished, setsOf, type HistorySession, type RunStep, type SetFields } from './run';
+	import { cleanSet, isFinished, setsOf, type HistorySession, type RunStep, type SetFields } from './run';
 	import { openRun } from './runState.svelte';
 	import RunPage, { type PlayerProps } from './RunPage.svelte';
 	import Sheet from './Sheet.svelte';
@@ -78,12 +78,19 @@
 		if (i + 1 >= count) openRun.finish(step);
 	}
 
-	function edit(k: number, field: 'reps' | 'weight_kg', text: string) {
+	// The field always ends showing what is kept: text that is not a number
+	// puts back the old value, and a number out of range is clamped.
+	function edit(k: number, field: 'reps' | 'weight_kg', input: HTMLInputElement) {
+		const text = input.value;
 		const n = text.trim() === '' ? null : Number(text.replace(',', '.'));
-		if (n !== null && !Number.isFinite(n)) return;
-		const s = { ...value(k), [field]: n };
+		if (n !== null && !Number.isFinite(n)) {
+			input.value = `${value(k)[field] ?? ''}`;
+			return;
+		}
+		const s = cleanSet({ ...value(k), [field]: n });
+		input.value = `${s[field] ?? ''}`;
 		// Fewer reps on a ladder set drop the times of the reps taken away.
-		if (field === 'reps' && s.rep_seconds && n !== null) s.rep_seconds = s.rep_seconds.slice(0, n);
+		if (field === 'reps' && s.rep_seconds && s.reps !== null) s.rep_seconds = s.rep_seconds.slice(0, s.reps);
 		if (k < logged.length) openRun.setSets(step, logged.map((l, j) => (j === k ? s : l)));
 		else drafts[k] = s;
 	}
@@ -124,7 +131,7 @@
 			aria-label="{label} {key === 'reps' ? 'reps' : 'weight, kg'}"
 			value={v ?? ''}
 			onfocus={select}
-			onchange={(e) => edit(k, key, e.currentTarget.value)}
+			onchange={(e) => edit(k, key, e.currentTarget)}
 		/>
 		{#if then !== null}
 			<span class="pointer-events-none absolute inset-x-0 bottom-1.5 text-center text-[11px] leading-none font-semibold text-(--fg2)">last {then}</span>
