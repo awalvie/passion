@@ -174,7 +174,7 @@
 	function inside(to: Target | null | undefined, e: Exercise) {
 		if (!to) return '';
 		const steps = 'section' in to ? to.section.items.flatMap((i) => (i.step ? [i.step] : [])) : to.choice.options;
-		return steps.some((s) => s.exercise === e.id) ? `In ${'section' in to ? to.section.name : to.choice.name}` : '';
+		return steps.some((s) => s.exercise === e.id) ? `In ${named(to)}` : '';
 	}
 
 	// / goes to the library's search, unless the user is typing.
@@ -532,7 +532,7 @@
 <Sheet
 	bind:open={addOpen}
 	eyebrow={target && 'section' in target ? `Section ${draft.sections.indexOf(target.section) + 1}` : 'Choice'}
-	title="Add to {target ? ('section' in target ? target.section.name : target.choice.name) : ''}"
+	title="Add to {target ? named(target) : ''}"
 >
 	{#if target}
 		{@const to = target}
