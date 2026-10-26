@@ -1,0 +1,18 @@
+[Unit]
+Description=Passion
+Wants=network-online.target
+After=network-online.target postgresql.service
+
+[Service]
+ExecStart=/usr/local/bin/passion
+# Holds DATABASE_URL, and PASSION_CONFIG if you use a config file.
+EnvironmentFile=/etc/passion/env
+DynamicUser=yes
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target
