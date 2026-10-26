@@ -53,6 +53,7 @@ Tokens are in `client/src/tokens.css`; each needs a light and a dark value.
 - Reuse `client/src/lib/` parts (`Section`, `Segmented`, `Tabs`, `Sheet`, `Chart`…) before making new ones.
 - Controls are at least 44 px. List rows use `list-row`. A row that opens a page ends with a chevron.
 - Tabs sit at the bottom on a phone, in a left rail from `md`. Today, Journal and Progress go wide from `lg`.
+- A `Sheet` rises from the bottom on a phone and is a centred dialog from `lg`; `wide` gives it room for two columns.
 
 ## Rules the code does not show
 

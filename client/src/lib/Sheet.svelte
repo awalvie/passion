@@ -3,15 +3,26 @@
 	import Icon from './Icon.svelte';
 
 	// onback puts a back button before the title, for a page opened inside the
-	// sheet. footer stays pinned to the bottom while the rest scrolls.
+	// sheet. footer stays pinned to the bottom while the rest scrolls. From lg
+	// the sheet is a dialog in the middle of the screen; wide makes it room for
+	// two columns.
 	let {
 		open = $bindable(false),
 		title,
 		eyebrow,
 		onback,
+		wide = false,
 		footer,
 		children
-	}: { open?: boolean; title: string; eyebrow?: string; onback?: () => void; footer?: Snippet; children: Snippet } = $props();
+	}: {
+		open?: boolean;
+		title: string;
+		eyebrow?: string;
+		onback?: () => void;
+		wide?: boolean;
+		footer?: Snippet;
+		children: Snippet;
+	} = $props();
 
 	let dialog: HTMLDialogElement;
 	let hidden = $state(true);
@@ -41,8 +52,9 @@
 	let flung = $state(false);
 	let startY = 0;
 
+	// A mouse closes with the ✕, the scrim or Escape.
 	function grab(e: PointerEvent) {
-		if ((e.target as Element).closest('button')) return;
+		if (e.pointerType === 'mouse' || (e.target as Element).closest('button')) return;
 		startY = e.clientY;
 		drag = 0;
 		(e.currentTarget as Element).setPointerCapture(e.pointerId);
@@ -71,7 +83,9 @@
 	data-hidden={hidden || undefined}
 	style:transform={drag === null ? undefined : flung ? 'translateY(100%)' : `translateY(${drag}px)`}
 	style:transition={drag === null || flung ? undefined : 'none'}
-	class="fixed inset-x-0 top-auto bottom-0 m-0 mx-auto max-h-[calc(100dvh-3rem)] w-full max-w-[430px] overflow-y-auto overscroll-contain [scrollbar-width:none] rounded-t-[32px] bg-ground text-ink shadow-[0_-20px_40px_-10px_rgba(0,0,0,0.35)] backdrop:bg-[var(--scrim)]"
+	class="fixed inset-x-0 top-auto bottom-0 m-0 mx-auto max-h-[calc(100dvh-3rem)] w-full max-w-[430px] overflow-y-auto overscroll-contain [scrollbar-width:none] rounded-t-[32px] bg-ground text-ink shadow-[0_-20px_40px_-10px_rgba(0,0,0,0.35)] backdrop:bg-[var(--scrim)] lg:inset-y-0 lg:my-auto lg:h-fit lg:max-h-[calc(100dvh-4rem)] lg:rounded-[32px] lg:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.5)] {wide
+		? 'lg:max-w-[780px]'
+		: 'lg:max-w-[520px]'}"
 	onclose={() => {
 		open = false;
 		drag = null;
@@ -87,7 +101,7 @@
 >
 	<div class="px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
 		<div
-			class="touch-none pt-2.5"
+			class="touch-none pt-2.5 lg:pt-5"
 			role="presentation"
 			onpointerdown={grab}
 			onpointermove={(e) => {
@@ -96,7 +110,7 @@
 			onpointerup={release}
 			onpointercancel={() => (drag = null)}
 		>
-			<div class="mx-auto mb-3.5 h-[5px] w-10 rounded-full bg-ink-3/50"></div>
+			<div class="mx-auto mb-3.5 h-[5px] w-10 rounded-full bg-ink-3/50 lg:hidden"></div>
 			<header class="flex items-start justify-between gap-3 px-1 pb-3">
 				{#if onback}
 					<button
@@ -144,8 +158,9 @@
 	dialog[data-hidden]::backdrop {
 		opacity: 0;
 	}
-	/* With Reduce Motion on, the sheet fades in and out where it stands. */
-	@media (prefers-reduced-motion: reduce) {
+	/* As a dialog, and with Reduce Motion on, it fades in and out where it
+	   stands. */
+	@media (prefers-reduced-motion: reduce), (min-width: 64rem) {
 		dialog {
 			transition: opacity 200ms ease;
 		}
