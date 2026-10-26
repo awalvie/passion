@@ -326,9 +326,17 @@ func build(ctx context.Context, tx pgx.Tx, c Cycle, today time.Time) ([]Slot, er
 		return nil, fmt.Errorf("read the cycle's days: %w", err)
 	}
 
+	type key struct {
+		date     string
+		template string
+	}
+	kept := make(map[key]bool, len(held))
+	for _, w := range held {
+		kept[key{w.LocalDate.Format(time.DateOnly), w.Template}] = true
+	}
 	leftOut := []Slot{}
 	for _, s := range slots {
-		if !slices.ContainsFunc(held, func(w Slot) bool { return w.LocalDate.Equal(s.LocalDate) && w.Template == s.Template }) {
+		if !kept[key{s.LocalDate.Format(time.DateOnly), s.Template}] {
 			leftOut = append(leftOut, s)
 		}
 	}
