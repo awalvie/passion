@@ -1,7 +1,7 @@
 import { request } from '$lib/api';
 import { loadGrades } from '$lib/grades';
 import { loadToday, type Cycle } from '$lib/plan';
-import { buckets, readFilter, readSpan, type DatedClimb } from '$lib/progress';
+import { buckets, readFilter, readSpan, trends, trendWeeks, type DatedClimb } from '$lib/progress';
 import type { RunSummary } from '$lib/run';
 
 const views = ['time', 'climbs', 'grade'] as const;
@@ -19,11 +19,14 @@ export async function load({ url }) {
 	const span = readSpan(url.searchParams.get('range'), today, cycles, first);
 	const chart = buckets(span, today);
 	const to = span.to < today ? span.to : today;
-	const [{ climbs }, { grades }] = await Promise.all([
+	const weeks = trendWeeks(today);
+	const [{ climbs }, { grades }, recent] = await Promise.all([
 		request<{ climbs: DatedClimb[] }>('GET', `/api/v1/climbs?from=${span.from}&to=${to}`),
-		loadGrades()
+		loadGrades(),
+		request<{ climbs: DatedClimb[] }>('GET', `/api/v1/climbs?from=${weeks[0].from}&to=${weeks[7].to}`)
 	]);
 	const done = finished.filter((r) => r.local_date >= span.from && r.local_date <= to);
+	const ran = finished.filter((r) => r.local_date >= weeks[0].from && r.local_date <= weeks[7].to);
 	return {
 		view,
 		today,
@@ -36,6 +39,8 @@ export async function load({ url }) {
 		running: cycles.find((c) => c.starts <= today && today <= c.ends) ?? null,
 		runs: done,
 		climbs,
+		// Nothing in the eight weeks before this one leaves no trend to show.
+		trends: ran.length ? trends(ran, recent.climbs, weeks, first) : null,
 		scales: grades.scales
 	};
 }

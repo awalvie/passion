@@ -95,6 +95,43 @@ export function hours(runs: RunSummary[], bs: Bucket[]): number[] {
 	return bs.map((b) => runs.reduce((h, r) => h + (within(b, r.local_date) ? (r.elapsed_seconds ?? 0) / 3600 : 0), 0));
 }
 
+// trendWeeks are the eight full weeks before the one holding today, oldest
+// first: the four a trend compares with, then the four it reports.
+export function trendWeeks(today: string): Bucket[] {
+	return Array.from({ length: 8 }, (_, i) => {
+		const from = addDays(mondayOf(today), 7 * (i - 8));
+		return { from, to: addDays(from, 6), tick: '' };
+	});
+}
+
+// A trend is a figure for the last four full weeks, the same figure for the
+// four before, null when the record does not start by the first of them, and
+// the figure for each of the eight weeks, null for a week before the record.
+export type Trend = { now: number | null; then: number | null; weeks: (number | null)[] };
+
+// trends are the hours and climbs a week, and the send and flash rates, of
+// the eight trend weeks. first is the day of the first session.
+export function trends(runs: RunSummary[], climbs: DatedClimb[], weeks: Bucket[], first: string): Record<'hours' | 'climbs' | 'sent' | 'flash', Trend> {
+	const full = first <= weeks[0].from;
+	const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+	const tenth = (n: number) => Math.round(n * 10) / 10;
+	// The climbs of the four weeks from week i.
+	const inside = (i: number) => climbs.filter((c) => weeks[i].from <= c.local_date && c.local_date <= weeks[i + 3].to);
+	const trend = (of: (i: number) => number | null, weekly: (number | null)[]): Trend => ({
+		now: of(4),
+		then: full ? of(0) : null,
+		weeks: weekly.map((v, i) => (weeks[i].to < first ? null : v))
+	});
+	const time = hours(runs, weeks);
+	const count = counts(climbs, weeks).map((c) => c.boulders + c.routes);
+	return {
+		hours: trend((i) => tenth(sum(time.slice(i, i + 4)) / 4), time),
+		climbs: trend((i) => tenth(sum(count.slice(i, i + 4)) / 4), count),
+		sent: trend((i) => sendRate(inside(i)), perBucket(climbs, weeks, sendRate)),
+		flash: trend((i) => flashRate(inside(i)), perBucket(climbs, weeks, flashRate))
+	};
+}
+
 export const isBoulder = (c: Pick<Climb, 'discipline'>) => c.discipline === 'boulder';
 
 // A filter on climbs, grouped as a climb's setup is. A climb shows when it

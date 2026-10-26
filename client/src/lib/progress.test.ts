@@ -28,6 +28,8 @@ import {
 	spread,
 	tenWeeks,
 	topSend,
+	trends,
+	trendWeeks,
 	type DatedClimb
 } from './progress';
 import type { Climb, HistorySession, RunSummary, SetFields } from './run';
@@ -342,6 +344,33 @@ test('counts and grades keep to the days of each bucket, and boulders apart from
 	expect(grades(cs, bs, scale)).toEqual([1, 2]);
 	expect(grades([], bs, scale)).toEqual([null, null]);
 	expect(grades([dated('2026-10-11', { grade_system: 'v' })], bs, scale)).toEqual([null, null]);
+});
+
+test('trends compare the last four full weeks with the four before, and leave out this week', () => {
+	const weeks = trendWeeks(today);
+	expect([weeks[0].from, weeks[3].to, weeks[4].from, weeks[7].to]).toEqual(['2026-08-24', '2026-09-20', '2026-09-21', '2026-10-18']);
+	const run = (local_date: string) => ({ local_date, elapsed_seconds: 7200 }) as RunSummary;
+	const runs = [run('2026-08-23'), run('2026-09-20'), run('2026-09-21'), run('2026-10-18'), run('2026-10-19')];
+	const climbs = [
+		dated('2026-08-24', { goes: ['send'] }),
+		dated('2026-09-20', { goes: ['attempt', 'send'] }),
+		dated('2026-09-21', { goes: ['send'] }),
+		dated('2026-10-18', { sent: false, goes: ['attempt'] })
+	];
+	const t = trends(runs, climbs, weeks, '2026-08-01');
+	expect(t.hours).toEqual({ now: 1, then: 0.5, weeks: [0, 0, 0, 2, 2, 0, 0, 2] });
+	expect(t.climbs).toMatchObject({ now: 0.5, then: 0.5 });
+	expect(t.sent).toMatchObject({ now: 50, then: 100 });
+	expect(t.flash).toMatchObject({ now: 50, then: 50 });
+	expect(t.flash.weeks).toEqual([100, null, null, 0, 100, null, null, 0]);
+});
+
+test('a trend has nothing to compare with when the first session falls inside its weeks', () => {
+	const t = trends([], [dated('2026-10-01', { goes: ['send'] })], trendWeeks(today), '2026-09-01');
+	expect(t.climbs).toMatchObject({ now: 0.3, then: null });
+	// The weeks before the first session are no part of the record, not weeks of nothing.
+	expect(t.climbs.weeks).toEqual([null, 0, 0, 0, 0, 1, 0, 0]);
+	expect(trends([], [], trendWeeks(today), '2026-08-25').climbs.then).toBeNull();
 });
 
 test('a span of one day is one bucket, cut to that day at its start', () => {

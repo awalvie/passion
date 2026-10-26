@@ -27,7 +27,8 @@
 		sendRate,
 		spread,
 		type ClimbFilter,
-		type FilterGroup
+		type FilterGroup,
+		type Trend
 	} from '$lib/progress';
 	import Segmented from '$lib/Segmented.svelte';
 	import Sheet from '$lib/Sheet.svelte';
@@ -128,6 +129,28 @@
 		})
 	);
 
+	// The tiles of the last four weeks that go with this view.
+	const tiles = $derived.by(() => {
+		const t = data.trends;
+		if (!t) return [];
+		const all = {
+			hours: { label: 'Hours a week', t: t.hours, unit: 'h' },
+			climbs: { label: 'Climbs a week', t: t.climbs, unit: '' },
+			sent: { label: 'Send rate', t: t.sent, unit: '%' },
+			flash: { label: 'Flash rate', t: t.flash, unit: '%' }
+		};
+		return data.view === 'time' ? [all.hours] : data.view === 'climbs' ? [all.climbs, all.sent, all.flash] : [];
+	});
+
+	// change is how far a trend moved, signed. A rate moves in points.
+	function change(t: Trend, unit: string): string | null {
+		if (t.now === null || t.then === null) return null;
+		const d = round(t.now - t.then);
+		if (!d) return 'Same';
+		const n = Math.abs(d);
+		return `${d > 0 ? '+' : '−'}${unit === '%' ? `${n} ${n === 1 ? 'pt' : 'pts'}` : `${n}${unit}`}`;
+	}
+
 	let filtering = $state(false);
 	let draft = $state<ClimbFilter>({ discipline: [], setting: [], board: [] });
 	const groups = Object.keys(filterGroups) as FilterGroup[];
@@ -153,6 +176,19 @@
 	<div class="flex flex-col gap-0.5">
 		<dt class="text-xs font-semibold text-ink-2">{label}</dt>
 		<dd class="digits text-[26px] leading-tight">{value}</dd>
+	</div>
+{/snippet}
+
+{#snippet tile(label: string, t: Trend, unit: string)}
+	{@const c = change(t, unit)}
+	<div class="flex min-w-0 flex-col gap-0.5 rounded-[20px] bg-surface px-3 py-2.5 shadow-card">
+		<dt class="truncate text-xs font-semibold text-ink-2">{label}</dt>
+		<dd class="flex items-baseline justify-between gap-1.5">
+			<span class="digits text-[22px] leading-tight">{t.now === null ? '–' : `${t.now}${unit}`}</span>
+			{#if c}
+				<span class="text-xs font-bold whitespace-nowrap text-ink-2">{c}</span>
+			{/if}
+		</dd>
 	</div>
 {/snippet}
 
@@ -199,6 +235,11 @@
 			<span class="truncate">Custom</span>
 		</button>
 	</nav>
+	{#if tiles.length}
+		<dl class="grid auto-cols-fr grid-flow-col gap-2" aria-label="Last 4 weeks, against the 4 before">
+			{#each tiles as t (t.label)}{@render tile(t.label, t.t, t.unit)}{/each}
+		</dl>
+	{/if}
 	<div class="mt-1 flex flex-col px-1">
 		{#if data.view === 'time'}
 			<h2 class="text-xl font-bold tracking-tight">All sessions</h2>
@@ -268,7 +309,7 @@
 			</div>
 		</section>
 		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-			<dl>{@render stat('Climbs sent', pct(sendRate(shown)))}</dl>
+			<dl>{@render stat('Send rate', pct(sendRate(shown)))}</dl>
 			<Dots n={data.buckets.length} marks={line(sendRates)} label={(v) => `${v}%`} zero {ticks} now={data.now} />
 		</section>
 		<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
