@@ -101,6 +101,42 @@ func TestStartRunFromScheduledSession(t *testing.T) {
 	}
 }
 
+// Retiring a session template takes it out of the list, not off the days it
+// was planned on: they still show, still start, and a cycle can be built
+// again around it.
+func TestARetiredTemplateKeepsItsDays(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	hang := insertSessionTemplate(t, pool, ada, "Hang")
+	if _, _, err := db.PutCycle(ctx, pool, ada, y1, cycleFields(t, 7, db.CycleDay{Day: 1, Template: hang})); err != nil {
+		t.Fatal(err)
+	}
+	oneOff, err := db.ScheduleSession(ctx, pool, ada, hang, day("2100-01-06"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := db.RetireSessionTemplate(ctx, pool, ada, hang); err != nil {
+		t.Fatal(err)
+	}
+
+	list, err := db.ListScheduledSessions(ctx, pool, ada, day("2100-01-05"), day("2100-01-18"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 3 || list[0].TemplateName != "Hang" {
+		t.Fatalf("days %+v, want the cycle's two and the one-off, still named", list)
+	}
+	run := startRun(t, ctx, pool, ada, db.RunStart{Scheduled: &oneOff.ID, StartedAt: time.Now()})
+	if run.Template == nil || *run.Template != hang {
+		t.Fatalf("run %+v, want a copy of the retired template", run)
+	}
+	if _, _, err := db.PutCycle(ctx, pool, ada, y1, cycleFields(t, 3, db.CycleDay{Day: 1, Template: hang})); err != nil {
+		t.Fatalf("a new shape around the retired template: %v", err)
+	}
+}
+
 // A new shape never drops a day a run was started from.
 func TestPutCycleKeepsADayWithARun(t *testing.T) {
 	ctx := context.Background()

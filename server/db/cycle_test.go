@@ -270,6 +270,36 @@ func TestPutCycleKeepsABegunStartMovedLaterWithANewBlock(t *testing.T) {
 	}
 }
 
+// Deleting a cycle takes every day it placed, and keeps the runs done on them.
+func TestDeleteCycleKeepsTheRunsDoneUnderIt(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	hang := insertSessionTemplate(t, pool, ada, "Hang")
+	if _, _, err := db.PutCycle(ctx, pool, ada, y1, cycleFields(t, 7, db.CycleDay{Day: 1, Template: hang})); err != nil {
+		t.Fatal(err)
+	}
+	var first string
+	if err := pool.QueryRow(ctx, `SELECT id FROM scheduled_session WHERE local_date = '2100-01-05'`).Scan(&first); err != nil {
+		t.Fatal(err)
+	}
+	run := startRun(t, ctx, pool, ada, db.RunStart{Scheduled: &first, StartedAt: time.Now()})
+
+	if err := db.DeleteCycle(ctx, pool, ada, y1); err != nil {
+		t.Fatal(err)
+	}
+	read, err := db.GetRun(ctx, pool, ada, run.ID)
+	if err != nil {
+		t.Fatalf("the run is gone with its cycle: %v", err)
+	}
+	if read.Scheduled != nil {
+		t.Fatalf("scheduled %v, want the link to the deleted day cleared", *read.Scheduled)
+	}
+	if got := scheduled(t, pool, ada); len(got) != 0 {
+		t.Fatalf("scheduled %v, want every day the cycle placed gone", got)
+	}
+}
+
 func TestPutCycleRefuses(t *testing.T) {
 	ctx := context.Background()
 	pool := dbtest.Pool(t)

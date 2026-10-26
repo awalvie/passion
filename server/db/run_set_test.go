@@ -183,6 +183,31 @@ func TestUpdateRunDropsSetsOfAStepThatNowLogsClimbs(t *testing.T) {
 	}
 }
 
+// Deleting a run takes everything logged in it.
+func TestDeleteRunTakesItsSetsAndClimbs(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	run := runWith(t, ctx, pool, ada, runStep(s1, e1, "Hang"), kinded(runStep(s2, e2, "Bouldering"), "climbing"))
+	if _, err := db.ReplaceSets(ctx, pool, ada, run.ID, s1, []db.SetFields{{Reps: ptr(5)}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.PutClimb(ctx, pool, ada, run.ID, c1, climb(t, boulder(s2, "6a"))); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := db.DeleteRun(ctx, pool, ada, run.ID); err != nil {
+		t.Fatal(err)
+	}
+	var sets, climbs int
+	if err := pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM run_set), (SELECT count(*) FROM climb)`).Scan(&sets, &climbs); err != nil {
+		t.Fatal(err)
+	}
+	if sets != 0 || climbs != 0 {
+		t.Fatalf("%d sets and %d climbs outlive their run, want none", sets, climbs)
+	}
+}
+
 // A step with sets but no status was reached. Skipping it on finish would let
 // the next body write drop its sets.
 func TestFinishRunKeepsLoggedStepsDone(t *testing.T) {
