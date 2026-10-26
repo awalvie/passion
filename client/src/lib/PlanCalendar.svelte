@@ -3,11 +3,14 @@
 	import Icon from './Icon.svelte';
 	import { offOn, type ScheduledDay, type TimeOff } from './plan';
 
-	// Six weeks from the Monday from. Each session is a chip in its own colour
+	// Whole weeks from the Monday from. Each session is a chip in its own colour
 	// from xl, where a day is wide enough for a name, and a dot below that.
 	// Time off is hatched, with its name on its first day and on each Monday.
+	// A day outside range is faded and cannot be picked.
 	let {
 		from,
+		count = 6,
+		range,
 		today,
 		days,
 		timeOff,
@@ -16,6 +19,8 @@
 		onselect
 	}: {
 		from: string;
+		count?: number;
+		range?: { starts: string; ends: string };
 		today: string;
 		days: ScheduledDay[];
 		timeOff: TimeOff[];
@@ -24,7 +29,8 @@
 		onselect: (date: string) => void;
 	} = $props();
 
-	const weeks = $derived(Array.from({ length: 6 }, (_, w) => Array.from({ length: 7 }, (_, i) => addDays(from, w * 7 + i))));
+	const weeks = $derived(Array.from({ length: count }, (_, w) => Array.from({ length: 7 }, (_, i) => addDays(from, w * 7 + i))));
+	const outside = (date: string) => !!range && (date < range.starts || date > range.ends);
 	const onDate = $derived(byDate(days, (d) => d.local_date));
 	const colorOf = (d: ScheduledDay) => colors.get(d.template) ?? 'var(--ink-3)';
 
@@ -76,15 +82,18 @@
 						{off ? 'bg-[repeating-linear-gradient(135deg,var(--hatch)_0_6px,transparent_6px_12px)]' : ''}"
 					aria-pressed={date === selected}
 					aria-label="{fullDate(date)}{off ? `, ${off.name}` : ''}{list.length ? `: ${list.map((d) => d.template_name).join(', ')}` : ''}"
+					disabled={outside(date)}
 					onclick={() => onselect(date)}
 				>
 					<span class="flex h-[26px] shrink-0 items-center gap-1.5 xl:h-7 xl:pl-1">
 						<span
 							class="digits flex h-[26px] min-w-[26px] items-center justify-center rounded-full text-[15px] whitespace-nowrap {date === today
 								? 'bg-tint text-on-tint shadow-[0_0_0_4px_color-mix(in_srgb,var(--tint)_32%,transparent)] xl:-ml-1'
-								: date < today
-									? 'text-ink-2'
-									: 'text-ink xl:text-ink-2'}"
+								: outside(date)
+									? 'text-ink-3'
+									: date < today
+										? 'text-ink-2'
+										: 'text-ink xl:text-ink-2'}"
 						>
 							{number(date)}
 						</span>
@@ -117,7 +126,7 @@
 		{/each}
 	</div>
 
-	<div class="hidden grid-rows-[2rem_repeat(6,92px)] rounded-2xl bg-well xl:grid" aria-label="Weeks">
+	<div class="hidden rounded-2xl bg-well xl:grid" style:grid-template-rows="2rem repeat({count}, 92px)" aria-label="Weeks">
 		<span class="flex items-center justify-center text-xs font-semibold text-ink-2">Week</span>
 		{#each weeks as dates, w (dates[0])}
 			{@const s = week(dates)}
