@@ -48,10 +48,18 @@ const maxBodyBytes = 64 << 10
 // largest private session measured about 32 KB of exercise files.
 const maxSessionBodyBytes = 256 << 10
 
+// writeJSON encodes before it sends the status, so a value JSON cannot hold
+// answers 500 instead of an empty success.
 func writeJSON(w http.ResponseWriter, status int, v any) {
+	body, err := json.Marshal(v)
+	if err != nil {
+		slog.Error("encode response", "err", err)
+		status = http.StatusInternalServerError
+		body, _ = json.Marshal(errorBody{errorDetail{Code: CodeInternal, Message: "Something went wrong."}})
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
+	_, _ = w.Write(append(body, '\n'))
 }
 
 func writeError(w http.ResponseWriter, status int, code, message string) {
