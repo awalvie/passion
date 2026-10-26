@@ -58,7 +58,7 @@
 				<span class="min-w-0 flex-1">
 					<span class="block truncate text-[15px] font-bold">{e.name}</span>
 					<span class="block truncate text-xs font-semibold text-ink-2">
-						{[kindOf(e.kind).label, summary(e)].filter(Boolean).join(' · ')}{#if where} · <b class="text-ink">{where}</b>{/if}
+						{[kindOf(e.kind).label, summary(e)].filter(Boolean).join(' · ')}{#if where}{' · '}<b class="text-ink">{where}</b>{/if}
 					</span>
 				</span>
 				<button type="button" class="flex size-11 shrink-0 items-center justify-center rounded-full bg-well text-ink" aria-label="Add {e.name}" onclick={() => pick(e)}>
