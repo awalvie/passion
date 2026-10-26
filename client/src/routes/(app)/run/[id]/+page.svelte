@@ -148,7 +148,7 @@
 			return [`${s.items.length - skipped.length} done`, tail].filter(Boolean).join(' · ');
 		}
 		const only = s.items[0];
-		if (s.items.length === 1) return only.step ? stepMeta(only.step) : choiceMeta(only.choice!);
+		if (s.items.length === 1) return only.step ? stepMeta(only.step) : choiceMeta(only.choice!) || '1 exercise';
 		return `${s.items.length} exercises`;
 	}
 
@@ -516,7 +516,7 @@
 											{@const c = item.choice}
 											<div id="pick-{c.id}" class="w-full scroll-mt-20 pt-0.5 pb-1">
 												<p class="px-1 pt-0.5 pb-2 text-xs font-semibold tracking-[0.06em] text-ink-2 uppercase">
-													{c.name} · {choiceMeta(c)}
+													{[c.name, choiceMeta(c)].filter(Boolean).join(' · ')}
 												</p>
 												<div>
 													{#each c.options as o, k (k)}
@@ -635,9 +635,10 @@
 	{#if !run.finished_at && (stop || steps.length)}
 		<div class="shrink-0 rounded-t-[28px] bg-(--dock) px-4 pt-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" role="group" aria-label="Now">
 			{#if stop}
+				{@const meta = stop.step ? stepMeta(stop.step) : choiceMeta(stop.choice!)}
 				<div class="flex min-h-11 flex-col justify-center gap-0.5 px-1">
 					<span class="truncate text-sm font-medium text-(--fg2)">
-						<b class="font-[family-name:var(--font-digits)] font-bold tracking-[0.1em]">NOW</b> · {stop.step ? stepMeta(stop.step) : choiceMeta(stop.choice!)}
+						<b class="font-[family-name:var(--font-digits)] font-bold tracking-[0.1em]">NOW</b>{meta ? ` · ${meta}` : ''}
 					</span>
 					<span class="truncate text-[17px] leading-[1.2] font-bold">{stop.step?.name ?? stop.choice!.name}</span>
 				</div>

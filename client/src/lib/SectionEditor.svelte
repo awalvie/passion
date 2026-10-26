@@ -36,9 +36,7 @@
 	}
 
 	const only = $derived(section.items.length === 1 ? section.items[0].choice : undefined);
-	const count = $derived(
-		only ? choiceMeta(only) : plural(section.items.length, 'exercise')
-	);
+	const count = $derived((only && choiceMeta(only)) || plural(section.items.length, 'exercise'));
 	const quiet =
 		'flex min-h-13 cursor-pointer list-none items-center gap-2.5 text-[15px] font-bold [&::-webkit-details-marker]:hidden';
 </script>

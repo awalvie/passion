@@ -30,7 +30,7 @@
 					</li>
 				{:else}
 					<li class="px-4 pt-2.5 pb-0.5 text-xs font-semibold tracking-[.06em] text-ink-2 uppercase">
-						{item.choice.name} · {choiceMeta(item.choice)}
+						{[item.choice.name, choiceMeta(item.choice)].filter(Boolean).join(' · ')}
 						{#if item.choice.notes}
 							<Notes text={item.choice.notes} class="mt-1 font-semibold tracking-normal text-ink-2 normal-case" />
 						{/if}

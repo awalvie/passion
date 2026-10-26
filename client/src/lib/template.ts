@@ -48,10 +48,12 @@ export function stopLine(stop: { step?: Step; choice?: { name: string } } | unde
 	return { name: s.name, detail: [summary(s), repTime(s)].filter(Boolean).join(' · '), step: s };
 }
 
-// pick is the fewest options to do, so 0 makes the whole choice optional.
+// pick is the fewest options to do, so 0 makes the whole choice optional. A
+// choice with one option to do has nothing to say.
 export function choiceMeta(c: Choice): string {
 	const n = c.options.length;
 	if (c.pick === 0) return `Optional · any of ${n}`;
+	if (c.pick === 1 && n === 1) return '';
 	if (c.pick === n) return `Do all ${n}`;
 	return `Pick at least ${c.pick} of ${n}`;
 }

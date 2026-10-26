@@ -331,7 +331,7 @@
 							<span class="min-w-0 flex-1">
 								<span class="flex flex-wrap items-center gap-x-2 gap-y-1">
 									<span class="text-base font-bold break-words">{section.name}</span>
-									{#if choice}
+									{#if choice && pickLabel(choice)}
 										<span class="rounded-full bg-tint px-2.5 py-0.5 text-xs font-bold text-on-tint">{pickLabel(choice)}</span>
 									{/if}
 								</span>
@@ -374,7 +374,9 @@
 						<span class="min-w-0 flex-1">
 							<span class="block text-[17px] font-bold break-words">{section.name}</span>
 							{#if only(section)}
-								<span class="mt-1 inline-block rounded-full bg-tint px-2.5 py-0.5 text-xs font-bold text-on-tint">{pickLabel(only(section)!)}</span>
+								{#if pickLabel(only(section)!)}
+									<span class="mt-1 inline-block rounded-full bg-tint px-2.5 py-0.5 text-xs font-bold text-on-tint">{pickLabel(only(section)!)}</span>
+								{/if}
 							{:else}
 								<span class="block text-xs font-semibold text-ink-2">
 									{plural(steps(section), 'exercise')}
@@ -397,7 +399,9 @@
 									{#if !only(section)}
 										<div class="flex flex-wrap items-center gap-2 px-1">
 											<span class="text-[15px] font-bold">{item.choice.name}</span>
-											<span class="rounded-full bg-tint px-2.5 py-1 text-xs font-bold text-on-tint">{pickLabel(item.choice)}</span>
+											{#if pickLabel(item.choice)}
+												<span class="rounded-full bg-tint px-2.5 py-1 text-xs font-bold text-on-tint">{pickLabel(item.choice)}</span>
+											{/if}
 										</div>
 									{/if}
 									{#if item.choice.notes}

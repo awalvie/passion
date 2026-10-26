@@ -20,7 +20,9 @@
 		<span class="text-ink-3 transition-transform group-open/choice:rotate-90"><Icon name="chevron-right" /></span>
 		<div class="min-w-0 flex-1">
 			<div class="truncate text-[15px] font-bold">{choice.name}</div>
-			<div class="truncate text-xs font-semibold text-ink-2">{choiceMeta(choice)}</div>
+			{#if choiceMeta(choice)}
+				<div class="truncate text-xs font-semibold text-ink-2">{choiceMeta(choice)}</div>
+			{/if}
 		</div>
 		{@render actions()}
 	</summary>
