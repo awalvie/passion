@@ -87,7 +87,7 @@
 
 <svelte:window onpointerdown={outside} />
 
-<select class="input h-12 px-4 lg:hidden" bind:value aria-label={label}>
+<select class="input h-12 pr-8 pl-4 lg:hidden" bind:value aria-label={label}>
 	{#each options as o (o.value)}
 		<option value={o.value}>{o.label}</option>
 	{/each}
