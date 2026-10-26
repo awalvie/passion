@@ -174,6 +174,28 @@ func TestUpdateRun(t *testing.T) {
 	}
 }
 
+func TestSkipChoice(t *testing.T) {
+	h, pool := newTestServerWithPool(t)
+	ada := signedIn(t, h, "ada@example.com")
+	tpl := createSessionTemplate(t, h, ada, sessionBody("Power", insertShipped(t, pool, "Hang"), insertShipped(t, pool, "Pull")))
+	run := startRunFor(t, h, ada, `{"template": "`+tpl.ID+`"}`)
+	if run.Sections[0].Items[1].Choice.Skipped {
+		t.Fatal("a new run's choice is skipped, want it open")
+	}
+
+	body := runRequestFrom(t, run, func(b map[string]any) {
+		items := b["sections"].([]any)[0].(map[string]any)["items"].([]any)
+		items[1].(map[string]any)["choice"].(map[string]any)["skipped"] = true
+	})
+	rec := send(t, h, http.MethodPut, "/api/v1/runs/"+run.ID, ada, body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body)
+	}
+	if !decodeRun(t, rec).Sections[0].Items[1].Choice.Skipped {
+		t.Fatal("the choice is not skipped after the update")
+	}
+}
+
 func TestFinishRun(t *testing.T) {
 	h, pool := newTestServerWithPool(t)
 	ada := signedIn(t, h, "ada@example.com")

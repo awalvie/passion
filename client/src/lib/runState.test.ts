@@ -58,7 +58,8 @@ const choice = (id: string, pick: number, options: Exercise[]): RunChoice => ({
 	name: 'Pull',
 	notes: null,
 	pick,
-	options: options.map(toStep)
+	options: options.map(toStep),
+	skipped: false
 });
 
 function newRun(): Run {
@@ -378,6 +379,18 @@ test('dropStep on its own place writes nothing', async () => {
 	openRun.dropStep('s2', 1, 1);
 
 	expect(openRun.writes).toStrictEqual([]);
+});
+
+test('skipChoice marks the choice skipped in the body sent, and unskipChoice offers it again', async () => {
+	const openRun = await openOffline();
+	const c = items(openRun.run!, 1)[1].choice!;
+
+	openRun.skipChoice(c);
+	expect(openRun.writes.at(-1)!.body).toMatchObject({ sections: [{}, { items: [{}, { choice: { id: 'c1', skipped: true } }, {}] }] });
+
+	openRun.unskipChoice(c);
+	expect(items(openRun.run!, 1)[1].choice!.skipped).toBe(false);
+	expect(urls(openRun.writes)).toStrictEqual([bodyUrl]);
 });
 
 test('addSection adds an empty section at the end', async () => {

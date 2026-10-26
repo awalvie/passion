@@ -386,6 +386,18 @@ class OpenRun {
 		this.saveBody();
 	}
 
+	// skipChoice passes a choice by without a pick, and unskipChoice offers it
+	// again.
+	skipChoice(choice: RunChoice) {
+		choice.skipped = true;
+		this.saveBody();
+	}
+
+	unskipChoice(choice: RunChoice) {
+		choice.skipped = false;
+		this.saveBody();
+	}
+
 	#queue(method: Write['method'], url: string, body?: unknown) {
 		this.writes = [...this.writes.filter((w) => w.url !== url), { seq: ++this.#seq, method, url, body }];
 		this.#store();

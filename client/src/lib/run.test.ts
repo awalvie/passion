@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
 import {
 	climbWord,
+	currentStop,
 	doneWhen,
 	isStale,
 	lastDone,
@@ -71,6 +72,19 @@ test('sectionMarks marks a section with every step skipped as skipped, not done'
 		]
 	} as unknown as Pick<Run, 'sections'>;
 	expect(sectionMarks(run, 3)).toEqual(['skipped', 'done', 'todo', 'now']);
+});
+
+test('a skipped choice finishes its section and is no stop', () => {
+	const choice = (skipped: boolean) => ({ choice: { id: 'c1', pick: 1, skipped } });
+	const run = {
+		sections: [
+			{ items: [choice(true)] },
+			{ items: [{ step: step('open', 'done', 60) }, choice(true)] },
+			{ items: [choice(false)] }
+		]
+	} as unknown as Pick<Run, 'sections'>;
+	expect(sectionMarks(run, -1)).toEqual(['skipped', 'done', 'todo']);
+	expect(currentStop(run)).toBe(run.sections[2].items[0]);
 });
 
 test('isStale keeps an unfinished run open until 04:00 after its day', () => {

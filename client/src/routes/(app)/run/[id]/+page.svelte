@@ -11,6 +11,7 @@
 		currentStop,
 		climbsOf,
 		isFinished,
+		isSkipped,
 		sectionMarks,
 		sectionShare,
 		setsOf,
@@ -124,17 +125,29 @@
 
 	const marks = $derived(sectionMarks(run, section));
 
-	// Skip section skips the steps nothing was logged on; a step under way is
-	// left for its own Skip.
+	// Skip section skips the steps nothing was logged on, and the choices not
+	// picked from; a step under way is left for its own Skip.
 	const untouched = (s: RunSection) =>
 		stepsIn(s).filter((st) => st.status === null && !setsOf(run, st.id).length && !climbsOf(run, st.id).length);
 	const stepsIn = (s: RunSection) => s.items.flatMap((it) => (it.step ? [it.step] : []));
+	const choicesIn = (s: RunSection) => s.items.flatMap((it) => (it.choice ? [it.choice] : []));
 	function sectionMenu(s: RunSection) {
 		if (run.finished_at) return [];
-		const skipped = stepsIn(s).filter((st) => st.status === 'skipped');
+		const steps = untouched(s);
+		const choices = choicesIn(s).filter((c) => !c.skipped);
+		const skippedSteps = stepsIn(s).filter((st) => st.status === 'skipped');
+		const skippedChoices = choicesIn(s).filter((c) => c.skipped);
+		const skip = () => {
+			steps.forEach((st) => openRun.skip(st));
+			choices.forEach((c) => openRun.skipChoice(c));
+		};
+		const undo = () => {
+			skippedSteps.forEach((st) => openRun.unskip(st));
+			skippedChoices.forEach((c) => openRun.unskipChoice(c));
+		};
 		return [
-			...(untouched(s).length ? [{ label: 'Skip section', onclick: () => untouched(s).forEach((st) => openRun.skip(st)) }] : []),
-			...(skipped.length ? [{ label: 'Undo skips', onclick: () => skipped.forEach((st) => openRun.unskip(st)) }] : [])
+			...(steps.length || choices.length ? [{ label: 'Skip section', onclick: skip }] : []),
+			...(skippedSteps.length || skippedChoices.length ? [{ label: 'Undo skips', onclick: undo }] : [])
 		];
 	}
 
@@ -142,9 +155,9 @@
 		if (!s.items.length) return 'No exercises';
 		if (m === 'skipped') return 'Skipped';
 		if (m === 'done') {
-			const skipped = s.items.filter((it) => it.step?.status === 'skipped');
-			const tail =
-				skipped.length === 1 ? `${skipped[0].step!.name} skipped` : skipped.length ? `${skipped.length} skipped` : '';
+			const skipped = s.items.filter(isSkipped);
+			const name = skipped[0]?.step?.name ?? skipped[0]?.choice?.name;
+			const tail = skipped.length === 1 ? `${name} skipped` : skipped.length ? `${skipped.length} skipped` : '';
 			return [`${s.items.length - skipped.length} done`, tail].filter(Boolean).join(' · ');
 		}
 		const only = s.items[0];
@@ -263,7 +276,7 @@
 	// Choices still to pick, asked about until a step is logged or skipped.
 	let later = $state(false);
 	const unpicked = $derived(
-		run.sections.flatMap((s) => s.items.flatMap((it) => (it.choice && it.choice.pick > 0 ? [it.choice] : [])))
+		run.sections.flatMap((s) => s.items.flatMap((it) => (it.choice && it.choice.pick > 0 && !it.choice.skipped ? [it.choice] : [])))
 	);
 	const remind = $derived(!later && !run.finished_at && steps.every((s) => s.status === null) && unpicked.length > 0);
 
@@ -422,7 +435,7 @@
 										<span class="flex shrink-0 gap-1" aria-hidden="true">
 											{#each s.items as it, k (k)}
 												<span
-													class="size-[7px] rounded-full {it.step?.status === 'skipped'
+													class="size-[7px] rounded-full {isSkipped(it)
 														? 'border-[1.5px] border-ink-3'
 														: 'bg-rest-on-hero'}"
 												></span>
@@ -512,6 +525,14 @@
 													]}
 												/>
 											{/if}
+										{:else if item.choice.skipped}
+											<div class="flex min-w-0 flex-1 items-center gap-3 px-1 py-2.5">
+												<SessionDot mark="skipped" small />
+												<span class="min-w-0 flex-1">
+													<span class="block truncate text-[15px] font-bold text-ink-2 line-through">{item.choice.name}</span>
+													<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">{choiceMeta(item.choice)}</span>
+												</span>
+											</div>
 										{:else}
 											{@const c = item.choice}
 											<div id="pick-{c.id}" class="w-full scroll-mt-20 pt-0.5 pb-1">

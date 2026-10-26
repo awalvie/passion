@@ -2758,6 +2758,12 @@
           "minimum": 0,
           "x-go-name": "Pick",
           "example": 1
+        },
+        "skipped": {
+          "description": "true once it was skipped without a pick.",
+          "type": "boolean",
+          "x-go-name": "Skipped",
+          "example": false
         }
       },
       "x-go-package": "passion/server/api"

@@ -43,6 +43,7 @@ export type RunChoice = {
 	notes: string | null;
 	pick: number;
 	options: Step[];
+	skipped: boolean;
 };
 
 export type StepStatus = 'done' | 'skipped';
@@ -179,7 +180,11 @@ export function isFinished(s: RunStep): boolean {
 // A stop is where the player goes next: an unfinished step, or a choice that
 // still needs a pick. The player must not pass a choice that asks for one.
 function isStop(i: RunItem): boolean {
-	return i.choice ? i.choice.pick > 0 : !isFinished(i.step);
+	return i.choice ? i.choice.pick > 0 && !i.choice.skipped : !isFinished(i.step);
+}
+
+export function isSkipped(i: RunItem): boolean {
+	return i.choice ? !!i.choice.skipped : i.step.status === 'skipped';
 }
 
 export function currentStop(r: Pick<Run, 'sections'>): RunItem | undefined {
@@ -205,14 +210,14 @@ export type SectionMark = 'done' | 'skipped' | 'now' | 'todo';
 export function sectionMarks(r: Pick<Run, 'sections'>, at: number): SectionMark[] {
 	return r.sections.map((s, i) => {
 		if (i === at) return 'now';
-		if (!s.items.length || !s.items.every((it) => it.step && isFinished(it.step))) return 'todo';
-		return s.items.every((it) => it.step!.status === 'skipped') ? 'skipped' : 'done';
+		if (!s.items.length || !s.items.every((it) => (it.step ? isFinished(it.step) : it.choice.skipped))) return 'todo';
+		return s.items.every(isSkipped) ? 'skipped' : 'done';
 	});
 }
 
 // sectionShare is how much of a section is finished, from 0 to 1.
 export function sectionShare(s: RunSection): number {
-	const done = s.items.filter((it) => it.step && isFinished(it.step)).length;
+	const done = s.items.filter((it) => (it.step ? isFinished(it.step) : it.choice.skipped)).length;
 	return s.items.length ? done / s.items.length : 0;
 }
 

@@ -24,6 +24,7 @@ type RunItem struct {
 type RunChoice struct {
 	ID string `json:"id"`
 	Choice
+	Skipped bool `json:"skipped"`
 }
 
 // RunStep is a step and what happened to it. FromChoice is the offer a picked

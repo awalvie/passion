@@ -144,6 +144,11 @@ type runChoiceBody struct {
 	ID string `json:"id"`
 
 	choiceBody
+
+	// true once it was skipped without a pick.
+	//
+	// example: false
+	Skipped bool `json:"skipped"`
 }
 
 // A step in a run: an exercise's copy, and what happened to it.
@@ -516,11 +521,11 @@ func (s runStepBody) runStep() db.RunStep {
 }
 
 func (c runChoiceBody) runChoice() db.RunChoice {
-	return db.RunChoice{ID: c.ID, Choice: c.choice()}
+	return db.RunChoice{ID: c.ID, Choice: c.choice(), Skipped: c.Skipped}
 }
 
 func toRunChoiceBody(c db.RunChoice) runChoiceBody {
-	return runChoiceBody{ID: c.ID, choiceBody: toChoiceBody(c.Choice)}
+	return runChoiceBody{ID: c.ID, choiceBody: toChoiceBody(c.Choice), Skipped: c.Skipped}
 }
 
 func toRunSectionBodies(b db.RunBody) []runSectionBody {
