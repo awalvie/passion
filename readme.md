@@ -11,21 +11,31 @@
 
 <p align="center"><img src="docs/screenshots/laptop-today.png" alt="Today on a laptop: last week, this week and next beside today's session" width="900"></p>
 
-## Plan
+<table>
+  <tr>
+    <td align="center" width="25%"><img src="docs/screenshots/phone-cycle.png" alt="A six-week cycle on a calendar" width="180"><br>Plan</td>
+    <td align="center" width="25%"><img src="docs/screenshots/phone-session.png" alt="A session with its sections" width="180"><br>Train</td>
+    <td align="center" width="25%"><img src="docs/screenshots/phone-progress.png" alt="Progress for climbs" width="180"><br>Look back</td>
+    <td align="center" width="25%"><img src="docs/screenshots/phone-journal.png" alt="The Journal with two pinned notes" width="180"><br>Journal</td>
+  </tr>
+</table>
 
-Plan your training in cycles.
+## Features
 
+<details>
+<summary>Plan your training in cycles</summary>
+<br>
 <table>
   <tr>
     <td align="center"><img src="docs/screenshots/phone-cycle.png" alt="A six-week cycle on a calendar" width="360"><br>A cycle</td>
     <td align="center"><img src="docs/screenshots/phone-today.png" alt="Today with this week and the next session" width="360"><br>Today</td>
   </tr>
 </table>
+</details>
 
-## Train
-
-Run a session: hangs, sets and reps, climbs.
-
+<details>
+<summary>Run a session: hangs, sets and reps, climbs</summary>
+<br>
 <table>
   <tr>
     <td align="center"><img src="docs/screenshots/phone-session.png" alt="A session with its sections" width="360"><br>The session</td>
@@ -36,11 +46,11 @@ Run a session: hangs, sets and reps, climbs.
     <td align="center"><img src="docs/screenshots/phone-climbs.png" alt="Logging a climb" width="360"><br>Climbs</td>
   </tr>
 </table>
+</details>
 
-## Look back
-
-See your hours, climbs and grades over time.
-
+<details>
+<summary>See your hours, climbs and grades over time</summary>
+<br>
 <table>
   <tr>
     <td align="center"><img src="docs/screenshots/phone-history.png" alt="History with time, climbs and hardest send" width="360"><br>History</td>
@@ -51,28 +61,29 @@ See your hours, climbs and grades over time.
     <td align="center"><img src="docs/screenshots/phone-exercise.png" alt="The history of weighted pull-ups" width="360"><br>One exercise</td>
   </tr>
 </table>
+</details>
 
-## Journal
-
-Keep a training journal.
-
+<details>
+<summary>Keep a training journal</summary>
+<br>
 <table>
   <tr>
     <td align="center"><img src="docs/screenshots/phone-journal.png" alt="The Journal with two pinned notes" width="360"><br>Journal</td>
     <td align="center"><img src="docs/screenshots/phone-pinned.png" alt="Pinned notes at the start of a session" width="360"><br>Pinned notes</td>
   </tr>
 </table>
+</details>
 
-## Make your own
-
-Use the exercises and sessions that come with the app, or build your own.
-
+<details>
+<summary>Use the exercises and sessions that come with the app, or build your own</summary>
+<br>
 <table>
   <tr>
     <td align="center"><img src="docs/screenshots/phone-library.png" alt="The library of sessions" width="360"><br>Library</td>
     <td align="center"><img src="docs/screenshots/phone-template.png" alt="The sections of a session" width="360"><br>A session's sections</td>
   </tr>
 </table>
+</details>
 
 ## Run it
 
