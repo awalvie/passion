@@ -1,3 +1,24 @@
+# Deploys the maintainer's server: builds and pushes the image, copies the
+# compose file, the config and the private catalog over SSH, and starts them.
+# Run it with gh workflow run deploy.yml --ref master.
+#
+# The server needs:
+#   - Docker with the compose plugin, and the deploy user in the docker group.
+#   - /srv/passion, owned by the deploy user.
+#   - A reverse proxy to 127.0.0.1:8081, for example with Caddy:
+#     example.com { reverse_proxy 127.0.0.1:8081 }
+#
+# The repository needs these secrets:
+#   - DEPLOY_HOST, DEPLOY_USER and DEPLOY_SSH_KEY.
+#   - DEPLOY_KNOWN_HOSTS, from ssh-keyscan.
+#   - PRIVATE_CATALOG_DEPLOY_KEY.
+#   - POSTGRES_PASSWORD, of letters, digits and . _ ~ - only.
+# And the variable CATALOG_OWNER, the email of the account that gets the
+# private catalog.
+#
+# Postgres reads the password only when it makes its volume. To change it, run
+# ALTER USER in the database first, then change the secret.
+
 name: Deploy
 
 on:
