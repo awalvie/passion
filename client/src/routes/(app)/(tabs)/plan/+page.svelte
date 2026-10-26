@@ -205,7 +205,7 @@
 	/>
 {/snippet}
 
-<div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-8 lg:mx-auto lg:px-8 lg:pt-3 {calendarView ? 'lg:max-w-[1280px]' : 'lg:max-w-[760px]'}">
+<div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-8 lg:mx-auto lg:max-w-[1280px] lg:px-8 lg:pt-3">
 	<header class="flex items-start justify-between gap-3">
 		<div>
 			<h1 class="page-title">Plan</h1>
@@ -217,14 +217,14 @@
 			<div class="hidden w-[380px] lg:block">{@render views()}</div>
 			{#if !data.offline}
 				{#if cyclesView}
-					<a href="/plan/cycles/new" class="mt-1 flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm lg:mt-0 lg:h-12 lg:w-auto lg:gap-2 lg:px-5 lg:shadow-card" aria-label="New cycle">
+					<a href="/plan/cycles/new" class="mt-1 flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm lg:mt-0 lg:h-12 lg:w-41 lg:gap-2 lg:shadow-card" aria-label="New cycle">
 						<Icon name="plus" size="1.25rem" /><span class="hidden text-[15px] font-bold lg:inline" aria-hidden="true">New cycle</span>
 					</a>
 				{:else}
 					<div class="mt-1 lg:mt-0">
 						<Menu
 							label="Add"
-							look="bg-surface text-ink shadow-card-sm lg:h-12 lg:w-auto lg:gap-2 lg:px-5 lg:shadow-card"
+							look="bg-surface text-ink shadow-card-sm lg:h-12 lg:w-41 lg:gap-2 lg:shadow-card"
 							items={[
 								...(data.templates.length ? [{ label: 'A session', onclick: openAdd }] : []),
 								{ label: 'Time off', onclick: () => openOff(null) }
