@@ -30,7 +30,7 @@
 		<button
 			type="button"
 			aria-pressed={on}
-			class="relative flex h-11 shrink-0 items-center text-[15px] font-bold {on ? 'text-ink' : 'text-ink-3'}"
+			class="relative flex h-11 shrink-0 items-center text-[15px] font-bold {on ? 'text-ink' : 'text-ink-2'}"
 			onclick={() => (value = o.value)}
 			use:haptic
 		>

@@ -33,9 +33,9 @@
 		<label class="flex min-h-14 items-center gap-3 text-xs font-semibold text-ink-2">
 			Pick at least
 			<input type="number" min="0" max={choice.options.length} step="1" class="input h-11 w-16 px-2 text-center" bind:value={choice.pick} onchange={() => (choice.pick = whole(choice.pick) ?? choice.pick)} />
-			<span class="text-ink-3">0 makes it optional</span>
+			<span>0 makes it optional</span>
 		</label>
-		<div class="pt-1 text-xs font-bold tracking-wider text-ink-3 uppercase">Options</div>
+		<div class="pt-1 text-xs font-bold tracking-wider text-ink-2 uppercase">Options</div>
 		<div class="[&>:not(:first-child)]:shadow-[inset_0_1px_0_var(--line)]">
 			{#each choice.options as option, k (option)}
 				<StepRow

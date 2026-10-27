@@ -26,7 +26,7 @@
 				Type
 				<Select bind:value={draft.kind} label="Type" options={kinds.map((k) => ({ value: k.kind, label: k.label }))} />
 			</label>
-			<p class="mt-1 mb-0 text-xs font-semibold text-ink-3">{kindOf(draft.kind).hint}</p>
+			<p class="mt-1 mb-0 text-xs font-semibold text-ink-2">{kindOf(draft.kind).hint}</p>
 		</div>
 		<div>
 			<label class="block text-xs font-semibold text-ink-2" for="ex-source">Source</label>
@@ -58,7 +58,7 @@
 
 	{#if counts.length}
 		<div class="mt-[18px] pt-4 shadow-[inset_0_1px_0_var(--line)]">
-			<div class="mb-2.5 text-xs font-bold tracking-wider text-ink-3 uppercase">Configuration</div>
+			<div class="mb-2.5 text-xs font-bold tracking-wider text-ink-2 uppercase">Configuration</div>
 			<div class="grid grid-cols-3 gap-2.5">
 				{#each counts as c (c)}
 					<div>
@@ -79,7 +79,7 @@
 
 	{#if shown('duration_seconds')}
 		<div class="mt-[18px] pt-4 shadow-[inset_0_1px_0_var(--line)]">
-			<div class="mb-2.5 text-xs font-bold tracking-wider text-ink-3 uppercase">Duration</div>
+			<div class="mb-2.5 text-xs font-bold tracking-wider text-ink-2 uppercase">Duration</div>
 			<DurationInput bind:seconds={draft.duration_seconds} id="ex" />
 		</div>
 	{/if}
@@ -90,7 +90,7 @@
 				<Checkbox bind:checked={draft.per_side} />
 				Per side
 			</label>
-			<p class="mb-0 text-xs font-semibold text-ink-3">The numbers are for each side, as in 6 reps per side.</p>
+			<p class="mb-0 text-xs font-semibold text-ink-2">The numbers are for each side, as in 6 reps per side.</p>
 		</div>
 	{/if}
 

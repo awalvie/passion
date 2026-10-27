@@ -81,7 +81,7 @@
 					<li class="list-row">
 						<button type="button" class="flex min-h-14 w-full items-center gap-3 py-2 pr-3 pl-4 text-left" onclick={() => (page = key)}>
 							<span class="text-[15px] font-bold">{pages[key].title}</span>
-							<span class="min-w-0 flex-1 truncate text-right text-[15px] font-semibold {value ? 'text-ink' : 'text-ink-3'}">{value || 'Any'}</span>
+							<span class="min-w-0 flex-1 truncate text-right text-[15px] font-semibold {value ? 'text-ink' : 'text-ink-2'}">{value || 'Any'}</span>
 							<span class="flex text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.2} /></span>
 						</button>
 					</li>

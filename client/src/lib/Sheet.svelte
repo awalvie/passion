@@ -123,7 +123,7 @@
 					</button>
 				{/if}
 				<div class="min-w-0 flex-1">
-					{#if eyebrow}<p class="text-xs font-semibold text-ink-3">{eyebrow}</p>{/if}
+					{#if eyebrow}<p class="text-xs font-semibold text-ink-2">{eyebrow}</p>{/if}
 					<h2 class="text-[32px] leading-[1.1] font-extrabold tracking-tight break-words">{title}</h2>
 				</div>
 				<button

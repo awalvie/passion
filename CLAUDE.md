@@ -45,7 +45,7 @@ If a catalog entry cannot meet this, put it in `passion-private-catalog` instead
 
 Tokens are in `client/src/tokens.css`; each needs a light and a dark value.
 
-- `bg-ground` page, `bg-surface` card, `bg-well` field. Text `text-ink`/`-2`/`-3`, lines `border-line`.
+- `bg-ground` page, `bg-surface` card, `bg-well` field. Text `text-ink`/`-2`, lines `border-line`. `ink-3` is too faint for text to read: keep it for icons, placeholders and what is switched off.
 - Lime (`bg-tint`) marks Start, Log, a page's main button, today's date, the day a dragged session would land on and the current tab, never text. Apricot (`bg-live`) is a running session.
 - Time off is hatched with `--hatch` stripes.
 - Type: `text-xs` labels, `text-[15px]` body, `text-xl` card titles. `digits` for numbers, `reading` for the user's notes.

@@ -530,7 +530,7 @@
 				<div class="mt-4">
 					<Bars parts={[{ values: time, cls: 'bg-chart' }]} height={44} small />
 				</div>
-				<p class="mt-1.5 text-xs font-semibold text-ink-3">Last 10 weeks</p>
+				<p class="mt-1.5 text-xs font-semibold text-ink-2">Last 10 weeks</p>
 			</section>
 		{/if}
 
@@ -628,7 +628,7 @@
 												</span>
 											</span>
 											{#if usual}
-												<span class="shrink-0 text-xs font-semibold text-ink-3">Usually {usual}</span>
+												<span class="shrink-0 text-xs font-semibold text-ink-2">Usually {usual}</span>
 											{/if}
 										</a>
 									{/if}

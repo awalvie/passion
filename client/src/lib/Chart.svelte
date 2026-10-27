@@ -43,7 +43,7 @@
 	{#if grid.some((g) => g.label)}
 		<div class="relative min-w-7 shrink-0 text-xs" style:width="{Math.max(...grid.map((g) => g.label.length))}ch" style:height="{height}px">
 			{#each grid as g (g.at)}
-				<span class="absolute right-0 -translate-y-1/2 digits text-xs leading-none font-semibold text-ink-3" style:top={top(g.at)}>{g.label}</span>
+				<span class="absolute right-0 -translate-y-1/2 digits text-xs leading-none font-semibold text-ink-2" style:top={top(g.at)}>{g.label}</span>
 			{/each}
 		</div>
 	{/if}
@@ -69,7 +69,7 @@
 				{#each ticks as t, i (i)}
 					{#if t}
 						<span
-							class="absolute -translate-x-1/2 digits text-xs leading-none font-semibold whitespace-nowrap {i === at ? 'text-ink' : 'text-ink-3'}"
+							class="absolute -translate-x-1/2 digits text-xs leading-none font-semibold whitespace-nowrap {i === at ? 'text-ink' : 'text-ink-2'}"
 							style:left="{((i + 0.5) / n) * 100}%">{t}</span
 						>
 					{/if}
