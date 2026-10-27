@@ -20,7 +20,7 @@ export class SessionDrag {
 	#pressed: { d: ScheduledDay; el: Element; id: number; mouse: boolean } | null = null;
 	// The click that ends a drag lands on the day it started from, sometimes
 	// well after the drop; it must not choose that day.
-	#droppedAt = 0;
+	#droppedAt = -Infinity;
 	#o: Options;
 
 	constructor(o: Options) {
