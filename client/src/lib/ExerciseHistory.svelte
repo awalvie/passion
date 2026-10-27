@@ -2,7 +2,7 @@
 	import { formatDate, shortDate } from './dates';
 	import Dots from './Dots.svelte';
 	import type { Scale } from './grades';
-	import { bestSet, climbMarks, clock, figure, gradeScale, headline, measure, setMarks, topSend } from './progress';
+	import { bestSet, climbMarks, clock, figure, gradeScale, headline, measure, setMarks, topSend, totalTries } from './progress';
 	import type { HistorySession } from './run';
 	import { plural } from './text';
 
@@ -77,7 +77,7 @@
 								{/if}
 								<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
 									{session.name} · {scale
-										? `${plural(session.climbs.length, 'climb')}, ${session.climbs.filter((c) => c.sent).length} sent`
+										? `${plural(totalTries(session.climbs), 'climb')}${totalTries(session.climbs) > session.climbs.length ? `, ${session.climbs.length} unique` : ''}, ${session.climbs.filter((c) => c.sent).length} sent`
 										: plural(Math.ceil(session.sets.length / sides), 'set')}
 								</span>
 							</span>
