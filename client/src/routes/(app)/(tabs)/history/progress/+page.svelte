@@ -8,6 +8,7 @@
 	import Dots from '$lib/Dots.svelte';
 	import Empty from '$lib/Empty.svelte';
 	import Icon from '$lib/Icon.svelte';
+	import Info from '$lib/Info.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import Pyramid from '$lib/Pyramid.svelte';
 	import {
@@ -452,11 +453,14 @@
 				<!-- The phone's order is climbs, sent, flash, where. A laptop puts where beside climbs. -->
 				<div class="flex-col gap-3.5 lg:grid lg:grid-cols-6 {data.view === 'climbs' ? 'flex' : 'hidden'}">
 					<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-4 lg:row-start-1">
-						<dl class="grid grid-cols-3 gap-3">
-							{@render stat('Climbs', count(inPick(shown)), when)}
-							{@render stat(`A ${data.per}`, round(count(shown) / passed))}
-							{@render stat(data.unique ? 'All' : 'Unique', data.unique ? totalTries(inPick(shown)) : inPick(shown).length)}
-						</dl>
+						<div class="relative flex items-start gap-3">
+							<dl class="grid flex-1 grid-cols-3 gap-3">
+								{@render stat('Climbs', count(inPick(shown)), when)}
+								{@render stat(`A ${data.per}`, round(count(shown) / passed))}
+								{@render stat(data.unique ? 'All' : 'Unique', data.unique ? totalTries(inPick(shown)) : inPick(shown).length)}
+							</dl>
+							<Info text="All counts every go, sent or not, so three tries on one boulder are three climbs. Unique counts each boulder or route once a session." />
+						</div>
 						<Bars
 							parts={[
 								{ values: climbs.map((c) => c.boulders), cls: boulderFill },
@@ -470,15 +474,24 @@
 						</div>
 					</section>
 					<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-3">
-						<dl>{@render stat('Send rate', pct(sendRate(inPick(shown))), when)}</dl>
+						<div class="relative flex items-start justify-between gap-3">
+							<dl>{@render stat('Send rate', pct(sendRate(inPick(shown))), when)}</dl>
+							<Info text="Of the graded climbs you tried, the share you sent. Each climb counts once, however many tries it took." />
+						</div>
 						<Dots n={data.buckets.length} marks={line(sendRates)} label={(v) => `${v}%`} zero {...charts} />
 					</section>
 					<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-3">
-						<dl>{@render stat('Flash rate', pct(flashRate(inPick(shown))), when)}</dl>
+						<div class="relative flex items-start justify-between gap-3">
+							<dl>{@render stat('Flash rate', pct(flashRate(inPick(shown))), when)}</dl>
+							<Info text="Of the graded climbs you tried, the share you sent on the first try." />
+						</div>
 						<Dots n={data.buckets.length} marks={line(flashRates)} label={(v) => `${v}%`} zero {...charts} />
 					</section>
 					<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-3 shadow-card lg:col-span-2 lg:col-start-5 lg:row-start-1">
-						<h2 class="mb-2 text-[15px] font-bold">Where</h2>
+						<div class="relative mb-2 flex items-start justify-between gap-3">
+							<h2 class="text-[15px] font-bold">Where</h2>
+							<Info text="Your climbs by where you climbed them, counted as the Climbs chart counts them." />
+						</div>
 						<ul class="flex flex-col gap-3">
 							{#each mix as [where, n] (where)}
 								<li class="flex flex-col gap-1.5">
@@ -495,7 +508,10 @@
 				<div class="flex-col gap-3.5 lg:grid lg:grid-cols-2 {data.view === 'grade' ? 'flex' : 'hidden'}">
 					{#each disciplines as d (d.label)}
 						<section class="flex flex-col gap-3 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-							<dl>{@render stat(`${d.label} sent`, d.sent, when)}</dl>
+							<div class="relative flex items-start justify-between gap-3">
+								<dl>{@render stat(`${d.label} sent`, d.sent, when)}</dl>
+								<Info text="Each climb you sent, once, at its grade. The middle of each bar is the ones you flashed." />
+							</div>
 							{#if d.pyramid.length}
 								<Pyramid rows={d.pyramid} />
 								<div class="flex gap-4 text-xs font-semibold text-ink-2">
