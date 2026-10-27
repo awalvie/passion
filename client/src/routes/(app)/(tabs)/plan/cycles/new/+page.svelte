@@ -17,6 +17,7 @@
 	import NavBar from '$lib/NavBar.svelte';
 	import { lastEnd, plannedDays, saveCycle } from '$lib/plan';
 	import Section from '$lib/Section.svelte';
+	import Segmented from '$lib/Segmented.svelte';
 	import SessionIcon from '$lib/SessionIcon.svelte';
 	import { plural } from '$lib/text';
 
@@ -130,18 +131,14 @@
 						</label>
 					</div>
 				</div>
-				<div class="grid grid-cols-3 gap-2">
-					{#each [4, 6, 8] as weeks (weeks)}
-						<button
-							type="button"
-							class="h-12 rounded-full text-[15px] font-bold {length === weeks * 7 ? 'bg-ink text-ground' : 'bg-surface text-ink shadow-card-sm'}"
-							aria-pressed={length === weeks * 7}
-							onclick={() => (draft.ends = addDays(draft.starts, weeks * 7 - 1))}
-						>
-							{weeks} weeks
-						</button>
-					{/each}
-				</div>
+				<Segmented
+					label="Length"
+					items={[4, 6, 8].map((weeks) => ({
+						label: `${weeks} weeks`,
+						on: length === weeks * 7,
+						onclick: () => (draft.ends = addDays(draft.starts, weeks * 7 - 1))
+					}))}
+				/>
 			{:else if step === 2}
 				<Section title="Goals">
 					<GoalList

@@ -90,6 +90,8 @@
 	// A laptop has room for three more ranges on the row.
 	const wider = $derived(quick.slice(2, 5));
 	const more = $derived(custom && !wider.some((q) => q.key === data.span.key));
+	const customOn = $derived(wide.current ? more : custom);
+	const onLook = 'bg-surface text-ink shadow-card-sm dark:bg-ink/15';
 	// A span across a new year names both years, or a year back reads as no time.
 	const spanDate = (date: string) =>
 		data.span.from.slice(0, 4) === data.span.to.slice(0, 4) ? shortDate(date) : formatDate(date, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -258,15 +260,17 @@
 	<NavBar {back} title="Progress" />
 {/if}
 
+<!-- The ranges look like Segmented, which cannot hide some of its items on a
+     phone. -->
 {#snippet pill(label: string, key: string, cls = '')}
 	<a
 		href={href(data.view, key)}
 		data-sveltekit-replacestate
 		data-sveltekit-noscroll
 		aria-current={data.span.key === key ? 'true' : undefined}
-		class="h-11 shrink-0 items-center rounded-full px-4 text-[15px] font-bold whitespace-nowrap {cls} {data.span.key === key
-			? 'bg-ink text-ground'
-			: 'bg-surface text-ink shadow-card-sm'}"
+		class="h-11 flex-1 items-center justify-center rounded-full px-4 text-[15px] font-bold whitespace-nowrap lg:flex-none {cls} {data.span.key === key
+			? onLook
+			: 'text-ink-2'}"
 	>
 		{label}
 	</a>
@@ -303,15 +307,15 @@
 		<!-- On a laptop the ranges and the picked week share one bar at the top.
 		     On a phone the box drops out, so the week bar sticks for the whole page. -->
 		<div class="contents lg:sticky lg:flex lg:top-0 lg:z-20 lg:-my-2 lg:flex-row lg:items-center lg:justify-between lg:bg-ground lg:py-2">
-			<nav class="flex gap-1.5" aria-label="Range">
+			<nav class="flex gap-1 rounded-full bg-well p-1" aria-label="Range">
 				{#each suggested as s (s.key)}{@render pill(s.label, s.key, 'flex')}{/each}
 				{#each wider as q (q.key)}{@render pill(q.label, q.key, 'hidden lg:flex')}{/each}
 				<button
 					type="button"
-					class="flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-[15px] font-bold lg:flex-none {custom
-						? 'bg-ink text-ground'
-						: 'bg-surface text-ink shadow-card-sm'} {more ? '' : 'lg:bg-surface lg:text-ink lg:shadow-card-sm'}"
-					aria-current={custom ? 'true' : undefined}
+					class="flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-[15px] font-bold lg:flex-none {customOn
+						? onLook
+						: 'text-ink-2'}"
+					aria-current={customOn ? 'true' : undefined}
 					aria-haspopup="dialog"
 					onclick={openPicker}
 				>
@@ -502,13 +506,13 @@
 
 <Sheet bind:open={picking} title="Range">
 	<div class="flex flex-col gap-3.5">
-		<div class="grid grid-cols-3 gap-1.5">
+		<div class="grid grid-cols-3 gap-1 rounded-3xl bg-well p-1">
 			{#each quick as q (q.label)}
 				<button
 					type="button"
 					class="flex h-11 items-center justify-center rounded-full text-[15px] font-bold {data.span.key === q.key
-						? 'bg-ink text-ground'
-						: 'bg-surface text-ink shadow-card-sm'}"
+						? onLook
+						: 'text-ink-2'}"
 					aria-pressed={data.span.key === q.key}
 					onclick={() => pick(q.key)}>{q.label}</button
 				>

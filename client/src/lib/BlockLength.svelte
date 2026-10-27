@@ -7,6 +7,7 @@
 	const presets = [7, 8, 10, 14];
 	const limit = $derived(Math.min(28, max));
 	const custom = $derived(!presets.includes(value));
+	const on = 'bg-surface text-ink shadow-card-sm dark:bg-ink/15';
 
 	// A cycle made shorter than its block takes the block down with it.
 	$effect(() => {
@@ -32,11 +33,12 @@
 	}
 </script>
 
-<div class="grid grid-cols-5 gap-2">
+<!-- Drawn as Segmented, which has no place for a disabled length or a field. -->
+<div class="grid grid-cols-5 gap-1 rounded-full bg-well p-1">
 	{#each presets as n (n)}
 		<button
 			type="button"
-			class="h-12 rounded-full text-[15px] font-bold disabled:opacity-40 {value === n ? 'bg-ink text-ground' : 'bg-surface text-ink shadow-card-sm'}"
+			class="h-11 rounded-full text-[15px] font-bold disabled:opacity-40 {value === n ? on : 'text-ink-2'}"
 			aria-pressed={value === n}
 			disabled={n > max}
 			onclick={() => (value = n)}
@@ -47,7 +49,7 @@
 	{/each}
 	{#if editing}
 		<input
-			class="input h-12 [appearance:textfield] px-1 text-center [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+			class="input h-11 min-h-11 rounded-full bg-surface [appearance:textfield] px-1 text-center [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
 			type="number"
 			inputmode="numeric"
 			min="1"
@@ -66,7 +68,7 @@
 	{:else}
 		<button
 			type="button"
-			class="h-12 rounded-full text-[15px] font-bold {custom ? 'bg-ink text-ground' : 'bg-surface text-ink shadow-card-sm'}"
+			class="h-11 rounded-full text-[15px] font-bold {custom ? on : 'text-ink-2'}"
 			aria-pressed={custom}
 			aria-label={custom ? `Custom, ${value} days` : 'Custom length'}
 			onclick={edit}
