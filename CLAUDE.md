@@ -48,20 +48,24 @@ Tokens are in `client/src/tokens.css`; each needs a light and a dark value.
 - `bg-ground` page, `bg-surface` card, `bg-well` field. Text `text-ink`/`-2`, lines `border-line`. `ink-3` is too faint for text to read: keep it for icons, placeholders and what is switched off.
 - Lime (`bg-tint`) marks Start, Log, a page's main button, today's date, the day a dragged session would land on and the current tab, never text. Apricot (`bg-live`) is a running session.
 - Time off is hatched with `--hatch` stripes.
+- Cards have 24 px corners (`rounded-3xl`) and 18 px padding (`p-[18px]`).
+- A tab's title and its buttons sit 12 px from the top, a back pill 6 px, and a detail page's title 64 px.
 - Type: `text-xs` labels, `text-[15px]` body and bold card titles, `page-title` for a page's title. Nothing under 12 px. `digits` for numbers, `reading` for the user's notes.
 - A heading over a group of cards is `text-xl` in a tab's main column, and `Section` (15 px) in a pane or on a detail page.
 - A page title, a heading and the text outside a card sit 4 px in from the card's edge (`px-1`).
 - The landing page (`/welcome`) has its own larger type for the headline and section titles.
 - Fields and `<select>` use `.input`, except a lone free-text note: `bg-surface text-[15px] font-semibold placeholder:text-ink-3`.
 - Reuse `client/src/lib/` parts (`Section`, `Segmented`, `Tabs`, `Sheet`, `Chart`…) before making new ones.
-- A page that makes or changes something has a `FormBar` on top: Cancel, the title and Save. A `Sheet` keeps its buttons at the bottom.
-- An empty list shows `Empty`: a title, a line on what to do, and a `Button` when there is a next step.
+- A page that makes or changes something has a `FormBar` on top: Cancel, the title and Save. Beside the Library's list, an exercise puts Save by its title instead. A `Sheet` keeps its buttons at the bottom.
+- An empty list shows `Empty`: a 20 px title, a line on what to do, and a `Button` when there is a next step. A search that finds nothing gets `onclear`.
 - A choice from a list is a `Select`: the phone's own picker, a themed list from `lg`. Days are picked on a `DayPicker`.
-- A choice of one from a few is `Segmented` or drawn like it. Chips are for picking several.
-- Controls are at least 44 px. List rows use `list-row`. A row that opens a page ends with a chevron.
+- A choice of one from a few is `Segmented`, or drawn like it with `segment-on`. Chips are for picking several.
+- Controls are at least 44 px. List rows use `list-row`. A row that opens a page ends with a chevron. A picked row is a well 8 px inside its card.
+- Under a mouse a row fills as when pressed, and a rounded control takes a faint wash. A square one only changes the cursor.
 - Tabs sit at the bottom on a phone, in a left rail from `md`. Today, Plan, a cycle, Journal, History, Progress and the Library go wide from `lg`.
 - From `lg` Plan's views and a cycle put their list or calendar beside a 330 px pane. A row or a day only picks; the pane acts on it (`DayPane`). New cycle has no rail, and shows its preview in the pane from step 3.
 - From `lg` Journal and History keep a 420 px list beside a pane that opens what is picked. History's pane keeps the list's place on every link, so a link in it to another page sets `data-sveltekit-noscroll` and `data-sveltekit-replacestate` to `"false"`. History's tiles drop their chevron there, as the list is too narrow for it.
+- The line between a list and its pane is the pane's `border-l`. A pane's buttons, such as Edit and •••, go in its view's `actions` snippet beside the title, on the card's edge.
 - The Library keeps the same 420 px list, but its pane is the session's or exercise's own page, so the address names the item. A row replaces the entry, and `/templates` and `/exercises` open the first item. Its rows drop their chevron from `lg`, as History's do.
 - A `Sheet` rises from the bottom on a phone and is a centred dialog from `lg`; `wide` gives it room for two columns.
 - The session builder has no rail. From `lg` a pane beside the session shows what is picked; from `xl` the library is a third column on the left. Below `lg` both open as sheets.
