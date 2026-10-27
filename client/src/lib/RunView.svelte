@@ -204,7 +204,7 @@
 										{:else}
 											<a
 												href={exerciseHref(s)}
-												class="inline-flex items-center gap-0.5"
+												class="relative inline-flex items-center gap-0.5 before:absolute before:-inset-x-1 before:-inset-y-3 before:content-['']"
 												>{s.name}<span class="text-ink-3"><Icon name="chevron-right" size="15px" stroke={2.6} /></span></a
 											>
 										{/if}

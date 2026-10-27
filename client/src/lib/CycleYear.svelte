@@ -52,7 +52,7 @@
 			{/if}
 			<a
 				href="/plan/cycles/{b.cycle.id}"
-				class="absolute h-2.5 rounded-full {looks[b.state]}"
+				class="absolute h-2.5 rounded-full {looks[b.state]} before:absolute before:inset-x-0 before:-inset-y-4 before:content-['']"
 				style="top: {b.lane * 14 + 18}px; left: {b.left * 100}%; width: max(6px, {b.width * 100}%)"
 				aria-label={b.cycle.name}
 			></a>

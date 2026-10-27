@@ -66,5 +66,5 @@
 </form>
 
 <p class="mt-5 text-center text-[15px] font-semibold text-ink-2">
-	No account yet? <a href="/signup" class="font-bold text-ink underline">Sign up</a>
+	No account yet? <a href="/signup" class="relative font-bold text-ink underline before:absolute before:-inset-x-2 before:-inset-y-4 before:content-['']">Sign up</a>
 </p>
