@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest';
-import { formatDuration, formatMinutes, loadExercises, summary } from './exercise';
+import { formatDuration, formatMinutes, loadExercises, matches, summary } from './exercise';
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
@@ -33,6 +33,16 @@ test('formatMinutes rounds to the nearest minute and never shows less than one',
 	expect(formatMinutes(89)).toBe('1m');
 	expect(formatMinutes(90)).toBe('2m');
 	expect(formatMinutes(5430)).toBe('1h 31m');
+});
+
+test('matches reads the search and each filter, and lets everything through without them', () => {
+	const r = { name: 'Density Hang', shipped: true, private: false, source: 'C4HP', tags: ['fingers'] };
+	expect(matches(r, {})).toBe(true);
+	expect(matches(r, { q: ' hang ' })).toBe(true);
+	expect(matches(r, { q: 'pull' })).toBe(false);
+	expect(matches(r, { origin: 'builtin', source: 'C4HP', tag: 'fingers' })).toBe(true);
+	expect(matches(r, { origin: 'yours' })).toBe(false);
+	expect(matches(r, { tag: 'core' })).toBe(false);
 });
 
 test('loadExercises reads the library list', async () => {

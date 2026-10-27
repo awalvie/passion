@@ -36,6 +36,20 @@ export function originOf(r: { shipped: boolean; private: boolean }): Origin {
 	return r.shipped ? 'builtin' : r.private ? 'private' : 'yours';
 }
 
+// matches says whether a library exercise or session passes the Library's
+// search and filters, as its lists keep them in the address.
+export function matches(
+	r: { name: string; shipped: boolean; private: boolean; source: string | null; tags: string[] },
+	f: { q?: string; origin?: string; source?: string; tag?: string }
+) {
+	return (
+		r.name.toLowerCase().includes((f.q ?? '').trim().toLowerCase()) &&
+		(!f.origin || originOf(r) === f.origin) &&
+		(!f.source || r.source === f.source) &&
+		(!f.tag || r.tags.includes(f.tag))
+	);
+}
+
 export type Kind = 'reps_and_sets' | 'timed_reps' | 'climbing' | 'open';
 
 export type Count =

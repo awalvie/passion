@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { MediaQuery } from 'svelte/reactivity';
-	import { distinct, originOf } from './exercise';
+	import { distinct, matches, originOf } from './exercise';
 	import { filterQuery, urlFilters } from './filters.svelte';
 	import FilterLine from './FilterLine.svelte';
 	import Icon from './Icon.svelte';
@@ -29,16 +29,7 @@
 	const done = (t: SessionTemplate) =>
 		!runs || (t.shipped && !ranOn.has(t.id)) ? '' : doneWhen(ranOn.get(t.id), today);
 
-	const shown = $derived.by(() => {
-		const needle = f.q.trim().toLowerCase();
-		return templates.filter(
-			(t) =>
-				t.name.toLowerCase().includes(needle) &&
-				(!f.origin || originOf(t) === f.origin) &&
-				(!f.source || t.source === f.source) &&
-				(!f.tag || t.tags.includes(f.tag))
-		);
-	});
+	const shown = $derived(templates.filter((t) => matches(t, f)));
 
 	function clear() {
 		f.q = f.origin = f.source = f.tag = '';

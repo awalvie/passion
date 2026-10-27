@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { MediaQuery } from 'svelte/reactivity';
-	import { distinct, kindOf, kinds, originOf, sourcesOf, type Exercise } from './exercise';
+	import { distinct, kindOf, kinds, matches, originOf, sourcesOf, type Exercise } from './exercise';
 	import { filterQuery, urlFilters } from './filters.svelte';
 	import FilterLine from './FilterLine.svelte';
 	import Icon from './Icon.svelte';
@@ -22,16 +22,7 @@
 	const section = $derived(exercises.filter((e) => !f.kind || e.kind === f.kind));
 	const filters = $derived([f.origin, f.source, f.tag].filter(Boolean).length);
 
-	const shown = $derived.by(() => {
-		const needle = f.q.trim().toLowerCase();
-		return section.filter(
-			(e) =>
-				e.name.toLowerCase().includes(needle) &&
-				(!f.origin || originOf(e) === f.origin) &&
-				(!f.source || e.source === f.source) &&
-				(!f.tag || e.tags.includes(f.tag))
-		);
-	});
+	const shown = $derived(section.filter((e) => matches(e, f)));
 
 	function clear() {
 		f.q = f.origin = f.source = f.tag = '';
