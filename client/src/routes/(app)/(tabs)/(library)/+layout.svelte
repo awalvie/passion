@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Segmented from '$lib/Segmented.svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import { MediaQuery } from 'svelte/reactivity';
 	import LibraryExercises from '$lib/LibraryExercises.svelte';
@@ -18,6 +19,12 @@
 	const wide = new MediaQuery('min-width: 64rem');
 	const part = $derived(parts.find((p) => under(page.url.pathname, p.href)));
 	const list = $derived(parts.find((p) => page.url.pathname === p.href));
+	// An item opened from another page, or a reload, may sit far down the list.
+	afterNavigate(({ from }) => {
+		if (wide.current && !from?.route.id?.startsWith('/(app)/(tabs)/(library)/'))
+			document.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'center' });
+	});
+
 	// A session or exercise page draws its own nav bar with a back pill.
 	const detail = $derived(page.route.id?.endsWith('/[id]') ?? false);
 </script>
