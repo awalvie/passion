@@ -75,7 +75,7 @@
 								{:else if send}
 									<span class="block digits text-xl leading-tight">{send.grade}</span>
 								{/if}
-								<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
+								<span class="mt-0.5 line-clamp-2 text-xs font-semibold text-ink-2">
 									{session.name} · {scale
 										? `${climbTally(session.climbs)}, ${session.climbs.filter((c) => c.sent).length} sent`
 										: plural(Math.ceil(session.sets.length / sides), 'set')}
