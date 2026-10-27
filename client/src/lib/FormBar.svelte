@@ -8,6 +8,8 @@
 		title,
 		cancel,
 		cancelLabel = 'Cancel',
+		saveLabel = 'Save',
+		busyLabel = 'Saving…',
 		replace = false,
 		heading = 'h1',
 		busy = false,
@@ -22,6 +24,8 @@
 		title: string;
 		cancel: string | (() => void);
 		cancelLabel?: string;
+		saveLabel?: string;
+		busyLabel?: string;
 		replace?: boolean;
 		heading?: 'h1' | 'h2' | 'p';
 		busy?: boolean;
@@ -58,7 +62,7 @@
 					class="flex h-11 items-center rounded-full bg-tint px-5 text-[15px] font-bold text-on-tint shadow-tint disabled:opacity-50"
 					disabled={busy || disabled}
 				>
-					{busy ? 'Saving…' : 'Save'}
+					{busy ? busyLabel : saveLabel}
 				</button>
 			{/if}
 		</span>
