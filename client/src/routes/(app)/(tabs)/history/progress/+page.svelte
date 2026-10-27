@@ -45,8 +45,8 @@
 	// Opened from Today, the way back leads there, through every view and range.
 	const fromToday = $derived(page.url.searchParams.get('from') === '/');
 	const back = $derived(fromToday ? { href: '/', label: 'Today' } : { href: '/history', label: 'History' });
-	const href = (view: string, range: string, filter = data.filter) =>
-		`?view=${view}&range=${range}${filterQuery(filter)}${fromToday ? '&from=/' : ''}`;
+	const href = (view: string, range: string, filter = data.filter, unique = data.unique) =>
+		`?view=${view}&range=${range}${filterQuery(filter)}${unique ? '&count=unique' : ''}${fromToday ? '&from=/' : ''}`;
 	const round = (h: number) => Math.round(h * 10) / 10;
 	const pct = (v: number | null) => (v === null ? '–' : `${v}%`);
 	// A week still to come counts for nothing in an average.
@@ -124,13 +124,14 @@
 	});
 
 	const shown = $derived(data.climbs.filter((c) => passes(c, data.filter)));
-	const climbs = $derived(counts(shown, data.buckets));
+	const climbs = $derived(counts(shown, data.buckets, data.unique));
+	const count = (cs: typeof shown) => (data.unique ? cs.length : totalTries(cs));
 	const sendRates = $derived(perBucket(shown, data.buckets, sendRate));
 	const flashRates = $derived(perBucket(shown, data.buckets, flashRate));
 	// Where the climbing was, most first.
 	const mix = $derived.by(() => {
 		const m = new Map<string, number>();
-		for (const c of inPick(shown)) m.set(mixOf(c), (m.get(mixOf(c)) ?? 0) + tries(c));
+		for (const c of inPick(shown)) m.set(mixOf(c), (m.get(mixOf(c)) ?? 0) + (data.unique ? 1 : tries(c)));
 		return [...m].sort((a, b) => b[1] - a[1]);
 	});
 
@@ -240,6 +241,17 @@
 			</svg>
 		{/if}
 	</div>
+{/snippet}
+
+{#snippet counting()}
+	<Segmented
+		label="Count climbs"
+		replace
+		items={[
+			{ label: 'All', on: !data.unique, href: href(data.view, data.span.key, data.filter, false) },
+			{ label: 'Unique', on: data.unique, href: href(data.view, data.span.key, data.filter, true) }
+		]}
+	/>
 {/snippet}
 
 {#snippet key(cls: string, label: string)}
@@ -420,6 +432,10 @@
 						</div>
 					</div>
 				{/each}
+				<div class="flex w-56 flex-col gap-1.5">
+					<span class="px-1 text-xs font-semibold text-ink-2">Count</span>
+					{@render counting()}
+				</div>
 			</div>
 			{#if !shown.length}
 				<section class="flex flex-col items-start gap-1 rounded-3xl bg-surface p-[18px] shadow-card">
@@ -433,12 +449,13 @@
 					{/if}
 				</section>
 			{:else}
+				<div class="lg:hidden {data.view === 'climbs' ? '' : 'hidden'}">{@render counting()}</div>
 				<!-- The phone's order is climbs, sent, flash, where. A laptop puts where beside climbs. -->
 				<div class="flex-col gap-3.5 lg:grid lg:grid-cols-6 {data.view === 'climbs' ? 'flex' : 'hidden'}">
 					<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-4 lg:row-start-1">
 						<dl class="grid grid-cols-3 gap-3">
-							{@render stat('Climbs', totalTries(inPick(shown)), when)}
-							{@render stat(`A ${data.per}`, round(totalTries(shown) / passed))}
+							{@render stat('Climbs', count(inPick(shown)), when)}
+							{@render stat(`A ${data.per}`, round(count(shown) / passed))}
 							{@render stat('Tries per send', goesPerSend(inPick(shown)) ?? '–')}
 						</dl>
 						<Bars

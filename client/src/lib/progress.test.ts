@@ -339,6 +339,10 @@ test('counts and grades keep to the days of each bucket, and boulders apart from
 		{ boulders: 3, routes: 1 },
 		{ boulders: 3, routes: 1 }
 	]);
+	expect(counts(cs, bs, true)).toEqual([
+		{ boulders: 1, routes: 1 },
+		{ boulders: 2, routes: 1 }
+	]);
 	// The hardest send, in the scale: 7a was not sent, and 6c on the 19th is outside.
 	expect(grades(cs, bs, scale)).toEqual([1, 2]);
 	expect(grades([], bs, scale)).toEqual([null, null]);

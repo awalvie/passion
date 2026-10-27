@@ -110,8 +110,15 @@ export function trendWeeks(today: string): Bucket[] {
 export type Trend = { now: number | null; then: number | null; weeks: (number | null)[] };
 
 // trends are the hours and climbs a week, and the send and flash rates, of
-// the eight trend weeks. first is the day of the first session.
-export function trends(runs: RunSummary[], climbs: DatedClimb[], weeks: Bucket[], first: string): Record<'hours' | 'climbs' | 'sent' | 'flash', Trend> {
+// the eight trend weeks. first is the day of the first session; unique counts
+// each climb once.
+export function trends(
+	runs: RunSummary[],
+	climbs: DatedClimb[],
+	weeks: Bucket[],
+	first: string,
+	unique = false
+): Record<'hours' | 'climbs' | 'sent' | 'flash', Trend> {
 	const full = first <= weeks[0].from;
 	const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 	const tenth = (n: number) => Math.round(n * 10) / 10;
@@ -123,7 +130,7 @@ export function trends(runs: RunSummary[], climbs: DatedClimb[], weeks: Bucket[]
 		weeks: weekly.map((v, i) => (weeks[i].to < first ? null : v))
 	});
 	const time = hours(runs, weeks);
-	const count = counts(climbs, weeks).map((c) => c.boulders + c.routes);
+	const count = counts(climbs, weeks, unique).map((c) => c.boulders + c.routes);
 	return {
 		hours: trend((i) => tenth(sum(time.slice(i, i + 4)) / 4), time),
 		climbs: trend((i) => tenth(sum(count.slice(i, i + 4)) / 4), count),
@@ -224,13 +231,14 @@ export function perBucket<T extends DatedClimb>(climbs: T[], bs: Bucket[], figur
 export const tries = (c: Pick<Climb, 'goes'>) => Math.max(1, c.goes.length);
 export const totalTries = (climbs: Pick<Climb, 'goes'>[]) => climbs.reduce((n, c) => n + tries(c), 0);
 
-// counts is the number of climbs in each bucket, every go, boulders and
-// routes apart.
-export function counts(climbs: DatedClimb[], bs: Bucket[]): { boulders: number; routes: number }[] {
+// counts is the number of climbs in each bucket, boulders and routes apart:
+// every go, or with unique each climb once.
+export function counts(climbs: DatedClimb[], bs: Bucket[], unique = false): { boulders: number; routes: number }[] {
+	const total = (cs: DatedClimb[]) => (unique ? cs.length : totalTries(cs));
 	return bs.map((b) => {
 		const mine = climbs.filter((c) => within(b, c.local_date));
-		const boulders = totalTries(mine.filter(isBoulder));
-		return { boulders, routes: totalTries(mine) - boulders };
+		const boulders = total(mine.filter(isBoulder));
+		return { boulders, routes: total(mine) - boulders };
 	});
 }
 

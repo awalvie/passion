@@ -9,6 +9,7 @@ export type View = (typeof views)[number];
 
 export async function load({ url }) {
 	const view = (views as readonly string[]).includes(url.searchParams.get('view') ?? '') ? (url.searchParams.get('view') as View) : 'time';
+	const unique = url.searchParams.get('count') === 'unique';
 	const [today, { cycles }, { runs }] = await Promise.all([
 		loadToday(),
 		request<{ cycles: Cycle[] }>('GET', '/api/v1/cycles'),
@@ -34,6 +35,7 @@ export async function load({ url }) {
 		fresh: !finished.length,
 		span,
 		filter: readFilter(url.searchParams),
+		unique,
 		...chart,
 		// The cycles the sheet offers: those begun, the latest first.
 		cycles: cycles.filter((c) => c.starts <= today).sort((a, b) => b.starts.localeCompare(a.starts)),
@@ -41,7 +43,7 @@ export async function load({ url }) {
 		runs: done,
 		climbs,
 		// Nothing in the eight weeks before this one leaves no trend to show.
-		trends: ran.length ? trends(ran, recent.climbs, weeks, first) : null,
+		trends: ran.length ? trends(ran, recent.climbs, weeks, first, unique) : null,
 		scales: grades.scales
 	};
 }
