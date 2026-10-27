@@ -252,6 +252,12 @@
 				</div>
 				<FormError message={error} />
 				<EntryView entry={e} heading="h2" />
+			{:else if total}
+				<div class="pt-3">
+					<Empty title="No entry open" text="Entries you write open here. A session's journal opens in History.">
+						<Button href={pane('new')}>New entry</Button>
+					</Empty>
+				</div>
 			{/if}
 		</div>
 	</div>
