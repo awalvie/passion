@@ -9,17 +9,21 @@
 	import { plural } from './text';
 
 	// A finished session as logged: its journal, then each section's steps.
-	// exerciseHref says where an exercise's name goes; actions sit beside the title.
+	// exerciseHref says where an exercise's name goes, and journalHref where its
+	// journal opens; actions sit beside the title.
 	let {
 		run,
 		heading = 'h1',
 		exerciseHref,
+		journalHref,
 		actions
-	}: { run: Run; heading?: 'h1' | 'h2'; exerciseHref: (s: RunStep) => string; actions?: Snippet } = $props();
+	}: { run: Run; heading?: 'h1' | 'h2'; exerciseHref: (s: RunStep) => string; journalHref?: string; actions?: Snippet } = $props();
 
-	// The journal form is a page of its own, even from a pane whose links keep
-	// their place.
-	const away = { 'data-sveltekit-replacestate': 'false', 'data-sveltekit-noscroll': 'false' };
+	// Without journalHref the journal form is a page of its own, even from a
+	// pane whose links keep their place.
+	const journal = $derived(
+		journalHref ? { href: journalHref } : { href: `/run/${run.id}/finish`, 'data-sveltekit-replacestate': 'false', 'data-sveltekit-noscroll': 'false' }
+	);
 
 	// The end follows the session clock, so it matches the length beside it
 	// even when the person ended the session late.
@@ -136,7 +140,7 @@
 	</header>
 
 	{#if !scores.length && !words.length && !thoughts.length}
-		<a href="/run/{run.id}/finish" {...away} class="flex min-h-16 items-center gap-3 rounded-3xl bg-surface px-[18px] py-3 shadow-card">
+		<a {...journal} class="flex min-h-16 items-center gap-3 rounded-3xl bg-surface px-[18px] py-3 shadow-card">
 			<span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-well text-ink-2"><Icon name="pencil" size="17px" stroke={2.2} /></span>
 			<span class="flex-1 text-[15px] font-bold">Add session journal</span>
 			<span class="text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.4} /></span>
@@ -144,7 +148,7 @@
 	{:else}
 		<Section title="Session journal">
 			<!-- The whole card opens the journal form; the first row leaves room for the pencil. -->
-			<a href="/run/{run.id}/finish" {...away} class="relative flex flex-col gap-4 rounded-3xl bg-surface p-[18px] shadow-card">
+			<a {...journal} class="relative flex flex-col gap-4 rounded-3xl bg-surface p-[18px] shadow-card">
 				<span class="absolute top-3.5 right-3.5 flex size-9 items-center justify-center rounded-full bg-well text-ink-2"><Icon name="pencil" size="16px" stroke={2.2} /><span class="sr-only">Edit session journal</span></span>
 				{#each thoughts as [label, text], i (label)}
 					<div class="flex flex-col gap-1 {i ? '' : 'pr-11'}">

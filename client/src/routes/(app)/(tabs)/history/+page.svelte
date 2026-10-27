@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { afterNavigate } from '$app/navigation';
+	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { untrack } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { describe, request } from '$lib/api';
 	import Bars from '$lib/Bars.svelte';
@@ -14,7 +15,9 @@
 	import Icon from '$lib/Icon.svelte';
 	import { counts, gradeScale, grades, hours, isBoulder } from '$lib/progress';
 	import { loadExerciseHistory, type Run, type RunSummary } from '$lib/run';
+	import { openRun } from '$lib/runState.svelte';
 	import RunView from '$lib/RunView.svelte';
+	import SessionJournalForm from '$lib/SessionJournalForm.svelte';
 	import { plural } from '$lib/text';
 
 	let { data } = $props();
@@ -26,6 +29,9 @@
 	const openId = $derived(wide.current ? page.url.searchParams.get('open') || data.runs[0]?.id : undefined);
 	const exerciseId = $derived(wide.current ? page.url.searchParams.get('exercise') : null);
 	const exerciseName = $derived(page.url.searchParams.get('name'));
+	// journal swaps the pane for the session's journal form, which edits the
+	// run through openRun as the form does in a session.
+	const journaling = $derived(!!openId && page.url.searchParams.has('journal'));
 	let opened = $state<Run | null>(null);
 	let exercise = $state<(Awaited<ReturnType<typeof loadExerciseHistory>> & { id: string }) | null>(null);
 	let paneError = $state('');
@@ -34,7 +40,7 @@
 	// at the top.
 	let pane = $state<HTMLElement>();
 	$effect(() => {
-		void [openId, exerciseId];
+		void [openId, exerciseId, journaling];
 		if (pane) pane.scrollTop = 0;
 	});
 
@@ -63,6 +69,11 @@
 		const id = exerciseId;
 		const name = exerciseName;
 		if (id) return fill(() => loadExerciseHistory(id, name), (x) => (exercise = { ...x, id }));
+	});
+	$effect(() => {
+		const id = openId;
+		// load reads the open run, which it then replaces.
+		if (journaling && id) return untrack(() => fill(() => openRun.load(id), () => {}));
 	});
 
 	const months = $derived.by(() => {
@@ -187,7 +198,7 @@
 	     one to another page turns that off. It draws the divider, as it fills
 	     the window and a short list does not. -->
 	<div class="hidden lg:sticky lg:top-0 lg:-mb-8 lg:block lg:h-dvh lg:overflow-y-auto lg:border-l lg:border-line" bind:this={pane} data-sveltekit-replacestate data-sveltekit-noscroll>
-		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 px-8 pt-3 pb-8">
+		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 pb-8 {journaling ? 'px-4' : 'px-8 pt-3'}">
 			<FormError message={paneError} />
 			{#if exerciseId && exercise?.id === exerciseId}
 				<div class="flex">
@@ -203,11 +214,23 @@
 					<p class="mt-2 text-[15px] font-semibold text-ink-2">{plural(exercise.sessions.length, 'session')}</p>
 				</header>
 				<ExerciseHistory sessions={exercise.sessions} scales={exercise.scales} sides={exercise.perSide ? 2 : 1} href={(s) => `/history?open=${s.run}`} />
+			{:else if journaling}
+				{#if openRun.run?.id === openId}
+					<SessionJournalForm
+						cancel="/history?open={openId}"
+						heading="h2"
+						saved={async (r) => {
+							opened = r;
+							await goto(`/history?open=${r.id}`, { replaceState: true, noScroll: true });
+						}}
+					/>
+				{/if}
 			{:else if opened && opened.id === openId}
 				{@const run = opened}
 				<RunView
 					{run}
 					heading="h2"
+					journalHref="/history?open={run.id}&journal=1"
 					exerciseHref={(s) => `/history?open=${run.id}&exercise=${s.exercise}&name=${encodeURIComponent(s.name)}`}
 				>
 					{#snippet actions()}
