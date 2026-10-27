@@ -96,7 +96,6 @@
 								{offKinds[o.kind]} · {o.ends ? `${shortDate(o.starts)} – ${shortDate(o.ends)}` : `from ${shortDate(o.starts)}`}
 							</span>
 						</span>
-						<span class="shrink-0 text-ink-3"><Icon name="chevron-right" size="1rem" /></span>
 					</button>
 				</li>
 			{/each}
