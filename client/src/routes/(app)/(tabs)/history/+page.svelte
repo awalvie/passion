@@ -178,10 +178,10 @@
 	<div class="hidden lg:sticky lg:top-0 lg:block lg:h-dvh lg:overflow-y-auto" data-sveltekit-replacestate data-sveltekit-noscroll>
 		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 px-8 pt-3 pb-8">
 			<FormError message={paneError} />
-			{#if exerciseId && opened && exercise?.id === exerciseId}
+			{#if exerciseId && exercise?.id === exerciseId}
 				<div class="flex">
 					<a
-						href="/history?open={opened.id}"
+						href="/history?open={openId}"
 						class="inline-flex h-11 items-center gap-0.5 rounded-full bg-surface pr-4 pl-2.5 text-[15px] font-bold text-ink shadow-card-sm"
 					>
 						<Icon name="chevron-left" size="1.25rem" stroke={2.4} />Session
