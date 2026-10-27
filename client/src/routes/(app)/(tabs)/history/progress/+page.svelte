@@ -350,9 +350,9 @@
 		</div>
 		{#if tiles.length}
 			<h2 class="mt-3 hidden px-1 text-xl font-bold tracking-tight lg:block">
-				Last 4 weeks <span class="text-[15px] font-semibold text-ink-2">against the 4 before</span>
+				Last 4 weeks
 			</h2>
-			<dl class="grid auto-cols-fr grid-flow-col gap-2 lg:grid-flow-row lg:grid-cols-4 lg:gap-3.5 {data.view === 'grade' ? 'max-lg:hidden' : ''}" aria-label="Last 4 weeks, against the 4 before">
+			<dl class="grid auto-cols-fr grid-flow-col gap-2 lg:grid-flow-row lg:grid-cols-4 lg:gap-3.5 {data.view === 'grade' ? 'max-lg:hidden' : ''}" aria-label="Last 4 weeks">
 				{#each tiles as t (t.label)}{@render tile(t.label, t.t, t.unit, t.view === data.view ? '' : 'max-lg:hidden')}{/each}
 			</dl>
 		{/if}
