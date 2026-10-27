@@ -5,9 +5,11 @@
 	import { saveCentre, type Centre } from '$lib/centres';
 	import { haptic } from '$lib/haptics';
 	import FormError from '$lib/FormError.svelte';
+	import HeroCard from '$lib/HeroCard.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import Menu, { type MenuItem } from '$lib/Menu.svelte';
 	import { page } from '$app/state';
+	import { MediaQuery } from 'svelte/reactivity';
 	import Notes from '$lib/Notes.svelte';
 	import { stepsOf } from '$lib/run';
 	import { startRun } from '$lib/runState.svelte';
@@ -21,6 +23,10 @@
 	import { heroTopo } from '$lib/topo';
 
 	let { data } = $props();
+
+	// From lg the page sits beside the Library's list, so its header is a card
+	// with no way back.
+	const wide = new MediaQuery('min-width: 64rem');
 
 	const t = $derived(data.template);
 	const locked = $derived(
@@ -184,53 +190,71 @@
 
 <svelte:head><title>{t.name}</title></svelte:head>
 
-<div class="flex min-h-dvh flex-col">
-	<header class="relative bg-[radial-gradient(90%_70%_at_88%_0%,var(--hero-2),var(--hero)_70%)] pt-[env(safe-area-inset-top)] pb-12 text-on-hero">
-		<div class="absolute inset-0 overflow-hidden" aria-hidden="true">
-			<Topo shape={heroTopo} class="h-full w-full text-[var(--hero-topo)]" />
-		</div>
-		<div class="relative flex h-14 items-center justify-between px-4">
-			<a href="/templates" data-back class="inline-flex h-11 items-center gap-0.5 rounded-full bg-white/10 pr-4 pl-2.5 text-[15px] font-bold">
-				<Icon name="chevron-left" size="1.25rem" stroke={2.4} />
-				Sessions
-			</a>
-			<Menu items={menu} look="bg-white/10 text-on-hero" />
-		</div>
-		<div class="relative px-5 pt-3">
-			{#if icon}
-				<span
-					class="mb-4 flex size-14 items-center justify-center rounded-[18px] {t.color ? '' : 'bg-white/10 text-tint'}"
-					style={t.color ? `background: color-mix(in srgb, ${t.color} 30%, transparent); color: color-mix(in srgb, ${t.color} 45%, white)` : undefined}
-				>
-					<Icon name={icon} size="1.75rem" />
+{#snippet iconTile(cls: string)}
+	{#if icon}
+		<span
+			class="{cls} flex size-14 items-center justify-center rounded-[18px] {t.color ? '' : 'bg-white/10 text-tint'}"
+			style={t.color ? `background: color-mix(in srgb, ${t.color} 30%, transparent); color: color-mix(in srgb, ${t.color} 45%, white)` : undefined}
+		>
+			<Icon name={icon} size="1.75rem" />
+		</span>
+	{/if}
+{/snippet}
+
+{#snippet titleAndChips()}
+	<h1 class="text-[40px] leading-[1.05] font-extrabold tracking-[-0.02em] break-words">{t.name}</h1>
+	{#if t.tags.length || t.source || t.shipped || minutes || planned}
+		<div class="mt-3 flex flex-wrap gap-2">
+			{#if planned}
+				<span class="flex h-8 items-center rounded-full bg-tint px-3 text-[15px] font-bold text-on-tint">{planned}</span>
+			{/if}
+			{#if minutes}
+				<span class="flex h-8 items-center rounded-full bg-white/10 px-3 text-[15px] font-bold">~{minutes} min</span>
+			{/if}
+			{#each t.tags as tag (tag)}
+				<span class="flex h-8 items-center rounded-full bg-white/10 px-3 text-[15px] font-semibold">{tag}</span>
+			{/each}
+			{#if t.source}
+				<span class="flex h-8 items-center gap-1.5 rounded-full bg-white/10 px-3 text-[15px] font-semibold">
+					<Icon name="book-marked" size="0.875rem" />{t.source}
 				</span>
 			{/if}
-			<h1 class="text-[40px] leading-[1.05] font-extrabold tracking-[-0.02em] break-words">{t.name}</h1>
-			{#if t.tags.length || t.source || t.shipped || minutes || planned}
-				<div class="mt-3 flex flex-wrap gap-2">
-					{#if planned}
-						<span class="flex h-8 items-center rounded-full bg-tint px-3 text-[15px] font-bold text-on-tint">{planned}</span>
-					{/if}
-					{#if minutes}
-						<span class="flex h-8 items-center rounded-full bg-white/10 px-3 text-[15px] font-bold">~{minutes} min</span>
-					{/if}
-					{#each t.tags as tag (tag)}
-						<span class="flex h-8 items-center rounded-full bg-white/10 px-3 text-[15px] font-semibold">{tag}</span>
-					{/each}
-					{#if t.source}
-						<span class="flex h-8 items-center gap-1.5 rounded-full bg-white/10 px-3 text-[15px] font-semibold">
-							<Icon name="book-marked" size="0.875rem" />{t.source}
-						</span>
-					{/if}
-					{#if t.shipped}
-						<span class="flex h-8 items-center rounded-full bg-white/10 px-3 text-[15px] font-semibold">Built in</span>
-					{/if}
-				</div>
+			{#if t.shipped}
+				<span class="flex h-8 items-center rounded-full bg-white/10 px-3 text-[15px] font-semibold">Built in</span>
 			{/if}
 		</div>
-	</header>
+	{/if}
+{/snippet}
 
-	<div class="relative -mt-7 flex flex-1 flex-col gap-3.5 rounded-t-[28px] bg-ground px-4 pt-4">
+<div class="flex min-h-dvh flex-col">
+	{#if wide.current}
+		<HeroCard>
+			<div class="mb-4 flex items-start justify-between gap-3">
+				{@render iconTile('')}
+				<div class="ml-auto"><Menu items={menu} look="bg-white/10 text-on-hero" /></div>
+			</div>
+			{@render titleAndChips()}
+		</HeroCard>
+	{:else}
+		<header class="relative bg-[radial-gradient(90%_70%_at_88%_0%,var(--hero-2),var(--hero)_70%)] pt-[env(safe-area-inset-top)] pb-12 text-on-hero">
+			<div class="absolute inset-0 overflow-hidden" aria-hidden="true">
+				<Topo shape={heroTopo} class="h-full w-full text-[var(--hero-topo)]" />
+			</div>
+			<div class="relative flex h-14 items-center justify-between px-4">
+				<a href="/templates" data-back class="inline-flex h-11 items-center gap-0.5 rounded-full bg-white/10 pr-4 pl-2.5 text-[15px] font-bold">
+					<Icon name="chevron-left" size="1.25rem" stroke={2.4} />
+					Sessions
+				</a>
+				<Menu items={menu} look="bg-white/10 text-on-hero" />
+			</div>
+			<div class="relative px-5 pt-3">
+				{@render iconTile('mb-4')}
+				{@render titleAndChips()}
+			</div>
+		</header>
+	{/if}
+
+	<div class="relative -mt-7 flex flex-1 flex-col gap-3.5 rounded-t-[28px] bg-ground px-4 pt-4 lg:mt-0 lg:rounded-none lg:bg-transparent lg:pt-3.5">
 		<Segmented
 			label="Session"
 			replace
