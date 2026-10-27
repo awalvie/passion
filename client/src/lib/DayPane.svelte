@@ -40,11 +40,11 @@
 		<h2 class="text-[15px] font-bold">{date === today ? 'Today' : formatDate(date, { weekday: 'long' })}</h2>
 		<span class="text-xs font-semibold text-ink-2">{dayDate(date)}</span>
 	</div>
-	<div class="rounded-3xl bg-surface px-4 py-0.5 shadow-card">
+	<div class="rounded-3xl bg-surface px-[18px] py-1 shadow-card">
 		{#if days.length}
 			<ul>
 				{#each days as d (d.id)}
-					<li class="list-row flex min-h-16 items-center gap-3 py-2">
+					<li class="list-row flex min-h-[58px] items-center gap-3 py-2">
 						<SessionIcon icon={d.template_icon} name={d.template_name} state={iconState(d, today)} size={36} />
 						<span class="min-w-0 flex-1">
 							<span class="line-clamp-2 text-[15px] font-bold {d.status === 'missed' || d.status === 'paused' ? 'text-ink-2' : ''}">{d.template_name}</span>
@@ -85,10 +85,10 @@
 	<FormError message={days.some((d) => d.id === day.error.id) && !day.moveOpen && !day.endOpen ? day.error.message : ''} />
 	{#if timeOff.length}
 		<h2 class="flex h-11 items-center px-1 pt-2 text-[15px] font-bold">Time off</h2>
-		<ul class="rounded-3xl bg-surface px-4 py-0.5 shadow-card">
+		<ul class="rounded-3xl bg-surface px-[18px] py-1 shadow-card">
 			{#each timeOff as o (o.id)}
 				<li class="list-row">
-					<button type="button" class="flex min-h-16 w-full items-center gap-3 py-2 text-left" onclick={() => onoff(o)}>
+					<button type="button" class="flex min-h-[58px] w-full items-center gap-3 py-2 text-left" onclick={() => onoff(o)}>
 						<span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-well text-ink-2"><Icon name={offIcons[o.kind]} size="1.125rem" /></span>
 						<span class="min-w-0 flex-1">
 							<span class="block truncate text-[15px] font-bold">{o.name}</span>
