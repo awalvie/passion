@@ -1,8 +1,9 @@
 import { afterNavigate, replaceState } from '$app/navigation';
 
-// urlFilters keeps a list page's filters in its query string, so Back from a
-// row finds them as they were. Call it while the page component starts.
-export function urlFilters<K extends string>(path: string, keys: K[]): Record<K, string> {
+// urlFilters keeps a list's filters in the query string of the page it is on,
+// so Back from a row finds them as they were. Call it while the component
+// starts.
+export function urlFilters<K extends string>(keys: K[]): Record<K, string> {
 	const filters = $state(fromURL());
 
 	// Writing the URL the page opened with would call replaceState before the
@@ -12,7 +13,7 @@ export function urlFilters<K extends string>(path: string, keys: K[]): Record<K,
 		const next = search();
 		if (next === written) return;
 		written = next;
-		replaceState(`${path}${next}`, {});
+		replaceState(`${location.pathname}${next}`, {});
 	});
 
 	// A link to this same page keeps the component, so the filters must follow
@@ -29,9 +30,13 @@ export function urlFilters<K extends string>(path: string, keys: K[]): Record<K,
 		return Object.fromEntries(keys.map((k) => [k, query.get(k) ?? ''])) as Record<K, string>;
 	}
 
+	// The page's own parameters stay as they are.
 	function search() {
-		const params = new URLSearchParams();
-		for (const k of keys) if (filters[k]) params.set(k, filters[k]);
+		const params = new URLSearchParams(location.search);
+		for (const k of keys) {
+			if (filters[k]) params.set(k, filters[k]);
+			else params.delete(k);
+		}
 		return params.size ? `?${params}` : '';
 	}
 

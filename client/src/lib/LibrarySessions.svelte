@@ -12,7 +12,7 @@
 
 	let { templates, runs, today }: { templates: SessionTemplate[]; runs: RunSummary[] | null; today: string } = $props();
 
-	const f = urlFilters('/templates', ['q', 'origin', 'source', 'tag']);
+	const f = urlFilters(['q', 'origin', 'source', 'tag']);
 
 	const sources = $derived(distinct(templates.flatMap((t) => (t.source ? [t.source] : []))));
 	const tags = $derived(distinct(templates.flatMap((t) => t.tags)));

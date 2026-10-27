@@ -29,7 +29,7 @@
 
 	// A laptop opens an entry, New entry and Edit entry in a pane beside the
 	// list, named by open, new and edit.
-	const f = urlFilters('/journal', ['q', 'open', 'new', 'edit']);
+	const f = urlFilters(['q', 'open', 'new', 'edit']);
 	const searching = $derived(!!f.q.trim());
 	const wide = new MediaQuery('(min-width: 1024px)');
 

@@ -10,7 +10,7 @@
 
 	let { exercises }: { exercises: Exercise[] } = $props();
 
-	const f = urlFilters('/exercises', ['q', 'kind', 'origin', 'source', 'tag']);
+	const f = urlFilters(['q', 'kind', 'origin', 'source', 'tag']);
 
 	const sources = $derived(sourcesOf(exercises));
 	const tags = $derived(distinct(exercises.flatMap((e) => e.tags)));
