@@ -33,11 +33,22 @@ export class SessionDrag {
 
 	// Sessions keep touch scrolling, so a swipe that starts on one still
 	// scrolls. Once one is lifted, the page must not scroll under the finger.
-	// Call from an $effect.
+	// A session that leaves the page mid-drag never hears the release, so any
+	// release, or Escape, lets it go. Call from an $effect.
 	listen() {
 		const stop = (e: TouchEvent) => this.lifted && e.preventDefault();
+		const end = () => (this.lifted || this.#pressed) && this.cancel();
+		const key = (e: KeyboardEvent) => e.key === 'Escape' && end();
 		window.addEventListener('touchmove', stop, { passive: false });
-		return () => window.removeEventListener('touchmove', stop);
+		window.addEventListener('pointerup', end);
+		window.addEventListener('pointercancel', end);
+		window.addEventListener('keydown', key);
+		return () => {
+			window.removeEventListener('touchmove', stop);
+			window.removeEventListener('pointerup', end);
+			window.removeEventListener('pointercancel', end);
+			window.removeEventListener('keydown', key);
+		};
 	}
 
 	grab(e: PointerEvent, d: ScheduledDay) {
