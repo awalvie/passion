@@ -4,9 +4,9 @@
 	import { dayDate, timeOfDay } from '$lib/dates';
 	import DurationInput from '$lib/DurationInput.svelte';
 	import FormBar from '$lib/FormBar.svelte';
-	import { haptic } from '$lib/haptics';
 	import { isStale, secondsSince, type Run } from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
+	import Segmented from '$lib/Segmented.svelte';
 	import Select from '$lib/Select.svelte';
 	import { guardUnsaved } from '$lib/unsaved';
 
@@ -85,19 +85,14 @@
 		<!-- Five to a track, so 1–10 keeps each button 44 px wide on a phone. -->
 		<div class="clear-left flex flex-col gap-2">
 			{#each Array.from({ length: max / 5 }, (_, r) => r * 5) as start (start)}
-				<div class="grid grid-cols-5 gap-1 rounded-full bg-well p-1">
-					{#each Array.from({ length: 5 }, (_, i) => start + i + 1) as n (n)}
-						<button
-							type="button"
-							class="h-11 rounded-full text-[15px] font-bold {value === n ? 'segment-on' : 'text-ink-2'}"
-							aria-pressed={value === n}
-							onclick={() => set(value === n ? null : n)}
-							use:haptic
-						>
-							{n}
-						</button>
-					{/each}
-				</div>
+				<Segmented
+					label="{label} {start + 1}–{start + 5}"
+					items={Array.from({ length: 5 }, (_, i) => start + i + 1).map((n) => ({
+						label: `${n}`,
+						on: value === n,
+						onclick: () => set(value === n ? null : n)
+					}))}
+				/>
 			{/each}
 		</div>
 	</fieldset>
