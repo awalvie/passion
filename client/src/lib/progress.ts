@@ -218,12 +218,19 @@ export function perBucket<T extends DatedClimb>(climbs: T[], bs: Bucket[], figur
 	});
 }
 
-// counts is the number of climbs in each bucket, boulders and routes apart.
+// tries is how many times a climb was tried. Every go counts as a climb in
+// the totals. A climb saved before goes were kept may hold none, and still
+// counts once.
+export const tries = (c: Pick<Climb, 'goes'>) => Math.max(1, c.goes.length);
+export const totalTries = (climbs: Pick<Climb, 'goes'>[]) => climbs.reduce((n, c) => n + tries(c), 0);
+
+// counts is the number of climbs in each bucket, every go, boulders and
+// routes apart.
 export function counts(climbs: DatedClimb[], bs: Bucket[]): { boulders: number; routes: number }[] {
 	return bs.map((b) => {
 		const mine = climbs.filter((c) => within(b, c.local_date));
-		const boulders = mine.filter(isBoulder).length;
-		return { boulders, routes: mine.length - boulders };
+		const boulders = totalTries(mine.filter(isBoulder));
+		return { boulders, routes: totalTries(mine) - boulders };
 	});
 }
 

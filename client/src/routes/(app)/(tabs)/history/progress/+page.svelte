@@ -27,6 +27,8 @@
 		perBucket,
 		pyramid,
 		sendRate,
+		totalTries,
+		tries,
 		type ClimbFilter,
 		type FilterGroup,
 		type Trend
@@ -128,7 +130,7 @@
 	// Where the climbing was, most first.
 	const mix = $derived.by(() => {
 		const m = new Map<string, number>();
-		for (const c of inPick(shown)) m.set(mixOf(c), (m.get(mixOf(c)) ?? 0) + 1);
+		for (const c of inPick(shown)) m.set(mixOf(c), (m.get(mixOf(c)) ?? 0) + tries(c));
 		return [...m].sort((a, b) => b[1] - a[1]);
 	});
 
@@ -435,8 +437,8 @@
 				<div class="flex-col gap-3.5 lg:grid lg:grid-cols-6 {data.view === 'climbs' ? 'flex' : 'hidden'}">
 					<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-4 lg:row-start-1">
 						<dl class="grid grid-cols-3 gap-3">
-							{@render stat('Climbs', inPick(shown).length, when)}
-							{@render stat(`A ${data.per}`, round(shown.length / passed))}
+							{@render stat('Climbs', totalTries(inPick(shown)), when)}
+							{@render stat(`A ${data.per}`, round(totalTries(shown) / passed))}
 							{@render stat('Tries per send', goesPerSend(inPick(shown)) ?? '–')}
 						</dl>
 						<Bars

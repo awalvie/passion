@@ -301,7 +301,7 @@ test('a cycle longer than 16 weeks names every fourth week', () => {
 });
 
 const dated = (local_date: string, over: Partial<Climb> = {}) =>
-	({ ...climb('6a', true), discipline: 'boulder', setting: 'indoor', board: null, local_date, run: 'r', ...over }) as DatedClimb;
+	({ ...climb('6a', true), goes: ['send'], discipline: 'boulder', setting: 'indoor', board: null, local_date, run: 'r', ...over }) as DatedClimb;
 
 test('hours puts a session in the week of its day, and counts an unknown length as nothing', () => {
 	const run = (local_date: string, elapsed_seconds: number | null) => ({ local_date, elapsed_seconds }) as RunSummary;
@@ -327,16 +327,17 @@ test('counts and grades keep to the days of each bucket, and boulders apart from
 		{ from: '2026-10-12', to: '2026-10-18', tick: '' }
 	];
 	const cs = [
-		dated('2026-10-11', { grade: '6b' }),
-		dated('2026-10-11', { discipline: 'sport', grade: '7a', sent: false }),
-		dated('2026-10-12', { discipline: 'trad', grade: '6c' }),
-		dated('2026-10-18', { grade: '6a' }),
-		dated('2026-10-18', { grade: '6c' }),
-		dated('2026-10-19', { grade: '7a' })
+		dated('2026-10-11', { grade: '6b', goes: ['attempt', 'attempt', 'send'] }),
+		dated('2026-10-11', { discipline: 'sport', grade: '7a', sent: false, goes: ['attempt'] }),
+		dated('2026-10-12', { discipline: 'trad', grade: '6c', goes: ['send'] }),
+		dated('2026-10-18', { grade: '6a', goes: ['send', 'send'] }),
+		// Saved before goes were kept, so it counts once.
+		dated('2026-10-18', { grade: '6c', goes: [] }),
+		dated('2026-10-19', { grade: '7a', goes: ['send'] })
 	];
 	expect(counts(cs, bs)).toEqual([
-		{ boulders: 1, routes: 1 },
-		{ boulders: 2, routes: 1 }
+		{ boulders: 3, routes: 1 },
+		{ boulders: 3, routes: 1 }
 	]);
 	// The hardest send, in the scale: 7a was not sent, and 6c on the 19th is outside.
 	expect(grades(cs, bs, scale)).toEqual([1, 2]);
@@ -357,7 +358,8 @@ test('trends compare the last four full weeks with the four before, and leave ou
 	];
 	const t = trends(runs, climbs, weeks, '2026-08-01');
 	expect(t.hours).toEqual({ now: 1, then: 0.5, weeks: [0, 0, 0, 2, 2, 0, 0, 2] });
-	expect(t.climbs).toMatchObject({ now: 0.5, then: 0.5 });
+	// Every go counts: the climb on 20 Sep took two.
+	expect(t.climbs).toMatchObject({ now: 0.5, then: 0.8 });
 	expect(t.sent).toMatchObject({ now: 50, then: 100 });
 	expect(t.flash).toMatchObject({ now: 50, then: 50 });
 	expect(t.flash.weeks).toEqual([100, null, null, 0, 100, null, null, 0]);
