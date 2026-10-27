@@ -27,9 +27,11 @@
 	let exercise = $state<(Awaited<ReturnType<typeof loadExerciseHistory>> & { id: string }) | null>(null);
 	let paneError = $state('');
 
-	// A session opened from another page may sit far down the list.
+	// A session opened from another page may sit far down the list. The newest,
+	// open when none is named, is already in view.
 	afterNavigate(({ from }) => {
-		if (from?.route.id !== page.route.id) document.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'center' });
+		if (from?.route.id !== page.route.id && page.url.searchParams.has('open'))
+			document.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'center' });
 	});
 
 	// Each fetch drops its answer when the pane has moved on before it came.
