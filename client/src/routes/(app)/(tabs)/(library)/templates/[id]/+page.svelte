@@ -130,7 +130,7 @@
 	const pickLabel = (c: Choice) =>
 		c.pick > 0 && c.pick < c.options.length ? `Pick ${c.pick} of ${c.options.length}` : choiceMeta(c);
 	const minutes = $derived.by(() => {
-		const timed = data.runs.flatMap((r) => (r.elapsed_seconds ? [r.elapsed_seconds] : []));
+		const timed = data.past.flatMap((r) => (r.elapsed_seconds ? [r.elapsed_seconds] : []));
 		return timed.length ? Math.round(timed.reduce((a, b) => a + b, 0) / timed.length / 60) : null;
 	});
 	const day = (date: string) => `${weekday(date)} ${Number(date.slice(8))} ${formatDate(date, { month: 'short' })}`;
@@ -324,10 +324,10 @@
 				</Section>
 			{/if}
 
-			{#if data.runs.length}
+			{#if data.past.length}
 				<Section title="Runs">
 					<div class="rounded-3xl bg-surface py-0.5 shadow-card">
-						{#each shown('runs', data.runs) as r (r.id)}
+						{#each shown('runs', data.past) as r (r.id)}
 							<a href="/history/{r.id}" class="flex min-h-[52px] items-center gap-3 px-4 list-row">
 								<span class="flex-1 text-[15px] font-bold">{day(r.local_date)}</span>
 								{#if r.elapsed_seconds}
@@ -336,7 +336,7 @@
 								<span class="text-ink-3"><Icon name="chevron-right" size="1rem" stroke={2.2} /></span>
 							</a>
 						{/each}
-						{@render more('runs', data.runs.length)}
+						{@render more('runs', data.past.length)}
 					</div>
 				</Section>
 			{:else if t.sections.length}

@@ -26,7 +26,8 @@ export async function load({ params, parent }) {
 				)
 				.catch(() => null)
 		]);
-		return { template, centres, runs: past, last, next };
+		// Named apart from runs, which the list beside the page reads for every session.
+		return { template, centres, past, last, next };
 	} catch (e) {
 		notFound(e);
 	}
