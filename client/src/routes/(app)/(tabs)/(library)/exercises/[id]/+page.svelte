@@ -121,19 +121,11 @@
 	<Menu items={[{ label: 'Duplicate', onclick: duplicate }, ...(locked ? [] : [{ label: 'Retire', danger: true, onclick: retire }])]} />
 {/snippet}
 
-<!-- One you can change has the form bar. Beside the Library's list its
-     Cancel puts the form back as saved, as the page stays open. One you cannot
-     change has a nav bar on a phone, and nothing beside the list but a way
-     back to a session. The menu sits beside the title, except in the nav bar. -->
-{#if !locked}
-	<FormBar
-		title="Edit exercise"
-		heading="p"
-		cancel={wide.current ? () => (draft = toDraft(saved)) : (from ?? '/exercises')}
-		form="exercise-form"
-		{busy}
-		{error}
-	/>
+<!-- On a phone one you can change has the form bar, and one you cannot has a
+     nav bar. Beside the Library's list Save sits by the title, so a built-in
+     exercise and your own start at the same height. -->
+{#if !wide.current && !locked}
+	<FormBar title="Edit exercise" heading="p" cancel={from ?? '/exercises'} form="exercise-form" {busy} {error} />
 {:else if !wide.current}
 	<NavBar heading={false} back={from ? { href: from, label: 'Session' } : { href: '/exercises', label: 'Exercises' }} actions={menu} />
 {/if}
@@ -157,9 +149,24 @@
 					{locked || 'Changes here do not affect sessions that already use it.'}
 				</p>
 			</div>
+			{#if wide.current && !locked}
+				{#if dirty()}
+					<button
+						type="button"
+						class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm"
+						onclick={() => (draft = toDraft(saved))}>Cancel</button
+					>
+				{/if}
+				<button
+					type="submit"
+					form="exercise-form"
+					class="flex h-11 items-center rounded-full bg-tint px-5 text-[15px] font-bold text-on-tint shadow-tint disabled:opacity-50"
+					disabled={busy}>{busy ? 'Saving…' : 'Save'}</button
+				>
+			{/if}
 			{#if wide.current || !locked}{@render menu()}{/if}
 		</header>
-		{#if locked}<FormError message={error} />{/if}
+		{#if locked || wide.current}<FormError message={error} />{/if}
 	</div>
 
 	<div class="flex flex-col gap-3.5">
