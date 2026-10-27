@@ -6,30 +6,44 @@
 	import { formatDate, weekday } from '$lib/dates';
 	import { formatMinutes } from '$lib/exercise';
 	import Dots from '$lib/Dots.svelte';
+	import ExerciseHistory from '$lib/ExerciseHistory.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import { counts, gradeScale, grades, hours, isBoulder } from '$lib/progress';
-	import type { Run, RunSummary } from '$lib/run';
+	import { loadExerciseHistory, type Run, type RunSummary } from '$lib/run';
 	import RunView from '$lib/RunView.svelte';
+	import { plural } from '$lib/text';
 
 	let { data } = $props();
 
 	// From lg a session opens in a pane beside the list, named by open; with
-	// none named, the newest opens.
+	// none named, the newest opens. An exercise's name in it swaps the pane for
+	// that exercise's history, named by exercise.
 	const wide = new MediaQuery('min-width: 64rem');
 	const openId = $derived(wide.current ? page.url.searchParams.get('open') || data.runs[0]?.id : undefined);
+	const exerciseId = $derived(wide.current ? page.url.searchParams.get('exercise') : null);
 	let opened = $state<Run | null>(null);
+	let exercise = $state<(Awaited<ReturnType<typeof loadExerciseHistory>> & { id: string }) | null>(null);
 	let paneError = $state('');
-	$effect(() => {
-		const id = openId;
-		if (!id) return;
+
+	// Each fetch drops its answer when the pane has moved on before it came.
+	function fill<T>(fetch: () => Promise<T>, done: (v: T) => void) {
 		let gone = false;
 		paneError = '';
-		request<Run>('GET', `/api/v1/runs/${id}`).then(
-			(r) => !gone && (opened = r),
+		fetch().then(
+			(v) => !gone && done(v),
 			(e) => !gone && (paneError = describe(e, (f) => f))
 		);
 		return () => (gone = true);
+	}
+	$effect(() => {
+		const id = openId;
+		if (id) return fill(() => request<Run>('GET', `/api/v1/runs/${id}`), (r) => (opened = r));
+	});
+	$effect(() => {
+		const id = exerciseId;
+		const name = page.url.searchParams.get('name');
+		if (id) return fill(() => loadExerciseHistory(id, name), (x) => (exercise = { ...x, id }));
 	});
 
 	const months = $derived.by(() => {
@@ -150,16 +164,41 @@
 		{/each}
 	</div>
 
-	<!-- The pane scrolls on its own, so a long session leaves the list where it was. -->
-	<div class="hidden lg:sticky lg:top-0 lg:block lg:h-dvh lg:overflow-y-auto">
+	<!-- The pane scrolls on its own, so a long session leaves the list where it
+	     was. A link within it changes only the pane; one to another page turns
+	     that off. -->
+	<div class="hidden lg:sticky lg:top-0 lg:block lg:h-dvh lg:overflow-y-auto" data-sveltekit-replacestate data-sveltekit-noscroll>
 		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 px-8 pt-3 pb-8">
 			<FormError message={paneError} />
-			{#if opened}
+			{#if exerciseId && opened && exercise?.id === exerciseId}
+				<div class="flex">
+					<a
+						href="/history?open={opened.id}"
+						class="inline-flex h-11 items-center gap-0.5 rounded-full bg-surface pr-4 pl-2.5 text-[15px] font-bold text-ink shadow-card-sm"
+					>
+						<Icon name="chevron-left" size="1.25rem" stroke={2.4} />Session
+					</a>
+				</div>
+				<header class="px-1">
+					<h2 class="page-title text-balance">{exercise.name}</h2>
+					<p class="mt-2 text-[15px] font-semibold text-ink-2">{plural(exercise.sessions.length, 'session')}</p>
+				</header>
+				<ExerciseHistory sessions={exercise.sessions} scales={exercise.scales} sides={exercise.perSide ? 2 : 1} href={(s) => `/history?open=${s.run}`} />
+			{:else if opened}
 				{@const run = opened}
 				<div class="flex justify-end gap-2">
-					<a href="/run/{run.id}" class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm">Edit</a>
+					<a
+						href="/run/{run.id}"
+						data-sveltekit-replacestate="false"
+						data-sveltekit-noscroll="false"
+						class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm">Edit</a
+					>
 				</div>
-				<RunView {run} heading="h2" exerciseHref={(s) => `/history/exercise/${s.exercise}?from=/history/${run.id}&name=${encodeURIComponent(s.name)}`} />
+				<RunView
+					{run}
+					heading="h2"
+					exerciseHref={(s) => `/history?open=${run.id}&exercise=${s.exercise}&name=${encodeURIComponent(s.name)}`}
+				/>
 			{/if}
 		</div>
 	</div>
