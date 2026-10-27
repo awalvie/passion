@@ -36,21 +36,21 @@
 	});
 
 	// From lg the Library's list stays put and an item only swaps the pane
-	// beside it, so it neither slides nor shows an outline.
+	// beside it, so it does not slide.
 	const paned = (id: string | null | undefined) => !!id?.startsWith('/(app)/(tabs)/(library)/');
-	let inPane = false;
 
 	beforeNavigate(({ from, to, type }) => {
 		if (!from || !to) return;
-		inPane = paned(from.route.id) && paned(to.route.id) && matchMedia('(min-width: 64rem)').matches;
+		const inPane = paned(from.route.id) && paned(to.route.id) && matchMedia('(min-width: 64rem)').matches;
 		kind = inPane ? 'none' : kindOf(from.url, to.url, type);
 	});
 
 	// A page that takes a moment to load shows its outline at once, and its
-	// content replaces the outline when it comes.
+	// content replaces the outline when it comes. The outline is a phone's, so
+	// from lg the page stays as it is until the next one is ready.
 	let outline = $state(false);
 	$effect(() => {
-		if (!navigating.to || inPane) {
+		if (!navigating.to || matchMedia('(min-width: 64rem)').matches) {
 			outline = false;
 			return;
 		}
