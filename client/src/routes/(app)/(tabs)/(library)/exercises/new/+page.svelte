@@ -47,8 +47,7 @@
 
 <svelte:head><title>New exercise</title></svelte:head>
 
-<!-- From lg the Library's pane brings the side padding. -->
-<form class="mx-auto flex w-full max-w-xl flex-col gap-3.5 px-4 pb-6 lg:px-0" onsubmit={save}>
+<form class="flex flex-col gap-3.5 px-4 pb-6" onsubmit={save}>
 	<FormBar
 		title="New exercise"
 		heading={wide.current ? 'h2' : 'h1'}
