@@ -257,9 +257,7 @@
 					{/snippet}
 				</EntryView>
 			{:else if total}
-				<Empty title="No entry open" text="Entries you write open here. A session's journal opens in History.">
-					<Button href={pane('new')}>New entry</Button>
-				</Empty>
+				<Empty title="No entry open" text="Session journals open in History." />
 			{/if}
 		</div>
 	</div>
