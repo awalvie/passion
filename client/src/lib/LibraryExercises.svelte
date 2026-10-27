@@ -45,7 +45,7 @@
 		<ul class="rounded-3xl bg-surface py-1 shadow-card">
 			{#each shown as e (e.id)}
 				{@const picked = page.params.id === e.id}
-				<li class="list-row {picked ? 'picked' : ''}">
+				<li class="list-row {picked ? 'picked-item' : ''}">
 					<a
 						href={wide.current ? `/exercises/${e.id}${filterQuery(f)}` : `/exercises/${e.id}`}
 						aria-current={picked ? 'true' : undefined}
