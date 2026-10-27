@@ -1,5 +1,7 @@
+import { request, RequestFailed } from './api';
 import { addDays, daysBetween } from './dates';
 import { formatDuration } from './exercise';
+import { loadGrades } from './grades';
 import { localToday } from './plan';
 import type { Section as PlanSection, Step } from './template';
 
@@ -146,6 +148,25 @@ export type HistorySession = {
 	sets: LoggedSet[];
 	climbs: Climb[];
 };
+
+// An exercise's past sessions, with what its history needs to draw them. An
+// exercise typed into a run has no library page, so name stands in for it.
+export async function loadExerciseHistory(id: string, name: string | null) {
+	const [{ sessions }, exercise, { grades }] = await Promise.all([
+		request<{ sessions: HistorySession[] }>('GET', `/api/v1/exercises/${id}/history`),
+		request<{ name: string; per_side: boolean }>('GET', `/api/v1/exercises/${id}`).catch((e) => {
+			if (e instanceof RequestFailed && e.status === 404) return null;
+			throw e;
+		}),
+		loadGrades()
+	]);
+	return {
+		sessions,
+		name: exercise?.name ?? name ?? 'Exercise',
+		perSide: exercise?.per_side ?? false,
+		scales: grades.scales
+	};
+}
 
 // A body PUT replaces the whole run, so it sends every field the server keeps.
 export function toRunBody(r: Run) {
