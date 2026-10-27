@@ -15,6 +15,15 @@ export type ScheduledDay = {
 	status: 'done' | 'started' | 'paused' | 'missed' | 'planned';
 };
 
+// What a row says of its session; a planned one says nothing.
+export const statusWords: Record<ScheduledDay['status'], string> = {
+	done: 'Done',
+	started: 'Started',
+	paused: 'Paused',
+	missed: 'Missed',
+	planned: ''
+};
+
 // A goal, with where the person starts, where they end and how they get there.
 export type Goal = { text: string; done: boolean; before: string; after: string; how: string };
 

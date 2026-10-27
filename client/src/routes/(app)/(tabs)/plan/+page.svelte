@@ -14,7 +14,7 @@
 	import Menu from '$lib/Menu.svelte';
 	import PlanCalendar from '$lib/PlanCalendar.svelte';
 	import SessionIcon, { iconState } from '$lib/SessionIcon.svelte';
-	import type { ScheduledDay, TimeOff } from '$lib/plan';
+	import { statusWords, type ScheduledDay, type TimeOff } from '$lib/plan';
 	import TimeOffSheet from '$lib/TimeOffSheet.svelte';
 	import WeekStrip from '$lib/WeekStrip.svelte';
 
@@ -86,7 +86,7 @@
 	function rowNote(d: ScheduledDay) {
 		const n = templates.get(d.template)?.sections.length ?? 0;
 		const sections = n === 1 ? '1 section' : n ? `${n} sections` : '';
-		return [statuses[d.status], d.cycle ? '' : d.repeat ? 'Repeats' : 'One-off', sections].filter(Boolean).join(' · ');
+		return [statusWords[d.status], d.cycle ? '' : d.repeat ? 'Repeats' : 'One-off', sections].filter(Boolean).join(' · ');
 	}
 
 	function when(c: { starts: string; ends: string }) {
@@ -114,8 +114,6 @@
 	// From lg a Cycles row picks its cycle for the pane; a running one comes first.
 	let pickedCycle = $state('');
 	const cycle = $derived(ordered.find((c) => c.id === pickedCycle) ?? ordered[0]);
-
-	const statuses = { done: 'Done', started: 'Started', paused: 'Paused', missed: 'Missed', planned: '' };
 </script>
 
 <svelte:head><title>Plan</title></svelte:head>

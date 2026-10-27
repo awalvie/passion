@@ -4,7 +4,7 @@
 	import FormError from './FormError.svelte';
 	import Icon from './Icon.svelte';
 	import Menu from './Menu.svelte';
-	import type { ScheduledDay, TimeOff } from './plan';
+	import { statusWords, type ScheduledDay, type TimeOff } from './plan';
 	import SessionIcon, { iconState } from './SessionIcon.svelte';
 
 	// One day's sessions, each with Start or its menu, then the time off in
@@ -31,10 +31,8 @@
 
 	const offIcons = { trip: 'plane', injury: 'bandage', illness: 'heart-pulse', other: 'calendar' } as const;
 	const offKinds = { trip: 'Trip', injury: 'Injury', illness: 'Illness', other: 'Other' };
-	const statuses = { done: 'Done', started: 'Started', paused: 'Paused', missed: 'Missed', planned: '' };
-
 	const source = (d: ScheduledDay) =>
-		[statuses[d.status], d.cycle ? (cycleNames.get(d.cycle) ?? 'Cycle') : d.repeat ? 'Repeats' : 'One-off'].filter(Boolean).join(' · ');
+		[statusWords[d.status], d.cycle ? (cycleNames.get(d.cycle) ?? 'Cycle') : d.repeat ? 'Repeats' : 'One-off'].filter(Boolean).join(' · ');
 </script>
 
 <section class="flex flex-col gap-2" aria-live="polite">

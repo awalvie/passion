@@ -2,7 +2,7 @@
 	import FormError from './FormError.svelte';
 	import { byDate, fullDate, gridWeeks, monthSpan, weekdayLetters } from './dates';
 	import { SessionDrag } from './drag.svelte';
-	import type { Cycle, ScheduledDay } from './plan';
+	import { statusWords, type Cycle, type ScheduledDay } from './plan';
 	import SessionIcon, { iconState } from './SessionIcon.svelte';
 	import { plural } from './text';
 
@@ -35,8 +35,6 @@
 
 	// One key entry per session the cycle holds, in the order they first fall.
 	const key = $derived([...new Map(days.map((d) => [d.template, d])).values()]);
-
-	const words = { done: 'Done', started: 'Started', paused: 'Paused', missed: 'Missed', planned: '', today: '' };
 
 	let error = $state('');
 	const movable = (d: ScheduledDay) => (d.status === 'planned' || d.status === 'paused') && d.local_date >= today;
@@ -155,8 +153,8 @@
 							</span>
 						{/if}
 					</span>
-					{#if words[look(d)]}
-						<span class="shrink-0 text-xs font-bold text-ink-2">{words[look(d)]}</span>
+					{#if statusWords[d.status]}
+						<span class="shrink-0 text-xs font-bold text-ink-2">{statusWords[d.status]}</span>
 					{/if}
 				</li>
 			{/each}
