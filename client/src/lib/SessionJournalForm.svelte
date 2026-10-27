@@ -14,9 +14,8 @@
 	let {
 		cancel,
 		saved,
-		heading = 'h1',
-		replace = false
-	}: { cancel: string; saved: (run: Run) => Promise<unknown>; heading?: 'h1' | 'h2'; replace?: boolean } = $props();
+		heading = 'h1'
+	}: { cancel: string; saved: (run: Run) => Promise<unknown>; heading?: 'h1' | 'h2' } = $props();
 
 	const run = $derived(openRun.run!);
 	// A finished run comes here from History to edit its journal.
@@ -121,7 +120,6 @@
 	<FormBar
 		title="Session journal"
 		{cancel}
-		{replace}
 		{heading}
 		saveLabel={editing ? 'Save' : 'Finish'}
 		busyLabel={editing ? 'Saving…' : 'Finishing…'}
