@@ -326,7 +326,7 @@
 				{#each suggested as s (s.key)}{@render pill(s.label, s.key, 'flex')}{/each}
 				{#each wider as q (q.key)}{@render pill(q.label, q.key, 'hidden lg:flex')}{/each}
 				{#if picked !== null}
-					<span class="flex h-11 min-w-0 flex-none items-center rounded-full pl-4 segment-on">
+					<span class="flex h-11 min-w-0 flex-initial items-center rounded-full pl-4 segment-on">
 						<span class="truncate text-[15px] font-bold" aria-live="polite"
 							><span class="lg:hidden">{when}</span><span class="max-lg:hidden">{names[picked]}</span></span
 						>
