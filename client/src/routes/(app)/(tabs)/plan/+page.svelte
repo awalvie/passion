@@ -153,7 +153,7 @@
 
 <div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-8 lg:mx-auto lg:max-w-[1280px] lg:px-8 lg:pt-3">
 	<header class="flex items-start justify-between gap-3">
-		<div>
+		<div class="px-1">
 			<h1 class="page-title">Plan</h1>
 			{#if data.today}
 				<p class="mt-1 text-[15px] font-semibold text-ink-2">{fullDate(data.today)}</p>

@@ -112,7 +112,7 @@
 <div class="lg:mx-auto lg:grid lg:max-w-[1280px] lg:grid-cols-[420px_minmax(0,1fr)]">
 	<div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-6 lg:border-r lg:border-line lg:px-6 lg:pt-3">
 		<header class="flex items-start justify-between gap-3">
-			<h1 class="page-title">Journal</h1>
+			<h1 class="page-title px-1">Journal</h1>
 			{#if total}
 				<a
 					href={wide.current ? pane('new') : '/journal/new'}

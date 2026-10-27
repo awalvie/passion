@@ -37,7 +37,7 @@
 
 {#snippet header(p: (typeof parts)[number])}
 	<header class="flex items-start justify-between">
-		<h1 class="page-title">Library</h1>
+		<h1 class="page-title px-1">Library</h1>
 		<!-- New exercise beside the list takes the pane's place, and can go back
 		     to the one that was open. -->
 		<a

@@ -273,7 +273,7 @@
 	{@render days()}
 	<div class="flex flex-col">
 		<header class="flex items-start justify-between gap-3 px-4 pt-3 {other ? '' : 'lg:hidden'}">
-			<div>
+			<div class="px-1">
 				<h1 class="page-title">
 					{other ? formatDate(shown, { weekday: 'long' }) : 'Today'}
 				</h1>
@@ -567,7 +567,7 @@
 
 {#snippet days()}
 	<div class="hidden flex-col gap-3.5 px-8 pt-3 pb-8 lg:flex">
-		<header>
+		<header class="px-1">
 			<h1 class="page-title">Today</h1>
 			<p class="mt-1 text-[15px] font-semibold text-ink-2">{fullDate(data.today)}</p>
 		</header>
