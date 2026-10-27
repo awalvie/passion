@@ -456,7 +456,9 @@
 			{/each}
 		{/if}
 
-		<div class="sticky bottom-[calc(var(--above-bar)-0.75rem)] z-20 -mx-4 mt-auto bg-ground/85 px-4 py-3 backdrop-blur-md">
+		<!-- In the Library's pane a band would stand out past the cards, so the
+		     button floats alone there. -->
+		<div class="sticky bottom-[calc(var(--above-bar)-0.75rem)] z-20 -mx-4 mt-auto bg-ground/85 px-4 py-3 backdrop-blur-md lg:mx-0 lg:bg-transparent lg:px-0 lg:backdrop-blur-none">
 			<Button disabled={doing !== null} onclick={start}>
 				<Icon name="play" />
 				{doing === 'start' ? 'Starting…' : 'Start session'}
