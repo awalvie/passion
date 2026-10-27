@@ -228,9 +228,8 @@
 							{#if climbs.length}
 								<ol class="mt-1.5">
 									{#each climbs as c (c.id)}
-										<!-- One go on an ungraded climb says nothing worth a word. -->
-										{@const tried = c.goes.length > 1 ? `${c.goes.length} tries` : ''}
-										{@const result = c.grade_system ? [climbWord(c), tried].filter(Boolean).join(' · ') : tried}
+										<!-- An ungraded climb is never a send, so it says only its tries, and one try nothing. -->
+										{@const result = [c.grade_system && climbWord(c), c.goes.length > 1 && `${c.goes.length} tries`].filter(Boolean).join(' · ')}
 										{#if c.grade || result || c.seconds || c.focus || c.notes}
 											<li class="pt-3 list-row [&:not(:first-child)]:mt-3">
 												{#if c.grade || result || c.seconds}
