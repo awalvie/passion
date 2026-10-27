@@ -5,6 +5,7 @@
 	import { formatDate, shortDate } from '$lib/dates';
 	import DateField from '$lib/DateField.svelte';
 	import Dots from '$lib/Dots.svelte';
+	import Empty from '$lib/Empty.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import Pyramid from '$lib/Pyramid.svelte';
@@ -274,10 +275,11 @@
 
 {#if data.fresh}
 	<div class="px-4 pt-2 pb-6 lg:mx-auto lg:max-w-[1104px] lg:px-10">
-		<section class="flex flex-col gap-3.5 rounded-3xl bg-surface p-5 shadow-card lg:max-w-md">
-			<p class="text-[15px] font-semibold text-ink-2">No sessions yet. Finish one to see your hours, climbs and grades.</p>
-			<Button href="/">Start a session</Button>
-		</section>
+		<div class="lg:max-w-md">
+			<Empty title="No sessions yet" text="Finish one to see your hours, climbs and grades.">
+				<Button href="/">Start a session</Button>
+			</Empty>
+		</div>
 	</div>
 {:else}
 	<!-- A phone shows one view at a time. A laptop shows them all, in two columns. -->

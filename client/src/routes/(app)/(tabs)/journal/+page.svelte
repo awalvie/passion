@@ -4,6 +4,7 @@
 	import { describe } from '$lib/api';
 	import Button from '$lib/Button.svelte';
 	import { dayDate, formatDate, weekday } from '$lib/dates';
+	import Empty from '$lib/Empty.svelte';
 	import EntryForm from '$lib/EntryForm.svelte';
 	import EntryView from '$lib/EntryView.svelte';
 	import { urlFilters } from '$lib/filters.svelte';
@@ -127,11 +128,9 @@
 		</header>
 
 		{#if !total}
-			<section class="flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-card">
-				<p class="text-xl font-bold tracking-tight">No entries yet</p>
-				<p class="text-[15px] font-semibold text-ink-2">Write what you notice.</p>
+			<Empty title="No entries yet" text="Write what you notice.">
 				<Button href={wide.current ? pane('new') : '/journal/new'}>New entry</Button>
-			</section>
+			</Empty>
 		{:else}
 			<LibrarySearch bind:value={f.q} placeholder="Search journal" label="Search journal" />
 
@@ -209,10 +208,9 @@
 				</section>
 			{:else}
 				{#if searching}
-					<div class="flex flex-col items-center gap-3 rounded-3xl bg-surface p-[18px] text-center text-[15px] font-semibold text-ink-2 shadow-card">
-						Nothing matches.
-						<button type="button" class="h-11 rounded-full bg-well px-5 text-[15px] font-bold text-ink" onclick={() => (f.q = '')}>Clear</button>
-					</div>
+					<Empty title="Nothing matches">
+						<button type="button" class="h-11 self-start rounded-full bg-well px-5 text-[15px] font-bold text-ink" onclick={() => (f.q = '')}>Clear</button>
+					</Empty>
 				{/if}
 			{/each}
 		{/if}

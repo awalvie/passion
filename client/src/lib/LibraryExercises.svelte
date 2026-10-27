@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { MediaQuery } from 'svelte/reactivity';
+	import Empty from './Empty.svelte';
 	import { distinct, kindOf, kinds, matches, originOf, sourcesOf, type Exercise } from './exercise';
 	import { filterQuery, urlFilters } from './filters.svelte';
 	import FilterLine from './FilterLine.svelte';
@@ -63,13 +64,12 @@
 			{/each}
 		</ul>
 	{:else}
-		<div class="flex flex-col items-center gap-3 rounded-3xl bg-surface p-[18px] text-center text-[15px] font-semibold text-ink-2 shadow-card">
-			{#if f.q.trim() || filters}
-				Nothing matches.
-				<button type="button" class="h-11 rounded-full bg-well px-5 text-[15px] font-bold text-ink" onclick={clear}>Clear</button>
-			{:else}
-				{f.kind ? 'No exercises of this type yet.' : 'No exercises yet.'}
-			{/if}
-		</div>
+		{#if f.q.trim() || filters}
+			<Empty title="Nothing matches">
+				<button type="button" class="h-11 self-start rounded-full bg-well px-5 text-[15px] font-bold text-ink" onclick={clear}>Clear</button>
+			</Empty>
+		{:else}
+			<Empty title={f.kind ? 'No exercises of this type yet' : 'No exercises yet'} />
+		{/if}
 	{/if}
 </div>

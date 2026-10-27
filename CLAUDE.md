@@ -52,6 +52,7 @@ Tokens are in `client/src/tokens.css`; each needs a light and a dark value.
 - The landing page (`/welcome`) has its own larger type for the headline and section titles.
 - Fields and `<select>` use `.input`, except a lone free-text note: `bg-surface text-[15px] font-semibold placeholder:text-ink-3`.
 - Reuse `client/src/lib/` parts (`Section`, `Segmented`, `Tabs`, `Sheet`, `Chart`…) before making new ones.
+- An empty list shows `Empty`: a title, a line on what to do, and a `Button` when there is a next step.
 - A choice from a list is a `Select`: the phone's own picker, a themed list from `lg`. Days are picked on a `DayPicker`.
 - Controls are at least 44 px. List rows use `list-row`. A row that opens a page ends with a chevron.
 - Tabs sit at the bottom on a phone, in a left rail from `md`. Today, Plan, a cycle, Journal, History, Progress and the Library go wide from `lg`.

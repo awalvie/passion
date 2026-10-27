@@ -1,5 +1,7 @@
 <script lang="ts">
 	import AddSession from '$lib/AddSession.svelte';
+	import Button from '$lib/Button.svelte';
+	import Empty from '$lib/Empty.svelte';
 	import Segmented from '$lib/Segmented.svelte';
 	import { page } from '$app/state';
 	import { MediaQuery } from 'svelte/reactivity';
@@ -293,13 +295,11 @@
 					</div>
 				</section>
 			{:else}
-				<section class="flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-card">
-					<p class="text-xl font-bold tracking-tight">Nothing planned</p>
-					<p class="text-[15px] font-semibold text-ink-2">Nothing in the next four weeks.</p>
+				<Empty title="Nothing planned" text="Nothing in the next four weeks.">
 					{#if data.templates.length}
-						<button type="button" class="flex h-12 items-center justify-center rounded-full bg-tint text-[15px] font-bold text-on-tint shadow-tint" onclick={openAdd}>Add a session</button>
+						<Button onclick={openAdd}>Add a session</Button>
 					{/if}
-				</section>
+				</Empty>
 			{/each}
 			</div>
 			{#if wide.current}
@@ -336,9 +336,7 @@
 				{#if data.cycles.length}
 					<CycleYear cycles={data.cycles} today={data.today} />
 					<h2 class="px-1 text-xl font-bold">Cycles</h2>
-				{/if}
-				<section class="rounded-3xl bg-surface px-[18px] pt-2 pb-2 shadow-card">
-					{#if data.cycles.length}
+					<section class="rounded-3xl bg-surface px-[18px] pt-2 pb-2 shadow-card">
 						<ul>
 							{#each ordered as c (c.id)}
 								<li class="list-row">
@@ -357,14 +355,13 @@
 								</li>
 							{/each}
 						</ul>
-					{:else}
-						<div class="flex flex-col gap-3 pt-1 pb-3">
-							<p class="text-[15px] font-semibold text-ink-2">A cycle repeats a block of sessions over weeks.</p>
-							<!-- From lg the header's New cycle is the one button. -->
-							<a href="/plan/cycles/new" class="flex h-12 items-center justify-center rounded-full bg-tint text-[15px] font-bold text-on-tint shadow-tint lg:hidden">New cycle</a>
-						</div>
-					{/if}
-				</section>
+					</section>
+				{:else}
+					<Empty title="No cycles yet" text="A cycle repeats a block of sessions over weeks.">
+						<!-- From lg the header's New cycle is the one button. -->
+						<div class="lg:hidden"><Button href="/plan/cycles/new">New cycle</Button></div>
+					</Empty>
+				{/if}
 			</div>
 			{#if wide.current && cycle}
 				<section class="sticky top-6 flex flex-col gap-2" aria-live="polite">

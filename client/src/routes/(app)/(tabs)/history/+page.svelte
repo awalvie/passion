@@ -4,7 +4,9 @@
 	import { MediaQuery } from 'svelte/reactivity';
 	import { describe, request } from '$lib/api';
 	import Bars from '$lib/Bars.svelte';
+	import Button from '$lib/Button.svelte';
 	import { formatDate, weekday } from '$lib/dates';
+	import Empty from '$lib/Empty.svelte';
 	import { formatMinutes } from '$lib/exercise';
 	import Dots from '$lib/Dots.svelte';
 	import ExerciseHistory from '$lib/ExerciseHistory.svelte';
@@ -173,11 +175,9 @@
 				</ul>
 			</section>
 		{:else}
-			<section class="flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-card">
-				<p class="text-xl font-bold tracking-tight">No sessions yet</p>
-				<p class="text-[15px] font-semibold text-ink-2">Finished sessions show here.</p>
-				<a href="/" class="flex h-12 items-center justify-center rounded-full bg-tint text-[15px] font-bold text-on-tint shadow-tint">Start one</a>
-			</section>
+			<Empty title="No sessions yet" text="Finished sessions show here.">
+				<Button href="/">Start one</Button>
+			</Empty>
 		{/each}
 	</div>
 
