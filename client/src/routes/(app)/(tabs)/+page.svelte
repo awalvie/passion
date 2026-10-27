@@ -271,7 +271,8 @@
 
 <div class="relative pt-[env(safe-area-inset-top)] lg:mx-auto lg:grid lg:max-w-[1280px] lg:grid-cols-[minmax(0,1fr)_460px]">
 	{@render days()}
-	<div class="flex flex-col">
+	<!-- Its cards keep the phone's 16 px margin; from lg this makes up Plan's 32 px gutter. -->
+	<div class="flex flex-col lg:pr-4">
 		<header class="flex items-start justify-between gap-3 px-4 pt-3 {other ? '' : 'lg:hidden'}">
 			<div class="px-1">
 				<h1 class="page-title">
