@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { notice } from '$lib/notice.svelte';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
 	import { allCounts, fieldLabel, kindOf, setByLadder, summary, toBody, toDraft, type Count, type Exercise } from '$lib/exercise';
@@ -60,8 +60,11 @@
 		try {
 			await request('PUT', `/api/v1/exercises/${saved.id}`, toBody(draft, shown));
 			leaving = true;
-			if (wide.current) await invalidateAll();
-			else await goto(from ?? '/exercises');
+			if (wide.current) {
+				const url = new URL(page.url);
+				url.searchParams.delete('rename');
+				await goto(url, { replaceState: true, noScroll: true, invalidateAll: true, state: { saved: Date.now() } });
+			} else await goto(from ?? '/exercises');
 			notice.text = 'Exercise saved';
 		} catch (e) {
 			error = describe(e, fieldLabel);

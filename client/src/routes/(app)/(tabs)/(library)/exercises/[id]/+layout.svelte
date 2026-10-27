@@ -5,7 +5,7 @@
 </script>
 
 <!-- The page copies its exercise into form state once, so another id or a
-     fresh load after a save needs a new page. -->
-{#key page.data.exercise}
+     save needs a new page. Any other reload keeps the page and its edits. -->
+{#key `${page.params.id}:${page.state.saved ?? ''}`}
 	{@render children()}
 {/key}

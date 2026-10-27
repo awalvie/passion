@@ -8,6 +8,9 @@ declare global {
 		interface PageState {
 			// Days a new cycle left as they were, for the cycle page to say so.
 			leftOut?: number;
+			// When an exercise was last saved beside the Library's list, so its page
+			// starts again from what was saved.
+			saved?: number;
 		}
 		// interface Platform {}
 	}
