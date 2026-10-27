@@ -389,7 +389,7 @@
 		class="flex flex-col gap-3.5 px-4 pt-1.5 lg:mx-auto lg:grid lg:w-full lg:max-w-[1440px] lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-5 lg:px-8 lg:pt-5 xl:grid-cols-[320px_minmax(0,1fr)_360px]"
 	>
 		{#if widest.current}
-			<aside class="sticky top-[5.5rem] flex max-h-[calc(100dvh-7rem)] flex-col gap-3 overflow-y-auto overscroll-contain rounded-3xl bg-surface p-4 shadow-card" aria-label="Library">
+			<aside class="sticky top-[5.5rem] flex max-h-[calc(100dvh-7rem)] flex-col gap-3 overflow-y-auto overscroll-contain rounded-3xl bg-surface p-[18px] shadow-card" aria-label="Library">
 				{@render tabs()}
 				{#if tab === 'sections'}
 					<SectionList exclude={template?.id} {copied} copy={(from, key) => copySection(from, key, addTo)} />
@@ -492,7 +492,7 @@
 		</div>
 
 		{#if wide.current}
-			<aside class="sticky top-[5.5rem] flex max-h-[calc(100dvh-7rem)] flex-col gap-4 overflow-y-auto overscroll-contain rounded-3xl bg-surface p-5 shadow-card" aria-label={head.title}>
+			<aside class="sticky top-[5.5rem] flex max-h-[calc(100dvh-7rem)] flex-col gap-4 overflow-y-auto overscroll-contain rounded-3xl bg-surface p-[18px] shadow-card" aria-label={head.title}>
 				{#if shown}
 					<button type="button" class="-mt-1 flex h-11 items-center gap-2 self-start text-[15px] font-bold text-ink-2" onclick={() => (picked = null)}>
 						<Icon name="chevron-left" />Session details

@@ -35,7 +35,7 @@
 <h1 class="page-title">Log in</h1>
 <FormError message={error} />
 
-<form class="mt-6 flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-card" onsubmit={signIn}>
+<form class="mt-6 flex flex-col gap-4 rounded-3xl bg-surface p-[18px] shadow-card" onsubmit={signIn}>
 	<div>
 		<label for="email" class="text-xs font-bold text-ink-2">Email</label>
 		<input

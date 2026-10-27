@@ -20,7 +20,7 @@
 	{@render actions?.()}
 </header>
 
-<div class="flex flex-col gap-2.5 rounded-3xl bg-surface px-5 py-[18px] shadow-card reading">
+<div class="flex flex-col gap-2.5 rounded-3xl bg-surface p-[18px] shadow-card reading">
 	{#each entry.body.split(/\n\s*\n/) as p, i (i)}<p>{p.trim()}</p>{/each}
 </div>
 

@@ -59,7 +59,7 @@
 
 <FormError message={error} />
 
-<form class="mt-6 flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-card" onsubmit={signUp}>
+<form class="mt-6 flex flex-col gap-4 rounded-3xl bg-surface p-[18px] shadow-card" onsubmit={signUp}>
 	<div>
 		<label for="display_name" class="text-xs font-bold text-ink-2">Name</label>
 		<input

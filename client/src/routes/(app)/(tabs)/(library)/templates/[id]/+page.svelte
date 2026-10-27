@@ -325,7 +325,7 @@
 
 			{#if note && data.last}
 				<Section title="Last note">
-					<a href="/history/{data.last.id}" class="rounded-3xl bg-surface p-4 shadow-card">
+					<a href="/history/{data.last.id}" class="rounded-3xl bg-surface p-[18px] shadow-card">
 						<p class="line-clamp-3 text-[15px] leading-[1.4] font-semibold">{note}</p>
 						<p class="mt-2 text-xs font-semibold text-ink-2">{day(data.last.local_date)}</p>
 					</a>
