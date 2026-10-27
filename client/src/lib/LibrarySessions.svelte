@@ -51,7 +51,7 @@
 			{#each shown as t (t.id)}
 				{@const icon = sessionIcons.find(([name]) => name === t.icon)?.[0]}
 				{@const when = done(t)}
-				{@const picked = wide.current && page.params.id === t.id}
+				{@const picked = page.params.id === t.id}
 				<li class="list-row {picked ? 'picked' : ''}">
 					<a
 						href={wide.current ? `/templates/${t.id}${filterQuery(f)}` : `/templates/${t.id}`}

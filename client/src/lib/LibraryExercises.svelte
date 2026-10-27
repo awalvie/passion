@@ -44,7 +44,7 @@
 	{#if shown.length}
 		<ul class="rounded-3xl bg-surface py-1 shadow-card">
 			{#each shown as e (e.id)}
-				{@const picked = wide.current && page.params.id === e.id}
+				{@const picked = page.params.id === e.id}
 				<li class="list-row {picked ? 'picked' : ''}">
 					<a
 						href={wide.current ? `/exercises/${e.id}${filterQuery(f)}` : `/exercises/${e.id}`}
