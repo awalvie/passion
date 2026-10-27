@@ -192,7 +192,7 @@
 					<p class="mt-2 text-[15px] font-semibold text-ink-2">{plural(exercise.sessions.length, 'session')}</p>
 				</header>
 				<ExerciseHistory sessions={exercise.sessions} scales={exercise.scales} sides={exercise.perSide ? 2 : 1} href={(s) => `/history?open=${s.run}`} />
-			{:else if opened}
+			{:else if opened && opened.id === openId}
 				{@const run = opened}
 				<div class="flex justify-end gap-2">
 					<a
