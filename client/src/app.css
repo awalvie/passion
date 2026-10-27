@@ -125,6 +125,39 @@ html {
 	}
 }
 
+/* The Library's rows reach the card's edges, so a pressed or hovered one
+   fills as a well inset as far as a picked one, not past the card. */
+.list-row.flush {
+	position: relative;
+	isolation: isolate;
+	&::before {
+		content: '';
+		position: absolute;
+		inset: 0 0.5rem;
+		z-index: -1;
+		border-radius: 1rem;
+		background: var(--well);
+		opacity: 0;
+	}
+	& > a:is(:hover, :active) {
+		background: none;
+		box-shadow: none;
+	}
+	&:has(> a:active)::before {
+		opacity: 1;
+	}
+}
+@media (hover: hover) {
+	.list-row.flush:hover::before {
+		opacity: 1;
+	}
+	/* A well tile in a hovered row turns to the card's colour, as in a picked
+	   one, or it would melt into the fill. */
+	li:has(> :is(a[href], button):hover) .bg-well:not(button) {
+		background: var(--surface);
+	}
+}
+
 /* Long notes the person wrote, kept lighter than labels so paragraphs read easily. */
 @utility reading {
 	font-size: 15px;

@@ -54,7 +54,7 @@
 				{@const icon = sessionIcons.find(([name]) => name === t.icon)?.[0]}
 				{@const when = done(t)}
 				{@const picked = page.params.id === t.id}
-				<li class="list-row {picked ? 'picked-item' : ''}">
+				<li class="list-row flush {picked ? 'picked-item' : ''}">
 					<a
 						href={wide.current ? `/templates/${t.id}${filterQuery(f)}` : `/templates/${t.id}`}
 						aria-current={picked ? 'true' : undefined}
