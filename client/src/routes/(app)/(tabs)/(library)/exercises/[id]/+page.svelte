@@ -150,8 +150,8 @@
 				</a>
 			</div>
 		{/if}
-		<header class="flex items-start gap-3 px-1">
-			<div class="min-w-0 flex-1">
+		<header class="flex items-start gap-3">
+			<div class="min-w-0 flex-1 px-1">
 				<svelte:element this={wide.current ? 'h2' : 'h1'} class="page-title break-words">{saved.name}</svelte:element>
 				<p class="mt-1 text-[15px] font-semibold text-ink-2">
 					{locked || 'Changes here do not affect sessions that already use it.'}

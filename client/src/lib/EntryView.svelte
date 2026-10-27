@@ -12,8 +12,8 @@
 	let { entry, heading = 'h1', actions }: { entry: JournalEntry; heading?: 'h1' | 'h2'; actions?: Snippet } = $props();
 </script>
 
-<header class="flex items-start gap-3 px-1">
-	<div class="min-w-0 flex-1">
+<header class="flex items-start gap-3">
+	<div class="min-w-0 flex-1 px-1">
 		{#if entry.pinned_at}<p class="mb-1 text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">Pinned</p>{/if}
 		<svelte:element this={heading} class="page-title text-balance">{fullDate(entry.local_date)}</svelte:element>
 	</div>

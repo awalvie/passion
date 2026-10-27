@@ -126,8 +126,8 @@
 {/snippet}
 
 <div class="flex flex-col gap-7">
-	<header class="flex items-start gap-3 px-1">
-		<div class="min-w-0 flex-1">
+	<header class="flex items-start gap-3">
+		<div class="min-w-0 flex-1 px-1">
 			<svelte:element this={heading} class="page-title text-balance">{run.name}</svelte:element>
 			<p class="mt-2 text-[15px] font-semibold text-ink-2">{when}</p>
 		</div>
