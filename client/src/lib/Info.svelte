@@ -1,20 +1,17 @@
 <script lang="ts">
 	import Icon from './Icon.svelte';
 
-	// A note on how a figure is measured. A tap opens it; under a mouse a hover
-	// does too. It sits in a relative box, and spans it under the button.
+	// The note spans the nearest relative box, under the button.
 	let { text }: { text: string } = $props();
 
 	let open = $state(false);
-	let held = false;
 	let box: HTMLElement;
-
-	function outside(e: PointerEvent) {
-		if (open && !box.contains(e.target as Node)) open = held = false;
-	}
 </script>
 
-<svelte:window onpointerdown={outside} onkeydown={(e) => e.key === 'Escape' && (open = held = false)} />
+<svelte:window
+	onpointerdown={(e) => open && !box.contains(e.target as Node) && (open = false)}
+	onkeydown={(e) => e.key === 'Escape' && (open = false)}
+/>
 
 <span class="contents" bind:this={box}>
 	<button
@@ -22,9 +19,7 @@
 		class="-m-3 flex size-11 shrink-0 items-center justify-center rounded-full {open ? 'text-ink' : 'text-ink-3'}"
 		aria-label="How this is measured"
 		aria-expanded={open}
-		onclick={() => (open = held = !held)}
-		onpointerenter={(e) => e.pointerType === 'mouse' && (open = true)}
-		onpointerleave={(e) => e.pointerType === 'mouse' && !held && (open = false)}
+		onclick={() => (open = !open)}
 	>
 		<Icon name="info" size="18px" stroke={2.2} />
 	</button>
