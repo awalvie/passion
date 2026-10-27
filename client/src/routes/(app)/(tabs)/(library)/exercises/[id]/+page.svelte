@@ -18,9 +18,10 @@
 
 	let { data } = $props();
 
-	// +layout.svelte builds a new page for each load, so the first value is the only one.
 	// From lg a saved exercise stays open beside the list.
 	const wide = new MediaQuery('min-width: 64rem');
+	// +layout.svelte builds a new page for another exercise or a save, so the
+	// first value is the only one.
 	const saved = untrack(() => data.exercise);
 	let draft = $state(toDraft(saved));
 	let error = $state('');
