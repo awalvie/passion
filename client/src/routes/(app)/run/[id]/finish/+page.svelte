@@ -109,10 +109,10 @@
 	</label>
 {/snippet}
 
-<svelte:head><title>{editing ? 'Session journal' : 'Finish'} {run.name}</title></svelte:head>
+<svelte:head><title>Session journal {run.name}</title></svelte:head>
 
 <FormBar
-	title={editing ? 'Session journal' : 'Finish'}
+	title="Session journal"
 	cancel={editing ? `/history/${run.id}` : `/run/${run.id}`}
 	form="journal"
 	saveLabel={editing ? 'Save' : 'Finish'}
