@@ -23,6 +23,7 @@
 	const wide = new MediaQuery('min-width: 64rem');
 	const openId = $derived(wide.current ? page.url.searchParams.get('open') || data.runs[0]?.id : undefined);
 	const exerciseId = $derived(wide.current ? page.url.searchParams.get('exercise') : null);
+	const exerciseName = $derived(page.url.searchParams.get('name'));
 	let opened = $state<Run | null>(null);
 	let exercise = $state<(Awaited<ReturnType<typeof loadExerciseHistory>> & { id: string }) | null>(null);
 	let paneError = $state('');
@@ -50,7 +51,7 @@
 	});
 	$effect(() => {
 		const id = exerciseId;
-		const name = page.url.searchParams.get('name');
+		const name = exerciseName;
 		if (id) return fill(() => loadExerciseHistory(id, name), (x) => (exercise = { ...x, id }));
 	});
 
