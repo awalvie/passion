@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { MediaQuery } from 'svelte/reactivity';
+	import Button from './Button.svelte';
 	import Empty from './Empty.svelte';
 	import { distinct, kindOf, kinds, matches, originOf, sourcesOf, type Exercise } from './exercise';
 	import { filterQuery, urlFilters } from './filters.svelte';
@@ -69,7 +70,9 @@
 				<button type="button" class="h-11 self-start rounded-full bg-well px-5 text-[15px] font-bold text-ink" onclick={clear}>Clear</button>
 			</Empty>
 		{:else}
-			<Empty title={f.kind ? 'No exercises of this type yet' : 'No exercises yet'} />
+			<Empty title={f.kind ? 'No exercises of this type yet' : 'No exercises yet'} text="Add one to build sessions from.">
+				<Button href="/exercises/new">New exercise</Button>
+			</Empty>
 		{/if}
 	{/if}
 </div>
