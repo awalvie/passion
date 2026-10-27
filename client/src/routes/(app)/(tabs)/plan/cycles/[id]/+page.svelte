@@ -8,7 +8,7 @@
 	import BlockLength from '$lib/BlockLength.svelte';
 	import CycleCalendar from '$lib/CycleCalendar.svelte';
 	import Button from '$lib/Button.svelte';
-	import { addDays, cycleWeek, daysBetween, formatDate, gridWeeks, shortDate, weekday } from '$lib/dates';
+	import { addDays, cycleWeek, daysBetween, gridWeeks, monthSpan, shortDate, weekday } from '$lib/dates';
 	import { DayActions } from '$lib/dayActions.svelte';
 	import DayPane from '$lib/DayPane.svelte';
 	import DaySheets from '$lib/DaySheets.svelte';
@@ -50,11 +50,7 @@
 	const shown = $derived(pages > 1 ? allWeeks.slice(at * 6, at * 6 + 6) : allWeeks);
 	const shownFrom = $derived(shown[0][0] < data.cycle.starts ? data.cycle.starts : shown[0][0]);
 	const shownTo = $derived(shown.at(-1)![6] > data.cycle.ends ? data.cycle.ends : shown.at(-1)![6]);
-	const months = $derived.by(() => {
-		const a = formatDate(shownFrom, { month: 'long' });
-		const b = formatDate(shownTo, { month: 'long' });
-		return a === b ? a : `${a} – ${b}`;
-	});
+	const months = $derived(monthSpan(shownFrom, shownTo));
 
 	let chosen = $state('');
 	const inView = (date: string) => date >= shownFrom && date <= shownTo;

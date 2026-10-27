@@ -1,6 +1,6 @@
 <script lang="ts">
 	import FormError from './FormError.svelte';
-	import { byDate, formatDate, fullDate, gridWeeks, weekdayLetters } from './dates';
+	import { byDate, fullDate, gridWeeks, monthSpan, weekdayLetters } from './dates';
 	import { SessionDrag } from './drag.svelte';
 	import type { Cycle, ScheduledDay } from './plan';
 	import SessionIcon, { iconState } from './SessionIcon.svelte';
@@ -29,11 +29,7 @@
 	let chosen = $state('');
 	const selected = $derived(chosen || (inCycle(today) ? today : cycle.starts));
 
-	const months = $derived.by(() => {
-		const a = formatDate(cycle.starts, { month: 'long' });
-		const b = formatDate(cycle.ends, { month: 'long' });
-		return a === b ? a : `${a} – ${b}`;
-	});
+	const months = $derived(monthSpan(cycle.starts, cycle.ends));
 
 	const look = (d: ScheduledDay) => iconState(d, today);
 

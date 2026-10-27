@@ -84,3 +84,10 @@ export function fullDate(date: string): string {
 export function dayDate(date: string): string {
 	return formatDate(date, { weekday: 'short', day: 'numeric', month: 'short' });
 }
+
+// monthSpan is October – November, or October when both fall in it.
+export function monthSpan(from: string, to: string): string {
+	const a = formatDate(from, { month: 'long' });
+	const b = formatDate(to, { month: 'long' });
+	return a === b ? a : `${a} – ${b}`;
+}

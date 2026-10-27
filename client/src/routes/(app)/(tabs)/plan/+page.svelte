@@ -4,7 +4,7 @@
 	import { page } from '$app/state';
 	import { MediaQuery } from 'svelte/reactivity';
 	import CycleYear from '$lib/CycleYear.svelte';
-	import { addDays, cycleWeek, daysBetween, formatDate, fullDate, mondayOf, shortDate, weekday } from '$lib/dates';
+	import { addDays, cycleWeek, daysBetween, formatDate, fullDate, mondayOf, monthSpan, shortDate, weekday } from '$lib/dates';
 	import { DayActions } from '$lib/dayActions.svelte';
 	import DayPane from '$lib/DayPane.svelte';
 	import DaySheets from '$lib/DaySheets.svelte';
@@ -54,11 +54,7 @@
 		await day.move(d, to);
 		if (day.error.id === d.id) chosen = d.local_date;
 	}
-	const months = $derived.by(() => {
-		const a = formatDate(data.from, { month: 'long' });
-		const b = formatDate(last, { month: 'long' });
-		return a === b ? a : `${a} – ${b}`;
-	});
+	const months = $derived(monthSpan(data.from, last));
 	const calendarAt = (from: string) => `/plan?view=calendar&from=${from}`;
 
 	const weeks = $derived.by(() => {

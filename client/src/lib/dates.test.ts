@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { addDays, cycleWeek, gridWeeks, mondayOf, timeOfDay, weekday, yearSpan } from './dates';
+import { addDays, cycleWeek, gridWeeks, mondayOf, monthSpan, timeOfDay, weekday, yearSpan } from './dates';
 
 test('timeOfDay reads the clock in the zone the session ran in', () => {
 	expect(timeOfDay('2026-10-13T14:26:00Z', 'Europe/Oslo')).toBe('16:26');
@@ -53,4 +53,9 @@ test('yearSpan clips a span to the year', () => {
 test('weekday names the day the date falls on', () => {
 	expect(weekday('2026-10-01')).toBe('Thu');
 	expect(weekday('2026-10-05')).toBe('Mon');
+});
+
+test('monthSpan names one month once', () => {
+	expect(monthSpan('2026-10-01', '2026-10-31')).toBe('October');
+	expect(monthSpan('2026-10-04', '2026-11-14')).toBe('October – November');
 });
