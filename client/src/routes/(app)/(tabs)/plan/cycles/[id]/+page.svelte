@@ -62,12 +62,13 @@
 
 	// A refused drag leaves the session where it was, so its day shows why.
 	async function dragged(d: ScheduledDay, to: string) {
-		try {
-			await move(d, to);
-		} catch (e) {
-			day.error = { id: d.id, message: e instanceof Error ? e.message : String(e) };
+		await day.move(d, to);
+		if (day.error.id === d.id) {
 			chosen = d.local_date;
+			return;
 		}
+		last = { id: d.id, from: d.local_date };
+		toast = `Moved to ${weekday(to)} ${Number(to.slice(8))}`;
 	}
 
 	let error = $state('');
