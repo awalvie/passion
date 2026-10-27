@@ -31,8 +31,9 @@
 		if (was !== part) document.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'center' });
 	});
 
-	// A session or exercise page draws its own nav bar with a back pill.
-	const detail = $derived(page.route.id?.endsWith('/[id]') ?? false);
+	// A session or exercise page draws its own nav bar with a back pill, and New
+	// exercise its form bar.
+	const detail = $derived(/\/(\[id\]|new)$/.test(page.route.id ?? ''));
 </script>
 
 {#snippet header(p: (typeof parts)[number])}

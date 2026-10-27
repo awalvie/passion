@@ -4,7 +4,7 @@
 	import { describe, RequestFailed } from '$lib/api';
 	import { kindOf, loadExercises, type Exercise } from '$lib/exercise';
 	import ExerciseList from '$lib/ExerciseList.svelte';
-	import FormError from '$lib/FormError.svelte';
+	import FormBar from '$lib/FormBar.svelte';
 	import NewExercise from '$lib/NewExercise.svelte';
 	import RecentRuns from '$lib/RecentRuns.svelte';
 	import Icon from '$lib/Icon.svelte';
@@ -379,25 +379,11 @@
 {/snippet}
 
 <form class="flex flex-col pb-[calc(env(safe-area-inset-bottom)+1rem)]" novalidate onsubmit={submit}>
-	<div class="sticky top-0 z-30 flex flex-col gap-2 bg-ground/85 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-2 backdrop-blur-md lg:px-8 lg:pb-3 lg:shadow-[inset_0_-1px_0_var(--line)]">
-		<div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-			<a class="flex h-11 items-center justify-self-start rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm" href={cancel} data-back>
-				Cancel
-			</a>
-			<span class="text-[15px] font-bold">{template ? 'Edit session' : 'New session'}</span>
-			<span class="flex items-center gap-4 justify-self-end">
-				{#if dirty}<span class="hidden text-xs font-semibold text-ink-2 lg:inline">Unsaved changes</span>{/if}
-				<button
-					type="submit"
-					class="flex h-11 items-center rounded-full bg-tint px-5 text-[15px] font-bold text-on-tint shadow-tint disabled:opacity-50"
-					disabled={busy}
-				>
-					{busy ? 'Saving…' : 'Save'}
-				</button>
-			</span>
-		</div>
-		<FormError message={error} />
-	</div>
+	<FormBar title={template ? 'Edit session' : 'New session'} {cancel} {busy} {error} class="lg:px-8 lg:shadow-[inset_0_-1px_0_var(--line)]">
+		{#snippet aside()}
+			{#if dirty}<span class="hidden text-xs font-semibold text-ink-2 lg:inline">Unsaved changes</span>{/if}
+		{/snippet}
+	</FormBar>
 
 	<div
 		class="flex flex-col gap-3.5 px-4 pt-1.5 lg:mx-auto lg:grid lg:w-full lg:max-w-[1440px] lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-5 lg:px-8 lg:pt-5 xl:grid-cols-[320px_minmax(0,1fr)_360px]"

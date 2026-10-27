@@ -1,0 +1,71 @@
+<script lang="ts">
+	import type { Snippet } from 'svelte';
+	import FormError from './FormError.svelte';
+
+	// The bar over a page that makes or changes something: Cancel, the title and
+	// Save. It is as tall as NavBar, so its pills sit where a back pill does.
+	// cancel is where Cancel leads, or what it does in place; replace keeps that
+	// step out of the back history. end takes Save's place, and aside sits
+	// before it. Save submits the form around the bar, or the one named by form.
+	// wide lines the pills up with a page that is wide from lg, as NavBar's does.
+	let {
+		title,
+		cancel,
+		cancelLabel = 'Cancel',
+		replace = false,
+		heading = 'h1',
+		busy = false,
+		disabled = false,
+		error = '',
+		form,
+		wide = false,
+		class: cls = '',
+		aside,
+		end
+	}: {
+		title: string;
+		cancel: string | (() => void);
+		cancelLabel?: string;
+		replace?: boolean;
+		heading?: 'h1' | 'h2' | 'p';
+		busy?: boolean;
+		disabled?: boolean;
+		error?: string;
+		form?: string;
+		wide?: boolean;
+		class?: string;
+		aside?: Snippet;
+		end?: Snippet;
+	} = $props();
+
+	const pill = 'flex h-11 items-center justify-self-start rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm';
+</script>
+
+<div class="sticky top-0 z-30 bg-ground/85 px-4 pt-[env(safe-area-inset-top)] backdrop-blur-md {wide ? 'lg:px-8' : ''} {cls}">
+	<div class="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 {wide ? 'lg:mx-auto lg:max-w-[1216px]' : ''}">
+		{#if typeof cancel === 'string'}
+			<a class={pill} href={cancel} data-back data-sveltekit-replacestate={replace || undefined} data-sveltekit-noscroll={replace || undefined}>
+				{cancelLabel}
+			</a>
+		{:else}
+			<button type="button" class={pill} onclick={cancel}>{cancelLabel}</button>
+		{/if}
+		<svelte:element this={heading} class="truncate text-[15px] font-bold">{title}</svelte:element>
+		<span class="flex items-center gap-4 justify-self-end">
+			{@render aside?.()}
+			{#if end}
+				{@render end()}
+			{:else}
+				<button
+					type="submit"
+					{form}
+					class="flex h-11 items-center rounded-full bg-tint px-5 text-[15px] font-bold text-on-tint shadow-tint disabled:opacity-50"
+					disabled={busy || disabled}
+				>
+					{busy ? 'Saving…' : 'Save'}
+				</button>
+			{/if}
+		</span>
+	</div>
+	{#if error}<div class="pb-2"><FormError message={error} /></div>{/if}
+</div>

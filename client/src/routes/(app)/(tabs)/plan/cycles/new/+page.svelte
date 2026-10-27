@@ -14,7 +14,7 @@
 	import GoalList from '$lib/GoalList.svelte';
 	import GoalSheet from '$lib/GoalSheet.svelte';
 	import Icon, { type IconName } from '$lib/Icon.svelte';
-	import NavBar from '$lib/NavBar.svelte';
+	import FormBar from '$lib/FormBar.svelte';
 	import { lastEnd, plannedDays, saveCycle } from '$lib/plan';
 	import Section from '$lib/Section.svelte';
 	import Segmented from '$lib/Segmented.svelte';
@@ -82,16 +82,11 @@
 
 <svelte:head><title>New cycle</title></svelte:head>
 
-<NavBar
-	title="New cycle"
-	heading={false}
-	back={step === 1 ? { href: '/plan?view=cycles', label: 'Cancel' } : { href: `?step=${step - 1}`, label: 'Back' }}
-	wide
->
-	{#snippet actions()}
+<FormBar title="New cycle" heading="p" cancel={step === 1 ? '/plan?view=cycles' : `?step=${step - 1}`} cancelLabel={step === 1 ? 'Cancel' : 'Back'} wide>
+	{#snippet end()}
 		<span class="pr-1 text-xs font-bold text-ink-2">{step} of 4</span>
 	{/snippet}
-</NavBar>
+</FormBar>
 
 <form class="flex min-h-[calc(100dvh-4rem)] flex-col gap-3.5 px-4 pt-1 lg:mx-auto lg:w-full lg:max-w-[1280px] lg:px-8" onsubmit={next}>
 	<ol class="grid grid-cols-4 gap-1.5" aria-hidden="true">

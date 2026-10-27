@@ -3,7 +3,7 @@
 	import { describe, request } from './api';
 	import Checkbox from './Checkbox.svelte';
 	import DateField from './DateField.svelte';
-	import FormError from './FormError.svelte';
+	import FormBar from './FormBar.svelte';
 	import { newId } from './id';
 	import type { JournalEntry } from './journal';
 	import { notice } from './notice.svelte';
@@ -102,26 +102,7 @@
 </script>
 
 <form class="flex flex-col gap-3.5 px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]" onsubmit={submit}>
-	<div class="sticky top-0 z-30 -mx-4 flex flex-col gap-2 bg-ground/85 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-2 backdrop-blur-md">
-		<div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-			<a
-				class="flex h-11 items-center justify-self-start rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm"
-				href={cancel}
-				data-back
-			>
-				Cancel
-			</a>
-			<svelte:element this={heading} class="text-[15px] font-bold">{entry ? 'Edit entry' : 'New entry'}</svelte:element>
-			<button
-				type="submit"
-				class="flex h-11 items-center justify-self-end rounded-full bg-tint px-5 text-[15px] font-bold text-on-tint shadow-tint disabled:opacity-50"
-				disabled={!ready}
-			>
-				{busy ? 'Saving…' : 'Save'}
-			</button>
-		</div>
-		<FormError message={error} />
-	</div>
+	<FormBar title={entry ? 'Edit entry' : 'New entry'} {cancel} {heading} {busy} disabled={!ready} {error} class="-mx-4" />
 
 	<DateField bind:value={date} label="Date" max={today} />
 

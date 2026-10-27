@@ -52,6 +52,7 @@ Tokens are in `client/src/tokens.css`; each needs a light and a dark value.
 - The landing page (`/welcome`) has its own larger type for the headline and section titles.
 - Fields and `<select>` use `.input`, except a lone free-text note: `bg-surface text-[15px] font-semibold placeholder:text-ink-3`.
 - Reuse `client/src/lib/` parts (`Section`, `Segmented`, `Tabs`, `Sheet`, `Chart`…) before making new ones.
+- A page that makes or changes something has a `FormBar` on top: Cancel, the title and Save. A `Sheet` keeps its buttons at the bottom.
 - An empty list shows `Empty`: a title, a line on what to do, and a `Button` when there is a next step.
 - A choice from a list is a `Select`: the phone's own picker, a themed list from `lg`. Days are picked on a `DayPicker`.
 - A choice of one from a few is `Segmented` or drawn like it. Chips are for picking several.

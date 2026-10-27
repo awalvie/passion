@@ -4,9 +4,9 @@
 	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
 	import { allCounts, fieldLabel, kindOf, setByLadder, summary, toBody, toDraft, type Count, type Exercise } from '$lib/exercise';
-	import Button from '$lib/Button.svelte';
 	import ExerciseForm from '$lib/ExerciseForm.svelte';
 	import ExerciseHistory from '$lib/ExerciseHistory.svelte';
+	import FormBar from '$lib/FormBar.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import Menu from '$lib/Menu.svelte';
@@ -121,10 +121,21 @@
 	<Menu items={[{ label: 'Duplicate', onclick: duplicate }, ...(locked ? [] : [{ label: 'Retire', danger: true, onclick: retire }])]} />
 {/snippet}
 
-<!-- Beside the Library's list there is no way back but to a session, and the
-     menu sits beside the title. -->
-{#if !wide.current}
-	<NavBar title={locked ? '' : 'Edit exercise'} heading={false} back={from ? { href: from, label: 'Session' } : { href: '/exercises', label: 'Exercises' }} actions={menu} />
+<!-- One you can change has the form bar. Beside the Library's list its
+     Cancel puts the form back as saved, as the page stays open. One you cannot
+     change has a nav bar on a phone, and nothing beside the list but a way
+     back to a session. The menu sits beside the title, except in the nav bar. -->
+{#if !locked}
+	<FormBar
+		title="Edit exercise"
+		heading="p"
+		cancel={wide.current ? () => (draft = toDraft(saved)) : (from ?? '/exercises')}
+		form="exercise-form"
+		{busy}
+		{error}
+	/>
+{:else if !wide.current}
+	<NavBar heading={false} back={from ? { href: from, label: 'Session' } : { href: '/exercises', label: 'Exercises' }} actions={menu} />
 {/if}
 
 <div class="grid gap-3.5 px-4 pt-2 lg:pt-3 [&>*]:min-w-0">
@@ -146,21 +157,14 @@
 					{locked || 'Changes here do not affect session templates that already use it.'}
 				</p>
 			</div>
-			{#if wide.current}{@render menu()}{/if}
+			{#if wide.current || !locked}{@render menu()}{/if}
 		</header>
+		{#if locked}<FormError message={error} />{/if}
 	</div>
 
 	<div class="flex flex-col gap-3.5">
-		<form class="flex flex-col gap-3.5" onsubmit={save}>
-			<div class="rounded-3xl bg-surface p-[18px] shadow-card">
-				<ExerciseForm bind:draft {shown} sources={data.sources} disabled={Boolean(locked)} />
-			</div>
-			{#if !locked}
-				<FormError message={error} />
-				<div class="sticky bottom-[calc(var(--above-bar)-0.75rem)] z-20 -mx-4 bg-ground/85 px-4 py-3 backdrop-blur-md">
-					<Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
-				</div>
-			{/if}
+		<form id="exercise-form" class="rounded-3xl bg-surface p-[18px] shadow-card" onsubmit={save}>
+			<ExerciseForm bind:draft {shown} sources={data.sources} disabled={Boolean(locked)} />
 		</form>
 
 		{#if data.sessions.length}
