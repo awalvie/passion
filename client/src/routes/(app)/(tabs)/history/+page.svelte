@@ -226,8 +226,8 @@
 	/* The open session's row, drawn as a well that reaches past the card's
 	   dividers, as Journal's. */
 	.picked {
-		margin-inline: -0.5rem;
-		padding-inline: 0.5rem;
+		margin-inline: -0.625rem;
+		padding-inline: 0.625rem;
 		border-radius: 1rem;
 		background: var(--well);
 		box-shadow: none;

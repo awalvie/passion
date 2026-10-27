@@ -110,12 +110,12 @@ html {
 
 /* The open item's row in the Library's list, drawn as a well inside the card. */
 .list-row.picked-item {
-	margin-inline: 0.375rem;
+	margin-inline: 0.5rem;
 	border-radius: 1rem;
 	background: var(--well);
 	box-shadow: none;
 	& > a {
-		padding-inline: 0.375rem 0.5rem;
+		padding-inline: 0.25rem 0.375rem;
 	}
 	& .bg-well {
 		background: var(--surface);
