@@ -134,7 +134,7 @@
 			onchange={(e) => edit(k, key, e.currentTarget)}
 		/>
 		{#if then !== null}
-			<span class="pointer-events-none absolute inset-x-0 bottom-1.5 text-center text-[11px] leading-none font-semibold text-(--fg2)">last {then}</span>
+			<span class="pointer-events-none absolute inset-x-0 bottom-1.5 text-center text-xs leading-none font-semibold text-(--fg2)">last {then}</span>
 		{/if}
 	</span>
 {/snippet}
