@@ -82,7 +82,7 @@
 </script>
 
 {#snippet rating(label: string, max: number, value: number | null, set: (v: number | null) => void)}
-	<fieldset class="px-4 py-3.5 list-row">
+	<fieldset class="px-[18px] py-3.5 list-row">
 		<legend class="float-left mb-2.5 w-full text-[15px] font-bold">{label}</legend>
 		<!-- Five to a track, so 1–10 keeps each button 44 px wide on a phone. -->
 		<div class="clear-left flex flex-col gap-2">
@@ -106,7 +106,7 @@
 {/snippet}
 
 {#snippet note(label: string, value: string, set: (v: string) => void)}
-	<label class="flex flex-col gap-2 px-4 py-3.5 list-row">
+	<label class="flex flex-col gap-2 px-[18px] py-3.5 list-row">
 		<span class="text-[15px] font-bold">{label}</span>
 		<textarea
 			class="input min-h-20"
@@ -122,7 +122,7 @@
 
 <div class="flex flex-col gap-3 px-4 pt-1 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
 	{#if stale}
-		<div class="flex flex-col gap-1 rounded-3xl bg-surface p-4 shadow-card">
+		<div class="flex flex-col gap-1 rounded-3xl bg-surface p-[18px] shadow-card">
 			<p class="text-[15px] font-bold">How long was it?</p>
 			<p class="text-xs font-semibold text-ink-2">Started {dayDate(run.local_date)} at {timeOfDay(run.started_at, run.timezone)}.</p>
 			<DurationInput id="length" bind:seconds={length} />
@@ -139,7 +139,7 @@
 		{@render rating('How hard it felt', 10, rpe, (v) => (rpe = v))}
 	</div>
 
-	<div class="grid grid-cols-2 gap-3 rounded-3xl bg-surface p-4 shadow-card">
+	<div class="grid grid-cols-2 gap-3 rounded-3xl bg-surface p-[18px] shadow-card">
 		<label class="flex flex-col gap-1.5 text-xs font-semibold text-ink-2">
 			Focus
 			<Select bind:value={focus} label="Focus" options={[{ value: '', label: '–' }, ...focuses.map((f) => ({ value: f, label: f[0].toUpperCase() + f.slice(1) }))]} />
