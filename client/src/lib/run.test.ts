@@ -1,10 +1,12 @@
-import { expect, test } from 'vitest';
+import { afterEach, expect, test, vi } from 'vitest';
+import { RequestFailed } from './api';
 import {
 	climbWord,
 	currentStop,
 	doneWhen,
 	isStale,
 	lastDone,
+	loadExerciseHistory,
 	sectionMarks,
 	stepTime,
 	type Climb,
@@ -137,4 +139,39 @@ test('isStale turns at 04:00 on the wall on the night the clocks go forward', ()
 	const open = { finished_at: null, local_date: '2026-03-28', timezone: 'Europe/Berlin' };
 	expect(isStale(open, new Date('2026-03-29T01:59:00Z')), '03:59 on the wall').toBe(false);
 	expect(isStale(open, new Date('2026-03-29T02:00:00Z')), '04:00 on the wall').toBe(true);
+});
+
+// The exercise answers with exercise; its history and the grades always come.
+// request keeps a GET's answer, so each test asks for its own exercise.
+function serve(exercise: () => Response) {
+	vi.stubGlobal('localStorage', { getItem: () => null });
+	vi.stubGlobal(
+		'fetch',
+		vi.fn(async (url: string) =>
+			url.endsWith('/history')
+				? Response.json({ sessions: [] })
+				: url.startsWith('/api/v1/exercises/')
+					? exercise()
+					: Response.json({ scales: [] })
+		)
+	);
+}
+afterEach(() => vi.unstubAllGlobals());
+
+test('loadExerciseHistory takes the name and sides from the library', async () => {
+	serve(() => Response.json({ name: 'Weighted pull-up', per_side: true }));
+	const h = await loadExerciseHistory('e1', 'Pull-up');
+	expect(h.name).toBe('Weighted pull-up');
+	expect(h.perSide).toBe(true);
+});
+
+test('loadExerciseHistory names an exercise with no library page as asked, else Exercise', async () => {
+	serve(() => Response.json({ code: 'not_found', message: 'Not found' }, { status: 404 }));
+	expect(await loadExerciseHistory('e2', 'Pull-up')).toMatchObject({ name: 'Pull-up', perSide: false });
+	expect(await loadExerciseHistory('e2', null)).toMatchObject({ name: 'Exercise', perSide: false });
+});
+
+test('loadExerciseHistory fails when the library fails for another reason', async () => {
+	serve(() => Response.json({ code: 'internal', message: 'Broken' }, { status: 500 }));
+	await expect(loadExerciseHistory('e3', 'Pull-up')).rejects.toBeInstanceOf(RequestFailed);
 });
