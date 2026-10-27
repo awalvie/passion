@@ -44,7 +44,7 @@
 		{#each bars as b (b.cycle.id)}
 			{#if b.cycle.id === named}
 				<span
-					class="absolute truncate text-[11px] font-bold text-ink"
+					class="absolute truncate text-xs leading-none font-bold text-ink"
 					style="top: 0; left: {b.left * 100}%; max-width: {(1 - b.left) * 100}%"
 				>
 					{b.cycle.name}
@@ -60,7 +60,7 @@
 		<!-- It starts below the names, so it never strikes one through. -->
 		<span class="absolute top-4 bottom-[-4px] w-0.5 rounded-full bg-ink" style="left: {now * 100}%" aria-hidden="true"></span>
 	</div>
-	<ol class="mt-2.5 grid grid-cols-12 text-center text-[11px] font-semibold text-ink-2" aria-hidden="true">
+	<ol class="mt-2.5 grid grid-cols-12 text-center text-xs font-semibold text-ink-2" aria-hidden="true">
 		{#each months as m, i (i)}
 			<li>{m}</li>
 		{/each}

@@ -181,7 +181,7 @@
 									class="flex min-h-16 items-center gap-3.5 py-2.5"
 								>
 									<span class="flex size-12 shrink-0 flex-col items-center justify-center self-start rounded-2xl {picked ? 'bg-surface' : 'bg-well'}">
-										<span class="text-[10px] leading-none font-bold tracking-wide text-ink-2 uppercase">{weekday(r.date)}</span>
+										<span class="text-xs leading-none font-bold tracking-wide text-ink-2 uppercase">{weekday(r.date)}</span>
 										<span class="mt-0.5 digits text-xl leading-none">{Number(r.date.slice(8))}</span>
 									</span>
 									<span class="min-w-0 flex-1">

@@ -105,7 +105,7 @@
 		<span class="text-ink-3 lg:hidden"><Icon name="chevron-right" size="14px" stroke={2.6} /></span>
 	</span>
 	<span class="mt-1 digits text-[22px] leading-none">{value}</span>
-	<span class="mt-0.5 text-[11px] font-semibold text-ink-2">{note}</span>
+	<span class="mt-0.5 text-xs font-semibold text-ink-2">{note}</span>
 {/snippet}
 
 <div class="lg:mx-auto lg:grid lg:max-w-[1280px] lg:grid-cols-[420px_minmax(0,1fr)]">
@@ -161,7 +161,7 @@
 								class="flex min-h-16 items-center gap-3.5 py-2.5"
 							>
 								<span class="flex size-12 shrink-0 flex-col items-center justify-center rounded-2xl {picked ? 'bg-surface' : 'bg-well'}">
-									<span class="text-[10px] leading-none font-bold tracking-wide text-ink-2 uppercase">{weekday(r.local_date)}</span>
+									<span class="text-xs leading-none font-bold tracking-wide text-ink-2 uppercase">{weekday(r.local_date)}</span>
 									<span class="mt-0.5 digits text-xl leading-none">{Number(r.local_date.slice(8))}</span>
 								</span>
 								<span class="min-w-0 flex-1">
