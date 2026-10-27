@@ -19,9 +19,14 @@
 	const wide = new MediaQuery('min-width: 64rem');
 	const part = $derived(parts.find((p) => under(page.url.pathname, p.href)));
 	const list = $derived(parts.find((p) => page.url.pathname === p.href));
+
+	// The pane keeps its own scroll, so another item starts it at the top.
+	let pane = $state<HTMLElement>();
 	// An item opened from another page, or a reload, may sit far down the list.
-	afterNavigate(({ from }) => {
-		if (wide.current && !from?.route.id?.startsWith('/(app)/(tabs)/(library)/'))
+	afterNavigate(({ from, to }) => {
+		if (!wide.current || !to) return;
+		if (pane && from?.url?.pathname !== to.url.pathname) pane.scrollTop = 0;
+		if (!from?.route.id?.startsWith('/(app)/(tabs)/(library)/'))
 			document.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'center' });
 	});
 
@@ -70,7 +75,7 @@
 		     was. It reaches into the tabs' bottom padding, which would otherwise
 		     lift it at the end of the page. Its padding and the page's own make
 		     Journal's gutter. -->
-		<div class="sticky top-0 -mb-8 h-dvh overflow-y-auto">
+		<div bind:this={pane} class="sticky top-0 -mb-8 h-dvh overflow-y-auto">
 			<div class="mx-auto flex min-h-full max-w-[640px] flex-col px-4">
 				{@render children()}
 			</div>
