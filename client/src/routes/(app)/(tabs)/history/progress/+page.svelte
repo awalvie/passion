@@ -206,6 +206,13 @@
 
 <svelte:head><title>Progress</title></svelte:head>
 
+{#snippet explained(label: string, value: string | number, info: string)}
+	<div class="relative flex items-start justify-between gap-3">
+		<dl>{@render stat(label, value, when)}</dl>
+		<Info text={info} />
+	</div>
+{/snippet}
+
 {#snippet stat(label: string, value: string | number, at = '')}
 	<div class="flex flex-col gap-0.5">
 		<dt class="text-xs font-semibold text-ink-2">{label}{#if at}{' · '}<span class="text-ink">{at}</span>{/if}</dt>
@@ -457,17 +464,11 @@
 						</div>
 					</section>
 					<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-3">
-						<div class="relative flex items-start justify-between gap-3">
-							<dl>{@render stat('Send rate', pct(sendRate(inPick(shown))), when)}</dl>
-							<Info text="Of the graded climbs you tried, the share you sent. Each climb counts once, however many tries it took." />
-						</div>
+						{@render explained('Send rate', pct(sendRate(inPick(shown))), 'Of the graded climbs you tried, the share you sent. Each climb counts once, however many tries it took.')}
 						<Dots n={data.buckets.length} marks={line(sendRates)} label={(v) => `${v}%`} zero {...charts} />
 					</section>
 					<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-3">
-						<div class="relative flex items-start justify-between gap-3">
-							<dl>{@render stat('Flash rate', pct(flashRate(inPick(shown))), when)}</dl>
-							<Info text="Of the graded climbs you tried, the share you sent on the first try." />
-						</div>
+						{@render explained('Flash rate', pct(flashRate(inPick(shown))), 'Of the graded climbs you tried, the share you sent on the first try.')}
 						<Dots n={data.buckets.length} marks={line(flashRates)} label={(v) => `${v}%`} zero {...charts} />
 					</section>
 					<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-3 shadow-card lg:col-span-2 lg:col-start-5 lg:row-start-1">
@@ -491,10 +492,7 @@
 				<div class="flex-col gap-3.5 lg:grid lg:grid-cols-2 {data.view === 'grade' ? 'flex' : 'hidden'}">
 					{#each disciplines as d (d.label)}
 						<section class="flex flex-col gap-3 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-							<div class="relative flex items-start justify-between gap-3">
-								<dl>{@render stat(`${d.label} sent`, d.sent, when)}</dl>
-								<Info text="Each climb you sent, once, at its grade. The middle of each bar is the ones you flashed." />
-							</div>
+							{@render explained(`${d.label} sent`, d.sent, 'Each climb you sent, once, at its grade. The middle of each bar is the ones you flashed.')}
 							{#if d.pyramid.length}
 								<Pyramid rows={d.pyramid} />
 								<div class="flex gap-4 text-xs font-semibold text-ink-2">
