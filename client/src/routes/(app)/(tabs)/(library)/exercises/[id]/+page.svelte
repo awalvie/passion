@@ -173,7 +173,10 @@
 		{/if}
 	</div>
 
-	<aside class="order-first">
+	<!-- From lg an exercise you can change puts its form first, as the picture
+	     would push the form below the fold. A locked one keeps it on top, as it
+	     holds the media. -->
+	<aside class="order-first {locked ? '' : 'lg:order-last'}">
 		<div class="rounded-3xl bg-surface p-2.5 shadow-card">
 			<div class="flex aspect-[16/10] items-center justify-center overflow-hidden rounded-[18px] bg-well">
 				{#if thumb?.thumb_url}
