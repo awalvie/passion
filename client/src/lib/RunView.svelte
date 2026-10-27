@@ -136,7 +136,7 @@
 	</header>
 
 	{#if !scores.length && !words.length && !thoughts.length}
-		<a href="/run/{run.id}/finish" {...away} class="flex min-h-16 items-center gap-3 rounded-3xl bg-surface px-4 py-3 shadow-card">
+		<a href="/run/{run.id}/finish" {...away} class="flex min-h-16 items-center gap-3 rounded-3xl bg-surface px-[18px] py-3 shadow-card">
 			<span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-well text-ink-2"><Icon name="pencil" size="17px" stroke={2.2} /></span>
 			<span class="flex-1 text-[15px] font-bold">Add session journal</span>
 			<span class="text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.4} /></span>
@@ -144,7 +144,7 @@
 	{:else}
 		<Section title="Session journal">
 			<!-- The whole card opens the journal form; the first row leaves room for the pencil. -->
-			<a href="/run/{run.id}/finish" {...away} class="relative flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
+			<a href="/run/{run.id}/finish" {...away} class="relative flex flex-col gap-4 rounded-3xl bg-surface p-[18px] shadow-card">
 				<span class="absolute top-3.5 right-3.5 flex size-9 items-center justify-center rounded-full bg-well text-ink-2"><Icon name="pencil" size="16px" stroke={2.2} /><span class="sr-only">Edit session journal</span></span>
 				{#each thoughts as [label, text], i (label)}
 					<div class="flex flex-col gap-1 {i ? '' : 'pr-11'}">
@@ -196,7 +196,7 @@
 						{@const info = meta(s)}
 						{@const sets = s.kind === 'reps_and_sets' || s.kind === 'timed_reps' ? setsOf(run, s.id) : []}
 						{@const climbs = s.kind === 'climbing' ? climbsOf(run, s.id) : []}
-						<article class="rounded-3xl bg-surface px-[18px] py-4 shadow-card">
+						<article class="rounded-3xl bg-surface p-[18px] shadow-card">
 							<div class="flex items-baseline gap-3">
 								<div class="min-w-0 flex-1">
 									<h3 class="text-[15px] font-bold">
