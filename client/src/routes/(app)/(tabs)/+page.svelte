@@ -19,8 +19,12 @@
 	import Topo from '$lib/Topo.svelte';
 	import { topTopo } from '$lib/topo';
 	import WeekStrip from '$lib/WeekStrip.svelte';
+	import { MediaQuery } from 'svelte/reactivity';
 
 	let { data } = $props();
+
+	// From lg Write in journal and Open session sit side by side under the session.
+	const wide = new MediaQuery('min-width: 64rem');
 
 	// The day or session being started, or 'open'.
 	let starting = $state<string | null>(null);
@@ -427,6 +431,13 @@
 			{/if}
 		{/if}
 
+		{#if wide.current && !other && !offline}
+			<div class="mx-4 mt-3.5 grid auto-cols-fr grid-flow-col gap-3.5">
+				{@render journalCard('', !!live || empty)}
+				{#if !live && !empty}{@render openCard('flex')}{/if}
+			</div>
+		{/if}
+
 		{#each stale as r (r.id)}
 			<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
 				<div class="flex items-start justify-between gap-3">
@@ -466,12 +477,8 @@
 			</section>
 		{/if}
 
-		{#if !other && !offline}
-			<a href="/journal/new?from=/" class="mx-4 mt-3.5 flex min-h-16 items-center gap-3 rounded-3xl bg-surface px-4 py-3 shadow-card">
-				<span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-well text-ink-2"><Icon name="pencil" size="17px" stroke={2.2} /></span>
-				<span class="flex-1 text-[15px] font-bold">Write in journal</span>
-				<span class="text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.4} /></span>
-			</a>
+		{#if !other && !offline && !wide.current}
+			{@render journalCard('mx-4 mt-3.5', true)}
 		{/if}
 
 		{#if !other && mine.length}
@@ -526,24 +533,37 @@
 			</section>
 		{/if}
 
-		{#if !live && !empty && !other && !offline}
-			<section class="mx-4 mt-3.5 rounded-3xl bg-surface shadow-card">
-				<button
-					type="button"
-					class="flex min-h-[60px] w-full items-center gap-3 px-5 text-left disabled:opacity-50"
-					disabled={starting !== null}
-					onclick={() => start({ name: 'Open session' })}
-				>
-					<span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-well"><Icon name="plus" size="1.125rem" /></span>
-					<span class="min-w-0 flex-1">
-						<span class="block text-[15px] font-bold">{starting === 'open' ? 'Starting…' : 'Open session'}</span>
-						<span class="block text-xs font-semibold text-ink-2">Log as you go</span>
-					</span>
-				</button>
-			</section>
+		{#if !live && !empty && !other && !offline && !wide.current}
+			{@render openCard('mx-4 mt-3.5')}
 		{/if}
 	</div>
 </div>
+
+<!-- Beside Open session there is no room for the chevron, and Open session has none. -->
+{#snippet journalCard(cls: string, chevron: boolean)}
+	<a href="/journal/new?from=/" class="{cls} flex min-h-16 items-center gap-3 rounded-3xl bg-surface px-4 py-3 shadow-card">
+		<span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-well text-ink-2"><Icon name="pencil" size="17px" stroke={2.2} /></span>
+		<span class="flex-1 text-[15px] font-bold">Write in journal</span>
+		{#if chevron}<span class="text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.4} /></span>{/if}
+	</a>
+{/snippet}
+
+{#snippet openCard(cls: string)}
+	<section class="{cls} rounded-3xl bg-surface shadow-card">
+		<button
+			type="button"
+			class="flex min-h-[60px] w-full items-center gap-3 px-5 text-left disabled:opacity-50"
+			disabled={starting !== null}
+			onclick={() => start({ name: 'Open session' })}
+		>
+			<span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-well"><Icon name="plus" size="1.125rem" /></span>
+			<span class="min-w-0 flex-1">
+				<span class="block text-[15px] font-bold">{starting === 'open' ? 'Starting…' : 'Open session'}</span>
+				<span class="block text-xs font-semibold text-ink-2">Log as you go</span>
+			</span>
+		</button>
+	</section>
+{/snippet}
 
 {#snippet days()}
 	<div class="hidden flex-col gap-3.5 px-8 pt-3 pb-8 lg:flex">
