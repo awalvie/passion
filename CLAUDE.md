@@ -56,7 +56,7 @@ Tokens are in `client/src/tokens.css`; each needs a light and a dark value.
 - Controls are at least 44 px. List rows use `list-row`. A row that opens a page ends with a chevron.
 - Tabs sit at the bottom on a phone, in a left rail from `md`. Today, Plan, a cycle, Journal, History and Progress go wide from `lg`.
 - From `lg` Plan's views and a cycle put their list or calendar beside a 330 px pane. A row or a day only picks; the pane acts on it (`DayPane`). New cycle has no rail, and shows its preview in the pane from step 3.
-- From `lg` Journal and History keep a 420 px list beside a pane that opens what is picked. History's pane keeps the list's place on every link, so a link in it to another page sets `data-sveltekit-noscroll` and `data-sveltekit-replacestate` to `"false"`.
+- From `lg` Journal and History keep a 420 px list beside a pane that opens what is picked. History's pane keeps the list's place on every link, so a link in it to another page sets `data-sveltekit-noscroll` and `data-sveltekit-replacestate` to `"false"`. History's tiles drop their chevron there, as the list is too narrow for it.
 - A `Sheet` rises from the bottom on a phone and is a centred dialog from `lg`; `wide` gives it room for two columns.
 - The session builder has no rail. From `lg` a pane beside the session shows what is picked; from `xl` the library is a third column on the left. Below `lg` both open as sheets.
 
