@@ -139,7 +139,7 @@
 			</a>
 		{/if}
 		{#if plainText(s.notes ?? '').trim()}
-			<Notes text={s.notes ?? ''} outline class="rounded-[22px] bg-surface p-5 shadow-card-sm" />
+			<Notes text={s.notes ?? ''} outline class="rounded-3xl bg-surface p-[18px] shadow-card-sm" />
 		{:else}
 			<p class="text-ink-2">No notes for this exercise yet.</p>
 		{/if}
