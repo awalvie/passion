@@ -235,7 +235,7 @@
 
 	<Sheet bind:open={noting} title="Your note" eyebrow={step.name}>
 		<textarea
-			class="min-h-36 w-full rounded-3xl bg-surface p-4 text-[15px] font-semibold text-ink outline-none placeholder:text-ink-3"
+			class="min-h-36 w-full rounded-3xl bg-surface p-[18px] text-[15px] font-semibold text-ink outline-none placeholder:text-ink-3"
 			placeholder="How did it go?"
 			aria-label="Note"
 			bind:value={draft}
