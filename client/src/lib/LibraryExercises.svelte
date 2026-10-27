@@ -57,6 +57,7 @@
 						</span>
 						<span class="line-clamp-2 min-w-0 flex-1 text-[15px] leading-snug font-bold">{e.name}</span>
 						<OriginMark origin={originOf(e)} />
+						<span class="shrink-0 text-ink-3 lg:hidden"><Icon name="chevron-right" size="18px" stroke={2.4} /></span>
 					</a>
 				</li>
 			{/each}

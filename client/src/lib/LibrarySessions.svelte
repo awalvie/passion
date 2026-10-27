@@ -72,6 +72,7 @@
 							{/if}
 						</span>
 						<OriginMark origin={originOf(t)} />
+						<span class="shrink-0 text-ink-3 lg:hidden"><Icon name="chevron-right" size="18px" stroke={2.4} /></span>
 					</a>
 				</li>
 			{/each}
