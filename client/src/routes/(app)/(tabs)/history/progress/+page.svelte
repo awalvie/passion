@@ -280,10 +280,12 @@
 		href={href(data.view, key)}
 		data-sveltekit-replacestate
 		data-sveltekit-noscroll
-		aria-current={data.span.key === key ? 'true' : undefined}
-		class="h-11 flex-1 items-center justify-center rounded-full px-4 text-[15px] font-bold whitespace-nowrap lg:flex-none {cls} {data.span.key === key
+		aria-current={data.span.key === key && picked === null ? 'true' : undefined}
+		class="h-11 flex-1 items-center justify-center rounded-full px-4 text-[15px] font-bold whitespace-nowrap lg:flex-none {cls} {data.span.key === key &&
+		picked === null
 			? 'segment-on'
 			: 'text-ink-2'}"
+		onclick={() => choose(null)}
 	>
 		{label}
 	</a>
@@ -317,50 +319,35 @@
 				]}
 			/>
 		</div>
-		<!-- On a laptop the ranges and the picked week share one bar at the top.
-		     On a phone the box drops out, so the week bar sticks for the whole page. -->
-		<div class="contents lg:sticky lg:flex lg:top-0 lg:z-20 lg:-my-2 lg:flex-row lg:items-center lg:justify-between lg:bg-ground lg:py-2">
+		<!-- On a laptop the ranges stick at the top. A picked week takes Custom's place. -->
+		<div class="contents lg:sticky lg:flex lg:top-0 lg:z-20 lg:-my-2 lg:bg-ground lg:py-2">
 			<nav class="flex gap-1 rounded-full bg-well p-1" aria-label="Range">
 				{#each suggested as s (s.key)}{@render pill(s.label, s.key, 'flex')}{/each}
 				{#each wider as q (q.key)}{@render pill(q.label, q.key, 'hidden lg:flex')}{/each}
-				<button
-					type="button"
-					class="flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-[15px] font-bold lg:flex-none {customOn
-						? 'segment-on'
-						: 'text-ink-2'}"
-					aria-current={customOn ? 'true' : undefined}
-					aria-haspopup="dialog"
-					onclick={openPicker}
-				>
-					<Icon name="calendar" size="1rem" />
-					<span class="truncate">Custom</span>
-				</button>
-			</nav>
-			{#if picked !== null}
-				<!-- Under the nav bar, so the week stays named while its cards scroll by. -->
-				<div class="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-20 -my-1.5 bg-ground py-1.5 lg:static lg:my-0 lg:py-0">
-					<div class="flex w-fit max-w-full items-center rounded-full bg-ink px-0.5 text-ground">
-						<button
-							type="button"
-							class="flex size-11 shrink-0 items-center justify-center rounded-full disabled:opacity-40"
-							aria-label="Previous {data.per}"
-							disabled={picked === 0}
-							onclick={() => choose(picked! - 1)}><Icon name="chevron-left" size="1.25rem" stroke={2.4} /></button
-						>
-						<span class="truncate px-1.5 text-[15px] font-bold" aria-live="polite">{names[picked]}</span>
-						<button
-							type="button"
-							class="flex size-11 shrink-0 items-center justify-center rounded-full disabled:opacity-40"
-							aria-label="Next {data.per}"
-							disabled={picked === passed - 1}
-							onclick={() => choose(picked! + 1)}><Icon name="chevron-right" size="1.25rem" stroke={2.4} /></button
+				{#if picked !== null}
+					<span class="flex h-11 min-w-0 flex-none items-center rounded-full pl-4 segment-on">
+						<span class="truncate text-[15px] font-bold" aria-live="polite"
+							><span class="lg:hidden">{when}</span><span class="max-lg:hidden">{names[picked]}</span></span
 						>
 						<button type="button" class="flex size-11 shrink-0 items-center justify-center rounded-full" aria-label="Show the whole range" onclick={() => choose(null)}
-							><Icon name="x" size="1.25rem" stroke={2.4} /></button
+							><Icon name="x" size="1.125rem" stroke={2.4} /></button
 						>
-					</div>
-				</div>
-			{/if}
+					</span>
+				{:else}
+					<button
+						type="button"
+						class="flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-[15px] font-bold lg:flex-none {customOn
+							? 'segment-on'
+							: 'text-ink-2'}"
+						aria-current={customOn ? 'true' : undefined}
+						aria-haspopup="dialog"
+						onclick={openPicker}
+					>
+						<Icon name="calendar" size="1rem" />
+						<span class="truncate">Custom</span>
+					</button>
+				{/if}
+			</nav>
 		</div>
 		{#if tiles.length}
 			<h2 class="mt-3 hidden px-1 text-xl font-bold tracking-tight lg:block">
