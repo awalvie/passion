@@ -202,7 +202,7 @@
 {/snippet}
 
 {#snippet titleAndChips()}
-	<h1 class="text-[40px] leading-[1.05] font-extrabold tracking-[-0.02em] break-words">{t.name}</h1>
+	<svelte:element this={wide.current ? 'h2' : 'h1'} class="text-[40px] leading-[1.05] font-extrabold tracking-[-0.02em] break-words">{t.name}</svelte:element>
 	{#if t.tags.length || t.source || t.shipped || minutes || planned}
 		<div class="mt-3 flex flex-wrap gap-2">
 			{#if planned}

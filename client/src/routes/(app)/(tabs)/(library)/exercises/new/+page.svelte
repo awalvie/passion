@@ -50,7 +50,7 @@
 
 <div class="mx-auto flex w-full max-w-xl flex-col gap-3.5 pt-2 lg:pt-3">
 	<header class="px-1">
-		<h1 class="page-title">New exercise</h1>
+		<svelte:element this={wide.current ? 'h2' : 'h1'} class="page-title">New exercise</svelte:element>
 		<p class="mt-1 text-[15px] font-semibold text-ink-2">Once it is saved, you can add it to any session template.</p>
 	</header>
 
