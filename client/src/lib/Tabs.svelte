@@ -3,6 +3,8 @@
 
 	// Sections of one list, as underlined words. They move between parts of the
 	// list; filters live elsewhere. '' is the first tab, which shows every row.
+	// The line runs to the edges of the column, whose padding is px-4 on a phone
+	// and px-6 beside a pane from lg.
 	let {
 		value = $bindable(),
 		label,
@@ -21,7 +23,7 @@
 	bind:this={strip}
 	role="group"
 	aria-label={label}
-	class="-mx-4 flex gap-5 overflow-x-auto px-5 shadow-[inset_0_-1px_0_var(--line)] [scrollbar-width:none]"
+	class="-mx-4 flex gap-5 overflow-x-auto px-5 shadow-[inset_0_-1px_0_var(--line)] [scrollbar-width:none] lg:-mx-6 lg:px-6"
 >
 	{#each options as o (o.value)}
 		{@const on = value === o.value}

@@ -1,9 +1,11 @@
 <script lang="ts">
 	import Segmented from '$lib/Segmented.svelte';
 	import { page } from '$app/state';
+	import { MediaQuery } from 'svelte/reactivity';
 	import LibraryExercises from '$lib/LibraryExercises.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import LibrarySessions from '$lib/LibrarySessions.svelte';
+	import { under } from '$lib/tabs';
 
 	let { children } = $props();
 
@@ -12,34 +14,68 @@
 		{ href: '/exercises', label: 'Exercises', add: 'New exercise' }
 	];
 
+	// From lg the list stays beside a session's or exercise's own page.
+	const wide = new MediaQuery('min-width: 64rem');
+	const part = $derived(parts.find((p) => under(page.url.pathname, p.href)));
 	const list = $derived(parts.find((p) => page.url.pathname === p.href));
 	// A session or exercise page draws its own nav bar with a back pill.
 	const detail = $derived(page.route.id?.endsWith('/[id]') ?? false);
 </script>
 
-{#if detail}
+{#snippet header(p: (typeof parts)[number])}
+	<header class="flex items-start justify-between">
+		<h1 class="page-title">Library</h1>
+		<a
+			href="{p.href}/new"
+			class="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"
+			aria-label={p.add}
+			title={p.add}
+		>
+			<Icon name="plus" size="1.25rem" />
+		</a>
+	</header>
+{/snippet}
+
+{#snippet lists(href: string)}
+	{#if href === '/templates'}
+		<LibrarySessions templates={page.data.templates} runs={page.data.runs} today={page.data.today} />
+	{:else}
+		<LibraryExercises exercises={page.data.exercises} />
+	{/if}
+{/snippet}
+
+{#snippet segmented()}
+	<Segmented label="Library" items={parts.map((p) => ({ ...p, on: page.url.pathname.startsWith(p.href) }))} />
+{/snippet}
+
+{#if wide.current && part}
+	<div class="mx-auto grid max-w-[1280px] grid-cols-[420px_minmax(0,1fr)]">
+		<div class="flex flex-col gap-3.5 border-r border-line px-6 pt-5 pb-6">
+			{@render header(part)}
+			{@render segmented()}
+			{@render lists(part.href)}
+		</div>
+		<!-- The pane scrolls on its own, so a long page leaves the list where it
+		     was. It reaches into the tabs' bottom padding, which would otherwise
+		     lift it at the end of the page. Its padding and the page's own make
+		     Journal's gutter. -->
+		<div class="sticky top-0 -mb-8 h-dvh overflow-y-auto">
+			<div class="mx-auto flex min-h-full max-w-[640px] flex-col px-4">
+				{@render children()}
+			</div>
+		</div>
+	</div>
+{:else if detail}
 	{@render children()}
 {:else}
 	<div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
 		{#if list}
-			<header class="flex items-start justify-between">
-				<h1 class="page-title">Library</h1>
-				<a
-					href="{list.href}/new"
-					class="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"
-					aria-label={list.add}
-					title={list.add}
-				>
-					<Icon name="plus" size="1.25rem" />
-				</a>
-			</header>
+			{@render header(list)}
 		{/if}
-		<Segmented label="Library" items={parts.map((p) => ({ ...p, on: page.url.pathname.startsWith(p.href) }))} />
+		{@render segmented()}
 		<main>
-			{#if list?.href === '/templates'}
-				<LibrarySessions templates={page.data.templates} runs={page.data.runs} today={page.data.today} />
-			{:else if list}
-				<LibraryExercises exercises={page.data.exercises} />
+			{#if list}
+				{@render lists(list.href)}
 			{/if}
 			{@render children()}
 		</main>

@@ -52,15 +52,16 @@
 	});
 	const outlineRoot = $derived(navigating.to?.url ? isRoot(navigating.to.url) : false);
 
-	// Today, Plan, a cycle, Journal, History and Progress have wide layouts of
-	// their own, beside the rail.
+	// Today, Plan, a cycle, Journal, History, Progress and the Library have wide
+	// layouts of their own, beside the rail.
 	const wide = $derived(
 		page.route.id === '/(app)/(tabs)' ||
 			page.route.id === '/(app)/(tabs)/plan' ||
 			page.route.id === '/(app)/(tabs)/plan/cycles/[id]' ||
 			page.route.id === '/(app)/(tabs)/journal' ||
 			page.route.id === '/(app)/(tabs)/history' ||
-			page.route.id === '/(app)/(tabs)/history/progress'
+			page.route.id === '/(app)/(tabs)/history/progress' ||
+			!!page.route.id?.startsWith('/(app)/(tabs)/(library)/')
 	);
 	// The session builder and New cycle have no rail, and use the whole width.
 	const full = $derived(

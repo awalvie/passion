@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { page } from '$app/state';
+	import { MediaQuery } from 'svelte/reactivity';
 	import { distinct, kindOf, kinds, originOf, sourcesOf, type Exercise } from './exercise';
-	import { urlFilters } from './filters.svelte';
+	import { filterQuery, urlFilters } from './filters.svelte';
 	import FilterLine from './FilterLine.svelte';
 	import Icon from './Icon.svelte';
 	import LibraryFilters from './LibraryFilters.svelte';
@@ -10,6 +12,8 @@
 
 	let { exercises }: { exercises: Exercise[] } = $props();
 
+	// From lg a row opens its item beside the list, keeping the filters.
+	const wide = new MediaQuery('min-width: 64rem');
 	const f = urlFilters(['q', 'kind', 'origin', 'source', 'tag']);
 
 	const sources = $derived(sourcesOf(exercises));
@@ -49,8 +53,15 @@
 	{#if shown.length}
 		<ul class="rounded-3xl bg-surface py-1 shadow-card">
 			{#each shown as e (e.id)}
-				<li class="list-row">
-					<a href="/exercises/{e.id}" class="flex min-h-[52px] items-center gap-3 py-2 pr-3.5 pl-3">
+				{@const picked = wide.current && page.params.id === e.id}
+				<li class="list-row {picked ? 'picked' : ''}">
+					<a
+						href={wide.current ? `/exercises/${e.id}${filterQuery(f)}` : `/exercises/${e.id}`}
+						data-sveltekit-replacestate={wide.current ? '' : undefined}
+						data-sveltekit-noscroll={wide.current ? '' : undefined}
+						aria-current={picked ? 'true' : undefined}
+						class="flex min-h-[52px] items-center gap-3 py-2 pr-3.5 pl-3"
+					>
 						<span class="sr-only">{kindOf(e.kind).label}. </span>
 						<span class="flex size-8 shrink-0 items-center justify-center rounded-[11px] bg-well text-ink" title={kindOf(e.kind).label}>
 							<Icon name={kindOf(e.kind).icon} size="1rem" />
@@ -72,3 +83,22 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	/* The open item's row beside the list, drawn as a well inside the card. */
+	.picked {
+		margin-inline: 0.375rem;
+		border-radius: 1rem;
+		background: var(--well);
+		box-shadow: none;
+	}
+	.picked > a {
+		padding-inline: 0.375rem 0.5rem;
+	}
+	.picked :global(.bg-well) {
+		background: var(--surface);
+	}
+	.picked + :global(li) {
+		box-shadow: none;
+	}
+</style>

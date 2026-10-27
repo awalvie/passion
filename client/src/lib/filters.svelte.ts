@@ -42,3 +42,9 @@ export function urlFilters<K extends string>(keys: K[]): Record<K, string> {
 
 	return filters;
 }
+
+// filterQuery is the filters as a query string, for a link that keeps them.
+export function filterQuery(filters: Record<string, string>) {
+	const params = new URLSearchParams(Object.entries(filters).filter(([, v]) => v));
+	return params.size ? `?${params}` : '';
+}
