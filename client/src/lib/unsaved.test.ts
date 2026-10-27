@@ -2,10 +2,14 @@ import { beforeEach, expect, test, vi } from 'vitest';
 
 type Leaving = { type: string; cancel: () => void };
 let before: (n: Leaving) => void = () => {};
+let after: () => void = () => {};
 
 vi.mock('$app/navigation', () => ({
 	beforeNavigate: (fn: (n: Leaving) => void) => {
 		before = fn;
+	},
+	afterNavigate: (fn: () => void) => {
+		after = fn;
 	}
 }));
 
@@ -21,6 +25,7 @@ const confirmWith = (answer: boolean) => {
 beforeEach(() => {
 	vi.unstubAllGlobals();
 	before = () => {};
+	after = () => {};
 });
 
 test('guardUnsaved lets a page with nothing changed go without asking', () => {
@@ -51,6 +56,18 @@ test('guardUnsaved lets an in-app move go on once the answer is yes', () => {
 	const n = leave('link');
 	before(n);
 	expect(n.cancel).not.toHaveBeenCalled();
+});
+
+test('guardUnsaved asks once for a move that a redirect sends on, and again after it lands', () => {
+	const confirm = confirmWith(true);
+	guardUnsaved(() => true);
+	before(leave('link'));
+	before(leave('link'));
+	expect(confirm).toHaveBeenCalledOnce();
+
+	after();
+	before(leave('link'));
+	expect(confirm).toHaveBeenCalledTimes(2);
 });
 
 // A reload or a closed tab cannot show our own prompt, so cancel hands it to
