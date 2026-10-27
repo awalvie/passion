@@ -220,22 +220,31 @@
 	</div>
 {/snippet}
 
-{#snippet tile(label: string, t: Trend, unit: string, cls: string)}
+{#snippet tile(label: string, t: Trend, unit: string, cls: string, alone: boolean)}
 	{@const c = change(t, unit)}
 	{@const vs = t.weeks.filter((v) => v !== null)}
-	<div class="flex min-w-0 flex-col gap-0.5 rounded-3xl bg-surface px-3 py-2.5 shadow-card lg:px-3.5 lg:py-3 {cls}">
+	<div
+		class="flex min-w-0 flex-col gap-0.5 rounded-3xl bg-surface px-3 py-2.5 shadow-card lg:px-3.5 lg:py-3 {alone
+			? 'max-lg:grid max-lg:grid-cols-[auto_minmax(0,1fr)] max-lg:gap-x-6 max-lg:px-[18px]'
+			: ''} {cls}"
+	>
 		<dt class="truncate text-xs font-semibold text-ink-2">{label}</dt>
-		<dd class="flex items-baseline justify-between gap-1.5">
+		<dd class="flex items-baseline justify-between gap-1.5 {alone ? 'max-lg:col-start-1 max-lg:gap-3' : ''}">
 			<span class="digits text-[22px] leading-tight">{t.now === null ? '–' : `${t.now}${unit}`}</span>
 			{#if c}
 				<span class="text-xs font-bold whitespace-nowrap text-ink-2">{c}</span>
 			{/if}
 		</dd>
-		<!-- On a laptop, the eight weeks behind the figure. -->
+		<!-- The eight weeks behind the figure, on a laptop, or beside a tile alone on its row. -->
 		{#if vs.length > 1}
 			{@const lo = Math.min(...vs)}
 			{@const hi = Math.max(...vs)}
-			<svg class="mt-1.5 hidden h-7 w-full lg:block" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true">
+			<svg
+				class="mt-1.5 hidden h-7 w-full lg:block {alone ? 'max-lg:col-start-2 max-lg:row-span-2 max-lg:row-start-1 max-lg:mt-0 max-lg:block max-lg:h-10 max-lg:self-center' : ''}"
+				viewBox="0 0 100 28"
+				preserveAspectRatio="none"
+				aria-hidden="true"
+			>
 				<polyline
 					points={t.weeks.flatMap((v, i) => (v === null ? [] : [`${(i / (t.weeks.length - 1)) * 100},${25 - ((v - lo) / (hi - lo || 1)) * 22}`])).join(' ')}
 					class="fill-none stroke-chart"
@@ -358,7 +367,13 @@
 				Last 4 weeks
 			</h2>
 			<dl class="grid auto-cols-fr grid-flow-col gap-2 lg:grid-flow-row lg:grid-cols-4 lg:gap-3.5 {data.view === 'grade' ? 'max-lg:hidden' : ''}" aria-label="Last 4 weeks">
-				{#each tiles as t (t.label)}{@render tile(t.label, t.t, t.unit, t.view === data.view ? '' : 'max-lg:hidden')}{/each}
+				{#each tiles as t (t.label)}{@render tile(
+						t.label,
+						t.t,
+						t.unit,
+						t.view === data.view ? '' : 'max-lg:hidden',
+						tiles.filter((u) => u.view === data.view).length === 1
+					)}{/each}
 			</dl>
 		{/if}
 
