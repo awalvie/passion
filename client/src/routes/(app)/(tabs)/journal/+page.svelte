@@ -218,8 +218,10 @@
 		{/if}
 	</div>
 
-	<!-- The pane scrolls on its own, so a long entry leaves the list where it was. -->
-	<div class="hidden lg:sticky lg:top-0 lg:block lg:h-dvh lg:overflow-y-auto">
+	<!-- The pane scrolls on its own, so a long entry leaves the list where it was.
+	     It reaches into the tabs' bottom padding, which would otherwise lift it
+	     at the end of the page. -->
+	<div class="hidden lg:sticky lg:top-0 lg:-mb-8 lg:block lg:h-dvh lg:overflow-y-auto">
 		<!-- The form brings its own side padding. -->
 		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 pb-8 {(f.new && wide.current) || editing ? 'px-4' : 'px-8'}">
 			{#if f.new && wide.current}

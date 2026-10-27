@@ -182,9 +182,10 @@
 	</div>
 
 	<!-- The pane scrolls on its own, so a long session leaves the list where it
-	     was. A link within it changes only the pane; one to another page turns
-	     that off. -->
-	<div class="hidden lg:sticky lg:top-0 lg:block lg:h-dvh lg:overflow-y-auto" bind:this={pane} data-sveltekit-replacestate data-sveltekit-noscroll>
+	     was. It reaches into the tabs' bottom padding, which would otherwise
+	     lift it at the end of the page. A link within it changes only the pane;
+	     one to another page turns that off. -->
+	<div class="hidden lg:sticky lg:top-0 lg:-mb-8 lg:block lg:h-dvh lg:overflow-y-auto" bind:this={pane} data-sveltekit-replacestate data-sveltekit-noscroll>
 		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 px-8 pt-3 pb-8">
 			<FormError message={paneError} />
 			{#if exerciseId && exercise?.id === exerciseId}
