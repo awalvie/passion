@@ -335,7 +335,7 @@
 				<h2 class="text-xl font-bold tracking-tight">All sessions</h2>
 				{@render dates()}
 			</div>
-			<div class="flex flex-col gap-3.5 lg:grid lg:grid-cols-6 lg:items-start">
+			<div class="flex flex-col gap-3.5 lg:grid lg:grid-cols-6">
 				<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-4">
 					<dl class="grid grid-cols-3 gap-3">
 						{@render stat('Hours', round(picked === null ? totalHours : time[picked]), when)}
@@ -405,7 +405,7 @@
 				</section>
 			{:else}
 				<!-- The phone's order is climbs, sent, flash, where. A laptop puts where beside climbs. -->
-				<div class="flex-col gap-3.5 lg:grid lg:grid-cols-6 lg:items-start {data.view === 'climbs' ? 'flex' : 'hidden'}">
+				<div class="flex-col gap-3.5 lg:grid lg:grid-cols-6 {data.view === 'climbs' ? 'flex' : 'hidden'}">
 					<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-4 lg:row-start-1">
 						<dl class="grid grid-cols-3 gap-3">
 							{@render stat('Climbs', inPick(shown).length, when)}
@@ -447,7 +447,7 @@
 						</ul>
 					</section>
 				</div>
-				<div class="flex-col gap-3.5 lg:grid lg:grid-cols-2 lg:items-start {data.view === 'grade' ? 'flex' : 'hidden'}">
+				<div class="flex-col gap-3.5 lg:grid lg:grid-cols-2 {data.view === 'grade' ? 'flex' : 'hidden'}">
 					{#each disciplines as d (d.label)}
 						<section class="flex flex-col gap-3 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
 							<dl>{@render stat(`${d.label} sent`, d.sent, when)}</dl>
