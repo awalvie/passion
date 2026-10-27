@@ -55,7 +55,7 @@
 >
 	<Icon name="sliders-horizontal" size="20px" stroke={2.2} />
 	{#if on}
-		<span class="absolute -top-0.5 -right-0.5 flex size-[19px] items-center justify-center rounded-full bg-tint text-[11px] font-extrabold text-on-tint shadow-[0_0_0_2px_var(--ground)]" aria-hidden="true">{on}</span>
+		<span class="absolute -top-0.5 -right-0.5 flex size-[19px] items-center justify-center rounded-full bg-tint text-xs font-extrabold text-on-tint shadow-[0_0_0_2px_var(--ground)]" aria-hidden="true">{on}</span>
 	{/if}
 </button>
 
