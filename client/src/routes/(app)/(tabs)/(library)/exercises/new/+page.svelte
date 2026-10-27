@@ -24,9 +24,9 @@
 	const shown = (c: Count) => kindOf(draft.kind).counts.includes(c);
 
 	// From lg the new exercise opens beside the list, and Cancel goes back to
-	// the one that was open.
+	// the one that was open, if it is still in the list.
 	const wide = new MediaQuery('min-width: 64rem');
-	const open = page.url.searchParams.get('open');
+	const open = untrack(() => data.exercises.find((e) => e.id === page.url.searchParams.get('open'))?.id);
 
 	async function save(event: SubmitEvent) {
 		event.preventDefault();
