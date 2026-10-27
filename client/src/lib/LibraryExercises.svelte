@@ -14,7 +14,7 @@
 
 	// From lg a row opens its item beside the list, keeping the filters.
 	const wide = new MediaQuery('min-width: 64rem');
-	const f = urlFilters(['q', 'kind', 'origin', 'source', 'tag']);
+	const f = urlFilters(['q', 'kind', 'origin', 'source', 'tag'], true);
 
 	const sources = $derived(sourcesOf(exercises));
 	const tags = $derived(distinct(exercises.flatMap((e) => e.tags)));

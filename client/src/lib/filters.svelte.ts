@@ -2,8 +2,9 @@ import { afterNavigate, replaceState } from '$app/navigation';
 
 // urlFilters keeps a list's filters in the query string of the page it is on,
 // so Back from a row finds them as they were. Call it while the component
-// starts.
-export function urlFilters<K extends string>(keys: K[]): Record<K, string> {
+// starts. keep holds them across a link that names none of them, for a list
+// that stays beside the pages it opens.
+export function urlFilters<K extends string>(keys: K[], keep = false): Record<K, string> {
 	const filters = $state(fromURL());
 
 	// Writing the URL the page opened with would call replaceState before the
@@ -19,6 +20,12 @@ export function urlFilters<K extends string>(keys: K[]): Record<K, string> {
 	// A link to this same page keeps the component, so the filters must follow
 	// the URL it opened.
 	afterNavigate(() => {
+		const query = new URLSearchParams(location.search);
+		if (keep && !keys.some((k) => query.has(k))) {
+			written = search();
+			if (keys.some((k) => filters[k])) replaceState(`${location.pathname}${written}`, {});
+			return;
+		}
 		Object.assign(filters, fromURL());
 		written = search();
 	});
