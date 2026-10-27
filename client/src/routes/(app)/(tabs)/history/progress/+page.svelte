@@ -31,8 +31,12 @@
 	} from '$lib/progress';
 	import Segmented from '$lib/Segmented.svelte';
 	import Sheet from '$lib/Sheet.svelte';
+	import { MediaQuery } from 'svelte/reactivity';
 
 	let { data } = $props();
+
+	// From lg the way back and the title sit in the column, as a page title.
+	const wide = new MediaQuery('min-width: 64rem');
 
 	const href = (view: string, range: string, filter = data.filter) => `?view=${view}&range=${range}${filterQuery(filter)}`;
 	const round = (h: number) => Math.round(h * 10) / 10;
@@ -233,7 +237,20 @@
 	<span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full {cls}"></span>{label}</span>
 {/snippet}
 
-<NavBar back={{ href: '/history', label: 'History' }} title="Progress" />
+{#if wide.current}
+	<header class="mx-auto flex max-w-[1104px] flex-col items-start gap-3 px-10 pt-3 pb-3">
+		<a
+			href="/history"
+			data-back
+			class="inline-flex h-11 items-center gap-0.5 rounded-full bg-surface pr-4 pl-2.5 text-[15px] font-bold text-ink shadow-card-sm"
+		>
+			<Icon name="chevron-left" size="1.25rem" stroke={2.4} />History
+		</a>
+		<h1 class="page-title px-1">Progress</h1>
+	</header>
+{:else}
+	<NavBar back={{ href: '/history', label: 'History' }} title="Progress" />
+{/if}
 
 {#snippet pill(label: string, key: string, cls = '')}
 	<a
@@ -276,9 +293,9 @@
 				]}
 			/>
 		</div>
-		<!-- On a laptop the ranges and the picked week share one bar under the nav bar.
+		<!-- On a laptop the ranges and the picked week share one bar at the top.
 		     On a phone the box drops out, so the week bar sticks for the whole page. -->
-		<div class="contents lg:sticky lg:flex lg:top-[calc(3.5rem+env(safe-area-inset-top))] lg:z-20 lg:-my-2 lg:flex-row lg:items-center lg:justify-between lg:bg-ground lg:py-2">
+		<div class="contents lg:sticky lg:flex lg:top-0 lg:z-20 lg:-my-2 lg:flex-row lg:items-center lg:justify-between lg:bg-ground lg:py-2">
 			<nav class="flex gap-1.5" aria-label="Range">
 				{#each suggested as s (s.key)}{@render pill(s.label, s.key, 'flex')}{/each}
 				{#each wider as q (q.key)}{@render pill(q.label, q.key, 'hidden lg:flex')}{/each}
