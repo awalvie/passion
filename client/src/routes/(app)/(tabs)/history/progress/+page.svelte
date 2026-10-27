@@ -169,7 +169,7 @@
 	});
 	const lone = $derived(tiles.filter((t) => t.view === data.view).length === 1);
 
-	// change is how far a trend moved, signed. A rate moves in points.
+	// change is how far a trend moved, signed, in its own unit.
 	function change(t: Trend, unit: string): string | null {
 		if (t.now === null || t.then === null) return null;
 		const d = round(t.now - t.then);
