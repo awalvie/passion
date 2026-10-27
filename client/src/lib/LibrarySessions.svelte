@@ -81,9 +81,7 @@
 		</ul>
 	{:else}
 		{#if f.q.trim() || filters}
-			<Empty title="Nothing matches">
-				<button type="button" class="h-11 self-start rounded-full bg-well px-5 text-[15px] font-bold text-ink" onclick={clear}>Clear</button>
-			</Empty>
+			<Empty title="Nothing matches" onclear={clear} />
 		{:else}
 			<Empty title="No sessions yet" text="Build one from your exercises.">
 				<Button href="/templates/new">New session</Button>

@@ -208,9 +208,7 @@
 				</section>
 			{:else}
 				{#if searching}
-					<Empty title="Nothing matches">
-						<button type="button" class="h-11 self-start rounded-full bg-well px-5 text-[15px] font-bold text-ink" onclick={() => (f.q = '')}>Clear</button>
-					</Empty>
+					<Empty title="Nothing matches" onclear={() => (f.q = '')} />
 				{/if}
 			{/each}
 		{/if}
