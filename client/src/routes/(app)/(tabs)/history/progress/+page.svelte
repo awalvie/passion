@@ -391,12 +391,13 @@
 		</div>
 
 		<div class="flex-col gap-3.5 lg:mt-3 lg:flex {data.view === 'time' ? 'hidden' : 'flex'}">
-			<div class="mt-1 flex items-baseline justify-between gap-3 px-1">
+			<div class="mt-1 flex items-baseline justify-between gap-3 px-1 lg:items-center">
 				<button type="button" class="-my-2 flex min-h-11 shrink-0 items-center gap-1 text-left text-xl font-bold tracking-tight lg:hidden" aria-haspopup="dialog" onclick={openFilter}>
 					{filterName(data.filter)}
 					<Icon name="chevron-down" size="1.125rem" stroke={2.6} />
 				</button>
 				<h2 class="hidden text-xl font-bold tracking-tight lg:block">{filterName(data.filter)}</h2>
+				<div class="mr-auto hidden w-48 lg:block">{@render counting()}</div>
 				{@render dates()}
 			</div>
 			<!-- A laptop has room to show the filter itself in place of its sheet. -->
@@ -420,10 +421,6 @@
 						</div>
 					</div>
 				{/each}
-				<div class="flex w-56 flex-col gap-1.5">
-					<span class="px-1 text-xs font-semibold text-ink-2">Count</span>
-					{@render counting()}
-				</div>
 			</div>
 			{#if !shown.length}
 				<section class="flex flex-col items-start gap-1 rounded-3xl bg-surface p-[18px] shadow-card">
