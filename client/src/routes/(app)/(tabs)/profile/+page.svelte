@@ -19,8 +19,11 @@
 	import { hapticsOn, setHaptics, tickBox } from '$lib/haptics';
 	import { clearRunStorage, clearToken } from '$lib/session';
 	import { plural } from '$lib/text';
+	import { MediaQuery } from 'svelte/reactivity';
 
 	let { data } = $props();
+
+	const wide = new MediaQuery('min-width: 64rem');
 
 	const scaleNames: Record<string, string> = { font: 'Font', v: 'V scale', french: 'French', yds: 'YDS' };
 	let boulder = $state(untrack(() => data.account.boulder_grades));
@@ -140,9 +143,12 @@
 
 <svelte:head><title>Profile</title></svelte:head>
 
-<NavBar back={{ href: '/', label: 'Today' }} />
+<!-- From lg Profile is a tab in the rail, so it needs no way back. -->
+{#if !wide.current}
+	<NavBar back={{ href: '/', label: 'Today' }} />
+{/if}
 
-<div class="flex flex-col gap-3.5 px-4 pt-2 pb-8">
+<div class="flex flex-col gap-3.5 px-4 pt-2 pb-8 lg:mx-auto lg:max-w-[1280px] lg:px-8 lg:pt-3">
 	<header class="px-1">
 		<h1 class="page-title break-words">{data.account.display_name || data.account.email}</h1>
 		{#if data.account.display_name}
@@ -150,65 +156,71 @@
 		{/if}
 	</header>
 
-	<Section title="Grades">
-		<div class="flex flex-col gap-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
-			{#each [{ kind: 'boulder', label: 'Boulders', on: boulder }, { kind: 'route', label: 'Routes', on: route }] as const as g (g.kind)}
-				<div class="flex flex-col gap-2">
-					<span class="text-xs font-semibold text-ink-2">{g.label}</span>
-					<Segmented
-						label="{g.label} scale"
-						items={data.grades.scales
-							.filter((s) => s.boulder === (g.kind === 'boulder'))
-							.map((s) => ({
-								label: `${scaleNames[s.system] ?? s.system} · ${s.grades[Math.floor(s.grades.length / 2)]}`,
-								on: g.on === s.system,
-								onclick: () => setScale(g.kind, s.system)
-							}))}
-					/>
+	<div class="flex flex-col gap-3.5 lg:grid lg:grid-cols-2 lg:items-start">
+		<div class="flex flex-col gap-3.5">
+			<Section title="Grades">
+				<div class="flex flex-col gap-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
+					{#each [{ kind: 'boulder', label: 'Boulders', on: boulder }, { kind: 'route', label: 'Routes', on: route }] as const as g (g.kind)}
+						<div class="flex flex-col gap-2">
+							<span class="text-xs font-semibold text-ink-2">{g.label}</span>
+							<Segmented
+								label="{g.label} scale"
+								items={data.grades.scales
+									.filter((s) => s.boulder === (g.kind === 'boulder'))
+									.map((s) => ({
+										label: `${scaleNames[s.system] ?? s.system} · ${s.grades[Math.floor(s.grades.length / 2)]}`,
+										on: g.on === s.system,
+										onclick: () => setScale(g.kind, s.system)
+									}))}
+							/>
+						</div>
+					{/each}
+					<FormError message={gradeError} />
 				</div>
-			{/each}
-			<FormError message={gradeError} />
+			</Section>
+
+			<Section title="Climbing centres">
+				<ul class="rounded-3xl bg-surface px-[18px] shadow-card">
+					{#each data.centres as c (c.id)}
+						<li class="list-row">
+							<button type="button" class="flex min-h-[58px] w-full items-center gap-3 py-2 text-left" onclick={() => openCentre(c)}>
+								<span class="min-w-0 flex-1">
+									<span class="block truncate text-[15px] font-bold">{c.name}</span>
+									<span class="mt-0.5 block text-xs font-semibold text-ink-2">{count(c.sessions.length)}</span>
+								</span>
+								<span class="shrink-0 text-ink-3"><Icon name="chevron-right" size="1rem" /></span>
+							</button>
+						</li>
+					{/each}
+					<li class="list-row">
+						<button type="button" class="flex min-h-[52px] w-full items-center gap-3 py-2 text-[15px] font-bold text-ink-2" onclick={() => openCentre(null)}>
+							<span class="flex size-6 shrink-0 items-center justify-center text-ink-3"><Icon name="plus" size="1.125rem" /></span>
+							Add a centre
+						</button>
+					</li>
+				</ul>
+				{#if !data.centres.length}
+					<p class="px-1 text-xs font-semibold text-ink-2">Add the places you train, then mark the sessions each one suits.</p>
+				{/if}
+			</Section>
 		</div>
-	</Section>
 
-	<Section title="Climbing centres">
-		<ul class="rounded-3xl bg-surface px-[18px] shadow-card">
-			{#each data.centres as c (c.id)}
-				<li class="list-row">
-					<button type="button" class="flex min-h-[58px] w-full items-center gap-3 py-2 text-left" onclick={() => openCentre(c)}>
-						<span class="min-w-0 flex-1">
-							<span class="block truncate text-[15px] font-bold">{c.name}</span>
-							<span class="mt-0.5 block text-xs font-semibold text-ink-2">{count(c.sessions.length)}</span>
-						</span>
-						<span class="shrink-0 text-ink-3"><Icon name="chevron-right" size="1rem" /></span>
-					</button>
-				</li>
-			{/each}
-			<li class="list-row">
-				<button type="button" class="flex min-h-[52px] w-full items-center gap-3 py-2 text-[15px] font-bold text-ink-2" onclick={() => openCentre(null)}>
-					<span class="flex size-6 shrink-0 items-center justify-center text-ink-3"><Icon name="plus" size="1.125rem" /></span>
-					Add a centre
-				</button>
-			</li>
-		</ul>
-		{#if !data.centres.length}
-			<p class="px-1 text-xs font-semibold text-ink-2">Add the places you train, then mark the sessions each one suits.</p>
-		{/if}
-	</Section>
+		<div class="flex flex-col gap-3.5">
+			<Section title="App">
+				<div class="rounded-3xl bg-surface px-[18px] py-2 shadow-card">
+					<div class="flex flex-col gap-2.5 py-3">
+						<h3 class="text-[15px] font-bold">Theme</h3>
+						<Segmented label="Theme" items={themes.map((t) => ({ label: t.label, on: theme === t.value, onclick: () => setTheme(t.value) }))} />
+					</div>
 
-	<Section title="App">
-		<div class="rounded-3xl bg-surface px-[18px] py-2 shadow-card">
-			<div class="flex flex-col gap-2.5 py-3">
-				<h3 class="text-[15px] font-bold">Theme</h3>
-				<Segmented label="Theme" items={themes.map((t) => ({ label: t.label, on: theme === t.value, onclick: () => setTheme(t.value) }))} />
-			</div>
+					{@render toggle('Timer sounds', sound, (on) => setSound((sound = on)))}
+					{@render toggle('Haptics', haptics, (on) => setHaptics((haptics = on)))}
+				</div>
+			</Section>
 
-			{@render toggle('Timer sounds', sound, (on) => setSound((sound = on)))}
-			{@render toggle('Haptics', haptics, (on) => setHaptics((haptics = on)))}
+			<Button variant="danger" onclick={signOut}>Log out</Button>
 		</div>
-	</Section>
-
-	<Button variant="danger" onclick={signOut}>Log out</Button>
+	</div>
 </div>
 
 <Sheet bind:open={centreOpen} title={centreTitle}>
