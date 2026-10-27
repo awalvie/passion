@@ -167,6 +167,7 @@
 			{ label: 'Flash rate', t: t.flash, unit: '%', view: 'climbs' }
 		];
 	});
+	const lone = $derived(tiles.filter((t) => t.view === data.view).length === 1);
 
 	// change is how far a trend moved, signed. A rate moves in points.
 	function change(t: Trend, unit: string): string | null {
@@ -370,13 +371,7 @@
 				Last 4 weeks
 			</h2>
 			<dl class="grid auto-cols-fr grid-flow-col gap-2 lg:grid-flow-row lg:grid-cols-4 lg:gap-3.5 {data.view === 'grade' ? 'max-lg:hidden' : ''}" aria-label="Last 4 weeks">
-				{#each tiles as t (t.label)}{@render tile(
-						t.label,
-						t.t,
-						t.unit,
-						t.view === data.view ? '' : 'max-lg:hidden',
-						tiles.filter((u) => u.view === data.view).length === 1
-					)}{/each}
+				{#each tiles as t (t.label)}{@render tile(t.label, t.t, t.unit, t.view === data.view ? '' : 'max-lg:hidden', lone)}{/each}
 			</dl>
 		{/if}
 
