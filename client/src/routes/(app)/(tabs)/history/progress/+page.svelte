@@ -282,15 +282,13 @@
 <!-- The ranges look like Segmented, which cannot hide some of its items on a
      phone. -->
 {#snippet pill(label: string, key: string, cls = '')}
+	{@const on = data.span.key === key && picked === null}
 	<a
 		href={href(data.view, key)}
 		data-sveltekit-replacestate
 		data-sveltekit-noscroll
-		aria-current={data.span.key === key && picked === null ? 'true' : undefined}
-		class="h-11 flex-1 items-center justify-center rounded-full px-4 text-[15px] font-bold whitespace-nowrap lg:flex-none {cls} {data.span.key === key &&
-		picked === null
-			? 'segment-on'
-			: 'text-ink-2'}"
+		aria-current={on ? 'true' : undefined}
+		class="h-11 flex-1 items-center justify-center rounded-full px-4 text-[15px] font-bold whitespace-nowrap lg:flex-none {cls} {on ? 'segment-on' : 'text-ink-2'}"
 		onclick={() => choose(null)}
 	>
 		{label}
