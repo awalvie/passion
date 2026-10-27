@@ -5,6 +5,7 @@
 	import { dayDate, timeOfDay } from '$lib/dates';
 	import DurationInput from '$lib/DurationInput.svelte';
 	import FormError from '$lib/FormError.svelte';
+	import { haptic } from '$lib/haptics';
 	import NavBar from '$lib/NavBar.svelte';
 	import { isStale, secondsSince, type Run } from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
@@ -83,18 +84,22 @@
 {#snippet rating(label: string, max: number, value: number | null, set: (v: number | null) => void)}
 	<fieldset class="px-4 py-3.5 list-row">
 		<legend class="float-left mb-2.5 w-full text-[15px] font-bold">{label}</legend>
-		<div class="clear-left grid grid-cols-5 gap-2">
-			{#each Array.from({ length: max }, (_, i) => i + 1) as n (n)}
-				<button
-					type="button"
-					class="h-12 rounded-full text-[15px] {value === n
-						? 'bg-tint font-bold text-on-tint shadow-tint'
-						: 'bg-well font-semibold text-ink-2'}"
-					aria-pressed={value === n}
-					onclick={() => set(value === n ? null : n)}
-				>
-					{n}
-				</button>
+		<!-- Five to a track, so 1–10 keeps each button 44 px wide on a phone. -->
+		<div class="clear-left flex flex-col gap-2">
+			{#each Array.from({ length: max / 5 }, (_, r) => r * 5) as start (start)}
+				<div class="grid grid-cols-5 gap-1 rounded-full bg-well p-1">
+					{#each Array.from({ length: 5 }, (_, i) => start + i + 1) as n (n)}
+						<button
+							type="button"
+							class="h-11 rounded-full text-[15px] font-bold {value === n ? 'segment-on' : 'text-ink-2'}"
+							aria-pressed={value === n}
+							onclick={() => set(value === n ? null : n)}
+							use:haptic
+						>
+							{n}
+						</button>
+					{/each}
+				</div>
 			{/each}
 		</div>
 	</fieldset>
