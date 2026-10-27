@@ -40,7 +40,7 @@
 
 <div class="flex flex-col gap-3">
 	{#if chart && head && recent.length > 1}
-		<section class="flex flex-col gap-4 rounded-[22px] bg-surface p-4 shadow-card-sm">
+		<section class="flex flex-col gap-4 rounded-3xl bg-surface p-4 shadow-card-sm">
 			<div class="flex items-end justify-between gap-3">
 				<div>
 					<p class="text-xs font-semibold text-ink-2">{scale ? 'Hardest send' : 'Top set'} last time · {shortDate(head.session.local_date)}</p>
@@ -57,7 +57,7 @@
 	{/if}
 
 	{#if sessions.length}
-		<section class="rounded-[22px] bg-surface px-4 py-1 shadow-card-sm">
+		<section class="rounded-3xl bg-surface px-4 py-1 shadow-card-sm">
 			<ul>
 				{#each sessions.slice(0, rows) as session (session.run)}
 					{@const fig = scale ? null : bestSet(session.sets, m)}

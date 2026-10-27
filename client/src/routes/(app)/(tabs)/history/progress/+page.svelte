@@ -207,7 +207,7 @@
 {#snippet tile(label: string, t: Trend, unit: string, cls: string)}
 	{@const c = change(t, unit)}
 	{@const vs = t.weeks.filter((v) => v !== null)}
-	<div class="flex min-w-0 flex-col gap-0.5 rounded-[20px] bg-surface px-3 py-2.5 shadow-card lg:px-3.5 lg:py-3 {cls}">
+	<div class="flex min-w-0 flex-col gap-0.5 rounded-3xl bg-surface px-3 py-2.5 shadow-card lg:px-3.5 lg:py-3 {cls}">
 		<dt class="truncate text-xs font-semibold text-ink-2">{label}</dt>
 		<dd class="flex items-baseline justify-between gap-1.5">
 			<span class="digits text-[22px] leading-tight">{t.now === null ? '–' : `${t.now}${unit}`}</span>

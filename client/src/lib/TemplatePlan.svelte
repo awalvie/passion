@@ -21,7 +21,7 @@
 		{#if section.notes}
 			<Notes text={section.notes} class="px-1 pb-2 text-xs font-semibold text-ink-2" />
 		{/if}
-		<ul class="rounded-[20px] bg-surface py-0.5 shadow-card">
+		<ul class="rounded-3xl bg-surface py-0.5 shadow-card">
 			{#each section.items as item, j (j)}
 				{#if item.step}
 					<li class={row}>
