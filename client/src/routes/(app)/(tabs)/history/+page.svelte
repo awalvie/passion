@@ -109,7 +109,7 @@
 {/snippet}
 
 <div class="lg:mx-auto lg:grid lg:max-w-[1280px] lg:grid-cols-[420px_minmax(0,1fr)]">
-	<div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-6 lg:border-r lg:border-line lg:px-6 lg:pt-3">
+	<div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-6 lg:px-6 lg:pt-3">
 		<h1 class="page-title px-1">History</h1>
 
 		{#if data.runs.length}
@@ -184,8 +184,9 @@
 	<!-- The pane scrolls on its own, so a long session leaves the list where it
 	     was. It reaches into the tabs' bottom padding, which would otherwise
 	     lift it at the end of the page. A link within it changes only the pane;
-	     one to another page turns that off. -->
-	<div class="hidden lg:sticky lg:top-0 lg:-mb-8 lg:block lg:h-dvh lg:overflow-y-auto" bind:this={pane} data-sveltekit-replacestate data-sveltekit-noscroll>
+	     one to another page turns that off. It draws the divider, as it fills
+	     the window and a short list does not. -->
+	<div class="hidden lg:sticky lg:top-0 lg:-mb-8 lg:block lg:h-dvh lg:overflow-y-auto lg:border-l lg:border-line" bind:this={pane} data-sveltekit-replacestate data-sveltekit-noscroll>
 		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 px-8 pt-3 pb-8">
 			<FormError message={paneError} />
 			{#if exerciseId && exercise?.id === exerciseId}

@@ -67,7 +67,7 @@
 
 {#if wide.current && part}
 	<div class="mx-auto grid max-w-[1280px] grid-cols-[420px_minmax(0,1fr)]">
-		<div class="flex flex-col gap-3.5 border-r border-line px-6 pt-3 pb-6">
+		<div class="flex flex-col gap-3.5 px-6 pt-3 pb-6">
 			{@render header(part)}
 			{@render segmented()}
 			<!-- A row only swaps the pane, so it neither adds to Back nor scrolls. -->
@@ -78,8 +78,9 @@
 		<!-- The pane scrolls on its own, so a long page leaves the list where it
 		     was. It reaches into the tabs' bottom padding, which would otherwise
 		     lift it at the end of the page. Its padding and the page's own make
-		     Journal's gutter. -->
-		<div bind:this={pane} class="sticky top-0 -mb-8 h-dvh overflow-y-auto">
+		     Journal's gutter. It draws the divider, as it fills the window and a
+		     short list does not. -->
+		<div bind:this={pane} class="sticky top-0 -mb-8 h-dvh overflow-y-auto border-l border-line">
 			<div class="mx-auto flex min-h-full max-w-[640px] flex-col px-4">
 				{@render children()}
 			</div>
