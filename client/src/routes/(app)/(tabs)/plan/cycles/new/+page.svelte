@@ -215,7 +215,7 @@
 				</div>
 				<CyclePreview starts={draft.starts} ends={draft.ends} {planned} templates={data.templates} />
 				{#if step === 3}
-					<p class="px-1 pt-1.5 text-[15px] font-bold">{hints[3]}</p>
+					<p class="px-1 pt-1.5 text-[15px] font-semibold text-ink-2">{hints[3]}</p>
 				{/if}
 			</section>
 		{/if}
