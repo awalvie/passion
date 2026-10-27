@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { describe, request } from '$lib/api';
@@ -25,6 +26,11 @@
 	let opened = $state<Run | null>(null);
 	let exercise = $state<(Awaited<ReturnType<typeof loadExerciseHistory>> & { id: string }) | null>(null);
 	let paneError = $state('');
+
+	// A session opened from another page may sit far down the list.
+	afterNavigate(({ from }) => {
+		if (from?.route.id !== page.route.id) document.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'center' });
+	});
 
 	// Each fetch drops its answer when the pane has moved on before it came.
 	function fill<T>(fetch: () => Promise<T>, done: (v: T) => void) {
