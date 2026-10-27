@@ -1,6 +1,7 @@
 import { addDays, daysBetween, formatDate, mondayOf } from './dates';
 import type { Scale } from './grades';
 import { boards, disciplines, settings, type Climb, type HistorySession, type RunSummary, type SetFields } from './run';
+import { plural } from './text';
 
 export type DatedClimb = Climb & { run: string; local_date: string };
 
@@ -224,6 +225,12 @@ export function perBucket<T extends DatedClimb>(climbs: T[], bs: Bucket[], figur
 // counts once.
 export const tries = (c: Pick<Climb, 'goes'>) => Math.max(1, c.goes.length);
 export const totalTries = (climbs: Pick<Climb, 'goes'>[]) => climbs.reduce((n, c) => n + tries(c), 0);
+
+// climbTally names every go, and the climbs apart when some took more than one.
+export function climbTally(climbs: Pick<Climb, 'goes'>[]): string {
+	const n = totalTries(climbs);
+	return `${plural(n, 'climb')}${n > climbs.length ? `, ${climbs.length} unique` : ''}`;
+}
 
 // climbCount is every go, or with unique each climb once.
 export const climbCount = (climbs: Pick<Climb, 'goes'>[], unique: boolean) => (unique ? climbs.length : totalTries(climbs));

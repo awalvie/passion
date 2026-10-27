@@ -5,6 +5,7 @@ import {
 	bestSet,
 	buckets,
 	climbCount,
+	climbTally,
 	climbMarks,
 	figure,
 	counts,
@@ -323,6 +324,9 @@ test('climbCount counts every go, or each climb once, and a climb with no goes o
 	const cs = [{ goes: ['attempt', 'send'] }, { goes: [] }, { goes: ['send', 'send', 'send'] }] as Climb[];
 	expect(climbCount(cs, false)).toBe(6);
 	expect(climbCount(cs, true)).toBe(3);
+	expect(climbTally(cs)).toBe('6 climbs, 3 unique');
+	// Each tried once: the two counts are the same, so one is enough.
+	expect(climbTally([{ goes: ['send'] }] as Climb[])).toBe('1 climb');
 });
 
 test('counts and grades keep to the days of each bucket, and boulders apart from routes', () => {

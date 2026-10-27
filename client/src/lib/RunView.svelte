@@ -3,7 +3,7 @@
 	import { fullDate, timeOfDay } from './dates';
 	import { formatDuration, formatMinutes } from './exercise';
 	import Icon from './Icon.svelte';
-	import { totalTries } from './progress';
+	import { climbTally } from './progress';
 	import Section from './Section.svelte';
 	import { boards, climbsOf, climbWord, disciplines, ropes, settings, setsOf, stepTime, type LoggedSet, type Run, type RunStep } from './run';
 	import { plural } from './text';
@@ -100,7 +100,7 @@
 				c.discipline === 'boulder'
 					? c.setting === 'indoor' && c.board && c.board !== 'none' && boards[c.board as keyof typeof boards]
 					: c.rope_style && ropes[c.rope_style as keyof typeof ropes],
-				`${plural(totalTries(climbs), 'climb')}${totalTries(climbs) > climbs.length ? `, ${climbs.length} unique` : ''}${graded ? `, ${sent} sent` : ''}`
+				`${climbTally(climbs)}${graded ? `, ${sent} sent` : ''}`
 			]
 				.filter(Boolean)
 				.join(' · ');
