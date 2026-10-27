@@ -89,22 +89,3 @@
 		</div>
 	{/if}
 </div>
-
-<style>
-	/* The open item's row beside the list, drawn as a well inside the card. */
-	.picked {
-		margin-inline: 0.375rem;
-		border-radius: 1rem;
-		background: var(--well);
-		box-shadow: none;
-	}
-	.picked > a {
-		padding-inline: 0.375rem 0.5rem;
-	}
-	.picked :global(.bg-well) {
-		background: var(--surface);
-	}
-	.picked + :global(li) {
-		box-shadow: none;
-	}
-</style>
