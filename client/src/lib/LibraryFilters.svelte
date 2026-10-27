@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Button from './Button.svelte';
 	import type { Origin } from './exercise';
 	import { haptic } from './haptics';
 	import Icon from './Icon.svelte';
@@ -89,8 +90,6 @@
 		</ul>
 	{/if}
 	{#snippet footer()}
-		<button type="button" class="flex h-14 w-full items-center justify-center rounded-full bg-tint text-[15px] font-extrabold text-on-tint" onclick={() => (open = false)} use:haptic>
-			Show {plural(shown, noun)}
-		</button>
+		<Button onclick={() => (open = false)}>Show {plural(shown, noun)}</Button>
 	{/snippet}
 </Sheet>
