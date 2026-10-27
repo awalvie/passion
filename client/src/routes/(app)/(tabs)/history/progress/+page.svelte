@@ -442,7 +442,7 @@
 							<dl class="grid flex-1 grid-cols-3 gap-3">
 								{@render stat('Climbs', count(inPick(shown)), when)}
 								{@render stat(`A ${data.per}`, round(count(shown) / passed))}
-								{@render stat(data.unique ? 'All' : 'Unique', data.unique ? totalTries(inPick(shown)) : inPick(shown).length)}
+								{@render stat(data.unique ? 'With repeats' : 'Unique', data.unique ? totalTries(inPick(shown)) : inPick(shown).length)}
 							</dl>
 							<Info text="All counts every go, sent or not, so three tries on one boulder are three climbs. Unique counts each boulder or route once a session." />
 						</div>
