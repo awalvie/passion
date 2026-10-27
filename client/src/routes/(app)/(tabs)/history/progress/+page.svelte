@@ -174,7 +174,7 @@
 		const d = round(t.now - t.then);
 		if (!d) return 'Same';
 		const n = Math.abs(d);
-		return `${d > 0 ? '+' : '−'}${unit === '%' ? `${n} ${n === 1 ? 'pt' : 'pts'}` : `${n}${unit}`}`;
+		return `${d > 0 ? '+' : '−'}${n}${unit}`;
 	}
 
 	let filtering = $state(false);
