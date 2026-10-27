@@ -23,5 +23,5 @@
 		<p class="mt-2 text-[15px] font-semibold text-ink-2">{plural(data.sessions.length, 'session')}</p>
 	</header>
 
-	<ExerciseHistory sessions={data.sessions} scales={data.scales} sides={data.perSide ? 2 : 1} linked />
+	<ExerciseHistory sessions={data.sessions} scales={data.scales} sides={data.perSide ? 2 : 1} href={(s) => `/history/${s.run}`} />
 </div>

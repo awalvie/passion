@@ -147,7 +147,7 @@
 						>
 					{/if}
 				{/snippet}
-				<ExerciseHistory sessions={data.sessions} scales={data.scales} sides={saved.per_side ? 2 : 1} {rows} linked />
+				<ExerciseHistory sessions={data.sessions} scales={data.scales} sides={saved.per_side ? 2 : 1} {rows} href={(s) => `/history/${s.run}`} />
 			</Section>
 		{/if}
 	</div>

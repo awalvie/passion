@@ -9,15 +9,22 @@
 	// An exercise's past sessions: the best effort and every set or climb as a
 	// dot per session, then one quiet row per session. Sides is 2 when each set
 	// is logged once a side; rows caps the list, not the chart, and chart turns
-	// the chart off.
+	// the chart off. With href, each row links to where it says.
 	let {
 		sessions,
 		scales = [],
-		linked = false,
+		href,
 		sides = 1,
 		rows = Infinity,
 		chart = true
-	}: { sessions: HistorySession[]; scales?: Scale[]; linked?: boolean; sides?: number; rows?: number; chart?: boolean } = $props();
+	}: {
+		sessions: HistorySession[];
+		scales?: Scale[];
+		href?: (s: HistorySession) => string;
+		sides?: number;
+		rows?: number;
+		chart?: boolean;
+	} = $props();
 
 	const recent = $derived(sessions.slice(0, 12).reverse());
 	const ticks = $derived(recent.map((s, i) => (i === 0 || i === recent.length - 1 ? shortDate(s.local_date) : '')));
@@ -57,7 +64,7 @@
 					{@const send = scale ? topSend(session.climbs, scale) : null}
 					{@const [main, unit] = fig ? figure(fig, m, true) : ['', '']}
 					<li class="list-row">
-						<svelte:element this={linked ? 'a' : 'div'} href={linked ? `/history/${session.run}` : undefined} class="flex items-center gap-3.5 py-3">
+						<svelte:element this={href ? 'a' : 'div'} href={href?.(session)} class="flex items-center gap-3.5 py-3">
 							<span class="flex size-11 shrink-0 flex-col items-center justify-center rounded-xl bg-well">
 								<span class="text-xs leading-none font-bold text-ink-2 uppercase">{formatDate(session.local_date, { month: 'short' })}</span>
 								<span class="mt-0.5 digits text-lg leading-none">{Number(session.local_date.slice(8))}</span>
