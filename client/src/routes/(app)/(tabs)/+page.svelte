@@ -379,7 +379,7 @@
 				{@render sessionSlot(d, !other && i === 0)}
 			{/each}
 			{#if done.length}
-				<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+				<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
 					<p class="text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">{other ? 'Done' : 'Done today'}</p>
 					<ul class="mt-1">
 						{#each done as r (r.id)}
@@ -400,24 +400,24 @@
 				</section>
 			{:else if other && !planned.length}
 				{#if !stale.length}
-					<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+					<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
 						<p class="text-[28px] leading-tight font-extrabold tracking-tight">Nothing on this day</p>
 					</section>
 				{/if}
 			{:else if !planned.length}
 				{#if offline}
-					<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+					<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
 						<p class="text-[28px] leading-tight font-extrabold tracking-tight">No signal</p>
 						<p class="mt-1 text-[15px] font-semibold text-ink-2">The plan cannot load. A running session still works.</p>
 					</section>
 				{:else if data.next}
-					<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+					<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
 						<p class="text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">Today</p>
 						<p class="mt-1 text-[28px] leading-tight font-extrabold tracking-tight">Rest day</p>
 						{@render nextUp(data.next)}
 					</section>
 				{:else}
-					<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+					<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
 						<p class="text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">Today</p>
 						<p class="mt-1 text-[28px] leading-tight font-extrabold tracking-tight">Nothing planned</p>
 						<p class="mt-1 text-[15px] font-semibold text-ink-2">Log as you go, or plan the week ahead.</p>
@@ -440,7 +440,7 @@
 		{/if}
 
 		{#each stale as r (r.id)}
-			<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+			<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
 				<div class="flex items-start justify-between gap-3">
 					<div class="min-w-0">
 						<p class="text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">Not finished</p>
@@ -454,7 +454,7 @@
 		{/each}
 
 		{#if !other && data.pinned.length}
-			<section class="mx-4 mt-3.5 rounded-3xl bg-surface px-5 pt-4 shadow-card {data.pinned.length > 2 ? 'pb-1' : 'pb-2'}">
+			<section class="mx-4 mt-3.5 rounded-3xl bg-surface px-[18px] pt-4 shadow-card {data.pinned.length > 2 ? 'pb-1' : 'pb-2'}">
 				<div class="flex items-baseline justify-between">
 					<h2 class="text-[15px] font-bold">Pinned</h2>
 					<a href="/journal" class="-my-3 flex h-11 items-center gap-0.5 text-xs font-bold text-ink">Journal<Icon name="chevron-right" size="14px" /></a>
@@ -483,7 +483,7 @@
 		{/if}
 
 		{#if !other && mine.length}
-			<section class="mx-4 mt-3.5 rounded-3xl bg-surface px-5 pt-4 pb-1 shadow-card">
+			<section class="mx-4 mt-3.5 rounded-3xl bg-surface px-[18px] pt-4 pb-1 shadow-card">
 				<div class="flex items-baseline justify-between">
 					<h2 class="text-[15px] font-bold">Your sessions</h2>
 					<a href="/templates" class="-my-3 flex h-11 items-center gap-0.5 text-xs font-bold text-ink">Library<Icon name="chevron-right" size="14px" /></a>
@@ -516,7 +516,7 @@
 		{/if}
 
 		{#if !offline}
-			<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+			<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
 				<div class="flex items-baseline justify-between">
 					<h2 class="text-[15px] font-bold">Hours a week</h2>
 					<a href="/history/progress" class="-my-3 flex h-11 items-center gap-0.5 text-xs font-bold text-ink">Progress<Icon name="chevron-right" size="14px" /></a>
@@ -681,7 +681,7 @@
 
 {#snippet sessionSlot(d: ScheduledDay, primary: boolean)}
 	{@const f = factsOf(d)}
-	<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+	<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
 		<p class="flex items-center gap-2 text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">
 			<i class="size-2 rounded-full" style:background={sessionsById.get(d.template)?.color ?? 'var(--ink-3)'}></i>
 			{d.status === 'missed' ? 'Missed' : d.status === 'paused' ? 'Paused' : other ? 'Planned' : 'Today'}
@@ -718,7 +718,7 @@
 {/snippet}
 
 {#snippet liveSlot(run: Run)}
-	<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-5 shadow-card">
+	<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
 		<p class="flex items-center gap-2.5 pl-1 text-xs font-bold tracking-[0.08em] text-ink-2 uppercase"><i class="live-dot"></i>Running</p>
 		<p class="mt-1 truncate text-[28px] leading-tight font-extrabold tracking-tight">{run.name}</p>
 		<div class="mt-3 flex gap-8">
