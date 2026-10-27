@@ -128,7 +128,7 @@
 {/if}
 
 <div class="grid gap-3.5 px-4 pt-2 lg:pt-3 [&>*]:min-w-0">
-	<div class="flex flex-col gap-3.5">
+	<div class="order-first flex flex-col gap-3.5">
 		{#if wide.current && from}
 			<div class="flex">
 				<a
@@ -148,7 +148,9 @@
 			</div>
 			{#if wide.current}{@render menu()}{/if}
 		</header>
+	</div>
 
+	<div class="flex flex-col gap-3.5">
 		<form class="flex flex-col gap-3.5" onsubmit={save}>
 			<div class="rounded-3xl bg-surface p-[18px] shadow-card">
 				<ExerciseForm bind:draft {shown} sources={data.sources} disabled={Boolean(locked)} />
