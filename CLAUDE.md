@@ -58,6 +58,7 @@ Tokens are in `client/src/tokens.css`; each needs a light and a dark value.
 - Reuse `client/src/lib/` parts (`Section`, `Segmented`, `Tabs`, `Sheet`, `Chart`…) before making new ones.
 - A page that makes or changes something has a `FormBar` on top: Cancel, the title and Save. Beside the Library's list, an exercise puts Save by its title instead. A `Sheet` keeps its buttons at the bottom.
 - An empty list shows `Empty`: a 20 px title, a line on what to do, and a `Button` when there is a next step. A search that finds nothing gets `onclear`.
+- A chart whose count needs explaining has an `Info` button beside its figure. A tap opens a note on how it is measured.
 - A choice from a list is a `Select`: the phone's own picker, a themed list from `lg`. Days are picked on a `DayPicker`.
 - A choice of one from a few is `Segmented`, or drawn like it with `segment-on`. Chips are for picking several.
 - Controls are at least 44 px. List rows use `list-row`. A row that opens a page ends with a chevron. A picked row is a well 8 px inside its card.
