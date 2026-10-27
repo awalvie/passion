@@ -113,19 +113,36 @@
 
 <svelte:head><title>{saved.name}</title></svelte:head>
 
-<NavBar title={locked ? '' : 'Edit exercise'} heading={false} back={from ? { href: from, label: 'Session' } : { href: '/exercises', label: 'Exercises' }}>
-	{#snippet actions()}
-		<Menu items={[{ label: 'Duplicate', onclick: duplicate }, ...(locked ? [] : [{ label: 'Retire', danger: true, onclick: retire }])]} />
-	{/snippet}
-</NavBar>
+{#snippet menu()}
+	<Menu items={[{ label: 'Duplicate', onclick: duplicate }, ...(locked ? [] : [{ label: 'Retire', danger: true, onclick: retire }])]} />
+{/snippet}
 
-<div class="grid gap-3.5 px-4 pt-2 [&>*]:min-w-0">
+<!-- Beside the Library's list there is no way back but to a session, and the
+     menu sits beside the title. -->
+{#if !wide.current}
+	<NavBar title={locked ? '' : 'Edit exercise'} heading={false} back={from ? { href: from, label: 'Session' } : { href: '/exercises', label: 'Exercises' }} actions={menu} />
+{/if}
+
+<div class="grid gap-3.5 px-4 pt-2 lg:pt-3 [&>*]:min-w-0">
 	<div class="flex flex-col gap-3.5">
-		<header class="px-1">
-			<h1 class="page-title break-words">{saved.name}</h1>
-			<p class="mt-1 text-[15px] font-semibold text-ink-2">
-				{locked || 'Changes here do not affect session templates that already use it.'}
-			</p>
+		{#if wide.current && from}
+			<div class="flex">
+				<a
+					href={from}
+					class="inline-flex h-11 items-center gap-0.5 rounded-full bg-surface pr-4 pl-2.5 text-[15px] font-bold text-ink shadow-card-sm"
+				>
+					<Icon name="chevron-left" size="1.25rem" stroke={2.4} />Session
+				</a>
+			</div>
+		{/if}
+		<header class="flex items-start gap-3 px-1">
+			<div class="min-w-0 flex-1">
+				<h1 class="page-title break-words">{saved.name}</h1>
+				<p class="mt-1 text-[15px] font-semibold text-ink-2">
+					{locked || 'Changes here do not affect session templates that already use it.'}
+				</p>
+			</div>
+			{#if wide.current}{@render menu()}{/if}
 		</header>
 
 		<form class="flex flex-col gap-3.5" onsubmit={save}>
