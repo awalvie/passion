@@ -2,7 +2,7 @@ import type { ScheduledDay } from './plan';
 
 type Options = {
 	movable: (d: ScheduledDay) => boolean;
-	target: (date: string, d: ScheduledDay) => boolean;
+	target: (date: string) => boolean;
 	onlift?: () => void;
 	ondrop: (d: ScheduledDay, to: string) => void;
 };
@@ -86,7 +86,7 @@ export class SessionDrag {
 	}
 
 	target(date: string) {
-		return !!this.lifted && date !== this.lifted.local_date && this.#o.target(date, this.lifted);
+		return !!this.lifted && date !== this.lifted.local_date && this.#o.target(date);
 	}
 
 	drop() {
