@@ -1,12 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { describe, request } from '$lib/api';
-	import Button from '$lib/Button.svelte';
 	import { dayDate, timeOfDay } from '$lib/dates';
 	import DurationInput from '$lib/DurationInput.svelte';
-	import FormError from '$lib/FormError.svelte';
+	import FormBar from '$lib/FormBar.svelte';
 	import { haptic } from '$lib/haptics';
-	import NavBar from '$lib/NavBar.svelte';
 	import { isStale, secondsSince, type Run } from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
 	import Select from '$lib/Select.svelte';
@@ -118,9 +116,25 @@
 
 <svelte:head><title>{editing ? 'Session journal' : 'Finish'} {run.name}</title></svelte:head>
 
-<NavBar title={editing ? 'Session journal' : 'Finish'} back={{ href: editing ? `/history/${run.id}` : `/run/${run.id}`, label: 'Session' }} />
+<FormBar
+	title={editing ? 'Session journal' : 'Finish'}
+	cancel={editing ? `/history/${run.id}` : `/run/${run.id}`}
+	form="journal"
+	saveLabel={editing ? 'Save' : 'Finish'}
+	busyLabel={editing ? 'Saving…' : 'Finishing…'}
+	{busy}
+	disabled={stale && !((length ?? 0) >= 1)}
+	{error}
+/>
 
-<div class="flex flex-col gap-3 px-4 pt-1 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
+<form
+	id="journal"
+	class="flex flex-col gap-3 px-4 pt-1 pb-[calc(env(safe-area-inset-bottom)+2rem)]"
+	onsubmit={(e) => {
+		e.preventDefault();
+		finish();
+	}}
+>
 	{#if stale}
 		<div class="flex flex-col gap-1 rounded-3xl bg-surface p-[18px] shadow-card">
 			<p class="text-[15px] font-bold">How long was it?</p>
@@ -163,9 +177,4 @@
 		{@render note('Next time, focus on', nextFocus, (v) => (nextFocus = v))}
 		{@render note('Notes', notes, (v) => (notes = v))}
 	</div>
-
-	<FormError message={error} />
-	<div class="mt-2">
-		<Button disabled={busy || (stale && !((length ?? 0) >= 1))} onclick={finish}>{editing ? (busy ? 'Saving…' : 'Save') : busy ? 'Finishing…' : 'Finish session'}</Button>
-	</div>
-</div>
+</form>
