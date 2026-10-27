@@ -4,6 +4,7 @@ import { addDays } from './dates';
 import {
 	bestSet,
 	buckets,
+	climbCount,
 	climbMarks,
 	figure,
 	counts,
@@ -318,6 +319,12 @@ test('hours puts a session in the week of its day, and counts an unknown length 
 	expect(got).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 2, 1.5]);
 });
 
+test('climbCount counts every go, or each climb once, and a climb with no goes once', () => {
+	const cs = [{ goes: ['attempt', 'send'] }, { goes: [] }, { goes: ['send', 'send', 'send'] }] as Climb[];
+	expect(climbCount(cs, false)).toBe(6);
+	expect(climbCount(cs, true)).toBe(3);
+});
+
 test('counts and grades keep to the days of each bucket, and boulders apart from routes', () => {
 	const bs = [
 		{ from: '2026-10-05', to: '2026-10-11', tick: '' },
@@ -361,6 +368,7 @@ test('trends compare the last four full weeks with the four before, and leave ou
 	expect(t.hours).toEqual({ now: 1, then: 0.5, weeks: [0, 0, 0, 2, 2, 0, 0, 2] });
 	// Every go counts: the climb on 20 Sep took two.
 	expect(t.climbs).toMatchObject({ now: 0.5, then: 0.8 });
+	expect(trends(runs, climbs, weeks, '2026-08-01', true).climbs).toMatchObject({ now: 0.5, then: 0.5 });
 	expect(t.sent).toMatchObject({ now: 50, then: 100 });
 	expect(t.flash).toMatchObject({ now: 50, then: 50 });
 	expect(t.flash.weeks).toEqual([100, null, null, 0, 100, null, null, 0]);

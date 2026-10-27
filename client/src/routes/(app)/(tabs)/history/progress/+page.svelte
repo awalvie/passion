@@ -13,6 +13,7 @@
 	import Pyramid from '$lib/Pyramid.svelte';
 	import {
 		boardsOpen,
+		climbCount,
 		counts,
 		filterGroups,
 		filterName,
@@ -27,8 +28,6 @@
 		perBucket,
 		pyramid,
 		sendRate,
-		totalTries,
-		tries,
 		type ClimbFilter,
 		type FilterGroup,
 		type Trend
@@ -126,13 +125,12 @@
 
 	const shown = $derived(data.climbs.filter((c) => passes(c, data.filter)));
 	const climbs = $derived(counts(shown, data.buckets, data.unique));
-	const count = (cs: typeof shown) => (data.unique ? cs.length : totalTries(cs));
 	const sendRates = $derived(perBucket(shown, data.buckets, sendRate));
 	const flashRates = $derived(perBucket(shown, data.buckets, flashRate));
 	// Where the climbing was, most first.
 	const mix = $derived.by(() => {
 		const m = new Map<string, number>();
-		for (const c of inPick(shown)) m.set(mixOf(c), (m.get(mixOf(c)) ?? 0) + (data.unique ? 1 : tries(c)));
+		for (const c of inPick(shown)) m.set(mixOf(c), (m.get(mixOf(c)) ?? 0) + climbCount([c], data.unique));
 		return [...m].sort((a, b) => b[1] - a[1]);
 	});
 
@@ -440,9 +438,9 @@
 					<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-4 lg:row-start-1">
 						<div class="relative flex items-start gap-3">
 							<dl class="grid flex-1 grid-cols-3 gap-3">
-								{@render stat('Climbs', count(inPick(shown)), when)}
-								{@render stat(`A ${data.per}`, round(count(shown) / passed))}
-								{@render stat(data.unique ? 'With repeats' : 'Unique', data.unique ? totalTries(inPick(shown)) : inPick(shown).length)}
+								{@render stat('Climbs', climbCount(inPick(shown), data.unique), when)}
+								{@render stat(`A ${data.per}`, round(climbCount(shown, data.unique) / passed))}
+								{@render stat(data.unique ? 'With repeats' : 'Unique', climbCount(inPick(shown), !data.unique))}
 							</dl>
 							<Info text="All counts every go, sent or not, so three tries on one boulder are three climbs. Unique counts each boulder or route once a session." />
 						</div>

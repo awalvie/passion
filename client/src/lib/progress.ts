@@ -225,14 +225,15 @@ export function perBucket<T extends DatedClimb>(climbs: T[], bs: Bucket[], figur
 export const tries = (c: Pick<Climb, 'goes'>) => Math.max(1, c.goes.length);
 export const totalTries = (climbs: Pick<Climb, 'goes'>[]) => climbs.reduce((n, c) => n + tries(c), 0);
 
-// counts is the number of climbs in each bucket, boulders and routes apart:
-// every go, or with unique each climb once.
+// climbCount is every go, or with unique each climb once.
+export const climbCount = (climbs: Pick<Climb, 'goes'>[], unique: boolean) => (unique ? climbs.length : totalTries(climbs));
+
+// counts is the number of climbs in each bucket, boulders and routes apart.
 export function counts(climbs: DatedClimb[], bs: Bucket[], unique = false): { boulders: number; routes: number }[] {
-	const total = (cs: DatedClimb[]) => (unique ? cs.length : totalTries(cs));
 	return bs.map((b) => {
 		const mine = climbs.filter((c) => within(b, c.local_date));
-		const boulders = total(mine.filter(isBoulder));
-		return { boulders, routes: total(mine) - boulders };
+		const boulders = climbCount(mine.filter(isBoulder), unique);
+		return { boulders, routes: climbCount(mine, unique) - boulders };
 	});
 }
 
