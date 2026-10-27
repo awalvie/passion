@@ -6,7 +6,7 @@
 	import { page } from '$app/state';
 	import { MediaQuery } from 'svelte/reactivity';
 	import CycleYear from '$lib/CycleYear.svelte';
-	import { addDays, cycleWeek, daysBetween, formatDate, fullDate, mondayOf, monthSpan, shortDate, weekday } from '$lib/dates';
+	import { addDays, cycleWeek, daysBetween, formatDate, mondayOf, monthSpan, shortDate, weekday } from '$lib/dates';
 	import { DayActions } from '$lib/dayActions.svelte';
 	import DayPane from '$lib/DayPane.svelte';
 	import DaySheets from '$lib/DaySheets.svelte';
@@ -155,12 +155,7 @@
 
 <div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-8 lg:mx-auto lg:max-w-[1280px] lg:px-8 lg:pt-3">
 	<header class="flex items-start justify-between gap-3">
-		<div class="px-1">
-			<h1 class="page-title">Plan</h1>
-			{#if data.today}
-				<p class="mt-1 text-[15px] font-semibold text-ink-2">{fullDate(data.today)}</p>
-			{/if}
-		</div>
+		<h1 class="page-title px-1">Plan</h1>
 		<div class="flex items-center gap-3">
 			<div class="hidden w-[380px] lg:block">{@render views()}</div>
 			{#if !data.offline}
