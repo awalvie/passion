@@ -379,7 +379,7 @@
 {/snippet}
 
 <form class="flex flex-col pb-[calc(env(safe-area-inset-bottom)+1rem)]" novalidate onsubmit={submit}>
-	<FormBar title={template ? 'Edit session' : 'New session'} {cancel} {busy} {error} class="lg:px-8 lg:shadow-[inset_0_-1px_0_var(--line)]">
+	<FormBar title={template ? 'Edit session' : 'New session'} {cancel} {busy} {error} wide={1440} class="lg:shadow-[inset_0_-1px_0_var(--line)]">
 		{#snippet aside()}
 			{#if dirty}<span class="hidden text-xs font-semibold text-ink-2 lg:inline">Unsaved changes</span>{/if}
 		{/snippet}

@@ -7,7 +7,8 @@
 	// cancel is where Cancel leads, or what it does in place; replace keeps that
 	// step out of the back history. end takes Save's place, and aside sits
 	// before it. Save submits the form around the bar, or the one named by form.
-	// wide lines the pills up with a page that is wide from lg, as NavBar's does.
+	// wide is the max width of a page that is wide from lg, so the pills line up
+	// with its cards.
 	let {
 		title,
 		cancel,
@@ -18,7 +19,7 @@
 		disabled = false,
 		error = '',
 		form,
-		wide = false,
+		wide,
 		class: cls = '',
 		aside,
 		end
@@ -32,7 +33,7 @@
 		disabled?: boolean;
 		error?: string;
 		form?: string;
-		wide?: boolean;
+		wide?: number;
 		class?: string;
 		aside?: Snippet;
 		end?: Snippet;
@@ -41,8 +42,8 @@
 	const pill = 'flex h-11 items-center justify-self-start rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm';
 </script>
 
-<div class="sticky top-0 z-30 bg-ground/85 px-4 pt-[env(safe-area-inset-top)] backdrop-blur-md {wide ? 'lg:px-8' : ''} {cls}">
-	<div class="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 {wide ? 'lg:mx-auto lg:max-w-[1216px]' : ''}">
+<div class="sticky top-0 z-30 bg-ground/85 px-4 pt-[env(safe-area-inset-top)] backdrop-blur-md {wide ? 'lg:px-0' : ''} {cls}">
+	<div class="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 {wide ? 'lg:mx-auto lg:px-8' : ''}" style:max-width={wide && `${wide}px`}>
 		{#if typeof cancel === 'string'}
 			<a class={pill} href={cancel} data-back data-sveltekit-replacestate={replace || undefined} data-sveltekit-noscroll={replace || undefined}>
 				{cancelLabel}

@@ -82,7 +82,7 @@
 
 <svelte:head><title>New cycle</title></svelte:head>
 
-<FormBar title="New cycle" heading="p" cancel={step === 1 ? '/plan?view=cycles' : `?step=${step - 1}`} cancelLabel={step === 1 ? 'Cancel' : 'Back'} wide>
+<FormBar title="New cycle" heading="p" cancel={step === 1 ? '/plan?view=cycles' : `?step=${step - 1}`} cancelLabel={step === 1 ? 'Cancel' : 'Back'} wide={1280}>
 	{#snippet end()}
 		<span class="pr-1 text-xs font-bold text-ink-2">{step} of 4</span>
 	{/snippet}
