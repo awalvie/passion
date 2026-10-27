@@ -362,7 +362,8 @@
 					{:else}
 						<div class="flex flex-col gap-3 pt-1 pb-3">
 							<p class="text-[15px] font-semibold text-ink-2">A cycle repeats a block of sessions over weeks.</p>
-							<a href="/plan/cycles/new" class="flex h-12 items-center justify-center rounded-full bg-tint text-[15px] font-bold text-on-tint shadow-tint">New cycle</a>
+							<!-- From lg the header's New cycle is the one button. -->
+							<a href="/plan/cycles/new" class="flex h-12 items-center justify-center rounded-full bg-tint text-[15px] font-bold text-on-tint shadow-tint lg:hidden">New cycle</a>
 						</div>
 					{/if}
 				</section>
