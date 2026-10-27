@@ -172,6 +172,16 @@ html {
 	font-weight: 700;
 }
 
+/* The picked segment on a well track. */
+@utility segment-on {
+	background: var(--surface);
+	color: var(--ink);
+	box-shadow: var(--elev-sm);
+	&:where([data-theme='dark'], [data-theme='dark'] *) {
+		background: color-mix(in oklab, var(--ink) 15%, transparent);
+	}
+}
+
 @utility page-title {
 	font-size: 32px;
 	line-height: 1.1;

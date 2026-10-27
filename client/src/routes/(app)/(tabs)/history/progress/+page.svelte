@@ -91,7 +91,6 @@
 	const wider = $derived(quick.slice(2, 5));
 	const more = $derived(custom && !wider.some((q) => q.key === data.span.key));
 	const customOn = $derived(wide.current ? more : custom);
-	const onLook = 'bg-surface text-ink shadow-card-sm dark:bg-ink/15';
 	// A span across a new year names both years, or a year back reads as no time.
 	const spanDate = (date: string) =>
 		data.span.from.slice(0, 4) === data.span.to.slice(0, 4) ? shortDate(date) : formatDate(date, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -269,7 +268,7 @@
 		data-sveltekit-noscroll
 		aria-current={data.span.key === key ? 'true' : undefined}
 		class="h-11 flex-1 items-center justify-center rounded-full px-4 text-[15px] font-bold whitespace-nowrap lg:flex-none {cls} {data.span.key === key
-			? onLook
+			? 'segment-on'
 			: 'text-ink-2'}"
 	>
 		{label}
@@ -313,7 +312,7 @@
 				<button
 					type="button"
 					class="flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-[15px] font-bold lg:flex-none {customOn
-						? onLook
+						? 'segment-on'
 						: 'text-ink-2'}"
 					aria-current={customOn ? 'true' : undefined}
 					aria-haspopup="dialog"
@@ -409,7 +408,7 @@
 								{@const on = !closed && (v ? data.filter[g].includes(v) : !data.filter[g].length)}
 								<button
 									type="button"
-									class="flex h-11 items-center rounded-full px-4 text-[15px] font-bold disabled:opacity-40 {on ? 'bg-surface text-ink shadow-card-sm dark:bg-ink/15' : 'text-ink-2'}"
+									class="flex h-11 items-center rounded-full px-4 text-[15px] font-bold disabled:opacity-40 {on ? 'segment-on' : 'text-ink-2'}"
 									aria-pressed={on}
 									disabled={closed}
 									onclick={() => filterBy(g, v)}
@@ -511,7 +510,7 @@
 				<button
 					type="button"
 					class="flex h-11 items-center justify-center rounded-full text-[15px] font-bold {data.span.key === q.key
-						? onLook
+						? 'segment-on'
 						: 'text-ink-2'}"
 					aria-pressed={data.span.key === q.key}
 					onclick={() => pick(q.key)}>{q.label}</button

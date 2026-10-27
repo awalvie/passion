@@ -7,7 +7,6 @@
 	const presets = [7, 8, 10, 14];
 	const limit = $derived(Math.min(28, max));
 	const custom = $derived(!presets.includes(value));
-	const on = 'bg-surface text-ink shadow-card-sm dark:bg-ink/15';
 
 	// A cycle made shorter than its block takes the block down with it.
 	$effect(() => {
@@ -38,7 +37,7 @@
 	{#each presets as n (n)}
 		<button
 			type="button"
-			class="h-11 rounded-full text-[15px] font-bold disabled:opacity-40 {value === n ? on : 'text-ink-2'}"
+			class="h-11 rounded-full text-[15px] font-bold disabled:opacity-40 {value === n ? 'segment-on' : 'text-ink-2'}"
 			aria-pressed={value === n}
 			disabled={n > max}
 			onclick={() => (value = n)}
@@ -68,7 +67,7 @@
 	{:else}
 		<button
 			type="button"
-			class="h-11 rounded-full text-[15px] font-bold {custom ? on : 'text-ink-2'}"
+			class="h-11 rounded-full text-[15px] font-bold {custom ? 'segment-on' : 'text-ink-2'}"
 			aria-pressed={custom}
 			aria-label={custom ? `Custom, ${value} days` : 'Custom length'}
 			onclick={edit}
