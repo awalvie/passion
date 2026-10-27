@@ -273,7 +273,7 @@
 {/snippet}
 
 {#snippet dates()}
-	<p class="text-xs font-semibold text-ink-2">
+	<p class="truncate text-xs font-semibold text-ink-2">
 		{data.span.cycle && custom ? `${data.span.cycle.name} · ` : ''}{data.span.from === data.span.to ? spanDate(data.span.from) : `${spanDate(data.span.from)} – ${spanDate(data.span.to)}`}
 	</p>
 {/snippet}
@@ -355,8 +355,8 @@
 		{/if}
 
 		<div class="flex-col gap-3.5 lg:mt-3 lg:flex {data.view === 'time' ? 'flex' : 'hidden'}">
-			<div class="mt-1 flex flex-col px-1">
-				<h2 class="text-xl font-bold tracking-tight">All sessions</h2>
+			<div class="mt-1 flex items-baseline justify-between gap-3 px-1">
+				<h2 class="shrink-0 text-xl font-bold tracking-tight">All sessions</h2>
 				{@render dates()}
 			</div>
 			<div class="flex flex-col gap-3.5 lg:grid lg:grid-cols-6">
@@ -386,8 +386,8 @@
 		</div>
 
 		<div class="flex-col gap-3.5 lg:mt-3 lg:flex {data.view === 'time' ? 'hidden' : 'flex'}">
-			<div class="mt-1 flex flex-col px-1">
-				<button type="button" class="-my-2 flex min-h-11 items-center gap-1 self-start text-left text-xl font-bold tracking-tight lg:hidden" aria-haspopup="dialog" onclick={openFilter}>
+			<div class="mt-1 flex items-baseline justify-between gap-3 px-1">
+				<button type="button" class="-my-2 flex min-h-11 shrink-0 items-center gap-1 text-left text-xl font-bold tracking-tight lg:hidden" aria-haspopup="dialog" onclick={openFilter}>
 					{filterName(data.filter)}
 					<Icon name="chevron-down" size="1.125rem" stroke={2.6} />
 				</button>
