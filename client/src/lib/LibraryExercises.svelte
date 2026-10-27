@@ -48,8 +48,6 @@
 				<li class="list-row {picked ? 'picked' : ''}">
 					<a
 						href={wide.current ? `/exercises/${e.id}${filterQuery(f)}` : `/exercises/${e.id}`}
-						data-sveltekit-replacestate={wide.current ? '' : undefined}
-						data-sveltekit-noscroll={wide.current ? '' : undefined}
 						aria-current={picked ? 'true' : undefined}
 						class="flex min-h-[52px] items-center gap-3 py-2 pr-3.5 pl-3"
 					>

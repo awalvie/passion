@@ -70,7 +70,10 @@
 		<div class="flex flex-col gap-3.5 border-r border-line px-6 pt-5 pb-6">
 			{@render header(part)}
 			{@render segmented()}
-			{@render lists(part.href)}
+			<!-- A row only swaps the pane, so it neither adds to Back nor scrolls. -->
+			<div data-sveltekit-replacestate data-sveltekit-noscroll>
+				{@render lists(part.href)}
+			</div>
 		</div>
 		<!-- The pane scrolls on its own, so a long page leaves the list where it
 		     was. It reaches into the tabs' bottom padding, which would otherwise
