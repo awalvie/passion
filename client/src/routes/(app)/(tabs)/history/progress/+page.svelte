@@ -108,6 +108,7 @@
 
 	function pick(key: string) {
 		picking = false;
+		choose(null);
 		goto(href(data.view, key), { replaceState: true, noScroll: true });
 	}
 
