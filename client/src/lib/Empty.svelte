@@ -1,8 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
-	// The card a page shows in place of an empty list: what is missing, a line
-	// on what to do, and the button that does it.
 	let { title, text, children }: { title: string; text?: string; children?: Snippet } = $props();
 </script>
 

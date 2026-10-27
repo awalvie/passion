@@ -2,13 +2,8 @@
 	import type { Snippet } from 'svelte';
 	import FormError from './FormError.svelte';
 
-	// The bar over a page that makes or changes something: Cancel, the title and
-	// Save. It is as tall as NavBar, so its pills sit where a back pill does.
-	// cancel is where Cancel leads, or what it does in place; replace keeps that
-	// step out of the back history. end takes Save's place, and aside sits
-	// before it. Save submits the form around the bar, or the one named by form.
-	// wide is the max width of a page that is wide from lg, so the pills line up
-	// with its cards.
+	// As tall as NavBar, so its pills sit where a back pill does. wide is the max
+	// width of a page that is wide from lg, so the pills line up with its cards.
 	let {
 		title,
 		cancel,

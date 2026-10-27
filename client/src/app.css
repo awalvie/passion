@@ -305,10 +305,9 @@ html {
 	:is(li > :is(button, a[href]), li > details > summary) {
 		border-radius: 0.75rem;
 	}
-	/* A row fills as it does when pressed. A rounded control takes a wash of
-	   its own text colour, so lime, dark and plain buttons all darken or
-	   lighten a little; a square one would show a hard box, so it only shows
-	   the hand. */
+	/* A rounded control takes a wash of its own text colour, so lime, dark and
+	   plain buttons all darken or lighten a little; a square one would show a
+	   hard box, so it only shows the hand. */
 	@media (hover: hover) {
 		:is(button:not(:disabled), a[href], summary, label:has(> input)) {
 			cursor: pointer;
