@@ -204,19 +204,20 @@
 				<ExerciseHistory sessions={exercise.sessions} scales={exercise.scales} sides={exercise.perSide ? 2 : 1} href={(s) => `/history?open=${s.run}`} />
 			{:else if opened && opened.id === openId}
 				{@const run = opened}
-				<div class="flex justify-end gap-2">
-					<a
-						href="/run/{run.id}"
-						data-sveltekit-replacestate="false"
-						data-sveltekit-noscroll="false"
-						class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm">Edit</a
-					>
-				</div>
 				<RunView
 					{run}
 					heading="h2"
 					exerciseHref={(s) => `/history?open=${run.id}&exercise=${s.exercise}&name=${encodeURIComponent(s.name)}`}
-				/>
+				>
+					{#snippet actions()}
+						<a
+							href="/run/{run.id}"
+							data-sveltekit-replacestate="false"
+							data-sveltekit-noscroll="false"
+							class="flex h-11 shrink-0 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm">Edit</a
+						>
+					{/snippet}
+				</RunView>
 			{/if}
 		</div>
 	</div>

@@ -221,7 +221,7 @@
 	     at the end of the page. -->
 	<div class="hidden lg:sticky lg:top-0 lg:-mb-8 lg:block lg:h-dvh lg:overflow-y-auto">
 		<!-- The form brings its own side padding. -->
-		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 pb-8 {(f.new && wide.current) || editing ? 'px-4' : 'px-8'}">
+		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 pb-8 {(f.new && wide.current) || editing ? 'px-4' : 'px-8 pt-3'}">
 			{#if f.new && wide.current}
 				<EntryForm today={data.today} cancel={pane()} saved={(e) => show(pane('open', e.id))} heading="h2" />
 			{:else if opened && editing}
@@ -236,28 +236,29 @@
 				{/key}
 			{:else if opened}
 				{@const e = opened}
-				<div class="flex justify-end gap-2 pt-3">
-					<a
-						href={pane('edit', e.id)}
-						data-sveltekit-replacestate
-						data-sveltekit-noscroll
-						class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm">Edit</a
-					>
-					<Menu
-						items={[
-							{ label: e.pinned_at ? 'Unpin' : 'Pin', onclick: () => pin(e, !e.pinned_at) },
-							{ label: 'Delete entry', danger: true, onclick: () => remove(e) }
-						]}
-					/>
-				</div>
 				<FormError message={error} />
-				<EntryView entry={e} heading="h2" />
+				<EntryView entry={e} heading="h2">
+					{#snippet actions()}
+						<div class="flex shrink-0 gap-2">
+							<a
+								href={pane('edit', e.id)}
+								data-sveltekit-replacestate
+								data-sveltekit-noscroll
+								class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm">Edit</a
+							>
+							<Menu
+								items={[
+									{ label: e.pinned_at ? 'Unpin' : 'Pin', onclick: () => pin(e, !e.pinned_at) },
+									{ label: 'Delete entry', danger: true, onclick: () => remove(e) }
+								]}
+							/>
+						</div>
+					{/snippet}
+				</EntryView>
 			{:else if total}
-				<div class="pt-3">
-					<Empty title="No entry open" text="Entries you write open here. A session's journal opens in History.">
-						<Button href={pane('new')}>New entry</Button>
-					</Empty>
-				</div>
+				<Empty title="No entry open" text="Entries you write open here. A session's journal opens in History.">
+					<Button href={pane('new')}>New entry</Button>
+				</Empty>
 			{/if}
 		</div>
 	</div>

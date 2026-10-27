@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { fullDate, timeOfDay } from './dates';
 	import { formatDuration, formatMinutes } from './exercise';
 	import Icon from './Icon.svelte';
@@ -7,12 +8,13 @@
 	import { plural } from './text';
 
 	// A finished session as logged: its journal, then each section's steps.
-	// exerciseHref says where an exercise's name goes.
+	// exerciseHref says where an exercise's name goes; actions sit beside the title.
 	let {
 		run,
 		heading = 'h1',
-		exerciseHref
-	}: { run: Run; heading?: 'h1' | 'h2'; exerciseHref: (s: RunStep) => string } = $props();
+		exerciseHref,
+		actions
+	}: { run: Run; heading?: 'h1' | 'h2'; exerciseHref: (s: RunStep) => string; actions?: Snippet } = $props();
 
 	// The journal form is a page of its own, even from a pane whose links keep
 	// their place.
@@ -124,9 +126,12 @@
 {/snippet}
 
 <div class="flex flex-col gap-7">
-	<header class="px-1">
-		<svelte:element this={heading} class="page-title text-balance">{run.name}</svelte:element>
-		<p class="mt-2 text-[15px] font-semibold text-ink-2">{when}</p>
+	<header class="flex items-start gap-3 px-1">
+		<div class="min-w-0 flex-1">
+			<svelte:element this={heading} class="page-title text-balance">{run.name}</svelte:element>
+			<p class="mt-2 text-[15px] font-semibold text-ink-2">{when}</p>
+		</div>
+		{@render actions?.()}
 	</header>
 
 	{#if !scores.length && !words.length && !thoughts.length}
