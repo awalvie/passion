@@ -338,12 +338,15 @@
 				{#each suggested as s (s.key)}{@render pill(s.label, s.key, 'flex')}{/each}
 				{#each wider as q (q.key)}{@render pill(q.label, q.key, 'hidden lg:flex')}{/each}
 				{#if picked !== null}
-					<span class="flex h-11 min-w-0 flex-initial items-center rounded-full pl-4 segment-on">
+					<span class="flex h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-full px-3 segment-on lg:flex-none lg:pr-2 lg:pl-4">
 						<span class="truncate text-[15px] font-bold" aria-live="polite"
 							><span class="lg:hidden">{when}</span><span class="max-lg:hidden">{names[picked]}</span></span
 						>
-						<button type="button" class="flex size-11 shrink-0 items-center justify-center rounded-full" aria-label="Show the whole range" onclick={() => choose(null)}
-							><Icon name="x" size="1.125rem" stroke={2.4} /></button
+						<button
+							type="button"
+							class="relative flex size-8 shrink-0 items-center justify-center rounded-full before:absolute before:-inset-1.5 before:content-['']"
+							aria-label="Show the whole range"
+							onclick={() => choose(null)}><Icon name="x" size="1.125rem" stroke={2.4} /></button
 						>
 					</span>
 				{:else}
