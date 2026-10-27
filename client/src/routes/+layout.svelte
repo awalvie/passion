@@ -68,7 +68,7 @@
 			page.route.id === '/(app)/(tabs)/journal' ||
 			page.route.id === '/(app)/(tabs)/history' ||
 			page.route.id === '/(app)/(tabs)/history/progress' ||
-			!!page.route.id?.startsWith('/(app)/(tabs)/(library)/')
+			paned(page.route.id)
 	);
 	// The session builder and New cycle have no rail, and use the whole width.
 	const full = $derived(
