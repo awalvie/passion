@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { notice } from '$lib/notice.svelte';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
 	import { allCounts, fieldLabel, kindOf, setByLadder, summary, toBody, toDraft, type Count, type Exercise } from '$lib/exercise';
@@ -14,10 +14,13 @@
 	import Section from '$lib/Section.svelte';
 	import { guardUnsaved } from '$lib/unsaved';
 	import { onMount, untrack } from 'svelte';
+	import { MediaQuery } from 'svelte/reactivity';
 
 	let { data } = $props();
 
-	// +layout.svelte builds a new page for each id, so the first value is the only one.
+	// +layout.svelte builds a new page for each load, so the first value is the only one.
+	// From lg a saved exercise stays open beside the list.
+	const wide = new MediaQuery('min-width: 64rem');
 	const saved = untrack(() => data.exercise);
 	let draft = $state(toDraft(saved));
 	let error = $state('');
@@ -57,7 +60,8 @@
 		try {
 			await request('PUT', `/api/v1/exercises/${saved.id}`, toBody(draft, shown));
 			leaving = true;
-			await goto(from ?? '/exercises');
+			if (wide.current) await invalidateAll();
+			else await goto(from ?? '/exercises');
 			notice.text = 'Exercise saved';
 		} catch (e) {
 			error = describe(e, fieldLabel);

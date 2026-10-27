@@ -25,8 +25,12 @@
 {#snippet header(p: (typeof parts)[number])}
 	<header class="flex items-start justify-between">
 		<h1 class="page-title">Library</h1>
+		<!-- New exercise beside the list takes the pane's place, and can go back
+		     to the one that was open. -->
 		<a
-			href="{p.href}/new"
+			href={p.href === '/exercises' && page.params.id ? `/exercises/new?open=${page.params.id}` : `${p.href}/new`}
+			data-sveltekit-replacestate={wide.current && p.href === '/exercises' ? '' : undefined}
+			data-sveltekit-noscroll={wide.current && p.href === '/exercises' ? '' : undefined}
 			class="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"
 			aria-label={p.add}
 			title={p.add}

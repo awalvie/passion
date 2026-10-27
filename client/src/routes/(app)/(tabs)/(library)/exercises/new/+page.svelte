@@ -1,13 +1,15 @@
 <script lang="ts">
 	import { notice } from '$lib/notice.svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { describe, request } from '$lib/api';
 	import Button from '$lib/Button.svelte';
-	import { fieldLabel, kindOf, toBody, toDraft, type Count } from '$lib/exercise';
+	import { fieldLabel, kindOf, toBody, toDraft, type Count, type Exercise } from '$lib/exercise';
 	import ExerciseForm from '$lib/ExerciseForm.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import { guardUnsaved } from '$lib/unsaved';
 	import { untrack } from 'svelte';
+	import { MediaQuery } from 'svelte/reactivity';
 
 	let { data } = $props();
 
@@ -21,14 +23,20 @@
 
 	const shown = (c: Count) => kindOf(draft.kind).counts.includes(c);
 
+	// From lg the new exercise opens beside the list, and Cancel goes back to
+	// the one that was open.
+	const wide = new MediaQuery('min-width: 64rem');
+	const open = page.url.searchParams.get('open');
+
 	async function save(event: SubmitEvent) {
 		event.preventDefault();
 		error = '';
 		busy = true;
 		try {
-			await request('POST', '/api/v1/exercises', toBody(draft, shown));
+			const made = await request<Exercise>('POST', '/api/v1/exercises', toBody(draft, shown));
 			leaving = true;
-			await goto('/exercises');
+			if (wide.current) await goto(`/exercises/${made.id}`, { replaceState: true, noScroll: true, invalidateAll: true });
+			else await goto('/exercises');
 			notice.text = 'Exercise saved';
 		} catch (e) {
 			error = describe(e, fieldLabel);
@@ -56,7 +64,9 @@
 		>
 			<a
 				class="flex h-14 items-center rounded-full bg-surface px-6 text-[15px] font-bold text-ink shadow-card"
-				href="/exercises">Cancel</a
+				href={wide.current && open ? `/exercises/${open}` : '/exercises'}
+				data-sveltekit-replacestate={wide.current ? '' : undefined}
+				data-sveltekit-noscroll={wide.current ? '' : undefined}>Cancel</a
 			>
 			<Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
 		</div>

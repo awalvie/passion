@@ -4,7 +4,8 @@
 	let { children } = $props();
 </script>
 
-<!-- The page copies its exercise into form state once, so another id needs a new page. -->
-{#key page.params.id}
+<!-- The page copies its exercise into form state once, so another id or a
+     fresh load after a save needs a new page. -->
+{#key page.data.exercise}
 	{@render children()}
 {/key}
