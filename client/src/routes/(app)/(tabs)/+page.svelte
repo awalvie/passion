@@ -491,7 +491,7 @@
 				<ul class="mt-1">
 					{#each mine.slice(0, 4) as t (t.id)}
 						<li class="list-row flex items-center gap-3">
-							<a href="/templates/{t.id}" class="flex min-h-[60px] min-w-0 flex-1 items-center gap-3">
+							<a href="/templates/{t.id}?from=/" class="flex min-h-[60px] min-w-0 flex-1 items-center gap-3">
 								<SessionIcon icon={t.icon} name={t.name} />
 								<span class="min-w-0 flex-1">
 									<span class="block truncate text-[15px] font-bold">{t.name}</span>
@@ -519,7 +519,7 @@
 			<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
 				<div class="flex items-baseline justify-between">
 					<h2 class="text-[15px] font-bold">Hours a week</h2>
-					<a href="/history/progress" class="-my-3 flex h-11 items-center gap-0.5 text-xs font-bold text-ink">Progress<Icon name="chevron-right" size="14px" /></a>
+					<a href="/history/progress?from=/" class="-my-3 flex h-11 items-center gap-0.5 text-xs font-bold text-ink">Progress<Icon name="chevron-right" size="14px" /></a>
 				</div>
 				<p class="mt-2 flex items-baseline gap-1.5">
 					<b class="digits text-[32px] leading-none">{tenths(time.at(-1) ?? 0)}</b>
@@ -686,7 +686,7 @@
 			<i class="size-2 rounded-full" style:background={sessionsById.get(d.template)?.color ?? 'var(--ink-3)'}></i>
 			{d.status === 'missed' ? 'Missed' : d.status === 'paused' ? 'Paused' : other ? 'Planned' : 'Today'}
 		</p>
-		<a href="/templates/{d.template}" class="mt-1 block truncate text-[28px] leading-tight font-extrabold tracking-tight">{d.template_name}</a>
+		<a href="/templates/{d.template}?from=/" class="mt-1 block truncate text-[28px] leading-tight font-extrabold tracking-tight">{d.template_name}</a>
 		{@render facts(f.usual, f.since)}
 		<div class="mt-4">
 			{#if d.status === 'started' && d.run}
@@ -707,7 +707,7 @@
 			<i class="size-2 rounded-full" style:background={sessionsById.get(d.template)?.color ?? 'var(--ink-3)'}></i>
 			Next · {when(d.local_date)}
 		</p>
-		<a href="/templates/{d.template}" class="mt-1 block truncate text-xl font-extrabold tracking-tight">{d.template_name}</a>
+		<a href="/templates/{d.template}?from=/" class="mt-1 block truncate text-xl font-extrabold tracking-tight">{d.template_name}</a>
 		{@render facts(f.usual, f.since)}
 		<div class="mt-4">
 			<Button variant="secondary" disabled={starting !== null} onclick={() => start({ scheduled: d.id })}>

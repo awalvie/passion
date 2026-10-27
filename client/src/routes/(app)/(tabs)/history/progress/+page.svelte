@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import Bars from '$lib/Bars.svelte';
 	import Button from '$lib/Button.svelte';
 	import { formatDate, shortDate } from '$lib/dates';
@@ -39,7 +40,11 @@
 	// From lg the way back and the title sit in the column, as a page title.
 	const wide = new MediaQuery('min-width: 64rem');
 
-	const href = (view: string, range: string, filter = data.filter) => `?view=${view}&range=${range}${filterQuery(filter)}`;
+	// Opened from Today, the way back leads there, through every view and range.
+	const fromToday = $derived(page.url.searchParams.get('from') === '/');
+	const back = $derived(fromToday ? { href: '/', label: 'Today' } : { href: '/history', label: 'History' });
+	const href = (view: string, range: string, filter = data.filter) =>
+		`?view=${view}&range=${range}${filterQuery(filter)}${fromToday ? '&from=/' : ''}`;
 	const round = (h: number) => Math.round(h * 10) / 10;
 	const pct = (v: number | null) => (v === null ? '–' : `${v}%`);
 	// A week still to come counts for nothing in an average.
@@ -241,16 +246,16 @@
 {#if wide.current}
 	<header class="mx-auto flex max-w-[1104px] flex-col items-start gap-3.5 px-10 pt-1.5 pb-3">
 		<a
-			href="/history"
+			href={back.href}
 			data-back
 			class="inline-flex h-11 items-center gap-0.5 rounded-full bg-surface pr-4 pl-2.5 text-[15px] font-bold text-ink shadow-card-sm"
 		>
-			<Icon name="chevron-left" size="1.25rem" stroke={2.4} />History
+			<Icon name="chevron-left" size="1.25rem" stroke={2.4} />{back.label}
 		</a>
 		<h1 class="page-title px-1">Progress</h1>
 	</header>
 {:else}
-	<NavBar back={{ href: '/history', label: 'History' }} title="Progress" />
+	<NavBar {back} title="Progress" />
 {/if}
 
 {#snippet pill(label: string, key: string, cls = '')}

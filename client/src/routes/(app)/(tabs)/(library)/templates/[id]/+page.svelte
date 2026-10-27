@@ -123,6 +123,14 @@
 	);
 
 	const tab = $derived(page.url.searchParams.get('tab') === 'exercises' ? 'exercises' : 'overview');
+	// Opened from Today, the way back leads there, through both tabs.
+	const fromToday = $derived(page.url.searchParams.get('from') === '/');
+	const back = $derived(fromToday ? { href: '/', label: 'Today' } : { href: '/templates', label: 'Sessions' });
+	function tabHref(query: Record<string, string> = {}) {
+		const q = new URLSearchParams(query);
+		if (fromToday) q.set('from', '/');
+		return `/templates/${t.id}${q.size ? `?${q}` : ''}`;
+	}
 	const icon = $derived(sessionIcons.find(([name]) => name === t.icon)?.[0]);
 	// A pick-one section carries its badge in its own header, not a second title.
 	const only = (section: SessionTemplate['sections'][number]) =>
@@ -241,9 +249,9 @@
 				<Topo shape={heroTopo} class="h-full w-full text-[var(--hero-topo)]" />
 			</div>
 			<div class="relative flex h-14 items-center justify-between px-4">
-				<a href="/templates" data-back class="inline-flex h-11 items-center gap-0.5 rounded-full bg-white/10 pr-4 pl-2.5 text-[15px] font-bold">
+				<a href={back.href} data-back class="inline-flex h-11 items-center gap-0.5 rounded-full bg-white/10 pr-4 pl-2.5 text-[15px] font-bold">
 					<Icon name="chevron-left" size="1.25rem" stroke={2.4} />
-					Sessions
+					{back.label}
 				</a>
 				<Menu items={menu} look="bg-white/10 text-on-hero" />
 			</div>
@@ -259,8 +267,8 @@
 			label="Session"
 			replace
 			items={[
-				{ label: 'Overview', href: `/templates/${t.id}`, on: tab === 'overview' },
-				{ label: 'Exercises', href: `/templates/${t.id}?tab=exercises`, on: tab === 'exercises' }
+				{ label: 'Overview', href: tabHref(), on: tab === 'overview' },
+				{ label: 'Exercises', href: tabHref({ tab: 'exercises' }), on: tab === 'exercises' }
 			]}
 		/>
 		<FormError message={error} />
@@ -345,7 +353,7 @@
 					{#each t.sections as section, i (i)}
 						{@const choice = only(section)}
 						<a
-							href="/templates/{t.id}?tab=exercises&open={i}"
+							href={tabHref({ tab: 'exercises', open: String(i) })}
 							data-sveltekit-replacestate
 							class="flex min-h-[76px] items-center gap-4 py-2.5 list-row"
 						>
