@@ -48,7 +48,9 @@ Tokens are in `client/src/tokens.css`; each needs a light and a dark value.
 - `bg-ground` page, `bg-surface` card, `bg-well` field. Text `text-ink`/`-2`, lines `border-line`. `ink-3` is too faint for text to read: keep it for icons, placeholders and what is switched off.
 - Lime (`bg-tint`) marks Start, Log, a page's main button, today's date, the day a dragged session would land on and the current tab, never text. Apricot (`bg-live`) is a running session.
 - Time off is hatched with `--hatch` stripes.
-- Type: `text-xs` labels, `text-[15px]` body, `text-xl` card titles. `digits` for numbers, `reading` for the user's notes.
+- Type: `text-xs` labels, `text-[15px]` body and bold card titles, `page-title` for a page's title. Nothing under 12 px. `digits` for numbers, `reading` for the user's notes.
+- A heading over a group of cards is `text-xl` in a tab's main column, and `Section` (15 px) in a pane or on a detail page.
+- A page title, a heading and the text outside a card sit 4 px in from the card's edge (`px-1`).
 - The landing page (`/welcome`) has its own larger type for the headline and section titles.
 - Fields and `<select>` use `.input`, except a lone free-text note: `bg-surface text-[15px] font-semibold placeholder:text-ink-3`.
 - Reuse `client/src/lib/` parts (`Section`, `Segmented`, `Tabs`, `Sheet`, `Chart`…) before making new ones.
