@@ -9,7 +9,6 @@ import {
 	counts,
 	filterName,
 	flashRate,
-	goesPerSend,
 	grades,
 	hours,
 	mixOf,
@@ -145,9 +144,7 @@ test('the rates count graded climbs only', () => {
 	const cs = [go('6a', ['send']), go('6a', ['attempt', 'attempt', 'send']), go('6a', ['attempt']), go(null, ['send'])];
 	expect(sendRate(cs)).toBe(67);
 	expect(flashRate(cs)).toBe(33);
-	expect(goesPerSend(cs.slice(0, 3))).toBe(2);
 	expect(sendRate([go(null, ['send'])])).toBeNull();
-	expect(goesPerSend([])).toBeNull();
 });
 
 test('pyramid counts the sends and flashes at each grade from the easiest sent to the hardest', () => {

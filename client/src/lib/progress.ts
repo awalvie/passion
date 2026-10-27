@@ -211,12 +211,6 @@ export const sendRate = (climbs: Pick<Climb, 'sent' | 'grade_system'>[]) => perc
 // flashRate is the share of graded climbs sent on the first go.
 export const flashRate = (climbs: Pick<Climb, 'goes' | 'grade_system'>[]) => percent(graded(climbs).filter((c) => c.goes[0] === 'send').length, graded(climbs).length);
 
-// goesPerSend is how many goes a send took on average, to one decimal.
-export function goesPerSend(climbs: Pick<Climb, 'goes' | 'sent'>[]): number | null {
-	const sent = climbs.filter((c) => c.sent);
-	return sent.length ? Math.round((sent.reduce((n, c) => n + c.goes.indexOf('send') + 1, 0) / sent.length) * 10) / 10 : null;
-}
-
 // perBucket is a figure for each bucket's climbs, null for a bucket without any.
 export function perBucket<T extends DatedClimb>(climbs: T[], bs: Bucket[], figure: (cs: T[]) => number | null): (number | null)[] {
 	return bs.map((b) => {

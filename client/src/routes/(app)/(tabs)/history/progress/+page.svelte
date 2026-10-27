@@ -17,7 +17,6 @@
 		filterName,
 		filterQuery,
 		flashRate,
-		goesPerSend,
 		gradeScale,
 		hours,
 		isBoulder,
@@ -456,7 +455,7 @@
 						<dl class="grid grid-cols-3 gap-3">
 							{@render stat('Climbs', count(inPick(shown)), when)}
 							{@render stat(`A ${data.per}`, round(count(shown) / passed))}
-							{@render stat('Tries per send', goesPerSend(inPick(shown)) ?? '–')}
+							{@render stat(data.unique ? 'All' : 'Unique', data.unique ? totalTries(inPick(shown)) : inPick(shown).length)}
 						</dl>
 						<Bars
 							parts={[
