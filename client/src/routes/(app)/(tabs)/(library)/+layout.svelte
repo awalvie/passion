@@ -1,7 +1,9 @@
 <script lang="ts">
 	import Segmented from '$lib/Segmented.svelte';
 	import { page } from '$app/state';
+	import LibraryExercises from '$lib/LibraryExercises.svelte';
 	import Icon from '$lib/Icon.svelte';
+	import LibrarySessions from '$lib/LibrarySessions.svelte';
 
 	let { children } = $props();
 
@@ -34,6 +36,11 @@
 		{/if}
 		<Segmented label="Library" items={parts.map((p) => ({ ...p, on: page.url.pathname.startsWith(p.href) }))} />
 		<main>
+			{#if list?.href === '/templates'}
+				<LibrarySessions templates={page.data.templates} runs={page.data.runs} today={page.data.today} />
+			{:else if list}
+				<LibraryExercises exercises={page.data.exercises} />
+			{/if}
 			{@render children()}
 		</main>
 	</div>
