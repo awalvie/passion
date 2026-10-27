@@ -163,22 +163,20 @@
 			<div class="hidden w-[380px] lg:block">{@render views()}</div>
 			{#if !data.offline}
 				{#if cyclesView}
-					<a href="/plan/cycles/new" class="mt-1 flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm lg:mt-0 lg:h-12 lg:w-41 lg:gap-2 lg:shadow-card" aria-label="New cycle">
+					<a href="/plan/cycles/new" class="flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm lg:h-12 lg:w-41 lg:gap-2 lg:shadow-card" aria-label="New cycle">
 						<Icon name="plus" size="1.25rem" /><span class="hidden text-[15px] font-bold lg:inline" aria-hidden="true">New cycle</span>
 					</a>
 				{:else}
-					<div class="mt-1 lg:mt-0">
-						<Menu
-							label="Add"
-							look="bg-surface text-ink shadow-card-sm lg:h-12 lg:w-41 lg:gap-2 lg:shadow-card"
-							items={[
-								...(data.templates.length ? [{ label: 'A session', onclick: openAdd }] : []),
-								{ label: 'Time off', onclick: () => openOff(null) }
-							]}
-						>
-							<Icon name="plus" size="1.25rem" /><span class="hidden text-[15px] font-bold lg:inline" aria-hidden="true">Add</span>
-						</Menu>
-					</div>
+					<Menu
+						label="Add"
+						look="bg-surface text-ink shadow-card-sm lg:h-12 lg:w-41 lg:gap-2 lg:shadow-card"
+						items={[
+							...(data.templates.length ? [{ label: 'A session', onclick: openAdd }] : []),
+							{ label: 'Time off', onclick: () => openOff(null) }
+						]}
+					>
+						<Icon name="plus" size="1.25rem" /><span class="hidden text-[15px] font-bold lg:inline" aria-hidden="true">Add</span>
+					</Menu>
 				{/if}
 			{/if}
 		</div>

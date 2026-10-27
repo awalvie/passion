@@ -67,7 +67,7 @@
 
 {#if wide.current && part}
 	<div class="mx-auto grid max-w-[1280px] grid-cols-[420px_minmax(0,1fr)]">
-		<div class="flex flex-col gap-3.5 border-r border-line px-6 pt-5 pb-6">
+		<div class="flex flex-col gap-3.5 border-r border-line px-6 pt-3 pb-6">
 			{@render header(part)}
 			{@render segmented()}
 			<!-- A row only swaps the pane, so it neither adds to Back nor scrolls. -->

@@ -110,7 +110,7 @@
 {/snippet}
 
 <div class="lg:mx-auto lg:grid lg:max-w-[1280px] lg:grid-cols-[420px_minmax(0,1fr)]">
-	<div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-6 lg:border-r lg:border-line lg:px-6 lg:pt-5">
+	<div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-6 lg:border-r lg:border-line lg:px-6 lg:pt-3">
 		<header class="flex items-start justify-between gap-3">
 			<h1 class="page-title">Journal</h1>
 			{#if total}
@@ -118,7 +118,7 @@
 					href={wide.current ? pane('new') : '/journal/new'}
 					data-sveltekit-replacestate={wide.current ? '' : undefined}
 					data-sveltekit-noscroll={wide.current ? '' : undefined}
-					class="mt-1 flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"
+					class="flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"
 					aria-label="New entry"
 				>
 					<Icon name="plus" size="1.25rem" />

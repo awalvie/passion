@@ -249,7 +249,7 @@
 	</Section>
 {/snippet}
 
-<div class="flex flex-col gap-3.5 px-4 pt-1 pb-[calc(env(safe-area-inset-bottom)+5rem)] lg:mx-auto lg:w-full lg:max-w-[1280px] lg:px-8 lg:pb-8">
+<div class="flex flex-col gap-3.5 px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+5rem)] lg:mx-auto lg:w-full lg:max-w-[1280px] lg:px-8 lg:pb-8">
 	<header class="px-1">
 		<h1 class="page-title break-words">{data.cycle.name}</h1>
 		<p class="mt-1 text-[15px] font-semibold text-ink-2">

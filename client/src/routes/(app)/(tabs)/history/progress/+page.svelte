@@ -238,7 +238,7 @@
 {/snippet}
 
 {#if wide.current}
-	<header class="mx-auto flex max-w-[1104px] flex-col items-start gap-3 px-10 pt-3 pb-3">
+	<header class="mx-auto flex max-w-[1104px] flex-col items-start gap-3.5 px-10 pt-1.5 pb-3">
 		<a
 			href="/history"
 			data-back
