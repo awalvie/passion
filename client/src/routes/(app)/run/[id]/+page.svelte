@@ -443,7 +443,7 @@
 			<FormError message={error} />
 		</div>
 		<div class="flex flex-col px-4 {run.finished_at ? 'pb-[calc(env(safe-area-inset-bottom)+1.5rem)]' : 'pb-6'}">
-			<section class="rounded-3xl bg-(--glass) px-5 pt-4 pb-[18px]">
+			<section class="rounded-3xl bg-(--glass) p-[18px]">
 				<p class="flex flex-wrap justify-between gap-x-3 font-[family-name:var(--font-digits)] text-sm font-bold tracking-[0.1em] text-(--fg2)">
 					<span>{finished} OF {steps.length} DONE</span>
 					<span>{run.finished_at ? 'FINISHED' : section >= 0 ? `SECTION ${section + 1} OF ${run.sections.length}` : 'ALL DONE'}</span>
@@ -486,7 +486,7 @@
 			{/if}
 
 			{#if remind}
-				<div class="mt-2.5 rounded-3xl bg-(--glass) px-4 pt-3.5 pb-4 shadow-[0_0_0_2px_var(--tint)]">
+				<div class="mt-2.5 rounded-3xl bg-(--glass) p-[18px] shadow-[0_0_0_2px_var(--tint)]">
 					<p class="text-[17px] font-extrabold">
 						{unpicked.length === 1 ? '1 pick to make' : `${unpicked.length} picks to make`}
 					</p>
