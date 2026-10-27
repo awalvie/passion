@@ -75,7 +75,7 @@
 
 	async function retire() {
 		if (doing) return;
-		if (!confirm(`Retire “${t.name}”? It leaves your list of session templates.`)) return;
+		if (!confirm(`Retire “${t.name}”? It leaves your list of sessions.`)) return;
 		error = '';
 		doing = 'retire';
 		try {

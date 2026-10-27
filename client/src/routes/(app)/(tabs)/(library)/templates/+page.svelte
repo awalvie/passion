@@ -1,1 +1,1 @@
-<svelte:head><title>Session templates</title></svelte:head>
+<svelte:head><title>Sessions</title></svelte:head>

@@ -11,7 +11,7 @@
 	let { children } = $props();
 
 	const parts = [
-		{ href: '/templates', label: 'Sessions', add: 'New session template' },
+		{ href: '/templates', label: 'Sessions', add: 'New session' },
 		{ href: '/exercises', label: 'Exercises', add: 'New exercise' }
 	];
 

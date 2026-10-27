@@ -40,7 +40,7 @@
 
 <div class="flex flex-col gap-3.5">
 	<div class="flex items-center gap-2">
-		<div class="min-w-0 flex-1"><LibrarySearch bind:value={f.q} placeholder="Search sessions" label="Search session templates" /></div>
+		<div class="min-w-0 flex-1"><LibrarySearch bind:value={f.q} placeholder="Search sessions" label="Search sessions" /></div>
 		<LibraryFilters bind:origin={f.origin} bind:source={f.source} bind:tag={f.tag} {sources} {tags} shown={shown.length} noun="session" />
 	</div>
 
@@ -85,8 +85,8 @@
 				<button type="button" class="h-11 self-start rounded-full bg-well px-5 text-[15px] font-bold text-ink" onclick={clear}>Clear</button>
 			</Empty>
 		{:else}
-			<Empty title="No session templates yet" text="Build one from your exercises.">
-				<Button href="/templates/new">New session template</Button>
+			<Empty title="No sessions yet" text="Build one from your exercises.">
+				<Button href="/templates/new">New session</Button>
 			</Empty>
 		{/if}
 	{/if}

@@ -58,7 +58,7 @@
 		{error}
 		class="-mx-4"
 	/>
-	<p class="px-1 text-[15px] font-semibold text-ink-2">Once it is saved, you can add it to any session template.</p>
+	<p class="px-1 text-[15px] font-semibold text-ink-2">Once it is saved, you can add it to any session.</p>
 	<div class="rounded-3xl bg-surface p-[18px] shadow-card">
 		<ExerciseForm bind:draft {shown} sources={data.sources} />
 	</div>

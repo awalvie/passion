@@ -8,7 +8,7 @@
 	let { data } = $props();
 </script>
 
-<svelte:head><title>New session template</title></svelte:head>
+<svelte:head><title>New session</title></svelte:head>
 
 <TemplateEditor
 	exercises={data.exercises}

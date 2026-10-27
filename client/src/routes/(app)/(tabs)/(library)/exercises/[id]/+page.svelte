@@ -42,7 +42,7 @@
 	const locked = saved.shipped
 		? 'The app ships this exercise, so it cannot be changed. Duplicate it to make your own.'
 		: saved.retired_at
-			? 'You retired this exercise. Session templates that use it keep their copy.'
+			? 'You retired this exercise. Sessions that use it keep their copy.'
 			: '';
 
 	// A number the exercise already holds stays on screen whatever its type, so
@@ -96,7 +96,7 @@
 
 	async function retire() {
 		if (busy) return;
-		if (!confirm(`Retire “${saved.name}”? It leaves your library. Session templates that use it keep their copy.`))
+		if (!confirm(`Retire “${saved.name}”? It leaves your library. Sessions that use it keep their copy.`))
 			return;
 		error = '';
 		busy = true;
@@ -154,7 +154,7 @@
 			<div class="min-w-0 flex-1">
 				<svelte:element this={wide.current ? 'h2' : 'h1'} class="page-title break-words">{saved.name}</svelte:element>
 				<p class="mt-1 text-[15px] font-semibold text-ink-2">
-					{locked || 'Changes here do not affect session templates that already use it.'}
+					{locked || 'Changes here do not affect sessions that already use it.'}
 				</p>
 			</div>
 			{#if wide.current || !locked}{@render menu()}{/if}
