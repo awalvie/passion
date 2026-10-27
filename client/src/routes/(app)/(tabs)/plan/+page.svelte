@@ -216,7 +216,8 @@
 			<div class="flex flex-col gap-3.5">
 			{#each weeks as w (w.monday)}
 				<section class="flex flex-col gap-2">
-					<div class="flex items-baseline justify-between gap-3 px-1 pt-1.5">
+					<!-- From lg it is as tall as the day pane's header, so the cards line up. -->
+					<div class="flex items-baseline justify-between gap-3 px-1 pt-1.5 lg:h-11 lg:items-center lg:pt-0">
 						<h2 class="shrink-0 text-xl font-bold">{weekTitle(w.monday)}</h2>
 						<span class="truncate text-xs font-semibold text-ink-2">{weekNote(w)}</span>
 					</div>
