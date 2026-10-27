@@ -272,9 +272,10 @@ html {
 	:is(li > :is(button, a[href]), li > details > summary) {
 		border-radius: 0.75rem;
 	}
-	/* Under a mouse, anything that acts shows a hand. A row fills as it does
-	   when pressed; any other control takes a wash of its own text colour, so
-	   lime, dark and plain buttons all darken or lighten a little. */
+	/* A row fills as it does when pressed. A rounded control takes a wash of
+	   its own text colour, so lime, dark and plain buttons all darken or
+	   lighten a little; a square one would show a hard box, so it only shows
+	   the hand. */
 	@media (hover: hover) {
 		:is(button:not(:disabled), a[href], summary, label:has(> input)) {
 			cursor: pointer;
@@ -283,7 +284,7 @@ html {
 			background: var(--well);
 			box-shadow: 0 0 0 6px var(--well);
 		}
-		:is(button:not(:disabled), a[href][class*='rounded']):not(li > *, [data-date]):hover {
+		:is(button:not(:disabled), a[href])[class*='rounded']:not([class*='rounded-none'], li > *, [data-date]):hover {
 			background-image: linear-gradient(color-mix(in srgb, currentColor 7%, transparent), color-mix(in srgb, currentColor 7%, transparent));
 		}
 	}
