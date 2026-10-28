@@ -10,6 +10,7 @@ export type View = (typeof views)[number];
 export async function load({ url }) {
 	const view = (views as readonly string[]).includes(url.searchParams.get('view') ?? '') ? (url.searchParams.get('view') as View) : 'time';
 	const unique = url.searchParams.get('count') === 'unique';
+	const tried = url.searchParams.get('pyramid') === 'tried';
 	const [today, { cycles }, { runs }] = await Promise.all([
 		loadToday(),
 		request<{ cycles: Cycle[] }>('GET', '/api/v1/cycles'),
@@ -36,6 +37,7 @@ export async function load({ url }) {
 		span,
 		filter: readFilter(url.searchParams),
 		unique,
+		tried,
 		...chart,
 		// The cycles the sheet offers: those begun, the latest first.
 		cycles: cycles.filter((c) => c.starts <= today).sort((a, b) => b.starts.localeCompare(a.starts)),

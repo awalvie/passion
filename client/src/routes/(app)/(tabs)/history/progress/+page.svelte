@@ -44,8 +44,8 @@
 	// Opened from Today, the way back leads there, through every view and range.
 	const fromToday = $derived(page.url.searchParams.get('from') === '/');
 	const back = $derived(fromToday ? { href: '/', label: 'Today' } : { href: '/history', label: 'History' });
-	const href = (view: string, range: string, filter = data.filter, unique = data.unique) =>
-		`?view=${view}&range=${range}${filterQuery(filter)}${unique ? '&count=unique' : ''}${fromToday ? '&from=/' : ''}`;
+	const href = (view: string, range: string, filter = data.filter, unique = data.unique, tried = data.tried) =>
+		`?view=${view}&range=${range}${filterQuery(filter)}${unique ? '&count=unique' : ''}${tried ? '&pyramid=tried' : ''}${fromToday ? '&from=/' : ''}`;
 	const round = (h: number) => Math.round(h * 10) / 10;
 	const pct = (v: number | null) => (v === null ? '–' : `${v}%`);
 	// A week still to come counts for nothing in an average.
@@ -136,7 +136,6 @@
 
 	// Boulders and routes apart, as their grades are on different scales. A
 	// picked week's bars are measured against the whole range's.
-	let tries = $state<Record<string, boolean>>({});
 	const disciplines = $derived(
 		[
 			{ label: 'Boulders', range: shown.filter(isBoulder) },
@@ -145,13 +144,11 @@
 			const picks = inPick(range);
 			const scale = gradeScale(picks, data.scales);
 			if (!scale) return [];
-			const all = !!tries[label];
-			const by = all ? 'tried' : 'sent';
+			const by = data.tried ? 'tried' : 'sent';
 			const steps = pyramid(picks, scale, by);
 			return [
 				{
 					label,
-					all,
 					pyramid: steps,
 					most: Math.max(...pyramid(range, scale, by).map((r) => r[by])),
 					sent: steps.reduce((n, r) => n + r.sent, 0),
@@ -503,17 +500,22 @@
 						</ul>
 					</section>
 				</div>
+				{#if disciplines.length}
+					<div class="lg:mt-3 lg:w-48 {data.view === 'grade' ? '' : 'max-lg:hidden'}">
+						<Segmented
+							label="Pyramid shows"
+							replace
+							items={[
+								{ label: 'Sent', on: !data.tried, href: href(data.view, data.span.key, data.filter, data.unique, false) },
+								{ label: 'Tried', on: data.tried, href: href(data.view, data.span.key, data.filter, data.unique, true) }
+							]}
+						/>
+					</div>
+				{/if}
 				<div class="flex-col gap-3.5 lg:grid lg:grid-cols-2 {data.view === 'grade' ? 'flex' : 'hidden'}">
 					{#each disciplines as d (d.label)}
 						<section class="flex flex-col gap-3 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-							<Segmented
-								label="{d.label} to show"
-								items={[
-									{ label: 'Sent', on: !d.all, onclick: () => (tries[d.label] = false) },
-									{ label: 'All', on: d.all, onclick: () => (tries[d.label] = true) }
-								]}
-							/>
-							{#if d.all}
+							{#if data.tried}
 								{@render explained(
 									`${d.label} tried`,
 									d.tried,
@@ -523,11 +525,11 @@
 								{@render explained(`${d.label} sent`, d.sent, 'Each climb you sent, once, at its grade. The middle of each bar is the ones you flashed.')}
 							{/if}
 							{#if d.pyramid.length}
-								<Pyramid rows={d.pyramid} most={d.most} all={d.all} />
+								<Pyramid rows={d.pyramid} most={d.most} all={data.tried} />
 								<div class="flex flex-wrap gap-x-4 gap-y-1.5 text-xs font-semibold text-ink-2">
 									{@render key('bg-chart', 'Flash')}
 									{@render key('bg-chart/50', 'Sent after a try')}
-									{#if d.all}{@render key('bg-ink-3/40', 'Not sent')}{/if}
+									{#if data.tried}{@render key('bg-ink-3/40', 'Not sent')}{/if}
 								</div>
 							{/if}
 							{#if d.elsewhere}
