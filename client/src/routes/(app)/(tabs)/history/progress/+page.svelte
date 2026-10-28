@@ -88,10 +88,6 @@
 		{ label: '1 year', key: monthsBack(12, data.today) },
 		{ label: data.today.slice(0, 4), key: `${data.today.slice(0, 4)}-01-01:${data.today}` }
 	]);
-	// A laptop has room for three more ranges on the row.
-	const wider = $derived(quick.slice(2, 5));
-	const more = $derived(custom && !wider.some((q) => q.key === data.span.key));
-	const customOn = $derived(wide.current ? more : custom);
 	// A span across a new year names both years, or a year back reads as no time.
 	const spanDate = (date: string) =>
 		data.span.from.slice(0, 4) === data.span.to.slice(0, 4) ? shortDate(date) : formatDate(date, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -337,7 +333,6 @@
 		<div class="contents lg:sticky lg:flex lg:top-0 lg:z-20 lg:-my-2 lg:bg-ground lg:py-2">
 			<nav class="flex gap-1 rounded-full bg-well p-1" aria-label="Range">
 				{#each suggested as s (s.key)}{@render pill(s.label, s.key, 'flex')}{/each}
-				{#each wider as q (q.key)}{@render pill(q.label, q.key, 'hidden lg:flex')}{/each}
 				{#if picked !== null}
 					<span class="flex h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-full px-3 segment-on lg:flex-none lg:pr-2 lg:pl-4">
 						<span class="truncate text-[15px] font-bold" aria-live="polite"
@@ -353,10 +348,10 @@
 				{:else}
 					<button
 						type="button"
-						class="flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-[15px] font-bold lg:flex-none {customOn
+						class="flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-[15px] font-bold lg:flex-none {custom
 							? 'segment-on'
 							: 'text-ink-2'}"
-						aria-current={customOn ? 'true' : undefined}
+						aria-current={custom ? 'true' : undefined}
 						aria-haspopup="dialog"
 						onclick={openPicker}
 					>
