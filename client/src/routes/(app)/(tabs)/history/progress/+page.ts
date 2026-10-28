@@ -1,10 +1,10 @@
 import { request } from '$lib/api';
 import { loadGrades } from '$lib/grades';
 import { loadToday, type Cycle } from '$lib/plan';
-import { buckets, readFilter, readSpan, trends, trendWeeks, type DatedClimb } from '$lib/progress';
+import { buckets, readFilter, readSpan, trends, trendWeeks, type DatedClimb, type DatedSet } from '$lib/progress';
 import type { RunSummary } from '$lib/run';
 
-const views = ['time', 'climbs', 'grade'] as const;
+const views = ['time', 'climbs', 'grade', 'strength'] as const;
 export type View = (typeof views)[number];
 
 export async function load({ url }) {
@@ -22,8 +22,9 @@ export async function load({ url }) {
 	const chart = buckets(span, today);
 	const to = span.to < today ? span.to : today;
 	const weeks = trendWeeks(today);
-	const [{ climbs }, { grades }, recent] = await Promise.all([
+	const [{ climbs }, { sets }, { grades }, recent] = await Promise.all([
 		request<{ climbs: DatedClimb[] }>('GET', `/api/v1/climbs?from=${span.from}&to=${to}`),
+		request<{ sets: DatedSet[] }>('GET', `/api/v1/sets?from=${span.from}&to=${to}`),
 		loadGrades(),
 		request<{ climbs: DatedClimb[] }>('GET', `/api/v1/climbs?from=${weeks[0].from}&to=${weeks[7].to}`)
 	]);
@@ -44,6 +45,7 @@ export async function load({ url }) {
 		running: cycles.find((c) => c.starts <= today && today <= c.ends) ?? null,
 		runs: done,
 		climbs,
+		sets,
 		// Nothing in the eight weeks before this one leaves no trend to show.
 		trends: ran.length ? trends(ran, recent.climbs, weeks, first, unique) : null,
 		scales: grades.scales

@@ -15,6 +15,7 @@
 		boardsOpen,
 		climbCount,
 		counts,
+		figure,
 		filterGroups,
 		filterName,
 		filterQuery,
@@ -22,18 +23,22 @@
 		gradeScale,
 		hours,
 		isBoulder,
+		lifts,
 		mixOf,
 		monthsBack,
 		passes,
 		perBucket,
 		pyramid,
 		sendRate,
+		setValue,
 		type ClimbFilter,
 		type FilterGroup,
+		type Lift,
 		type Trend
 	} from '$lib/progress';
 	import Segmented from '$lib/Segmented.svelte';
 	import Sheet from '$lib/Sheet.svelte';
+	import { plural } from '$lib/text';
 	import { MediaQuery } from 'svelte/reactivity';
 
 	let { data } = $props();
@@ -129,6 +134,21 @@
 		for (const c of inPick(shown)) m.set(mixOf(c), (m.get(mixOf(c)) ?? 0) + climbCount([c], data.unique));
 		return [...m].sort((a, b) => b[1] - a[1]);
 	});
+
+	const strength = $derived(lifts(data.sets, data.buckets));
+	const units = { kg: 'kg', s: 's', reps: 'reps' };
+	// A lift reads its best set: the latest session's, or the picked bucket's.
+	function lift(l: Lift): { main: string; small: string; note: string } {
+		const x = picked === null ? l.latest : l.best[picked];
+		if (!x) return { main: '–', small: '', note: 'Not done' };
+		const [main, small] = figure(x, l.measure);
+		if (picked !== null) return { main, small, note: '' };
+		const c = l.change;
+		const note = c === null ? 'Once' : c === 0 ? 'Same' : `${c > 0 ? '+' : '−'}${Math.abs(c)} ${units[l.measure]}`;
+		return { main, small, note };
+	}
+	const liftHref = (l: Lift) =>
+		`/history/exercise/${l.exercise}?name=${encodeURIComponent(l.name)}&from=${encodeURIComponent(page.url.pathname + page.url.search)}`;
 
 	// Boulders and routes apart, as their grades are on different scales. A
 	// picked week's bars are measured against the whole range's.
@@ -325,7 +345,8 @@
 				items={[
 					{ label: 'Time', on: data.view === 'time', href: href('time', data.span.key) },
 					{ label: 'Climbs', on: data.view === 'climbs', href: href('climbs', data.span.key) },
-					{ label: 'Grade', on: data.view === 'grade', href: href('grade', data.span.key) }
+					{ label: 'Grade', on: data.view === 'grade', href: href('grade', data.span.key) },
+					{ label: 'Strength', on: data.view === 'strength', href: href('strength', data.span.key) }
 				]}
 			/>
 		</div>
@@ -401,7 +422,7 @@
 			</div>
 		</div>
 
-		<div class="flex-col gap-3.5 lg:mt-3 lg:flex {data.view === 'time' ? 'hidden' : 'flex'}">
+		<div class="flex-col gap-3.5 lg:mt-3 lg:flex {data.view === 'climbs' || data.view === 'grade' ? 'flex' : 'hidden'}">
 			<div class="mt-1 flex items-baseline justify-between gap-3 px-1 lg:items-center">
 				<button type="button" class="-my-2 flex min-h-11 shrink-0 items-center gap-1 text-left text-xl font-bold tracking-tight lg:hidden" aria-haspopup="dialog" onclick={openFilter}>
 					{filterName(data.filter)}
@@ -540,6 +561,54 @@
 						</section>
 					{/each}
 				</div>
+			{/if}
+		</div>
+
+		<div class="flex-col gap-3.5 lg:mt-3 lg:flex {data.view === 'strength' ? 'flex' : 'hidden'}">
+			<div class="mt-1 flex items-baseline justify-between gap-3 px-1">
+				<h2 class="shrink-0 text-xl font-bold tracking-tight">Exercises</h2>
+				{@render dates()}
+			</div>
+			{#if strength.length}
+				<ul class="rounded-3xl bg-surface px-[18px] py-1 shadow-card lg:grid lg:grid-cols-2 lg:gap-x-9">
+					{#each strength as l (l.exercise)}
+						{@const f = lift(l)}
+						{@const marks = l.best.flatMap((x, i) => (x ? [{ i, v: setValue(x, l.measure), best: true }] : []))}
+						<li class="list-row lg:[&:nth-child(2)]:shadow-none">
+							<a href={liftHref(l)} class="flex flex-col gap-2.5 py-3.5">
+								<span class="flex items-start gap-3">
+									<span class="min-w-0 flex-1">
+										<span class="block truncate text-[15px] font-bold">{l.name}</span>
+										<span class="mt-0.5 block text-xs font-semibold text-ink-2">{plural(l.sessions, 'session')}</span>
+									</span>
+									<span class="flex shrink-0 flex-col items-end">
+										<span class="digits text-xl leading-tight">{f.main}<span class="ml-0.5 text-xs font-semibold text-ink-2">{f.small}</span></span>
+										{#if f.note}<span class="mt-0.5 text-xs font-bold text-ink-2">{f.note}</span>{/if}
+									</span>
+									<span class="self-center text-ink-3"><Icon name="chevron-right" size="16px" stroke={2.4} /></span>
+								</span>
+								{#if l.sessions > 1}
+									<Dots
+										n={data.buckets.length}
+										{marks}
+										label={(v) => `${v}`}
+										zero={marks.some((m) => m.v < 0)}
+										height={30}
+										small
+										pick={picked}
+									/>
+								{/if}
+							</a>
+						</li>
+					{/each}
+				</ul>
+				<p class="px-1 text-xs font-semibold text-ink-2">
+					Each exercise in its own unit: its best set in a session, by added weight, else time under load, else reps. The change is from the range's first session to its latest.
+				</p>
+			{:else}
+				<section class="rounded-3xl bg-surface p-[18px] shadow-card">
+					<p class="text-[15px] font-semibold text-ink-2">No sets logged in this range.</p>
+				</section>
 			{/if}
 		</div>
 	</div>
