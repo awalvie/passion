@@ -14,13 +14,16 @@
 	{#each rows.toReversed() as r (r.grade)}
 		{@const open = all ? (r.tried - r.sent) / 2 : 0}
 		{@const side = (r.sent - r.flash) / 2}
-		{@const parts = [
-			[open, 'bg-ink-3/40'],
-			[side, 'bg-chart/50'],
-			[r.flash, 'bg-chart'],
-			[side, 'bg-chart/50'],
-			[open, 'bg-ink-3/40']
-		] as const}
+		<!-- A grade with no sends is one grey bar, not two halves with a gap. -->
+		{@const parts = r.sent
+			? ([
+					[open, 'bg-ink-3/40'],
+					[side, 'bg-chart/50'],
+					[r.flash, 'bg-chart'],
+					[side, 'bg-chart/50'],
+					[open, 'bg-ink-3/40']
+				] as const)
+			: ([[open * 2, 'bg-ink-3/40']] as const)}
 		<li class="flex h-10 items-center gap-3 list-row">
 			<span class="w-9 shrink-0 digits text-[15px]">{r.grade}</span>
 			<span class="flex min-w-0 flex-1 justify-center gap-0.5" aria-hidden="true">
