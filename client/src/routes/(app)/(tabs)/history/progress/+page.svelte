@@ -305,16 +305,15 @@
 	<NavBar {back} title="Progress" />
 {/if}
 
-<!-- The ranges look like Segmented, which cannot hide some of its items on a
-     phone. -->
-{#snippet pill(label: string, key: string, cls = '')}
+<!-- Not Segmented: the row also holds Custom or the picked week. -->
+{#snippet pill(label: string, key: string)}
 	{@const on = data.span.key === key && picked === null}
 	<a
 		href={href(data.view, key)}
 		data-sveltekit-replacestate
 		data-sveltekit-noscroll
 		aria-current={on ? 'true' : undefined}
-		class="h-11 flex-1 items-center justify-center rounded-full px-4 text-[15px] font-bold whitespace-nowrap lg:flex-none {cls} {on ? 'segment-on' : 'text-ink-2'}"
+		class="flex h-11 flex-1 items-center justify-center rounded-full px-4 text-[15px] font-bold whitespace-nowrap lg:flex-none {on ? 'segment-on' : 'text-ink-2'}"
 		onclick={() => choose(null)}
 	>
 		{label}
@@ -353,7 +352,7 @@
 		<!-- On a laptop the ranges stick at the top. A picked week takes Custom's place. -->
 		<div class="contents lg:sticky lg:flex lg:top-0 lg:z-20 lg:-my-2 lg:bg-ground lg:py-2">
 			<nav class="flex gap-1 rounded-full bg-well p-1" aria-label="Range">
-				{#each suggested as s (s.key)}{@render pill(s.label, s.key, 'flex')}{/each}
+				{#each suggested as s (s.key)}{@render pill(s.label, s.key)}{/each}
 				{#if picked !== null}
 					<span class="flex h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-full px-3 segment-on lg:flex-none lg:pr-2 lg:pl-4">
 						<span class="truncate text-[15px] font-bold" aria-live="polite"
