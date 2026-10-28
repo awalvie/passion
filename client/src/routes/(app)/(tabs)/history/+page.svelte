@@ -11,6 +11,7 @@
 	import { formatMinutes } from '$lib/exercise';
 	import Dots from '$lib/Dots.svelte';
 	import ExerciseHistory from '$lib/ExerciseHistory.svelte';
+	import FormBar from '$lib/FormBar.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import { counts, gradeScale, grades, hours, isBoulder } from '$lib/progress';
@@ -200,7 +201,7 @@
 	     the window and a short list does not. -->
 	<div class="{journaling ? '' : 'hidden'} lg:sticky lg:top-0 lg:-mb-8 lg:block lg:h-dvh lg:overflow-y-auto lg:border-l lg:border-line" bind:this={pane} data-sveltekit-replacestate data-sveltekit-noscroll>
 		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 pb-8 {journaling ? 'lg:px-4' : 'px-8 pt-3'}">
-			<FormError message={paneError} />
+			<FormError message={journaling ? '' : paneError} />
 			{#if exerciseId && exercise?.id === exerciseId}
 				<div class="flex">
 					<a
@@ -225,6 +226,9 @@
 							await goto(`/history?open=${r.id}`, { replaceState: true, noScroll: true });
 						}}
 					/>
+				{:else}
+					<!-- While the run loads, or when it fails to, the bar keeps a way back. -->
+					<FormBar title="Session journal" cancel="/history?open={openId}" heading="h2" disabled error={paneError} />
 				{/if}
 			{:else if opened && opened.id === openId}
 				{@const run = opened}
