@@ -134,22 +134,25 @@
 		return [...m].sort((a, b) => b[1] - a[1]);
 	});
 
-	// Boulders and routes apart, as their grades are on different scales.
+	// Boulders and routes apart, as their grades are on different scales. A
+	// picked week's bars are measured against the whole range's.
 	const disciplines = $derived(
 		[
-			{ label: 'Boulders', climbs: inPick(shown).filter(isBoulder) },
-			{ label: 'Routes', climbs: inPick(shown).filter((c) => !isBoulder(c)) }
-		].flatMap((d) => {
-			const scale = gradeScale(d.climbs, data.scales);
+			{ label: 'Boulders', all: shown.filter(isBoulder) },
+			{ label: 'Routes', all: shown.filter((c) => !isBoulder(c)) }
+		].flatMap(({ label, all }) => {
+			const climbs = inPick(all);
+			const scale = gradeScale(climbs, data.scales);
 			if (!scale) return [];
-			const steps = pyramid(d.climbs, scale);
+			const steps = pyramid(climbs, scale);
 			return [
 				{
-					...d,
+					label,
 					pyramid: steps,
+					most: Math.max(...pyramid(all, scale).map((r) => r.sent)),
 					sent: steps.reduce((n, r) => n + r.sent, 0),
 					// Climbs graded in another system have no place on this scale.
-					elsewhere: d.climbs.filter((c) => c.grade_system && c.grade_system !== scale.system).length
+					elsewhere: climbs.filter((c) => c.grade_system && c.grade_system !== scale.system).length
 				}
 			];
 		})
@@ -500,7 +503,7 @@
 						<section class="flex flex-col gap-3 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
 							{@render explained(`${d.label} sent`, d.sent, 'Each climb you sent, once, at its grade. The middle of each bar is the ones you flashed.')}
 							{#if d.pyramid.length}
-								<Pyramid rows={d.pyramid} />
+								<Pyramid rows={d.pyramid} most={d.most} />
 								<div class="flex gap-4 text-xs font-semibold text-ink-2">
 									{@render key('bg-chart', 'Flash')}
 									{@render key('bg-chart/50', 'Sent after a try')}

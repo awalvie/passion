@@ -3,11 +3,11 @@
 
 	// A grade pyramid: the hardest grade on top, one bar of sends for each
 	// grade. Each bar is centred, with its flashes in the middle and the other
-	// sends split either side, so the shape stays symmetric.
-	let { rows }: { rows: Step[] } = $props();
+	// sends split either side, so the shape stays symmetric. most is the count a
+	// full bar stands for.
+	let { rows, most }: { rows: Step[]; most: number } = $props();
 
-	const top = $derived(Math.max(...rows.map((r) => r.sent)));
-	const share = (n: number) => `${(n / top) * 100}%`;
+	const share = (n: number) => `${(n / most) * 100}%`;
 </script>
 
 <ul>
