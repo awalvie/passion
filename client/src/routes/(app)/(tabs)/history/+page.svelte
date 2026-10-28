@@ -14,7 +14,7 @@
 	import FormBar from '$lib/FormBar.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
-	import { counts, gradeScale, grades, hours, isBoulder } from '$lib/progress';
+	import { counts, gradeScale, grades, hours, isBoulder, progressFrom } from '$lib/progress';
 	import { loadExerciseHistory, type Run, type RunSummary } from '$lib/run';
 	import { openRun } from '$lib/runState.svelte';
 	import RunView from '$lib/RunView.svelte';
@@ -203,12 +203,15 @@
 		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 pb-8 {journaling ? 'lg:px-4' : 'px-8 pt-3'}">
 			<FormError message={journaling ? '' : paneError} />
 			{#if exerciseId && exercise?.id === exerciseId}
+				{@const progress = progressFrom(page.url.searchParams.get('from'))}
 				<div class="flex">
 					<a
-						href="/history?open={openId}"
+						href={progress ?? `/history?open=${openId}`}
+						data-sveltekit-replacestate={progress ? 'false' : undefined}
+						data-sveltekit-noscroll={progress ? 'false' : undefined}
 						class="inline-flex h-11 items-center gap-0.5 rounded-full bg-surface pr-4 pl-2.5 text-[15px] font-bold text-ink shadow-card-sm"
 					>
-						<Icon name="chevron-left" size="1.25rem" stroke={2.4} />Session
+						<Icon name="chevron-left" size="1.25rem" stroke={2.4} />{progress ? 'Progress' : 'Session'}
 					</a>
 				</div>
 				<header class="px-1">

@@ -2,14 +2,20 @@
 	import { page } from '$app/state';
 	import ExerciseHistory from '$lib/ExerciseHistory.svelte';
 	import NavBar from '$lib/NavBar.svelte';
+	import { progressFrom } from '$lib/progress';
 	import { plural } from '$lib/text';
 
 	let { data } = $props();
 
-	// Back to the session or exercise page it was opened from, else History.
+	// Back to the session, exercise or Progress page it was opened from, else History.
 	const from = $derived(page.url.searchParams.get('from')?.match(/^\/(history|exercises)\/[\w-]+$/)?.[0]);
+	const progress = $derived(progressFrom(page.url.searchParams.get('from')));
 	const back = $derived(
-		from ? { href: from, label: from.startsWith('/history') ? 'Session' : 'Exercise' } : { href: '/history', label: 'History' }
+		progress
+			? { href: progress, label: 'Progress' }
+			: from
+				? { href: from, label: from.startsWith('/history') ? 'Session' : 'Exercise' }
+				: { href: '/history', label: 'History' }
 	);
 </script>
 

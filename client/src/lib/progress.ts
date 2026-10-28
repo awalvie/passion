@@ -428,3 +428,7 @@ export function lifts(sets: DatedSet[], bs: Bucket[]): Lift[] {
 	}
 	return out.sort((a, b) => b.sessions - a.sessions || a.name.localeCompare(b.name));
 }
+
+// progressFrom is a link back to Progress, with its view and range, when from
+// names one.
+export const progressFrom = (from: string | null) => from?.match(/^\/history\/progress(\?[^#]*)?$/)?.[0];

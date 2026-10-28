@@ -21,6 +21,7 @@ import {
 	monthsBack,
 	passes,
 	perBucket,
+	progressFrom,
 	readFilter,
 	readSpan,
 	sendRate,
@@ -492,4 +493,12 @@ test('lifts follow each loaded exercise by its best set a session, the most done
 	expect(got[0].best.map((x) => x?.weight_kg ?? null)).toEqual([12.5, null, 15]);
 	expect(got[0].best[2]?.reps).toBe(5);
 	expect(got[0].latest.reps).toBe(3);
+});
+
+test('progressFrom keeps only a link to Progress', () => {
+	expect(progressFrom('/history/progress?view=strength&range=10w')).toBe('/history/progress?view=strength&range=10w');
+	expect(progressFrom('/history/progress')).toBe('/history/progress');
+	expect(progressFrom('https://example.com/history/progress')).toBeUndefined();
+	expect(progressFrom('/history/abc')).toBeUndefined();
+	expect(progressFrom(null)).toBeUndefined();
 });
