@@ -26,12 +26,13 @@
 	// none named, the newest opens. An exercise's name in it swaps the pane for
 	// that exercise's history, named by exercise.
 	const wide = new MediaQuery('min-width: 64rem');
-	const openId = $derived(wide.current ? page.url.searchParams.get('open') || data.runs[0]?.id : undefined);
+	// journal swaps the pane for the session's journal form, which edits the
+	// run through openRun as the form does in a session. Below lg the form
+	// fills the window, so a narrowed window keeps what was typed.
+	const journaling = $derived(page.url.searchParams.has('open') && page.url.searchParams.has('journal'));
+	const openId = $derived(wide.current || journaling ? page.url.searchParams.get('open') || data.runs[0]?.id : undefined);
 	const exerciseId = $derived(wide.current ? page.url.searchParams.get('exercise') : null);
 	const exerciseName = $derived(page.url.searchParams.get('name'));
-	// journal swaps the pane for the session's journal form, which edits the
-	// run through openRun as the form does in a session.
-	const journaling = $derived(!!openId && page.url.searchParams.has('journal'));
 	let opened = $state<Run | null>(null);
 	let exercise = $state<(Awaited<ReturnType<typeof loadExerciseHistory>> & { id: string }) | null>(null);
 	let paneError = $state('');
@@ -120,7 +121,7 @@
 {/snippet}
 
 <div class="lg:mx-auto lg:grid lg:max-w-[1280px] lg:grid-cols-[420px_minmax(0,1fr)]">
-	<div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-6 lg:px-6 lg:pt-3">
+	<div class="{journaling ? 'hidden lg:flex' : 'flex'} flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-6 lg:px-6 lg:pt-3">
 		<h1 class="page-title px-1">History</h1>
 
 		{#if data.runs.length}
@@ -197,7 +198,7 @@
 	     lift it at the end of the page. A link within it changes only the pane;
 	     one to another page turns that off. It draws the divider, as it fills
 	     the window and a short list does not. -->
-	<div class="hidden lg:sticky lg:top-0 lg:-mb-8 lg:block lg:h-dvh lg:overflow-y-auto lg:border-l lg:border-line" bind:this={pane} data-sveltekit-replacestate data-sveltekit-noscroll>
+	<div class="{journaling ? '' : 'hidden'} lg:sticky lg:top-0 lg:-mb-8 lg:block lg:h-dvh lg:overflow-y-auto lg:border-l lg:border-line" bind:this={pane} data-sveltekit-replacestate data-sveltekit-noscroll>
 		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 pb-8 {journaling ? 'px-4' : 'px-8 pt-3'}">
 			<FormError message={paneError} />
 			{#if exerciseId && exercise?.id === exerciseId}
