@@ -155,8 +155,8 @@
 		})
 	);
 
-	// The tiles of the last four weeks. A phone shows those of its view; a
-	// laptop shows them all.
+	// The tiles of the last four weeks. A phone shows those of Climbs, as the
+	// Time card already gives the hours; a laptop shows them all.
 	const tiles = $derived.by(() => {
 		const t = data.trends;
 		if (!t) return [];
@@ -167,7 +167,6 @@
 			{ label: 'Flash rate', t: t.flash, unit: '%', view: 'climbs' }
 		];
 	});
-	const lone = $derived(tiles.filter((t) => t.view === data.view).length === 1);
 
 	// change is how far a trend moved, signed, in its own unit.
 	function change(t: Trend, unit: string): string | null {
@@ -221,27 +220,23 @@
 	</div>
 {/snippet}
 
-{#snippet tile(label: string, t: Trend, unit: string, cls: string, alone: boolean)}
+{#snippet tile(label: string, t: Trend, unit: string, cls: string)}
 	{@const c = change(t, unit)}
 	{@const vs = t.weeks.filter((v) => v !== null)}
-	<div
-		class="flex min-w-0 flex-col gap-0.5 rounded-3xl bg-surface px-3 py-2.5 shadow-card lg:px-3.5 lg:py-3 {alone
-			? 'max-lg:grid max-lg:grid-cols-[auto_minmax(0,1fr)] max-lg:gap-x-6 max-lg:px-[18px]'
-			: ''} {cls}"
-	>
+	<div class="flex min-w-0 flex-col gap-0.5 rounded-3xl bg-surface px-3 py-2.5 shadow-card lg:px-3.5 lg:py-3 {cls}">
 		<dt class="truncate text-xs font-semibold text-ink-2">{label}</dt>
-		<dd class="flex items-baseline justify-between gap-1.5 {alone ? 'max-lg:col-start-1 max-lg:gap-3' : ''}">
+		<dd class="flex items-baseline justify-between gap-1.5">
 			<span class="digits text-[22px] leading-tight">{t.now === null ? '–' : `${t.now}${unit}`}</span>
 			{#if c}
 				<span class="text-xs font-bold whitespace-nowrap text-ink-2">{c}</span>
 			{/if}
 		</dd>
-		<!-- The eight weeks behind the figure, on a laptop, or beside a tile alone on its row. -->
+		<!-- The eight weeks behind the figure, on a laptop. -->
 		{#if vs.length > 1}
 			{@const lo = Math.min(...vs)}
 			{@const hi = Math.max(...vs)}
 			<svg
-				class="mt-1.5 hidden h-7 w-full lg:block {alone ? 'max-lg:col-start-2 max-lg:row-span-2 max-lg:row-start-1 max-lg:mt-0 max-lg:block max-lg:h-10 max-lg:self-center' : ''}"
+				class="mt-1.5 hidden h-7 w-full lg:block"
 				viewBox="0 0 100 28"
 				preserveAspectRatio="none"
 				aria-hidden="true"
@@ -370,8 +365,8 @@
 			<h2 class="mt-3 hidden px-1 text-xl font-bold tracking-tight lg:block">
 				Last 4 weeks
 			</h2>
-			<dl class="grid auto-cols-fr grid-flow-col gap-2 lg:grid-flow-row lg:grid-cols-4 lg:gap-3.5 {data.view === 'grade' ? 'max-lg:hidden' : ''}" aria-label="Last 4 weeks">
-				{#each tiles as t (t.label)}{@render tile(t.label, t.t, t.unit, t.view === data.view ? '' : 'max-lg:hidden', lone)}{/each}
+			<dl class="grid auto-cols-fr grid-flow-col gap-2 lg:grid-flow-row lg:grid-cols-4 lg:gap-3.5 {data.view === 'climbs' ? '' : 'max-lg:hidden'}" aria-label="Last 4 weeks">
+				{#each tiles as t (t.label)}{@render tile(t.label, t.t, t.unit, t.view === 'climbs' ? '' : 'max-lg:hidden')}{/each}
 			</dl>
 		{/if}
 
