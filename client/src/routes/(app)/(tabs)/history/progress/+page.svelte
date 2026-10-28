@@ -563,9 +563,12 @@
 		</div>
 
 		<div class="flex-col gap-3.5 lg:mt-3 lg:flex {data.view === 'strength' ? 'flex' : 'hidden'}">
-			<div class="mt-1 flex items-baseline justify-between gap-3 px-1">
+			<div class="relative mt-1 flex items-center gap-3 px-1">
 				<h2 class="shrink-0 text-xl font-bold tracking-tight">Exercises</h2>
-				{@render dates()}
+				<Info
+					text="Each exercise in its own unit: its best set in a session, by added weight, else time under load, else reps. The change is from the range's first session to its latest."
+				/>
+				<span class="ml-auto min-w-0">{@render dates()}</span>
 			</div>
 			{#if strength.length}
 				<ul class="rounded-3xl bg-surface px-[18px] py-1 shadow-card lg:grid lg:grid-cols-2 lg:gap-x-9">
@@ -600,9 +603,6 @@
 						</li>
 					{/each}
 				</ul>
-				<p class="px-1 text-xs font-semibold text-ink-2">
-					Each exercise in its own unit: its best set in a session, by added weight, else time under load, else reps. The change is from the range's first session to its latest.
-				</p>
 			{:else}
 				<section class="rounded-3xl bg-surface p-[18px] shadow-card">
 					<p class="text-[15px] font-semibold text-ink-2">No sets logged in this range.</p>
