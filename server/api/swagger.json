@@ -1706,6 +1706,53 @@
         ]
       }
     },
+    "/api/v1/sets": {
+      "get": {
+        "description": "Every set in your finished runs from one day to another, both included,\nby day and then in the order they were logged, each with its step's name,\nkind and tags.",
+        "tags": [
+          "runs"
+        ],
+        "summary": "List your sets",
+        "operationId": "listSets",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "From",
+            "description": "The first day, written YYYY-MM-DD.",
+            "name": "from",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "To",
+            "description": "The last day, included.",
+            "name": "to",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/datedSetListResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/time-off": {
       "get": {
         "tags": [
@@ -2621,6 +2668,113 @@
           "type": "string",
           "x-go-name": "Step",
           "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "datedSetBody": {
+      "type": "object",
+      "properties": {
+        "exercise": {
+          "description": "The exercise the step pointed at when the set was written.",
+          "type": "string",
+          "x-go-name": "Exercise",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "kind": {
+          "description": "The step's kind as the run held it.",
+          "type": "string",
+          "x-go-name": "Kind",
+          "example": "reps_and_sets"
+        },
+        "local_date": {
+          "description": "The run's day.",
+          "type": "string",
+          "x-go-name": "LocalDate",
+          "example": "2026-03-07"
+        },
+        "name": {
+          "description": "The step's name as the run held it.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Max hangs"
+        },
+        "number": {
+          "description": "From 1.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Number",
+          "example": 1
+        },
+        "rep_seconds": {
+          "description": "Each rep's time, when they differ, as a ladder's. seconds is then empty.",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "RepSeconds",
+          "example": [
+            3,
+            6,
+            9
+          ]
+        },
+        "reps": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Reps",
+          "example": 5
+        },
+        "run": {
+          "description": "The run it was logged in.",
+          "type": "string",
+          "x-go-name": "Run",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "seconds": {
+          "description": "How long it was held or ran.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Seconds",
+          "example": 10
+        },
+        "step": {
+          "description": "The step's id.",
+          "type": "string",
+          "x-go-name": "Step",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "tags": {
+          "description": "The step's tags as the run held it.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Tags",
+          "example": [
+            "fingers"
+          ]
+        },
+        "weight_kg": {
+          "description": "Added weight. Below zero is assistance, and zero is bodyweight.",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "WeightKG",
+          "example": 12.5
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "datedSetListResponse": {
+      "type": "object",
+      "properties": {
+        "sets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/datedSetBody"
+          },
+          "x-go-name": "Sets"
         }
       },
       "x-go-package": "passion/server/api"

@@ -269,7 +269,7 @@ type centreParams struct {
 	Body centreRequest `json:"body"`
 }
 
-// swagger:parameters listScheduledSessions
+// swagger:parameters listScheduledSessions listSets
 type scheduleRangeParams struct {
 	// The first day, written YYYY-MM-DD.
 	//

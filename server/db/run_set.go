@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -210,4 +211,41 @@ func runSets(ctx context.Context, q querier, runID string, step *string) ([]Set,
 		return nil, fmt.Errorf("read sets: %w", err)
 	}
 	return sets, nil
+}
+
+// DatedSet is one set of a finished run, with the run's day and the step as
+// the run held it. A step typed in mid-run has no row in the library, so its
+// name, kind and tags come from the run.
+type DatedSet struct {
+	Run       string    `db:"run"`
+	LocalDate time.Time `db:"local_date"`
+	Name      string    `db:"name"`
+	Kind      string    `db:"kind"`
+	Tags      []string  `db:"tags"`
+	Set
+}
+
+// ListSets is every set of the owner's finished runs from one day to
+// another, both included, by day and then in the order they were logged.
+func ListSets(ctx context.Context, pool *pgxpool.Pool, owner string, from, to time.Time) ([]DatedSet, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT s.run::text AS run, r.local_date, s.step, s.number, s.exercise, s.reps, s.seconds, s.rep_seconds, s.weight_kg,
+			st->>'name' AS name, st->>'kind' AS kind, coalesce(st->'tags', '[]'::jsonb) AS tags
+		FROM run_set s
+		JOIN run r ON r.id = s.run
+		CROSS JOIN LATERAL (
+			SELECT item->'step' AS st
+			FROM jsonb_array_elements(r.body->'sections') section, jsonb_array_elements(section->'items') item
+			WHERE item->'step'->>'id' = s.step::text
+		) step
+		WHERE s.owner = $1 AND r.owner = $1 AND r.finished_at IS NOT NULL AND r.local_date BETWEEN $2 AND $3
+		ORDER BY r.local_date, r.started_at, r.id, s.step, s.number`, owner, from, to)
+	if err != nil {
+		return nil, fmt.Errorf("select sets: %w", err)
+	}
+	list, err := pgx.CollectRows(rows, pgx.RowToStructByName[DatedSet])
+	if err != nil {
+		return nil, fmt.Errorf("read sets: %w", err)
+	}
+	return list, nil
 }

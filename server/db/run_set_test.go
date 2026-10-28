@@ -246,3 +246,60 @@ func TestCheckSets(t *testing.T) {
 		t.Fatalf("problems %v, want %v", problems, want)
 	}
 }
+
+func TestListSets(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	bob := newAccount(t, pool, "bob@example.com")
+
+	hang := kinded(runStep(s1, e1, "Max hangs"), "reps_and_sets")
+	hang.Tags = []string{"fingers"}
+	loggedOn := func(owner, day string, finish bool, kg float64) db.Run {
+		t.Helper()
+		d, err := time.Parse(time.DateOnly, day)
+		if err != nil {
+			t.Fatal(err)
+		}
+		run := startRun(t, ctx, pool, owner, db.RunStart{Name: "Open", StartedAt: time.Now(), LocalDate: &d})
+		run = putBody(t, ctx, pool, owner, run, hang)
+		if _, err := db.ReplaceSets(ctx, pool, owner, run.ID, s1, []db.SetFields{{Seconds: ptr(10), WeightKG: ptr(kg)}, {Seconds: ptr(10)}}); err != nil {
+			t.Fatal(err)
+		}
+		if finish {
+			if _, err := db.FinishRun(ctx, pool, owner, run.ID); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return run
+	}
+	loggedOn(ada, "2026-03-06", true, 1)
+	first := loggedOn(ada, "2026-03-07", true, 2)
+	loggedOn(ada, "2026-03-08", true, 3)
+	loggedOn(ada, "2026-03-08", false, 4)
+	loggedOn(ada, "2026-03-09", true, 5)
+	loggedOn(bob, "2026-03-07", true, 6)
+
+	from, _ := time.Parse(time.DateOnly, "2026-03-07")
+	to, _ := time.Parse(time.DateOnly, "2026-03-08")
+	list, err := db.ListSets(ctx, pool, ada, from, to)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var kg []float64
+	for _, s := range list {
+		if s.WeightKG != nil {
+			kg = append(kg, *s.WeightKG)
+		}
+	}
+	if len(list) != 4 || !slices.Equal(kg, []float64{2, 3}) {
+		t.Fatalf("sets %+v, want ada's finished ones from the 7th to the 8th, in order", list)
+	}
+	s := list[0]
+	if s.Run != first.ID || s.LocalDate.Format(time.DateOnly) != "2026-03-07" || s.Number != 1 || s.Exercise != e1 {
+		t.Fatalf("set %+v, want its run, day, number and exercise", s)
+	}
+	if s.Name != "Max hangs" || s.Kind != "reps_and_sets" || !slices.Equal(s.Tags, []string{"fingers"}) {
+		t.Fatalf("set %+v, want the step's name, kind and tags", s)
+	}
+}

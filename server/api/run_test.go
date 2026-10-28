@@ -426,6 +426,71 @@ func TestListClimbs(t *testing.T) {
 	}
 }
 
+func TestListSets(t *testing.T) {
+	h := newTestServer(t)
+	ada := signedIn(t, h, "ada@example.com")
+	bob := signedIn(t, h, "bob@example.com")
+	const step = "0199c3a0-0000-7000-8000-0000000000a3"
+	logOn := func(who, day string, finish bool) string {
+		t.Helper()
+		run := startRunFor(t, h, who, `{"name": "Open", "local_date": "`+day+`"}`)
+		body := runRequestFrom(t, run, func(b map[string]any) {
+			b["sections"] = []any{map[string]any{"name": "Main", "items": []any{
+				map[string]any{"step": map[string]any{"id": step, "exercise": "0199c3a0-0000-7000-8000-0000000000b3", "name": "Max hangs", "kind": "reps_and_sets", "tags": []string{"fingers"}}},
+			}}}
+		})
+		if rec := send(t, h, http.MethodPut, "/api/v1/runs/"+run.ID, who, body); rec.Code != http.StatusOK {
+			t.Fatalf("put body: status %d: %s", rec.Code, rec.Body)
+		}
+		path := "/api/v1/runs/" + run.ID + "/steps/" + step + "/sets"
+		if rec := send(t, h, http.MethodPut, path, who, `{"sets": [{"seconds": 10, "weight_kg": 12.5}]}`); rec.Code != http.StatusOK {
+			t.Fatalf("put sets: status %d: %s", rec.Code, rec.Body)
+		}
+		if finish {
+			send(t, h, http.MethodPost, "/api/v1/runs/"+run.ID+"/finish", who, "")
+		}
+		return run.ID
+	}
+	logOn(ada, "2026-03-06", true)
+	first := logOn(ada, "2026-03-07", true)
+	logOn(ada, "2026-03-08", true)
+	logOn(ada, "2026-03-08", false)
+	logOn(ada, "2026-03-09", true)
+	logOn(bob, "2026-03-07", true)
+
+	rec := send(t, h, http.MethodGet, "/api/v1/sets?from=2026-03-07&to=2026-03-08", ada, "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("list: status %d: %s", rec.Code, rec.Body)
+	}
+	var got datedSetListResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	var days []string
+	for _, s := range got.Sets {
+		days = append(days, s.LocalDate)
+	}
+	if !slices.Equal(days, []string{"2026-03-07", "2026-03-08"}) || got.Sets[0].Run != first {
+		t.Fatalf("sets %+v, want ada's finished ones on the 7th and the 8th", got.Sets)
+	}
+	s := got.Sets[0]
+	if s.Name != "Max hangs" || s.Kind != "reps_and_sets" || !slices.Equal(s.Tags, []string{"fingers"}) || s.WeightKG == nil || *s.WeightKG != 12.5 {
+		t.Fatalf("set %+v, want its step's name, kind and tags and its weight", s)
+	}
+
+	for name, query := range map[string]string{
+		"no range":         "",
+		"a bad day":        "?from=soon&to=2026-03-08",
+		"a range reversed": "?from=2026-03-08&to=2026-03-07",
+	} {
+		t.Run(name, func(t *testing.T) {
+			if rec := send(t, h, http.MethodGet, "/api/v1/sets"+query, ada, ""); rec.Code != http.StatusUnprocessableEntity {
+				t.Fatalf("status %d, want 422", rec.Code)
+			}
+		})
+	}
+}
+
 // A started_at that reads back past year 9999, or before year 0, cannot be
 // written as JSON. Taking one answers an empty body, and empties the run list
 // for good, so it must be refused.
@@ -544,6 +609,7 @@ func TestRunsNeedSignIn(t *testing.T) {
 		{http.MethodPut, "/api/v1/runs/" + id + "/climbs/" + id},
 		{http.MethodDelete, "/api/v1/runs/" + id + "/climbs/" + id},
 		{http.MethodGet, "/api/v1/climbs"},
+		{http.MethodGet, "/api/v1/sets"},
 	} {
 		t.Run(route.method+" "+route.path, func(t *testing.T) {
 			if rec := send(t, h, route.method, route.path, "", ""); rec.Code != http.StatusUnauthorized {
