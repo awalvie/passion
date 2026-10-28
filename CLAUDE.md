@@ -60,12 +60,12 @@ Tokens are in `client/src/tokens.css`; each needs a light and a dark value.
 - An empty list shows `Empty`: a 20 px title, a line on what to do, and a `Button` when there is a next step. A search that finds nothing gets `onclear`.
 - A chart whose count needs explaining has an `Info` button beside its figure. A tap or click opens a note on how it is measured.
 - A choice from a list is a `Select`: the phone's own picker, a themed list from `lg`. Days are picked on a `DayPicker`.
-- A choice of one from a few is `Segmented`, or drawn like it with `segment-on`. Chips are for picking several.
+- A choice of one from a few is `Segmented`, or drawn like it with `segment-on`. Chips are for picking several. A switch that changes several cards sits once above them, not inside each.
 - Controls are at least 44 px. List rows use `list-row`. A row that opens a page ends with a chevron. A picked row is a well 8 px inside its card.
 - Under a mouse a row fills as when pressed, and a rounded control takes a faint wash. A square one only changes the cursor.
 - Tabs sit at the bottom on a phone, in a left rail from `md`. Today, Plan, a cycle, Journal, History, Progress, the Library and Profile go wide from `lg`.
 - From `lg` Plan's views and a cycle put their list or calendar beside a 330 px pane. A row or a day only picks; the pane acts on it (`DayPane`). New cycle has no rail, and shows its preview in the pane from step 3.
-- From `lg` Journal and History keep a 420 px list beside a pane that opens what is picked. History's pane keeps the list's place on every link, so a link in it to another page sets `data-sveltekit-noscroll` and `data-sveltekit-replacestate` to `"false"`. History's tiles drop their chevron there, as the list is too narrow for it. A session's journal is edited in History's pane too.
+- From `lg` Journal and History keep a 420 px list beside a pane that opens what is picked. History's pane keeps the list's place on every link, so a link in it to another page sets `data-sveltekit-noscroll` and `data-sveltekit-replacestate` to `"false"`. History's tiles drop their chevron there, as the list is too narrow for it. A session's journal is edited in History's pane too. Below `lg` a form open in either pane fills the window, so a narrowed window keeps what was typed.
 - The line between a list and its pane is the pane's `border-l`. A pane's buttons, such as Edit and •••, go in its view's `actions` snippet beside the title, on the card's edge.
 - The Library keeps the same 420 px list, but its pane is the session's or exercise's own page, so the address names the item. A row replaces the entry, and `/templates` and `/exercises` open the first item. Its rows drop their chevron from `lg`, as History's do.
 - A `Sheet` rises from the bottom on a phone and is a centred dialog from `lg`; `wide` gives it room for two columns.
