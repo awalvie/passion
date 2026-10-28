@@ -42,7 +42,7 @@
 	const y = (v: number) => (1 - at(v)) * height;
 	const x = (i: number) => ((i + 0.5) / n) * 100;
 	const grid = $derived(
-		small ? [{ at: 0, label: '' }] : [...new Set([lo, ...(zero && lo < 0 ? [0] : []), top])].map((v) => ({ at: at(v), label: label(v) }))
+		small ? [] : [...new Set([lo, ...(zero && lo < 0 ? [0] : []), top])].map((v) => ({ at: at(v), label: label(v) }))
 	);
 	const line = $derived(marks.filter((m) => m.best).sort((a, b) => a.i - b.i));
 </script>
