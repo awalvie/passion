@@ -267,20 +267,23 @@ export function grades(climbs: DatedClimb[], bs: Bucket[], scale: Scale): (numbe
 	return bs.map((b) => hardest(climbs.filter((c) => within(b, c.local_date)), scale));
 }
 
-export type Step = { grade: string; sent: number; flash: number };
+export type Step = { grade: string; tried: number; sent: number; flash: number };
 
-// pyramid is the sends at each grade and how many of them were flashed, from
-// the easiest send to the hardest, the grades between kept so gaps show.
-export function pyramid(climbs: Climb[], scale: Scale): Step[] {
-	const rows = scale.grades.map((grade) => ({ grade, sent: 0, flash: 0 }));
+// pyramid is the climbs tried at each grade, how many were sent and how many
+// of those flashed. It runs from the easiest to the hardest climb counted by
+// by, the grades between kept so gaps show.
+export function pyramid(climbs: Climb[], scale: Scale, by: 'sent' | 'tried' = 'sent'): Step[] {
+	const rows = scale.grades.map((grade) => ({ grade, tried: 0, sent: 0, flash: 0 }));
 	for (const c of climbs) {
 		const i = rank(c, scale);
-		if (i < 0 || !c.sent) continue;
+		if (i < 0) continue;
+		rows[i].tried++;
+		if (!c.sent) continue;
 		rows[i].sent++;
 		if (c.goes[0] === 'send') rows[i].flash++;
 	}
-	const lo = rows.findIndex((r) => r.sent);
-	return lo < 0 ? [] : rows.slice(lo, rows.findLastIndex((r) => r.sent) + 1);
+	const lo = rows.findIndex((r) => r[by]);
+	return lo < 0 ? [] : rows.slice(lo, rows.findLastIndex((r) => r[by]) + 1);
 }
 
 // An exercise's history charts one measure: the added weight where any set

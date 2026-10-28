@@ -154,12 +154,22 @@ test('pyramid counts the sends and flashes at each grade from the easiest sent t
 	expect(
 		pyramid([go('7a', ['attempt']), go('6a', ['send']), go('6a', ['attempt', 'send']), go('6c', ['send']), go('7a', ['send']), go('5c', ['send'])], scale)
 	).toEqual([
-		{ grade: '6a', sent: 2, flash: 1 },
-		{ grade: '6b', sent: 0, flash: 0 },
-		{ grade: '6c', sent: 1, flash: 1 },
-		{ grade: '7a', sent: 1, flash: 1 }
+		{ grade: '6a', tried: 2, sent: 2, flash: 1 },
+		{ grade: '6b', tried: 0, sent: 0, flash: 0 },
+		{ grade: '6c', tried: 1, sent: 1, flash: 1 },
+		{ grade: '7a', tried: 2, sent: 1, flash: 1 }
 	]);
 	expect(pyramid([go('6b', ['attempt'])], scale)).toEqual([]);
+});
+
+test('pyramid by tried runs from the easiest climb tried to the hardest', () => {
+	const go = (grade: string, goes: Climb['goes']) => ({ ...climb(grade, goes.includes('send')), goes }) as Climb;
+	expect(pyramid([go('6a', ['attempt']), go('6b', ['send']), go('7a', ['attempt', 'attempt'])], scale, 'tried')).toEqual([
+		{ grade: '6a', tried: 1, sent: 0, flash: 0 },
+		{ grade: '6b', tried: 1, sent: 1, flash: 1 },
+		{ grade: '6c', tried: 0, sent: 0, flash: 0 },
+		{ grade: '7a', tried: 1, sent: 0, flash: 0 }
+	]);
 });
 
 test('perBucket gives each bucket its own figure and null where it has no climbs', () => {
