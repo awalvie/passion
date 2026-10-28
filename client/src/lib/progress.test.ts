@@ -13,6 +13,7 @@ import {
 	flashRate,
 	grades,
 	hours,
+	lifts,
 	mixOf,
 	filterQuery,
 	headline,
@@ -30,7 +31,8 @@ import {
 	topSend,
 	trends,
 	trendWeeks,
-	type DatedClimb
+	type DatedClimb,
+	type DatedSet
 } from './progress';
 import type { Climb, HistorySession, RunSummary, SetFields } from './run';
 
@@ -461,4 +463,33 @@ test('filterName keeps Indoor in the name when a board is picked beside route ty
 	const name = (q: string) => filterName(readFilter(new URLSearchParams(q)));
 	expect(name('discipline=boulder,sport&board=moon&setting=indoor')).toMatch(/indoor/i);
 	expect(name('discipline=boulder,sport&setting=indoor')).toBe('Indoor boulders and sport routes');
+});
+
+test('lifts follow each loaded exercise by its best set a session, the most done first', () => {
+	const bs = [
+		{ from: '2026-10-05', to: '2026-10-11', tick: '' },
+		{ from: '2026-10-12', to: '2026-10-18', tick: '' },
+		{ from: '2026-10-19', to: '2026-10-25', tick: '' }
+	];
+	const at = (run: string, local_date: string, exercise: string, s: Partial<SetFields>, more: Partial<DatedSet> = {}) =>
+		({ ...set(s), run, local_date, exercise, step: exercise, number: 1, name: exercise, kind: 'reps_and_sets', tags: [], ...more }) as DatedSet;
+	const got = lifts(
+		[
+			at('a', '2026-10-05', 'pull', { reps: 5, weight_kg: 10 }),
+			at('a', '2026-10-05', 'pull', { reps: 5, weight_kg: 12.5 }),
+			at('a', '2026-10-05', 'raise', { reps: 8 }),
+			at('a', '2026-10-05', 'walk', { seconds: 600 }, { kind: 'open' }),
+			at('a', '2026-10-05', 'stretch', { seconds: 60 }, { tags: ['mobility'] }),
+			at('b', '2026-10-19', 'pull', { reps: 5, weight_kg: 15 }),
+			at('c', '2026-10-21', 'pull', { reps: 3, weight_kg: 15 })
+		],
+		bs
+	);
+	expect(got.map((l) => [l.exercise, l.measure, l.sessions, l.change])).toEqual([
+		['pull', 'kg', 3, 2.5],
+		['raise', 'reps', 1, null]
+	]);
+	expect(got[0].best.map((x) => x?.weight_kg ?? null)).toEqual([12.5, null, 15]);
+	expect(got[0].best[2]?.reps).toBe(5);
+	expect(got[0].latest.reps).toBe(3);
 });

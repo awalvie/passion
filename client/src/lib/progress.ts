@@ -1,9 +1,10 @@
 import { addDays, daysBetween, formatDate, mondayOf } from './dates';
 import type { Scale } from './grades';
-import { boards, disciplines, settings, type Climb, type HistorySession, type RunSummary, type SetFields } from './run';
+import { boards, disciplines, settings, type Climb, type HistorySession, type LoggedSet, type RunSummary, type SetFields } from './run';
 import { plural } from './text';
 
 export type DatedClimb = Climb & { run: string; local_date: string };
+export type DatedSet = LoggedSet & { run: string; local_date: string; name: string; kind: string; tags: string[] };
 
 // A span of days a chart covers: the last ten weeks, a cycle, or any two days.
 export type Span = { key: string; from: string; to: string; cycle: { id: string; name: string } | null };
@@ -296,7 +297,7 @@ const timed = (x: SetFields) => !!(x.seconds || x.rep_seconds?.length);
 // a timed set whose every hang was skipped has 0 reps.
 const done = (x: SetFields) => !!(x.weight_kg || x.reps || (x.reps === null && timed(x)));
 
-export function measure(sessions: HistorySession[]): Measure {
+export function measure(sessions: { sets: SetFields[] }[]): Measure {
 	const sets = sessions.flatMap((s) => s.sets).filter(done);
 	if (sets.some((x) => x.weight_kg)) return 'kg';
 	if (sets.some(timed) && sets.every(timed)) return 's';
@@ -379,4 +380,51 @@ export function headline(sessions: HistorySession[], m: Measure, scale: Scale | 
 	const p = then && bestSet(then.sets, m)!;
 	const [main, small] = figure(b, m);
 	return { session: now, main, small, change: p ? Math.round((setValue(b, m) - setValue(p, m)) * 10) / 10 : null, step: m as string };
+}
+
+// Warm-ups, cool-downs and mobility hold no load worth following, and an open
+// step logs its elapsed time as a set.
+const unloaded = ['warmup', 'cooldown', 'mobility'];
+
+export type Lift = {
+	exercise: string;
+	name: string;
+	measure: Measure;
+	sessions: number;
+	// The best set in each bucket, or null where the exercise was not done.
+	best: (SetFields | null)[];
+	latest: SetFields;
+	// How far the best set moved from the first session to the latest, in the
+	// measure's unit, or null after a single session.
+	change: number | null;
+};
+
+// lifts follows each exercise across a range by its best set a session,
+// measured as its own history page measures it. The most done comes first.
+export function lifts(sets: DatedSet[], bs: Bucket[]): Lift[] {
+	const byExercise = new Map<string, DatedSet[]>();
+	for (const s of sets) {
+		if (s.kind === 'open' || s.tags.some((t) => unloaded.includes(t))) continue;
+		byExercise.set(s.exercise, [...(byExercise.get(s.exercise) ?? []), s]);
+	}
+	const out: Lift[] = [];
+	for (const [exercise, mine] of byExercise) {
+		const runs = new Map<string, DatedSet[]>();
+		for (const s of mine) runs.set(s.run, [...(runs.get(s.run) ?? []), s]);
+		const m = measure([...runs.values()].map((sets) => ({ sets })));
+		const tops = [...runs.values()].flatMap((sets) => bestSet(sets, m) ?? []);
+		if (!tops.length) continue;
+		const first = tops[0];
+		const latest = tops.at(-1)!;
+		out.push({
+			exercise,
+			name: mine.at(-1)!.name,
+			measure: m,
+			sessions: tops.length,
+			best: bs.map((b) => bestSet(tops.filter((x) => within(b, x.local_date)), m)),
+			latest,
+			change: tops.length > 1 ? Math.round((setValue(latest, m) - setValue(first, m)) * 10) / 10 : null
+		});
+	}
+	return out.sort((a, b) => b.sessions - a.sessions || a.name.localeCompare(b.name));
 }
