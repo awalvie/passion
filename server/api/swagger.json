@@ -1708,7 +1708,7 @@
     },
     "/api/v1/sets": {
       "get": {
-        "description": "Every set in your finished runs from one day to another, both included,\nby day and then in the order they were logged, each with its step's name,\nkind and tags.",
+        "description": "Every set in your finished runs from one day to another, both included,\nby day, then by run, then by step and set, each with its step's name, kind\nand tags.",
         "tags": [
           "runs"
         ],

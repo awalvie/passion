@@ -226,7 +226,7 @@ type DatedSet struct {
 }
 
 // ListSets is every set of the owner's finished runs from one day to
-// another, both included, by day and then in the order they were logged.
+// another, both included, by day, then by run, then by step and set.
 func ListSets(ctx context.Context, pool *pgxpool.Pool, owner string, from, to time.Time) ([]DatedSet, error) {
 	rows, err := pool.Query(ctx, `
 		SELECT s.run::text AS run, r.local_date, s.step, s.number, s.exercise, s.reps, s.seconds, s.rep_seconds, s.weight_kg,

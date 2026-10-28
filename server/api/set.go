@@ -164,8 +164,8 @@ type datedSetListResponse struct {
 // # List your sets
 //
 // Every set in your finished runs from one day to another, both included,
-// by day and then in the order they were logged, each with its step's name,
-// kind and tags.
+// by day, then by run, then by step and set, each with its step's name, kind
+// and tags.
 //
 //	Security:
 //	  bearer:
