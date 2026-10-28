@@ -33,11 +33,13 @@
 			</span>
 			<span class="shrink-0 text-right digits text-[15px] {all ? 'w-12' : 'w-9'}">
 				{#if all && r.tried}
-					{r.sent}<span class="text-xs font-semibold text-ink-2">/{r.tried}</span>
+					{r.sent}<span class="text-xs font-semibold text-ink-2" aria-hidden="true">/{r.tried}</span>
 				{:else}
 					{r.sent || ''}
 				{/if}
-				<span class="sr-only">{all ? ` sent of ${r.tried} tried, ${r.flash} flashed` : r.sent ? ` sent, ${r.flash} flashed` : 'none sent'}</span>
+				<span class="sr-only"
+					>{(all ? r.tried : r.sent) ? ` sent${all ? ` of ${r.tried} tried` : ''}, ${r.flash} flashed` : all ? 'none tried' : 'none sent'}</span
+				>
 			</span>
 		</li>
 	{/each}
