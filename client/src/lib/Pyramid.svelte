@@ -1,11 +1,10 @@
 <script lang="ts">
 	import type { Step } from './progress';
 
-	// A grade pyramid: the hardest grade on top, one bar of sends for each
-	// grade. Each bar is centred, with its flashes in the middle and the other
-	// sends split either side, so the shape stays symmetric. With all, the
-	// climbs not sent sit grey at both ends. most is the count a full bar
-	// stands for.
+	// A grade pyramid: the hardest grade on top. Each bar is centred, with its
+	// flashes in the middle and the other sends split either side, so the
+	// shape stays symmetric. With all, the climbs not sent sit grey at both
+	// ends. most is the count a full bar stands for.
 	let { rows, most, all = false }: { rows: Step[]; most: number; all?: boolean } = $props();
 
 	const share = (n: number) => `${(n / most) * 100}%`;

@@ -135,20 +135,19 @@
 	});
 
 	// Boulders and routes apart, as their grades are on different scales. A
-	// picked week's bars are measured against the whole range's. tries holds
-	// the pyramids switched to All, which adds the climbs not sent.
+	// picked week's bars are measured against the whole range's.
 	let tries = $state<Record<string, boolean>>({});
 	const disciplines = $derived(
 		[
 			{ label: 'Boulders', range: shown.filter(isBoulder) },
 			{ label: 'Routes', range: shown.filter((c) => !isBoulder(c)) }
 		].flatMap(({ label, range }) => {
-			const climbs = inPick(range);
-			const scale = gradeScale(climbs, data.scales);
+			const picks = inPick(range);
+			const scale = gradeScale(picks, data.scales);
 			if (!scale) return [];
 			const all = !!tries[label];
 			const by = all ? 'tried' : 'sent';
-			const steps = pyramid(climbs, scale, by);
+			const steps = pyramid(picks, scale, by);
 			return [
 				{
 					label,
@@ -158,7 +157,7 @@
 					sent: steps.reduce((n, r) => n + r.sent, 0),
 					tried: steps.reduce((n, r) => n + r.tried, 0),
 					// Climbs graded in another system have no place on this scale.
-					elsewhere: climbs.filter((c) => c.grade_system && c.grade_system !== scale.system).length
+					elsewhere: picks.filter((c) => c.grade_system && c.grade_system !== scale.system).length
 				}
 			];
 		})

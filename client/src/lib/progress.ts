@@ -270,8 +270,8 @@ export function grades(climbs: DatedClimb[], bs: Bucket[], scale: Scale): (numbe
 export type Step = { grade: string; tried: number; sent: number; flash: number };
 
 // pyramid is the climbs tried at each grade, how many were sent and how many
-// of those flashed. It runs from the easiest to the hardest climb counted by
-// by, the grades between kept so gaps show.
+// of those flashed. It runs from the easiest grade with any of by to the
+// hardest, the grades between kept so gaps show.
 export function pyramid(climbs: Climb[], scale: Scale, by: 'sent' | 'tried' = 'sent'): Step[] {
 	const rows = scale.grades.map((grade) => ({ grade, tried: 0, sent: 0, flash: 0 }));
 	for (const c of climbs) {
