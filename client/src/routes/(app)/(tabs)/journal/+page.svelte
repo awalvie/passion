@@ -222,7 +222,7 @@
 	     a short list does not. -->
 	<div class="{forming ? '' : 'hidden'} lg:sticky lg:top-0 lg:-mb-8 lg:block lg:h-dvh lg:overflow-y-auto lg:border-l lg:border-line">
 		<!-- The form brings its own side padding. -->
-		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 pb-8 {forming ? 'px-4' : 'px-8 pt-3'}">
+		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 pb-8 {forming ? 'lg:px-4' : 'px-8 pt-3'}">
 			{#if f.new}
 				<EntryForm today={data.today} cancel={pane()} saved={(e) => show(pane('open', e.id))} heading="h2" />
 			{:else if opened && editing}

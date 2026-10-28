@@ -199,7 +199,7 @@
 	     one to another page turns that off. It draws the divider, as it fills
 	     the window and a short list does not. -->
 	<div class="{journaling ? '' : 'hidden'} lg:sticky lg:top-0 lg:-mb-8 lg:block lg:h-dvh lg:overflow-y-auto lg:border-l lg:border-line" bind:this={pane} data-sveltekit-replacestate data-sveltekit-noscroll>
-		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 pb-8 {journaling ? 'px-4' : 'px-8 pt-3'}">
+		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 pb-8 {journaling ? 'lg:px-4' : 'px-8 pt-3'}">
 			<FormError message={paneError} />
 			{#if exerciseId && exercise?.id === exerciseId}
 				<div class="flex">
