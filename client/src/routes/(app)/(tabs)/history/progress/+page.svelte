@@ -135,22 +135,28 @@
 	});
 
 	// Boulders and routes apart, as their grades are on different scales. A
-	// picked week's bars are measured against the whole range's.
+	// picked week's bars are measured against the whole range's. tries holds
+	// the pyramids switched to All, which adds the climbs not sent.
+	let tries = $state<Record<string, boolean>>({});
 	const disciplines = $derived(
 		[
-			{ label: 'Boulders', all: shown.filter(isBoulder) },
-			{ label: 'Routes', all: shown.filter((c) => !isBoulder(c)) }
-		].flatMap(({ label, all }) => {
-			const climbs = inPick(all);
+			{ label: 'Boulders', range: shown.filter(isBoulder) },
+			{ label: 'Routes', range: shown.filter((c) => !isBoulder(c)) }
+		].flatMap(({ label, range }) => {
+			const climbs = inPick(range);
 			const scale = gradeScale(climbs, data.scales);
 			if (!scale) return [];
-			const steps = pyramid(climbs, scale);
+			const all = !!tries[label];
+			const by = all ? 'tried' : 'sent';
+			const steps = pyramid(climbs, scale, by);
 			return [
 				{
 					label,
+					all,
 					pyramid: steps,
-					most: Math.max(...pyramid(all, scale).map((r) => r.sent)),
+					most: Math.max(...pyramid(range, scale, by).map((r) => r[by])),
 					sent: steps.reduce((n, r) => n + r.sent, 0),
+					tried: steps.reduce((n, r) => n + r.tried, 0),
 					// Climbs graded in another system have no place on this scale.
 					elsewhere: climbs.filter((c) => c.grade_system && c.grade_system !== scale.system).length
 				}
@@ -501,12 +507,28 @@
 				<div class="flex-col gap-3.5 lg:grid lg:grid-cols-2 {data.view === 'grade' ? 'flex' : 'hidden'}">
 					{#each disciplines as d (d.label)}
 						<section class="flex flex-col gap-3 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-							{@render explained(`${d.label} sent`, d.sent, 'Each climb you sent, once, at its grade. The middle of each bar is the ones you flashed.')}
+							<Segmented
+								label="{d.label} to show"
+								items={[
+									{ label: 'Sent', on: !d.all, onclick: () => (tries[d.label] = false) },
+									{ label: 'All', on: d.all, onclick: () => (tries[d.label] = true) }
+								]}
+							/>
+							{#if d.all}
+								{@render explained(
+									`${d.label} tried`,
+									d.tried,
+									'Each climb you tried, once a session, at its grade. Grey is the ones you did not send that session. The middle of each bar is the ones you flashed.'
+								)}
+							{:else}
+								{@render explained(`${d.label} sent`, d.sent, 'Each climb you sent, once, at its grade. The middle of each bar is the ones you flashed.')}
+							{/if}
 							{#if d.pyramid.length}
-								<Pyramid rows={d.pyramid} most={d.most} />
-								<div class="flex gap-4 text-xs font-semibold text-ink-2">
+								<Pyramid rows={d.pyramid} most={d.most} all={d.all} />
+								<div class="flex flex-wrap gap-x-4 gap-y-1.5 text-xs font-semibold text-ink-2">
 									{@render key('bg-chart', 'Flash')}
 									{@render key('bg-chart/50', 'Sent after a try')}
+									{#if d.all}{@render key('bg-ink-3/40', 'Not sent')}{/if}
 								</div>
 							{/if}
 							{#if d.elsewhere}
