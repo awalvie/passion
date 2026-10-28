@@ -91,6 +91,7 @@ export function buckets(s: Span, today: string): { buckets: Bucket[]; now: numbe
 }
 
 const within = (b: Bucket, date: string) => b.from <= date && date <= b.to;
+const tenth = (n: number) => Math.round(n * 10) / 10;
 
 // hours is the logged training time in each bucket.
 export function hours(runs: RunSummary[], bs: Bucket[]): number[] {
@@ -123,7 +124,6 @@ export function trends(
 ): Record<'hours' | 'climbs' | 'sent' | 'flash', Trend> {
 	const full = first <= weeks[0].from;
 	const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
-	const tenth = (n: number) => Math.round(n * 10) / 10;
 	// The climbs of the four weeks from week i.
 	const inside = (i: number) => climbs.filter((c) => weeks[i].from <= c.local_date && c.local_date <= weeks[i + 3].to);
 	const trend = (of: (i: number) => number | null, weekly: (number | null)[]): Trend => ({
@@ -379,7 +379,7 @@ export function headline(sessions: HistorySession[], m: Measure, scale: Scale | 
 	const b = bestSet(now.sets, m)!;
 	const p = then && bestSet(then.sets, m)!;
 	const [main, small] = figure(b, m);
-	return { session: now, main, small, change: p ? Math.round((setValue(b, m) - setValue(p, m)) * 10) / 10 : null, step: m as string };
+	return { session: now, main, small, change: p ? tenth(setValue(b, m) - setValue(p, m)) : null, step: m as string };
 }
 
 // Warm-ups, cool-downs and mobility hold no load worth following, and an open
@@ -423,7 +423,7 @@ export function lifts(sets: DatedSet[], bs: Bucket[]): Lift[] {
 			sessions: tops.length,
 			best: bs.map((b) => bestSet(tops.filter((x) => within(b, x.local_date)), m)),
 			latest,
-			change: tops.length > 1 ? Math.round((setValue(latest, m) - setValue(first, m)) * 10) / 10 : null
+			change: tops.length > 1 ? tenth(setValue(latest, m) - setValue(first, m)) : null
 		});
 	}
 	return out.sort((a, b) => b.sessions - a.sessions || a.name.localeCompare(b.name));

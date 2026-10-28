@@ -136,7 +136,6 @@
 	});
 
 	const strength = $derived(lifts(data.sets, data.buckets));
-	const units = { kg: 'kg', s: 's', reps: 'reps' };
 	// A lift reads its best set: the latest session's, or the picked bucket's.
 	function lift(l: Lift): { main: string; small: string; note: string } {
 		const x = picked === null ? l.latest : l.best[picked];
@@ -144,7 +143,7 @@
 		const [main, small] = figure(x, l.measure);
 		if (picked !== null) return { main, small, note: '' };
 		const c = l.change;
-		const note = c === null ? 'Once' : c === 0 ? 'Same' : `${c > 0 ? '+' : '−'}${Math.abs(c)} ${units[l.measure]}`;
+		const note = c === null ? 'Once' : c === 0 ? 'Same' : `${c > 0 ? '+' : '−'}${Math.abs(c)} ${l.measure}`;
 		return { main, small, note };
 	}
 	const liftHref = (l: Lift) =>
