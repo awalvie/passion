@@ -48,13 +48,15 @@
 		return out;
 	});
 
-	// With nothing picked, the pane shows the first entry in the list.
+	// With nothing picked, the pane shows the first entry in the list. Below lg
+	// a form fills the window, so a narrowed window keeps what was typed.
 	const opened = $derived.by(() => {
-		if (!wide.current || f.new) return undefined;
+		if (!(wide.current || f.edit) || f.new) return undefined;
 		const id = f.edit || f.open;
 		return (id && data.journal.entries.find((e) => e.id === id)) || pinned[0] || shown.find((r) => r.entry)?.entry;
 	});
 	const editing = $derived(!!f.edit && opened?.id === f.edit);
+	const forming = $derived(!!f.new || editing);
 
 	let error = $state('');
 
@@ -111,7 +113,7 @@
 {/snippet}
 
 <div class="lg:mx-auto lg:grid lg:max-w-[1280px] lg:grid-cols-[420px_minmax(0,1fr)]">
-	<div class="flex flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-6 lg:px-6 lg:pt-3">
+	<div class="{forming ? 'hidden lg:flex' : 'flex'} flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-6 lg:px-6 lg:pt-3">
 		<header class="flex items-start justify-between gap-3">
 			<h1 class="page-title px-1">Journal</h1>
 			{#if total}
@@ -218,10 +220,10 @@
 	     It reaches into the tabs' bottom padding, which would otherwise lift it
 	     at the end of the page. It draws the divider, as it fills the window and
 	     a short list does not. -->
-	<div class="hidden lg:sticky lg:top-0 lg:-mb-8 lg:block lg:h-dvh lg:overflow-y-auto lg:border-l lg:border-line">
+	<div class="{forming ? '' : 'hidden'} lg:sticky lg:top-0 lg:-mb-8 lg:block lg:h-dvh lg:overflow-y-auto lg:border-l lg:border-line">
 		<!-- The form brings its own side padding. -->
-		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 pb-8 {(f.new && wide.current) || editing ? 'px-4' : 'px-8 pt-3'}">
-			{#if f.new && wide.current}
+		<div class="mx-auto flex max-w-[640px] flex-col gap-3.5 pb-8 {forming ? 'px-4' : 'px-8 pt-3'}">
+			{#if f.new}
 				<EntryForm today={data.today} cancel={pane()} saved={(e) => show(pane('open', e.id))} heading="h2" />
 			{:else if opened && editing}
 				{#key opened.id}
