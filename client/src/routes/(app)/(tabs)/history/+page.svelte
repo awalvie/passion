@@ -129,11 +129,11 @@
 			<nav class="grid grid-cols-3 gap-2.5" aria-label="Progress">
 				<a href="/history/progress?view=time" class="flex min-w-0 flex-col rounded-3xl bg-surface px-3.5 pt-3 pb-3.5 shadow-card">
 					{@render tile('Time', hoursLabel(time.at(-1)!), 'this week')}
-					<span class="mt-3.5"><Bars parts={[{ values: time, cls: 'bg-chart' }]} height={30} small /></span>
+					<span class="mt-auto pt-3.5"><Bars parts={[{ values: time, cls: 'bg-chart' }]} height={30} small /></span>
 				</a>
 				<a href="/history/progress?view=climbs" class="flex min-w-0 flex-col rounded-3xl bg-surface px-3.5 pt-3 pb-3.5 shadow-card">
 					{@render tile('Climbs', String(climbs.at(-1)!.boulders + climbs.at(-1)!.routes), 'this week')}
-					<span class="mt-3.5">
+					<span class="mt-auto pt-3.5">
 						<Bars
 							parts={[
 								{ values: climbs.map((c) => c.boulders), cls: 'bg-chart' },
@@ -146,7 +146,7 @@
 				</a>
 				<a href="/history/progress?view=grade" class="flex min-w-0 flex-col rounded-3xl bg-surface px-3.5 pt-3 pb-3.5 shadow-card">
 					{@render tile('Hardest send', top ?? '–', '10 weeks')}
-					<span class="mt-3.5">
+					<span class="mt-auto pt-3.5">
 						{#if main}<Dots
 								n={main.points.length}
 								marks={main.points.flatMap((v, i) => (v === null ? [] : [{ i, v, best: true }]))}
