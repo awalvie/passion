@@ -50,6 +50,7 @@ document.addEventListener('visibilitychange', () => {
 
 export function tone(hz: number, ms: number) {
 	if (!ctx || !soundOn()) return;
+	resume();
 	const osc = ctx.createOscillator();
 	const gain = ctx.createGain();
 	const t = ctx.currentTime;
