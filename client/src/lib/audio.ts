@@ -32,8 +32,10 @@ function resume() {
 	if (ctx && ctx.state !== 'running') void ctx.resume();
 }
 
-// Any tap unlocks, so a clock that started by itself can still sound.
-addEventListener('pointerdown', unlock);
+// Any tap unlocks, so a clock that started by itself can still sound. A
+// browser counts a touch as a tap only as it lifts, and a mouse as it presses.
+addEventListener('pointerup', (e) => e.pointerType !== 'mouse' && unlock());
+addEventListener('pointerdown', (e) => e.pointerType === 'mouse' && unlock());
 document.addEventListener('visibilitychange', () => {
 	if (document.visibilityState === 'visible') resume();
 });

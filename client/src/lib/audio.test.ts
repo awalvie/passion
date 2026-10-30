@@ -15,7 +15,7 @@ class MemoryStorage {
 }
 
 let log: string[];
-let listeners: Record<string, () => void>;
+let listeners: Record<string, (e?: { pointerType: string }) => void>;
 let oscillators: { frequency: { value: number }; started: boolean }[];
 let contexts: FakeAudioContext[];
 
@@ -49,7 +49,7 @@ beforeEach(() => {
 	oscillators = [];
 	contexts = [];
 	vi.stubGlobal('localStorage', new MemoryStorage());
-	vi.stubGlobal('addEventListener', (name: string, fn: () => void) => (listeners[name] = fn));
+	vi.stubGlobal('addEventListener', (name: string, fn: (e?: { pointerType: string }) => void) => (listeners[name] = fn));
 	vi.stubGlobal('document', { visibilityState: 'visible', addEventListener: (name: string, fn: () => void) => (listeners[`document:${name}`] = fn) });
 	vi.stubGlobal('AudioContext', FakeAudioContext);
 	let type = 'auto';
@@ -65,6 +65,8 @@ beforeEach(() => {
 		}
 	});
 });
+
+const tap = () => listeners.pointerup({ pointerType: 'touch' });
 
 // A fresh import is a reload: no audio context yet.
 async function load() {
@@ -85,16 +87,26 @@ test('sound is on until it is switched off, and the choice is kept', async () =>
 
 test('the first tap sets playback before the audio context starts, and does it once', async () => {
 	await load();
-	listeners.pointerdown();
-	listeners.pointerdown();
+	tap();
+	tap();
 	expect(log).toEqual(['session playback', 'context', 'resume', 'resume']);
+});
+
+// A touch counts as a tap for audio only as it lifts; a mouse as it presses.
+test('a touch unlocks as it lifts, and a mouse as it presses', async () => {
+	await load();
+	listeners.pointerdown({ pointerType: 'touch' });
+	listeners.pointerup({ pointerType: 'mouse' });
+	expect(contexts).toHaveLength(0);
+	listeners.pointerdown({ pointerType: 'mouse' });
+	expect(contexts).toHaveLength(1);
 });
 
 test('a tone plays only after a tap has unlocked the audio', async () => {
 	const { tone } = await load();
 	tone(880, 100);
 	expect(oscillators).toHaveLength(0);
-	listeners.pointerdown();
+	tap();
 	tone(880, 100);
 	expect(oscillators).toHaveLength(1);
 	expect(oscillators[0].frequency.value).toBe(880);
@@ -103,7 +115,7 @@ test('a tone plays only after a tap has unlocked the audio', async () => {
 
 test('a tone is silent while sound is off', async () => {
 	const { setSound, tone } = await load();
-	listeners.pointerdown();
+	tap();
 	setSound(false);
 	tone(880, 100);
 	expect(oscillators).toHaveLength(0);
@@ -111,7 +123,7 @@ test('a tone is silent while sound is off', async () => {
 
 test('coming back to the app resumes a suspended context, and leaves a running one alone', async () => {
 	await load();
-	listeners.pointerdown();
+	tap();
 	log.length = 0;
 	listeners['document:visibilitychange']();
 	expect(log).toEqual([]);
@@ -125,7 +137,7 @@ test('coming back to the app resumes a suspended context, and leaves a running o
 test('a tap does not take the audio session while sound is off', async () => {
 	const { setSound } = await load();
 	setSound(false);
-	listeners.pointerdown();
+	tap();
 	expect(log).not.toContain('session playback');
 });
 
@@ -134,7 +146,7 @@ test('a tap does not take the audio session while sound is off', async () => {
 test('switching the sound back on unlocks the audio', async () => {
 	const { setSound, tone } = await load();
 	setSound(false);
-	listeners.pointerdown();
+	tap();
 	setSound(true);
 	tone(880, 100);
 	expect(log).toEqual(['session playback', 'context', 'resume']);
