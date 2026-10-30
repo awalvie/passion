@@ -25,6 +25,14 @@ export function unlock() {
 	const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
 	if (session && session.type !== 'playback') session.type = 'playback';
 	ctx ??= new AudioContext();
+	if (ctx.state !== 'running') {
+		// WebKit has needed a sound played inside the tap, even a silent one,
+		// before it lets the audio start.
+		const quiet = ctx.createBufferSource();
+		quiet.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+		quiet.connect(ctx.destination);
+		quiet.start();
+	}
 	void ctx.resume();
 }
 

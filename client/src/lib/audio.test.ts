@@ -23,6 +23,7 @@ class FakeAudioContext {
 	state = 'suspended';
 	currentTime = 0;
 	destination = {};
+	sampleRate = 44100;
 	constructor() {
 		log.push('context');
 		contexts.push(this);
@@ -36,6 +37,12 @@ class FakeAudioContext {
 		const o = { frequency: { value: 0 }, started: false, connect: (n: unknown) => n, start() { o.started = true; }, stop() {} };
 		oscillators.push(o);
 		return o;
+	}
+	createBuffer() {
+		return {};
+	}
+	createBufferSource() {
+		return { buffer: null, connect: (n: unknown) => n, start: () => log.push('quiet') };
 	}
 	createGain() {
 		return { gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} }, connect: (n: unknown) => n };
@@ -89,7 +96,7 @@ test('the first tap sets playback before the audio context starts, and does it o
 	await load();
 	tap();
 	tap();
-	expect(log).toEqual(['session playback', 'context', 'resume', 'resume']);
+	expect(log).toEqual(['session playback', 'context', 'quiet', 'resume', 'resume']);
 });
 
 // A touch counts as a tap for audio only as it lifts; a mouse as it presses.
@@ -149,6 +156,6 @@ test('switching the sound back on unlocks the audio', async () => {
 	tap();
 	setSound(true);
 	tone(880, 100);
-	expect(log).toEqual(['session playback', 'context', 'resume']);
+	expect(log).toEqual(['session playback', 'context', 'quiet', 'resume']);
 	expect(oscillators).toHaveLength(1);
 });
