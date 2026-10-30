@@ -102,6 +102,15 @@ export function startOf(phases: Phase[], index: number): number {
 	return phases.slice(0, index).reduce((sum, p) => sum + p.ms, 0);
 }
 
+// skipTo is where a skip from a phase lands. A rest skipped with more than
+// the prep left keeps the prep at its end, so the hang after it does not start
+// while the phone is still in hand.
+export function skipTo(s: TimedStep, phases: Phase[], index: number, left: number): number {
+	const next = startOf(phases, index + 1);
+	const prep = (s.prep_seconds ?? 0) * 1000;
+	return phases[index]?.kind === 'rest' && left > prep ? next - prep : next;
+}
+
 // jump moves the clock so it reads a later time.
 export function jump(c: Clock, now: number, to: number): Clock {
 	return { ...c, skipMs: c.skipMs + Math.max(0, to - elapsed(c, now)) };

@@ -10,7 +10,7 @@
 	import Sheet from './Sheet.svelte';
 	import TimerFlap from './TimerFlap.svelte';
 	import { plural } from './text';
-	import { at, canTime, elapsed, endSet, jump, newClock, repSeconds, rows, startOf, timedRows, timeline, togglePause } from './timeline';
+	import { at, canTime, elapsed, endSet, jump, newClock, repSeconds, rows, skipTo, startOf, timedRows, timeline, togglePause } from './timeline';
 	import { readTimers, writeTimers, type Timed } from './timerStore';
 
 	let { step, next, nextHref, last, menu, error, leaving, skip }: PlayerProps = $props();
@@ -52,6 +52,8 @@
 	const pos = $derived(at(phases, ms));
 	const phase = $derived(phases[pos.index]);
 	const upcoming = $derived(phases[pos.index + 1]);
+	// A rest whose skip kept the prep at its end shows as the prep.
+	const kind = $derived(phase && timed?.prep === pos.index ? 'prep' : phase?.kind);
 
 	// Each block logs a row once its hangs are over, even if the phone slept
 	// through it.
@@ -136,7 +138,11 @@
 		if (phases[here.index]?.kind === 'hang') {
 			const extra = timed!.extra ?? {};
 			save({ ...timed!, extra: { ...extra, [here.index]: (extra[here.index] ?? 0) - here.left } });
-		} else save({ ...timed!, clock: jump(timed!.clock, t, startOf(phases, here.index + 1)) });
+		} else {
+			const to = skipTo(step, phases, here.index, here.left);
+			const kept = to < startOf(phases, here.index + 1);
+			save({ ...timed!, clock: jump(timed!.clock, t, to), prep: kept ? here.index : timed!.prep });
+		}
 	}
 
 	function addRest() {
@@ -161,7 +167,7 @@
 		await goto(`/run/${runId}/finish`);
 	}
 
-	const words = { hang: 'Work', rest: 'Rest' };
+	const words = { prep: 'Prep', hang: 'Work', rest: 'Rest' };
 
 	// The flip cards on each field.
 	const cards = {
@@ -188,14 +194,17 @@
 		if (!timed || !phase) return setsLogged ? `Ready · ${setsLogged} of ${step.sets} logged` : prepFirst ? `Ready · Prep, then ${s(repSeconds(step, 1))} work` : 'Ready';
 		// On a per-side step a hang names its side instead of "Work", so the
 		// line stays one line.
-		if (phase.kind === 'prep') return phase.side ? `Prep · ${phase.side}` : 'Prep';
+		if (kind === 'prep') {
+			const side = (phase.kind === 'prep' ? phase : upcoming)?.side;
+			return side ? `Prep · ${side}` : 'Prep';
+		}
 		const word = phase.kind === 'hang' && phase.side ? phase.side : words[phase.kind];
 		return `${word} · Rep ${phase.rep} of ${step.reps}`;
 	});
 
 	const secs = $derived(timed && phase ? Math.ceil(pos.left / 1000) : prepFirst ? step.prep_seconds! : repSeconds(step, 1));
 	const clock = $derived(secs >= 60 ? `${Math.floor(secs / 60)}${String(secs % 60).padStart(2, '0')}` : String(secs));
-	const look = $derived(timed && phase ? cards[phase.kind] : cards.run);
+	const look = $derived(timed && kind ? cards[kind] : cards.run);
 	const ready = $derived(!timed && !finished);
 </script>
 
@@ -215,7 +224,7 @@
 <RunPage
 	{step}
 	sounds
-	look={timed && phase ? phase.kind : 'run'}
+	look={timed && kind ? kind : 'run'}
 	{next}
 	menu={timed
 		? [
@@ -302,7 +311,7 @@
 			>
 				<Icon name={paused ? 'play' : 'pause'} size="36px" stroke={3.4} />
 			</button>
-			{#if phase?.kind === 'rest'}
+			{#if kind === 'rest'}
 				<button type="button" class="run-chip pl-[18px]" onclick={addRest}>+30 s</button>
 			{/if}
 		{/if}

@@ -6,6 +6,8 @@ import {
 	endSet,
 	newClock,
 	rows,
+	skipTo,
+	startOf,
 	timedRows,
 	timeline,
 	togglePause,
@@ -147,4 +149,14 @@ test('end set keeps the hangs done and moves to the rest after the set', () => {
 test('extra time lengthens the phase it was added to', () => {
 	const p = timeline({ ...hang, sets: 1, reps: 2 }, { 2: 30_000 });
 	expect(p.map((x) => `${x.kind}${x.ms / 1000}`)).toStrictEqual(['prep5', 'hang7', 'rest33', 'hang7']);
+});
+
+test('a skipped rest keeps the prep at its end, and a second skip goes to the hang', () => {
+	const p = timeline(hang);
+	expect(p[6].kind).toBe('rest');
+	expect(skipTo(hang, p, 6, 50_000)).toBe(startOf(p, 7) - 5000);
+	expect(skipTo(hang, p, 6, 5000)).toBe(startOf(p, 7));
+	expect(skipTo(hang, p, 2, 3000)).toBe(startOf(p, 3));
+	expect(skipTo(hang, p, 0, 4000)).toBe(startOf(p, 1));
+	expect(skipTo({ ...hang, prep_seconds: null }, p, 6, 50_000)).toBe(startOf(p, 7));
 });
