@@ -9,11 +9,13 @@ export function soundOn(): boolean {
 	return localStorage.getItem(soundKey) !== 'off';
 }
 
-// setSound must run inside a tap, so switching on can unlock.
+// setSound must run inside a tap, so switching on can unlock. Switching on
+// beeps, so the person knows the phone will sound.
 export function setSound(on: boolean) {
 	if (on) localStorage.removeItem(soundKey);
 	else localStorage.setItem(soundKey, 'off');
 	unlock();
+	if (on) tone(1046, 200);
 }
 
 // unlock must run inside a tap. Playback pauses music from other apps, so

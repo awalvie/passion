@@ -150,12 +150,11 @@ test('a tap does not take the audio session while sound is off', async () => {
 
 // The tap on the switch comes before the switch turns the sound on, so the
 // switch unlocks the audio itself.
-test('switching the sound back on unlocks the audio', async () => {
-	const { setSound, tone } = await load();
+test('switching the sound back on unlocks the audio and beeps', async () => {
+	const { setSound } = await load();
 	setSound(false);
 	tap();
 	setSound(true);
-	tone(880, 100);
 	expect(log).toEqual(['session playback', 'context', 'quiet', 'resume']);
-	expect(oscillators).toHaveLength(1);
+	expect(oscillators.map((o) => o.frequency.value)).toEqual([1046]);
 });
