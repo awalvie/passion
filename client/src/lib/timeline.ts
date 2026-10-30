@@ -111,6 +111,31 @@ export function skipTo(s: TimedStep, phases: Phase[], index: number, left: numbe
 	return phases[index]?.kind === 'rest' && left > prep ? next - prep : next;
 }
 
+// While the person is away from the timer, by another screen or another app,
+// the clock holds just before the first hang after they left, so no hang
+// starts unseen.
+function nextHang(phases: Phase[], leftAt: number): number {
+	return phases.findIndex((p, i) => p.kind === 'hang' && startOf(phases, i) > leftAt);
+}
+
+export function reading(phases: Phase[], c: Clock, now: number, leftAt?: number): number {
+	const ms = elapsed(c, now);
+	const h = leftAt === undefined ? -1 : nextHang(phases, leftAt);
+	return h < 0 ? ms : Math.min(ms, startOf(phases, h) - 1);
+}
+
+// comeBack is the clock for the person's return. A clock held at a hang goes
+// back to the prep before it, and prep is the rest that shows as that prep.
+export function comeBack(s: TimedStep, phases: Phase[], c: Clock, now: number, leftAt: number): { clock: Clock; prep?: number } {
+	const h = nextHang(phases, leftAt);
+	const hold = h < 0 ? Infinity : startOf(phases, h);
+	const ms = elapsed(c, now);
+	if (ms < hold) return { clock: c };
+	const before = phases[h - 1];
+	const to = before?.kind === 'hang' ? hold : Math.max(startOf(phases, h - 1), hold - (s.prep_seconds ?? 0) * 1000);
+	return { clock: { ...c, pausedMs: c.pausedMs + ms - to }, prep: to < hold && before?.kind === 'rest' ? h - 1 : undefined };
+}
+
 // jump moves the clock so it reads a later time.
 export function jump(c: Clock, now: number, to: number): Clock {
 	return { ...c, skipMs: c.skipMs + Math.max(0, to - elapsed(c, now)) };

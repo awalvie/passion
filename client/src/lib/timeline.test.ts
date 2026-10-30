@@ -2,9 +2,11 @@ import { expect, test } from 'vitest';
 import {
 	at,
 	canTime,
+	comeBack,
 	elapsed,
 	endSet,
 	newClock,
+	reading,
 	rows,
 	skipTo,
 	startOf,
@@ -159,4 +161,22 @@ test('a skipped rest keeps the prep at its end, and a second skip goes to the ha
 	expect(skipTo(hang, p, 2, 3000)).toBe(startOf(p, 3));
 	expect(skipTo(hang, p, 0, 4000)).toBe(startOf(p, 1));
 	expect(skipTo({ ...hang, prep_seconds: null }, p, 6, 50_000)).toBe(startOf(p, 7));
+});
+
+test('away from the timer, the clock holds at the next hang, and coming back runs the prep first', () => {
+	const p = timeline(hang);
+	const c = newClock(0);
+	expect(reading(p, c, 50_000, 33_000)).toBe(50_000);
+	expect(reading(p, c, 200_000, 33_000)).toBe(91_999);
+	expect(reading(p, c, 30_000, 20_000)).toBe(24_999);
+	expect(comeBack(hang, p, c, 50_000, 33_000)).toStrictEqual({ clock: c });
+	const back = comeBack(hang, p, c, 200_000, 33_000);
+	expect(elapsed(back.clock, 200_000)).toBe(87_000);
+	expect(back.prep).toBe(6);
+	const short = comeBack(hang, p, c, 100_000, 13_000);
+	expect(elapsed(short.clock, 100_000)).toBe(12_000);
+	expect(short.prep).toBe(2);
+	const start = comeBack(hang, p, c, 100_000, 2000);
+	expect(elapsed(start.clock, 100_000)).toBe(0);
+	expect(start.prep).toBeUndefined();
 });

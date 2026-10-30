@@ -17,7 +17,7 @@ import {
 import type { Exercise } from './exercise';
 import { pendingPrefix, timerPrefix } from './session';
 import { toStep, type Step } from './template';
-import { elapsed, rows, timedRows, timeline } from './timeline';
+import { reading, rows, timedRows, timeline } from './timeline';
 import { readTimers } from './timerStore';
 
 // A write waiting for the server. A newer write to the same url replaces an
@@ -384,7 +384,7 @@ class OpenRun {
 		const step = t ? this.step(t.step) : undefined;
 		if (!t || !step || isFinished(step)) return;
 		const phases = timeline(step, t.extra);
-		const done = rows(phases, elapsed(t.clock, Date.now()), t.short);
+		const done = rows(phases, reading(phases, t.clock, Date.now(), t.leftAt), t.short);
 		const logged = setsOf(run, step.id);
 		if (done.length <= logged.length) return;
 		this.setSets(step, timedRows(step, phases, done, logged, t.weight));

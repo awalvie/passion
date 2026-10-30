@@ -11,7 +11,8 @@ export type Timers = {
 // A running timed-reps step: its clock, the blocks cut short, the weight each
 // of its rows logs, and the time added to its phases. A hang skipped early is
 // shortened to the time it was held. prep is the rest, by index, whose skip
-// kept the prep at its end.
+// kept the prep at its end. leftAt is the clock's time when the person left
+// the timer.
 export type Timed = {
 	step: string;
 	clock: Clock;
@@ -19,6 +20,7 @@ export type Timed = {
 	weight: number | null;
 	extra?: Record<number, number>;
 	prep?: number;
+	leftAt?: number;
 };
 
 const key = (runId: string) => `${timerPrefix}${runId}`;

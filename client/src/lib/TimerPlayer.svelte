@@ -10,7 +10,7 @@
 	import Sheet from './Sheet.svelte';
 	import TimerFlap from './TimerFlap.svelte';
 	import { plural } from './text';
-	import { at, canTime, elapsed, endSet, jump, newClock, repSeconds, rows, skipTo, startOf, timedRows, timeline, togglePause } from './timeline';
+	import { at, canTime, comeBack, elapsed, endSet, jump, newClock, reading, repSeconds, rows, skipTo, startOf, timedRows, timeline, togglePause } from './timeline';
 	import { readTimers, writeTimers, type Timed } from './timerStore';
 
 	let { step, next, nextHref, last, menu, error, leaving, skip }: PlayerProps = $props();
@@ -37,9 +37,45 @@
 	$effect.pre(() => {
 		const stored = readTimers(runId).timed;
 		const mine = stored?.step === step.id && !isFinished(step) ? stored : null;
-		timed = mine;
+		timed = mine && untrack(() => back(mine));
+		now = Date.now();
 		cut = false;
 		weight = mine?.weight ?? untrack(() => logged.at(-1)?.weight_kg) ?? null;
+		return leave;
+	});
+
+	// Leaving the timer, for another screen or another app, holds it before the
+	// next hang. It is read from storage, as the page may already show another
+	// step.
+	function leave() {
+		const t = readTimers(runId).timed;
+		if (!t || t.leftAt !== undefined || t.clock.pausedAt !== null) return;
+		const away = { ...t, leftAt: elapsed(t.clock, Date.now()) };
+		writeTimers(runId, { ...readTimers(runId), timed: away });
+		if (timed?.step === t.step) timed = away;
+	}
+
+	// back is the timer on the person's return: a hang held while they were
+	// away starts after its prep.
+	function back(t: Timed): Timed {
+		if (t.leftAt === undefined) return t;
+		const { clock, prep } = comeBack(step, timeline(step, t.extra), t.clock, Date.now(), t.leftAt);
+		const next = { ...t, clock, prep: prep ?? t.prep, leftAt: undefined };
+		writeTimers(runId, { ...readTimers(runId), timed: next });
+		return next;
+	}
+
+	$effect(() => {
+		const seen = () => {
+			if (document.visibilityState === 'hidden') return leave();
+			const t = readTimers(runId).timed;
+			if (timed && t?.step === timed.step) {
+				timed = back(t);
+				now = Date.now();
+			}
+		};
+		document.addEventListener('visibilitychange', seen);
+		return () => document.removeEventListener('visibilitychange', seen);
 	});
 
 	$effect(() => {
@@ -48,7 +84,7 @@
 		return () => clearInterval(tick);
 	});
 
-	const ms = $derived(timed ? elapsed(timed.clock, now) : 0);
+	const ms = $derived(timed ? reading(phases, timed.clock, now, timed.leftAt) : 0);
 	const pos = $derived(at(phases, ms));
 	const phase = $derived(phases[pos.index]);
 	const upcoming = $derived(phases[pos.index + 1]);
