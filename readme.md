@@ -23,7 +23,7 @@
 ## Features
 
 <details>
-<summary>Plan your training: cycles, repeats and time off</summary>
+<summary>Plan your training: cycles, repeats, time off and goals</summary>
 <br>
 <table>
   <tr>
