@@ -104,9 +104,9 @@
 </script>
 
 <div class="mx-4 mt-6 flex items-center justify-between px-1">
-	<h2 class="flex h-11 items-center text-xl font-bold">
-		Goals
-	</h2>
+	<a href="/plan?view=goals" class="-ml-1 flex h-11 items-center gap-1 rounded-full px-1 text-xl font-bold" aria-label="All goals">
+		Goals<span class="text-ink-3"><Icon name="chevron-right" size="1rem" /></span>
+	</a>
 	{#if cards.length}
 		<button type="button" class="-mr-3 flex h-11 items-center gap-1 rounded-full px-3 text-[15px] font-bold" onclick={() => add(null)}>
 			<Icon name="plus" size="1rem" />Add
