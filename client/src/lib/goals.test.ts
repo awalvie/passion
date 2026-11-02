@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { current, goalPeriod, left, periodOf, periodTitle, spanTitle, through, ticked, type PeriodGoal } from './goals';
+import { current, goalPeriod, left, pastPeriods, periodOf, periodTitle, spanTitle, through, ticked, type PeriodGoal } from './goals';
 
 describe('periodOf', () => {
 	test('a week runs Monday to Sunday', () => {
@@ -82,4 +82,64 @@ test('each period has a heading and a line', () => {
 	expect(periodTitle('week', '2026-10-31')).toEqual({ title: 'This week', note: 'Oct 26 – Nov 1 · ends tomorrow' });
 	expect(periodTitle('month', '2026-10-31')).toEqual({ title: 'October', note: 'This month · ends today' });
 	expect(periodTitle('year', '2026-10-31')).toEqual({ title: '2026', note: 'This year · ends in 61 days' });
+});
+
+describe('pastPeriods', () => {
+	test('a goal counts in each period that ended since it was set, the latest first', () => {
+		const g = goal({ starts: '2026-10-21', ticks: [{ period_start: '2026-10-19', text: 'Train once' }] });
+		const past = pastPeriods([g], '2026-11-04');
+		expect(past.map((p) => p.key)).toEqual(['week-2026-10-26', 'week-2026-10-19']);
+		expect(past[0]).toMatchObject({ title: 'Oct 26 – Nov 1', note: 'Week', goals: [{ text: 'Train', done: false }] });
+		expect(past[1].goals).toEqual([{ id: 'g', text: 'Train once', done: true, removed: false }]);
+	});
+	test('goals of one period share it', () => {
+		const a = goal({ id: 'a', period: 'month', starts: '2026-09-15' });
+		const b = goal({ id: 'b', period: 'month', starts: '2026-10-03' });
+		const past = pastPeriods([a, b], '2026-11-02');
+		expect(past.map((p) => [p.title, p.goals.length])).toEqual([
+			['October', 2],
+			['September', 1]
+		]);
+	});
+	test('a removed goal counts only in the periods that ended before it went', () => {
+		const g = goal({ starts: '2026-10-19', removed: '2026-10-28' });
+		const past = pastPeriods([g], '2026-11-10');
+		expect(past.map((p) => p.key)).toEqual(['week-2026-10-19']);
+		expect(past[0].goals[0].removed).toBe(true);
+	});
+	test('a goal removed in a period it was met in keeps that period', () => {
+		const g = goal({ starts: '2026-10-19', removed: '2026-10-22', ticks: [{ period_start: '2026-10-19', text: 'Train' }] });
+		expect(pastPeriods([g], '2026-11-10').map((p) => p.key)).toEqual(['week-2026-10-19']);
+		expect(pastPeriods([{ ...g, ticks: [] }], '2026-11-10')).toEqual([]);
+	});
+	test('a removed span goal counts if its days ended first, or it was met', () => {
+		expect(pastPeriods([{ ...trip, removed: '2026-11-25' }], '2026-12-01')).toHaveLength(1);
+		expect(pastPeriods([{ ...trip, removed: '2026-11-15' }], '2026-12-01')).toEqual([]);
+		const met = { ...trip, removed: '2026-11-15', ticks: [{ period_start: '2026-11-10', text: 'Send 7A' }] };
+		expect(pastPeriods([met], '2026-12-01')[0].goals[0]).toMatchObject({ done: true, removed: true });
+	});
+	test('a year counts once it has ended', () => {
+		const g = goal({ period: 'year', starts: '2025-03-01' });
+		expect(pastPeriods([g], '2026-11-02').map((p) => [p.title, p.note])).toEqual([['2025', 'Year']]);
+	});
+	test('an earlier year is named with its month or week', () => {
+		expect(pastPeriods([goal({ period: 'month', starts: '2025-12-10' })], '2026-01-05')[0].title).toBe('December 2025');
+		const weeks = pastPeriods([goal({ starts: '2025-12-24' })], '2026-01-07');
+		expect(weeks.map((p) => p.title)).toEqual(['Dec 29 – Jan 4', 'Dec 22 – Dec 28, 2025']);
+	});
+	test('days that ended are one period', () => {
+		const other = { ...trip, id: 'u', text: 'Rest', span: { ...trip.span!, name: '' } };
+		expect(pastPeriods([trip], '2026-11-20')).toEqual([]);
+		expect(pastPeriods([trip], '2026-11-21')).toEqual([
+			{
+				key: 'span-s',
+				title: 'Font trip',
+				note: 'Nov 10 – Nov 20',
+				from: '2026-11-10',
+				to: '2026-11-20',
+				goals: [{ id: 't', text: 'Send 7A', done: false, removed: false }]
+			}
+		]);
+		expect(pastPeriods([other], '2026-11-21')[0]).toMatchObject({ title: 'Nov 10 – Nov 20', note: '11 days' });
+	});
 });

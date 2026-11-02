@@ -72,3 +72,52 @@ export function spanTitle(span: GoalSpan, today: string): { title: string; note:
 	if (span.name) return { title: span.name, note: `${days} · ${when}` };
 	return { title: days, note: `${daysBetween(span.starts, span.ends) + 1} days · ${when}` };
 }
+
+// A period that has ended, with the goals that counted in it.
+export type PastPeriod = {
+	key: string;
+	title: string;
+	note: string;
+	from: string;
+	to: string;
+	// A removed goal can no longer be ticked.
+	goals: { id: string; text: string; done: boolean; removed: boolean }[];
+};
+
+// pastPeriods is every period that has ended, the latest first. A goal counts
+// in each of its periods from the one it was set in, until it was removed,
+// and in one it was met in before then. A met goal reads as it did when ticked.
+export function pastPeriods(goals: PeriodGoal[], today: string): PastPeriod[] {
+	const year = today.slice(0, 4);
+	const out = new Map<string, PastPeriod>();
+	const add = (key: string, title: string, note: string, from: string, to: string, g: PeriodGoal) => {
+		if (!out.has(key)) out.set(key, { key, title, note, from, to, goals: [] });
+		const tick = g.ticks.find((t) => t.period_start === from);
+		out.get(key)!.goals.push({ id: g.id, text: tick?.text ?? g.text, done: !!tick, removed: !!g.removed });
+	};
+	for (const g of goals) {
+		const counts = (from: string, to: string) =>
+			to < today && (!g.removed || to < g.removed || g.ticks.some((t) => t.period_start === from));
+		if (g.span) {
+			const s = g.span;
+			if (!counts(s.starts, s.ends)) continue;
+			const days = `${shortDate(s.starts)} – ${shortDate(s.ends)}`;
+			add(`span-${s.id}`, s.name || days, s.name ? days : `${daysBetween(s.starts, s.ends) + 1} days`, s.starts, s.ends, g);
+			continue;
+		}
+		const period = g.period as RepeatPeriod;
+		// A removed goal's periods end with the one it went in, met or not.
+		const last = g.removed ? periodOf(period, g.removed).to : today;
+		for (let { from, to } = periodOf(period, g.starts); to <= last; ({ from, to } = periodOf(period, addDays(to, 1)))) {
+			if (!counts(from, to)) continue;
+			if (period === 'week') {
+				const title = `${shortDate(from)} – ${shortDate(to)}${to.startsWith(year) ? '' : `, ${to.slice(0, 4)}`}`;
+				add(`week-${from}`, title, 'Week', from, to, g);
+			} else if (period === 'month') {
+				const title = formatDate(from, from.startsWith(year) ? { month: 'long' } : { month: 'long', year: 'numeric' });
+				add(`month-${from}`, title, 'Month', from, to, g);
+			} else add(`year-${from}`, from.slice(0, 4), 'Year', from, to, g);
+		}
+	}
+	return [...out.values()].sort((a, b) => b.to.localeCompare(a.to) || a.key.localeCompare(b.key));
+}

@@ -13,7 +13,10 @@
 	import DateField from '$lib/DateField.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
+	import type { PeriodGoal } from '$lib/goals';
 	import Menu from '$lib/Menu.svelte';
+	import PeriodGoalSheet from '$lib/PeriodGoalSheet.svelte';
+	import PlanGoals from '$lib/PlanGoals.svelte';
 	import PlanCalendar from '$lib/PlanCalendar.svelte';
 	import SessionIcon, { iconState } from '$lib/SessionIcon.svelte';
 	import { statusWords, type ScheduledDay, type TimeOff } from '$lib/plan';
@@ -25,11 +28,18 @@
 	const view = $derived(page.url.searchParams.get('view'));
 	const cyclesView = $derived(view === 'cycles');
 	const calendarView = $derived(view === 'calendar');
+	const goalsView = $derived(view === 'goals');
 	// From lg a Schedule row picks its day for the pane beside the list.
 	const wide = new MediaQuery('min-width: 64rem');
 
 	let adding = $state(false);
 	const openAdd = () => (adding = true);
+	let goalOpen = $state(false);
+	let editingGoal = $state<PeriodGoal | null>(null);
+	function openGoal(g: PeriodGoal | null) {
+		editingGoal = g;
+		goalOpen = true;
+	}
 	let offOpen = $state(false);
 	let editingOff = $state<TimeOff | null>(null);
 	function openOff(o: TimeOff | null) {
@@ -146,9 +156,10 @@
 		label="Plan"
 		replace
 		items={[
-			{ label: 'Schedule', href: '/plan', on: !cyclesView && !calendarView },
+			{ label: 'Schedule', href: '/plan', on: !cyclesView && !calendarView && !goalsView },
 			{ label: 'Calendar', href: '/plan?view=calendar', on: calendarView },
-			{ label: 'Cycles', href: '/plan?view=cycles', on: cyclesView }
+			{ label: 'Cycles', href: '/plan?view=cycles', on: cyclesView },
+			{ label: 'Goals', href: '/plan?view=goals', on: goalsView }
 		]}
 	/>
 {/snippet}
@@ -159,7 +170,11 @@
 		<div class="flex items-center gap-3">
 			<div class="hidden w-[380px] lg:block">{@render views()}</div>
 			{#if !data.offline}
-				{#if cyclesView}
+				{#if goalsView}
+					<button type="button" class="flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm lg:h-12 lg:w-41 lg:gap-2 lg:shadow-card" aria-label="New goal" onclick={() => openGoal(null)}>
+						<Icon name="plus" size="1.25rem" /><span class="hidden text-[15px] font-bold lg:inline" aria-hidden="true">New goal</span>
+					</button>
+				{:else if cyclesView}
 					<a href="/plan/cycles/new" class="flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm lg:h-12 lg:w-41 lg:gap-2 lg:shadow-card" aria-label="New cycle">
 						<Icon name="plus" size="1.25rem" /><span class="hidden text-[15px] font-bold lg:inline" aria-hidden="true">New cycle</span>
 					</a>
@@ -183,6 +198,8 @@
 
 	{#if data.offline}
 		<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold text-ink-2 shadow-card">No signal. The plan needs one to load.</p>
+	{:else if goalsView}
+		<PlanGoals goals={data.goals} cycles={data.cycles} today={data.today} wide={wide.current} onedit={openGoal} onadd={() => openGoal(null)} />
 	{:else if calendarView}
 		<div class="flex flex-col gap-3.5 lg:mt-2 lg:grid lg:grid-cols-[minmax(0,1fr)_330px] lg:items-start lg:gap-[22px]">
 			<section class="flex flex-col gap-2" aria-label="Calendar">
@@ -397,6 +414,7 @@
 {#if !data.offline}
 	<AddSession bind:open={adding} templates={data.templates} days={data.days} timeOff={data.timeOff} today={data.today} day={calendarView || wide.current ? selected : data.today} />
 	<TimeOffSheet bind:open={offOpen} editing={editingOff} today={data.today} day={calendarView || wide.current ? selected : data.today} />
+	<PeriodGoalSheet bind:open={goalOpen} editing={editingGoal} span={null} goals={data.goals} today={data.today} />
 {/if}
 
 <DaySheets {day} repeats={data.repeats} />
