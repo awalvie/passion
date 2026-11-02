@@ -6,16 +6,18 @@
 	let {
 		checked = $bindable(false),
 		label,
+		disabled = false,
 		onchange
-	}: { checked?: boolean; label?: string; onchange?: (e: Event & { currentTarget: HTMLInputElement }) => void } = $props();
+	}: { checked?: boolean; label?: string; disabled?: boolean; onchange?: (e: Event & { currentTarget: HTMLInputElement }) => void } = $props();
 </script>
 
 <span class="relative flex size-6 shrink-0">
 	<input
 		type="checkbox"
-		class="peer size-6 cursor-pointer appearance-none rounded-lg shadow-[inset_0_0_0_2px_var(--ink-3)] checked:bg-ink checked:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+		class="peer size-6 cursor-pointer appearance-none rounded-lg shadow-[inset_0_0_0_2px_var(--ink-3)] checked:bg-ink checked:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-default disabled:opacity-50"
 		bind:checked
 		aria-label={label}
+		{disabled}
 		{onchange}
 		use:tickBox
 	/>
