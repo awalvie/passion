@@ -1,6 +1,7 @@
 import { request, unreachable } from '$lib/api';
 import { loadCentres } from '$lib/centres';
 import { addDays, mondayOf } from '$lib/dates';
+import { loadGoals, type PeriodGoal } from '$lib/goals';
 import { loadJournal, pinnedOf, type JournalEntry } from '$lib/journal';
 import { loadToday, localToday, type Cycle, type ScheduledDay } from '$lib/plan';
 import { openRun } from '$lib/runState.svelte';
@@ -14,7 +15,7 @@ export async function load({ parent }) {
 		const today = await loadToday();
 		const monday = mondayOf(today);
 		const sunday = addDays(monday, 6);
-		const [{ days }, cycles, library, pinned] = await Promise.all([
+		const [{ days }, cycles, library, pinned, goals] = await Promise.all([
 			// Next week too, so on a Sunday the next session still shows, and
 			// last week for the days a wide screen lists.
 			request<{ days: ScheduledDay[] }>(
@@ -31,7 +32,8 @@ export async function load({ parent }) {
 			loadJournal().then(
 				(j) => pinnedOf(j.entries),
 				() => [] as JournalEntry[]
-			)
+			),
+			loadGoals().catch(() => [] as PeriodGoal[])
 		]);
 		const week = days.filter((d) => monday <= d.local_date && d.local_date <= sunday);
 		const next =
@@ -51,6 +53,7 @@ export async function load({ parent }) {
 			cycles,
 			library,
 			pinned,
+			goals,
 			centres,
 			offline: false
 		};
@@ -68,6 +71,7 @@ export async function load({ parent }) {
 			cycles: [] as Cycle[],
 			library: [] as SessionTemplate[],
 			pinned: [] as JournalEntry[],
+			goals: [] as PeriodGoal[],
 			centres: null,
 			offline: true
 		};

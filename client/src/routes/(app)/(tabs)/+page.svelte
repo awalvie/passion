@@ -7,6 +7,7 @@
 	import { addDays, cycleWeek, dayDate, daysBetween, formatDate, fullDate, mondayOf, shortDate } from '$lib/dates';
 	import { formatDuration, formatMinutes } from '$lib/exercise';
 	import FormError from '$lib/FormError.svelte';
+	import GoalCards from '$lib/GoalCards.svelte';
 	import HeroCard from '$lib/HeroCard.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import Menu from '$lib/Menu.svelte';
@@ -452,6 +453,10 @@
 				<div class="mt-4"><Button variant="secondary" href="/run/{r.id}/finish">Finish session</Button></div>
 			</section>
 		{/each}
+
+		{#if !other && !offline}
+			<GoalCards goals={data.goals} cycles={data.cycles} today={data.today} />
+		{/if}
 
 		{#if !other && data.pinned.length}
 			<section class="mx-4 mt-3.5 rounded-3xl bg-surface px-[18px] pt-4 shadow-card {data.pinned.length > 2 ? 'pb-1' : 'pb-2'}">
