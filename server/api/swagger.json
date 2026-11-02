@@ -610,6 +610,213 @@
         ]
       }
     },
+    "/api/v1/goals": {
+      "get": {
+        "tags": [
+          "goals"
+        ],
+        "summary": "List your goals",
+        "operationId": "listGoals",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/goalListResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/goals/{id}": {
+      "put": {
+        "description": "Creates the goal under the id you chose, set today, or changes its text, so\na retry makes one. A custom goal's span can change too.",
+        "tags": [
+          "goals"
+        ],
+        "summary": "Create a goal or change it",
+        "operationId": "putGoal",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The goal's id. The client chooses it when it creates the goal.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "x-go-name": "Body",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/goalRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/goalResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "description": "It leaves your list from today. It still counts in the periods that ended\nbefore then, but its ticks can no longer change.",
+        "tags": [
+          "goals"
+        ],
+        "summary": "Remove a goal",
+        "operationId": "removeGoal",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The goal's id. The client chooses it when it creates the goal.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/goals/{id}/ticks/{period_start}": {
+      "put": {
+        "description": "period_start is the period's first day: a Monday, the 1st of a month,\n1 January, or a custom goal's span's first day. It cannot be after today,\nthough a tick there can be taken off. Ticking it again keeps the first tick.",
+        "tags": [
+          "goals"
+        ],
+        "summary": "Mark a period met",
+        "operationId": "tickGoal",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The goal's id. The client chooses it when it creates the goal.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "PeriodStart",
+            "description": "The period's first day, written YYYY-MM-DD.",
+            "name": "period_start",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/goalResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "goals"
+        ],
+        "summary": "Mark a period not met",
+        "operationId": "untickGoal",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "description": "The goal's id. The client chooses it when it creates the goal.",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "PeriodStart",
+            "description": "The period's first day, written YYYY-MM-DD.",
+            "name": "period_start",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/goalResponse"
+            }
+          },
+          "401": {
+            "$ref": "#/responses/unauthenticated"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationFailed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/grades": {
       "get": {
         "description": "Every scale a climb can be logged in, so the client offers the grades the\nserver accepts.",
@@ -3111,6 +3318,142 @@
           "example": "Flash 7a in the gym"
         }
       },
+      "x-go-package": "passion/server/api"
+    },
+    "goalListResponse": {
+      "type": "object",
+      "properties": {
+        "goals": {
+          "description": "Oldest first, removed goals included.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/goalResponse"
+          },
+          "x-go-name": "Goals"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "goalRequest": {
+      "type": "object",
+      "required": [
+        "text",
+        "period"
+      ],
+      "properties": {
+        "period": {
+          "description": "week, month, year or custom. It cannot change once the goal is made.",
+          "type": "string",
+          "x-go-name": "Period",
+          "example": "week"
+        },
+        "span": {
+          "$ref": "#/definitions/goalSpan"
+        },
+        "text": {
+          "type": "string",
+          "x-go-name": "Text",
+          "example": "Train fingers twice"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "goalResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "The id the client chose.",
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a3"
+        },
+        "period": {
+          "type": "string",
+          "x-go-name": "Period"
+        },
+        "removed": {
+          "description": "The day it was removed, or null. It still counts in the periods that\nended before then.",
+          "type": "string",
+          "x-go-name": "Removed",
+          "example": "2026-12-02"
+        },
+        "span": {
+          "$ref": "#/definitions/goalSpan"
+        },
+        "starts": {
+          "description": "The day it was set, written YYYY-MM-DD. The period holding it is its\nfirst.",
+          "type": "string",
+          "x-go-name": "Starts",
+          "example": "2026-10-31"
+        },
+        "text": {
+          "type": "string",
+          "x-go-name": "Text"
+        },
+        "ticks": {
+          "description": "Each period met, oldest first.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/goalTick"
+          },
+          "x-go-name": "Ticks"
+        }
+      },
+      "x-go-package": "passion/server/api"
+    },
+    "goalSpan": {
+      "description": "A custom goal's days. Required for a custom goal, and left out for the\nothers. Every goal in the span shares them, so a change here changes them\nall.",
+      "type": "object",
+      "required": [
+        "id",
+        "starts",
+        "ends"
+      ],
+      "properties": {
+        "ends": {
+          "description": "The last day, included.",
+          "type": "string",
+          "x-go-name": "Ends",
+          "example": "2026-11-15"
+        },
+        "id": {
+          "description": "The id the client chose for the span.",
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "01a0bf77-d7e8-76ea-96cc-f09cbca175a4"
+        },
+        "name": {
+          "description": "Empty when the days are known by their dates.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Font trip"
+        },
+        "starts": {
+          "description": "The first day, written YYYY-MM-DD. Moving it moves the span's ticks.",
+          "type": "string",
+          "x-go-name": "Starts",
+          "example": "2026-11-07"
+        }
+      },
+      "x-go-name": "goalSpanBody",
+      "x-go-package": "passion/server/api"
+    },
+    "goalTick": {
+      "type": "object",
+      "properties": {
+        "period_start": {
+          "description": "The first day of the period that was met: a Monday, the 1st of a month,\n1 January, or a custom goal's span's first day.",
+          "type": "string",
+          "x-go-name": "PeriodStart",
+          "example": "2026-10-26"
+        },
+        "text": {
+          "description": "The goal's text when it was ticked.",
+          "type": "string",
+          "x-go-name": "Text"
+        }
+      },
+      "x-go-name": "goalTickResponse",
       "x-go-package": "passion/server/api"
     },
     "gradeListResponse": {

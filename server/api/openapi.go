@@ -320,3 +320,28 @@ type journalEntryParams struct {
 	// required:true
 	Body journalEntryRequest `json:"body"`
 }
+
+// swagger:parameters putGoal removeGoal tickGoal untickGoal
+type goalIDParams struct {
+	// The goal's id. The client chooses it when it creates the goal.
+	//
+	// in: path
+	// required: true
+	ID string `json:"id"`
+}
+
+// swagger:parameters putGoal
+type goalParams struct {
+	// in:body
+	// required:true
+	Body goalRequest `json:"body"`
+}
+
+// swagger:parameters tickGoal untickGoal
+type goalTickParams struct {
+	// The period's first day, written YYYY-MM-DD.
+	//
+	// in: path
+	// required: true
+	PeriodStart string `json:"period_start"`
+}
