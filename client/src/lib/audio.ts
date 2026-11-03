@@ -56,9 +56,12 @@ export function tone(hz: number, ms: number) {
 	const osc = ctx.createOscillator();
 	const gain = ctx.createGain();
 	const t = ctx.currentTime;
+	// A sine was too quiet on a phone speaker. A square wave at full gain is as
+	// loud as Web Audio plays without clipping.
+	osc.type = 'square';
 	osc.frequency.value = hz;
 	gain.gain.setValueAtTime(0.0001, t);
-	gain.gain.exponentialRampToValueAtTime(0.4, t + 0.01);
+	gain.gain.exponentialRampToValueAtTime(1, t + 0.01);
 	gain.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
 	osc.connect(gain).connect(ctx.destination);
 	osc.start(t);
