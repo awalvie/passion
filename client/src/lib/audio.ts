@@ -24,8 +24,14 @@ export function unlock() {
 	if (!soundOn()) return;
 	// Playback sounds on silent, as a timer on the wall must. It is set once,
 	// before the context starts: set again on each tone, iOS went quiet.
-	const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+	const session = (navigator as Navigator & { audioSession?: { type: string; state?: string } }).audioSession;
 	if (session && session.type !== 'playback') session.type = 'playback';
+	// After an interruption, such as a call or another app's sound, iOS often
+	// will not resume the old context, so a tap makes a new one.
+	if (ctx && (ctx.state !== 'running' || session?.state === 'interrupted')) {
+		void ctx.close();
+		ctx = null;
+	}
 	ctx ??= new AudioContext();
 	if (ctx.state !== 'running') {
 		// WebKit has needed a sound played inside the tap, even a silent one,

@@ -33,6 +33,11 @@ class FakeAudioContext {
 		this.state = 'running';
 		return Promise.resolve();
 	}
+	close() {
+		log.push('close');
+		this.state = 'closed';
+		return Promise.resolve();
+	}
 	createOscillator() {
 		const o = { frequency: { value: 0 }, started: false, connect: (n: unknown) => n, start() { o.started = true; }, stop() {} };
 		oscillators.push(o);
@@ -137,6 +142,17 @@ test('coming back to the app resumes a suspended context, and leaves a running o
 	contexts[0].state = 'suspended';
 	listeners['document:visibilitychange']();
 	expect(log).toEqual(['resume']);
+});
+
+// iOS often will not resume a context after an interruption.
+test('a tap that finds the audio stopped makes a new context', async () => {
+	await load();
+	tap();
+	contexts[0].state = 'interrupted';
+	log.length = 0;
+	tap();
+	expect(log).toEqual(['close', 'context', 'quiet', 'resume']);
+	expect(contexts).toHaveLength(2);
 });
 
 // Playback stops music from other apps. With the sound off no tone will ever
