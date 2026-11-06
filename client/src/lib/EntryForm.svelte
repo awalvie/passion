@@ -8,6 +8,7 @@
 	import { newId } from './id';
 	import type { JournalEntry } from './journal';
 	import { notice } from './notice.svelte';
+	import { draftPrefix } from './session';
 	import { guardUnsaved } from './unsaved';
 
 	// New entry when there is no entry, else Edit entry. Pin is only on a new
@@ -29,7 +30,7 @@
 
 	type Draft = { id: string; local_date: string; body: string; pin: boolean; base: string };
 	const first = untrack(() => entry);
-	const key = `passion-journal-draft:${first?.id ?? 'new'}`;
+	const key = `${draftPrefix}${first?.id ?? 'new'}`;
 
 	// What was typed and not saved stays on the phone, so a phone that closes
 	// the app loses nothing. An edit keeps its draft only while the entry has

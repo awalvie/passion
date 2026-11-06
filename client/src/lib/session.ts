@@ -27,3 +27,15 @@ export function clearRunStorage() {
 		if (k.startsWith(timerPrefix) || k.startsWith(pendingPrefix)) localStorage.removeItem(k);
 	}
 }
+
+// A journal entry typed and not saved is kept under this, followed by the
+// entry's id or "new".
+export const draftPrefix = 'passion-journal-draft:';
+
+// clearDrafts drops the unsaved journal text, which belongs to the account
+// that signs out, so the next account on this phone does not see it.
+export function clearDrafts() {
+	for (const k of Object.keys(localStorage)) {
+		if (k.startsWith(draftPrefix)) localStorage.removeItem(k);
+	}
+}

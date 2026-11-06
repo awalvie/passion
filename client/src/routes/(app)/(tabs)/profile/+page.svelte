@@ -17,7 +17,7 @@
 	import { forgetGrades } from '$lib/grades';
 	import NavBar from '$lib/NavBar.svelte';
 	import { hapticsOn, setHaptics, tickBox } from '$lib/haptics';
-	import { clearRunStorage, clearToken } from '$lib/session';
+	import { clearDrafts, clearRunStorage, clearToken } from '$lib/session';
 	import { plural } from '$lib/text';
 	import { MediaQuery } from 'svelte/reactivity';
 
@@ -126,6 +126,7 @@
 		}
 		clearToken();
 		clearRunStorage();
+		clearDrafts();
 		await goto('/login');
 	}
 </script>
