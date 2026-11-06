@@ -2,7 +2,8 @@
 	import { haptic } from './haptics';
 
 	// Sections of one list, as underlined words. They move between parts of the
-	// list; filters live elsewhere. '' is the first tab, which shows every row.
+	// list, or narrow it to one kind as History does. '' is the first tab, which
+	// shows every row.
 	// The line runs to the edges of the column, whose padding is px-4 on a phone
 	// and px-6 beside a pane from lg.
 	let {

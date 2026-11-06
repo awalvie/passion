@@ -385,6 +385,7 @@ export function headline(sessions: HistorySession[], m: Measure, scale: Scale | 
 // Warm-ups, cool-downs and mobility hold no load worth following, and an open
 // step logs its elapsed time as a set.
 const unloaded = ['warmup', 'cooldown', 'mobility'];
+export const loaded = (s: DatedSet) => s.kind !== 'open' && !s.tags.some((t) => unloaded.includes(t));
 
 export type Lift = {
 	exercise: string;
@@ -404,7 +405,7 @@ export type Lift = {
 export function lifts(sets: DatedSet[], bs: Bucket[]): Lift[] {
 	const byExercise = new Map<string, DatedSet[]>();
 	for (const s of sets) {
-		if (s.kind === 'open' || s.tags.some((t) => unloaded.includes(t))) continue;
+		if (!loaded(s)) continue;
 		byExercise.set(s.exercise, [...(byExercise.get(s.exercise) ?? []), s]);
 	}
 	const out: Lift[] = [];
