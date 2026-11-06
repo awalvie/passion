@@ -125,15 +125,16 @@ html {
 	}
 }
 
-/* The Library's rows reach the card's edges, so a pressed or hovered one
-   fills as a well inset as far as a picked one, not past the card. */
+/* A pressed or hovered row fills as a well inset as far as a picked one, not
+   past the card. The Library's rows reach the card's edges; a card with
+   padding sets --flush to reach past its rows into it. */
 .list-row.flush {
 	position: relative;
 	isolation: isolate;
 	&::before {
 		content: '';
 		position: absolute;
-		inset: 0 0.5rem;
+		inset: 0 var(--flush, 0.5rem);
 		z-index: -1;
 		border-radius: 1rem;
 		background: var(--well);

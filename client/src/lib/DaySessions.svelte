@@ -10,9 +10,9 @@
 	let { sessions }: { sessions: DaySession[] } = $props();
 </script>
 
-<ul class="rounded-3xl bg-surface px-[18px] py-1 shadow-card">
+<ul class="rounded-3xl bg-surface px-[18px] py-2 shadow-card [--flush:-0.625rem]">
 	{#each sessions as { run, journal } (run.id)}
-		<li class="list-row">
+		<li class="list-row flush">
 			<a href={run.elapsed_seconds === null ? `/run/${run.id}` : `/history/${run.id}`} class="flex min-h-16 items-start gap-3 py-3">
 				<SessionIcon icon={null} name={run.name} />
 				<span class="min-w-0 flex-1 self-center">
