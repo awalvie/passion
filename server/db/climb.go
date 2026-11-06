@@ -56,11 +56,11 @@ var (
 
 // ClimbFields is what the person logs for one climb.
 type ClimbFields struct {
-	Step        string
-	Position    int
-	Discipline  string
-	Setting     string
-	Board       *string
+	Step       string
+	Position   int
+	Discipline string
+	Setting    string
+	Board      *string
 	// Degrees past vertical, for a board.
 	Angle       *int
 	RopeStyle   *string

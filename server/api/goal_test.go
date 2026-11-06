@@ -117,7 +117,7 @@ func TestGoals(t *testing.T) {
 	}
 	for body, want := range map[string][2]string{
 		`{"text": "Send 7A", "period": "custom"}`: {"span", "is required"},
-		`{"text": "Send 7A", "period": "custom", "span": {"id": "", "starts": "2026-01-10", "ends": "2026-01-20"}}`:                                      {"span.id", "is required"},
+		`{"text": "Send 7A", "period": "custom", "span": {"id": "", "starts": "2026-01-10", "ends": "2026-01-20"}}`:                                     {"span.id", "is required"},
 		`{"text": "Send 7A", "period": "custom", "span": {"id": "0199c3a0-0000-7000-8000-000000000c01", "starts": "2026-01-10", "ends": "soon"}}`:       {"span.ends", "must be a date, written 2026-03-07"},
 		`{"text": "Send 7A", "period": "custom", "span": {"id": "0199c3a0-0000-7000-8000-000000000c02", "starts": "2026-01-10", "ends": "2026-01-20"}}`: {"span.id", "cannot change once the goal is made"},
 		`{"text": "Send 7A", "period": "week"}`: {"period", "cannot change once the goal is made"},
