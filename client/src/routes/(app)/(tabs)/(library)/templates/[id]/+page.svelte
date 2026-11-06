@@ -123,12 +123,13 @@
 	);
 
 	const tab = $derived(page.url.searchParams.get('tab') === 'exercises' ? 'exercises' : 'overview');
-	// Opened from Today, the way back leads there, through both tabs.
-	const fromToday = $derived(page.url.searchParams.get('from') === '/');
-	const back = $derived(fromToday ? { href: '/', label: 'Today' } : { href: '/templates', label: 'Sessions' });
+	// Opened from Today or Plan, the way back leads there, through both tabs.
+	const origins: Record<string, string> = { '/': 'Today', '/plan': 'Plan' };
+	const from = $derived(page.url.searchParams.get('from') ?? '');
+	const back = $derived(from in origins ? { href: from, label: origins[from] } : { href: '/templates', label: 'Sessions' });
 	function tabHref(query: Record<string, string> = {}) {
 		const q = new URLSearchParams(query);
-		if (fromToday) q.set('from', '/');
+		if (from in origins) q.set('from', from);
 		return `/templates/${t.id}${q.size ? `?${q}` : ''}`;
 	}
 	const icon = $derived(sessionIcons.find(([name]) => name === t.icon)?.[0]);

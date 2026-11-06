@@ -10,7 +10,6 @@
 	import { DayActions } from '$lib/dayActions.svelte';
 	import DayPane from '$lib/DayPane.svelte';
 	import DaySheets from '$lib/DaySheets.svelte';
-	import DateField from '$lib/DateField.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import type { PeriodGoal } from '$lib/goals';
@@ -253,46 +252,31 @@
 									{#each g.days as d, i (d.id)}
 											<li class="list-row">
 											{#if d.status === 'planned' || d.status === 'paused' || d.status === 'missed'}
-												<details class="group">
-													<summary class="flex min-h-[58px] cursor-pointer list-none items-center gap-3.5 py-2 [&::-webkit-details-marker]:hidden">
+												<div class="flex items-center gap-1">
+													<a href="/templates/{d.template}?from=/plan" class="flex min-h-[58px] min-w-0 flex-1 items-center gap-3.5 py-2">
 														{@render row(g, d, i)}
-														{#if (d.status === 'planned' || d.status === 'paused') && d.local_date === data.today && !data.live}
-															<button
-																type="button"
-																class="flex size-11 shrink-0 items-center justify-center rounded-full bg-tint text-on-tint shadow-tint disabled:opacity-50"
-																aria-label="Start {d.template_name}"
-																disabled={day.starting}
-																onclick={(e) => {
-																	e.preventDefault();
-																	e.stopPropagation();
-																	day.start(d);
-																}}
-															>
-																<Icon name="play" size="1.125rem" />
-															</button>
-														{:else}
-															<span class="shrink-0 text-ink-3 transition-transform group-open:rotate-90"><Icon name="chevron-right" size="1rem" /></span>
-														{/if}
-													</summary>
-													<form
-														class="flex flex-col gap-3 pb-4 pl-[108px]"
-														onsubmit={(e) => {
-															e.preventDefault();
-															day.move(d, String(new FormData(e.currentTarget).get('date')));
-														}}
-													>
-														<div class="flex gap-2">
-															<div class="min-w-0 flex-1"><DateField value={d.local_date} name="date" label="New day" /></div>
-															<button type="submit" class="h-12 shrink-0 rounded-full bg-well px-4 text-[15px] font-bold text-ink disabled:opacity-50" disabled={day.doing !== null}>
-																{day.doing === `move:${d.id}` ? 'Moving…' : 'Move'}
-															</button>
-														</div>
-														<FormError message={day.error.id === d.id ? day.error.message : ''} />
-														<button type="button" class="h-11 self-start text-[15px] font-bold text-bad disabled:opacity-50" disabled={day.doing !== null} onclick={() => day.remove(d)}>
-															{day.doing === `remove:${d.id}` ? 'Removing…' : 'Remove'}
+													</a>
+													{#if (d.status === 'planned' || d.status === 'paused') && d.local_date === data.today && !data.live}
+														<button
+															type="button"
+															class="flex size-11 shrink-0 items-center justify-center rounded-full bg-tint text-on-tint shadow-tint disabled:opacity-50"
+															aria-label="Start {d.template_name}"
+															disabled={day.starting}
+															onclick={() => day.start(d)}
+														>
+															<Icon name="play" size="1.125rem" />
 														</button>
-													</form>
-												</details>
+													{/if}
+													<Menu
+														label="More for {d.template_name}"
+														look="text-ink-2"
+														items={[
+															{ label: 'Move to another day', onclick: () => day.openMove(d) },
+															{ label: 'Remove', danger: true, onclick: () => day.remove(d) }
+														]}
+													/>
+												</div>
+												<FormError message={day.error.id === d.id && !day.moveOpen && !day.endOpen ? day.error.message : ''} />
 											{:else}
 												<a href={d.status === 'done' ? `/history/${d.run}` : `/run/${d.run}`} class="flex min-h-[58px] items-center gap-3.5 py-2">
 													{@render row(g, d, i)}
