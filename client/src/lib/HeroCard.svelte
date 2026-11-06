@@ -13,7 +13,7 @@
 	<div class="absolute inset-0 overflow-hidden rounded-[inherit]">
 		<Topo shape={heroTopo} class="h-full w-full text-[var(--hero-topo)]" />
 	</div>
-	<div class="relative flex flex-col p-5">
+	<div class="relative flex flex-col p-[18px]">
 		{@render children()}
 	</div>
 </article>

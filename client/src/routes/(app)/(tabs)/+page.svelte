@@ -2,29 +2,34 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { describe } from '$lib/api';
-	import Bars from '$lib/Bars.svelte';
 	import Button from '$lib/Button.svelte';
-	import { addDays, cycleWeek, dayDate, daysBetween, formatDate, fullDate, mondayOf, shortDate } from '$lib/dates';
-	import { formatDuration, formatMinutes } from '$lib/exercise';
+	import { addDays, dayDate, daysBetween, formatDate, fullDate } from '$lib/dates';
+	import { formatDuration } from '$lib/exercise';
 	import FormError from '$lib/FormError.svelte';
 	import GoalCards from '$lib/GoalCards.svelte';
 	import HeroCard from '$lib/HeroCard.svelte';
 	import Icon from '$lib/Icon.svelte';
+	import Empty from '$lib/Empty.svelte';
 	import Menu from '$lib/Menu.svelte';
+	import { DayActions } from '$lib/dayActions.svelte';
+	import DaySheets from '$lib/DaySheets.svelte';
 	import type { ScheduledDay } from '$lib/plan';
-	import { buckets, hours, tenWeeks } from '$lib/progress';
-	import { currentStop, doneWhen, lastDone, secondsSince, type Run, type RunSummary } from '$lib/run';
+	import { currentStop, stepsOf, type Run, type RunSummary } from '$lib/run';
+		import Info from '$lib/Info.svelte';
 	import { discardRun, openRun, startRun, type StartBody } from '$lib/runState.svelte';
 	import SessionIcon, { iconState } from '$lib/SessionIcon.svelte';
 	import { plural } from '$lib/text';
+	import { request } from '$lib/api';
+	import { trends, trendWeeks, type DatedClimb, type Trend } from '$lib/progress';
 	import Topo from '$lib/Topo.svelte';
 	import { topTopo } from '$lib/topo';
 	import WeekStrip from '$lib/WeekStrip.svelte';
 	import { MediaQuery } from 'svelte/reactivity';
 
 	let { data } = $props();
+	const day = new DayActions();
 
-	// From lg Write in journal and Open session sit side by side under the session.
+	// From lg the journal opens in Journal's pane rather than on its own page.
 	const wide = new MediaQuery('min-width: 64rem');
 
 	// The day or session being started, or 'open'.
@@ -56,12 +61,6 @@
 		}
 	}
 
-	let now = $state(Date.now());
-	$effect(() => {
-		if (!live) return;
-		const tick = setInterval(() => (now = Date.now()), 1000);
-		return () => clearInterval(tick);
-	});
 	// Runs come from the layout, which can lose the signal on its own.
 	const offline = $derived(data.offline || data.runs === null);
 
@@ -69,10 +68,8 @@
 	const finished = $derived((data.runs ?? []).filter((r) => r.finished_at !== null));
 	const thisWeek = (r: RunSummary) => data.monday <= r.local_date && r.local_date <= sunday;
 
-	// The days a wide screen lists beside Today, last week to the end of next.
-	const span = $derived(Array.from({ length: 21 }, (_, i) => addDays(data.monday, i - 7)));
-	// A tap on the week strip, or on a listed day, shows that day in place of
-	// today.
+	const span = $derived(Array.from({ length: 7 }, (_, i) => addDays(data.monday, i)));
+	// A tap on the week strip shows that day in place of today.
 	const shown = $derived.by(() => {
 		const day = page.url.searchParams.get('day');
 		return span.includes(day ?? '') ? day! : data.today;
@@ -105,128 +102,20 @@
 		return n === 1 ? 'Tomorrow' : n < 7 ? formatDate(date, { weekday: 'long' }) : dayDate(date);
 	}
 
-	const cycle = $derived(data.cycles.find((c) => c.starts <= data.today && data.today <= c.ends));
-	const progress = $derived(cycle ? cycleWeek(cycle.starts, cycle.ends, data.today) : null);
-
-	const weekPlanned = $derived(data.week.filter((d) => d.status !== 'paused').length);
-	const weekDone = $derived(data.week.filter((d) => d.status === 'done').length);
-	const missed = $derived(
-		data.week.filter((d) => d.status === 'missed').sort((a, b) => a.local_date.localeCompare(b.local_date))
-	);
 	const ranThisWeek = $derived(finished.filter(thisWeek));
-	const extra = $derived(ranThisWeek.filter((r) => !data.week.some((d) => d.run === r.id)).length);
-	const ranLastWeek = $derived(
-		finished.filter((r) => addDays(data.monday, -7) <= r.local_date && r.local_date < data.monday).length
-	);
 
-	// The usual length is to five minutes; more exact than that it cannot be.
-	function factsOf(d: ScheduledDay) {
-		const past = finished.filter((r) => r.local_date < data.today && r.template === d.template);
-		const timed = past.filter((r) => r.elapsed_seconds);
+	// How long a session usually takes, to five minutes; more exact than that it
+	// cannot be.
+	function usualOf(d: ScheduledDay) {
+		const timed = finished.filter((r) => r.local_date < data.today && r.template === d.template && r.elapsed_seconds);
+		if (!timed.length) return null;
 		const mean = timed.reduce((s, r) => s + r.elapsed_seconds!, 0) / timed.length;
-		const last = past.map((r) => r.local_date).sort().at(-1);
-		return {
-			usual: timed.length ? formatDuration(Math.max(1, Math.round(mean / 300)) * 300) : null,
-			since: last ? daysBetween(last, data.today) : null
-		};
+		return formatDuration(Math.max(1, Math.round(mean / 300)) * 300);
 	}
 
-	// Your own sessions, and the built-in ones you have run, the last done first.
-	const ranOn = $derived(lastDone(finished));
-	const mine = $derived(
-		data.library
-			.filter((t) => !t.shipped || ranOn.has(t.id))
-			.sort((a, b) => (ranOn.get(b.id) ?? '').localeCompare(ranOn.get(a.id) ?? ''))
-	);
-	// A session planned for today starts as that plan, so the day counts as done.
-	function startMine(template: string) {
-		const d = data.week.find(
-			(d) => d.local_date === data.today && (d.status === 'planned' || d.status === 'paused') && d.template === template
-		);
-		start(d ? { scheduled: d.id } : { template });
-	}
-
-	type Entry = { run: RunSummary; plan?: never } | { plan: ScheduledDay; run?: never };
-	// Runs in the order they started, then plans still to do.
-	const startOf = (e: Entry) => (e.run ? Date.parse(e.run.started_at) : Infinity);
-	// Each listed day with something on it, and today. A run shows on the
-	// planned day it ran for, else on the day it was done.
-	const listed = $derived.by(() => {
-		const runs = new Map((data.runs ?? []).map((r) => [r.id, r]));
-		const claimed = new Set(data.days.map((d) => d.run));
-		const out: { monday: string; dates: { date: string; entries: Entry[] }[] }[] = [];
-		for (const date of span) {
-			const entries: Entry[] = [
-				...data.days
-					.filter((d) => d.local_date === date)
-					.map((d): Entry | null => (d.run ? (runs.has(d.run) ? { run: runs.get(d.run)! } : null) : { plan: d }))
-					.filter((e) => e !== null),
-				...(data.runs ?? [])
-					.filter((r) => r.local_date === date && !claimed.has(r.id))
-					.map((run) => ({ run }))
-			].sort((a, b) => startOf(a) - startOf(b) || 0);
-			if (!entries.length && date !== data.today) continue;
-			const monday = mondayOf(date);
-			if (out.at(-1)?.monday !== monday) out.push({ monday, dates: [] });
-			out.at(-1)!.dates.push({ date, entries });
-		}
-		return out;
-	});
 	const sessionsById = $derived(new Map(data.library.map((t) => [t.id, t])));
 
-	function weekTitle(monday: string) {
-		if (monday === data.monday) return 'This week';
-		return monday > data.monday ? 'Next week' : 'Last week';
-	}
-
-	// The week's dates, its cycles, and how it went or what is coming.
-	function weekNote(monday: string) {
-		const end = addDays(monday, 6);
-		const days = data.days.filter((d) => monday <= d.local_date && d.local_date <= end && d.status !== 'paused');
-		const cycles = new Set(days.flatMap((d) => data.cycles.filter((c) => c.id === d.cycle).map((c) => c.name)));
-		const ran = finished.filter((r) => monday <= r.local_date && r.local_date <= end).length;
-		const count =
-			monday > data.monday
-				? `${days.length} planned`
-				: days.length
-					? `${days.filter((d) => d.status === 'done').length} of ${days.length} done`
-					: plural(ran, 'session');
-		return [`${shortDate(monday)} – ${shortDate(end)}`, ...cycles, count].filter(Boolean).join(' · ');
-	}
-
-	// A listed day opens beside the list, in place of today.
-	function dayLink(date: string) {
-		return {
-			href: date === data.today ? '/' : `/?day=${date}`,
-			'aria-current': date === shown ? ('date' as const) : undefined,
-			'data-sveltekit-replacestate': '',
-			'data-sveltekit-noscroll': '',
-			'data-sveltekit-keepfocus': ''
-		};
-	}
-	// A picked day's entries shade as one block, with no hairline between them.
-	const pick = (date: string, i: number, n: number) =>
-		other && date === shown
-			? `-mx-2 bg-well px-2 ${i ? 'shadow-none!' : 'rounded-t-2xl'} ${i === n - 1 ? 'rounded-b-2xl' : ''}`
-			: '';
-
-	function sectionsOf(template: string) {
-		const n = sessionsById.get(template)?.sections.length ?? 0;
-		return n === 1 ? '1 section' : n ? `${n} sections` : '';
-	}
-
-	const soFar = (startedAt: string) => formatDuration(Math.max(1, Math.floor(secondsSince(startedAt, now) / 60)) * 60);
-
 	const stop = $derived(live ? currentStop(live) : null);
-	const at = $derived(live && stop ? live.sections.findIndex((s) => s.items.includes(stop)) : -1);
-
-	const bs = $derived(buckets(tenWeeks(data.today), data.today).buckets);
-	const time = $derived(hours(finished, bs));
-	// The usual week is the mean of the full weeks before this one that have
-	// any training, once there are three of them.
-	const trained = $derived(time.slice(0, -1).filter((h) => h > 0));
-	const usual = $derived(trained.length >= 3 ? trained.reduce((a, b) => a + b, 0) / trained.length : null);
-	const tenths = (n: number) => (Math.round(n * 10) / 10).toFixed(1);
 
 	// The first-week card, for someone who has logged nothing yet.
 	const setup = $derived(
@@ -257,7 +146,66 @@
 	}
 	const settingUp = $derived(!setupHidden && (setup?.some((s) => !s.done) ?? false));
 
-	const empty = $derived(!other && !live && !planned.length && !done.length && !data.next && !offline);
+	// The tiles of Progress, for the room a laptop has. A phone shows none, so it
+	// loads none.
+	const round = (h: number) => Math.round(h * 10) / 10;
+	let recent = $state<DatedClimb[] | null>(null);
+	const weeks = $derived(trendWeeks(data.today));
+	$effect(() => {
+		if (!wide.current || offline) return;
+		request<{ climbs: DatedClimb[] }>('GET', `/api/v1/climbs?from=${weeks[0].from}&to=${weeks[7].to}`).then(
+			(r) => (recent = r.climbs),
+			() => (recent = null)
+		);
+	});
+	const tiles = $derived.by(() => {
+		const ran = finished.filter((r) => r.local_date >= weeks[0].from && r.local_date <= weeks[7].to);
+		// Nothing in the last four weeks leaves no figure to show.
+		if (!recent || !ran.some((r) => r.local_date >= weeks[4].from)) return [];
+		const first = finished.reduce((d, r) => (r.local_date < d ? r.local_date : d), data.today);
+		const t = trends(ran, recent, weeks, first);
+		return [
+			{ label: 'Hours a week', t: t.hours, unit: 'h', view: 'time' },
+			{ label: 'Climbs a week', t: t.climbs, unit: '', view: 'climbs' },
+			{ label: 'Send rate', t: t.sent, unit: '%', view: 'climbs' },
+			{ label: 'Flash rate', t: t.flash, unit: '%', view: 'climbs' }
+		];
+	});
+	function change(t: Trend, unit: string): string | null {
+		if (t.now === null || t.then === null) return null;
+		const d = round(t.now - t.then);
+		if (!d) return 'Same';
+		return `${Math.abs(d)}${unit}`;
+	}
+
+	// The weights of the shown day's first session last time, as its own page
+	// shows them. With nothing left to do today, a laptop shows the next session.
+	const ahead = $derived(!other && !live && !offline && !planned.length ? data.next : null);
+	const prepDay = $derived(planned.find((d) => d.status !== 'missed') ?? ahead);
+	let lastRun = $state<Run | null>(null);
+	$effect(() => {
+		lastRun = null;
+		if (!wide.current) return;
+		const id = prepDay?.template;
+		const past = finished.filter((r) => r.template === id).sort((a, b) => b.started_at.localeCompare(a.started_at));
+		// The card shows fine without them.
+		if (past[0]) request<Run>('GET', `/api/v1/runs/${past[0].id}`).then((r) => (lastRun = r), () => {});
+	});
+	const prep = $derived.by(() => {
+		if (!prepDay || live) return null;
+		const run = lastRun && lastRun.template === prepDay.template ? lastRun : null;
+		const names = new Map(run ? stepsOf(run).map((x) => [x.exercise, x.name]) : []);
+		const loads = run
+			? [...new Set(stepsOf(run).map((x) => x.exercise))].filter((e) => run.sets.some((x) => x.exercise === e)).flatMap((exercise) => {
+					const sets = run.sets.filter((x) => x.exercise === exercise);
+					const top = sets.reduce((a, b) => ((b.weight_kg ?? -Infinity) > (a.weight_kg ?? -Infinity) ? b : a));
+					if (!top.weight_kg) return [];
+					const dose = top.reps ? `${sets.length}×${top.reps}` : plural(sets.length, 'set');
+					return [{ exercise, name: names.get(exercise) ?? 'Exercise', text: `${dose} · ${top.weight_kg} kg` }];
+				})
+			: [];
+		return { loads, last: run?.id };
+	});
 </script>
 
 <svelte:head><title>Today</title></svelte:head>
@@ -270,11 +218,9 @@
 	class="absolute inset-x-0 top-0 h-80 w-full text-[var(--topo)] [mask-image:linear-gradient(#000_30%,transparent)]"
 />
 
-<div class="relative pt-[env(safe-area-inset-top)] lg:mx-auto lg:grid lg:max-w-[1280px] lg:grid-cols-[minmax(0,1fr)_460px]">
-	{@render days()}
-	<!-- Its cards keep the phone's 16 px margin; from lg this makes up Plan's 32 px gutter. -->
-	<div class="flex flex-col lg:pr-4">
-		<header class="flex items-start justify-between gap-3 px-4 pt-3 {other ? '' : 'lg:hidden'}">
+<div class="relative pt-[env(safe-area-inset-top)] lg:mx-auto lg:max-w-[1200px] lg:px-4 lg:pb-8">
+	<div class="flex flex-col">
+		<header class="flex items-start justify-between gap-3 px-4 pt-3">
 			<div class="px-1">
 				<h1 class="page-title">
 					{other ? formatDate(shown, { weekday: 'long' }) : 'Today'}
@@ -287,20 +233,27 @@
 				{#if other}
 					<a
 						href="/"
-						class="flex h-11 items-center gap-1.5 rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm"
+						class="flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm"
 						data-sveltekit-replacestate
 						data-sveltekit-noscroll
 					>
 						<Icon name="undo-2" size="1.125rem" />Today
 					</a>
 				{/if}
-				<a href="/profile" class="flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm md:hidden" aria-label="Profile">
+				<a href="/profile" class="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm md:hidden" aria-label="Profile">
 					<Icon name="settings" size="1.25rem" />
 				</a>
 			</div>
 		</header>
 
 		<div class="px-4"><FormError message={error} /></div>
+
+		<section class="mx-4 mt-3.5 rounded-3xl bg-surface pt-1 pb-4 shadow-card lg:hidden">
+			{@render strip()}
+		</section>
+
+		<div class="contents lg:grid lg:grid-cols-[minmax(0,1fr)_392px] lg:items-start">
+		<div class="contents lg:flex lg:flex-col">
 
 		{#if settingUp}
 			<HeroCard>
@@ -339,40 +292,7 @@
 			</HeroCard>
 		{/if}
 
-		<section class="mx-4 mt-3.5 rounded-3xl bg-surface pt-4 shadow-card {missed.length ? 'pb-1' : 'pb-4'} lg:hidden">
-			<div class="flex items-start justify-between gap-3 px-5">
-				<div class="min-w-0">
-					<h2 class="text-[15px] font-bold">This week</h2>
-					{#if cycle && progress}<p class="mt-0.5 truncate text-xs font-semibold text-ink-2">{cycle.name} · Week {progress.week} of {progress.of}</p>{/if}
-				</div>
-				<p class="shrink-0 text-[15px] font-semibold text-ink-2">
-					{#if offline}
-						No signal
-					{:else if weekPlanned}
-						<b class="digits text-ink">{weekDone} of {weekPlanned}</b> done{extra ? ` · ${extra} extra` : ''}
-					{:else}
-						<b class="digits text-ink">{ranThisWeek.length}</b> {ranThisWeek.length === 1 ? 'session' : 'sessions'} · {ranLastWeek} last week
-					{/if}
-				</p>
-			</div>
-			<WeekStrip monday={data.monday} today={data.today} week={data.week} selected={shown} ran={ranThisWeek.map((r) => r.local_date)} />
-			{#if missed.length}
-				<ul class="mt-3 px-5">
-					{#each missed as d (d.id)}
-						<li class="list-row">
-							<a href="/plan" class="flex min-h-[60px] items-center gap-3">
-								<span class="min-w-0 flex-1">
-									<span class="block truncate text-[15px] font-bold">{d.template_name}</span>
-									<span class="block text-xs font-semibold text-ink-2">Missed {formatDate(d.local_date, { weekday: 'long' })}</span>
-								</span>
-								<span class="flex items-center gap-0.5 text-xs font-bold text-ink">Plan<Icon name="chevron-right" size="14px" /></span>
-							</a>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-		</section>
-
+		<div class="contents">
 		{#if live && !other}
 			{@render liveSlot(live)}
 		{:else}
@@ -380,25 +300,19 @@
 				{@render sessionSlot(d, !other && i === 0)}
 			{/each}
 			{#if done.length}
-				<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
-					<p class="text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">{other ? 'Done' : 'Done today'}</p>
-					<ul class="mt-1">
-						{#each done as r (r.id)}
-							<li class="list-row">
-								<a href="/history/{r.id}" class="flex min-h-[60px] items-center gap-3">
-									<span class="min-w-0 flex-1 truncate text-xl font-bold tracking-tight">{r.name}</span>
-									{#if r.elapsed_seconds}<span class="digits text-xl">{formatMinutes(r.elapsed_seconds)}</span>{/if}
-								</a>
-								{#if r.has_journal === false}
-									<a href="/run/{r.id}/finish" class="-mt-3 -mb-3 flex min-h-11 w-fit items-center gap-0.5 text-xs font-bold text-ink">
-										Add session journal<Icon name="chevron-right" size="14px" />
-									</a>
-								{/if}
-							</li>
-						{/each}
-					</ul>
-					{#if !other && !planned.length && data.next}{@render nextUp(data.next)}{/if}
-				</section>
+				{#each done as r, i (r.id)}
+					<HeroCard>
+						<div class="relative">
+							<a href="/history/{r.id}" class="absolute -inset-[18px] rounded-[inherit]" aria-label="Open {r.name}"></a>
+							<div class="flex items-center gap-3">
+								<span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-on-hero text-[var(--hero)]"><Icon name="check" size="1.25rem" stroke={2.6} /></span>
+								<h2 class="min-w-0 flex-1 truncate text-xl font-bold tracking-tight">{r.name}</h2>
+								{#if r.has_journal === false}<a href="/run/{r.id}/finish" class="relative hidden h-12 items-center justify-center gap-2 rounded-full bg-white/10 px-5 text-[15px] font-semibold text-on-hero lg:flex"><Icon name="pencil" size="1.125rem" stroke={2.2} />Add session journal</a>{/if}
+							</div>
+							{#if r.has_journal === false}<a href="/run/{r.id}/finish" class="relative mt-4 flex h-12 items-center justify-center gap-2 rounded-full bg-white/10 text-[15px] font-semibold text-on-hero lg:hidden"><Icon name="pencil" size="1.125rem" stroke={2.2} />Add session journal</a>{/if}
+						</div>
+					</HeroCard>
+				{/each}
 			{:else if other && !planned.length}
 				{#if !stale.length}
 					<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
@@ -412,59 +326,73 @@
 						<p class="mt-1 text-[15px] font-semibold text-ink-2">The plan cannot load. A running session still works.</p>
 					</section>
 				{:else if data.next}
-					<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
-						<p class="text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">Today</p>
-						<p class="mt-1 text-[28px] leading-tight font-extrabold tracking-tight">Rest day</p>
-						{@render nextUp(data.next)}
-					</section>
-				{:else}
-					<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
-						<p class="text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">Today</p>
-						<p class="mt-1 text-[28px] leading-tight font-extrabold tracking-tight">Nothing planned</p>
-						<p class="mt-1 text-[15px] font-semibold text-ink-2">Log as you go, or plan the week ahead.</p>
-						<div class="mt-4">
-							<Button disabled={starting !== null} onclick={() => start({ name: 'Open session' })}>
-								{starting === 'open' ? 'Starting…' : 'Open session'}
-							</Button>
+					<HeroCard>
+						<div class="relative">
+							<div class="flex items-center gap-3">
+								<span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-on-hero"><Icon name="moon" size="1.25rem" /></span>
+								<h2 class="text-xl font-bold tracking-tight">Rest day</h2>
+							</div>
 						</div>
-						<div class="mt-2.5"><Button variant="secondary" href="/plan">Plan a session</Button></div>
-					</section>
+					</HeroCard>
+				{:else if !settingUp}
+					<div class="mx-4 mt-3.5">
+						<Empty title="Nothing planned" text="Plan your week, or log a session as you go."><div class="lg:w-60"><Button href="/plan">Plan your week</Button></div></Empty>
+					</div>
 				{/if}
 			{/if}
 		{/if}
 
-		{#if wide.current && !other && !offline}
-			<div class="mx-4 mt-3.5 grid auto-cols-fr grid-flow-col gap-3.5">
-				{@render journalCard('', !!live || empty)}
-				{#if !live && !empty}{@render openCard('flex')}{/if}
-			</div>
+		</div>
+
+		{#if stale.length}
+			<ul class="mx-4 mt-3.5 rounded-3xl bg-surface px-[18px] py-1 shadow-card">
+				{#each stale as r (r.id)}
+					<li class="list-row flex items-center gap-2">
+						<a href="/run/{r.id}/finish" class="flex min-h-[68px] min-w-0 flex-1 items-center gap-3">
+							<span class="flex size-11 shrink-0 items-center justify-center rounded-full text-ink-2 outline-[1.5px] -outline-offset-[1.5px] outline-dashed outline-ink-3"><Icon name="pause" size="1.125rem" /></span>
+							<span class="min-w-0 flex-1">
+								<span class="block truncate text-[15px] font-bold">{r.name}</span>
+								<span class="block text-xs font-semibold text-ink-2">Not finished · {formatDate(r.local_date, { weekday: 'long' })}</span>
+							</span>
+						</a>
+						<Menu look="bg-well text-ink" items={[{ label: 'Finish', onclick: () => goto(`/run/${r.id}/finish`) }, { label: 'Discard session', danger: true, onclick: () => discard(r) }]} />
+					</li>
+				{/each}
+			</ul>
 		{/if}
 
-		{#each stale as r (r.id)}
-			<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
-				<div class="flex items-start justify-between gap-3">
-					<div class="min-w-0">
-						<p class="text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">Not finished</p>
-						<p class="mt-1 truncate text-xl font-extrabold tracking-tight">{r.name}</p>
-						<p class="mt-1 text-[15px] font-semibold text-ink-2">Started {dayDate(r.local_date)}. It counts once it is finished.</p>
-					</div>
-					<Menu look="bg-well text-ink" items={[{ label: 'Discard session', danger: true, onclick: () => discard(r) }]} />
+		{#if !offline && !other}{@render actions('lg:hidden')}{/if}
+		{@render prepare()}
+
+		{#if tiles.length && !offline}
+			<section class="mx-4 mt-6 hidden lg:block">
+				<div class="relative flex items-center justify-between px-1">
+					<a href="/history/progress?view=time&from=/" class="flex h-11 items-center gap-1 text-xl font-bold tracking-tight">Last 4 weeks<Icon name="chevron-right" size="1.125rem" stroke={2.4} /></a>
+					<Info text="Each figure is a week on average over the last 4 weeks. The bars are those 4 weeks, and the dashed line is the average of the 4 weeks before." />
 				</div>
-				<div class="mt-4"><Button variant="secondary" href="/run/{r.id}/finish">Finish session</Button></div>
+				<ul class="mt-1 grid grid-cols-4 gap-3.5">
+					{#each tiles.filter((t) => t.t.now !== null) as t (t.label)}{@render tile(t.label, t.t, t.unit, t.view)}{/each}
+				</ul>
 			</section>
-		{/each}
-
-		{#if !other && !offline}
-			<GoalCards goals={data.goals} cycles={data.cycles} today={data.today} />
+		{/if}
+		</div>
+		<div class="contents lg:flex lg:flex-col">
+		<section class="mx-4 mt-3.5 hidden rounded-3xl bg-surface pt-1 pb-4 shadow-card lg:block">
+			{@render strip()}
+		</section>
+		{#if !offline && !other}{@render actions('max-lg:hidden')}{/if}
+		{#if !offline}
+			<GoalCards goals={data.goals} today={data.today} />
 		{/if}
 
-		{#if !other && data.pinned.length}
-			<section class="mx-4 mt-3.5 rounded-3xl bg-surface px-[18px] pt-4 shadow-card {data.pinned.length > 2 ? 'pb-1' : 'pb-2'}">
-				<div class="flex items-baseline justify-between">
+		{#if data.pinned.length}
+			<a href="/journal" class="mx-4 mt-3.5 hidden h-11 items-center gap-1 px-1 text-[15px] font-bold lg:flex">Pinned<span class="text-ink-3"><Icon name="chevron-right" size="1rem" /></span></a>
+			<section class="mx-4 mt-3.5 lg:mt-0 rounded-3xl bg-surface px-[18px] pt-4 shadow-card lg:pt-1 {data.pinned.length > 2 ? 'pb-1' : 'pb-2'}">
+				<div class="flex items-baseline justify-between lg:hidden">
 					<h2 class="text-[15px] font-bold">Pinned</h2>
 					<a href="/journal" class="-my-3 flex h-11 items-center gap-0.5 text-xs font-bold text-ink">Journal<Icon name="chevron-right" size="14px" /></a>
 				</div>
-				<ul class="mt-1">
+				<ul class="mt-1 lg:mt-0">
 					{#each data.pinned.slice(0, 2) as e (e.id)}
 						<li class="list-row">
 							<a href="/journal/{e.id}?from=/" class="block py-3 text-[15px] leading-[1.55] font-medium">
@@ -482,262 +410,140 @@
 				</ul>
 			</section>
 		{/if}
+		</div>
+		</div>
 
-		{#if !other && !offline && !wide.current}
-			{@render journalCard('mx-4 mt-3.5', true)}
-		{/if}
-
-		{#if !other && mine.length}
-			<section class="mx-4 mt-3.5 rounded-3xl bg-surface px-[18px] pt-4 pb-1 shadow-card">
-				<div class="flex items-baseline justify-between">
-					<h2 class="text-[15px] font-bold">Your sessions</h2>
-					<a href="/templates" class="-my-3 flex h-11 items-center gap-0.5 text-xs font-bold text-ink">Library<Icon name="chevron-right" size="14px" /></a>
-				</div>
-				<ul class="mt-1">
-					{#each mine.slice(0, 4) as t (t.id)}
-						<li class="list-row flex items-center gap-3">
-							<a href="/templates/{t.id}?from=/" class="flex min-h-[60px] min-w-0 flex-1 items-center gap-3">
-								<SessionIcon icon={t.icon} name={t.name} />
-								<span class="min-w-0 flex-1">
-									<span class="block truncate text-[15px] font-bold">{t.name}</span>
-									<span class="block text-xs font-semibold text-ink-2">{doneWhen(ranOn.get(t.id), data.today)}</span>
-								</span>
-							</a>
-							{#if !live}
-								<button
-									type="button"
-									class="flex size-11 shrink-0 items-center justify-center rounded-full bg-well text-ink disabled:opacity-50"
-									aria-label="Start {t.name}"
-									disabled={starting !== null}
-									onclick={() => startMine(t.id)}
-								>
-									<Icon name="play" size="1rem" />
-								</button>
-							{/if}
-						</li>
-					{/each}
-				</ul>
-			</section>
-		{/if}
-
-		{#if !offline}
-			<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
-				<div class="flex items-baseline justify-between">
-					<h2 class="text-[15px] font-bold">Hours a week</h2>
-					<a href="/history/progress?from=/" class="-my-3 flex h-11 items-center gap-0.5 text-xs font-bold text-ink">Progress<Icon name="chevron-right" size="14px" /></a>
-				</div>
-				<p class="mt-2 flex items-baseline gap-1.5">
-					<b class="digits text-[32px] leading-none">{tenths(time.at(-1) ?? 0)}</b>
-					<span class="text-[15px] font-semibold text-ink-2">
-						{#if usual === null}h this week{:else}h of a usual <b class="digits text-ink">{tenths(usual)}</b> h week{/if}
-					</span>
-				</p>
-				<div class="mt-4">
-					<Bars parts={[{ values: time, cls: 'bg-chart' }]} height={44} small />
-				</div>
-				<p class="mt-1.5 text-xs font-semibold text-ink-2">Last 10 weeks</p>
-			</section>
-		{/if}
-
-		{#if !live && !empty && !other && !offline && !wide.current}
-			{@render openCard('mx-4 mt-3.5')}
-		{/if}
 	</div>
 </div>
 
-<!-- Beside Open session there is no room for the chevron, and Open session has none. -->
-{#snippet journalCard(cls: string, chevron: boolean)}
-	<a href={wide.current ? '/journal?new=1' : '/journal/new?from=/'} class="{cls} flex min-h-16 items-center gap-3 rounded-3xl bg-surface px-4 py-3 shadow-card">
-		<span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-well text-ink-2"><Icon name="pencil" size="17px" stroke={2.2} /></span>
-		<span class="flex-1 text-[15px] font-bold">Write in journal</span>
-		{#if chevron}<span class="text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.4} /></span>{/if}
-	</a>
+{#snippet startButton(d: ScheduledDay)}
+	<Button disabled={starting !== null} onclick={() => start({ scheduled: d.id })}>{starting === d.id ? 'Starting…' : 'Start'}</Button>
 {/snippet}
 
-{#snippet openCard(cls: string)}
-	<section class="{cls} rounded-3xl bg-surface shadow-card">
-		<button
-			type="button"
-			class="flex min-h-[60px] w-full items-center gap-3 px-5 text-left disabled:opacity-50"
-			disabled={starting !== null}
-			onclick={() => start({ name: 'Open session' })}
-		>
-			<span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-well"><Icon name="plus" size="1.125rem" /></span>
-			<span class="min-w-0 flex-1">
-				<span class="block text-[15px] font-bold">{starting === 'open' ? 'Starting…' : 'Open session'}</span>
-				<span class="block text-xs font-semibold text-ink-2">Log as you go</span>
-			</span>
-		</button>
-	</section>
+{#snippet usual(d: ScheduledDay, faint: string)}
+	{@const u = usualOf(d)}
+	{#if u}<span class="hidden text-xs font-semibold lg:block {faint}">Usually {u}</span>{/if}
 {/snippet}
 
-{#snippet days()}
-	<div class="hidden flex-col gap-3.5 px-8 pt-3 pb-8 lg:flex">
-		<header class="px-1">
-			<h1 class="page-title">Today</h1>
-			<p class="mt-1 text-[15px] font-semibold text-ink-2">{fullDate(data.today)}</p>
-		</header>
-		{#if offline}
-			<p class="rounded-3xl bg-surface p-[18px] text-[15px] font-semibold text-ink-2 shadow-card">No signal. The days need one to load.</p>
-		{:else}
-			{#each listed as w (w.monday)}
-				<section class="flex flex-col gap-2">
-					<div class="flex items-baseline justify-between gap-3 px-1 pt-1.5">
-						<h2 class="shrink-0 text-xl font-bold">{weekTitle(w.monday)}</h2>
-						<span class="truncate text-xs font-semibold text-ink-2">{weekNote(w.monday)}</span>
-					</div>
-					<ul class="rounded-3xl bg-surface px-[18px] py-1 shadow-card">
-						{#each w.dates as g (g.date)}
-							{#each g.entries as e, i (e.run?.id ?? e.plan?.id)}
-								<li class="list-row flex items-center gap-3.5 {pick(g.date, i, g.entries.length)}">
-									{#if e.run}
-										{@const r = e.run}
-										{@const open = r.finished_at === null}
-										{@const left = data.stale.some((s) => s.id === r.id)}
-										<a {...dayLink(g.date)} class="flex min-h-[58px] min-w-0 flex-1 items-center gap-3.5 py-2">
-											{@render dayCell(g.date, i === 0)}
-											<SessionIcon icon={sessionsById.get(r.template ?? '')?.icon ?? null} name={r.name} state={open ? 'started' : 'done'} size={36} />
-											<span class="min-w-0 flex-1">
-												<span class="block truncate text-[15px] font-bold">{r.name}</span>
-												<span class="mt-0.5 flex items-center gap-2 truncate text-xs font-semibold text-ink-2">
-													{#if left}
-														Not finished
-													{:else if open}
-														<i class="live-dot scale-75"></i>Running
-													{:else}
-														{r.place ?? ''}
-													{/if}
-												</span>
-											</span>
-											{#if open && !left}
-												<span class="digits shrink-0 text-xl">{soFar(r.started_at)}</span>
-											{:else if r.elapsed_seconds}
-												<span class="digits shrink-0 text-xl">{formatMinutes(r.elapsed_seconds)}</span>
-											{/if}
-										</a>
-										{#if !open && r.has_journal === false}
-											<a href="/run/{r.id}/finish" class="hidden min-h-11 shrink-0 items-center gap-0.5 text-xs font-bold text-ink xl:flex">
-												Add session journal<Icon name="chevron-right" size="14px" />
-											</a>
-										{/if}
-									{:else if e.plan}
-										{@const d = e.plan}
-										{@const usual = d.status === 'planned' ? factsOf(d).usual : null}
-										<a {...dayLink(g.date)} class="flex min-h-[58px] min-w-0 flex-1 items-center gap-3.5 py-2">
-											{@render dayCell(g.date, i === 0)}
-											<SessionIcon icon={d.template_icon} name={d.template_name} state={iconState(d, data.today)} size={36} />
-											<span class="min-w-0 flex-1">
-												<span class="block truncate text-[15px] font-bold {d.status === 'missed' || d.status === 'paused' ? 'text-ink-2' : ''}">{d.template_name}</span>
-												<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
-													{d.status === 'missed' ? 'Missed' : d.status === 'paused' ? 'Paused' : sectionsOf(d.template)}
-												</span>
-											</span>
-											{#if usual}
-												<span class="shrink-0 text-xs font-semibold text-ink-2">Usually {usual}</span>
-											{/if}
-										</a>
-									{/if}
-								</li>
-							{:else}
-								<li class="list-row">
-									<a {...dayLink(g.date)} class="flex min-h-[58px] items-center gap-3.5 py-2">
-										{@render dayCell(g.date, true)}
-										<span class="text-[15px] font-semibold text-ink-2">Nothing yet</span>
-									</a>
-								</li>
-							{/each}
-						{/each}
-					</ul>
-				</section>
-			{/each}
-		{/if}
-	</div>
-{/snippet}
-
-{#snippet dayCell(date: string, first: boolean)}
-	<span class="flex w-11 shrink-0 flex-col">
-		{#if first}
-			{#if date === data.today}
-				<span class="text-xs font-bold text-ink">Today</span>
-			{:else}
-				<span class="text-xs font-semibold text-ink-2">{formatDate(date, { weekday: 'short' })}</span>
-			{/if}
-			<b class="text-xl leading-[1.05] font-bold">{formatDate(date, { day: 'numeric' })}</b>
-		{/if}
-	</span>
-{/snippet}
-
-{#snippet facts(usual: string | null, since: number | null)}
-	{#if usual || since !== null}
-		<div class="mt-3 flex gap-8">
-			{#if usual}
-				<p class="flex flex-col"><b class="digits text-xl">{usual}</b><span class="text-xs font-semibold text-ink-2">Usually</span></p>
-			{/if}
-			{#if since !== null}
-				<p class="flex flex-col">
-					<b class="digits text-xl">{plural(since, 'day')}</b><span class="text-xs font-semibold text-ink-2">Since last time</span>
-				</p>
-			{/if}
-		</div>
-	{:else}
-		<p class="mt-1 text-[15px] font-semibold text-ink-2">First time</p>
+{#snippet prepare()}
+	{#if ahead}
+		<section class="mx-4 mt-6 hidden lg:block">
+			<h2 class="px-1 text-xl font-bold tracking-tight">Next</h2>
+			<div class="relative mt-2 rounded-3xl bg-surface p-[18px] shadow-card">
+				<a href="/templates/{ahead.template}?from=/" class="flex items-center gap-3">
+					<SessionIcon icon={ahead.template_icon} name={ahead.template_name} size={44} />
+					<span class="min-w-0 flex-1">
+						<span class="block truncate text-xl font-bold tracking-tight">{ahead.template_name}</span>
+						<span class="block text-xs font-semibold text-ink-2">{when(ahead.local_date)}{usualOf(ahead) ? ` · usually ${usualOf(ahead)}` : ''}</span>
+					</span>
+					<span class="text-ink-3"><Icon name="chevron-right" size="18px" stroke={2.4} /></span>
+				</a>
+				{@render panels(ahead, 'bg-well', 'border-line', 'text-ink-2')}
+			</div>
+		</section>
 	{/if}
 {/snippet}
 
-{#snippet sessionSlot(d: ScheduledDay, primary: boolean)}
-	{@const f = factsOf(d)}
-	<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
-		<p class="flex items-center gap-2 text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">
-			<i class="size-2 rounded-full" style:background={sessionsById.get(d.template)?.color ?? 'var(--ink-3)'}></i>
-			{d.status === 'missed' ? 'Missed' : d.status === 'paused' ? 'Paused' : other ? 'Planned' : 'Today'}
-		</p>
-		<a href="/templates/{d.template}?from=/" class="mt-1 block truncate text-[28px] leading-tight font-extrabold tracking-tight">{d.template_name}</a>
-		{@render facts(f.usual, f.since)}
-		<div class="mt-4">
-			{#if d.status === 'started' && d.run}
-				<Button variant="live" href="/run/{d.run}">Back to session</Button>
-			{:else}
-				<Button variant={primary ? 'primary' : 'secondary'} disabled={starting !== null} onclick={() => start({ scheduled: d.id })}>
-					{starting === d.id ? 'Starting…' : primary ? 'Start' : 'Start now'}
-				</Button>
-			{/if}
-		</div>
-	</section>
+{#snippet panels(d: ScheduledDay, well: string, line: string, faint: string)}
+	{@const loads = prep?.loads.length && prepDay?.id === d.id ? prep.loads.slice(0, 6) : []}
+	{#if loads.length}
+		<a href="/history/{prep!.last}?from=/" class="relative mt-4 hidden rounded-2xl px-3.5 py-1 lg:block {well}">
+			<span class="block pt-2 pb-1 text-xs font-semibold {faint}">Last time</span>
+			<span class="grid grid-cols-2 gap-x-8">
+				{#each loads as l, i (l.exercise)}
+					<span class="flex min-w-0 items-baseline gap-3 py-2.5 {i > 1 ? `border-t ${line}` : ''}">
+						<span class="min-w-0 flex-1 truncate text-[15px] font-semibold">{l.name}</span>
+						<span class="digits shrink-0 text-[15px]">{l.text}</span>
+					</span>
+				{/each}
+			</span>
+		</a>
+	{/if}
 {/snippet}
 
-{#snippet nextUp(d: ScheduledDay)}
-	{@const f = factsOf(d)}
-	<div class="mt-4 rounded-2xl bg-well p-4">
-		<p class="flex items-center gap-2 text-xs font-bold tracking-[0.08em] text-ink-2 uppercase">
-			<i class="size-2 rounded-full" style:background={sessionsById.get(d.template)?.color ?? 'var(--ink-3)'}></i>
-			Next · {when(d.local_date)}
-		</p>
-		<a href="/templates/{d.template}?from=/" class="mt-1 block truncate text-xl font-extrabold tracking-tight">{d.template_name}</a>
-		{@render facts(f.usual, f.since)}
-		<div class="mt-4">
-			<Button variant="secondary" disabled={starting !== null} onclick={() => start({ scheduled: d.id })}>
-				{starting === d.id ? 'Starting…' : 'Start now'}
-			</Button>
-		</div>
+{#snippet actions(cls: string)}
+	<div class="{cls} mx-4 mt-3.5 flex rounded-3xl bg-surface shadow-card">
+		{#if !live}<button type="button" disabled={starting !== null} onclick={() => start({ name: 'Open session' })} class="flex h-14 flex-1 items-center justify-center gap-2 text-[15px] font-semibold disabled:opacity-50"><Icon name="plus" size="1.125rem" stroke={2.2} />{starting === 'open' ? 'Starting…' : 'Open session'}</button><span class="my-3 w-px bg-line"></span>{/if}
+		<a href={wide.current ? '/journal?new=1' : '/journal/new?from=/'} class="flex h-14 flex-1 items-center justify-center gap-2 text-[15px] font-semibold"><Icon name="pencil" size="1.125rem" stroke={2.2} />Journal entry</a>
 	</div>
 {/snippet}
 
-{#snippet liveSlot(run: Run)}
-	<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
-		<p class="flex items-center gap-2.5 pl-1 text-xs font-bold tracking-[0.08em] text-ink-2 uppercase"><i class="live-dot"></i>Running</p>
-		<p class="mt-1 truncate text-[28px] leading-tight font-extrabold tracking-tight">{run.name}</p>
-		<div class="mt-3 flex gap-8">
-			<p class="flex flex-col">
-				<b class="digits text-xl">{soFar(run.started_at)}</b>
-				<span class="text-xs font-semibold text-ink-2">So far</span>
-			</p>
-			{#if at >= 0}
-				<p class="flex min-w-0 flex-col">
-					<b class="digits text-xl">{at + 1} of {run.sections.length}</b>
-					<span class="truncate text-xs font-semibold text-ink-2">{run.sections[at].name}</span>
-				</p>
-			{/if}
-		</div>
-		<div class="mt-4"><Button variant="live" href="/run/{run.id}">Back to session</Button></div>
-	</section>
+{#snippet strip()}
+	<WeekStrip monday={data.monday} today={data.today} week={data.week} selected={shown} ran={ranThisWeek.map((r) => r.local_date)} />
 {/snippet}
+
+{#snippet tile(label: string, t: Trend, unit: string, view: string)}
+	{@const c = change(t, unit)}
+	{@const vs = t.weeks.filter((v) => v !== null)}
+	<li class="min-w-0"><a href="/history/progress?view={view}&from=/" class="flex h-full flex-col gap-0.5 rounded-3xl bg-surface p-[18px] shadow-card">
+		<span class="truncate text-xs font-semibold text-ink-2">{label}</span>
+		<span class="flex items-baseline justify-between gap-1.5">
+			<span class="digits text-xl">{t.now === null ? '–' : `${t.now}${unit}`}</span>
+			{#if c}
+				{@const up = t.now! > t.then!}
+				<span class="flex items-center gap-1 text-xs font-semibold whitespace-nowrap text-ink-2" aria-label="{c === 'Same' ? 'Same' : `${up ? 'Up' : 'Down'} ${c}`} on the 4 weeks before">
+					{#if c !== 'Same'}<svg class="size-2.5 fill-current {up ? '' : 'rotate-180'}" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 1.5 9 8.5H1z" /></svg>{/if}{c}
+				</span>
+			{/if}
+		</span>
+		{#if vs.length}
+			{@const last = t.weeks.slice(4)}
+			{@const hi = Math.max(...last.map((v) => v ?? 0), t.then ?? 0, 0.001)}
+			<svg class="mt-3 h-14 w-full overflow-visible" viewBox="0 0 80 56" preserveAspectRatio="none" aria-hidden="true">
+				{#each last as v, i (i)}
+					{#if v !== null}<rect x={i * 20 + 3} y={56 - Math.max(2, (v / hi) * 52)} width="14" height={Math.max(2, (v / hi) * 52)} rx="2" class="fill-chart" />{/if}
+				{/each}
+				{#if t.then !== null}<line x1="0" x2="80" y1={56 - (t.then / hi) * 52} y2={56 - (t.then / hi) * 52} class="stroke-ink" stroke-width="2" stroke-dasharray="4 3" vector-effect="non-scaling-stroke" />{/if}
+			</svg>
+		{/if}
+	</a></li>
+{/snippet}
+
+{#snippet sessionSlot(d: ScheduledDay, primary: boolean)}
+	{#if d.status === 'missed' || other}
+	<section class="mx-4 mt-3.5 rounded-3xl bg-surface p-[18px] shadow-card">
+		<div class="flex items-center gap-3">
+			<a href="/templates/{d.template}?from=/" class="flex min-w-0 flex-1 items-center gap-3">
+				<SessionIcon icon={d.template_icon} name={d.template_name} state={iconState(d, data.today)} size={44} />
+				<span class="min-w-0 flex-1">
+					<span class="block truncate text-xl font-bold tracking-tight {d.status === 'missed' ? 'text-ink-2' : ''}">{d.template_name}</span>
+					{#if d.status !== 'missed'}{@render usual(d, 'text-ink-2')}{/if}
+				</span>
+			</a>
+			<Menu look="bg-well text-ink" items={[{ label: 'Move to another day', onclick: () => day.openMove(d) }, { label: 'Remove', danger: true, onclick: () => day.remove(d) }]} />
+		</div>
+		{#if d.status !== 'missed'}{@render panels(d, 'bg-well', 'border-line', 'text-ink-2')}{/if}
+	</section>
+	{:else}
+	<HeroCard>
+		<div class="relative">
+			<a href="/templates/{d.template}?from=/" class="absolute -inset-[18px] rounded-[inherit]" aria-label="Open {d.template_name}"></a>
+			<div class="flex items-center gap-3">
+				<SessionIcon icon={d.template_icon} name={d.template_name} size={44} />
+				<div class="min-w-0 flex-1"><h2 class="text-xl leading-tight font-bold tracking-tight">{d.template_name}</h2>{#if primary}{@render usual(d, 'text-on-hero-2')}{/if}</div>
+				{#if !other}<div class="relative hidden w-44 lg:block">{@render startButton(d)}</div>{/if}
+				<div class="relative"><Menu look="bg-white/10 text-on-hero" items={[{ label: 'Move to another day', onclick: () => day.openMove(d) }, { label: 'Remove', danger: true, onclick: () => day.remove(d) }]} /></div>
+			</div>
+			{#if primary}{@render panels(d, 'bg-white/10 backdrop-blur-md', 'border-white/10', 'text-on-hero-2')}{/if}
+			{#if !other}<div class="relative mt-4 lg:hidden">{@render startButton(d)}</div>{/if}
+		</div>
+	</HeroCard>
+	{/if}
+{/snippet}
+
+{#snippet liveSlot(run: Run)}
+	<HeroCard>
+		<div class="flex items-center gap-3">
+			<a href="/run/{run.id}" class="flex min-w-0 flex-1 items-center gap-3" aria-label="Back to {run.name}">
+				<SessionIcon icon={sessionsById.get(run.template ?? '')?.icon ?? null} name={run.name} size={44} />
+				<span class="min-w-0">
+					<span class="flex items-center gap-3"><span class="min-w-0 truncate text-xl font-bold tracking-tight">{run.name}</span><i class="live-dot shrink-0"></i></span>
+					{#if stop}<span class="hidden text-xs font-semibold text-on-hero-2 lg:block">Now: {stop.step?.name ?? stop.choice?.name}</span>{/if}
+				</span>
+			</a>
+			<div class="hidden w-44 lg:block"><Button href="/run/{run.id}">Continue</Button></div>
+		</div>
+	</HeroCard>
+{/snippet}
+
+<DaySheets {day} repeats={[]} />

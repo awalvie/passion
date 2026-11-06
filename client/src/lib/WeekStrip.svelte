@@ -54,7 +54,7 @@
 							: d.missed
 								? 'border-2 border-dashed border-ink-3 text-ink-2'
 								: d.planned
-									? 'bg-surface shadow-card-sm'
+									? 'bg-well'
 									: 'font-semibold text-ink-2'}
 						{d.date === selected && d.date !== today ? 'ring-[2.5px] ring-ink' : ''}"
 				>
