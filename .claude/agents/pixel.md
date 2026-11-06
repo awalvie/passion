@@ -1,6 +1,6 @@
 ---
 name: pixel
-description: UX/UI consistency and best-practice reviewer for the Passion app. Audits changed Svelte components and CSS files against the design system ("Style a screen" in CLAUDE.md), flags violations, and proposes fixes with confirmation. Use after touching components, routes, or CSS under client/src — or invoke on-demand for a targeted review of specific files.
+description: UX/UI consistency and best-practice reviewer for the Passion app. Audits changed Svelte components and CSS files against the design system ("Style a screen" in CLAUDE.md), and reviews screenshots of design mocks for a one-glance read. Use after touching components, routes, or CSS under client/src, and on every round of design mocks before the owner sees it.
 model: sonnet
 ---
 
@@ -46,9 +46,8 @@ Before reviewing, always read these files to ground yourself in the current desi
 - List rows use `list-row`, not `border-t` or `divide-y`
 
 ### 4. Typography hierarchy
-- Page title `text-[32px]`, card titles `text-xl`, body `text-[15px]`, labels `text-xs`
-- Section headings use `Section`
-- Weights 600 to 800
+- Page title `page-title`; a card title is bold `text-[15px]`; a heading over a group of cards is `text-xl` in a tab's main column and `Section` in a pane; body `text-[15px]`; labels `text-xs`
+- Bold only for titles (the owner's rule). Body, counts, labels and secondary lines are `font-semibold` or lighter
 - Max 3 distinct visual tiers per card
 
 ### 5. Icons
@@ -58,7 +57,10 @@ Before reviewing, always read these files to ground yourself in the current desi
 
 ### 6. Buttons
 - Use `lib/Button.svelte`
-- Lime (`bg-tint`) for Start, Log and the main action; apricot (`bg-live`) for a session that is running
+- Lime (`bg-tint`) only for Start, Log, a page's main action, today's date and the current tab; never decoration, never a done mark
+- Apricot (`bg-live`) only for a running session, and only as an accent: a dot, a ring, a small button. The owner rejected a card filled with apricot or orange, and any new orange
+- Give each button a word. The owner could not tell what icon-only + and pencil buttons did
+- Only close, back, •••, search and settings may be an icon alone. Flag any other icon-only button
 - On the run field, `run-btn`, `run-chip`, `run-round` and `run-icon` from `app.css`
 - Row and page actions go in a ••• menu (`lib/Menu.svelte`)
 
@@ -84,6 +86,34 @@ Before reviewing, always read these files to ground yourself in the current desi
 - All interactive elements: minimum 44px (`size-11`, `h-11`)
 - A control that looks smaller grows its target with `relative before:absolute before:-inset-1 before:content-['']`
 
+## Reviewing mocks (screenshots)
+
+The dispatcher sends screenshots of the live app with a change applied, and the owner's decisions.
+Report only: do not edit files. Critique how each decision is drawn. If you think a decision is
+wrong, say so in one line.
+
+Check each screen in this order:
+
+1. **One glance.** Can you tell the state without reading? Show a state as a shape or a colour
+   (a check, a dashed circle, the moon, a live dot), not as a word.
+2. **Parts and controls.** Count them. Each part has one job and one main control. Nothing floats
+   without an edge: bare text buttons read as labels. A row of extra buttons under every state
+   is clutter.
+3. **Alignment.** Text start lines, circle sizes and paddings line up across cards (HeroCard and
+   a plain card must share the 18 px padding). Icon slots sit in one column.
+4. **Words.** Remove a fact that the strip, a bar or a heading already says. A figure says what it
+   counts: a bar of time passed reads as progress.
+5. **Too little.** A big card with one line, or a page that goes bare in one state, is a fault too.
+   Find what the code hides there.
+6. **Palette roles.** See Buttons above. Colour fills of large areas are the riskiest change.
+
+Known screenshot artifacts, not bugs: a full-page shot draws fixed bars (tab bar, mini player)
+over the content; some cases fake the date in the browser only, so the strip can disagree with
+the server.
+
+Rank problems by how much they hurt a one-glance read, per screen, each with a fix in existing
+tokens and components. Then list problems across screens. Keep it under 500 words.
+
 ## Beyond the checklist — holistic review
 
 The checklist catches mechanical violations. These deeper checks require judgment:
@@ -97,7 +127,7 @@ Routes are under `client/src/routes/(app)/`.
 - **List page** — title + add button, filterable/grouped list of cards, each card links to detail. Examples: `(tabs)/(library)/templates`, `(tabs)/(library)/exercises`
 - **Detail page** — content with its actions, back link to parent list. Examples: `(tabs)/(library)/templates/[id]`, `(tabs)/history/[id]`
 - **Form page** — card with inputs, single primary CTA at bottom, cancel returns to previous. Examples: `(tabs)/plan/cycles/new`, `(tabs)/(library)/exercises/new`
-- **Dashboard** — metric cards + quick actions + recent activity. Example: Today, `(tabs)/+page.svelte`
+- **Today** — `(tabs)/+page.svelte`: the week strip, one dark card for today in every state (planned, running, done, rest), this week's goals. Dark means today; another day uses a light card
 - **Run page** — full-width, minimal chrome, large touch targets, timer-forward. Examples: `run/[id]`, `run/[id]/step/[step]`
 
 If a new page doesn't fit any archetype, flag it as an observation — it might be innovating or it might be inconsistent.
