@@ -1,7 +1,11 @@
-import { notFound, request } from '$lib/api';
-import type { JournalEntry } from '$lib/journal';
+import { error } from '@sveltejs/kit';
+import { loadJournal } from '$lib/journal';
 
+// The page shows the entry's week, so it loads the whole journal and finds
+// the entry in it.
 export async function load({ params }) {
-	const entry = await request<JournalEntry>('GET', `/api/v1/journal/${params.id}`).catch(notFound);
-	return { entry };
+	const journal = await loadJournal();
+	const entry = journal.entries.find((e) => e.id === params.id);
+	if (!entry) error(404, 'Not found');
+	return { entry, journal };
 }

@@ -59,3 +59,23 @@ test('monthSpan names one month once', () => {
 	expect(monthSpan('2026-10-01', '2026-10-31')).toBe('October');
 	expect(monthSpan('2026-10-04', '2026-11-14')).toBe('October – November');
 });
+
+// JournalWeek lists mondayOf(date)..+6, so a note on any day must land in the
+// week that ends on the Sunday after it, over a month, a year and a leap day.
+test('the seven days of a week hold the date it was made from, at every edge', () => {
+	for (const [date, monday] of [
+		['2026-10-04', '2026-09-28'],
+		['2026-10-05', '2026-10-05'],
+		['2026-01-01', '2025-12-29'],
+		['2025-12-28', '2025-12-22'],
+		['2024-03-01', '2024-02-26'],
+		['2026-03-29', '2026-03-23'],
+		['2026-11-01', '2026-10-26']
+	]) {
+		expect(mondayOf(date)).toBe(monday);
+		const week = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+		expect(week).toContain(date);
+		expect(week[6] >= date).toBe(true);
+		expect(mondayOf(week[6])).toBe(monday);
+	}
+});

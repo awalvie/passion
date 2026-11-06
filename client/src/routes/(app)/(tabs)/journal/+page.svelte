@@ -6,11 +6,11 @@
 	import { dayDate, formatDate, weekday } from '$lib/dates';
 	import Empty from '$lib/Empty.svelte';
 	import EntryForm from '$lib/EntryForm.svelte';
-	import EntryView from '$lib/EntryView.svelte';
 	import { urlFilters } from '$lib/filters.svelte';
 	import FilterLine from '$lib/FilterLine.svelte';
 	import FormError from '$lib/FormError.svelte';
 	import Icon from '$lib/Icon.svelte';
+	import JournalWeek from '$lib/JournalWeek.svelte';
 	import {
 		deleteEntry,
 		excerpt,
@@ -30,7 +30,7 @@
 
 	// A laptop opens an entry, New entry and Edit entry in a pane beside the
 	// list, named by open, new and edit.
-	const f = urlFilters(['q', 'open', 'new', 'edit']);
+	const f = urlFilters(['q', 'open', 'new', 'edit', 'run']);
 	const searching = $derived(!!f.q.trim());
 	const wide = new MediaQuery('(min-width: 1024px)');
 
@@ -51,7 +51,7 @@
 	// With nothing picked, the pane shows the first entry in the list. Below lg
 	// a form fills the window, so a narrowed window keeps what was typed.
 	const opened = $derived.by(() => {
-		if (!(wide.current || f.edit) || f.new) return undefined;
+		if (!(wide.current || f.edit) || f.new || f.run) return undefined;
 		const id = f.edit || f.open;
 		return (id && data.journal.entries.find((e) => e.id === id)) || pinned[0] || shown.find((r) => r.entry)?.entry;
 	});
@@ -61,7 +61,7 @@
 	let error = $state('');
 
 	// pane is this page with the search kept and one entry, or New entry, open.
-	function pane(key?: 'open' | 'new' | 'edit', id = '1') {
+	function pane(key?: 'open' | 'new' | 'edit' | 'run', id = '1') {
 		const q = new URLSearchParams();
 		if (f.q) q.set('q', f.q);
 		if (key) q.set(key, id);
@@ -69,6 +69,17 @@
 	}
 
 	const entryHref = (e: JournalEntry) => (wide.current ? pane('open', e.id) : `/journal/${e.id}`);
+	// A laptop opens a session journal beside the list too; a phone opens the
+	// session in History.
+	const sessionHref = (s: SessionJournal) => (wide.current ? pane('run', s.run) : `/history/${s.run}`);
+	// With no entry to show first, the pane shows the first session journal.
+	const picked = $derived(
+		!wide.current || f.new ? undefined : f.run ? data.journal.sessions.find((s) => s.run === f.run) : opened ? undefined : shown.find((r) => r.session)?.session
+	);
+
+	const week = $derived(
+		opened ? { date: opened.local_date, on: opened.id } : picked ? { date: picked.local_date, on: picked.run } : undefined
+	);
 
 	async function show(href: string) {
 		error = '';
@@ -105,7 +116,25 @@
 <svelte:head><title>Journal</title></svelte:head>
 
 {#snippet marked(text: string)}
-	{#each pieces(excerpt(text, f.q), f.q) as p, i (i)}{#if p.hit}<mark class="rounded bg-well px-0.5 font-extrabold text-ink">{p.text}</mark>{:else}{p.text}{/if}{/each}
+	{#each pieces(excerpt(text, f.q), f.q) as p, i (i)}{#if p.hit}<mark class="-mx-0.5 rounded bg-well px-0.5 font-extrabold text-ink">{p.text}</mark>{:else}{p.text}{/if}{/each}
+{/snippet}
+
+{#snippet entryActions(e: JournalEntry)}
+	<div class="flex shrink-0 gap-2">
+		<a
+			href={pane('edit', e.id)}
+			data-sveltekit-replacestate
+			data-sveltekit-noscroll
+			class="flex h-11 items-center rounded-full bg-well px-4 text-[15px] font-bold text-ink">Edit</a
+		>
+		<Menu
+			look="bg-well text-ink"
+			items={[
+				{ label: e.pinned_at ? 'Unpin' : 'Pin', onclick: () => pin(e, !e.pinned_at) },
+				{ label: 'Delete entry', danger: true, onclick: () => remove(e) }
+			]}
+		/>
+	</div>
 {/snippet}
 
 {#snippet chevron(cls = '')}
@@ -121,10 +150,9 @@
 					href={wide.current ? pane('new') : '/journal/new'}
 					data-sveltekit-replacestate={wide.current ? '' : undefined}
 					data-sveltekit-noscroll={wide.current ? '' : undefined}
-					class="flex size-11 items-center justify-center rounded-full bg-surface text-ink shadow-card-sm"
-					aria-label="New entry"
+					class="flex h-11 items-center gap-2 rounded-full bg-surface pr-5 pl-4 text-[15px] font-bold text-ink shadow-card-sm"
 				>
-					<Icon name="plus" size="1.25rem" />
+					<Icon name="plus" size="1.25rem" />New entry
 				</a>
 			{/if}
 		</header>
@@ -145,17 +173,17 @@
 					<h2 class="mb-1 text-[15px] font-bold">Pinned</h2>
 					<ul>
 						{#each pinned as e (e.id)}
-							{@const picked = opened?.id === e.id}
-							<li class="list-row {picked ? 'picked' : ''}">
+							{@const on = opened?.id === e.id}
+							<li class="list-row {on ? 'picked' : ''}">
 								<a
 									href={entryHref(e)}
 									data-sveltekit-replacestate={wide.current ? '' : undefined}
 									data-sveltekit-noscroll={wide.current ? '' : undefined}
-									aria-current={picked ? 'true' : undefined}
+									aria-current={on ? 'true' : undefined}
 									class="flex items-center gap-3.5 py-2.5"
 								>
 									<span class="min-w-0 flex-1">
-										<span class="line-clamp-3 text-[15px] leading-[1.55] font-medium">{e.body}</span>
+										<span class="block text-[15px] leading-[1.55] font-medium text-pretty lg:line-clamp-2">{e.body}</span>
 										<span class="mt-0.5 block truncate text-xs font-semibold text-ink-2">
 											{[dayDate(e.local_date), e.run_name && `During ${e.run_name}`].filter(Boolean).join(' · ')}
 										</span>
@@ -173,22 +201,22 @@
 					<h2 class="mb-1 text-[15px] font-bold">{m.label}</h2>
 					<ul>
 						{#each m.rows as r (r.entry?.id ?? r.session!.run)}
-							{@const picked = !!r.entry && opened?.id === r.entry.id}
-							<li class="list-row {picked ? 'picked' : ''}">
+							{@const on = r.entry ? opened?.id === r.entry.id : picked?.run === r.session!.run}
+							<li class="list-row {on ? 'picked' : ''}">
 								<a
-									href={r.entry ? entryHref(r.entry) : `/history/${r.session!.run}`}
-									data-sveltekit-replacestate={r.entry && wide.current ? '' : undefined}
-									data-sveltekit-noscroll={r.entry && wide.current ? '' : undefined}
-									aria-current={picked ? 'true' : undefined}
+									href={r.entry ? entryHref(r.entry) : sessionHref(r.session!)}
+									data-sveltekit-replacestate={wide.current ? '' : undefined}
+									data-sveltekit-noscroll={wide.current ? '' : undefined}
+									aria-current={on ? 'true' : undefined}
 									class="flex min-h-16 items-center gap-3.5 py-2.5"
 								>
-									<span class="flex size-12 shrink-0 flex-col items-center justify-center self-start rounded-2xl {picked ? 'bg-surface' : 'bg-well'}">
+									<span class="flex size-12 shrink-0 flex-col items-center justify-center self-start rounded-2xl {on ? 'bg-surface' : 'bg-well'}">
 										<span class="text-xs leading-none font-bold tracking-wide text-ink-2 uppercase">{weekday(r.date)}</span>
 										<span class="mt-0.5 digits text-xl leading-none">{Number(r.date.slice(8))}</span>
 									</span>
 									<span class="min-w-0 flex-1">
 										{#if r.entry}
-											<span class="line-clamp-3 text-[15px] leading-[1.55] font-medium">{@render marked(r.entry.body)}</span>
+											<span class="line-clamp-3 text-[15px] leading-[1.55] font-medium text-pretty lg:line-clamp-2">{@render marked(r.entry.body)}</span>
 										{:else}
 											{@const s = r.session!}
 											{@const note = noteOf(s)}
@@ -196,13 +224,10 @@
 											<span class="block text-xs font-semibold text-ink-2">
 												{['Session journal', s.rpe && `Effort ${s.rpe}/10`].filter(Boolean).join(' · ')}
 											</span>
-											<span class="mt-0.5 line-clamp-2 text-[15px] leading-[1.55] font-medium text-ink-2">
-												<b class="font-bold text-ink">{note[0]}:</b>
-												{@render marked(note[1])}
-											</span>
+											<span class="mt-0.5 line-clamp-2 text-[15px] leading-[1.55] font-medium text-pretty {searching ? 'lg:line-clamp-1' : 'lg:hidden'}">{@render marked(note[1])}</span>
 										{/if}
 									</span>
-									{@render chevron(r.entry ? 'lg:hidden' : '')}
+									{@render chevron('lg:hidden')}
 								</a>
 							</li>
 						{/each}
@@ -210,7 +235,7 @@
 				</section>
 			{:else}
 				{#if searching}
-					<Empty title="Nothing matches" onclear={() => (f.q = '')} />
+					<Empty title="Nothing matches" text="Try another word." onclear={() => (f.q = '')} />
 				{/if}
 			{/each}
 		{/if}
@@ -235,29 +260,11 @@
 						heading="h2"
 					/>
 				{/key}
-			{:else if opened}
-				{@const e = opened}
+			{:else if week}
 				<FormError message={error} />
-				<EntryView entry={e} heading="h2">
-					{#snippet actions()}
-						<div class="flex shrink-0 gap-2">
-							<a
-								href={pane('edit', e.id)}
-								data-sveltekit-replacestate
-								data-sveltekit-noscroll
-								class="flex h-11 items-center rounded-full bg-surface px-4 text-[15px] font-bold text-ink shadow-card-sm">Edit</a
-							>
-							<Menu
-								items={[
-									{ label: e.pinned_at ? 'Unpin' : 'Pin', onclick: () => pin(e, !e.pinned_at) },
-									{ label: 'Delete entry', danger: true, onclick: () => remove(e) }
-								]}
-							/>
-						</div>
-					{/snippet}
-				</EntryView>
-			{:else if total}
-				<Empty title="No entry open" text="Session journals open in History." />
+				<JournalWeek {...week} journal={data.journal} runs={data.runs} href={(x) => pane('open', x.id)} actions={opened && entryActions} />
+			{:else if shown.length}
+				<Empty title="Nothing open" text="Pick an entry from the list to read it here." />
 			{/if}
 		</div>
 	</div>

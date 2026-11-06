@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onDestroy, onMount, untrack } from 'svelte';
 	import { describe, request } from './api';
-	import Checkbox from './Checkbox.svelte';
 	import DateField from './DateField.svelte';
 	import FormBar from './FormBar.svelte';
+	import { haptic } from './haptics';
+	import Icon from './Icon.svelte';
 	import { newId } from './id';
 	import type { JournalEntry } from './journal';
 	import { notice } from './notice.svelte';
@@ -104,23 +105,34 @@
 <form class="flex flex-col gap-3.5 px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]" onsubmit={submit}>
 	<FormBar title={entry ? 'Edit entry' : 'New entry'} {cancel} {heading} {busy} disabled={!ready} {error} class="-mx-4" />
 
-	<DateField bind:value={date} label="Date" max={today} />
-
-	<textarea
-		bind:this={box}
-		bind:value={body}
-		aria-label="Entry"
-		placeholder="What did you notice?"
-		class="min-h-36 resize-none rounded-3xl bg-surface p-4 text-[15px] font-semibold [field-sizing:content] text-ink shadow-card outline-none placeholder:text-ink-3"
-	></textarea>
-
+	<div class="flex flex-col rounded-3xl bg-surface shadow-card">
+		<textarea
+			bind:this={box}
+			bind:value={body}
+			aria-label="Entry"
+			placeholder="What did you notice?"
+			class="min-h-36 resize-none bg-transparent p-[18px] pb-2 text-[15px] font-semibold [field-sizing:content] text-ink outline-none placeholder:text-ink-3"
+		></textarea>
+		<div class="flex items-center justify-between gap-2 px-[18px] pb-[18px]">
+			<DateField bind:value={date} label="Date" max={today} {today} pill />
+			{#if !entry}
+				<button
+					type="button"
+					aria-pressed={pin}
+					aria-describedby="pin-note"
+					onclick={() => (pin = !pin)}
+					use:haptic
+					class="flex h-11 items-center gap-2 rounded-full bg-well px-4 text-[15px] font-bold text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink {pin
+						? 'ring-2 ring-ink ring-inset'
+						: ''}"
+				>
+					<Icon name="pin" size="1rem" />{pin ? 'Pinned' : 'Pin'}
+				</button>
+			{/if}
+		</div>
+	</div>
+	<!-- Read with the button always; shown once Pin is on. -->
 	{#if !entry}
-		<label class="flex cursor-pointer items-start gap-3 rounded-3xl bg-surface px-4 py-3.5 shadow-card">
-			<Checkbox bind:checked={pin} />
-			<span>
-				<span class="block text-[15px] font-bold">Pin</span>
-				<span class="mt-0.5 block text-xs font-semibold text-ink-2">Shows on Today and at the start of each session.</span>
-			</span>
-		</label>
+		<p id="pin-note" class={pin ? '-mt-1 px-1 text-xs font-semibold text-ink-2' : 'sr-only'}>Shows on Today and at the start of each session.</p>
 	{/if}
 </form>

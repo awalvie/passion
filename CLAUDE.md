@@ -54,7 +54,7 @@ Tokens are in `client/src/tokens.css`; each needs a light and a dark value.
 - A heading over a group of cards is `text-xl` in a tab's main column, and `Section` (15 px) in a pane or on a detail page.
 - A page title, a heading and the text outside a card sit 4 px in from the card's edge (`px-1`).
 - The landing page (`/welcome`) has its own larger type for the headline and section titles.
-- Fields and `<select>` use `.input`, except a lone free-text note: `bg-surface text-[15px] font-semibold placeholder:text-ink-3`.
+- Fields and `<select>` use `.input`, except a lone free-text note: `bg-surface text-[15px] font-semibold placeholder:text-ink-3`. A journal note's date (`DateField pill`) and Pin sit as well pills at the foot of its card.
 - Reuse `client/src/lib/` parts (`Section`, `Segmented`, `Tabs`, `Sheet`, `Chart`…) before making new ones.
 - A page that makes or changes something has a `FormBar` on top: Cancel, the title and Save. Beside the Library's list, an exercise puts Save by its title instead. A `Sheet` keeps its buttons at the bottom.
 - An empty list shows `Empty`: a 20 px title, a line on what to do, and a `Button` when there is a next step. A search that finds nothing gets `onclear`.
@@ -65,8 +65,8 @@ Tokens are in `client/src/tokens.css`; each needs a light and a dark value.
 - Under a mouse a row fills as when pressed, and a rounded control takes a faint wash. A square one only changes the cursor.
 - Tabs sit at the bottom on a phone, in a left rail from `md`. Today, Plan, a cycle, Journal, History, Progress, the Library and Profile go wide from `lg`.
 - From `lg` Plan's views and a cycle put their list or calendar beside a 330 px pane. A row or a day only picks; the pane acts on it (`DayPane`). New cycle has no rail, and shows its preview in the pane from step 3.
-- From `lg` Journal and History keep a 420 px list beside a pane that opens what is picked. History's pane keeps the list's place on every link, so a link in it to another page sets `data-sveltekit-noscroll` and `data-sveltekit-replacestate` to `"false"`. History's tiles drop their chevron there, as the list is too narrow for it. A session's journal is edited in History's pane too. Below `lg` a form open in either pane fills the window, so a narrowed window keeps what was typed.
-- The line between a list and its pane is the pane's `border-l`. A pane's buttons, such as Edit and •••, go in its view's `actions` snippet beside the title, on the card's edge.
+- From `lg` Journal and History keep a 420 px list beside a pane that opens what is picked. Journal's pane, and its note page on a phone, show the picked note's week day by day: the note is outlined with `ring-ink`, and its Edit and ••• sit on its card. History's pane keeps the list's place on every link, so a link in it to another page sets `data-sveltekit-noscroll` and `data-sveltekit-replacestate` to `"false"`. History's tiles drop their chevron there, as the list is too narrow for it. A session's journal is edited in History's pane too. Below `lg` a form open in either pane fills the window, so a narrowed window keeps what was typed.
+- The line between a list and its pane is the pane's `border-l`. A pane's buttons, such as Edit and •••, go in its view's `actions` snippet beside the title, on the card's edge; Journal's go on the outlined note.
 - The Library keeps the same 420 px list, but its pane is the session's or exercise's own page, so the address names the item. A row replaces the entry, and `/templates` and `/exercises` open the first item. Its rows drop their chevron from `lg`, as History's do.
 - A `Sheet` rises from the bottom on a phone and is a centred dialog from `lg`; `wide` gives it room for two columns.
 - The session builder has no rail. From `lg` a pane beside the session shows what is picked; from `xl` the library is a third column on the left. Below `lg` both open as sheets.

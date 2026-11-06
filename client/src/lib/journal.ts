@@ -1,5 +1,6 @@
 import { request } from './api';
 import { notice } from './notice.svelte';
+import type { RunSummary } from './run';
 
 export type JournalEntry = {
 	id: string;
@@ -80,13 +81,14 @@ export function rows(j: Journal, q: string): Row[] {
 	].sort((a, b) => b.date.localeCompare(a.date));
 }
 
-// excerpt starts a long text near the first match, so a three-line row shows
+// excerpt starts a long text near the first match, so a two-line row shows
 // the word that was searched for.
 export function excerpt(text: string, q: string): string {
 	const at = q.trim() ? text.toLowerCase().indexOf(q.trim().toLowerCase()) : -1;
-	if (at < 100) return text;
-	const from = text.lastIndexOf(' ', at - 40);
-	return `…${text.slice(from + 1)}`;
+	if (at < 50) return text;
+	// With no space to cut at, it cuts inside the word.
+	const space = text.lastIndexOf(' ', at - 20);
+	return `…${text.slice(space < 0 ? at - 20 : space + 1)}`;
 }
 
 // pieces splits text around each match, for marking it.
@@ -103,4 +105,14 @@ export function pieces(text: string, q: string): { text: string; hit: boolean }[
 	}
 	if (i < text.length) out.push({ text: text.slice(i), hit: false });
 	return out;
+}
+
+export type DaySession = { run: RunSummary; journal?: SessionJournal };
+
+// The sessions of a day, in the order they started, each with its journal.
+export function sessionsOn(date: string, runs: RunSummary[] | null, journals: SessionJournal[]): DaySession[] {
+	return (runs ?? [])
+		.filter((r) => r.local_date === date)
+		.sort((a, b) => a.started_at.localeCompare(b.started_at))
+		.map((run) => ({ run, journal: journals.find((j) => j.run === run.id) }));
 }
