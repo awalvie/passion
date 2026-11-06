@@ -98,6 +98,7 @@
 				c.discipline === 'boulder'
 					? c.setting === 'indoor' && c.board && c.board !== 'none' && boards[c.board as keyof typeof boards]
 					: c.rope_style && ropes[c.rope_style as keyof typeof ropes],
+				typeof c.angle === 'number' && `${c.angle}°`,
 				`${climbTally(climbs)}${graded ? `, ${sent} sent` : ''}`
 			]
 				.filter(Boolean)

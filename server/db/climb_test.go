@@ -89,6 +89,23 @@ func TestPutClimb(t *testing.T) {
 	}
 }
 
+func TestPutClimbKeepsTheBoardAngle(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.Pool(t)
+	ada := newAccount(t, pool, "ada@example.com")
+	run := runWith(t, ctx, pool, ada, kinded(runStep(s1, e1, "Board"), "climbing"))
+
+	f := boulder(s1, "6c")
+	f.Board, f.Angle = ptr("kilter"), ptr(40)
+	got, err := db.PutClimb(ctx, pool, ada, run.ID, k1, climb(t, f))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Angle == nil || *got.Angle != 40 {
+		t.Fatalf("angle %v, want the board's 40", got.Angle)
+	}
+}
+
 func TestPutClimbRefuses(t *testing.T) {
 	ctx := context.Background()
 	pool := dbtest.Pool(t)
@@ -257,6 +274,18 @@ func TestCleanClimbFields(t *testing.T) {
 		"a board on a route": {
 			db.ClimbFields{Step: s1, Discipline: "sport", Setting: "indoor", Board: ptr("moon")},
 			[]string{"board"},
+		},
+		"an angle on a board": {
+			db.ClimbFields{Step: s1, Discipline: "boulder", Setting: "indoor", Board: ptr("kilter"), Angle: ptr(40)},
+			nil,
+		},
+		"an angle with no board": {
+			db.ClimbFields{Step: s1, Discipline: "boulder", Setting: "indoor", Angle: ptr(40)},
+			[]string{"angle"},
+		},
+		"an angle past flat": {
+			db.ClimbFields{Step: s1, Discipline: "boulder", Setting: "indoor", Board: ptr("moon"), Angle: ptr(91)},
+			[]string{"angle"},
 		},
 		"every bad value": {
 			db.ClimbFields{Step: "nope", Position: -1, Discipline: "ice", Setting: "space", RopeStyle: ptr("solo"),

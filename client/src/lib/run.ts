@@ -88,6 +88,8 @@ export type ClimbFields = {
 	discipline: Discipline;
 	setting: 'indoor' | 'outdoor';
 	board: string | null;
+	// Degrees past vertical, for a board.
+	angle: number | null;
 	rope_style: string | null;
 	grade: string | null;
 	grade_system: string | null;
@@ -105,6 +107,8 @@ export const disciplines: Record<Discipline, string> = { boulder: 'Boulder', spo
 export const settings = { indoor: 'Indoor', outdoor: 'Outdoor' } as const;
 export const ropes = { lead: 'Lead', top_rope: 'Top rope', auto_belay: 'Auto belay', auto_belay_rope: 'Auto belay with rope', follow: 'Follow' } as const;
 export const boards = { none: 'None', kilter: 'Kilter', moon: 'Moon', tension: 'Tension', spray: 'Spray', custom: 'Other' } as const;
+// The angles boards are set to, in steps of 5.
+export const angles = Array.from({ length: 15 }, (_, i) => i * 5);
 
 // climbWord says how a climb went. An ungraded climb is never a send (rule
 // 39), so it counts its goes.

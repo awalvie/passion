@@ -41,6 +41,12 @@ type climbRequest struct {
 	// example: moon
 	Board *string `json:"board"`
 
+	// How steep the board was set, 0 to 90 degrees past vertical. Only with a
+	// board.
+	//
+	// example: 40
+	Angle *int `json:"angle"`
+
 	// For a route: lead, top_rope, auto_belay, auto_belay_rope or follow.
 	//
 	// example: lead
@@ -220,6 +226,7 @@ func (req climbRequest) fields() db.ClimbFields {
 		Discipline:  req.Discipline,
 		Setting:     req.Setting,
 		Board:       req.Board,
+		Angle:       req.Angle,
 		RopeStyle:   req.RopeStyle,
 		Grade:       req.Grade,
 		GradeSystem: req.GradeSystem,
@@ -244,6 +251,7 @@ func toClimbBody(c db.Climb) climbBody {
 			Discipline:  c.Discipline,
 			Setting:     c.Setting,
 			Board:       c.Board,
+			Angle:       c.Angle,
 			RopeStyle:   c.RopeStyle,
 			Grade:       c.Grade,
 			GradeSystem: c.GradeSystem,

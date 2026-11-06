@@ -6,6 +6,7 @@
 	import { newId } from './id';
 	import type { Account } from './plan';
 	import {
+		angles,
 		boards,
 		climbsOf,
 		climbWord as word,
@@ -23,6 +24,7 @@
 	import { openRun } from './runState.svelte';
 	import RunPage, { type PlayerProps } from './RunPage.svelte';
 	import Segmented from './Segmented.svelte';
+	import Select from './Select.svelte';
 	import Sheet from './Sheet.svelte';
 	import { formatClock } from './timerStore';
 
@@ -49,6 +51,7 @@
 	let setting = $state<keyof typeof settings>('indoor');
 	let rope = $state<keyof typeof ropes>('lead');
 	let board = $state<keyof typeof boards>('none');
+	let angle = $state<number | null>(null);
 	// A board is only for a boulder in a gym.
 	const onBoard = $derived(discipline === 'boulder' && setting === 'indoor' && board !== 'none');
 	const fresh = (grade: string | null): Current => ({ id: newId(), grade, goes: [], seconds: null, focus: null, notes: null });
@@ -69,6 +72,7 @@
 			setting = bar?.setting ?? 'indoor';
 			rope = (bar?.rope_style as keyof typeof ropes | null) ?? 'lead';
 			board = (bar?.board as keyof typeof boards | null) ?? 'none';
+			angle = bar?.angle ?? null;
 			looked = !!bar;
 		});
 	});
@@ -97,6 +101,7 @@
 			discipline,
 			setting,
 			board: onBoard ? board : null,
+			angle: onBoard ? angle : null,
 			rope_style: discipline === 'boulder' ? null : rope,
 			grade: c.grade,
 			grade_system: systemFor(discipline, c.grade),
@@ -233,8 +238,12 @@
 		rope = v;
 		keep();
 	}
-	function setBoard(v: keyof typeof boards) {
-		board = v;
+	function setBoard(v: string) {
+		board = v as keyof typeof boards;
+		keep();
+	}
+	function setAngle(v: string) {
+		angle = v === '' ? null : Number(v);
 		keep();
 	}
 
@@ -280,7 +289,15 @@
 
 	const finished = $derived(isFinished(step) && !leaving);
 	const check = $derived(!looked && !logged.length && !finished);
-	const detail = $derived(discipline !== 'boulder' ? ropes[rope] : setting === 'indoor' ? (onBoard ? boards[board] : 'No board') : '');
+	const detail = $derived(
+		discipline !== 'boulder'
+			? ropes[rope]
+			: setting === 'indoor'
+				? onBoard
+					? [boards[board], angle === null ? '' : `${angle}°`].filter(Boolean).join(' · ')
+					: 'No board'
+				: ''
+	);
 	const system = $derived(info ? (scaleFor(info.grades, info.account, discipline === 'boulder')?.system.toUpperCase() ?? '') : '');
 </script>
 
@@ -515,7 +532,22 @@
 					/>
 				{/if}
 			{:else if setting === 'indoor'}
-				<Segmented label="Board" items={Object.entries(boards).map(([v, label]) => ({ label, on: board === v, onclick: () => setBoard(v as keyof typeof boards) }))} />
+				<div class="grid grid-cols-2 gap-2.5">
+					<label class="flex flex-col gap-1.5 px-1 text-xs font-semibold text-ink-2">
+						Board
+						<Select bind:value={() => board, setBoard} label="Board" options={Object.entries(boards).map(([value, label]) => ({ value, label }))} />
+					</label>
+					{#if board !== 'none'}
+						<label class="flex flex-col gap-1.5 px-1 text-xs font-semibold text-ink-2">
+							Angle
+							<Select
+								bind:value={() => (angle === null ? '' : String(angle)), setAngle}
+								label="Angle"
+								options={[{ value: '', label: 'Not set' }, ...angles.map((a) => ({ value: String(a), label: `${a}°` }))]}
+							/>
+						</label>
+					{/if}
+				</div>
 			{/if}
 		</div>
 	</Sheet>

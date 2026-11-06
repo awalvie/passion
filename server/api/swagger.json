@@ -2294,6 +2294,13 @@
         "setting"
       ],
       "properties": {
+        "angle": {
+          "description": "How steep the board was set, 0 to 90 degrees past vertical. Only with a\nboard.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Angle",
+          "example": 40
+        },
         "board": {
           "description": "A board, for a boulder: kilter, moon, tension, spray or custom.",
           "type": "string",
@@ -2422,6 +2429,13 @@
         "setting"
       ],
       "properties": {
+        "angle": {
+          "description": "How steep the board was set, 0 to 90 degrees past vertical. Only with a\nboard.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Angle",
+          "example": 40
+        },
         "board": {
           "description": "A board, for a boulder: kilter, moon, tension, spray or custom.",
           "type": "string",
@@ -2761,6 +2775,13 @@
         "setting"
       ],
       "properties": {
+        "angle": {
+          "description": "How steep the board was set, 0 to 90 degrees past vertical. Only with a\nboard.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Angle",
+          "example": 40
+        },
         "board": {
           "description": "A board, for a boulder: kilter, moon, tension, spray or custom.",
           "type": "string",

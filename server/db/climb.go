@@ -22,6 +22,7 @@ type Climb struct {
 	Discipline  string    `db:"discipline"`
 	Setting     string    `db:"setting"`
 	Board       *string   `db:"board"`
+	Angle       *int      `db:"angle"`
 	RopeStyle   *string   `db:"rope_style"`
 	Grade       *string   `db:"grade"`
 	GradeSystem *string   `db:"grade_system"`
@@ -60,6 +61,8 @@ type ClimbFields struct {
 	Discipline  string
 	Setting     string
 	Board       *string
+	// Degrees past vertical, for a board.
+	Angle       *int
 	RopeStyle   *string
 	Grade       *string
 	GradeSystem *string
@@ -96,6 +99,13 @@ func (f ClimbFields) Clean() (ClimbFields, map[string]string) {
 		problems["board"] = "is only for a boulder"
 	case !boards[*f.Board]:
 		problems["board"] = "must be kilter, moon, tension, spray or custom"
+	}
+	switch {
+	case f.Angle == nil:
+	case f.Board == nil:
+		problems["angle"] = "is only for a board"
+	case *f.Angle < 0 || *f.Angle > 90:
+		problems["angle"] = "must be 0 to 90"
 	}
 	f.RopeStyle = optional(f.RopeStyle)
 	switch {
@@ -153,7 +163,7 @@ func (f ClimbFields) Clean() (ClimbFields, map[string]string) {
 // see.
 var ErrNoClimb = errors.New("no such climb")
 
-const climbColumns = `id, step, exercise, position, discipline, setting, board, rope_style, grade, grade_system,
+const climbColumns = `id, step, exercise, position, discipline, setting, board, angle, rope_style, grade, grade_system,
 	grade_rank, goes, seconds, stars, focus, notes, created_at, updated_at`
 
 // PutClimb writes one climb by the id the client picked, so a retry writes
@@ -188,14 +198,14 @@ func PutClimb(ctx context.Context, pool *pgxpool.Pool, owner, runID, climbID str
 	// An id already used in another run or by another account matches no
 	// row here, so it reads as a climb that does not exist.
 	rows, err := tx.Query(ctx, `
-		INSERT INTO climb (id, run, owner, step, exercise, position, discipline, setting, board, rope_style,
+		INSERT INTO climb (id, run, owner, step, exercise, position, discipline, setting, board, angle, rope_style,
 			grade, grade_system, grade_rank, goes, seconds, stars, focus, notes)
-		VALUES (@id, @run, @owner, @step, @exercise, @position, @discipline, @setting, @board, @rope_style,
+		VALUES (@id, @run, @owner, @step, @exercise, @position, @discipline, @setting, @board, @angle, @rope_style,
 			@grade, @grade_system, @grade_rank, @goes, @seconds, @stars, @focus, @notes)
 		ON CONFLICT (id) DO UPDATE SET
 			step = excluded.step, exercise = excluded.exercise, position = excluded.position,
 			discipline = excluded.discipline,
-			setting = excluded.setting, board = excluded.board, rope_style = excluded.rope_style,
+			setting = excluded.setting, board = excluded.board, angle = excluded.angle, rope_style = excluded.rope_style,
 			grade = excluded.grade, grade_system = excluded.grade_system,
 			grade_rank = excluded.grade_rank, goes = excluded.goes,
 			seconds = excluded.seconds, stars = excluded.stars,
@@ -211,6 +221,7 @@ func PutClimb(ctx context.Context, pool *pgxpool.Pool, owner, runID, climbID str
 		"discipline":   f.Discipline,
 		"setting":      f.Setting,
 		"board":        f.Board,
+		"angle":        f.Angle,
 		"rope_style":   f.RopeStyle,
 		"grade":        f.Grade,
 		"grade_system": f.GradeSystem,
