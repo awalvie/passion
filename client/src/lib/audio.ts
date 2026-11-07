@@ -3,8 +3,11 @@
 // next tap and on return.
 let ctx: AudioContext | null = null;
 let listening = false;
+// mixing is set once another app's sound has taken the audio during a run.
+let mixing = false;
+let shownAt = 0;
 
-type Session = { type: string; state?: string };
+type Session = EventTarget & { type: string; state?: string };
 const session = () => (navigator as Navigator & { audioSession?: Session }).audioSession;
 
 const soundKey = 'passion-sound';
@@ -31,14 +34,18 @@ export function unlock() {
 	// Playback sounds on silent, as a timer on the wall must. It is set once,
 	// before the context starts: set again on each tone, iOS went quiet.
 	const s = session();
-	if (s && s.type !== 'playback') s.type = 'playback';
+	const type = mixing ? 'ambient' : 'playback';
+	if (s && s.type !== type) s.type = type;
 	// After an interruption, such as a call or another app's sound, iOS often
 	// will not resume the old context, so a tap makes a new one.
 	if (ctx && (ctx.state !== 'running' || s?.state === 'interrupted')) {
 		void ctx.close();
 		ctx = null;
 	}
-	ctx ??= new AudioContext();
+	if (!ctx) {
+		ctx = new AudioContext();
+		ctx.onstatechange = interrupted;
+	}
 	if (ctx.state !== 'running') {
 		// WebKit has needed a sound played inside the tap, even a silent one,
 		// before it lets the audio start.
@@ -55,7 +62,24 @@ function resume() {
 }
 
 function onShow() {
-	if (document.visibilityState === 'visible') resume();
+	if (document.visibilityState !== 'visible') return;
+	shownAt = Date.now();
+	resume();
+}
+
+// Music started again during a run takes the audio from playback, and keeps
+// it while it plays, so the next hang would be silent. The tones then mix with
+// it instead, and the silent switch mutes them as it mutes the ringer. A
+// context once started by a tap may resume without one. The context also
+// stops as the app hides, and just after it shows, so those are left out.
+function interrupted() {
+	const s = session();
+	if (!listening || !ctx || ctx.state === 'closed' || document.visibilityState !== 'visible') return;
+	if (ctx.state === 'running' && s?.state !== 'interrupted') return;
+	if (Date.now() - shownAt < 1500) return;
+	mixing = true;
+	if (s && s.type !== 'ambient') s.type = 'ambient';
+	void ctx.resume();
 }
 
 // listen lets any tap unlock until the returned function runs, so a clock
@@ -69,8 +93,10 @@ export function listen(): () => void {
 	addEventListener('pointerup', touch);
 	addEventListener('pointerdown', mouse);
 	document.addEventListener('visibilitychange', onShow);
+	session()?.addEventListener?.('statechange', interrupted);
 	return () => {
 		listening = false;
+		session()?.removeEventListener?.('statechange', interrupted);
 		removeEventListener('pointerup', touch);
 		removeEventListener('pointerdown', mouse);
 		document.removeEventListener('visibilitychange', onShow);
@@ -82,8 +108,9 @@ export function listen(): () => void {
 function release() {
 	void ctx?.close();
 	ctx = null;
+	mixing = false;
 	const s = session();
-	if (s?.type === 'playback') s.type = 'auto';
+	if (s && s.type !== 'auto') s.type = 'auto';
 }
 
 export function tone(hz: number, ms: number) {

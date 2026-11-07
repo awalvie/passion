@@ -21,6 +21,7 @@ let contexts: FakeAudioContext[];
 
 class FakeAudioContext {
 	state = 'suspended';
+	onstatechange: (() => void) | null = null;
 	currentTime = 0;
 	destination = {};
 	sampleRate = 44100;
@@ -64,7 +65,7 @@ beforeEach(() => {
 	vi.stubGlobal('addEventListener', (name: string, fn: (e?: { pointerType: string }) => void) => (listeners[name] = fn));
 	vi.stubGlobal('removeEventListener', (name: string) => delete listeners[name]);
 	vi.stubGlobal('document', {
-		visibilityState: 'visible',
+		visibilityState: 'visible' as string,
 		addEventListener: (name: string, fn: () => void) => (listeners[`document:${name}`] = fn),
 		removeEventListener: (name: string) => delete listeners[`document:${name}`]
 	});
@@ -72,6 +73,9 @@ beforeEach(() => {
 	let type = 'auto';
 	vi.stubGlobal('navigator', {
 		audioSession: {
+			state: 'active',
+			addEventListener: (name: string, fn: () => void) => (listeners[`session:${name}`] = fn),
+			removeEventListener: (name: string) => delete listeners[`session:${name}`],
 			get type() {
 				return type;
 			},
@@ -210,5 +214,66 @@ test('switching the sound on outside a run beeps, then hands the audio back', as
 	log.length = 0;
 	vi.advanceTimersByTime(400);
 	expect(log).toEqual(['close', 'session auto']);
+	vi.useRealTimers();
+});
+
+// Music started again mid-run takes the audio from playback and keeps it.
+// The tones then mix with it, without waiting for a tap.
+function interrupt(c: FakeAudioContext) {
+	c.state = 'interrupted';
+	c.onstatechange?.();
+}
+
+test('another app taking the audio mid-run switches the tones to mix with it', async () => {
+	vi.useFakeTimers();
+	await load();
+	tap();
+	vi.advanceTimersByTime(2000);
+	log.length = 0;
+	interrupt(contexts[0]);
+	expect(log).toEqual(['session ambient', 'resume']);
+	log.length = 0;
+	tap();
+	expect(log).not.toContain('session playback');
+	vi.useRealTimers();
+});
+
+test('the next run plays on silent again', async () => {
+	vi.useFakeTimers();
+	const { leave, listen } = await load();
+	tap();
+	vi.advanceTimersByTime(2000);
+	interrupt(contexts[0]);
+	leave();
+	listen();
+	log.length = 0;
+	tap();
+	expect(log[0]).toBe('session playback');
+	vi.useRealTimers();
+});
+
+test('the audio stopping as the app hides, or just after it shows, is not another app', async () => {
+	vi.useFakeTimers();
+	await load();
+	tap();
+	vi.advanceTimersByTime(2000);
+	(document as { visibilityState: string }).visibilityState = 'hidden';
+	interrupt(contexts[0]);
+	(document as { visibilityState: string }).visibilityState = 'visible';
+	listeners['document:visibilitychange']();
+	interrupt(contexts[0]);
+	expect(log).not.toContain('session ambient');
+	vi.useRealTimers();
+});
+
+test('a session marked interrupted while the context still runs counts too', async () => {
+	vi.useFakeTimers();
+	await load();
+	tap();
+	vi.advanceTimersByTime(2000);
+	log.length = 0;
+	(navigator as unknown as { audioSession: { state: string } }).audioSession.state = 'interrupted';
+	listeners['session:statechange']();
+	expect(log).toEqual(['session ambient', 'resume']);
 	vi.useRealTimers();
 });
