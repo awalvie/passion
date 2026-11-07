@@ -62,7 +62,12 @@ beforeEach(() => {
 	contexts = [];
 	vi.stubGlobal('localStorage', new MemoryStorage());
 	vi.stubGlobal('addEventListener', (name: string, fn: (e?: { pointerType: string }) => void) => (listeners[name] = fn));
-	vi.stubGlobal('document', { visibilityState: 'visible', addEventListener: (name: string, fn: () => void) => (listeners[`document:${name}`] = fn) });
+	vi.stubGlobal('removeEventListener', (name: string) => delete listeners[name]);
+	vi.stubGlobal('document', {
+		visibilityState: 'visible',
+		addEventListener: (name: string, fn: () => void) => (listeners[`document:${name}`] = fn),
+		removeEventListener: (name: string) => delete listeners[`document:${name}`]
+	});
 	vi.stubGlobal('AudioContext', FakeAudioContext);
 	let type = 'auto';
 	vi.stubGlobal('navigator', {
@@ -78,12 +83,14 @@ beforeEach(() => {
 	});
 });
 
-const tap = () => listeners.pointerup({ pointerType: 'touch' });
+const tap = () => listeners.pointerup?.({ pointerType: 'touch' });
 
-// A fresh import is a reload: no audio context yet.
-async function load() {
+// A fresh import is a reload: no audio context yet. Most tests are on a run,
+// which listens for taps.
+async function load(run = true) {
 	vi.resetModules();
-	return import('./audio');
+	const audio = await import('./audio');
+	return { ...audio, leave: run ? audio.listen() : () => {} };
 }
 
 test('sound is on until it is switched off, and the choice is kept', async () => {
@@ -173,4 +180,35 @@ test('switching the sound back on unlocks the audio and beeps', async () => {
 	setSound(true);
 	expect(log).toEqual(['session playback', 'context', 'quiet', 'resume']);
 	expect(oscillators.map((o) => o.frequency.value)).toEqual([1046]);
+});
+
+// Playback stops music from other apps, so only a run may take the audio.
+test('a tap outside a run leaves the audio alone', async () => {
+	await load(false);
+	tap();
+	expect(log).toEqual([]);
+	expect(listeners.pointerup).toBeUndefined();
+});
+
+test('leaving a run hands the audio back and stops listening', async () => {
+	const { leave } = await load();
+	tap();
+	log.length = 0;
+	leave();
+	expect(log).toEqual(['close', 'session auto']);
+	log.length = 0;
+	tap();
+	listeners['document:visibilitychange']?.();
+	expect(log).toEqual([]);
+});
+
+test('switching the sound on outside a run beeps, then hands the audio back', async () => {
+	vi.useFakeTimers();
+	const { setSound } = await load(false);
+	setSound(true);
+	expect(oscillators.map((o) => o.frequency.value)).toEqual([1046]);
+	log.length = 0;
+	vi.advanceTimersByTime(400);
+	expect(log).toEqual(['close', 'session auto']);
+	vi.useRealTimers();
 });

@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { describe } from '$lib/api';
+	import { listen } from '$lib/audio';
 	import ClimbsPlayer from '$lib/ClimbsPlayer.svelte';
 	import type { MenuItem } from '$lib/Menu.svelte';
 	import NavBar from '$lib/NavBar.svelte';
@@ -28,6 +29,9 @@
 
 	// The phone lies on the floor during a set, with chalky hands.
 	$effect(() => keepAwake());
+
+	// Timer tones may claim the audio only during a run.
+	$effect(() => listen());
 
 	let error = $state('');
 
