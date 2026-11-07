@@ -1,7 +1,10 @@
 // Timer tones. iOS starts Web Audio only in a tap, so the first tap of a run
-// makes the context. The run keeps that one context: once a tap has started
-// it, WebKit lets it resume without a tap, which a new context cannot do.
+// makes the context. The run keeps that one context, even while the person
+// looks at another page: once a tap has started it, WebKit lets it resume
+// without a tap, which a new context cannot do.
 let ctx: AudioContext | null = null;
+let ctxRun: string | null = null;
+let run: string | null = null;
 let listening = false;
 
 type Session = { type: string };
@@ -21,7 +24,12 @@ export function setSound(on: boolean) {
 	unlock();
 	if (on) tone(1046, 200);
 	// Outside a run nothing else will sound, so the beep hands the audio back.
-	if (!listening) setTimeout(release, 400);
+	// A run's context is only suspended, so its timer still sounds on return.
+	setTimeout(() => {
+		if (listening) return;
+		if (ctxRun) void ctx?.suspend();
+		else release();
+	}, 400);
 }
 
 // unlock must run inside a tap. With the sound off it leaves the audio alone.
@@ -35,6 +43,7 @@ export function unlock() {
 	if (s && s.type !== 'playback') s.type = 'playback';
 	if (!ctx) {
 		ctx = new AudioContext();
+		ctxRun = run;
 		// WebKit has needed a sound played inside the tap, even a silent one,
 		// before it lets the audio start.
 		const quiet = ctx.createBufferSource();
@@ -55,7 +64,7 @@ function onShow() {
 	const c = ctx;
 	if (document.visibilityState === 'hidden') {
 		if (c.state === 'running') void c.suspend();
-	} else if (c.state === 'running') void c.suspend().then(() => c.resume());
+	} else if (c.state === 'running') void c.suspend().then(() => (listening ? c.resume() : undefined));
 	else void c.resume();
 }
 
@@ -63,26 +72,35 @@ function onShow() {
 // that started by itself can still sound. Only a run listens, so a tap
 // elsewhere in the app leaves the audio alone.
 // A browser counts a touch as a tap only as it lifts, and a mouse as it presses.
-export function listen(): () => void {
+// Leaving the run's pages suspends its context; coming back to the same run
+// resumes it, so the next tone sounds with no tap. Another run closes it.
+export function listen(id: string): () => void {
 	const touch = (e: PointerEvent) => e.pointerType !== 'mouse' && unlock();
 	const mouse = (e: PointerEvent) => e.pointerType === 'mouse' && unlock();
+	if (ctx && ctxRun !== id) release();
+	run = id;
 	listening = true;
+	if (ctx && soundOn()) void ctx.resume();
 	addEventListener('pointerup', touch);
 	addEventListener('pointerdown', mouse);
 	document.addEventListener('visibilitychange', onShow);
 	return () => {
 		listening = false;
+		run = null;
 		removeEventListener('pointerup', touch);
 		removeEventListener('pointerdown', mouse);
 		document.removeEventListener('visibilitychange', onShow);
-		release();
+		// Always: a resume may still be on its way, or iOS may have stopped
+		// the context, and then resume it by itself.
+		void ctx?.suspend();
 	};
 }
 
 // release closes the tones' audio and hands the session back.
-function release() {
+export function release() {
 	void ctx?.close();
 	ctx = null;
+	ctxRun = null;
 	const s = session();
 	if (s?.type === 'playback') s.type = 'auto';
 }

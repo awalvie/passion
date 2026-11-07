@@ -100,7 +100,7 @@ const tap = () => listeners.pointerup?.({ pointerType: 'touch' });
 async function load(run = true) {
 	vi.resetModules();
 	const audio = await import('./audio');
-	return { ...audio, leave: run ? audio.listen() : () => {} };
+	return { ...audio, leave: run ? audio.listen('r1') : () => {} };
 }
 
 test('sound is on until it is switched off, and the choice is kept', async () => {
@@ -260,16 +260,42 @@ test('a tap outside a run leaves the audio alone', async () => {
 	expect(listeners.pointerup).toBeUndefined();
 });
 
-test('leaving a run hands the audio back and stops listening', async () => {
+test('leaving a run’s pages suspends its audio and stops listening', async () => {
 	const { leave } = await load();
 	tap();
 	log.length = 0;
 	leave();
-	expect(log).toEqual(['close', 'session auto']);
+	expect(log).toEqual(['suspend']);
 	log.length = 0;
 	tap();
 	listeners['document:visibilitychange']?.();
 	expect(log).toEqual([]);
+});
+
+// Going to Today and back to the timer mid-run: the next tone must sound
+// with no tap, and a new context would need one.
+test('coming back to the same run resumes its context, with no tap', async () => {
+	const { leave, listen, tone } = await load();
+	tap();
+	leave();
+	log.length = 0;
+	listen('r1');
+	expect(log).toEqual(['resume']);
+	expect(contexts).toHaveLength(1);
+	expect(contexts[0].state).toBe('running');
+	tone(784, 80);
+	expect(oscillators).toHaveLength(1);
+});
+
+test('another run closes the last run’s audio and waits for a tap', async () => {
+	const { leave, listen } = await load();
+	tap();
+	leave();
+	log.length = 0;
+	listen('r2');
+	expect(log).toEqual(['close', 'session auto']);
+	tap();
+	expect(contexts).toHaveLength(2);
 });
 
 test('switching the sound on outside a run beeps, then hands the audio back', async () => {
@@ -281,4 +307,40 @@ test('switching the sound on outside a run beeps, then hands the audio back', as
 	vi.advanceTimersByTime(400);
 	expect(log).toEqual(['close', 'session auto']);
 	vi.useRealTimers();
+});
+
+// Profile is outside the run. Its beep must not close the run's context, or
+// the timer would need a tap on return.
+test('switching the sound on mid-run, away from the timer, keeps the run’s audio', async () => {
+	vi.useFakeTimers();
+	const { leave, setSound, listen } = await load();
+	tap();
+	leave();
+	setSound(true);
+	log.length = 0;
+	vi.advanceTimersByTime(400);
+	expect(log).toEqual(['suspend']);
+	listen('r1');
+	expect(contexts).toHaveLength(1);
+	expect(contexts[0].state).toBe('running');
+	vi.useRealTimers();
+});
+
+test('leaving the run during a return’s resume leaves the context suspended', async () => {
+	const { leave } = await load();
+	tap();
+	show('hidden');
+	contexts[0].state = 'running';
+	show('visible');
+	leave();
+	await flush();
+	expect(contexts[0].state).toBe('suspended');
+});
+
+test('a finished run hands the audio back', async () => {
+	const { release } = await load();
+	tap();
+	log.length = 0;
+	release();
+	expect(log).toEqual(['close', 'session auto']);
 });
