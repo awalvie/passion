@@ -3,6 +3,10 @@
 // next tap and on return.
 let ctx: AudioContext | null = null;
 let listening = false;
+// stale is set once the app hides. On return iOS still calls the old context
+// running, but it plays nothing (seen in the sound log), so the next tap
+// makes a new one.
+let stale = false;
 
 type Session = { type: string; state?: string; addEventListener?: (name: string, fn: () => void) => void };
 const session = () => (navigator as Navigator & { audioSession?: Session }).audioSession;
@@ -59,7 +63,7 @@ export function unlock() {
 	if (s && s.type !== 'playback') s.type = 'playback';
 	// After an interruption, such as a call or another app's sound, iOS often
 	// will not resume the old context, so a tap makes a new one.
-	if (ctx && (ctx.state !== 'running' || s?.state === 'interrupted')) {
+	if (ctx && (stale || ctx.state !== 'running' || s?.state === 'interrupted')) {
 		void ctx.close();
 		ctx = null;
 	}
@@ -67,6 +71,7 @@ export function unlock() {
 		const made = new AudioContext();
 		made.onstatechange = () => trace(`context now ${made.state}`);
 		ctx = made;
+		stale = false;
 		trace('new context');
 	}
 	if (ctx.state !== 'running') {
@@ -93,7 +98,8 @@ function start(c: AudioContext) {
 
 function onShow() {
 	trace(document.visibilityState === 'visible' ? 'app shown' : 'app hidden');
-	if (document.visibilityState === 'visible') resume();
+	if (document.visibilityState === 'hidden') stale = true;
+	else resume();
 }
 
 // listen lets any tap unlock until the returned function runs, so a clock

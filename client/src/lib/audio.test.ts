@@ -65,7 +65,7 @@ beforeEach(() => {
 	vi.stubGlobal('addEventListener', (name: string, fn: (e?: { pointerType: string }) => void) => (listeners[name] = fn));
 	vi.stubGlobal('removeEventListener', (name: string) => delete listeners[name]);
 	vi.stubGlobal('document', {
-		visibilityState: 'visible',
+		visibilityState: 'visible' as string,
 		addEventListener: (name: string, fn: () => void) => (listeners[`document:${name}`] = fn),
 		removeEventListener: (name: string) => delete listeners[`document:${name}`]
 	});
@@ -150,6 +150,24 @@ test('coming back to the app resumes a suspended context, and leaves a running o
 	expect(log).toEqual([]);
 	contexts[0].state = 'suspended';
 	listeners['document:visibilitychange']();
+	expect(log).toEqual(['resume']);
+});
+
+// The sound log showed it: after the app was hidden, the context still said
+// running and played nothing, and the tap after return kept it.
+test('the first tap after the app was hidden makes a new context, though the old one says running', async () => {
+	await load();
+	tap();
+	(document as { visibilityState: string }).visibilityState = 'hidden';
+	listeners['document:visibilitychange']();
+	(document as { visibilityState: string }).visibilityState = 'visible';
+	listeners['document:visibilitychange']();
+	expect(contexts[0].state).toBe('running');
+	log.length = 0;
+	tap();
+	expect(log).toEqual(['close', 'context', 'quiet', 'resume']);
+	log.length = 0;
+	tap();
 	expect(log).toEqual(['resume']);
 });
 
