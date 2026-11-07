@@ -433,3 +433,42 @@ export function lifts(sets: DatedSet[], bs: Bucket[]): Lift[] {
 // progressFrom is a link back to Progress, with its view and range, when from
 // names one.
 export const progressFrom = (from: string | null) => from?.match(/^\/history\/progress(\?[^#]*)?$/)?.[0];
+
+// workText writes what a set did: its reps, its seconds, or both.
+export function workText(x: SetFields): string {
+	if (x.rep_seconds?.length) return `${x.rep_seconds.join('/')} s`;
+	if (x.reps !== null && x.seconds) return `${plural(x.reps, 'rep')} · ${x.seconds} s`;
+	if (x.reps !== null) return plural(x.reps, 'rep');
+	const s = x.seconds ?? 0;
+	return s >= 60 ? `${clock(s)} min` : `${s} s`;
+}
+
+export type SetLine = { from: number; to: number; work: string; load: string };
+
+// setLines are a session's done sets in order, as History's session view
+// numbers them, with alike sets in a row on one line. A side's pair is one
+// set; when its sides differ both show, left first. Weighed says the
+// exercise is lifted, so a set without weight says body weight.
+export function setLines(sets: SetFields[], sides: number, weighed: boolean): { lines: SetLine[]; split: boolean } {
+	const finished = sets.filter(done);
+	const lines: SetLine[] = [];
+	let split = false;
+	// Sides that differ show both, with a shared unit once: "8 / 7 reps".
+	const both = (a: string, b: string) => {
+		if (a === b) return a;
+		split = true;
+		const unit = (t: string) => t.match(/ [^\d]+$/)?.[0] ?? '';
+		return unit(a) && unit(a) === unit(b) ? `${a.slice(0, -unit(a).length)} / ${b}` : `${a} / ${b}`;
+	};
+	const load = (x: SetFields) => (x.weight_kg ? `${x.weight_kg} kg` : weighed ? 'body weight' : '');
+	for (let k = 0; k < finished.length; k += sides) {
+		const l = finished[k];
+		const r = finished[k + sides - 1] ?? l;
+		const line = { work: both(workText(l), workText(r)), load: both(load(l), load(r)) };
+		const last = lines.at(-1);
+		const n = k / sides + 1;
+		if (last && last.work === line.work && last.load === line.load) last.to = n;
+		else lines.push({ from: n, to: n, ...line });
+	}
+	return { lines, split };
+}

@@ -3,6 +3,8 @@ import type { Scale } from './grades';
 import { addDays } from './dates';
 import {
 	bestSet,
+	setLines,
+	workText,
 	buckets,
 	climbCount,
 	climbTally,
@@ -501,4 +503,44 @@ test('progressFrom keeps only a link to Progress', () => {
 	expect(progressFrom('https://example.com/history/progress')).toBeUndefined();
 	expect(progressFrom('/history/abc')).toBeUndefined();
 	expect(progressFrom(null)).toBeUndefined();
+});
+
+const lifted = (reps: number | null, weight_kg: number | null, seconds: number | null = null, rep_seconds: number[] | null = null) => ({ reps, weight_kg, seconds, rep_seconds });
+
+// The row showed only the best set beside "3 sets", which read as three sets of it.
+test('a session lists every set in order, alike sets in a row on one line', () => {
+	expect(setLines([lifted(3, 70), lifted(3, 75), lifted(3, 80)], 1, true).lines).toEqual([
+		{ from: 1, to: 1, work: '3 reps', load: '70 kg' },
+		{ from: 2, to: 2, work: '3 reps', load: '75 kg' },
+		{ from: 3, to: 3, work: '3 reps', load: '80 kg' }
+	]);
+	expect(setLines([lifted(5, 80), lifted(5, 80), lifted(4, 80), lifted(5, 80)], 1, true).lines.map((l) => [l.from, l.to])).toEqual([
+		[1, 2],
+		[3, 3],
+		[4, 4]
+	]);
+});
+
+test('a set says what it did: reps, seconds, both, a ladder or minutes', () => {
+	expect(workText(lifted(1, null))).toBe('1 rep');
+	expect(workText(lifted(null, 15, 12))).toBe('12 s');
+	expect(workText(lifted(6, null, 7))).toBe('6 reps · 7 s');
+	expect(workText(lifted(3, 10, null, [3, 6, 9]))).toBe('3/6/9 s');
+	expect(workText(lifted(null, null, 90))).toBe('1:30 min');
+});
+
+test('a lifted exercise names a set without weight, and a body-weight one names none', () => {
+	expect(setLines([lifted(8, 0), lifted(8, 20)], 1, true).lines.map((l) => l.load)).toEqual(['body weight', '20 kg']);
+	expect(setLines([lifted(12, 0), lifted(10, null)], 1, false).lines.map((l) => l.load)).toEqual(['', '']);
+});
+
+test('a side pair is one set, and sides that differ both show', () => {
+	const alike = setLines([lifted(8, 20), lifted(8, 20), lifted(8, 20), lifted(8, 20)], 2, true);
+	expect(alike).toEqual({ lines: [{ from: 1, to: 2, work: '8 reps', load: '20 kg' }], split: false });
+	const apart = setLines([lifted(8, 20), lifted(7, 20)], 2, true);
+	expect(apart).toEqual({ lines: [{ from: 1, to: 1, work: '8 / 7 reps', load: '20 kg' }], split: true });
+});
+
+test('sets not done are left out', () => {
+	expect(setLines([lifted(null, null), lifted(5, 50)], 1, true).lines).toEqual([{ from: 1, to: 1, work: '5 reps', load: '50 kg' }]);
 });
