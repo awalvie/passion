@@ -3,11 +3,8 @@
 // next tap and on return.
 let ctx: AudioContext | null = null;
 let listening = false;
-// mixing is set once another app's sound has taken the audio during a run.
-let mixing = false;
-let shownAt = 0;
 
-type Session = EventTarget & { type: string; state?: string };
+type Session = { type: string; state?: string };
 const session = () => (navigator as Navigator & { audioSession?: Session }).audioSession;
 
 const soundKey = 'passion-sound';
@@ -27,25 +24,24 @@ export function setSound(on: boolean) {
 	if (!listening) setTimeout(release, 400);
 }
 
-// unlock must run inside a tap. Playback pauses music from other apps, so
-// with the sound off it is left alone.
+// unlock must run inside a tap. With the sound off it leaves the audio alone.
 export function unlock() {
 	if (!soundOn()) return;
-	// Playback sounds on silent, as a timer on the wall must. It is set once,
-	// before the context starts: set again on each tone, iOS went quiet.
+	// Ambient plays over music from other apps. Playback sounded on silent, but
+	// stopped the music, and music started again stopped the tones until it
+	// ended and a tap came. Ambient follows the silent switch and goes quiet
+	// while the phone is locked; WebKit resumes it when the app shows again.
+	// It is set once, before the context starts: set again on each tone, iOS
+	// went quiet.
 	const s = session();
-	const type = mixing ? 'ambient' : 'playback';
-	if (s && s.type !== type) s.type = type;
+	if (s && s.type !== 'ambient') s.type = 'ambient';
 	// After an interruption, such as a call or another app's sound, iOS often
 	// will not resume the old context, so a tap makes a new one.
 	if (ctx && (ctx.state !== 'running' || s?.state === 'interrupted')) {
 		void ctx.close();
 		ctx = null;
 	}
-	if (!ctx) {
-		ctx = new AudioContext();
-		ctx.onstatechange = interrupted;
-	}
+	ctx ??= new AudioContext();
 	if (ctx.state !== 'running') {
 		// WebKit has needed a sound played inside the tap, even a silent one,
 		// before it lets the audio start.
@@ -62,29 +58,12 @@ function resume() {
 }
 
 function onShow() {
-	if (document.visibilityState !== 'visible') return;
-	shownAt = Date.now();
-	resume();
-}
-
-// Music started again during a run takes the audio from playback, and keeps
-// it while it plays, so the next hang would be silent. The tones then mix with
-// it instead, and the silent switch mutes them as it mutes the ringer. A
-// context once started by a tap may resume without one. The context also
-// stops as the app hides, and just after it shows, so those are left out.
-function interrupted() {
-	const s = session();
-	if (!listening || !ctx || ctx.state === 'closed' || document.visibilityState !== 'visible') return;
-	if (ctx.state === 'running' && s?.state !== 'interrupted') return;
-	if (Date.now() - shownAt < 1500) return;
-	mixing = true;
-	if (s && s.type !== 'ambient') s.type = 'ambient';
-	void ctx.resume();
+	if (document.visibilityState === 'visible') resume();
 }
 
 // listen lets any tap unlock until the returned function runs, so a clock
-// that started by itself can still sound. Only a run listens: playback stops
-// music from other apps, so a tap elsewhere in the app must leave it alone.
+// that started by itself can still sound. Only a run listens, so a tap
+// elsewhere in the app leaves the audio alone.
 // A browser counts a touch as a tap only as it lifts, and a mouse as it presses.
 export function listen(): () => void {
 	const touch = (e: PointerEvent) => e.pointerType !== 'mouse' && unlock();
@@ -93,10 +72,8 @@ export function listen(): () => void {
 	addEventListener('pointerup', touch);
 	addEventListener('pointerdown', mouse);
 	document.addEventListener('visibilitychange', onShow);
-	session()?.addEventListener?.('statechange', interrupted);
 	return () => {
 		listening = false;
-		session()?.removeEventListener?.('statechange', interrupted);
 		removeEventListener('pointerup', touch);
 		removeEventListener('pointerdown', mouse);
 		document.removeEventListener('visibilitychange', onShow);
@@ -104,13 +81,12 @@ export function listen(): () => void {
 	};
 }
 
-// release hands the audio back, so music from other apps can play again.
+// release closes the tones' audio and hands the session back.
 function release() {
 	void ctx?.close();
 	ctx = null;
-	mixing = false;
 	const s = session();
-	if (s && s.type !== 'auto') s.type = 'auto';
+	if (s?.type === 'ambient') s.type = 'auto';
 }
 
 export function tone(hz: number, ms: number) {
@@ -130,3 +106,4 @@ export function tone(hz: number, ms: number) {
 	osc.start(t);
 	osc.stop(t + ms / 1000 + 0.05);
 }
+
