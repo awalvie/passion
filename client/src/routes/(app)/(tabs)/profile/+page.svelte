@@ -4,7 +4,7 @@
 	import Segmented from '$lib/Segmented.svelte';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { describe, request } from '$lib/api';
-	import { audioLog, clearAudioLog, setSound, soundOn } from '$lib/audio';
+	import { setSound, soundOn } from '$lib/audio';
 	import Button from '$lib/Button.svelte';
 	import { saveCentre, type Centre } from '$lib/centres';
 	import Checkbox from '$lib/Checkbox.svelte';
@@ -106,8 +106,6 @@
 	];
 
 	let sound = $state(soundOn());
-	let logOpen = $state(false);
-	let soundLog = $state<string[]>([]);
 	let haptics = $state(hapticsOn());
 
 	let theme = $state((localStorage.getItem('passion-theme') as Theme | null) ?? 'system');
@@ -218,13 +216,6 @@
 
 					{@render toggle('Timer sounds', sound, (on) => setSound((sound = on)))}
 					{@render toggle('Haptics', haptics, (on) => setHaptics((haptics = on)))}
-					<!-- Temporary: what the timer's audio did on this phone, to find why tones stop. -->
-					<button
-						type="button"
-						class="flex min-h-[58px] w-full items-center justify-between gap-3 py-2 text-left text-[15px] font-bold shadow-[inset_0_1px_0_var(--line)]"
-						onclick={() => ((soundLog = audioLog()), (logOpen = true))}
-						>Sound log<span class="text-ink-3"><Icon name="chevron-right" size="16px" stroke={2.6} /></span></button
-					>
 				</div>
 			</Section>
 
@@ -232,17 +223,6 @@
 		</div>
 	</div>
 </div>
-
-<Sheet bind:open={logOpen} title="Sound log">
-	<div class="flex flex-col gap-3">
-		<p class="px-1 text-xs font-semibold text-ink-2">What the timer's audio did during runs, newest last. Copy it and send it.</p>
-		<pre class="max-h-[50vh] overflow-auto rounded-2xl bg-well p-3 text-xs leading-5 whitespace-pre-wrap">{soundLog.join('\n') || 'Nothing yet.'}</pre>
-		<div class="flex gap-2.5">
-			<Button onclick={() => navigator.clipboard?.writeText(soundLog.join('\n'))}>Copy</Button>
-			<Button onclick={() => (clearAudioLog(), (soundLog = []))}>Clear</Button>
-		</div>
-	</div>
-</Sheet>
 
 <Sheet bind:open={centreOpen} title={centreTitle}>
 	{#if centre}
