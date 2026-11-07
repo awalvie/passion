@@ -4,8 +4,31 @@
 let ctx: AudioContext | null = null;
 let listening = false;
 
-type Session = { type: string; state?: string };
+type Session = { type: string; state?: string; addEventListener?: (name: string, fn: () => void) => void };
 const session = () => (navigator as Navigator & { audioSession?: Session }).audioSession;
+
+// A log of what the audio does on the phone, read in Profile, to find why the
+// tones stop. Temporary.
+const logKey = 'passion-audio-log';
+export function trace(what: string) {
+	try {
+		const s = session();
+		const line = `${new Date().toTimeString().slice(0, 8)} ${what} · context ${ctx?.state ?? 'none'} · session ${s ? `${s.type} ${s.state ?? ''}` : 'none'} · ${document.visibilityState}`;
+		const log = audioLog();
+		log.push(line);
+		localStorage.setItem(logKey, JSON.stringify(log.slice(-300)));
+	} catch {
+		// The log is only a help.
+	}
+}
+export function audioLog(): string[] {
+	try {
+		return JSON.parse(localStorage.getItem(logKey) ?? '[]');
+	} catch {
+		return [];
+	}
+}
+export const clearAudioLog = () => localStorage.removeItem(logKey);
 
 const soundKey = 'passion-sound';
 
@@ -27,6 +50,7 @@ export function setSound(on: boolean) {
 // unlock must run inside a tap. With the sound off it leaves the audio alone.
 export function unlock() {
 	if (!soundOn()) return;
+	trace('tap');
 	// Playback sounds on silent, as a timer on the wall must; it stops music
 	// from other apps. Ambient played over music but the silent switch muted
 	// it. It is set once, before the context starts: set again on each tone,
@@ -39,7 +63,12 @@ export function unlock() {
 		void ctx.close();
 		ctx = null;
 	}
-	ctx ??= new AudioContext();
+	if (!ctx) {
+		const made = new AudioContext();
+		made.onstatechange = () => trace(`context now ${made.state}`);
+		ctx = made;
+		trace('new context');
+	}
 	if (ctx.state !== 'running') {
 		// WebKit has needed a sound played inside the tap, even a silent one,
 		// before it lets the audio start.
@@ -48,14 +77,22 @@ export function unlock() {
 		quiet.connect(ctx.destination);
 		quiet.start();
 	}
-	void ctx.resume();
+	start(ctx);
 }
 
 function resume() {
-	if (ctx && ctx.state !== 'running') void ctx.resume();
+	if (ctx && ctx.state !== 'running') start(ctx);
+}
+
+function start(c: AudioContext) {
+	c.resume().then(
+		() => trace('resume done'),
+		(e: Error) => trace(`resume refused: ${e.name}`)
+	);
 }
 
 function onShow() {
+	trace(document.visibilityState === 'visible' ? 'app shown' : 'app hidden');
 	if (document.visibilityState === 'visible') resume();
 }
 
@@ -67,6 +104,8 @@ export function listen(): () => void {
 	const touch = (e: PointerEvent) => e.pointerType !== 'mouse' && unlock();
 	const mouse = (e: PointerEvent) => e.pointerType === 'mouse' && unlock();
 	listening = true;
+	trace('run opened');
+	session()?.addEventListener?.('statechange', () => trace('session changed'));
 	addEventListener('pointerup', touch);
 	addEventListener('pointerdown', mouse);
 	document.addEventListener('visibilitychange', onShow);
@@ -81,6 +120,7 @@ export function listen(): () => void {
 
 // release closes the tones' audio and hands the session back.
 function release() {
+	trace('run left');
 	void ctx?.close();
 	ctx = null;
 	const s = session();
@@ -88,6 +128,7 @@ function release() {
 }
 
 export function tone(hz: number, ms: number) {
+	trace(`tone ${hz}`);
 	if (!ctx || !soundOn()) return;
 	resume();
 	const osc = ctx.createOscillator();
