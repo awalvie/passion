@@ -106,11 +106,11 @@ test('sound is on until it is switched off, and the choice is kept', async () =>
 	expect(localStorage.getItem('passion-sound')).toBeNull();
 });
 
-test('the first tap sets ambient, to play over music, before the audio context starts, and does it once', async () => {
+test('the first tap sets playback, to sound on silent, before the audio context starts, and does it once', async () => {
 	await load();
 	tap();
 	tap();
-	expect(log).toEqual(['session ambient', 'context', 'quiet', 'resume', 'resume']);
+	expect(log).toEqual(['session playback', 'context', 'quiet', 'resume', 'resume']);
 });
 
 // A touch counts as a tap for audio only as it lifts; a mouse as it presses.
@@ -170,7 +170,7 @@ test('a tap does not take the audio session while sound is off', async () => {
 	const { setSound } = await load();
 	setSound(false);
 	tap();
-	expect(log).not.toContain('session ambient');
+	expect(log).not.toContain('session playback');
 });
 
 // The tap on the switch comes before the switch turns the sound on, so the
@@ -180,7 +180,7 @@ test('switching the sound back on unlocks the audio and beeps', async () => {
 	setSound(false);
 	tap();
 	setSound(true);
-	expect(log).toEqual(['session ambient', 'context', 'quiet', 'resume']);
+	expect(log).toEqual(['session playback', 'context', 'quiet', 'resume']);
 	expect(oscillators.map((o) => o.frequency.value)).toEqual([1046]);
 });
 

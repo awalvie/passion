@@ -27,14 +27,12 @@ export function setSound(on: boolean) {
 // unlock must run inside a tap. With the sound off it leaves the audio alone.
 export function unlock() {
 	if (!soundOn()) return;
-	// Ambient plays over music from other apps. Playback sounded on silent, but
-	// stopped the music, and music started again stopped the tones until it
-	// ended and a tap came. Ambient follows the silent switch and goes quiet
-	// while the phone is locked; WebKit resumes it when the app shows again.
-	// It is set once, before the context starts: set again on each tone, iOS
-	// went quiet.
+	// Playback sounds on silent, as a timer on the wall must; it stops music
+	// from other apps. Ambient played over music but the silent switch muted
+	// it. It is set once, before the context starts: set again on each tone,
+	// iOS went quiet.
 	const s = session();
-	if (s && s.type !== 'ambient') s.type = 'ambient';
+	if (s && s.type !== 'playback') s.type = 'playback';
 	// After an interruption, such as a call or another app's sound, iOS often
 	// will not resume the old context, so a tap makes a new one.
 	if (ctx && (ctx.state !== 'running' || s?.state === 'interrupted')) {
@@ -86,7 +84,7 @@ function release() {
 	void ctx?.close();
 	ctx = null;
 	const s = session();
-	if (s?.type === 'ambient') s.type = 'auto';
+	if (s?.type === 'playback') s.type = 'auto';
 }
 
 export function tone(hz: number, ms: number) {
