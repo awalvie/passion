@@ -18,7 +18,7 @@ let log: string[];
 let listeners: Record<string, (e?: { pointerType: string }) => void>;
 let oscillators: { frequency: { value: number }; started: boolean }[];
 let contexts: FakeAudioContext[];
-
+let stuck: boolean;
 
 class FakeAudioContext {
 	state = 'suspended';
@@ -29,9 +29,16 @@ class FakeAudioContext {
 		log.push('context');
 		contexts.push(this);
 	}
+	// A stuck resume never settles, as WebKit's does when it will not start.
 	resume() {
 		log.push('resume');
+		if (stuck) return new Promise<void>(() => {});
 		this.state = 'running';
+		return Promise.resolve();
+	}
+	suspend() {
+		log.push('suspend');
+		this.state = 'suspended';
 		return Promise.resolve();
 	}
 	close() {
@@ -61,6 +68,7 @@ beforeEach(() => {
 	listeners = {};
 	oscillators = [];
 	contexts = [];
+	stuck = false;
 	vi.stubGlobal('localStorage', new MemoryStorage());
 	vi.stubGlobal('addEventListener', (name: string, fn: (e?: { pointerType: string }) => void) => (listeners[name] = fn));
 	vi.stubGlobal('removeEventListener', (name: string) => delete listeners[name]);
@@ -110,7 +118,7 @@ test('the first tap sets playback, to sound on silent, before the audio context 
 	await load();
 	tap();
 	tap();
-	expect(log).toEqual(['session playback', 'context', 'quiet', 'resume', 'resume']);
+	expect(log).toEqual(['session playback', 'context', 'quiet', 'resume']);
 });
 
 // A touch counts as a tap for audio only as it lifts; a mouse as it presses.
@@ -142,44 +150,86 @@ test('a tone is silent while sound is off', async () => {
 	expect(oscillators).toHaveLength(0);
 });
 
-test('coming back to the app resumes a suspended context, and leaves a running one alone', async () => {
+const show = (state: 'hidden' | 'visible') => {
+	(document as { visibilityState: string }).visibilityState = state;
+	listeners['document:visibilitychange']();
+};
+const flush = () => new Promise((r) => setTimeout(r, 0));
+
+test('hiding the app suspends the context, and coming back resumes the same one', async () => {
 	await load();
 	tap();
 	log.length = 0;
-	listeners['document:visibilitychange']();
-	expect(log).toEqual([]);
-	contexts[0].state = 'suspended';
-	listeners['document:visibilitychange']();
-	expect(log).toEqual(['resume']);
+	show('hidden');
+	expect(log).toEqual(['suspend']);
+	show('visible');
+	expect(log).toEqual(['suspend', 'resume']);
+	expect(contexts).toHaveLength(1);
+	expect(contexts[0].state).toBe('running');
 });
 
 // The sound log showed it: after the app was hidden, the context still said
-// running and played nothing, and the tap after return kept it.
-test('the first tap after the app was hidden makes a new context, though the old one says running', async () => {
+// running and played nothing, and resume() on a running context does nothing.
+test('a context that still says running on return is suspended, then resumed', async () => {
 	await load();
 	tap();
-	(document as { visibilityState: string }).visibilityState = 'hidden';
-	listeners['document:visibilitychange']();
-	(document as { visibilityState: string }).visibilityState = 'visible';
-	listeners['document:visibilitychange']();
-	expect(contexts[0].state).toBe('running');
+	show('hidden');
+	contexts[0].state = 'running';
 	log.length = 0;
-	tap();
-	expect(log).toEqual(['close', 'context', 'quiet', 'resume']);
-	log.length = 0;
-	tap();
-	expect(log).toEqual(['resume']);
+	show('visible');
+	await flush();
+	expect(log).toEqual(['suspend', 'resume']);
+	expect(contexts).toHaveLength(1);
 });
 
-// iOS often will not resume a context after an interruption.
-test('a tap that finds the audio stopped makes a new context', async () => {
+// The sound log showed it: a context made in a tap after return often never
+// started. The one a tap started before may resume, even with no tap.
+test('a tap after return resumes the run’s context, and never makes a new one', async () => {
+	await load();
+	tap();
+	show('hidden');
+	stuck = true;
+	show('visible');
+	expect(contexts[0].state).toBe('suspended');
+	log.length = 0;
+	tap();
+	tap();
+	expect(log).toEqual(['resume', 'resume']);
+	stuck = false;
+	tap();
+	expect(contexts[0].state).toBe('running');
+	expect(contexts).toHaveLength(1);
+});
+
+test('a tap that finds the audio stopped resumes it', async () => {
 	await load();
 	tap();
 	contexts[0].state = 'interrupted';
 	log.length = 0;
 	tap();
-	expect(log).toEqual(['close', 'context', 'quiet', 'resume']);
-	expect(contexts).toHaveLength(2);
+	expect(log).toEqual(['resume']);
+	expect(contexts).toHaveLength(1);
+});
+
+test('a tone resumes a stopped context', async () => {
+	const { tone } = await load();
+	tap();
+	contexts[0].state = 'suspended';
+	log.length = 0;
+	tone(784, 80);
+	expect(log).toEqual(['resume']);
+	expect(oscillators).toHaveLength(1);
+});
+
+// It would wait in the suspended context and sound late, on return.
+test('no tone is made while the app is hidden', async () => {
+	const { tone } = await load();
+	tap();
+	show('hidden');
+	log.length = 0;
+	tone(784, 80);
+	expect(log).toEqual([]);
+	expect(oscillators).toHaveLength(0);
 });
 
 // With the sound off no tone will ever play, so a tap should not take the

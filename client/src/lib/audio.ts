@@ -1,38 +1,11 @@
-// Timer tones. iOS plays Web Audio only after a tap starts the context, and
-// suspends it when the app goes to the background, so it is resumed on the
-// next tap and on return.
+// Timer tones. iOS starts Web Audio only in a tap, so the first tap of a run
+// makes the context. The run keeps that one context: once a tap has started
+// it, WebKit lets it resume without a tap, which a new context cannot do.
 let ctx: AudioContext | null = null;
 let listening = false;
-// stale is set once the app hides. On return iOS still calls the old context
-// running, but it plays nothing (seen in the sound log), so the next tap
-// makes a new one.
-let stale = false;
 
-type Session = { type: string; state?: string; addEventListener?: (name: string, fn: () => void) => void };
+type Session = { type: string };
 const session = () => (navigator as Navigator & { audioSession?: Session }).audioSession;
-
-// A log of what the audio does on the phone, read in Profile, to find why the
-// tones stop. Temporary.
-const logKey = 'passion-audio-log';
-export function trace(what: string) {
-	try {
-		const s = session();
-		const line = `${new Date().toTimeString().slice(0, 8)} ${what} · context ${ctx?.state ?? 'none'} · session ${s ? `${s.type} ${s.state ?? ''}` : 'none'} · ${document.visibilityState}`;
-		const log = audioLog();
-		log.push(line);
-		localStorage.setItem(logKey, JSON.stringify(log.slice(-300)));
-	} catch {
-		// The log is only a help.
-	}
-}
-export function audioLog(): string[] {
-	try {
-		return JSON.parse(localStorage.getItem(logKey) ?? '[]');
-	} catch {
-		return [];
-	}
-}
-export const clearAudioLog = () => localStorage.removeItem(logKey);
 
 const soundKey = 'passion-sound';
 
@@ -54,27 +27,14 @@ export function setSound(on: boolean) {
 // unlock must run inside a tap. With the sound off it leaves the audio alone.
 export function unlock() {
 	if (!soundOn()) return;
-	trace('tap');
 	// Playback sounds on silent, as a timer on the wall must; it stops music
 	// from other apps. Ambient played over music but the silent switch muted
 	// it. It is set once, before the context starts: set again on each tone,
 	// iOS went quiet.
 	const s = session();
 	if (s && s.type !== 'playback') s.type = 'playback';
-	// After an interruption, such as a call or another app's sound, iOS often
-	// will not resume the old context, so a tap makes a new one.
-	if (ctx && (stale || ctx.state !== 'running' || s?.state === 'interrupted')) {
-		void ctx.close();
-		ctx = null;
-	}
 	if (!ctx) {
-		const made = new AudioContext();
-		made.onstatechange = () => trace(`context now ${made.state}`);
-		ctx = made;
-		stale = false;
-		trace('new context');
-	}
-	if (ctx.state !== 'running') {
+		ctx = new AudioContext();
 		// WebKit has needed a sound played inside the tap, even a silent one,
 		// before it lets the audio start.
 		const quiet = ctx.createBufferSource();
@@ -82,24 +42,21 @@ export function unlock() {
 		quiet.connect(ctx.destination);
 		quiet.start();
 	}
-	start(ctx);
+	if (ctx.state !== 'running') void ctx.resume();
 }
 
-function resume() {
-	if (ctx && ctx.state !== 'running') start(ctx);
-}
-
-function start(c: AudioContext) {
-	c.resume().then(
-		() => trace('resume done'),
-		(e: Error) => trace(`resume refused: ${e.name}`)
-	);
-}
-
+// With playback, WebKit lets the context run on as the app hides, and iOS
+// may stop its output while the app sleeps. On return the context still says
+// running but plays nothing, and resume() on a running context does nothing.
+// So the context is suspended as the app hides and resumed on return, and a
+// context that still says running is suspended first.
 function onShow() {
-	trace(document.visibilityState === 'visible' ? 'app shown' : 'app hidden');
-	if (document.visibilityState === 'hidden') stale = true;
-	else resume();
+	if (!ctx) return;
+	const c = ctx;
+	if (document.visibilityState === 'hidden') {
+		if (c.state === 'running') void c.suspend();
+	} else if (c.state === 'running') void c.suspend().then(() => c.resume());
+	else void c.resume();
 }
 
 // listen lets any tap unlock until the returned function runs, so a clock
@@ -110,8 +67,6 @@ export function listen(): () => void {
 	const touch = (e: PointerEvent) => e.pointerType !== 'mouse' && unlock();
 	const mouse = (e: PointerEvent) => e.pointerType === 'mouse' && unlock();
 	listening = true;
-	trace('run opened');
-	session()?.addEventListener?.('statechange', () => trace('session changed'));
 	addEventListener('pointerup', touch);
 	addEventListener('pointerdown', mouse);
 	document.addEventListener('visibilitychange', onShow);
@@ -126,7 +81,6 @@ export function listen(): () => void {
 
 // release closes the tones' audio and hands the session back.
 function release() {
-	trace('run left');
 	void ctx?.close();
 	ctx = null;
 	const s = session();
@@ -134,9 +88,10 @@ function release() {
 }
 
 export function tone(hz: number, ms: number) {
-	trace(`tone ${hz}`);
-	if (!ctx || !soundOn()) return;
-	resume();
+	// A tone made while the app is hidden would wait in the suspended context
+	// and sound late, on return.
+	if (!ctx || !soundOn() || document.visibilityState === 'hidden') return;
+	if (ctx.state !== 'running') void ctx.resume();
 	const osc = ctx.createOscillator();
 	const gain = ctx.createGain();
 	const t = ctx.currentTime;
@@ -151,4 +106,3 @@ export function tone(hz: number, ms: number) {
 	osc.start(t);
 	osc.stop(t + ms / 1000 + 0.05);
 }
-
