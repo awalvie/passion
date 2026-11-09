@@ -62,6 +62,7 @@ Tokens are in `client/src/tokens.css`; each needs a light and a dark value.
 - A choice from a list is a `Select`: the phone's own picker, a themed list from `lg`. Days are picked on a `DayPicker`.
 - History picks a kind of session on a `Tabs` strip, not a `Select`, so the names show without a tap. The strip pins to the top as the list scrolls, with a blurred ground backing only once pinned. With a kind picked, a row's title is what happened, as the strip names the kind.
 - An exercise's history lists every set of a session in order: its number, what it did, then its weight, with alike sets on one line ("1–3"). The date is the row's title; set figures are `digits` at `font-semibold` and 15 px, so only the date is bold.
+- Progress picks its view (Time, Climbs, Grades, Strength) on a `Tabs` strip on a phone, with the range and filter as plain text below it; a laptop shows all four.
 - A choice of one from a few is `Segmented`, or drawn like it with `segment-on`. Chips are for picking several. A switch that changes several cards sits once above them, not inside each.
 - Controls are at least 44 px. List rows use `list-row`. A row that opens a page ends with a chevron. A picked row is a well 8 px inside its card.
 - Under a mouse a row fills as when pressed, and a rounded control takes a faint wash. A square one only changes the cursor.

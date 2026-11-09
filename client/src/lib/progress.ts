@@ -24,6 +24,8 @@ export function readSpan(
 	cycles: { id: string; name: string; starts: string; ends: string }[],
 	first?: string
 ): Span {
+	// The four full weeks before this one, as Today's tiles count them.
+	if (key === '4w') return { key, from: addDays(mondayOf(today), -28), to: addDays(mondayOf(today), -1), cycle: null };
 	const c = key?.startsWith('cycle:') ? cycles.find((c) => c.id === key.slice(6)) : undefined;
 	if (c && c.starts <= today) return { key: key!, from: c.starts, to: c.ends, cycle: { id: c.id, name: c.name } };
 	const m = key?.match(/^(\d{4}-\d{2}-\d{2}):(\d{4}-\d{2}-\d{2})$/);

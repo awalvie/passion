@@ -264,6 +264,16 @@ test("a cycle's weeks count from its first day", () => {
 	expect(buckets(readSpan('cycle:c', '2026-10-10', cycles), '2026-10-10').now).toBe(1);
 });
 
+// Today's tiles open Progress on '4w', so the figure tapped is the one shown.
+test('4 weeks are the full weeks the tiles count, this one left out', () => {
+	const span = readSpan('4w', today, cycles);
+	const tiles = trendWeeks(today).slice(4);
+	expect([span.from, span.to]).toEqual([tiles[0].from, tiles[3].to]);
+	const { buckets: bs, now } = buckets(span, today);
+	expect(bs.map((b) => b.from)).toEqual(tiles.map((t) => t.from));
+	expect(now).toBe(-1);
+});
+
 test('a custom span starts its first bucket on its first day', () => {
 	const { buckets: bs, now } = buckets(readSpan('2026-09-25:2026-10-24', today, cycles), today);
 	expect(bs[0]).toEqual({ from: '2026-09-25', to: '2026-09-27', tick: '' });
