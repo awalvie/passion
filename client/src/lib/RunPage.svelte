@@ -19,7 +19,7 @@
 
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { setSound, soundOn, unlock } from './audio';
+	import { setSound, soundOn } from './audio';
 	import Icon from './Icon.svelte';
 	import JournalSheet from './JournalSheet.svelte';
 	import Menu from './Menu.svelte';
@@ -189,7 +189,6 @@
 
 	<div
 		class="shrink-0 rounded-t-[28px] bg-(--dock) px-4 pt-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-		onpointerdown={unlock}
 		role="group"
 		aria-label="Exercise"
 	>

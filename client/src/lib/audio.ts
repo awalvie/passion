@@ -33,7 +33,7 @@ export function setSound(on: boolean) {
 }
 
 // unlock must run inside a tap. With the sound off it leaves the audio alone.
-export function unlock() {
+function unlock() {
 	if (!soundOn()) return;
 	// Playback sounds on silent, as a timer on the wall must; it stops music
 	// from other apps. Ambient played over music but the silent switch muted

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { tone, unlock } from './audio';
+	import { tone } from './audio';
 	import Icon from './Icon.svelte';
 	import { isFinished, nextStop, setsOf, stepsOf, type RunStep } from './run';
 	import { openRun } from './runState.svelte';
@@ -153,7 +153,6 @@
 	// A step with rows already logged starts at the block after them, and
 	// keeps the reps those rows logged.
 	function start() {
-		unlock();
 		const t = Date.now();
 		let clock = newClock(t);
 		const first = phases.findIndex((p) => p.block === logged.length && p.kind === 'hang');
