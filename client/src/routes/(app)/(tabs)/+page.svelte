@@ -20,8 +20,9 @@
 	import SessionIcon, { iconState } from '$lib/SessionIcon.svelte';
 	import { plural } from '$lib/text';
 	import { request } from '$lib/api';
-	import { trends, trendWeeks, type DatedClimb, type Trend } from '$lib/progress';
+	import { trends, trendWeeks, type DatedClimb } from '$lib/progress';
 	import Topo from '$lib/Topo.svelte';
+	import TrendTile from '$lib/TrendTile.svelte';
 	import { topTopo } from '$lib/topo';
 	import WeekStrip from '$lib/WeekStrip.svelte';
 	import { MediaQuery } from 'svelte/reactivity';
@@ -148,7 +149,6 @@
 
 	// The tiles of Progress, for the room a laptop has. A phone shows none, so it
 	// loads none.
-	const round = (h: number) => Math.round(h * 10) / 10;
 	let recent = $state<DatedClimb[] | null>(null);
 	const weeks = $derived(trendWeeks(data.today));
 	$effect(() => {
@@ -171,13 +171,6 @@
 			{ label: 'Flash rate', t: t.flash, unit: '%', view: 'climbs' }
 		];
 	});
-	function change(t: Trend, unit: string): string | null {
-		if (t.now === null || t.then === null) return null;
-		const d = round(t.now - t.then);
-		if (!d) return 'Same';
-		return `${Math.abs(d)}${unit}`;
-	}
-
 	// The weights of the shown day's first session last time, as its own page
 	// shows them. With nothing left to do today, a laptop shows the next session.
 	const ahead = $derived(!other && !live && !offline && !planned.length ? data.next : null);
@@ -367,11 +360,11 @@
 		{#if tiles.length && !offline}
 			<section class="mx-4 mt-6 hidden lg:block">
 				<div class="relative flex items-center justify-between px-1">
-					<a href="/history/progress?view=time&from=/" class="flex h-11 items-center gap-1 text-xl font-bold tracking-tight">Last 4 weeks<Icon name="chevron-right" size="1.125rem" stroke={2.4} /></a>
-					<Info text="Each figure is a week on average over the last 4 weeks. The bars are those 4 weeks, and the dashed line is the average of the 4 weeks before." />
+					<a href="/history/progress?view=time&range=4w&from=/" class="flex h-11 items-center gap-1 text-xl font-bold tracking-tight">Last 4 weeks<Icon name="chevron-right" size="1.125rem" stroke={2.4} /></a>
+					<Info text="Each figure is a week on average over the last 4 weeks, and its change is on the 4 weeks before. The bars are the 8 weeks: the 4 before pale, the last 4 green." />
 				</div>
 				<ul class="mt-1 grid grid-cols-4 gap-3.5">
-					{#each tiles.filter((t) => t.t.now !== null) as t (t.label)}{@render tile(t.label, t.t, t.unit, t.view)}{/each}
+					{#each tiles.filter((t) => t.t.now !== null) as t (t.label)}<TrendTile label={t.label} t={t.t} unit={t.unit} href="/history/progress?view={t.view}&range=4w&from=/" />{/each}
 				</ul>
 			</section>
 		{/if}
@@ -470,33 +463,6 @@
 
 {#snippet strip()}
 	<WeekStrip monday={data.monday} today={data.today} week={data.week} selected={shown} ran={ranThisWeek.map((r) => r.local_date)} />
-{/snippet}
-
-{#snippet tile(label: string, t: Trend, unit: string, view: string)}
-	{@const c = change(t, unit)}
-	{@const vs = t.weeks.filter((v) => v !== null)}
-	<li class="min-w-0"><a href="/history/progress?view={view}&from=/" class="flex h-full flex-col gap-0.5 rounded-3xl bg-surface p-[18px] shadow-card">
-		<span class="truncate text-xs font-semibold text-ink-2">{label}</span>
-		<span class="flex items-baseline justify-between gap-1.5">
-			<span class="digits text-xl">{t.now === null ? '–' : `${t.now}${unit}`}</span>
-			{#if c}
-				{@const up = t.now! > t.then!}
-				<span class="flex items-center gap-1 text-xs font-semibold whitespace-nowrap text-ink-2" aria-label="{c === 'Same' ? 'Same' : `${up ? 'Up' : 'Down'} ${c}`} on the 4 weeks before">
-					{#if c !== 'Same'}<svg class="size-2.5 fill-current {up ? '' : 'rotate-180'}" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 1.5 9 8.5H1z" /></svg>{/if}{c}
-				</span>
-			{/if}
-		</span>
-		{#if vs.length}
-			{@const last = t.weeks.slice(4)}
-			{@const hi = Math.max(...last.map((v) => v ?? 0), t.then ?? 0, 0.001)}
-			<svg class="mt-3 h-14 w-full overflow-visible" viewBox="0 0 80 56" preserveAspectRatio="none" aria-hidden="true">
-				{#each last as v, i (i)}
-					{#if v !== null}<rect x={i * 20 + 3} y={56 - Math.max(2, (v / hi) * 52)} width="14" height={Math.max(2, (v / hi) * 52)} rx="2" class="fill-chart" />{/if}
-				{/each}
-				{#if t.then !== null}<line x1="0" x2="80" y1={56 - (t.then / hi) * 52} y2={56 - (t.then / hi) * 52} class="stroke-ink" stroke-width="2" stroke-dasharray="4 3" vector-effect="non-scaling-stroke" />{/if}
-			</svg>
-		{/if}
-	</a></li>
 {/snippet}
 
 {#snippet sessionSlot(d: ScheduledDay, primary: boolean)}
