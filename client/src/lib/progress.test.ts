@@ -519,12 +519,12 @@ const lifted = (reps: number | null, weight_kg: number | null, seconds: number |
 
 // The row showed only the best set beside "3 sets", which read as three sets of it.
 test('a session lists every set in order, alike sets in a row on one line', () => {
-	expect(setLines([lifted(3, 70), lifted(3, 75), lifted(3, 80)], 1, true).lines).toEqual([
+	expect(setLines([lifted(3, 70), lifted(3, 75), lifted(3, 80)], 1, true)).toEqual([
 		{ from: 1, to: 1, work: '3 reps', load: '70 kg' },
 		{ from: 2, to: 2, work: '3 reps', load: '75 kg' },
 		{ from: 3, to: 3, work: '3 reps', load: '80 kg' }
 	]);
-	expect(setLines([lifted(5, 80), lifted(5, 80), lifted(4, 80), lifted(5, 80)], 1, true).lines.map((l) => [l.from, l.to])).toEqual([
+	expect(setLines([lifted(5, 80), lifted(5, 80), lifted(4, 80), lifted(5, 80)], 1, true).map((l) => [l.from, l.to])).toEqual([
 		[1, 2],
 		[3, 3],
 		[4, 4]
@@ -540,17 +540,17 @@ test('a set says what it did: reps, seconds, both, a ladder or minutes', () => {
 });
 
 test('a lifted exercise names a set without weight, and a body-weight one names none', () => {
-	expect(setLines([lifted(8, 0), lifted(8, 20)], 1, true).lines.map((l) => l.load)).toEqual(['body weight', '20 kg']);
-	expect(setLines([lifted(12, 0), lifted(10, null)], 1, false).lines.map((l) => l.load)).toEqual(['', '']);
+	expect(setLines([lifted(8, 0), lifted(8, 20)], 1, true).map((l) => l.load)).toEqual(['body weight', '20 kg']);
+	expect(setLines([lifted(12, 0), lifted(10, null)], 1, false).map((l) => l.load)).toEqual(['', '']);
 });
 
 test('a side pair is one set, and sides that differ both show', () => {
 	const alike = setLines([lifted(8, 20), lifted(8, 20), lifted(8, 20), lifted(8, 20)], 2, true);
-	expect(alike).toEqual({ lines: [{ from: 1, to: 2, work: '8 reps', load: '20 kg' }], split: false });
+	expect(alike).toEqual([{ from: 1, to: 2, work: '8 reps', load: '20 kg' }]);
 	const apart = setLines([lifted(8, 20), lifted(7, 20)], 2, true);
-	expect(apart).toEqual({ lines: [{ from: 1, to: 1, work: '8 / 7 reps', load: '20 kg' }], split: true });
+	expect(apart).toEqual([{ from: 1, to: 1, work: 'L 8 / R 7 reps', load: '20 kg' }]);
 });
 
 test('sets not done are left out', () => {
-	expect(setLines([lifted(null, null), lifted(5, 50)], 1, true).lines).toEqual([{ from: 1, to: 1, work: '5 reps', load: '50 kg' }]);
+	expect(setLines([lifted(null, null), lifted(5, 50)], 1, true)).toEqual([{ from: 1, to: 1, work: '5 reps', load: '50 kg' }]);
 });

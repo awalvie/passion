@@ -449,18 +449,16 @@ export type SetLine = { from: number; to: number; work: string; load: string };
 
 // setLines are a session's done sets in order, as History's session view
 // numbers them, with alike sets in a row on one line. A side's pair is one
-// set; when its sides differ both show, left first. Weighed says the
+// set; when its sides differ both show, each named. Weighed says the
 // exercise is lifted, so a set without weight says body weight.
-export function setLines(sets: SetFields[], sides: number, weighed: boolean): { lines: SetLine[]; split: boolean } {
+export function setLines(sets: SetFields[], sides: number, weighed: boolean): SetLine[] {
 	const finished = sets.filter(done);
 	const lines: SetLine[] = [];
-	let split = false;
-	// Sides that differ show both, with a shared unit once: "8 / 7 reps".
+	// Sides that differ show both, with a shared unit once: "L 8 / R 7 reps".
 	const both = (a: string, b: string) => {
 		if (a === b) return a;
-		split = true;
 		const unit = (t: string) => t.match(/ [^\d]+$/)?.[0] ?? '';
-		return unit(a) && unit(a) === unit(b) ? `${a.slice(0, -unit(a).length)} / ${b}` : `${a} / ${b}`;
+		return unit(a) && unit(a) === unit(b) ? `L ${a.slice(0, -unit(a).length)} / R ${b}` : `L ${a} / R ${b}`;
 	};
 	const load = (x: SetFields) => (x.weight_kg ? `${x.weight_kg} kg` : weighed ? 'body weight' : '');
 	for (let k = 0; k < finished.length; k += sides) {
@@ -472,5 +470,5 @@ export function setLines(sets: SetFields[], sides: number, weighed: boolean): { 
 		if (last && last.work === line.work && last.load === line.load) last.to = n;
 		else lines.push({ from: n, to: n, ...line });
 	}
-	return { lines, split };
+	return lines;
 }

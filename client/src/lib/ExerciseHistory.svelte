@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { formatDate, shortDate } from './dates';
 	import Dots from './Dots.svelte';
+	import Empty from './Empty.svelte';
 	import type { Scale } from './grades';
 	import Icon from './Icon.svelte';
 	import { bestSet, climbMarks, clock, gradeScale, headline, measure, setLines, setMarks, topSend, climbTally, workText } from './progress';
@@ -35,6 +36,17 @@
 	const marks = $derived(recent.flatMap((s, i) => (scale ? climbMarks(s.climbs, i, scale) : setMarks(s.sets, i, m))));
 	const head = $derived(headline(sessions, m, scale));
 	const best = $derived(head && !scale ? bestSet(head.session.sets, m) : null);
+
+	// A row names its session only when it is not the exercise's usual one,
+	// and its date's year only when it is not this one.
+	const usual = $derived.by(() => {
+		const n = new Map<string, number>();
+		for (const s of sessions) n.set(s.name, (n.get(s.name) ?? 0) + 1);
+		return [...n].reduce<[string, number] | null>((a, b) => (!a || b[1] > a[1] ? b : a), null)?.[0];
+	});
+	const year = String(new Date().getFullYear());
+	const day = (d: string) => formatDate(d, { weekday: 'short', day: 'numeric', month: 'short', ...(d.startsWith(year) ? {} : { year: 'numeric' }) });
+	const said = (...parts: (string | false)[]) => parts.filter(Boolean).join(' · ');
 
 	const label = (v: number) => (scale ? scale.grades[v] : m === 's' && v >= 60 ? clock(v) : `${v}`);
 	const delta = (c: number, step: string) =>
@@ -94,27 +106,24 @@
 								<span class="min-w-0 flex-1">
 									{#if send}<span class="block digits text-xl leading-tight">{send.grade}</span>{/if}
 									<span class="mt-0.5 line-clamp-2 text-xs font-semibold text-ink-2">
-										{session.name} · {climbTally(session.climbs)}{scale ? `, ${session.climbs.filter((c) => c.sent).length} sent` : ''}
+										{said(!session.local_date.startsWith(year) && session.local_date.slice(0, 4), session.name !== usual && session.name, climbTally(session.climbs))}{scale ? `, ${session.climbs.filter((c) => c.sent).length} sent` : ''}
 									</span>
 								</span>
 								{@render chevron()}
 							</svelte:element>
 						{:else}
 							<!-- Every set in order, as History's session view numbers them, alike sets on one line. -->
-							{@const log = setLines(session.sets, sides, m === 'kg')}
-							{@const note = sides === 2 && log.lines.length ? (log.split ? ' · left / right' : ' · each side') : ''}
+							{@const lines = setLines(session.sets, sides, m === 'kg')}
+							{@const note = said(session.name !== usual && session.name, sides === 2 && lines.length > 0 && 'each side')}
 							<svelte:element this={href ? 'a' : 'div'} href={href?.(session)} class="flex items-start gap-3.5 py-3">
 								<span class="min-w-0 flex-1">
 									<span class="flex min-w-0 items-baseline gap-2">
-										<span class="shrink-0 text-[15px] font-bold">{formatDate(session.local_date, { weekday: 'short', day: 'numeric', month: 'short' })}</span>
-										<span class="flex min-w-0 text-xs font-semibold text-ink-2">
-											<span class="truncate">{session.name}</span>
-											{#if note}<span class="shrink-0 whitespace-pre">{note}</span>{/if}
-										</span>
+										<span class="shrink-0 text-[15px] font-bold">{day(session.local_date)}</span>
+										{#if note}<span class="min-w-0 truncate text-xs font-semibold text-ink-2">{note}</span>{/if}
 									</span>
-									{#if log.lines.length}
-										<span class="mt-1.5 grid w-fit max-w-full grid-cols-[2.25rem_minmax(0,6rem)_4.5rem] items-baseline gap-x-2 gap-y-1">
-											{#each log.lines as l (l.from)}
+									{#if lines.length}
+										<span class="mt-1.5 grid w-fit max-w-full grid-cols-[2.25rem_minmax(0,6rem)_minmax(4.5rem,max-content)] items-baseline gap-x-2 gap-y-1">
+											{#each lines as l (l.from)}
 												<span class="digits text-xs font-semibold text-ink-2">{l.from === l.to ? l.from : `${l.from}–${l.to}`}</span>
 												<span class="truncate">{@render amount(l.work)}</span>
 												<span class="text-right">{@render amount(l.load)}</span>
@@ -132,6 +141,6 @@
 			</ul>
 		</section>
 	{:else}
-		<p class="px-1 text-[15px] font-semibold text-ink-2">Nothing logged for this exercise yet.</p>
+		<Empty title="Nothing logged yet" text="Log this exercise in a session to see it here." />
 	{/if}
 </div>
