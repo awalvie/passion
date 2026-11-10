@@ -191,7 +191,12 @@
 
 <div class="lg:mx-auto lg:grid lg:max-w-[1280px] lg:grid-cols-[420px_minmax(0,1fr)]">
 	<div class="{journaling ? 'hidden lg:flex' : 'flex'} flex-col gap-3.5 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-6 lg:px-6 lg:pt-3">
-		<h1 class="page-title px-1">History</h1>
+		<header class="flex items-start justify-between gap-3">
+			<h1 class="page-title px-1">History</h1>
+			{#if data.runs.length}
+				<a href="/history/report" class="flex h-11 items-center rounded-full bg-surface px-5 text-[15px] font-bold text-ink shadow-card-sm">Export</a>
+			{/if}
+		</header>
 
 		{#if data.runs.length}
 			<nav class="grid grid-cols-3 gap-2.5" aria-label="Progress">

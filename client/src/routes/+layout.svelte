@@ -69,6 +69,7 @@
 			page.route.id === '/(app)/(tabs)/journal' ||
 			page.route.id === '/(app)/(tabs)/history' ||
 			page.route.id === '/(app)/(tabs)/history/progress' ||
+			page.route.id === '/(app)/(tabs)/history/report' ||
 			paned(page.route.id)
 	);
 	// The session builder and New cycle have no rail, and use the whole width.
@@ -122,7 +123,7 @@
 {/if}
 
 <div
-	class="mx-auto min-h-dvh w-full bg-ground text-ink {page.route.id === '/welcome' ? '' : 'max-w-[430px]'} {wide
+	class="mx-auto min-h-dvh w-full bg-ground text-ink print:max-w-none print:pl-0 {page.route.id === '/welcome' ? '' : 'max-w-[430px]'} {wide
 		? 'lg:max-w-none lg:pl-[calc(6rem+env(safe-area-inset-left))]'
 		: full
 			? 'lg:max-w-none'

@@ -85,7 +85,7 @@
 </script>
 
 <nav
-	class="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[430px] md:hidden"
+	class="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[430px] md:hidden print:hidden"
 	style:view-transition-name="tabbar"
 	aria-label="Main"
 >
@@ -145,7 +145,7 @@
 
 <!-- Only one of the two bars is ever drawn, so they share the transition name. -->
 <nav
-	class="fixed inset-y-0 left-0 z-30 hidden w-[calc(6rem+env(safe-area-inset-left))] flex-col items-center gap-2 overflow-y-auto border-r border-line bg-[var(--bar)] pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-4 pl-[env(safe-area-inset-left)] md:flex"
+	class="fixed inset-y-0 left-0 z-30 hidden w-[calc(6rem+env(safe-area-inset-left))] flex-col items-center gap-2 overflow-y-auto border-r border-line bg-[var(--bar)] pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-4 pl-[env(safe-area-inset-left)] md:flex print:hidden"
 	style:view-transition-name="tabbar"
 	aria-label="Main"
 >
