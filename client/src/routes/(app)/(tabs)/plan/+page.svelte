@@ -291,7 +291,7 @@
 					</div>
 				</section>
 			{:else}
-				<Empty title="Nothing planned" text="Nothing in the next four weeks.">
+				<Empty title="Nothing planned" text="Nothing in the next six weeks.">
 					{#if data.templates.length}
 						<Button onclick={openAdd}>Add a session</Button>
 					{/if}
