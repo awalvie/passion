@@ -49,7 +49,7 @@
 </details>
 
 <details>
-<summary>See your hours, climbs, grades and loads over time, and print them for a coach</summary>
+<summary>See your hours, climbs, grades and loads over time</summary>
 <br>
 <table>
   <tr>
