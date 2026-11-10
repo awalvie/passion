@@ -203,10 +203,7 @@
 					{@render tile('Climbs', String(climbs.at(-1)!.boulders + climbs.at(-1)!.routes), 'this week')}
 					<span class="mt-auto pt-3.5">
 						<Bars
-							parts={[
-								{ values: climbs.map((c) => c.boulders), cls: 'bg-chart' },
-								{ values: climbs.map((c) => c.routes), cls: 'bg-chart/50' }
-							]}
+							parts={[{ values: climbs.map((c) => c.boulders + c.routes), cls: 'bg-chart' }]}
 							height={30}
 							small
 						/>

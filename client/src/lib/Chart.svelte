@@ -11,6 +11,7 @@
 		grid,
 		ticks,
 		small = false,
+		start = false,
 		now,
 		pick = null,
 		onpick,
@@ -23,6 +24,9 @@
 		grid: { at: number; label: string }[];
 		ticks?: string[];
 		small?: boolean;
+		// start lines the labels up on their left, so a grade's + hangs past
+		// the grades without one, as 6b and 6b+.
+		start?: boolean;
 		// now is the slot holding today, -1 when the range is over. It is the
 		// newest slot unless given.
 		now?: number;
@@ -41,9 +45,9 @@
 
 <div class="flex {small ? '' : 'gap-2'}">
 	{#if grid.some((g) => g.label)}
-		<div class="relative min-w-7 shrink-0 text-xs" style:width="{Math.max(...grid.map((g) => g.label.length))}ch" style:height="{height}px">
+		<div class="relative min-w-9 shrink-0 text-xs" style:width="{Math.max(...grid.map((g) => g.label.length))}ch" style:height="{height}px">
 			{#each grid as g (g.at)}
-				<span class="absolute right-0 -translate-y-1/2 digits text-xs leading-none font-semibold text-ink-2" style:top={top(g.at)}>{g.label}</span>
+				<span class="absolute {start ? 'left-0' : 'right-0'} -translate-y-1/2 digits text-xs leading-none font-semibold text-ink-2" style:top={top(g.at)}>{g.label}</span>
 			{/each}
 		</div>
 	{/if}

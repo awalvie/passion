@@ -16,8 +16,8 @@ export function tenWeeks(today: string): Span {
 
 // readSpan reads a span from a URL's range: 10w, cycle:<id> or from:to. Any
 // other value is the last ten weeks, and a custom span ends today at the latest.
-// A custom span starts no earlier than first, the day of the first session, so
-// a span from 1900 does not draw a century of empty months.
+// Ten weeks and a custom span start no earlier than first, the day of the
+// first session: weeks before it are not time off, and drew as empty bars.
 export function readSpan(
 	key: string | null,
 	today: string,
@@ -34,7 +34,8 @@ export function readSpan(
 		const from = first && m[1] < first ? (first < to ? first : to) : m[1];
 		return { key: key!, from, to, cycle: null };
 	}
-	return tenWeeks(today);
+	const ten = tenWeeks(today);
+	return first && first <= today && ten.from < mondayOf(first) ? { ...ten, from: mondayOf(first) } : ten;
 }
 
 // A URL can name a day no calendar has, such as Feb 30.
@@ -111,7 +112,8 @@ export function trendWeeks(today: string): Bucket[] {
 
 // A trend is a figure for the last four full weeks, the same figure for the
 // four before, null when the record does not start by the first of them, and
-// the figure for each of the eight weeks, null for a week before the record.
+// the figure for each of the eight weeks: null for a week before the record,
+// and 0 for a week in it with nothing to measure, such as a rate with no climbs.
 export type Trend = { now: number | null; then: number | null; weeks: (number | null)[] };
 
 // trends are the hours and climbs a week, and the send and flash rates, of
@@ -131,7 +133,7 @@ export function trends(
 	const trend = (of: (i: number) => number | null, weekly: (number | null)[]): Trend => ({
 		now: of(4),
 		then: full ? of(0) : null,
-		weeks: weekly.map((v, i) => (weeks[i].to < first ? null : v))
+		weeks: weekly.map((v, i) => (weeks[i].to < first ? null : (v ?? 0)))
 	});
 	const time = hours(runs, weeks);
 	const count = counts(climbs, weeks, unique).map((c) => c.boulders + c.routes);
@@ -397,6 +399,8 @@ export type Lift = {
 	// The best set in each bucket, or null where the exercise was not done.
 	best: (SetFields | null)[];
 	latest: SetFields;
+	// The best set's value in each session, oldest first.
+	trend: number[];
 	// How far the best set moved from the first session to the latest, in the
 	// measure's unit, or null after a single session.
 	change: number | null;
@@ -426,6 +430,7 @@ export function lifts(sets: DatedSet[], bs: Bucket[]): Lift[] {
 			sessions: tops.length,
 			best: bs.map((b) => bestSet(tops.filter((x) => within(b, x.local_date)), m)),
 			latest,
+			trend: tops.map((x) => setValue(x, m)),
 			change: tops.length > 1 ? tenth(setValue(latest, m) - setValue(first, m)) : null
 		});
 	}

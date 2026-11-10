@@ -111,6 +111,8 @@
 		],
 		// Filled, unlike lucide's, as play buttons are drawn.
 		play: [['path', { d: 'M8 5.5v13l10.5-6.5z', fill: 'currentColor', stroke: 'none' }]],
+		// Filled, for a change up or down beside a figure.
+		triangle: [['path', { d: 'M12 4.5 21 19.5H3z', fill: 'currentColor', stroke: 'none' }]],
 		repeat: [
 			['path', { d: 'm17 2 4 4-4 4' }],
 			['path', { d: 'M3 11v-1a4 4 0 0 1 4-4h14' }],

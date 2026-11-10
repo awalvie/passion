@@ -8,6 +8,15 @@
 	let { rows, most, all = false }: { rows: Step[]; most: number; all?: boolean } = $props();
 
 	const share = (n: number) => `${(n / most) * 100}%`;
+	// Neighbours of one colour join, so a lone climb sent after a try is one
+	// bar, not two halves with a seam.
+	const merged = (parts: readonly (readonly [number, string])[]) =>
+		parts.filter(([n]) => n).reduce<[number, string][]>((out, [n, cls]) => {
+			const last = out.at(-1);
+			if (last && last[1] === cls) last[0] += n;
+			else out.push([n, cls]);
+			return out;
+		}, []);
 </script>
 
 <ul>
@@ -17,17 +26,17 @@
 		<!-- A grade with no sends is one grey bar, not two halves with a gap. -->
 		{@const parts = r.sent
 			? ([
-					[open, 'bg-ink-3/40'],
+					[open, 'ring-1 ring-inset ring-ink-3'],
 					[side, 'bg-chart/50'],
 					[r.flash, 'bg-chart'],
 					[side, 'bg-chart/50'],
-					[open, 'bg-ink-3/40']
+					[open, 'ring-1 ring-inset ring-ink-3']
 				] as const)
-			: ([[open * 2, 'bg-ink-3/40']] as const)}
+			: ([[open * 2, 'ring-1 ring-inset ring-ink-3']] as const)}
 		<li class="flex h-10 items-center gap-3 list-row">
 			<span class="w-9 shrink-0 digits text-[15px]">{r.grade}</span>
 			<span class="flex min-w-0 flex-1 justify-center gap-0.5" aria-hidden="true">
-				{#each parts.filter(([n]) => n) as [n, cls], i (i)}
+				{#each merged(parts) as [n, cls], i (i)}
 					<span class="h-[18px] rounded-[2px] {cls}" style:width={share(n)}></span>
 				{/each}
 			</span>
@@ -35,7 +44,7 @@
 				{#if all && r.tried}
 					{r.sent}<span class="text-xs font-semibold text-ink-2" aria-hidden="true">/{r.tried}</span>
 				{:else}
-					{r.sent || ''}
+					<span class={r.sent ? '' : 'text-ink-3'}>{r.sent}</span>
 				{/if}
 				<span class="sr-only"
 					>{(all ? r.tried : r.sent) ? ` sent${all ? ` of ${r.tried} tried` : ''}, ${r.flash} flashed` : all ? 'none tried' : 'none sent'}</span

@@ -31,7 +31,6 @@
 		perBucket,
 		pyramid,
 		sendRate,
-		setValue,
 		type ClimbFilter,
 		type FilterGroup,
 		type Lift
@@ -93,8 +92,10 @@
 	const inPick = <T extends { local_date: string }>(xs: T[]) =>
 		picked === null ? xs : xs.filter((x) => data.buckets[picked].from <= x.local_date && x.local_date <= data.buckets[picked].to);
 	const charts = $derived({ pick: picked, onpick: choose, names, ticks, now });
+	const pill = 'flex h-11 items-center gap-1 rounded-full bg-surface pr-3.5 pl-4 text-[15px] font-bold text-ink shadow-card-sm';
+	// Pale green is routes across the Climbs cards: the chart, its key and Where.
 	const boulderFill = 'bg-chart';
-	const routeFill = 'bg-chart/50';
+	const routeFill = 'bg-chart';
 	const line = (points: (number | null)[]) => points.flatMap((v, i) => (v === null ? [] : [{ i, v, best: true }]));
 
 	// Two ranges sit on the row; Custom opens the rest.
@@ -146,9 +147,15 @@
 		}
 		return [...m].sort((a, b) => b[1].h - a[1].h);
 	});
+	let allSessions = $state(false);
 
 	const shown = $derived(data.climbs.filter((c) => passes(c, data.filter)));
 	const climbs = $derived(counts(shown, data.buckets, data.unique));
+	const split = $derived([
+		{ label: 'Boulders', values: climbs.map((c) => c.boulders) },
+		{ label: 'Routes', values: climbs.map((c) => c.routes) }
+	]);
+	const splitTop = $derived(Math.max(...climbs.map((c) => Math.max(c.boulders, c.routes)), 0));
 	const sendRates = $derived(perBucket(shown, data.buckets, sendRate));
 	const flashRates = $derived(perBucket(shown, data.buckets, flashRate));
 	// Where the climbing was, most first.
@@ -166,7 +173,7 @@
 		const [main, small] = figure(x, l.measure);
 		if (picked !== null) return { main, small, note: '' };
 		const c = l.change;
-		const note = c === null ? 'Once' : c === 0 ? 'Same' : `${c > 0 ? '+' : '−'}${Math.abs(c)} ${l.measure}`;
+		const note = c === null ? '' : c === 0 ? 'Same' : `${c > 0 ? '+' : '−'}${Math.abs(c)} ${l.measure}`;
 		return { main, small, note };
 	}
 	const liftHref = (l: Lift) =>
@@ -203,8 +210,9 @@
 		})
 	);
 
-	// The tiles of the last four weeks. A phone shows those of Climbs, as the
-	// Time card already gives the hours; a laptop shows them all.
+	// The tiles of the last four weeks. A phone shows them over Time only, the
+	// view a glance starts from, so they do not push every view down; a laptop
+	// shows them over everything.
 	const tiles = $derived.by(() => {
 		const t = data.trends;
 		if (!t) return [];
@@ -216,17 +224,12 @@
 		];
 	});
 
-	// change is how far a trend moved, signed, in its own unit.
 	let filtering = $state(false);
 	let draft = $state<ClimbFilter>({ discipline: [], setting: [], board: [] });
-	let draftUnique = $state(false);
-	let draftTried = $state(false);
-	const groups = Object.keys(filterGroups) as FilterGroup[];
+const groups = Object.keys(filterGroups) as FilterGroup[];
 
 	function openFilter() {
 		draft = structuredClone(data.filter);
-		draftUnique = data.unique;
-		draftTried = data.tried;
 		filtering = true;
 	}
 
@@ -250,16 +253,9 @@
 
 <svelte:head><title>Progress</title></svelte:head>
 
-{#snippet explained(label: string, value: string | number, info: string)}
-	<div class="relative flex items-start justify-between gap-3">
-		<dl>{@render stat(label, value, when)}</dl>
-		<Info text={info} />
-	</div>
-{/snippet}
-
-{#snippet stat(label: string, value: string | number, at = '')}
+{#snippet stat(label: string, value: string | number)}
 	<div class="flex flex-col gap-0.5">
-		<dt class="text-xs font-semibold text-ink-2">{label}{#if at}{' · '}<span class="text-ink">{at}</span>{/if}</dt>
+		<dt class="text-xs font-semibold text-ink-2">{label}</dt>
 		<dd class="digits text-[26px] leading-tight">{value}</dd>
 	</div>
 {/snippet}
@@ -294,33 +290,31 @@
 	<NavBar {back} title="Progress" />
 {/if}
 
-<!-- The range is one control: a tap opens its sheet. A picked week takes its place.
-     They set what the views cover, so they are plain text, a step below the view's Tabs.
-     On a phone the climb filter sits beside it, drawn alike; a laptop shows the dates there. -->
+<!-- The range is a pill: a tap opens its sheet. A picked week adds a chip beside it,
+     with its own ×, so the range stays in reach. On a phone the climb filter is a pill
+     beside it, and the dates go on a line below. -->
 {#snippet rangeLine()}
-	<div class="-my-2 flex flex-wrap items-center gap-x-5 lg:my-0 lg:flex-nowrap">
+	<div class="flex flex-wrap items-center gap-x-2.5 gap-y-2 lg:flex-nowrap lg:gap-x-4">
+		<button type="button" class="{pill} min-w-0" aria-haspopup="dialog" onclick={openPicker}>
+			<span class="truncate">{rangeName}</span><Icon name="chevron-down" size="1rem" stroke={2.6} />
+		</button>
+		{#if on('climbs', 'grade')}
+			<button type="button" class="{pill} min-w-0 lg:hidden" aria-haspopup="dialog" onclick={openFilter}>
+				<span class="truncate">{filterName(data.filter)}</span><Icon name="chevron-down" size="1rem" stroke={2.6} />
+			</button>
+		{/if}
 		{#if picked !== null}
-			<!-- A picked week narrows the range, so it is a chip the size of the scope's text, with its own ×. -->
-			<span class="my-1.5 flex h-8 min-w-0 items-center gap-0.5 rounded-full pr-1 pl-3 segment-on">
-				<span class="truncate text-xs font-semibold" aria-live="polite">{names[picked]}</span>
+			<span class="flex h-11 min-w-0 items-center gap-0.5 rounded-full pr-1.5 pl-4 segment-on">
+				<span class="truncate text-[15px] font-bold" aria-live="polite">{names[picked]}</span>
 				<button
 					type="button"
-					class="relative flex size-6 shrink-0 items-center justify-center rounded-full before:absolute before:-inset-2.5 before:content-['']"
+					class="relative flex size-8 shrink-0 items-center justify-center rounded-full before:absolute before:-inset-1.5 before:content-['']"
 					aria-label="Show the whole range"
-					onclick={() => choose(null)}><Icon name="x" size="0.875rem" stroke={2.6} /></button
+					onclick={() => choose(null)}><Icon name="x" size="1rem" stroke={2.6} /></button
 				>
 			</span>
-		{:else}
-			<button type="button" class="flex h-11 min-w-0 items-center gap-1 px-1 text-xs font-semibold text-ink" aria-haspopup="dialog" onclick={openPicker}>
-				<span class="truncate">{rangeName}</span><Icon name="chevron-down" size="0.875rem" stroke={2.6} />
-			</button>
-			{#if named}<p class="hidden min-w-0 truncate text-xs font-semibold text-ink-2 lg:block">{spanDates}</p>{/if}
 		{/if}
-		{#if on('climbs', 'grade')}
-			<button type="button" class="flex h-11 min-w-0 items-center gap-1 px-1 text-xs font-semibold text-ink lg:hidden" aria-haspopup="dialog" onclick={openFilter}>
-				<span class="truncate">{filterName(data.filter)}</span><Icon name="chevron-down" size="0.875rem" stroke={2.6} />
-			</button>
-		{/if}
+		{#if named}<p class="w-full min-w-0 truncate px-1 text-[15px] font-semibold text-ink-2 lg:w-auto">{spanDates}</p>{/if}
 	</div>
 {/snippet}
 
@@ -333,6 +327,21 @@
 			{ label: 'Tried', on: data.tried, href: href(data.view, data.span.key, data.filter, data.unique, true) }
 		]}
 	/>
+{/snippet}
+
+<!-- How the last 4 weeks went, whatever the range: a glance before the detail. -->
+{#snippet lastWeeks()}
+	{#if tiles.some((t) => t.t.now !== null)}
+		<section class="flex flex-col gap-1">
+			<div class="relative flex items-center justify-between gap-3 px-1">
+				<h2 class="text-xl font-bold tracking-tight">Last 4 weeks</h2>
+				<Info text="Each figure is a week on average over the last 4 weeks, and its change is on the 4 weeks before. The bars are the last 4 weeks, and the dashed line is the 4 weeks before." />
+			</div>
+			<ul class="grid grid-cols-2 gap-2.5 lg:grid-cols-4 lg:gap-3.5">
+				{#each tiles.filter((t) => t.t.now !== null) as t (t.label)}<TrendTile label={t.label} t={t.t} unit={t.unit} href={wide.current ? undefined : href(t.view, data.span.key)} replace />{/each}
+			</ul>
+		</section>
+	{/if}
 {/snippet}
 
 {#snippet heading(title: string, cls = '')}
@@ -350,18 +359,7 @@
 {:else}
 	<!-- A phone shows one view at a time. A laptop shows them all, in two columns. -->
 	<div class="flex flex-col gap-3.5 px-4 pt-2 pb-6 lg:mx-auto lg:max-w-[1104px] lg:px-10">
-		<!-- How the last 4 weeks went, whatever the range: a glance before the detail. -->
-		{#if tiles.some((t) => t.t.now !== null)}
-			<section class="flex flex-col gap-1">
-				<div class="relative flex items-center justify-between gap-3 px-1">
-					<h2 class="text-xl font-bold tracking-tight">Last 4 weeks</h2>
-					<Info text="Each figure is a week on average over the last 4 weeks, and its change is on the 4 weeks before. The bars are the 8 weeks: the 4 before pale, the last 4 green." />
-				</div>
-				<ul class="grid grid-cols-2 gap-2.5 lg:grid-cols-4 lg:gap-3.5">
-					{#each tiles.filter((t) => t.t.now !== null) as t (t.label)}<TrendTile label={t.label} t={t.t} unit={t.unit} href={wide.current ? undefined : href(t.view, data.span.key)} replace />{/each}
-				</ul>
-			</section>
-		{/if}
+		{#if wide.current}{@render lastWeeks()}{/if}
 		<!-- The view picks a question; it is navigation, so it is drawn as History's Tabs, above the quieter range and filter. -->
 		<div class="lg:hidden">
 			<Tabs
@@ -375,15 +373,19 @@
 				]}
 			/>
 		</div>
+		<!-- On a phone the tiles sit under the strip, so the strip keeps its place on every view. -->
+		{#if !wide.current && data.view === 'time'}{@render lastWeeks()}{/if}
 		<!-- On a laptop the range sticks at the top. -->
 		<div class="lg:sticky lg:top-0 lg:z-20 lg:-mb-2 lg:mt-1 lg:bg-ground lg:py-2">{@render rangeLine()}</div>
 
 		<div class="flex-col gap-3.5 lg:mt-1 lg:flex {on('time') ? 'flex' : 'hidden'}">
 			{@render heading('Time', 'max-lg:hidden')}
-			<div class="flex flex-col gap-3.5 lg:grid lg:grid-cols-6">
-				<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-4">
-					<div class="relative flex items-start gap-3">
-						<dl class="grid flex-1 grid-cols-3 gap-3">
+			<!-- By session goes under the chart, not beside it: its length follows the kinds of
+			     session, so beside a chart it left a gap under one or the other. -->
+			<div class="flex flex-col gap-3.5">
+				<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
+					<div class="relative flex items-start justify-between gap-3">
+						<dl class="grid flex-1 grid-cols-3 items-end gap-3 lg:max-w-xl">
 							{@render stat('Hours', round(picked === null ? totalHours : time[picked]))}
 							{@render stat(`Hours a ${data.per}`, average(time))}
 							{@render stat('Sessions', inPick(data.runs).length)}
@@ -393,17 +395,22 @@
 					<Bars parts={[{ values: time, cls: 'bg-chart' }]} format={(h) => `${round(h)}h`} {...charts} />
 				</section>
 				{#if bySession.length}
-					<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-2 shadow-card lg:col-span-2">
+					<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-2 shadow-card">
 						<h3 class="mb-1 text-[15px] font-bold">By session</h3>
-						<ul>
-							{#each bySession as [key, s] (key)}
-								<li class="flex items-center gap-3 py-3 list-row">
+						<ul class="lg:grid lg:grid-cols-2 lg:gap-x-9">
+							{#each allSessions ? bySession : bySession.slice(0, 6) as [key, s] (key)}
+								<li class="flex items-center gap-3 py-3 list-row lg:[&:nth-child(2)]:shadow-none">
 									<span class="min-w-0 flex-1 truncate text-[15px] font-semibold">{s.name}</span>
 									<span class="text-xs font-semibold text-ink-2">{s.n}×</span>
 									<span class="w-12 text-right digits text-[15px]">{round(s.h)}h</span>
 								</li>
 							{/each}
 						</ul>
+						{#if bySession.length > 6}
+							<button type="button" class="mt-1 mb-1 flex h-11 items-center text-[15px] font-bold text-ink" onclick={() => (allSessions = !allSessions)}>
+								{allSessions ? 'Show fewer' : `Show all ${bySession.length}`}
+							</button>
+						{/if}
 					</section>
 				{/if}
 			</div>
@@ -415,11 +422,11 @@
 				<div class="w-72 shrink-0">{@render counting()}</div>
 			</div>
 			<!-- A laptop has room to show the filter itself in place of its sheet. -->
-			<div class="hidden flex-wrap items-end gap-x-5 gap-y-2.5 lg:flex">
+			<!-- Its options name each group, so the groups need no labels. -->
+			<div class="hidden flex-wrap items-center gap-x-5 gap-y-2.5 lg:flex">
 				{#each groups as g (g)}
 					{@const closed = g === 'board' && !boardsOpen(data.filter)}
-					<div class="flex flex-col gap-1.5">
-						<span class="px-1 text-xs font-semibold {closed ? 'text-ink-3' : 'text-ink-2'}">{filterGroups[g].label}</span>
+					<div>
 						<div class="flex gap-1 rounded-full bg-well p-1" role="group" aria-label={filterGroups[g].label}>
 							{#each [['', 'All'], ...Object.entries(filterGroups[g].options)] as [val, label] (val)}
 								{@const pressed = !closed && (val ? data.filter[g].includes(val) : !data.filter[g].length)}
@@ -443,66 +450,70 @@
 					<Empty title="No climbs" text="Log climbs in a session to see them here." />
 				{/if}
 			{:else}
-				<!-- Climbs, then the rates, then where; a laptop sets the first two side by side. -->
+				<!-- On a phone the count sits over the cards it changes, in reach. -->
+				<div class="lg:hidden {on('climbs') ? '' : 'hidden'}">{@render counting()}</div>
+				<!-- Climbs, then the rates, then where; a laptop sets the last two side by side. -->
 				<div class="flex-col gap-3.5 lg:grid lg:grid-cols-6 {on('climbs') ? 'flex' : 'hidden'}">
-					<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-3">
+					<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-6">
 						<div class="relative flex items-start gap-3">
-							<dl class="grid flex-1 grid-cols-3 gap-3">
+							<dl class="grid flex-1 grid-cols-3 items-end gap-3">
 								{@render stat('Climbs', climbCount(inPick(shown), data.unique))}
 								{@render stat(`Climbs a ${data.per}`, average(climbs.map((c) => c.boulders + c.routes)))}
-								{@render stat(data.unique ? 'With repeats' : 'Unique', climbCount(inPick(shown), !data.unique))}
+								{@render stat(data.unique ? 'Every go' : 'Once a session', climbCount(inPick(shown), !data.unique))}
 							</dl>
 							<Info text="Every go counts each try, sent or not, so three tries on one boulder are three climbs. Once a session, or Unique, counts each boulder or route once a session. {perInfo}" />
 						</div>
-						<Bars
-							parts={[
-								{ values: climbs.map((c) => c.boulders), cls: boulderFill },
-								{ values: climbs.map((c) => c.routes), cls: routeFill }
-							]}
-							{...charts}
-						/>
-						<div class="flex gap-4 text-xs font-semibold text-ink-2">
-							{#if shown.some(isBoulder)}{@render key(boulderFill, 'Boulders')}{/if}
-							{#if shown.some((c) => !isBoulder(c))}{@render key(routeFill, 'Routes')}{/if}
+						<!-- Boulders and routes each get a chart, on one scale, so each compares week to week. -->
+						<!-- A laptop sets them side by side, so the card is as tall as the others. -->
+						<div class="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-9">
+							{#each split.filter((k) => k.values.some((v) => v)) as k (k.label)}
+								<div class="flex flex-col gap-1">
+									<h4 class="text-[15px] font-semibold">{k.label}</h4>
+									<Bars parts={[{ values: k.values, cls: 'bg-chart' }]} top={splitTop} height={84} {...charts} />
+								</div>
+							{/each}
 						</div>
 					</section>
 					<!-- Send and flash rate answer one question, so they share a card and a scale. -->
 					<section class="flex flex-col gap-4 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card lg:col-span-3">
 						<div class="relative flex items-start gap-3">
 							<!-- Each label carries its line's colour, in place of a legend. -->
-							<dl class="grid flex-1 grid-cols-3 gap-3">
+							<dl class="grid flex-1 grid-cols-3 items-end gap-3">
 								<div class="flex flex-col gap-0.5">
-									<dt class="flex items-center gap-1.5 text-xs font-semibold text-ink-2"><span class="size-2.5 rounded-full bg-chart"></span>Send rate</dt>
+									<dt class="flex items-center gap-1.5 text-xs font-semibold text-ink-2"><span class="w-3.5 border-t-2 border-chart"></span>Send rate</dt>
 									<dd class="digits text-[26px] leading-tight">{pct(sendRate(inPick(shown)))}</dd>
 								</div>
 								<div class="flex flex-col gap-0.5">
-									<dt class="flex items-center gap-1.5 text-xs font-semibold text-ink-2"><span class="size-2.5 rounded-full bg-chart/50"></span>Flash rate</dt>
+									<dt class="flex items-center gap-1.5 text-xs font-semibold text-ink-2"><span class="w-3.5 border-t-2 border-dashed border-chart"></span>Flash rate</dt>
 									<dd class="digits text-[26px] leading-tight">{pct(flashRate(inPick(shown)))}</dd>
 								</div>
 							</dl>
-							<Info text="Of the graded climbs you tried, the share you sent, and the share you sent on the first try. Each climb counts once, however many tries it took. Limit work sends few; a rate near 100% means the climbs were easy." />
+							<Info text="Of the graded climbs you tried, the share you sent (solid line), and the share you sent on the first try (dashed). Each climb counts once, however many tries it took. Limit work sends few; a rate near 100% means the climbs were easy." />
 						</div>
-						<Dots n={data.buckets.length} marks={line(sendRates)} also={line(flashRates)} label={(x) => `${x}%`} zero max={100} height={wide.current ? 148 : 120} {...charts} />
+						<Dots n={data.buckets.length} marks={line(sendRates)} also={line(flashRates)}	label={(x) => `${x}%`} zero max={100} {...charts} />
 					</section>
-					<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-3 shadow-card lg:col-span-6">
+					<section class="rounded-3xl bg-surface px-[18px] pt-4 pb-3 shadow-card lg:col-span-3">
 						<div class="relative mb-2 flex items-start justify-between gap-3">
-							<h3 class="text-[15px] font-bold">Where</h3>
+							<h3 class="text-[15px] font-bold">Where you climbed</h3>
 							<Info text="Your climbs by where you climbed them, counted as the Climbs chart counts them." />
 						</div>
-						<ul class="flex flex-col gap-3 lg:grid lg:grid-flow-col lg:grid-cols-2 lg:gap-x-9" style:grid-template-rows="repeat({Math.ceil(mix.length / 2)}, auto)">
+						<ul class="flex flex-col gap-3">
 							{#each mix as [where, n] (where)}
 								<li class="flex flex-col gap-1.5">
 									<span class="flex items-baseline justify-between gap-3 text-[15px] font-semibold">
 										{where}
 										<span class="digits">{n}</span>
 									</span>
-									<span class="h-2 rounded-full bg-well"><span class="block h-full rounded-full bg-chart" style:width="{(n / mix[0][1]) * 100}%"></span></span>
+									<span class="h-2"
+										><span class="block h-full rounded-full {where.endsWith('routes') ? routeFill : boulderFill}" style:width="{(n / mix[0][1]) * 100}%"></span></span
+									>
 								</li>
 							{/each}
 						</ul>
 					</section>
 				</div>
 				<div class="flex-col gap-3.5 lg:mt-3 lg:flex {on('grade') ? 'flex' : 'hidden'}">
+					<div class="lg:hidden">{@render sentTried()}</div>
 					<div class="flex items-center gap-5 max-lg:hidden">
 						<div class="flex items-baseline gap-3">
 							{@render heading('Grades')}
@@ -510,41 +521,55 @@
 						</div>
 						<div class="w-48 shrink-0">{@render sentTried()}</div>
 					</div>
-					<div class="flex flex-col gap-3.5 lg:grid lg:grid-cols-2">
+					<div class="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:gap-3.5">
 						{#each disciplines as d (d.label)}
-							<section class="flex flex-col gap-3 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
-								<div class="relative flex items-start justify-between gap-3">
-									<h3 class="text-[15px] font-bold">{d.label}</h3>
-									<Info
-										text={data.tried
-											? 'The line is your hardest send each week. Below, each climb you tried, once a session, at its grade. Grey is the ones you did not send that session. The middle of each bar is the ones you flashed.'
-											: 'The line is your hardest send each week. Below, each climb you sent, once, at its grade. The middle of each bar is the ones you flashed.'}
-									/>
-								</div>
-								<dl class="-mt-1 grid grid-cols-3 gap-3">
-									{@render stat('Top send', d.top)}
-									{@render stat(data.tried ? 'Tried' : 'Sent', data.tried ? d.tried : d.sent)}
-								</dl>
-								<Dots n={data.buckets.length} marks={line(d.tops)} label={(g) => d.scale.grades[g]} steps {...charts} />
-								{#if d.pyramid.length}
-									<div class="mt-2"><Pyramid rows={d.pyramid} most={d.most} all={data.tried} /></div>
-									<div class="flex flex-wrap gap-x-4 gap-y-1.5 text-xs font-semibold text-ink-2">
-										{@render key('bg-chart', 'Flash')}
-										{@render key('bg-chart/50', 'Sent after a try')}
-										{#if data.tried}{@render key('bg-ink-3/40', 'Not sent')}{/if}
+							<!-- The hardest send over time and the climbs at each grade answer
+							     different questions, so each has its own card, under the discipline's
+							     name. On a laptop the columns match, so the last cards end level. -->
+							<div class="flex flex-col gap-2.5">
+								<h3 class="px-1 text-[15px] font-bold">{d.label}</h3>
+								<section class="flex flex-col gap-3 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
+									<div class="relative flex items-start justify-between gap-3">
+										<div>
+											<h4 class="text-xs font-semibold text-ink-2">Hardest send{#if when}{' · '}<span class="text-ink">{when}</span>{/if}</h4>
+											<p class="digits text-[26px] leading-tight">{d.top}</p>
+										</div>
+										<Info text="Your hardest send each week, at its grade." />
 									</div>
-								{/if}
-								{#if d.elsewhere}
-									<p class="text-xs font-semibold text-ink-2">
-										{d.elsewhere}
-										{d.elsewhere === 1 ? 'climb' : 'climbs'} graded in another system not shown.
-									</p>
-								{/if}
-							</section>
+									<Dots n={data.buckets.length} marks={line(d.tops)} label={(g) => d.scale.grades[g]} steps limit={d.scale.grades.length - 1} {...charts} />
+								</section>
+								<section class="flex flex-1 flex-col gap-3 rounded-3xl bg-surface px-[18px] pt-4 pb-[18px] shadow-card">
+									<div class="relative flex items-start justify-between gap-3">
+										<div>
+											<h4 class="text-xs font-semibold text-ink-2">By grade{#if when}{' · '}<span class="text-ink">{when}</span>{/if}</h4>
+											<p class="digits text-[26px] leading-tight">
+												{data.tried ? d.tried : d.sent}<span class="ml-1 text-xs font-semibold text-ink-2">{data.tried ? 'tried' : 'sent'}</span>
+											</p>
+										</div>
+										<Info
+											text={data.tried
+												? 'Each climb you tried, once a session, at its grade. An outline is the ones you did not send that session. The middle of each bar is the ones you flashed.'
+												: 'Each climb you sent, once, at its grade. The middle of each bar is the ones you flashed.'}
+										/>
+									</div>
+									{#if d.pyramid.length}
+										<div class="mt-1"><Pyramid rows={d.pyramid} most={d.most} all={data.tried} /></div>
+										<div class="mt-auto flex flex-wrap gap-x-4 gap-y-1.5 text-xs font-semibold text-ink-2">
+											{@render key('bg-chart', 'Flash')}
+											{@render key('bg-chart/50', 'Sent after a try')}
+											{#if data.tried}{@render key('ring-1 ring-inset ring-ink-3', 'Not sent')}{/if}
+										</div>
+									{/if}
+									{#if d.elsewhere}
+										<p class="text-xs font-semibold text-ink-2">
+											{d.elsewhere}
+											{d.elsewhere === 1 ? 'climb' : 'climbs'} graded in another system not shown.
+										</p>
+									{/if}
+								</section>
+							</div>
 						{:else}
-							<section class="rounded-3xl bg-surface p-[18px] shadow-card">
-								<p class="text-[15px] font-semibold text-ink-2">No graded climbs in this range.</p>
-							</section>
+							<Empty title="No graded climbs" text="Give a climb its grade as you log it to see your grades here." />
 						{/each}
 					</div>
 				</div>
@@ -561,11 +586,13 @@
 						text="Each exercise in its own unit: its best set in a session, by added weight, else time under load, else reps. The figure is the latest session's; the change is from the range's first session to its latest."
 					/>
 				</div>
-				<ul class="lg:grid lg:grid-cols-2 lg:gap-x-9">
+				<!-- Columns, not a grid, so a row without a line leaves no hole beside one with it.
+				     Every row has its line on top, as a column cannot tell its first row. -->
+				<ul class="lg:columns-2 lg:gap-x-9 lg:[&>li:first-child]:shadow-[inset_0_1px_0_var(--line)]">
 					{#each strength as l (l.exercise)}
 						{@const f = lift(l)}
-						{@const marks = l.best.flatMap((x, i) => (x ? [{ i, v: setValue(x, l.measure), best: true }] : []))}
-						<li class="list-row flush lg:[&:nth-child(2)]:shadow-none">
+						{@const marks = l.trend.map((v, i) => ({ i, v, best: true }))}
+						<li class="list-row flush break-inside-avoid">
 							<a href={liftHref(l)} class="flex flex-col gap-2.5 py-3.5">
 								<span class="flex items-start gap-3">
 									<span class="min-w-0 flex-1">
@@ -579,15 +606,8 @@
 									<span class="self-center text-ink-3"><Icon name="chevron-right" size="16px" stroke={2.4} /></span>
 								</span>
 								{#if l.sessions > 1}
-									<Dots
-										n={data.buckets.length}
-										{marks}
-										label={(x) => `${x}`}
-										zero={marks.some((m) => m.v < 0)}
-										height={30}
-										small
-										pick={picked}
-									/>
+									<!-- Each lift's sessions from edge to edge, so every line starts and ends alike. -->
+									<span class="block px-1.5"><Dots n={marks.length} {marks} label={(x) => `${x}`} zero={marks.some((m) => m.v < 0)} height={30} small spread /></span>
 								{/if}
 							</a>
 						</li>
@@ -595,9 +615,7 @@
 				</ul>
 				</section>
 			{:else}
-				<section class="rounded-3xl bg-surface p-[18px] shadow-card">
-					<p class="text-[15px] font-semibold text-ink-2">No sets logged in this range.</p>
-				</section>
+				<Empty title="No sets" text="Log sets of a strength exercise in a session to see them here." />
 			{/if}
 		</div>
 	</div>
@@ -649,12 +667,12 @@
 	</div>
 </Sheet>
 
-<Sheet bind:open={filtering} title="Show">
-	<div class="flex flex-col gap-3.5">
+<Sheet bind:open={filtering} title="Climbs to show">
+	<!-- Each group's chips name it, so the groups need no labels; a gap sets them apart. -->
+	<div class="flex flex-col gap-6">
 		{#each groups as g (g)}
 			{@const closed = g === 'board' && !boardsOpen(draft)}
-			<h2 class="mt-1 px-1 text-[15px] font-bold {closed ? 'text-ink-3' : ''}">{filterGroups[g].label}</h2>
-			<div class="flex flex-wrap gap-1.5">
+			<div class="flex flex-wrap gap-1.5" role="group" aria-label={filterGroups[g].label}>
 				{#each Object.entries(filterGroups[g].options) as [v, label] (v)}
 					{@const on = !closed && draft[g].includes(v)}
 					<button
@@ -667,31 +685,11 @@
 				{/each}
 			</div>
 		{/each}
-		<!-- How to count sits with what to count, on the view it changes. -->
-		{#if data.view === 'climbs'}
-			<h2 class="mt-1 px-1 text-[15px] font-bold">Count</h2>
-			<Segmented
-				label="Count climbs"
-				items={[
-					{ label: 'Every go', on: !draftUnique, onclick: () => (draftUnique = false) },
-					{ label: 'Once a session', on: draftUnique, onclick: () => (draftUnique = true) }
-				]}
-			/>
-		{:else if data.view === 'grade'}
-			<h2 class="mt-1 px-1 text-[15px] font-bold">Pyramid</h2>
-			<Segmented
-				label="Pyramid shows"
-				items={[
-					{ label: 'Sent', on: !draftTried, onclick: () => (draftTried = false) },
-					{ label: 'Tried', on: draftTried, onclick: () => (draftTried = true) }
-				]}
-			/>
-		{/if}
 	</div>
 	{#snippet footer()}
 		<div class="grid grid-cols-[1fr_2fr] items-center gap-2">
 			<Button variant="secondary" onclick={() => applyFilter({ discipline: [], setting: [], board: [] })}>All climbs</Button>
-			<Button onclick={() => applyFilter(draft, draftUnique, draftTried)}>Apply</Button>
+			<Button onclick={() => applyFilter(draft)}>Apply</Button>
 		</div>
 	{/snippet}
 </Sheet>

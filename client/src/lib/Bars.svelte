@@ -3,7 +3,8 @@
 
 	// Stacked bars, one per bucket, the newest on the right. Each part names its
 	// colour class. Gridlines give the scale, and the bar holding today, the
-	// newest unless now says otherwise, carries its number.
+	// newest unless now says otherwise, carries its number, quietly, as that
+	// week may not be over.
 	type Part = { values: number[]; cls: string };
 	let {
 		parts,
@@ -14,7 +15,8 @@
 		format = (n: number) => String(Math.round(n)),
 		pick = null,
 		onpick,
-		names
+		names,
+		top = 0
 	}: {
 		parts: Part[];
 		height?: number;
@@ -25,11 +27,15 @@
 		pick?: number | null;
 		onpick?: (i: number) => void;
 		names?: string[];
+		// top is the least the scale reaches, so charts side by side share one.
+		top?: number;
 	} = $props();
 
 	const totals = $derived(parts[0].values.map((_, i) => parts.reduce((s, p) => s + p.values[i], 0)));
 	const at = $derived(now ?? totals.length - 1);
-	const max = $derived(Math.max(...totals, 0));
+	// Weeks before the first one with anything logged are before the record, so they stay blank.
+	const started = $derived(totals.findIndex((t) => t > 0));
+	const max = $derived(Math.max(...totals, top, 0));
 	// The smallest round step that splits the tallest bar into at most four. A
 	// step of 2.5 would label counts 3 and 8.
 	const step = $derived.by(() => {
@@ -52,13 +58,16 @@
 		{#each totals as total, i (i)}
 			<span class="relative flex h-full min-w-0 flex-1 flex-col justify-end">
 				{#if !small && total && i === at && totals.length <= 16}
-					<span class="absolute digits text-[15px] leading-none whitespace-nowrap text-ink inset-x-[-8px] text-center" style:bottom="{(total / ceiling) * plot + 5}px"
+					<span class="absolute digits text-xs font-semibold leading-none whitespace-nowrap text-ink-2 inset-x-[-8px] text-center" style:bottom="{(total / ceiling) * plot + 5}px"
 						>{format(total)}</span
 					>
 				{/if}
-				{#if total}
+				{#if !total && i <= at && started >= 0 && i > started}
+					<!-- A week with nothing logged is a tick, so it reads as none, not as missing. -->
+					<span class="h-[1.5px] w-full self-center rounded-full bg-chart {small ? '' : 'max-w-12'}"></span>
+				{:else if total}
 					<span
-						class="flex w-full flex-col-reverse self-center overflow-hidden {small ? 'rounded-t-[2px]' : 'max-w-7 rounded-t-[4px]'}"
+						class="flex w-full flex-col-reverse self-center overflow-hidden {small ? 'rounded-t-[2px]' : 'max-w-12 rounded-t-[4px]'}"
 						style:height="{Math.max(2, (total / ceiling) * plot)}px"
 						style:gap={small ? '1px' : '2px'}
 					>

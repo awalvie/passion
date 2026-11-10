@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import type { Scale } from './grades';
-import { addDays } from './dates';
+import { addDays, mondayOf } from './dates';
 import {
 	bestSet,
 	setLines,
@@ -292,6 +292,25 @@ test('a custom span splits into months past 190 days', () => {
 	expect(months.buckets.at(-1)).toEqual({ from: '2026-10-01', to: '2026-10-31', tick: 'Oct' });
 });
 
+test('ten weeks start at the week of the first session', () => {
+	expect(readSpan('10w', today, cycles, addDays(today, -20)).from).toBe(mondayOf(addDays(today, -20)));
+	expect(readSpan('10w', today, cycles, addDays(today, -200)).from).toBe(tenWeeks(today).from);
+});
+
+test('ten weeks are left whole when the first session is not later than their start, or not yet', () => {
+	const ten = tenWeeks(today);
+	expect(readSpan('10w', today, cycles)).toEqual(ten);
+	expect(readSpan('10w', today, cycles, ten.from)).toEqual(ten);
+	expect(readSpan('10w', today, cycles, addDays(today, 5))).toEqual(ten);
+	const thisWeek = readSpan('10w', today, cycles, today);
+	expect([thisWeek.from, thisWeek.to]).toEqual([mondayOf(today), today]);
+});
+
+test('a URL naming no range, or one past the record, still starts at the first session for ten weeks', () => {
+	const first = addDays(today, -9);
+	for (const key of [null, '6m', '10w']) expect(readSpan(key, today, cycles, first).from).toBe(mondayOf(first));
+});
+
 test('readSpan falls back to ten weeks and stops a span at today', () => {
 	expect(readSpan(null, today, cycles).key).toBe('10w');
 	expect(readSpan('6m', today, cycles).key).toBe('10w');
@@ -400,7 +419,7 @@ test('trends compare the last four full weeks with the four before, and leave ou
 	expect(trends(runs, climbs, weeks, '2026-08-01', true).climbs).toMatchObject({ now: 0.5, then: 0.5 });
 	expect(t.sent).toMatchObject({ now: 50, then: 100 });
 	expect(t.flash).toMatchObject({ now: 50, then: 50 });
-	expect(t.flash.weeks).toEqual([100, null, null, 0, 100, null, null, 0]);
+	expect(t.flash.weeks).toEqual([100, 0, 0, 0, 100, 0, 0, 0]);
 });
 
 test('a trend has nothing to compare with when the first session falls inside its weeks', () => {
@@ -505,6 +524,23 @@ test('lifts follow each loaded exercise by its best set a session, the most done
 	expect(got[0].best.map((x) => x?.weight_kg ?? null)).toEqual([12.5, null, 15]);
 	expect(got[0].best[2]?.reps).toBe(5);
 	expect(got[0].latest.reps).toBe(3);
+});
+
+test('a lift trend is the best set of each session in its measure, in the order the sets come', () => {
+	const at = (run: string, local_date: string, s: Partial<SetFields>) =>
+		({ ...set(s), run, local_date, exercise: 'pull', step: 'pull', number: 1, name: 'pull', kind: 'reps_and_sets', tags: [] }) as DatedSet;
+	const [l] = lifts(
+		[
+			at('a', '2026-10-05', { reps: 5, weight_kg: 10 }),
+			at('a', '2026-10-05', { reps: 5, weight_kg: 12.5 }),
+			at('b', '2026-10-12', { reps: 5, weight_kg: 15 }),
+			at('c', '2026-10-19', { reps: 3, weight_kg: 12.5 })
+		],
+		[]
+	);
+	expect(l.trend).toEqual([12.5, 15, 12.5]);
+	expect(l.trend.length).toBe(l.sessions);
+	expect(l.change).toBe(0);
 });
 
 test('progressFrom keeps only a link to Progress', () => {
